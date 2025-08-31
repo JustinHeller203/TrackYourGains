@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrackYourGains</title>
+
+    <!-- ✅ Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="/src/style.css">
+
+    <!-- ✅ Theme Init: setzt Darkmode sofort -->
+    <script>
+        try {
+            const saved = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia &&
+                window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            const isDark = saved ? saved === 'dark' : prefersDark;
+            document.documentElement.classList.toggle('dark-mode', isDark);
+            // für native Elemente (Inputs, Scrollbar usw.)
+            document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+        } catch (e) {
+            console.warn('Theme Init Error:', e);
+        }
+    </script>
+</head>
+<body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

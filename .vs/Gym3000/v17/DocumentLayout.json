@@ -1,0 +1,798 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Users\\Justin\\source\\repos\\Gym3000\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Progress.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\Progress.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\ProteinCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\calculators\\ProteinCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\CaffeineSafeDoseCalculator.vue||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\calculators\\CaffeineSafeDoseCalculator.vue||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\CaloriesCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\calculators\\CaloriesCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\GlycemicLoadCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\calculators\\GlycemicLoadCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\BodyFatCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\calculators\\BodyFatCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\OneRmCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\calculators\\OneRmCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\WaterCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\calculators\\WaterCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\FfmiCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\calculators\\FfmiCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\BasePopup.vue||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\popups\\BasePopup.vue||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\BmiCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\calculators\\BmiCalculator.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Nutrition.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\Nutrition.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\WeightPopup.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\popups\\WeightPopup.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\GoalPopup.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\popups\\GoalPopup.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\ExportPopup.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\popups\\ExportPopup.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\DashboardCard.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\DashboardCard.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\TabsBar.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\TabsBar.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\Toast.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\Toast.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Training.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\Training.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Settings.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\Settings.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\charts\\ChartCard.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\ui\\charts\\ChartCard.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\App.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\App.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\MealEntry.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\MealEntry.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Dashboard.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\Dashboard.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\index.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\index.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\LandingPage.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\LandingPage.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\TrainingEntry.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\TrainingEntry.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\style.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\style.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\composables\\useTheme.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\composables\\useTheme.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\composables\\useUnits.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\composables\\useUnits.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Tutorials.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\Tutorials.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\router\\index.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\router\\index.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Training.vue.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Dashboard.vue.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\types\\Meal.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\types\\Meal.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000\\Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Gym3000\\Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\router\\index.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\main.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\main.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\vite-env.d.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\vite-env.d.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\types\\Workout.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\types\\Workout.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\types\\TrainingPlan.ts||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\types\\TrainingPlan.ts||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\vite.config.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\vite.config.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\LandingPage.vue.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\App.vue.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\tsconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\tsconfig.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\store\\gymStore.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\store\\gymStore.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\tsconfig.node.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\tsconfig.node.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 1,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedHeight": 350,
+          "SelectedChildIndex": 5,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ProteinCalculator.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\ProteinCalculator.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\ProteinCalculator.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\ProteinCalculator.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\calculators\\ProteinCalculator.vue",
+              "ViewState": "AgIAAIoAAAAAAAAAAAAAwJMAAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-30T22:16:28.919Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "BodyFatCalculator.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\BodyFatCalculator.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\BodyFatCalculator.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\BodyFatCalculator.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\calculators\\BodyFatCalculator.vue",
+              "ViewState": "AgIAAGcAAAAAAAAAAAAqwIMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-29T12:14:32.264Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "OneRmCalculator.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\OneRmCalculator.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\OneRmCalculator.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\OneRmCalculator.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\calculators\\OneRmCalculator.vue",
+              "ViewState": "AgIAACwBAAAAAAAAAAAqwF8BAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-29T12:11:42.797Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "CaloriesCalculator.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\CaloriesCalculator.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\CaloriesCalculator.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\CaloriesCalculator.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\calculators\\CaloriesCalculator.vue",
+              "ViewState": "AgIAAHwBAAAAAAAAAAAqwIABAAAoAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-29T11:59:27.978Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "BasePopup.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\BasePopup.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\popups\\BasePopup.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\BasePopup.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\popups\\BasePopup.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAIwAAAAyAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-28T18:24:48.604Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Progress.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Progress.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\pages\\Progress.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Progress.vue",
+              "RelativeToolTip": "clientapp\\src\\pages\\Progress.vue",
+              "ViewState": "AgIAABoBAAAAAAAAAAAcwCMBAABmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-05-24T13:17:05.311Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "GlycemicLoadCalculator.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\GlycemicLoadCalculator.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\GlycemicLoadCalculator.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\GlycemicLoadCalculator.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\calculators\\GlycemicLoadCalculator.vue",
+              "ViewState": "AgIAADEBAAAAAAAAAAAqwGQBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-30T22:46:39.079Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "CaffeineSafeDoseCalculator.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\CaffeineSafeDoseCalculator.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\CaffeineSafeDoseCalculator.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\CaffeineSafeDoseCalculator.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\calculators\\CaffeineSafeDoseCalculator.vue",
+              "ViewState": "AgIAADMBAAAAAAAAAAAQwFsBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-30T22:47:39.775Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "FfmiCalculator.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\FfmiCalculator.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\FfmiCalculator.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\FfmiCalculator.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\calculators\\FfmiCalculator.vue",
+              "ViewState": "AgIAACUBAAAAAAAAAAAqwFgBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-29T12:21:46.967Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "DashboardCard.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\DashboardCard.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\DashboardCard.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\DashboardCard.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\DashboardCard.vue",
+              "ViewState": "AgIAABcAAAAAAAAAAAAqwEoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-28T18:14:00.445Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "WaterCalculator.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\WaterCalculator.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\WaterCalculator.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\WaterCalculator.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\calculators\\WaterCalculator.vue",
+              "ViewState": "AgIAACgBAAAAAAAAAAAqwDEBAAAnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-29T12:26:05.135Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "Toast.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\Toast.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\Toast.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\Toast.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\Toast.vue",
+              "ViewState": "AgIAAIgAAAAAAAAAAAAqwJcAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-28T17:08:32.169Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Nutrition.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Nutrition.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\pages\\Nutrition.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Nutrition.vue",
+              "RelativeToolTip": "clientapp\\src\\pages\\Nutrition.vue",
+              "ViewState": "AgIAAOQAAAAAAAAAAAAmwPgAAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-05-24T13:16:56.315Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "TabsBar.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\TabsBar.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\TabsBar.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\TabsBar.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\TabsBar.vue",
+              "ViewState": "AgIAADoAAAAAAAAAAAAqwFIAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-28T20:38:46.529Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "ExportPopup.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\ExportPopup.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\popups\\ExportPopup.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\ExportPopup.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\popups\\ExportPopup.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-28T18:27:07.806Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "GoalPopup.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\GoalPopup.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\popups\\GoalPopup.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\GoalPopup.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\popups\\GoalPopup.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACwAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-28T18:26:52.759Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "WeightPopup.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\WeightPopup.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\popups\\WeightPopup.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\WeightPopup.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\popups\\WeightPopup.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-28T18:25:53.246Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "BmiCalculator.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\BmiCalculator.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\BmiCalculator.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\BmiCalculator.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\calculators\\BmiCalculator.vue",
+              "ViewState": "AgIAAEwBAAAAAAAAAAAqwH8BAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-28T20:59:13.784Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "Training.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Training.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\pages\\Training.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Training.vue",
+              "RelativeToolTip": "clientapp\\src\\pages\\Training.vue",
+              "ViewState": "AgIAAMILAAAAAAAAAAAAAN0LAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-05-24T13:16:41.976Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "Settings.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Settings.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\pages\\Settings.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Settings.vue",
+              "RelativeToolTip": "clientapp\\src\\pages\\Settings.vue",
+              "ViewState": "AgIAADEAAAAAAAAAAAAAAFEAAAAzAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-05-24T13:17:13.967Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "ChartCard.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\charts\\ChartCard.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\charts\\ChartCard.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\charts\\ChartCard.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\ui\\charts\\ChartCard.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAG0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-08-28T20:39:33.78Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "App.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\App.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\App.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\App.vue",
+              "RelativeToolTip": "clientapp\\src\\App.vue",
+              "ViewState": "AgIAAOgBAAAAAAAAAAAAAOsBAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-05-24T13:16:24.9Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "MealEntry.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\MealEntry.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\MealEntry.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\MealEntry.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\MealEntry.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHUAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-05-24T13:43:21.867Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "Dashboard.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Dashboard.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\pages\\Dashboard.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Dashboard.vue",
+              "RelativeToolTip": "clientapp\\src\\pages\\Dashboard.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-05-24T13:16:01.22Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "index.ts",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\index.ts",
+              "RelativeDocumentMoniker": "clientapp\\src\\pages\\index.ts",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\index.ts",
+              "RelativeToolTip": "clientapp\\src\\pages\\index.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-08-28T16:53:51.815Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "style.css",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\style.css",
+              "RelativeDocumentMoniker": "clientapp\\src\\style.css",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\style.css",
+              "RelativeToolTip": "clientapp\\src\\style.css",
+              "ViewState": "AgIAAFcAAAAAAAAAAAAAAAYAAAAcAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2025-05-29T20:50:23.678Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "TrainingEntry.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\TrainingEntry.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\components\\TrainingEntry.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\TrainingEntry.vue",
+              "RelativeToolTip": "clientapp\\src\\components\\TrainingEntry.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-05-24T13:20:09.647Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "LandingPage.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\LandingPage.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\pages\\LandingPage.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\LandingPage.vue",
+              "RelativeToolTip": "clientapp\\src\\pages\\LandingPage.vue",
+              "ViewState": "AgIAAH8BAAAAAAAAAAAqwLIBAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-05-24T13:48:22.077Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 34,
+              "Title": "Dashboard.vue.js",
+              "DocumentMoniker": "C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Dashboard.vue.js",
+              "ToolTip": "C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Dashboard.vue.js",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-05-30T19:22:13.163Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "useUnits.ts",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\composables\\useUnits.ts",
+              "RelativeDocumentMoniker": "clientapp\\src\\composables\\useUnits.ts",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\composables\\useUnits.ts",
+              "RelativeToolTip": "clientapp\\src\\composables\\useUnits.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-08-23T15:49:21.147Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "index.html",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\index.html",
+              "RelativeDocumentMoniker": "clientapp\\index.html",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\index.html",
+              "RelativeToolTip": "clientapp\\index.html",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
+              "WhenOpened": "2025-05-24T13:36:32.555Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 39,
+              "Title": "vite-env.d.ts",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\vite-env.d.ts",
+              "RelativeDocumentMoniker": "clientapp\\src\\vite-env.d.ts",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\vite-env.d.ts",
+              "RelativeToolTip": "clientapp\\src\\vite-env.d.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-05-24T14:30:57.337Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 35,
+              "Title": "Meal.ts",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\types\\Meal.ts",
+              "RelativeDocumentMoniker": "clientapp\\src\\types\\Meal.ts",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\types\\Meal.ts",
+              "RelativeToolTip": "clientapp\\src\\types\\Meal.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-05-24T14:35:19.435Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 41,
+              "Title": "TrainingPlan.ts",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\types\\TrainingPlan.ts",
+              "RelativeDocumentMoniker": "clientapp\\src\\types\\TrainingPlan.ts",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\types\\TrainingPlan.ts",
+              "RelativeToolTip": "clientapp\\src\\types\\TrainingPlan.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-05-24T14:35:31.61Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 45,
+              "Title": "tsconfig.json",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\tsconfig.json",
+              "RelativeDocumentMoniker": "clientapp\\tsconfig.json",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\tsconfig.json",
+              "RelativeToolTip": "clientapp\\tsconfig.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-05-25T15:38:54.234Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 31,
+              "Title": "Tutorials.vue",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Tutorials.vue",
+              "RelativeDocumentMoniker": "clientapp\\src\\pages\\Tutorials.vue",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Tutorials.vue",
+              "RelativeToolTip": "clientapp\\src\\pages\\Tutorials.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2025-05-24T14:36:51.489Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "useTheme.ts",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\composables\\useTheme.ts",
+              "RelativeDocumentMoniker": "clientapp\\src\\composables\\useTheme.ts",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\composables\\useTheme.ts",
+              "RelativeToolTip": "clientapp\\src\\composables\\useTheme.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACAAAABGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-08-26T22:21:32.801Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 44,
+              "Title": "App.vue.js",
+              "DocumentMoniker": "C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\App.vue.js",
+              "ToolTip": "C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\App.vue.js",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-05-29T18:29:22.007Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 43,
+              "Title": "LandingPage.vue.js",
+              "DocumentMoniker": "C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\LandingPage.vue.js",
+              "ToolTip": "C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\LandingPage.vue.js",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-05-29T21:04:23.727Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 37,
+              "Title": "index.js",
+              "DocumentMoniker": "C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\router\\index.js",
+              "ToolTip": "C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\router\\index.js",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-05-30T19:21:05.479Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 33,
+              "Title": "Training.vue.js",
+              "DocumentMoniker": "C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Training.vue.js",
+              "ToolTip": "C:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Training.vue.js",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-05-30T19:38:54.573Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 47,
+              "Title": "tsconfig.node.json",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\tsconfig.node.json",
+              "RelativeDocumentMoniker": "clientapp\\tsconfig.node.json",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\tsconfig.node.json",
+              "RelativeToolTip": "clientapp\\tsconfig.node.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-05-24T13:32:39.338Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 40,
+              "Title": "Workout.ts",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\types\\Workout.ts",
+              "RelativeDocumentMoniker": "clientapp\\src\\types\\Workout.ts",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\types\\Workout.ts",
+              "RelativeToolTip": "clientapp\\src\\types\\Workout.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-05-24T13:31:32.866Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 42,
+              "Title": "vite.config.ts",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\vite.config.ts",
+              "RelativeDocumentMoniker": "clientapp\\vite.config.ts",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\vite.config.ts",
+              "RelativeToolTip": "clientapp\\vite.config.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-05-24T13:24:13.604Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 38,
+              "Title": "main.ts",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\main.ts",
+              "RelativeDocumentMoniker": "clientapp\\src\\main.ts",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\main.ts",
+              "RelativeToolTip": "clientapp\\src\\main.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-05-24T13:17:58.987Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 46,
+              "Title": "gymStore.ts",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\store\\gymStore.ts",
+              "RelativeDocumentMoniker": "clientapp\\src\\store\\gymStore.ts",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\store\\gymStore.ts",
+              "RelativeToolTip": "clientapp\\src\\store\\gymStore.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACEAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-05-24T13:17:34.716Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 32,
+              "Title": "index.ts",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\router\\index.ts",
+              "RelativeDocumentMoniker": "clientapp\\src\\router\\index.ts",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\router\\index.ts",
+              "RelativeToolTip": "clientapp\\src\\router\\index.ts",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2025-05-24T13:14:45.006Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 36,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000\\Program.cs",
+              "RelativeDocumentMoniker": "Gym3000\\Program.cs",
+              "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000\\Program.cs",
+              "RelativeToolTip": "Gym3000\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-24T10:20:50.576Z"
+            }
+          ]
+        },
+        {
+          "DockedHeight": 22,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{4a8466fe-5a05-4f81-ad45-7d7c1316817e}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:4:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:5:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
