@@ -3,6 +3,14 @@
   "WorkspaceRootPath": "D:\\Users\\Justin\\source\\repos\\Gym3000\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\style.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\style.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\LandingPage.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\LandingPage.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Progress.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\Progress.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
@@ -103,16 +111,8 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\index.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\LandingPage.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\pages\\LandingPage.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\TrainingEntry.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\components\\TrainingEntry.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\style.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:clientapp\\src\\style.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\composables\\useTheme.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
@@ -197,11 +197,11 @@
       "DocumentGroups": [
         {
           "DockedHeight": 350,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 25,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "ProteinCalculator.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\ProteinCalculator.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\ProteinCalculator.vue",
@@ -213,7 +213,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "BodyFatCalculator.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\BodyFatCalculator.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\BodyFatCalculator.vue",
@@ -225,7 +225,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 8,
               "Title": "OneRmCalculator.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\OneRmCalculator.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\OneRmCalculator.vue",
@@ -237,7 +237,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
               "Title": "CaloriesCalculator.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\CaloriesCalculator.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\CaloriesCalculator.vue",
@@ -249,7 +249,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 11,
               "Title": "BasePopup.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\BasePopup.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\popups\\BasePopup.vue",
@@ -261,20 +261,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "Progress.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Progress.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\pages\\Progress.vue",
               "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Progress.vue",
               "RelativeToolTip": "clientapp\\src\\pages\\Progress.vue",
-              "ViewState": "AgIAABoBAAAAAAAAAAAcwCsBAABMAAAAAAAAAA==",
+              "ViewState": "AgIAABoBAAAAAAAAAAAcwCMBAABmAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
               "WhenOpened": "2025-05-24T13:17:05.311Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 6,
               "Title": "GlycemicLoadCalculator.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\GlycemicLoadCalculator.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\GlycemicLoadCalculator.vue",
@@ -286,7 +286,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "CaffeineSafeDoseCalculator.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\CaffeineSafeDoseCalculator.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\CaffeineSafeDoseCalculator.vue",
@@ -298,7 +298,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 10,
               "Title": "FfmiCalculator.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\FfmiCalculator.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\FfmiCalculator.vue",
@@ -310,7 +310,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 17,
               "Title": "DashboardCard.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\DashboardCard.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\DashboardCard.vue",
@@ -322,7 +322,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 9,
               "Title": "WaterCalculator.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\WaterCalculator.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\WaterCalculator.vue",
@@ -334,7 +334,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 19,
               "Title": "Toast.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\Toast.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\Toast.vue",
@@ -346,7 +346,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 13,
               "Title": "Nutrition.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Nutrition.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\pages\\Nutrition.vue",
@@ -358,7 +358,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 18,
               "Title": "TabsBar.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\TabsBar.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\TabsBar.vue",
@@ -370,7 +370,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 16,
               "Title": "ExportPopup.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\ExportPopup.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\popups\\ExportPopup.vue",
@@ -382,7 +382,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 15,
               "Title": "GoalPopup.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\GoalPopup.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\popups\\GoalPopup.vue",
@@ -394,7 +394,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 14,
               "Title": "WeightPopup.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\popups\\WeightPopup.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\popups\\WeightPopup.vue",
@@ -406,7 +406,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 12,
               "Title": "BmiCalculator.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\calculators\\BmiCalculator.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\calculators\\BmiCalculator.vue",
@@ -418,7 +418,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 20,
               "Title": "Training.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Training.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\pages\\Training.vue",
@@ -430,7 +430,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 21,
               "Title": "Settings.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Settings.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\pages\\Settings.vue",
@@ -442,7 +442,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 22,
               "Title": "ChartCard.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\ui\\charts\\ChartCard.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\ui\\charts\\ChartCard.vue",
@@ -454,7 +454,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 21,
+              "DocumentIndex": 23,
               "Title": "App.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\App.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\App.vue",
@@ -466,7 +466,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 22,
+              "DocumentIndex": 24,
               "Title": "MealEntry.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\MealEntry.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\MealEntry.vue",
@@ -478,7 +478,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 23,
+              "DocumentIndex": 25,
               "Title": "Dashboard.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Dashboard.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\pages\\Dashboard.vue",
@@ -490,7 +490,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 24,
+              "DocumentIndex": 26,
               "Title": "index.ts",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\index.ts",
               "RelativeDocumentMoniker": "clientapp\\src\\pages\\index.ts",
@@ -502,19 +502,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 27,
+              "DocumentIndex": 0,
               "Title": "style.css",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\style.css",
               "RelativeDocumentMoniker": "clientapp\\src\\style.css",
               "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\style.css",
               "RelativeToolTip": "clientapp\\src\\style.css",
-              "ViewState": "AgIAAFcAAAAAAAAAAAAAAAYAAAAcAAAAAAAAAA==",
+              "ViewState": "AgIAAJ4AAAAAAAAAAAAAwLcAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-05-29T20:50:23.678Z"
+              "WhenOpened": "2025-05-29T20:50:23.678Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 26,
+              "DocumentIndex": 27,
               "Title": "TrainingEntry.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\components\\TrainingEntry.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\components\\TrainingEntry.vue",
@@ -526,15 +527,16 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 25,
+              "DocumentIndex": 1,
               "Title": "LandingPage.vue",
               "DocumentMoniker": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\LandingPage.vue",
               "RelativeDocumentMoniker": "clientapp\\src\\pages\\LandingPage.vue",
               "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\LandingPage.vue",
               "RelativeToolTip": "clientapp\\src\\pages\\LandingPage.vue",
-              "ViewState": "AgIAAH8BAAAAAAAAAAAqwLIBAAAIAAAAAAAAAA==",
+              "ViewState": "AgIAALIBAAAAAAAAAAAAALIBAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
-              "WhenOpened": "2025-05-24T13:48:22.077Z"
+              "WhenOpened": "2025-05-24T13:48:22.077Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",

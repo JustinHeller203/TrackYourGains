@@ -1,6 +1,60 @@
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { jsPDF } from 'jspdf';
-// Refs
+import Draggable from 'vuedraggable';
+import Toast from '@/components/ui/Toast.vue';
+const props = defineProps();
+const positionClass = computed(() => {
+    switch (props.position) {
+        case 'top-left': return 'pos-top-left';
+        case 'top-right': return 'pos-top-right';
+        case 'bottom-left': return 'pos-bottom-left';
+        default: return 'pos-bottom-right';
+    }
+});
+const emit = defineEmits();
+const dismissToast = () => {
+    if (!toast.value)
+        return;
+    toast.value.exiting = true;
+    setTimeout(() => { toast.value = null; }, 300); // passt zur .toast-exit Animation
+};
+const favoriteTimerItems = computed({
+    get() {
+        return props.timers.filter(t => t.isFavorite);
+    },
+    set(newFavs) {
+        const others = props.timers.filter(t => !t.isFavorite);
+        emit('reorder-timers', [...newFavs, ...others]);
+    }
+});
+const otherTimerItems = computed({
+    get() {
+        return props.timers.filter(t => !t.isFavorite);
+    },
+    set(newOthers) {
+        const favs = props.timers.filter(t => t.isFavorite);
+        emit('reorder-timers', [...favs, ...newOthers]);
+    }
+});
+const favoriteStopwatchItems = computed({
+    get() {
+        return props.stopwatches.filter(s => s.isFavorite);
+    },
+    set(newFavs) {
+        const others = props.stopwatches.filter(s => !s.isFavorite);
+        emit('reorder-stopwatches', [...newFavs, ...others]);
+    }
+});
+const otherStopwatchItems = computed({
+    get() {
+        return props.stopwatches.filter(s => !s.isFavorite);
+    },
+    set(newOthers) {
+        const favs = props.stopwatches.filter(s => s.isFavorite);
+        emit('reorder-stopwatches', [...favs, ...newOthers]);
+    }
+});
+// Refs (bleiben größtenteils unverändert)
 const plans = ref([]);
 const favoritePlans = ref([]);
 const planName = ref('');
@@ -42,10 +96,6 @@ const exerciseFilter = ref('');
 const trainingGoals = ref(['Muskelaufbau', 'Abnehmen', 'Ausdauer', 'Kraft']);
 const selectedGoal = ref('');
 const showExtras = ref(false);
-const timers = ref([]);
-const stopwatches = ref([]);
-const isTimerSticky = ref(false);
-const isStopwatchSticky = ref(false);
 const columnWidths = ref([50, 25, 25]);
 const rowHeights = ref([]);
 const planSearch = ref('');
@@ -61,8 +111,15 @@ const exerciseEditIndex = ref(null);
 const exerciseEditField = ref(null);
 const customExercises = ref([]);
 const toast = ref(null);
+const timerObservers = new Map();
 let toastId = 0;
 let toastTimeout = null;
+const deleteConfirmButton = ref(null);
+const isTimerSticky = ref(false); // Hinzugefügt für Sticky-Logik
+const isStopwatchSticky = ref(false); // Hinzugefügt für Sticky-Logik
+const resizeTable = ref(null);
+const prevTimes = new Map();
+const finishedOnce = new Set();
 const audioPaths = {
     standard: '/sounds/standard.mp3',
     alarm: '/sounds/alarm.mp3',
@@ -70,6 +127,7 @@ const audioPaths = {
     dong: '/sounds/dong.mp3',
     decide: '/sounds/decide.mp3'
 };
+// Funktionen (weitgehend unverändert, nur relevante Änderungen)
 const sendNotification = (title, body) => {
     if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(title, { body });
@@ -87,7 +145,37 @@ const requestNotificationPermission = () => {
         });
     }
 };
-// Computed properties
+const favoritePlanItems = computed({
+    get() {
+        const map = new Map(plans.value.map(p => [p.id, p]));
+        return favoritePlans.value.map(id => map.get(id)).filter(Boolean);
+    },
+    set(newArr) {
+        favoritePlans.value = newArr.map(p => p.id);
+        saveToStorage();
+    }
+});
+const otherPlanItems = computed({
+    get() {
+        const fav = new Set(favoritePlans.value);
+        return plans.value.filter(p => !fav.has(p.id));
+    },
+    set(newArr) {
+        const fav = new Set(favoritePlans.value);
+        const favs = plans.value.filter(p => fav.has(p.id));
+        plans.value = [...favs, ...newArr];
+        saveToStorage();
+    }
+});
+const filteredFavoritePlans = computed(() => {
+    const q = planSearch.value.toLowerCase().trim();
+    return favoritePlanItems.value.filter(p => p.name.toLowerCase().includes(q) || p.exercises.some(ex => ex.goal?.toLowerCase().includes(q)));
+});
+const filteredOtherPlans = computed(() => {
+    const q = planSearch.value.toLowerCase().trim();
+    return otherPlanItems.value.filter(p => p.name.toLowerCase().includes(q) || p.exercises.some(ex => ex.goal?.toLowerCase().includes(q)));
+});
+// Computed properties (unverändert)
 const filteredPlans = computed(() => {
     const searchTerm = planSearch.value.toLowerCase();
     return sortedPlans.value.filter(plan => {
@@ -133,7 +221,7 @@ const editPopupTitle = computed(() => {
     return 'Bearbeiten';
 });
 const editInputType = computed(() => {
-    if (editCellIndex.value === 0 || editType.value === 'planName' || editType.value === 'selectedPlanName' || editType.value === 'timerName' || editType.value === 'stopwatchName' || editType.value === 'customExerciseName' || editType.value === 'customExerciseMuscle')
+    if (editType.value === 'planName' || editType.value === 'selectedPlanName' || editType.value === 'timerName' || editType.value === 'stopwatchName' || editType.value === 'customExerciseName' || editType.value === 'customExerciseMuscle')
         return 'text';
     return 'number';
 });
@@ -157,14 +245,36 @@ const editPlaceholder = computed(() => {
     return 'Neuer Wert';
 });
 const sortedPlans = computed(() => {
+    const order = new Map(favoritePlans.value.map((id, i) => [id, i]));
     return [...plans.value].sort((a, b) => {
-        const aIsFavorite = favoritePlans.value.includes(a.id);
-        const bIsFavorite = favoritePlans.value.includes(b.id);
-        if (aIsFavorite && !bIsFavorite)
+        const aFav = order.has(a.id);
+        const bFav = order.has(b.id);
+        if (aFav && !bFav)
             return -1;
-        if (!aIsFavorite && bIsFavorite)
+        if (!aFav && bFav)
             return 1;
+        if (aFav && bFav)
+            return order.get(a.id) - order.get(b.id);
         return a.name.localeCompare(b.name);
+    });
+});
+const sortedTimers = computed(() => {
+    return [...props.timers].sort((a, b) => {
+        if (a.isFavorite && !b.isFavorite)
+            return -1;
+        if (!a.isFavorite && b.isFavorite)
+            return 1;
+        return (a.name || '').localeCompare(b.name || '');
+    });
+});
+// Stoppuhren sortieren: Favoriten zuerst, dann Name
+const sortedStopwatches = computed(() => {
+    return [...props.stopwatches].sort((a, b) => {
+        if (a.isFavorite && !b.isFavorite)
+            return -1;
+        if (!a.isFavorite && b.isFavorite)
+            return 1;
+        return (a.name || '').localeCompare(b.name || '');
     });
 });
 const formatTimerDisplay = (time) => {
@@ -189,8 +299,6 @@ const loadFromStorage = () => {
             customExercises.value = Array.isArray(parsed.customExercises)
                 ? parsed.customExercises.filter(ex => ex && typeof ex === 'object' && typeof ex.name === 'string' && typeof ex.muscle === 'string')
                 : [];
-            timers.value = Array.isArray(parsed.timers) ? parsed.timers.map((t) => ({ ...t, interval: null, isRunning: false })) : [];
-            stopwatches.value = Array.isArray(parsed.stopwatches) ? parsed.stopwatches.map((s) => ({ ...s, interval: null, isRunning: false })) : [];
         }
     }
     catch (e) {
@@ -198,8 +306,6 @@ const loadFromStorage = () => {
         plans.value = [];
         favoritePlans.value = [];
         customExercises.value = [];
-        timers.value = [];
-        stopwatches.value = [];
         addToast('Fehler beim Laden der Daten', 'delete');
     }
 };
@@ -208,9 +314,7 @@ const saveToStorage = () => {
         const data = {
             plans: plans.value,
             favoritePlans: favoritePlans.value,
-            customExercises: customExercises.value,
-            timers: timers.value.map(t => ({ ...t, interval: null, isRunning: false })),
-            stopwatches: stopwatches.value.map(s => ({ ...s, interval: null, isRunning: false }))
+            customExercises: customExercises.value
         };
         localStorage.setItem('trainingData', JSON.stringify(data));
     }
@@ -301,7 +405,7 @@ const collectValidationErrors = () => {
 };
 const openValidationPopup = (errors) => {
     console.log('openValidationPopup aufgerufen mit Fehlern:', errors);
-    validationErrorMessages.value = errors;
+    validationErrorMessages.value = Array.isArray(errors) ? errors : [errors];
     showValidationPopup.value = true;
     nextTick(() => {
         if (validationOkButton.value) {
@@ -315,19 +419,40 @@ const closeValidationPopup = () => {
     validationErrorMessages.value = [];
 };
 const toggleFavoritePlan = (planId) => {
-    if (favoritePlans.value.includes(planId)) {
-        favoritePlans.value = favoritePlans.value.filter(id => id !== planId);
+    const idx = favoritePlans.value.indexOf(planId);
+    if (idx !== -1) {
+        favoritePlans.value.splice(idx, 1);
         addToast('Plan aus Favoriten entfernt', 'delete');
     }
     else {
-        favoritePlans.value.push(planId);
+        // Neueste Favoriten zuerst
+        favoritePlans.value = [planId, ...favoritePlans.value.filter(id => id !== planId)];
         addToast('Plan zu Favoriten hinzugefügt', 'add');
     }
     saveToStorage();
 };
 const createOrUpdatePlan = () => {
     const validatedPlanName = validatePlanName(planName.value);
-    if (validatedPlanName === false || !selectedPlanExercises.value.length) {
+    if (editingPlanId.value && selectedPlanExercises.value.length === 0) {
+        plans.value = plans.value.filter(p => p.id !== editingPlanId.value);
+        favoritePlans.value = favoritePlans.value.filter(id => id !== editingPlanId.value);
+        if (selectedPlan.value?.id === editingPlanId.value) {
+            selectedPlan.value = null;
+        }
+        saveToStorage();
+        addToast('Trainingsplan gelöscht, da keine Übungen vorhanden', 'delete');
+        planName.value = '';
+        newExercise.value = '';
+        customPlanExercise.value = '';
+        newReps.value = null;
+        newSets.value = null;
+        selectedGoal.value = '';
+        selectedPlanExercises.value = [];
+        rowHeights.value = [];
+        editingPlanId.value = null;
+        return;
+    }
+    if (validatedPlanName === false || (!editingPlanId.value && !selectedPlanExercises.value.length)) {
         const errors = [];
         if (validatedPlanName === false) {
             errors.push(planName.value.trim().length < 3
@@ -347,10 +472,14 @@ const createOrUpdatePlan = () => {
     };
     if (editingPlanId.value) {
         const index = plans.value.findIndex(p => p.id === editingPlanId.value);
-        if (index !== -1)
+        if (index !== -1) {
             plans.value[index] = plan;
-        addToast('Plan gespeichert', 'save');
-        editingPlanId.value = null;
+            if (selectedPlan.value?.id === editingPlanId.value) {
+                selectedPlan.value = { ...plan };
+            }
+            addToast('Plan gespeichert', 'save');
+            editingPlanId.value = null;
+        }
     }
     else {
         plans.value.push(plan);
@@ -397,9 +526,22 @@ const addExerciseToPlan = () => {
     selectedGoal.value = '';
 };
 const removeExerciseFromPlan = (index) => {
-    selectedPlanExercises.value.splice(index, 1);
-    rowHeights.value.splice(index, 1);
-    addToast('Übung entfernt', 'delete');
+    if (index < 0 || index >= selectedPlanExercises.value.length) {
+        addToast('Ungültiger Übungsindex', 'delete');
+        return;
+    }
+    openDeletePopup(() => {
+        selectedPlanExercises.value.splice(index, 1);
+        rowHeights.value.splice(index, 1);
+        if (editingPlanId.value) {
+            const planIndex = plans.value.findIndex(p => p.id === editingPlanId.value);
+            if (planIndex !== -1) {
+                plans.value[planIndex].exercises = [...selectedPlanExercises.value];
+                saveToStorage();
+            }
+        }
+        addToast('Übung gelöscht', 'delete');
+    });
 };
 const editPlan = (planId) => {
     const plan = plans.value.find(p => p.id === planId);
@@ -408,6 +550,7 @@ const editPlan = (planId) => {
         selectedPlanExercises.value = [...plan.exercises];
         editingPlanId.value = planId;
         rowHeights.value = Array(plan.exercises.length).fill(40);
+        selectedPlan.value = { ...plan };
         addToast('Plan wird bearbeitet', 'save');
     }
     else {
@@ -459,41 +602,41 @@ const confirmDownload = () => {
     const title = goal ? `${plan.name}` : plan.name;
     if (downloadFormat.value === 'html') {
         const htmlContent = `
-            <!DOCTYPE html>
-            <html lang="de">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>${title}</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
-                        h1 { color: #4B6CB7; text-align: left; }
-                        table { width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin: 20px 0; }
-                        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-                        th { background: #333; color: #ffffff; }
-                        tr:nth-child(even) { background: #f9fafb; }
-                        tr:hover { background: #e2e8f0; }
-                        td { color: #4b5563; }
-                    </style>
-                </head>
-                <body>
-                    <h1>${title}</h1>
-                    <table>
-                        <tr>
-                            <th>Übung</th>
-                            <th>Sätze</th>
-                            <th>Wiederholungen</th>
-                        </tr>
-                        ${plan.exercises.map(ex => `
-                            <tr>
-                                <td>${ex.exercise}</td>
-                                <td>${ex.sets}</td>
-                                <td>${ex.reps}</td>
-                            </tr>
-                        `).join('')}
-                    </table>
-                </body>
-            </html>
-        `;
+      <!DOCTYPE html>
+      <html lang="de">
+        <head>
+          <meta charset="UTF-8">
+          <title>${title}</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+            h1 { color: #4B6CB7; text-align: left; }
+            table { width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin: 20px 0; }
+            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+            th { background: #333; color: #ffffff; }
+            tr:nth-child(even) { background: #f9fafb; }
+            tr:hover { background: #e2e8f0; }
+            td { color: #4b5563; }
+          </style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          <table>
+            <tr>
+              <th>Übung</th>
+              <th>Sätze</th>
+              <th>Wiederholungen</th>
+            </tr>
+            ${plan.exercises.map(ex => `
+              <tr>
+                <td>${ex.exercise}</td>
+                <td>${ex.sets}</td>
+                <td>${ex.reps}</td>
+              </tr>
+            `).join('')}
+          </table>
+        </body>
+      </html>
+    `;
         const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -553,47 +696,59 @@ const closeAddTimerPopup = () => {
     showAddTimerPopup.value = false;
     newTimerName.value = '';
 };
-const addTimer = () => {
+const addTimer = async () => {
     console.log('addTimer aufgerufen mit Name:', newTimerName.value);
     const newTimer = {
         id: Date.now().toString(),
-        name: newTimerName.value.trim(), // Korrektur: Keine Validierung, nur trimmen
+        name: newTimerName.value.trim() || 'Timer',
         seconds: '60',
         customSeconds: null,
         time: 60,
         isRunning: false,
         interval: null,
         isFavorite: false,
-        sound: 'standard'
+        sound: 'standard',
+        isVisible: true,
+        shouldStaySticky: false
     };
-    timers.value.push(newTimer);
+    emit('add-timer', newTimer);
     addToast('Timer hinzugefügt', 'add');
-    saveToStorage();
     closeAddTimerPopup();
+    await nextTick();
+    console.log('Nach addTimer, aktuelle timers:', props.timers);
 };
 const openDeleteTimerPopup = (id) => {
-    if (timers.value.length <= 1) {
+    console.log('openDeleteTimerPopup aufgerufen mit ID:', id);
+    if (props.timers.length <= 1) {
         openValidationPopup(['Mindestens ein Timer muss geöffnet bleiben']);
         return;
     }
-    openDeletePopup(() => removeTimer(id));
-};
-const removeTimer = (id) => {
-    const timer = timers.value.find(t => t.id === id);
-    if (timer?.interval)
-        clearInterval(timer.interval);
-    timers.value = timers.value.filter(t => t.id !== id);
-    addToast('Timer entfernt', 'timer');
-    saveToStorage();
+    openDeletePopup(async () => {
+        console.log('Löschaktion ausführen für Timer ID:', id);
+        const timer = props.timers.find(t => t.id === id);
+        if (timer) {
+            timer.shouldStaySticky = false;
+            if (timer.isRunning && timer.interval) {
+                clearInterval(timer.interval);
+                timer.interval = null;
+                timer.isRunning = false;
+            }
+        }
+        emit('remove-timer', id);
+        addToast('Timer gelöscht', 'delete');
+        await nextTick();
+        console.log('Nach removeTimer, aktuelle timers:', props.timers);
+    });
 };
 const toggleFavoriteTimer = (id) => {
-    const timer = timers.value.find(t => t.id === id);
+    const timer = props.timers.find(t => t.id === id);
     if (timer) {
         timer.isFavorite = !timer.isFavorite;
-        addToast(timer.isFavorite ? 'Timer zu Favoriten hinzugefügt' : 'Timer aus Favoriten entfernt', // Korrektur: Angepasste Nachrichten
-        timer.isFavorite ? 'add' : 'delete' // Korrektur: Typen an Stoppuhr angepasst
-        );
-        saveToStorage();
+        // nach oben einsortieren
+        const favs = props.timers.filter(t => t.isFavorite);
+        const others = props.timers.filter(t => !t.isFavorite);
+        emit('reorder-timers', [...favs, ...others]);
+        addToast(timer.isFavorite ? 'Timer zu Favoriten hinzugefügt' : 'Timer aus Favoriten entfernt', timer.isFavorite ? 'add' : 'delete');
     }
 };
 const openAddStopwatchPopup = () => {
@@ -606,14 +761,12 @@ const openAddStopwatchPopup = () => {
 };
 const closeAddStopwatchPopup = () => {
     showAddStopwatchPopup.value = false;
-    newStopwatchName.value = ''; // Korrektur: Tippfehler behoben
+    newStopwatchName.value = '';
 };
-const addStopwatch = () => {
-    console.log('addStopwatch aufgerufen mit Name:', newStopwatchName.value);
+const addStopwatch = async () => {
     const validatedName = validateStopwatchName(newStopwatchName.value);
     if (typeof validatedName !== 'string') {
         openValidationPopup([validatedName]);
-        console.error('Stoppuhr Validierungsfehler:', validatedName);
         return;
     }
     const newStopwatch = {
@@ -623,122 +776,71 @@ const addStopwatch = () => {
         isRunning: false,
         interval: null,
         laps: [],
-        isFavorite: false
+        isFavorite: false,
+        isVisible: true,
+        shouldStaySticky: false
     };
-    stopwatches.value.push(newStopwatch);
+    emit('add-stopwatch', newStopwatch);
     addToast('Stoppuhr hinzugefügt', 'add');
-    saveToStorage();
     closeAddStopwatchPopup();
+    await nextTick();
+    console.log('Nach addStopwatch, aktuelle stopwatches:', props.stopwatches);
 };
 const openDeleteStopwatchPopup = (id) => {
-    if (stopwatches.value.length <= 1) {
+    console.log('openDeleteStopwatchPopup aufgerufen mit ID:', id);
+    if (props.stopwatches.length <= 1) {
         openValidationPopup(['Mindestens eine Stoppuhr muss geöffnet bleiben']);
         return;
     }
-    openDeletePopup(() => removeStopwatch(id));
-};
-const removeStopwatch = (id) => {
-    const stopwatch = stopwatches.value.find(s => s.id === id);
-    if (stopwatch?.interval)
-        clearInterval(stopwatch.interval);
-    stopwatches.value = stopwatches.value.filter(s => s.id !== id);
-    addToast('Stoppuhr entfernt', 'timer');
-    saveToStorage();
+    openDeletePopup(async () => {
+        console.log('Löschaktion ausführen für Stoppuhr ID:', id);
+        const stopwatch = props.stopwatches.find(sw => sw.id === id);
+        if (stopwatch) {
+            stopwatch.shouldStaySticky = false;
+            if (stopwatch.isRunning && stopwatch.interval) {
+                clearInterval(stopwatch.interval);
+                stopwatch.interval = null;
+                stopwatch.isRunning = false;
+            }
+        }
+        emit('remove-stopwatch', id);
+        addToast('Stoppuhr gelöscht', 'delete');
+        await nextTick();
+        console.log('Nach removeStopwatch, aktuelle stopwatches:', props.stopwatches);
+    });
 };
 const toggleFavoriteStopwatch = (id) => {
-    const stopwatch = stopwatches.value.find(s => s.id === id);
-    if (stopwatch) {
-        stopwatch.isFavorite = !stopwatch.isFavorite;
-        addToast(stopwatch.isFavorite ? 'Stoppuhr zu Favoriten hinzugefügt' : 'Stoppuhr aus Favoriten entfernt', stopwatch.isFavorite ? 'add' : 'delete' // Korrektur: Typ 'delete'
-        );
-        saveToStorage();
+    const s = props.stopwatches.find(x => x.id === id);
+    if (s) {
+        s.isFavorite = !s.isFavorite;
+        const favs = props.stopwatches.filter(x => x.isFavorite);
+        const others = props.stopwatches.filter(x => !x.isFavorite);
+        emit('reorder-stopwatches', [...favs, ...others]);
+        addToast(s.isFavorite ? 'Stoppuhr zu Favoriten hinzugefügt' : 'Stoppuhr aus Favoriten entfernt', s.isFavorite ? 'add' : 'delete');
     }
 };
 const updateCustomSeconds = (timer) => {
-    if (timer.customSeconds != null && !isNaN(timer.customSeconds)) { // Korrektur: Validierung entfernt
-        timer.seconds = timer.customSeconds.toString();
+    if (timer.customSeconds != null && !isNaN(timer.customSeconds) && timer.customSeconds > 0) {
+        timer.seconds = 'custom';
         timer.time = timer.customSeconds;
-    }
-    else {
-        timer.customSeconds = null;
     }
 };
 const playTimerSound = (sound) => {
-    if (sound === 'nothing')
-        return;
     const audio = document.getElementById(`audio-${sound}`);
     if (audio && audio.src) {
-        audio.play().catch(e => {
+        try {
+            audio.currentTime = 0;
+            audio.play();
+        }
+        catch (e) {
             console.error('Fehler beim Abspielen des Sounds:', e);
             addToast('Sound konnte nicht abgespielt werden', 'delete');
-        });
-    }
-    else {
-        console.warn(`Audio-Element für ${sound} nicht gefunden oder kein gültiger Pfad`);
-        addToast(`Sound "${sound}" nicht verfügbar`, 'delete');
-    }
-};
-const startTimerInstance = (timer) => {
-    if ((timer.seconds || timer.customSeconds) && !timer.isRunning) {
-        timer.time = Number(timer.seconds) || Number(timer.customSeconds) || 0;
-        if (timer.time >= 0 && !isNaN(timer.time)) { // Korrektur: Validierung entfernt
-            timer.isRunning = true;
-            timer.interval = setInterval(() => {
-                if (timer.time > 0) {
-                    timer.time--;
-                }
-                else {
-                    clearInterval(timer.interval);
-                    timer.interval = null;
-                    timer.isRunning = false;
-                    showTimerPopup.value = true;
-                    playTimerSound(timer.sound);
-                    sendNotification(timer.name || 'Timer', 'Deine Satzpause ist vorbei! 💪');
-                }
-            }, 1000);
-            addToast('Timer gestartet', 'timer');
         }
     }
 };
-const stopTimerInstance = (timer) => {
-    if (timer.interval) {
-        clearInterval(timer.interval);
-        timer.interval = null;
-    }
-    timer.isRunning = false;
-    addToast('Timer gestoppt', 'timer');
-};
-const resetTimerInstance = (timer) => {
-    stopTimerInstance(timer);
-    timer.time = Number(timer.seconds) || Number(timer.customSeconds) || 60;
-    addToast('Timer zurückgesetzt', 'timer');
-};
-const startStopwatchInstance = (stopwatch) => {
-    if (!stopwatch.isRunning) {
-        stopwatch.isRunning = true;
-        const startTime = Date.now() - (stopwatch.time * 1000);
-        stopwatch.interval = setInterval(() => {
-            stopwatch.time = (Date.now() - startTime) / 1000;
-        }, 10);
-        addToast('Stoppuhr gestartet', 'timer');
-    }
-};
-const pauseStopwatchInstance = (stopwatch) => {
-    if (stopwatch.interval) {
-        clearInterval(stopwatch.interval);
-        stopwatch.interval = null;
-    }
-    stopwatch.isRunning = false;
-    addToast('Stoppuhr pausiert', 'timer');
-};
-const resetStopwatchInstance = (stopwatch) => {
-    pauseStopwatchInstance(stopwatch);
-    stopwatch.time = 0;
-    stopwatch.laps = [];
-    addToast('Stoppuhr zurückgesetzt', 'timer');
-};
 const addLapTime = (stopwatch) => {
     if (stopwatch.isRunning) {
+        stopwatch.laps = stopwatch.laps || [];
         stopwatch.laps.push(stopwatch.time);
         addToast('Runde aufgezeichnet', 'timer');
     }
@@ -749,23 +851,21 @@ const resetCustomSeconds = (timer) => {
         timer.time = Number(timer.seconds) || 60;
     }
 };
-const toggleStopwatchInstance = (stopwatch) => {
-    if (stopwatch.isRunning) {
-        pauseStopwatchInstance(stopwatch);
-    }
-    else {
-        startStopwatchInstance(stopwatch);
-    }
-};
 const openDeletePopup = (action) => {
     deleteAction.value = action;
     showDeletePopup.value = true;
+    nextTick(() => {
+        if (deleteConfirmButton.value) {
+            deleteConfirmButton.value.focus();
+        }
+    });
 };
 const closeDeletePopup = () => {
     showDeletePopup.value = false;
     deleteAction.value = null;
 };
 const confirmDeleteAction = () => {
+    console.log('confirmDeleteAction aufgerufen, deleteAction:', deleteAction.value);
     if (deleteAction.value)
         deleteAction.value();
     closeDeletePopup();
@@ -807,13 +907,27 @@ const openEditPopup = (type, index, event) => {
     editIndex.value = index;
     editCellIndex.value = null;
     if (type === 'table' || type === 'selectedPlan') {
-        if (!event)
+        if (!event) {
+            console.error('Kein Event für table/selectedPlan übergeben');
+            openValidationPopup(['Bearbeitungsfehler: Kein Event vorhanden']);
             return;
-        const target = event.target;
+        }
+        const target = event.target?.closest('td,th');
+        if (!target) {
+            openValidationPopup(['Bearbeitungsfehler: Keine Zelle erkannt']);
+            return;
+        }
         editCellIndex.value = Array.from(target.parentElement.children).indexOf(target);
-        if (editCellIndex.value > 2)
+        if (editCellIndex.value < 0 || editCellIndex.value > 2)
             return;
-        const exercise = type === 'table' ? selectedPlanExercises.value[index] : selectedPlan.value.exercises[index];
+        const exercise = (type === 'table'
+            ? selectedPlanExercises.value[index]
+            : selectedPlan.value?.exercises[index]);
+        if (!exercise) {
+            console.error('Übung nicht gefunden für Index:', index);
+            openValidationPopup(['Übung nicht gefunden']);
+            return;
+        }
         if (editCellIndex.value === 0)
             editValue.value = exercise.exercise;
         else if (editCellIndex.value === 1)
@@ -823,32 +937,68 @@ const openEditPopup = (type, index, event) => {
     }
     else if (type === 'planName') {
         const plan = plans.value.find(p => p.id === index);
-        editValue.value = plan ? plan.name : '';
+        if (!plan) {
+            console.error('Plan nicht gefunden für ID:', index);
+            openValidationPopup(['Plan nicht gefunden']);
+            return;
+        }
+        editValue.value = plan.name;
     }
     else if (type === 'selectedPlanName') {
-        editValue.value = selectedPlan.value ? selectedPlan.value.name : '';
+        if (!selectedPlan.value) {
+            console.error('Kein ausgewählter Plan vorhanden');
+            openValidationPopup(['Kein ausgewählter Plan']);
+            return;
+        }
+        editValue.value = selectedPlan.value.name;
     }
     else if (type === 'timerName') {
-        const timer = timers.value.find(t => t.id === index);
-        editValue.value = timer ? timer.name : '';
+        const timer = props.timers.find(t => t.id === index);
+        if (!timer) {
+            console.error('Timer nicht gefunden für ID:', index);
+            openValidationPopup(['Timer nicht gefunden']);
+            return;
+        }
+        editValue.value = timer.name || '';
     }
     else if (type === 'stopwatchName') {
-        const stopwatch = stopwatches.value.find(s => s.id === index);
-        editValue.value = stopwatch ? stopwatch.name : '';
+        console.log('Bearbeite Stoppuhrname für ID:', index);
+        const stopwatch = props.stopwatches.find(s => s.id === index);
+        if (!stopwatch) {
+            console.error('Keine Stoppuhr mit ID gefunden:', index);
+            openValidationPopup(['Stoppuhr nicht gefunden']);
+            return;
+        }
+        editValue.value = stopwatch.name || '';
+        console.log('editValue gesetzt:', editValue.value);
     }
     else if (type === 'customExerciseName') {
         const exercise = customExercises.value[index];
-        editValue.value = exercise ? exercise.name : '';
+        if (!exercise) {
+            console.error('Benutzerdefinierte Übung nicht gefunden für Index:', index);
+            openValidationPopup(['Übung nicht gefunden']);
+            return;
+        }
+        editValue.value = exercise.name;
     }
     else if (type === 'customExerciseMuscle') {
         const exercise = customExercises.value[index];
-        editValue.value = exercise ? exercise.muscle : '';
+        if (!exercise) {
+            console.error('Muskelgruppe nicht gefunden für Index:', index);
+            openValidationPopup(['Muskelgruppe nicht gefunden']);
+            return;
+        }
+        editValue.value = exercise.muscle;
     }
     showEditPopup.value = true;
+    console.log('showEditPopup gesetzt:', showEditPopup.value);
     nextTick(() => {
         if (editInput.value) {
             editInput.value.focus();
             console.log('Fokus auf Edit-Input gesetzt');
+        }
+        else {
+            console.warn('editInput nicht gefunden');
         }
     });
 };
@@ -955,9 +1105,9 @@ const saveEdit = () => {
         addToast('Planname aktualisiert', 'save');
     }
     else if (editType.value === 'timerName' && typeof editIndex.value === 'string') {
-        const timer = timers.value.find(t => t.id === editIndex.value);
+        const timer = props.timers.find(t => t.id === editIndex.value);
         if (timer) {
-            timer.name = editValue.value.trim(); // Korrektur: Keine Validierung
+            timer.name = editValue.value.trim();
             saveToStorage();
             addToast('Timername aktualisiert', 'timer');
         }
@@ -968,7 +1118,7 @@ const saveEdit = () => {
             openValidationPopup([validatedName]);
             return;
         }
-        const stopwatch = stopwatches.value.find(s => s.id === editIndex.value);
+        const stopwatch = props.stopwatches.find(s => s.id === editIndex.value);
         if (stopwatch) {
             stopwatch.name = validatedName;
             saveToStorage();
@@ -1027,7 +1177,7 @@ const closeEditPopup = () => {
     editCellIndex.value = null;
 };
 const closeTimerPopup = () => {
-    showTimerPopup.value = false; // Korrektur: Syntaxfehler behoben
+    showTimerPopup.value = false;
 };
 const handleOverlayClick = (event) => {
     if (event.target === event.currentTarget) {
@@ -1035,7 +1185,7 @@ const handleOverlayClick = (event) => {
         closeDeletePopup();
         closeTimerPopup();
         closeAddTimerPopup();
-        closeAddStopwatchPopup(); // Korrektur: Falscher Funktionsname
+        closeAddStopwatchPopup();
         closeDownloadPopup();
         closeValidationPopup();
     }
@@ -1085,19 +1235,43 @@ const handleKeydown = (event) => {
     }
 };
 const checkScroll = () => {
-    const timerContainer = document.querySelector('.timer-container');
-    const stopwatchContainer = document.querySelector('.stopwatch-top'); // Korrektur: Klasse angepasst
-    if (timerContainer)
-        isTimerSticky.value = timerContainer.getBoundingClientRect().top <= 0;
-    if (stopwatchContainer)
-        isStopwatchSticky.value = stopwatchContainer.getBoundingClientRect().top <= 0;
+    // Timer
+    const stickyTimers = props.timers.filter(t => t.shouldStaySticky);
+    let visibleTimerFound = false;
+    for (const t of stickyTimers) {
+        const el = document.querySelector(`.timer-card[data-timer-id="${t.id}"]`);
+        if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
+                visibleTimerFound = true;
+                break;
+            }
+        }
+    }
+    isTimerSticky.value = stickyTimers.length > 0 && !visibleTimerFound;
+    // Stoppuhren
+    const stickyStopwatches = props.stopwatches.filter(sw => sw.shouldStaySticky);
+    let visibleStopwatchFound = false;
+    for (const sw of stickyStopwatches) {
+        const el = document.querySelector(`.timer-card[data-stopwatch-id="${sw.id}"]`);
+        if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
+                visibleStopwatchFound = true;
+                break;
+            }
+        }
+    }
+    isStopwatchSticky.value = stickyStopwatches.length > 0 && !visibleStopwatchFound;
 };
 const initResizeTable = () => {
-    const table = document.querySelector('.exercise-table.full-width table'); // Korrektur: Typisierung
+    const table = resizeTable.value;
     if (!table)
         return;
+    // Cleanup: alte Resizer entfernen, falls Funktion mehrfach aufgerufen wird
+    table.querySelectorAll('.resizer').forEach(el => el.remove());
     const ths = table.querySelectorAll('th.resizable');
-    const resizers = []; // Korrektur: Typisierung
+    const resizers = [];
     ths.forEach((th, colIndex) => {
         const resizer = document.createElement('div');
         resizer.className = 'resizer';
@@ -1190,42 +1364,85 @@ const initResizeTable = () => {
 };
 const initAudioElements = () => {
     Object.entries(audioPaths).forEach(([key, path]) => {
-        const audio = document.getElementById(`audio-${key}`); // Korrektur: Typisierung
+        const audio = document.getElementById(`audio-${key}`);
         if (audio)
             audio.src = path;
     });
 };
 onMounted(() => {
-    loadFromStorage();
+    loadFromStorage(); // einheitlich
     requestNotificationPermission();
     window.addEventListener('scroll', checkScroll);
     window.addEventListener('keydown', handleKeydown);
     initResizeTable();
     initAudioElements();
+    console.log('Stopwatches beim Mounten (Training.vue):', props.stopwatches);
 });
 onUnmounted(() => {
     window.removeEventListener('scroll', checkScroll);
     window.removeEventListener('keydown', handleKeydown);
-    timers.value.forEach(timer => {
-        if (timer.interval)
-            clearInterval(timer.interval);
-    });
-    stopwatches.value.forEach(stopwatch => {
-        if (stopwatch.interval)
-            clearInterval(stopwatch.interval);
-    });
+    // Sicherstellen, dass props.timers und props.stopwatches Arrays sind
+    if (Array.isArray(props.timers)) {
+        props.timers.forEach(timer => {
+            if (timer.interval)
+                clearInterval(timer.interval);
+        });
+    }
+    if (Array.isArray(props.stopwatches)) {
+        props.stopwatches.forEach(stopwatch => {
+            if (stopwatch.interval)
+                clearInterval(stopwatch.interval);
+        });
+    }
 });
+watch(() => [props.timers, props.stopwatches], () => {
+    console.log('timers oder stopwatches geändert:', { timers: props.timers, stopwatches: props.stopwatches });
+    nextTick(() => checkScroll());
+}, { deep: true });
+watch(selectedPlan, (val) => {
+    if (val)
+        nextTick(() => initResizeTable());
+});
+watch(plans, (newPlans) => {
+    localStorage.setItem('trainingPlans', JSON.stringify(newPlans));
+}, { deep: true });
+watch(() => props.timers.map(t => ({ id: t.id, time: t.time, sound: t.sound })), (now) => {
+    for (const { id, time, sound } of now) {
+        const prev = prevTimes.get(id);
+        if (prev === undefined) {
+            prevTimes.set(id, time);
+            continue;
+        }
+        // Wechsel von >0 auf <=0 → Timer fertig
+        if (prev > 0 && time <= 0 && !finishedOnce.has(id)) {
+            finishedOnce.add(id);
+            showTimerPopup.value = true; // Popup zeigen
+            playTimerSound(sound || 'standard');
+            sendNotification('Timer fertig', 'Deine Satzpause ist vorbei 💪');
+            const timer = props.timers.find(t => t.id === id);
+            if (timer && timer.isRunning && timer.interval) {
+                clearInterval(timer.interval);
+                timer.isRunning = false;
+                timer.interval = null;
+            }
+        }
+        // Reset, wenn wieder >0
+        if (time > 0 && finishedOnce.has(id)) {
+            finishedOnce.delete(id);
+        }
+        prevTimes.set(id, time);
+    }
+}, { deep: true });
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
 let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['training']} */ ;
 /** @type {__VLS_StyleScopedClasses['dark-mode']} */ ;
-/** @type {__VLS_StyleScopedClasses['page-title']} */ ;
-/** @type {__VLS_StyleScopedClasses['dark-mode']} */ ;
 /** @type {__VLS_StyleScopedClasses['section-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['plan-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['plan-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['drag-stack']} */ ;
 /** @type {__VLS_StyleScopedClasses['dark-mode']} */ ;
 /** @type {__VLS_StyleScopedClasses['list-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['list-item']} */ ;
@@ -1247,6 +1464,8 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['form-card']} */ ;
 /** @type {__VLS_StyleScopedClasses['extras-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-card']} */ ;
+/** @type {__VLS_StyleScopedClasses['plan-drag-stack']} */ ;
+/** @type {__VLS_StyleScopedClasses['plan-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['toggle-exercise-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['dark-mode']} */ ;
 /** @type {__VLS_StyleScopedClasses['toggle-exercise-btn']} */ ;
@@ -1347,6 +1566,7 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['full-width']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['stopwatch-top']} */ ;
+/** @type {__VLS_StyleScopedClasses['timer-card']} */ ;
 /** @type {__VLS_StyleScopedClasses['dark-mode']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-card']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-card']} */ ;
@@ -1358,6 +1578,7 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['timer']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-display']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer']} */ ;
+/** @type {__VLS_StyleScopedClasses['drag-ghost']} */ ;
 /** @type {__VLS_StyleScopedClasses['dark-mode']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-select']} */ ;
 /** @type {__VLS_StyleScopedClasses['dark-mode']} */ ;
@@ -1390,8 +1611,6 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['save-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['cancel-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['delete-confirm-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['dark-mode']} */ ;
-/** @type {__VLS_StyleScopedClasses['toast']} */ ;
 /** @type {__VLS_StyleScopedClasses['resizer']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
@@ -1441,12 +1660,11 @@ for (const [ex] of __VLS_getVForSourceType((__VLS_ctx.filteredExercises))) {
 __VLS_asFunctionalElement(__VLS_intrinsicElements.option, __VLS_intrinsicElements.option)({
     value: "custom",
 });
-if (__VLS_ctx.newExercise === 'custom') {
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-        placeholder: "Eigene Übung eingeben",
-    });
-    (__VLS_ctx.customPlanExercise);
-}
+__VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
+    placeholder: "Eigene Übung eingeben",
+});
+(__VLS_ctx.customPlanExercise);
+__VLS_asFunctionalDirective(__VLS_directives.vShow)(null, { ...__VLS_directiveBindingRestFields, value: (__VLS_ctx.newExercise === 'custom') }, null, null);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
     placeholder: "Wiederholungen",
     type: "number",
@@ -1495,7 +1713,7 @@ if (__VLS_ctx.showExtras) {
 }
 __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
     type: "submit",
-    disabled: (!__VLS_ctx.selectedPlanExercises.length || !__VLS_ctx.planName),
+    disabled: (__VLS_ctx.validatePlanName(__VLS_ctx.planName) === false),
 });
 (__VLS_ctx.editingPlanId ? 'Plan speichern' : 'Plan erstellen');
 if (__VLS_ctx.selectedPlanExercises.length) {
@@ -1505,6 +1723,7 @@ if (__VLS_ctx.selectedPlanExercises.length) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.table, __VLS_intrinsicElements.table)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.thead, __VLS_intrinsicElements.thead)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.tr, __VLS_intrinsicElements.tr)({});
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.th, __VLS_intrinsicElements.th)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.th, __VLS_intrinsicElements.th)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.th, __VLS_intrinsicElements.th)({});
     __VLS_asFunctionalElement(__VLS_intrinsicElements.th, __VLS_intrinsicElements.th)({});
@@ -1527,6 +1746,18 @@ if (__VLS_ctx.selectedPlanExercises.length) {
         (ex.sets);
         __VLS_asFunctionalElement(__VLS_intrinsicElements.td, __VLS_intrinsicElements.td)({});
         (ex.reps);
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.td, __VLS_intrinsicElements.td)({});
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+            ...{ onClick: (...[$event]) => {
+                    if (!(__VLS_ctx.selectedPlanExercises.length))
+                        return;
+                    __VLS_ctx.removeExerciseFromPlan(index);
+                } },
+            type: "button",
+            ...{ class: "delete-btn" },
+            ...{ style: {} },
+            title: "Übung entfernen",
+        });
         if (__VLS_ctx.selectedPlanExercises.some(ex => ex.goal)) {
             __VLS_asFunctionalElement(__VLS_intrinsicElements.td, __VLS_intrinsicElements.td)({});
             (ex.goal || '-');
@@ -1548,10 +1779,147 @@ if (__VLS_ctx.plans.length) {
         ...{ class: "plan-search-input" },
     });
     (__VLS_ctx.planSearch);
-    for (const [plan] of __VLS_getVForSourceType((__VLS_ctx.filteredPlans))) {
+    if (__VLS_ctx.filteredFavoritePlans.length) {
+        const __VLS_0 = {}.Draggable;
+        /** @type {[typeof __VLS_components.Draggable, typeof __VLS_components.Draggable, ]} */ ;
+        // @ts-ignore
+        const __VLS_1 = __VLS_asFunctionalComponent(__VLS_0, new __VLS_0({
+            modelValue: (__VLS_ctx.favoritePlanItems),
+            itemKey: "id",
+            handle: ".plan-drag-handle",
+            ghostClass: ('drag-ghost'),
+            animation: (150),
+            tag: "div",
+            ...{ class: "plan-drag-stack" },
+        }));
+        const __VLS_2 = __VLS_1({
+            modelValue: (__VLS_ctx.favoritePlanItems),
+            itemKey: "id",
+            handle: ".plan-drag-handle",
+            ghostClass: ('drag-ghost'),
+            animation: (150),
+            tag: "div",
+            ...{ class: "plan-drag-stack" },
+        }, ...__VLS_functionalComponentArgsRest(__VLS_1));
+        __VLS_3.slots.default;
+        {
+            const { item: __VLS_thisSlot } = __VLS_3.slots;
+            const { element: plan } = __VLS_getSlotParam(__VLS_thisSlot);
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+                ...{ class: "list-item plan-item" },
+                key: (plan.id),
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+                ...{ class: "plan-drag-handle" },
+                title: "Ziehen zum Verschieben",
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+                ...{ onClick: (...[$event]) => {
+                        if (!(__VLS_ctx.plans.length))
+                            return;
+                        if (!(__VLS_ctx.filteredFavoritePlans.length))
+                            return;
+                        __VLS_ctx.loadPlan(plan.id);
+                    } },
+                ...{ onDblclick: (...[$event]) => {
+                        if (!(__VLS_ctx.plans.length))
+                            return;
+                        if (!(__VLS_ctx.filteredFavoritePlans.length))
+                            return;
+                        __VLS_ctx.openEditPopup('planName', plan.id);
+                    } },
+            });
+            (plan.name);
+            (plan.exercises.length);
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+                ...{ class: "list-item-actions" },
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+                ...{ onClick: (...[$event]) => {
+                        if (!(__VLS_ctx.plans.length))
+                            return;
+                        if (!(__VLS_ctx.filteredFavoritePlans.length))
+                            return;
+                        __VLS_ctx.toggleFavoritePlan(plan.id);
+                    } },
+                ...{ class: "favorite-btn" },
+            });
+            (__VLS_ctx.favoritePlans.includes(plan.id) ? '★' : '☆');
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+                ...{ onClick: (...[$event]) => {
+                        if (!(__VLS_ctx.plans.length))
+                            return;
+                        if (!(__VLS_ctx.filteredFavoritePlans.length))
+                            return;
+                        __VLS_ctx.editPlan(plan.id);
+                    } },
+                ...{ class: "edit-btn" },
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+                ...{ onClick: (...[$event]) => {
+                        if (!(__VLS_ctx.plans.length))
+                            return;
+                        if (!(__VLS_ctx.filteredFavoritePlans.length))
+                            return;
+                        __VLS_ctx.openDeletePopup(() => __VLS_ctx.deletePlan(plan.id));
+                    } },
+                ...{ class: "delete-btn" },
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+                ...{ onClick: (...[$event]) => {
+                        if (!(__VLS_ctx.plans.length))
+                            return;
+                        if (!(__VLS_ctx.filteredFavoritePlans.length))
+                            return;
+                        __VLS_ctx.openDownloadPopup(plan);
+                    } },
+                ...{ class: "download-btn" },
+            });
+            __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
+                ...{ onClick: (...[$event]) => {
+                        if (!(__VLS_ctx.plans.length))
+                            return;
+                        if (!(__VLS_ctx.filteredFavoritePlans.length))
+                            return;
+                        __VLS_ctx.loadPlan(plan.id);
+                    } },
+                ...{ class: "open-btn" },
+            });
+        }
+        var __VLS_3;
+    }
+    const __VLS_4 = {}.Draggable;
+    /** @type {[typeof __VLS_components.Draggable, typeof __VLS_components.Draggable, ]} */ ;
+    // @ts-ignore
+    const __VLS_5 = __VLS_asFunctionalComponent(__VLS_4, new __VLS_4({
+        modelValue: (__VLS_ctx.otherPlanItems),
+        itemKey: "id",
+        handle: ".plan-drag-handle",
+        ghostClass: ('drag-ghost'),
+        animation: (150),
+        tag: "div",
+        ...{ class: "plan-drag-stack" },
+    }));
+    const __VLS_6 = __VLS_5({
+        modelValue: (__VLS_ctx.otherPlanItems),
+        itemKey: "id",
+        handle: ".plan-drag-handle",
+        ghostClass: ('drag-ghost'),
+        animation: (150),
+        tag: "div",
+        ...{ class: "plan-drag-stack" },
+    }, ...__VLS_functionalComponentArgsRest(__VLS_5));
+    __VLS_7.slots.default;
+    {
+        const { item: __VLS_thisSlot } = __VLS_7.slots;
+        const { element: plan } = __VLS_getSlotParam(__VLS_thisSlot);
         __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-            key: (plan.id),
             ...{ class: "list-item plan-item" },
+            key: (plan.id),
+        });
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+            ...{ class: "plan-drag-handle" },
+            title: "Ziehen zum Verschieben",
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
             ...{ onClick: (...[$event]) => {
@@ -1577,7 +1945,6 @@ if (__VLS_ctx.plans.length) {
                     __VLS_ctx.toggleFavoritePlan(plan.id);
                 } },
             ...{ class: "favorite-btn" },
-            title: (__VLS_ctx.favoritePlans.includes(plan.id) ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'),
         });
         (__VLS_ctx.favoritePlans.includes(plan.id) ? '★' : '☆');
         __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
@@ -1587,7 +1954,6 @@ if (__VLS_ctx.plans.length) {
                     __VLS_ctx.editPlan(plan.id);
                 } },
             ...{ class: "edit-btn" },
-            title: "Plan bearbeiten",
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
             ...{ onClick: (...[$event]) => {
@@ -1596,7 +1962,6 @@ if (__VLS_ctx.plans.length) {
                     __VLS_ctx.openDeletePopup(() => __VLS_ctx.deletePlan(plan.id));
                 } },
             ...{ class: "delete-btn" },
-            title: "Plan löschen",
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
             ...{ onClick: (...[$event]) => {
@@ -1605,7 +1970,6 @@ if (__VLS_ctx.plans.length) {
                     __VLS_ctx.openDownloadPopup(plan);
                 } },
             ...{ class: "download-btn" },
-            title: "Plan herunterladen",
         });
         __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
             ...{ onClick: (...[$event]) => {
@@ -1614,9 +1978,9 @@ if (__VLS_ctx.plans.length) {
                     __VLS_ctx.loadPlan(plan.id);
                 } },
             ...{ class: "open-btn" },
-            title: "Plan öffnen",
         });
     }
+    var __VLS_7;
 }
 if (__VLS_ctx.customExercises.length > 0) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
@@ -1774,21 +2138,59 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     ...{ class: "add-timer-btn" },
     title: "Neuen Timer hinzufügen",
 });
-for (const [timer] of __VLS_getVForSourceType((__VLS_ctx.timers))) {
+const __VLS_8 = {}.Draggable;
+/** @type {[typeof __VLS_components.Draggable, typeof __VLS_components.Draggable, ]} */ ;
+// @ts-ignore
+const __VLS_9 = __VLS_asFunctionalComponent(__VLS_8, new __VLS_8({
+    ...{ 'onUpdate:modelValue': {} },
+    modelValue: (props.timers),
+    itemKey: "id",
+    handle: ".timer-drag-handle",
+    ghostClass: ('drag-ghost'),
+    animation: (150),
+    tag: "div",
+    ...{ class: "drag-stack" },
+}));
+const __VLS_10 = __VLS_9({
+    ...{ 'onUpdate:modelValue': {} },
+    modelValue: (props.timers),
+    itemKey: "id",
+    handle: ".timer-drag-handle",
+    ghostClass: ('drag-ghost'),
+    animation: (150),
+    tag: "div",
+    ...{ class: "drag-stack" },
+}, ...__VLS_functionalComponentArgsRest(__VLS_9));
+let __VLS_12;
+let __VLS_13;
+let __VLS_14;
+const __VLS_15 = {
+    'onUpdate:modelValue': ((val) => __VLS_ctx.emit('reorder-timers', val))
+};
+__VLS_11.slots.default;
+{
+    const { item: __VLS_thisSlot } = __VLS_11.slots;
+    const { element: timer } = __VLS_getSlotParam(__VLS_thisSlot);
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-        key: (timer.id),
         ...{ class: "timer-card" },
+        key: (timer.id),
+        'data-timer-id': (timer.id),
+        'data-type': "timer",
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "timer-header" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
-        ...{ onDblclick: (...[$event]) => {
+        ...{ class: "timer-drag-handle" },
+        title: "Ziehen zum Verschieben",
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+        ...{ onClick: (...[$event]) => {
                 __VLS_ctx.openEditPopup('timerName', timer.id);
             } },
         ...{ class: "timer-name" },
     });
-    (timer.name || 'Doppelklick für Namenänderung');
+    (timer.name || 'Timer');
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "timer-actions" },
     });
@@ -1805,7 +2207,7 @@ for (const [timer] of __VLS_getVForSourceType((__VLS_ctx.timers))) {
                 __VLS_ctx.openDeleteTimerPopup(timer.id);
             } },
         ...{ class: "close-timer-btn" },
-        title: "Timer schließen",
+        title: "Timer löschen",
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "timer-controls" },
@@ -1842,12 +2244,7 @@ for (const [timer] of __VLS_getVForSourceType((__VLS_ctx.timers))) {
     });
     if (timer.seconds === 'custom') {
         __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-            ...{ onBlur: (...[$event]) => {
-                    if (!(timer.seconds === 'custom'))
-                        return;
-                    __VLS_ctx.updateCustomSeconds(timer);
-                } },
-            ...{ onKeyup: (...[$event]) => {
+            ...{ onInput: (...[$event]) => {
                     if (!(timer.seconds === 'custom'))
                         return;
                     __VLS_ctx.updateCustomSeconds(timer);
@@ -1890,25 +2287,26 @@ for (const [timer] of __VLS_getVForSourceType((__VLS_ctx.timers))) {
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (...[$event]) => {
-                __VLS_ctx.startTimerInstance(timer);
+                __VLS_ctx.startTimer(timer);
             } },
         ...{ class: "timer-btn start-btn" },
         disabled: (timer.isRunning),
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (...[$event]) => {
-                __VLS_ctx.stopTimerInstance(timer);
+                __VLS_ctx.stopTimer(timer);
             } },
         ...{ class: "timer-btn stop-btn" },
         disabled: (!timer.isRunning),
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (...[$event]) => {
-                __VLS_ctx.resetTimerInstance(timer);
+                __VLS_ctx.resetTimer(timer);
             } },
         ...{ class: "timer-btn reset-btn" },
     });
 }
+var __VLS_11;
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
     ...{ class: "workout-list stopwatch-top" },
 });
@@ -1923,16 +2321,54 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElement
     ...{ class: "add-timer-btn" },
     title: "Neue Stoppuhr hinzufügen",
 });
-for (const [stopwatch] of __VLS_getVForSourceType((__VLS_ctx.stopwatches))) {
+const __VLS_16 = {}.Draggable;
+/** @type {[typeof __VLS_components.Draggable, typeof __VLS_components.Draggable, ]} */ ;
+// @ts-ignore
+const __VLS_17 = __VLS_asFunctionalComponent(__VLS_16, new __VLS_16({
+    ...{ 'onUpdate:modelValue': {} },
+    modelValue: (props.stopwatches),
+    itemKey: "id",
+    handle: ".stopwatch-drag-handle",
+    ghostClass: ('drag-ghost'),
+    animation: (150),
+    tag: "div",
+    ...{ class: "drag-stack" },
+}));
+const __VLS_18 = __VLS_17({
+    ...{ 'onUpdate:modelValue': {} },
+    modelValue: (props.stopwatches),
+    itemKey: "id",
+    handle: ".stopwatch-drag-handle",
+    ghostClass: ('drag-ghost'),
+    animation: (150),
+    tag: "div",
+    ...{ class: "drag-stack" },
+}, ...__VLS_functionalComponentArgsRest(__VLS_17));
+let __VLS_20;
+let __VLS_21;
+let __VLS_22;
+const __VLS_23 = {
+    'onUpdate:modelValue': ((val) => __VLS_ctx.emit('reorder-stopwatches', val))
+};
+__VLS_19.slots.default;
+{
+    const { item: __VLS_thisSlot } = __VLS_19.slots;
+    const { element: stopwatch } = __VLS_getSlotParam(__VLS_thisSlot);
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-        key: (stopwatch.id),
         ...{ class: "timer-card" },
+        key: (stopwatch.id),
+        'data-stopwatch-id': (stopwatch.id),
+        'data-type': "stopwatch",
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "timer-header" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
-        ...{ onDblclick: (...[$event]) => {
+        ...{ class: "stopwatch-drag-handle" },
+        title: "Ziehen zum Verschieben",
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+        ...{ onClick: (...[$event]) => {
                 __VLS_ctx.openEditPopup('stopwatchName', stopwatch.id);
             } },
         ...{ class: "timer-name" },
@@ -1946,7 +2382,7 @@ for (const [stopwatch] of __VLS_getVForSourceType((__VLS_ctx.stopwatches))) {
                 __VLS_ctx.toggleFavoriteStopwatch(stopwatch.id);
             } },
         ...{ class: "favorite-btn" },
-        title: (stopwatch.isFavorite ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzufügen'),
+        title: (stopwatch.isFavorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'),
     });
     (stopwatch.isFavorite ? '★' : '☆');
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
@@ -1954,13 +2390,13 @@ for (const [stopwatch] of __VLS_getVForSourceType((__VLS_ctx.stopwatches))) {
                 __VLS_ctx.openDeleteStopwatchPopup(stopwatch.id);
             } },
         ...{ class: "close-timer-btn" },
-        title: "Stoppuhr schließen",
+        title: "Stoppuhr löschen",
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ class: "timer-controls" },
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
-        ...{ class: "timer" },
+        ...{ class: "timer-display" },
     });
     (__VLS_ctx.formatStopwatchDisplay(stopwatch.time));
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -1968,14 +2404,14 @@ for (const [stopwatch] of __VLS_getVForSourceType((__VLS_ctx.stopwatches))) {
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (...[$event]) => {
-                __VLS_ctx.toggleStopwatchInstance(stopwatch);
+                __VLS_ctx.toggleStopwatch(stopwatch);
             } },
         ...{ class: "timer-btn start-btn" },
     });
     (stopwatch.isRunning ? 'Pause' : 'Start');
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (...[$event]) => {
-                __VLS_ctx.resetStopwatchInstance(stopwatch);
+                __VLS_ctx.resetStopwatch(stopwatch);
             } },
         ...{ class: "timer-btn reset-btn" },
     });
@@ -2006,98 +2442,7 @@ for (const [stopwatch] of __VLS_getVForSourceType((__VLS_ctx.stopwatches))) {
         }
     }
 }
-if (__VLS_ctx.isTimerSticky) {
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-        ...{ class: "sticky-timer" },
-    });
-    for (const [timer] of __VLS_getVForSourceType((__VLS_ctx.timers))) {
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-            key: (timer.id),
-            ...{ class: "sticky-timer-card" },
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-        (timer.name || 'Timer');
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
-            ...{ class: "timer-display" },
-        });
-        (__VLS_ctx.formatTimerDisplay(timer.time));
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-            ...{ class: "timer-buttons" },
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
-            ...{ onClick: (...[$event]) => {
-                    if (!(__VLS_ctx.isTimerSticky))
-                        return;
-                    __VLS_ctx.startTimerInstance(timer);
-                } },
-            ...{ class: "timer-btn start-btn" },
-            disabled: (timer.isRunning),
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
-            ...{ onClick: (...[$event]) => {
-                    if (!(__VLS_ctx.isTimerSticky))
-                        return;
-                    __VLS_ctx.stopTimerInstance(timer);
-                } },
-            ...{ class: "timer-btn stop-btn" },
-            disabled: (!timer.isRunning),
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
-            ...{ onClick: (...[$event]) => {
-                    if (!(__VLS_ctx.isTimerSticky))
-                        return;
-                    __VLS_ctx.resetTimerInstance(timer);
-                } },
-            ...{ class: "timer-btn reset-btn" },
-        });
-    }
-}
-if (__VLS_ctx.isStopwatchSticky) {
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-        ...{ class: "sticky-stopwatch" },
-    });
-    for (const [stopwatch] of __VLS_getVForSourceType((__VLS_ctx.stopwatches))) {
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-            key: (stopwatch.id),
-            ...{ class: "sticky-timer-card" },
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({});
-        (stopwatch.name || 'Stoppuhr');
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
-            ...{ class: "timer" },
-        });
-        (__VLS_ctx.formatStopwatchDisplay(stopwatch.time));
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-            ...{ class: "timer-buttons" },
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
-            ...{ onClick: (...[$event]) => {
-                    if (!(__VLS_ctx.isStopwatchSticky))
-                        return;
-                    __VLS_ctx.toggleStopwatchInstance(stopwatch);
-                } },
-            ...{ class: "timer-btn start-btn" },
-        });
-        (stopwatch.isRunning ? 'Pause' : 'Start');
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
-            ...{ onClick: (...[$event]) => {
-                    if (!(__VLS_ctx.isStopwatchSticky))
-                        return;
-                    __VLS_ctx.resetStopwatchInstance(stopwatch);
-                } },
-            ...{ class: "timer-btn reset-btn" },
-        });
-        __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
-            ...{ onClick: (...[$event]) => {
-                    if (!(__VLS_ctx.isStopwatchSticky))
-                        return;
-                    __VLS_ctx.addLapTime(stopwatch);
-                } },
-            ...{ class: "timer-btn lap-btn" },
-            disabled: (!stopwatch.isRunning),
-        });
-    }
-}
+var __VLS_19;
 if (__VLS_ctx.showEditPopup) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
         ...{ onMousedown: (__VLS_ctx.handleOverlayClick) },
@@ -2156,8 +2501,10 @@ if (__VLS_ctx.showDeletePopup) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.confirmDeleteAction) },
         ...{ onKeydown: (__VLS_ctx.confirmDeleteAction) },
+        ref: "deleteConfirmButton",
         ...{ class: "popup-btn delete-confirm-btn" },
     });
+    /** @type {typeof __VLS_ctx.deleteConfirmButton} */ ;
     __VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
         ...{ onClick: (__VLS_ctx.closeDeletePopup) },
         ...{ onKeydown: (__VLS_ctx.closeDeletePopup) },
@@ -2361,19 +2708,27 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.audio, __VLS_intrinsicElements
     id: "audio-decide",
     preload: "auto",
 });
-__VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-    ...{ class: "toast-container" },
-});
-if (__VLS_ctx.toast) {
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-        ...{ class: ([__VLS_ctx.toast.type, { 'toast-exit': __VLS_ctx.toast.exiting }]) },
-    });
-    __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
-        ...{ class: "toast-emoji" },
-    });
-    (__VLS_ctx.toast.emoji);
-    (__VLS_ctx.toast.message);
-}
+/** @type {[typeof Toast, ]} */ ;
+// @ts-ignore
+const __VLS_24 = __VLS_asFunctionalComponent(Toast, new Toast({
+    ...{ 'onDismiss': {} },
+    toast: (__VLS_ctx.toast),
+    dismissible: true,
+    position: "bottom-right",
+}));
+const __VLS_25 = __VLS_24({
+    ...{ 'onDismiss': {} },
+    toast: (__VLS_ctx.toast),
+    dismissible: true,
+    position: "bottom-right",
+}, ...__VLS_functionalComponentArgsRest(__VLS_24));
+let __VLS_27;
+let __VLS_28;
+let __VLS_29;
+const __VLS_30 = {
+    onDismiss: (__VLS_ctx.dismissToast)
+};
+var __VLS_26;
 /** @type {__VLS_StyleScopedClasses['training']} */ ;
 /** @type {__VLS_StyleScopedClasses['page-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['workout-list']} */ ;
@@ -2389,12 +2744,25 @@ if (__VLS_ctx.toast) {
 /** @type {__VLS_StyleScopedClasses['goal-select']} */ ;
 /** @type {__VLS_StyleScopedClasses['exercise-table']} */ ;
 /** @type {__VLS_StyleScopedClasses['full-width']} */ ;
+/** @type {__VLS_StyleScopedClasses['delete-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['workout-list']} */ ;
 /** @type {__VLS_StyleScopedClasses['section-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['search-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['plan-search-input']} */ ;
+/** @type {__VLS_StyleScopedClasses['plan-drag-stack']} */ ;
 /** @type {__VLS_StyleScopedClasses['list-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['plan-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['plan-drag-handle']} */ ;
+/** @type {__VLS_StyleScopedClasses['list-item-actions']} */ ;
+/** @type {__VLS_StyleScopedClasses['favorite-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['edit-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['delete-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['download-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['open-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['plan-drag-stack']} */ ;
+/** @type {__VLS_StyleScopedClasses['list-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['plan-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['plan-drag-handle']} */ ;
 /** @type {__VLS_StyleScopedClasses['list-item-actions']} */ ;
 /** @type {__VLS_StyleScopedClasses['favorite-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['edit-btn']} */ ;
@@ -2422,8 +2790,10 @@ if (__VLS_ctx.toast) {
 /** @type {__VLS_StyleScopedClasses['plan-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['section-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['add-timer-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['drag-stack']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-card']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['timer-drag-handle']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-name']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-actions']} */ ;
 /** @type {__VLS_StyleScopedClasses['favorite-btn']} */ ;
@@ -2446,14 +2816,16 @@ if (__VLS_ctx.toast) {
 /** @type {__VLS_StyleScopedClasses['plan-header']} */ ;
 /** @type {__VLS_StyleScopedClasses['section-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['add-timer-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['drag-stack']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-card']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-header']} */ ;
+/** @type {__VLS_StyleScopedClasses['stopwatch-drag-handle']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-name']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-actions']} */ ;
 /** @type {__VLS_StyleScopedClasses['favorite-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['close-timer-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-controls']} */ ;
-/** @type {__VLS_StyleScopedClasses['timer']} */ ;
+/** @type {__VLS_StyleScopedClasses['timer-display']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-buttons']} */ ;
 /** @type {__VLS_StyleScopedClasses['timer-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['start-btn']} */ ;
@@ -2464,26 +2836,6 @@ if (__VLS_ctx.toast) {
 /** @type {__VLS_StyleScopedClasses['laps-container']} */ ;
 /** @type {__VLS_StyleScopedClasses['laps-list']} */ ;
 /** @type {__VLS_StyleScopedClasses['lap-item']} */ ;
-/** @type {__VLS_StyleScopedClasses['sticky-timer']} */ ;
-/** @type {__VLS_StyleScopedClasses['sticky-timer-card']} */ ;
-/** @type {__VLS_StyleScopedClasses['timer-display']} */ ;
-/** @type {__VLS_StyleScopedClasses['timer-buttons']} */ ;
-/** @type {__VLS_StyleScopedClasses['timer-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['start-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['timer-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['stop-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['timer-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['reset-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['sticky-stopwatch']} */ ;
-/** @type {__VLS_StyleScopedClasses['sticky-timer-card']} */ ;
-/** @type {__VLS_StyleScopedClasses['timer']} */ ;
-/** @type {__VLS_StyleScopedClasses['timer-buttons']} */ ;
-/** @type {__VLS_StyleScopedClasses['timer-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['start-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['timer-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['reset-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['timer-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['lap-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['popup-overlay']} */ ;
 /** @type {__VLS_StyleScopedClasses['popup']} */ ;
 /** @type {__VLS_StyleScopedClasses['edit-popup']} */ ;
@@ -2549,13 +2901,14 @@ if (__VLS_ctx.toast) {
 /** @type {__VLS_StyleScopedClasses['popup-actions']} */ ;
 /** @type {__VLS_StyleScopedClasses['popup-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['save-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['toast-container']} */ ;
-/** @type {__VLS_StyleScopedClasses['toast-exit']} */ ;
-/** @type {__VLS_StyleScopedClasses['toast-emoji']} */ ;
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
+            Draggable: Draggable,
+            Toast: Toast,
+            emit: emit,
+            dismissToast: dismissToast,
             plans: plans,
             favoritePlans: favoritePlans,
             planName: planName,
@@ -2582,10 +2935,6 @@ const __VLS_self = (await import('vue')).defineComponent({
             trainingGoals: trainingGoals,
             selectedGoal: selectedGoal,
             showExtras: showExtras,
-            timers: timers,
-            stopwatches: stopwatches,
-            isTimerSticky: isTimerSticky,
-            isStopwatchSticky: isStopwatchSticky,
             columnWidths: columnWidths,
             rowHeights: rowHeights,
             planSearch: planSearch,
@@ -2598,7 +2947,11 @@ const __VLS_self = (await import('vue')).defineComponent({
             exerciseEditField: exerciseEditField,
             customExercises: customExercises,
             toast: toast,
-            filteredPlans: filteredPlans,
+            deleteConfirmButton: deleteConfirmButton,
+            resizeTable: resizeTable,
+            favoritePlanItems: favoritePlanItems,
+            otherPlanItems: otherPlanItems,
+            filteredFavoritePlans: filteredFavoritePlans,
             filteredExercises: filteredExercises,
             editPopupTitle: editPopupTitle,
             editInputType: editInputType,
@@ -2608,10 +2961,12 @@ const __VLS_self = (await import('vue')).defineComponent({
             formatLapTime: formatLapTime,
             toggleCustomExercises: toggleCustomExercises,
             finishEdit: finishEdit,
+            validatePlanName: validatePlanName,
             closeValidationPopup: closeValidationPopup,
             toggleFavoritePlan: toggleFavoritePlan,
             createOrUpdatePlan: createOrUpdatePlan,
             addExerciseToPlan: addExerciseToPlan,
+            removeExerciseFromPlan: removeExerciseFromPlan,
             editPlan: editPlan,
             deletePlan: deletePlan,
             loadPlan: loadPlan,
@@ -2631,13 +2986,8 @@ const __VLS_self = (await import('vue')).defineComponent({
             openDeleteStopwatchPopup: openDeleteStopwatchPopup,
             toggleFavoriteStopwatch: toggleFavoriteStopwatch,
             updateCustomSeconds: updateCustomSeconds,
-            startTimerInstance: startTimerInstance,
-            stopTimerInstance: stopTimerInstance,
-            resetTimerInstance: resetTimerInstance,
-            resetStopwatchInstance: resetStopwatchInstance,
             addLapTime: addLapTime,
             resetCustomSeconds: resetCustomSeconds,
-            toggleStopwatchInstance: toggleStopwatchInstance,
             openDeletePopup: openDeletePopup,
             closeDeletePopup: closeDeletePopup,
             confirmDeleteAction: confirmDeleteAction,
@@ -2649,10 +2999,14 @@ const __VLS_self = (await import('vue')).defineComponent({
             handleOverlayClick: handleOverlayClick,
         };
     },
+    __typeEmits: {},
+    __typeProps: {},
 });
 export default (await import('vue')).defineComponent({
     setup() {
         return {};
     },
+    __typeEmits: {},
+    __typeProps: {},
 });
 ; /* PartiallyEnd: #4569/main.vue */

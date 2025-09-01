@@ -112,3 +112,83 @@ html, body, #app {
 html, body {
     overflow-y: auto; /* sorgt für normales Scrollen */
 }
+
+/* ================== CALCULATOR – MOBILE FIXES ================== */
+
+/* 1) Card-Header räumen: Titel kann schrumpfen + Ellipsis, Stern bleibt im Flow */
+.calculator-card .card-header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+}
+
+.calculator-card .card-title {
+    flex: 1; /* nimmt restlichen Platz */
+    min-width: 0; /* erlaubt Schrumpfen */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calculator-card .fav-btn {
+    flex: 0 0 auto; /* feste Breite, schrumpft nicht */
+    margin-left: auto; /* nach rechts schieben */
+    line-height: 1;
+}
+
+/* Tooltip neben dem Titel soll keine Zeile umbrechen */
+.calculator-card .tooltip {
+    flex: 0 0 auto;
+}
+
+@media (max-width:640px) {
+    .calculator-card .card-title {
+        font-size: clamp(1rem, 2.5vw + .8rem, 1.15rem);
+    }
+
+    .calculator-card .fav-btn {
+        font-size: 1.05rem; /* minimal kleiner auf Handy */
+    }
+}
+
+/* 2) Footer-Buttons: auf Handy als 2-Spalten-Grid, auf Desktop normal in Reihe */
+.calculator-card .card-footer {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+}
+
+.calculator-card .footer-spacer {
+    flex: 1;
+}
+
+/* Handy: immer 2 Buttons nebeneinander, gleiche Breite */
+@media (max-width:640px) {
+    .calculator-card .footer-actions {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(110px, 1fr));
+        gap: .5rem;
+        width: 100%;
+        max-width: 360px; /* optional */
+    }
+
+        .calculator-card .footer-actions .btn-ghost,
+        .calculator-card .footer-actions .btn-danger-ghost {
+            width: 100%;
+        }
+}
+
+/* ≥ Tablet: wieder als Reihe */
+@media (min-width:641px) {
+    .calculator-card .footer-actions {
+        display: flex;
+        gap: .5rem;
+        width: auto;
+        flex-wrap: nowrap; /* wichtig: kein Umbruch */
+    }
+}
+
+/* Falls irgendwo noch ein wrap erzwungen wird, hier hart überschreiben */
+.calculator-card .footer-actions {
+    flex-wrap: nowrap !important;
+}
