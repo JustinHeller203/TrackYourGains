@@ -78,7 +78,7 @@
                                    :bmiWeight="bmiWeight"
                                    :bmiHeight="bmiHeight"
                                    :bmiResult="bmiResult"
-                                   :isFavorite="false"
+                                   :isFavorite="true"
                                    @toggleFavorite="() => toggleFavorite('BMI')"
                                    @update:bmiGender="val => (bmiGender = val)"
                                    @update:bmiWeight="val => (bmiWeight = val)"
@@ -246,7 +246,7 @@
 
 
                 <!-- ======= STANDARD-BEREICH (ohne Favoriten-Duplikate) ======= -->
-                <BmiCalculator v-if="isFavorite('BMI') && matchesCalc('BMI')"
+                <BmiCalculator v-if="!isFavorite('BMI') && matchesCalc('BMI')"
                                title="BMI-Rechner"
                                info="Der BMI (Body-Mass-Index) misst das Verhältnis von Gewicht zu Größe."
                                :unit="unit"
