@@ -69,7 +69,7 @@
                 <!-- ======= FAVORITEN-BEREICH (oben) ======= -->
                 <template v-if="favoriteCalcs.length">
                     <!-- BMI Favorit -->
-                    <BmiCalculator v-if="!isFavorite('BMI') && matchesCalc('BMI')"
+                    <BmiCalculator v-if="isFavorite('BMI') && matchesCalc('BMI')"
                                    title="BMI-Rechner"
                                    info="Der BMI (Body-Mass-Index) misst das Verhältnis von Gewicht zu Größe."
                                    :unit="unit"
