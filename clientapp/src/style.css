@@ -163,20 +163,23 @@ html, body {
 }
 
 /* Handy: immer 2 Buttons nebeneinander, gleiche Breite */
+/* Handy: Buttons schön mittig */
 @media (max-width:640px) {
+    .calculator-card .card-footer {
+        justify-content: center; /* statt flex-end */
+    }
+
     .calculator-card .footer-actions {
+        justify-content: center; /* Buttons mittig ausrichten */
         display: grid !important;
         grid-template-columns: repeat(2, minmax(110px, 1fr));
         gap: .5rem;
         width: 100%;
-        max-width: 360px; /* optional */
+        max-width: 360px;
+        margin: 0 auto; /* zentriert das Grid selbst */
     }
-
-        .calculator-card .footer-actions .btn-ghost,
-        .calculator-card .footer-actions .btn-danger-ghost {
-            width: 100%;
-        }
 }
+
 
 /* ≥ Tablet: wieder als Reihe */
 @media (min-width:641px) {
