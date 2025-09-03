@@ -402,3 +402,48 @@ html, body {
         flex-wrap: nowrap;
     }
 }
+
+/* === FINAL OVERRIDES (paste ganz ans Ende) === */
+
+/* Mehr Luft unter der Navbar auf der Progress-Seite */
+.progress .page-title {
+    margin-top: 1.75rem; /* vorher 1.25rem; fühlt sich wieder „wie vorher“ an */
+}
+
+/* Mobile Header robust: Titel | Info | Stern als Grid + 2-Zeilen-Titel */
+@media (max-width: 640px) {
+    .calculator-card .card-header {
+        display: grid !important;
+        grid-template-columns: 1fr auto auto; /* Titel nimmt Platz, Icons fix */
+        column-gap: .5rem;
+        align-items: center;
+    }
+
+    .calculator-card .card-title {
+        /* überschreibt das frühere nowrap */
+        white-space: normal !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* max. 2 Zeilen */
+        -webkit-box-orient: vertical;
+        min-width: 0; /* wichtig für ellipsis */
+        line-height: 1.2;
+    }
+
+    /* Icons bleiben fix und rechtsbündig */
+    .calculator-card .tooltip,
+    .calculator-card .fav-btn {
+        justify-self: end;
+        flex: 0 0 auto;
+    }
+
+        /* Tooltip-Bubble sicher innerhalb des Viewports halten */
+        .calculator-card .tooltip .tooltip-text {
+            right: 0;
+            left: auto;
+            transform: none;
+            max-width: min(320px, 92vw);
+        }
+}
+
