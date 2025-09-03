@@ -269,3 +269,136 @@ html, body {
     }
 }
 
+/* ===== Page-Header Abstand (Progress) ===== */
+.progress .page-title {
+    margin-top: 1.25rem; /* wieder spürbarer Abstand zur Navbar */
+    margin-bottom: .25rem;
+}
+
+.progress .page-subtext {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+/* ===== Calculator-Header robust machen ===== */
+.calculator-card .card-header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: nowrap; /* NIE umbrechen -> verhindert Quetschen */
+}
+
+.calculator-card .card-title {
+    flex: 1 1 auto; /* Titel nimmt Platz, aber lässt rechts Luft */
+    min-width: 0; /* erlaubt Ellipsis */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Tooltip-Icon + Stern sind feste Breite, werden NICHT gedrückt */
+.calculator-card .tooltip,
+.calculator-card .fav-btn {
+    flex: 0 0 auto;
+}
+
+/* ===== Tooltip: nie abgeschnitten, öffnet nach links ===== */
+
+/* Übergeordnete Container dürfen NICHT clippen */
+.calculator-card,
+.calculator-card .card-header,
+.calculator-card .card-title {
+    position: relative;
+    overflow: visible !important;
+}
+
+    /* Das Icon selbst */
+    .calculator-card .tooltip {
+        position: relative;
+        display: inline-block;
+        overflow: visible !important;
+        z-index: 1;
+    }
+
+        /* Die Bubble */
+        .calculator-card .tooltip .tooltip-text {
+            position: absolute;
+            bottom: 100%; /* über dem Icon */
+            right: 0; /* an der rechten Kante ausrichten -> öffnet nach links */
+            left: auto;
+            transform: none;
+            /* Größe/Lesbarkeit */
+            min-width: 160px;
+            max-width: min(320px, 92vw); /* niemals über den Viewport hinaus */
+            padding: .75rem;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            white-space: normal;
+            word-wrap: break-word;
+            pointer-events: none;
+            /* Show/Hide */
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity .2s ease, visibility .2s ease;
+            z-index: 9999;
+        }
+
+            /* Pfeil zeigt nach unten, sitzt rechts, weil Bubble links rausgeht */
+            .calculator-card .tooltip .tooltip-text::after {
+                content: '';
+                position: absolute;
+                bottom: -8px;
+                right: 12px;
+                border-width: 8px;
+                border-style: solid;
+                border-color: var(--bg-card) transparent transparent transparent;
+            }
+
+        .calculator-card .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+/* Mobile Feinheiten */
+@media (max-width: 640px) {
+    .calculator-card .card-title {
+        font-size: clamp(1rem, 2.5vw + .8rem, 1.15rem);
+    }
+
+    .calculator-card .fav-btn {
+        font-size: 1.05rem;
+    }
+
+    .calculator-card .tooltip .tooltip-text {
+        max-width: 92vw;
+    }
+}
+
+/* ===== Handy-Footer Buttons mittig (aus vorherigem Fix) ===== */
+@media (max-width:640px) {
+    .calculator-card .card-footer {
+        justify-content: center;
+    }
+
+    .calculator-card .footer-actions {
+        justify-content: center;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(110px, 1fr));
+        gap: .5rem;
+        width: 100%;
+        max-width: 360px;
+        margin: 0 auto;
+    }
+}
+
+@media (min-width:641px) {
+    .calculator-card .footer-actions {
+        display: flex;
+        gap: .5rem;
+        width: auto;
+        flex-wrap: nowrap;
+    }
+}
