@@ -445,5 +445,74 @@ html, body {
             transform: none;
             max-width: min(320px, 92vw);
         }
+
+    .calculators-grid .card-header .card-title,
+    .calculators-grid .card-header > h3 {
+        margin: 0;
+        white-space: normal !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* max 2 Zeilen */
+        -webkit-box-orient: vertical;
+        min-width: 0;
+        line-height: 1.2;
+    }
+
+    /* die letzten zwei Elemente (i + ☆) bleiben fix */
+    .calculators-grid .card-header > :nth-last-child(-n + 2) {
+        justify-self: end;
+        flex: 0 0 auto;
+    }
 }
 
+.calculators-grid .card-header,
+.calculators-grid .card-header .card-title,
+.calculators-grid .card-header > h3 {
+    position: relative;
+    overflow: visible !important;
+}
+
+    /* Tooltip-Bubble rechts ausrichten -> öffnet nach links */
+    .calculators-grid .card-header .tooltip {
+        position: relative;
+        overflow: visible !important;
+        z-index: 1;
+    }
+
+        .calculators-grid .card-header .tooltip .tooltip-text {
+            position: absolute;
+            bottom: 100%;
+            right: 0; /* an rechter Kante andocken */
+            left: auto;
+            transform: none;
+            min-width: 160px;
+            max-width: min(320px, 92vw);
+            padding: .75rem;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            white-space: normal;
+            pointer-events: none;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity .2s ease, visibility .2s ease;
+            z-index: 9999;
+        }
+
+            .calculators-grid .card-header .tooltip .tooltip-text::after {
+                content: '';
+                position: absolute;
+                bottom: -8px;
+                right: 12px;
+                border-width: 8px;
+                border-style: solid;
+                border-color: var(--bg-card) transparent transparent transparent;
+            }
+
+        .calculators-grid .card-header .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
