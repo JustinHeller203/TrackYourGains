@@ -195,3 +195,142 @@ html, body {
 .calculator-card .footer-actions {
     flex-wrap: nowrap !important;
 }
+
+.calculator-card .card-title .tooltip {
+    overflow: visible !important;
+    white-space: normal !important;
+}
+
+/* ===== Tooltip – Global-Fix für alle Calculator-Karten ===== */
+
+/* Header und Titel dürfen NICHT clippen */
+.calculator-card .card-header,
+.calculator-card .card-title {
+    position: relative;
+    overflow: visible !important;
+}
+
+/* Tooltip-Basis – immer sichtbar „über“ dem Header */
+.calculator-card .tooltip {
+    position: relative;
+    display: inline-block;
+    overflow: visible !important;
+    z-index: 1;
+}
+
+    /* Der eigentliche Bubble */
+    .calculator-card .tooltip .tooltip-text {
+        position: absolute;
+        bottom: 100%; /* über dem Icon */
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: 150px;
+        max-width: 300px;
+        padding: .75rem;
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        white-space: normal;
+        word-wrap: break-word;
+        pointer-events: none;
+        /* sichtbar/unsichtbar steuern */
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity .2s ease, visibility .2s ease;
+        /* Hoch genug, um über allem zu liegen */
+        z-index: 9999;
+    }
+
+        /* Pfeilchen */
+        .calculator-card .tooltip .tooltip-text::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px;
+            border-style: solid;
+            border-color: var(--bg-card) transparent transparent transparent;
+        }
+
+    /* Hover aktiviert die Bubble */
+    .calculator-card .tooltip:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+
+/* Mobile: etwas schmaler + kein Clippen */
+@media (max-width: 640px) {
+    .calculator-card .tooltip .tooltip-text {
+        min-width: 120px;
+        max-width: 90vw;
+    }
+}
+
+/* Headline + Subline */
+.page-title,
+.page-subtext {
+    max-width: 100%;
+    overflow-wrap: anywhere; /* darf überall umbrechen */
+    word-break: break-word; /* fallback für ältere Browser */
+    white-space: normal; /* kein nowrap */
+}
+
+.page-title {
+    margin: 0 0 .25rem 0;
+    font-size: clamp(1.1rem, 3.8vw + .6rem, 1.6rem);
+    line-height: 1.25;
+}
+
+.page-subtext {
+    margin: 0 0 .75rem 0;
+    color: var(--text-secondary);
+    font-size: clamp(.9rem, 2.2vw + .55rem, 1rem);
+    line-height: 1.35;
+}
+/* Seite/Route Progress: kein horizontales Scrollen */
+.progress {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+
+/* dein Content-Container */
+.dashboard-container {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--page-max);
+    margin: 0 auto;
+    padding: 0 var(--page-pad);
+}
+/* Charts immer responsiv */
+canvas {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+}
+
+/* Grid sicher gegen Overflow */
+.calculators-grid,
+.progress-charts,
+.dashboard-grid,
+.tabs {
+    min-width: 0; /* verhindert, dass Kinder die Breite erzwingen */
+    max-width: 100%;
+}
+
+/* Tabs nicht breiter als Viewport */
+.tabs {
+    overflow-x: hidden;
+}
+
+/* Falls eine Karte doch mal schiebt, clippe horizontal dezent */
+.calculator-card {
+    max-width: 100%;
+    overflow-x: clip; /* verhindert horizontalen Scroll ohne vertical zu beeinflussen */
+}
+.progress * {
+    max-width: 100%;
+}

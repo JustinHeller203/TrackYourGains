@@ -3,10 +3,8 @@
     "",
     "\\clientapp",
     "\\clientapp\\src",
-    "\\clientapp\\src\\components",
-    "\\clientapp\\src\\pages",
-    "\\clientapp\\src\\router"
+    "\\clientapp\\src\\pages"
   ],
-  "SelectedNode": "\\clientapp\\src\\style.css",
+  "SelectedNode": "\\clientapp\\src\\pages\\index.js",
   "PreviewInSolutionExplorer": false
 }
