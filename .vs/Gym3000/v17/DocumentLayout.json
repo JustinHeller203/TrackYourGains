@@ -267,9 +267,10 @@
               "RelativeDocumentMoniker": "clientapp\\src\\pages\\Progress.vue",
               "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Progress.vue",
               "RelativeToolTip": "clientapp\\src\\pages\\Progress.vue",
-              "ViewState": "AgIAAOEAAAAAAAAAAAAAAFcAAABFAAAAAAAAAA==",
+              "ViewState": "AgIAABcAAAAAAAAAAAAlwCMAAAAyAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
-              "WhenOpened": "2025-05-24T13:17:05.311Z"
+              "WhenOpened": "2025-05-24T13:17:05.311Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -507,7 +508,7 @@
               "RelativeDocumentMoniker": "clientapp\\src\\style.css",
               "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\style.css",
               "RelativeToolTip": "clientapp\\src\\style.css",
-              "ViewState": "AgIAAAIBAAAAAAAAAAAAAA8BAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAOABAAAAAAAAAAAjwPgBAAAbAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
               "WhenOpened": "2025-05-29T20:50:23.678Z",
               "EditorCaption": ""

@@ -115,31 +115,64 @@ html, body {
 
 /* ================== CALCULATOR – MOBILE FIXES ================== */
 
-/* 1) Card-Header räumen: Titel kann schrumpfen + Ellipsis, Stern bleibt im Flow */
 .calculator-card .card-header {
     display: flex;
     align-items: center;
     gap: .75rem;
+    min-width: 0;
 }
 
+@media (max-width:640px) {
+    .calculator-card .card-header {
+        display: grid !important;
+        grid-template-columns: 1fr auto auto;
+        column-gap: .5rem;
+        align-items: center;
+        min-width: 0;
+    }
+}
+
+/* Desktop: eine Zeile mit Ellipsis */
 .calculator-card .card-title {
-    flex: 1; /* nimmt restlichen Platz */
-    min-width: 0; /* erlaubt Schrumpfen */
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.calculator-card .fav-btn {
-    flex: 0 0 auto; /* feste Breite, schrumpft nicht */
-    margin-left: auto; /* nach rechts schieben */
-    line-height: 1;
+/* Mobile: maximal zwei Zeilen, dann ellipsen */
+@media (max-width:640px) {
+    .calculator-card .card-title {
+        white-space: normal !important;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        line-height: 1.2;
+        min-width: 0;
+    }
 }
 
-/* Tooltip neben dem Titel soll keine Zeile umbrechen */
-.calculator-card .tooltip {
+/* Einheitliche, feste Icon-Spalten – verhindern Quetschen */
+.calculator-card .tooltip,
+.calculator-card .fav-btn {
     flex: 0 0 auto;
+    min-width: 36px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
+
+/* Mobile: rechtsbündig in ihren Grid-Spalten */
+@media (max-width:640px) {
+    .calculator-card .tooltip,
+    .calculator-card .fav-btn {
+        justify-self: end;
+    }
+}
+
 
 @media (max-width:640px) {
     .calculator-card .card-title {
@@ -147,11 +180,10 @@ html, body {
     }
 
     .calculator-card .fav-btn {
-        font-size: 1.05rem; /* minimal kleiner auf Handy */
+        font-size: 1.05rem;
     }
 }
 
-/* 2) Footer-Buttons: auf Handy als 2-Spalten-Grid, auf Desktop normal in Reihe */
 .calculator-card .card-footer {
     display: flex;
     align-items: center;
@@ -162,36 +194,31 @@ html, body {
     flex: 1;
 }
 
-/* Handy: immer 2 Buttons nebeneinander, gleiche Breite */
-/* Handy: Buttons schön mittig */
 @media (max-width:640px) {
     .calculator-card .card-footer {
-        justify-content: center; /* statt flex-end */
+        justify-content: center; 
     }
 
     .calculator-card .footer-actions {
-        justify-content: center; /* Buttons mittig ausrichten */
+        justify-content: center; 
         display: grid !important;
         grid-template-columns: repeat(2, minmax(110px, 1fr));
         gap: .5rem;
         width: 100%;
         max-width: 360px;
-        margin: 0 auto; /* zentriert das Grid selbst */
+        margin: 0 auto; 
     }
 }
 
-
-/* ≥ Tablet: wieder als Reihe */
 @media (min-width:641px) {
     .calculator-card .footer-actions {
         display: flex;
         gap: .5rem;
         width: auto;
-        flex-wrap: nowrap; /* wichtig: kein Umbruch */
+        flex-wrap: nowrap;
     }
 }
 
-/* Falls irgendwo noch ein wrap erzwungen wird, hier hart überschreiben */
 .calculator-card .footer-actions {
     flex-wrap: nowrap !important;
 }
@@ -203,14 +230,17 @@ html, body {
 
 /* ===== Tooltip – Global-Fix für alle Calculator-Karten ===== */
 
-/* Header und Titel dürfen NICHT clippen */
-.calculator-card .card-header,
-.calculator-card .card-title {
+/* Header darf layouten, Titel selbst hält Overflow zurück */
+.calculator-card .card-header {
     position: relative;
-    overflow: visible !important;
+    overflow: visible;
 }
 
-/* Tooltip-Basis – immer sichtbar „über“ dem Header */
+.calculator-card .card-title {
+    overflow: hidden;
+}
+
+
 .calculator-card .tooltip {
     position: relative;
     display: inline-block;
@@ -218,10 +248,9 @@ html, body {
     z-index: 1;
 }
 
-    /* Der eigentliche Bubble */
     .calculator-card .tooltip .tooltip-text {
         position: absolute;
-        bottom: 100%; /* über dem Icon */
+        bottom: 100%; 
         left: 50%;
         transform: translateX(-50%);
         min-width: 150px;
@@ -235,11 +264,9 @@ html, body {
         white-space: normal;
         word-wrap: break-word;
         pointer-events: none;
-        /* sichtbar/unsichtbar steuern */
         visibility: hidden;
         opacity: 0;
         transition: opacity .2s ease, visibility .2s ease;
-        /* Hoch genug, um über allem zu liegen */
         z-index: 9999;
     }
 
@@ -271,7 +298,7 @@ html, body {
 
 /* ===== Page-Header Abstand (Progress) ===== */
 .progress .page-title {
-    margin-top: 1.25rem; /* wieder spürbarer Abstand zur Navbar */
+    margin-top: 1.25rem;
     margin-bottom: .25rem;
 }
 
@@ -479,6 +506,22 @@ html, body {
         overflow: visible !important;
         z-index: 1;
     }
+
+@media (max-width:640px) {
+    .calculator-card .tooltip .tooltip-text {
+        right: 0; /* Bubble an rechter Kante der Karte ausrichten */
+        left: auto; /* linke Positionierung aufheben */
+        transform: none; /* kein Verschieben mehr */
+        max-width: 92vw; /* Bubble maximal 92% des Screens breit */
+    }
+}
+
+.calculators-grid,
+.calculator-card,
+.calculator-card .card-header,
+.calculator-card .card-title {
+    min-width: 0;
+}
 
         .calculators-grid .card-header .tooltip .tooltip-text {
             position: absolute;

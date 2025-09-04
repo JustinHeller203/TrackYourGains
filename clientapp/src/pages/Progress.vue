@@ -470,9 +470,10 @@
 
         <!-- Toast -->
         <Toast :toast="toast"
-               position="bottom-right"
+               position="bottom-center"
                :dismissible="true"
                @dismiss="startToastExit" />
+
     </div>
 </template>
 
