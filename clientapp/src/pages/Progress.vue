@@ -2595,12 +2595,6 @@
             text-shadow: 0 0 8px #F59E0B, 0 0 4px #F59E0B;
         }
 
-    .card-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }
 
     .card-info {
         font-size: 1.5rem;
@@ -2740,19 +2734,27 @@
         border: 1px solid var(--border-color);
     }
 
-    .card-header {
+    /* nur Plan-Karten, NICHT die Calculator-Karten */
+    .plan-card .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .plan-card .card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 1rem;
     }
 
-    .card-actions {
+    .plan-card .card-actions {
         display: flex;
         gap: 0.5rem;
     }
 
-    .action-btn {
+    .plan-card .action-btn {
         background: none;
         border: none;
         font-size: 1rem;
@@ -2762,7 +2764,7 @@
         padding: 0.25rem;
     }
 
-        .action-btn:hover {
+        .plan-card .action-btn:hover {
             color: var(--accent-primary);
         }
 

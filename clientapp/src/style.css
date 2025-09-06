@@ -43,47 +43,19 @@ body {
     color: var(--text-primary);
 }
 
-
-/* ❌ scrollbar-gutter nicht mehr global */
+/* scrollbar-gutter nur im Content */
 html {
-    /* leer lassen */
 }
 
-/* ✅ Scrollbar-Gutter nur im Content aktivieren, damit nix springt */
 .main-content {
     scrollbar-gutter: stable;
 }
 
-/* --- dein bisheriger Rest --- */
-
-/* Rechner-Bereich */
+/* ================== Layout / Container ================== */
 .dashboard-container {
     max-width: var(--page-max);
     margin: 0 auto;
     padding: 0 var(--page-pad);
-}
-
-.calculators-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-    width: 100%;
-}
-
-.calculator-card {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    min-width: 0;
-    border-radius: 14px;
-    box-shadow: 0 6px 18px rgba(17,24,39,.06);
-    border: 1px solid #e5e7eb;
-    background: #fff;
-}
-
-html.dark-mode .calculator-card {
-    background: #0d1117;
-    border-color: #30363d;
 }
 
 .tabs {
@@ -110,29 +82,46 @@ html, body, #app {
 }
 
 html, body {
-    overflow-y: auto; /* sorgt für normales Scrollen */
+    overflow-y: auto;
 }
 
-/* ================== CALCULATOR – MOBILE FIXES ================== */
+/* ================== Calculators Grid & Cards ================== */
+.calculators-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    width: 100%;
+    overflow: visible; /* Tooltips/Titel nicht clippen */
+}
 
+.calculator-card {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    min-width: 0;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(17,24,39,.06);
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    position: relative; /* Referenz für Tooltip */
+}
+
+html.dark-mode .calculator-card {
+    background: #0d1117;
+    border-color: #30363d;
+}
+
+/* ================== Card Header – Desktop Basis ================== */
 .calculator-card .card-header {
     display: flex;
     align-items: center;
     gap: .75rem;
     min-width: 0;
+    position: relative;
+    overflow: visible;
+    flex-wrap: nowrap;
 }
 
-@media (max-width:640px) {
-    .calculator-card .card-header {
-        display: grid !important;
-        grid-template-columns: 1fr auto auto;
-        column-gap: .5rem;
-        align-items: center;
-        min-width: 0;
-    }
-}
-
-/* Desktop: eine Zeile mit Ellipsis */
 .calculator-card .card-title {
     flex: 1 1 auto;
     min-width: 0;
@@ -141,20 +130,7 @@ html, body {
     white-space: nowrap;
 }
 
-/* Mobile: maximal zwei Zeilen, dann ellipsen */
-@media (max-width:640px) {
-    .calculator-card .card-title {
-        white-space: normal !important;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        overflow: hidden;
-        line-height: 1.2;
-        min-width: 0;
-    }
-}
-
-/* Einheitliche, feste Icon-Spalten – verhindern Quetschen */
+/* Icons als feste Spalten verhindern Quetschen */
 .calculator-card .tooltip,
 .calculator-card .fav-btn {
     flex: 0 0 auto;
@@ -165,82 +141,7 @@ html, body {
     justify-content: center;
 }
 
-/* Mobile: rechtsbündig in ihren Grid-Spalten */
-@media (max-width:640px) {
-    .calculator-card .tooltip,
-    .calculator-card .fav-btn {
-        justify-self: end;
-    }
-}
-
-
-@media (max-width:640px) {
-    .calculator-card .card-title {
-        font-size: clamp(1rem, 2.5vw + .8rem, 1.15rem);
-    }
-
-    .calculator-card .fav-btn {
-        font-size: 1.05rem;
-    }
-}
-
-.calculator-card .card-footer {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-}
-
-.calculator-card .footer-spacer {
-    flex: 1;
-}
-
-@media (max-width:640px) {
-    .calculator-card .card-footer {
-        justify-content: center; 
-    }
-
-    .calculator-card .footer-actions {
-        justify-content: center; 
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(110px, 1fr));
-        gap: .5rem;
-        width: 100%;
-        max-width: 360px;
-        margin: 0 auto; 
-    }
-}
-
-@media (min-width:641px) {
-    .calculator-card .footer-actions {
-        display: flex;
-        gap: .5rem;
-        width: auto;
-        flex-wrap: nowrap;
-    }
-}
-
-.calculator-card .footer-actions {
-    flex-wrap: nowrap !important;
-}
-
-.calculator-card .card-title .tooltip {
-    overflow: visible !important;
-    white-space: normal !important;
-}
-
-/* ===== Tooltip – Global-Fix für alle Calculator-Karten ===== */
-
-/* Header darf layouten, Titel selbst hält Overflow zurück */
-.calculator-card .card-header {
-    position: relative;
-    overflow: visible;
-}
-
-.calculator-card .card-title {
-    overflow: hidden;
-}
-
-
+/* ================== Tooltip – Basis (öffnet nach links) ================== */
 .calculator-card .tooltip {
     position: relative;
     display: inline-block;
@@ -250,11 +151,12 @@ html, body {
 
     .calculator-card .tooltip .tooltip-text {
         position: absolute;
-        bottom: 100%; 
-        left: 50%;
-        transform: translateX(-50%);
-        min-width: 150px;
-        max-width: 300px;
+        bottom: 100%;
+        right: 0;
+        left: auto;
+        transform: none;
+        min-width: 160px;
+        max-width: min(320px, 92vw);
         padding: .75rem;
         background: var(--bg-card);
         color: var(--text-secondary);
@@ -270,142 +172,98 @@ html, body {
         z-index: 9999;
     }
 
-        /* Pfeilchen */
         .calculator-card .tooltip .tooltip-text::after {
             content: '';
             position: absolute;
             bottom: -8px;
-            left: 50%;
-            transform: translateX(-50%);
+            right: 12px;
             border-width: 8px;
             border-style: solid;
             border-color: var(--bg-card) transparent transparent transparent;
         }
 
-    /* Hover aktiviert die Bubble */
     .calculator-card .tooltip:hover .tooltip-text {
         visibility: visible;
         opacity: 1;
     }
 
-/* Mobile: etwas schmaler + kein Clippen */
-@media (max-width: 640px) {
-    .calculator-card .tooltip .tooltip-text {
-        min-width: 120px;
-        max-width: 90vw;
-    }
-}
-
-/* ===== Page-Header Abstand (Progress) ===== */
-.progress .page-title {
-    margin-top: 1.25rem;
-    margin-bottom: .25rem;
-}
-
-.progress .page-subtext {
-    margin-top: 0;
-    margin-bottom: 1rem;
-}
-
-/* ===== Calculator-Header robust machen ===== */
-.calculator-card .card-header {
+/* ================== Card Footer ================== */
+.calculator-card .card-footer {
     display: flex;
     align-items: center;
     gap: .75rem;
-    flex-wrap: nowrap; /* NIE umbrechen -> verhindert Quetschen */
 }
 
-.calculator-card .card-title {
-    flex: 1 1 auto; /* Titel nimmt Platz, aber lässt rechts Luft */
-    min-width: 0; /* erlaubt Ellipsis */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.calculator-card .footer-spacer {
+    flex: 1;
 }
 
-/* Tooltip-Icon + Stern sind feste Breite, werden NICHT gedrückt */
-.calculator-card .tooltip,
-.calculator-card .fav-btn {
-    flex: 0 0 auto;
+.calculator-card .footer-actions {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: nowrap !important;
 }
 
-/* ===== Tooltip: nie abgeschnitten, öffnet nach links ===== */
-
-/* Übergeordnete Container dürfen NICHT clippen */
-.calculator-card,
-.calculator-card .card-header,
-.calculator-card .card-title {
-    position: relative;
-    overflow: visible !important;
+@media (min-width:641px) {
+    .calculator-card .footer-actions {
+        display: flex;
+        gap: .5rem;
+        width: auto;
+        flex-wrap: nowrap;
+    }
 }
 
-    /* Das Icon selbst */
-    .calculator-card .tooltip {
-        position: relative;
-        display: inline-block;
-        overflow: visible !important;
-        z-index: 1;
+/* ================== Mobile (≤640px) ================== */
+@media (max-width:640px) {
+    /* Header: Grid – Titel | Info | Stern */
+    .calculator-card .card-header {
+        display: grid !important;
+        grid-template-columns: 1fr auto auto;
+        column-gap: .5rem;
+        align-items: center;
+        min-width: 0;
     }
 
-        /* Die Bubble */
-        .calculator-card .tooltip .tooltip-text {
-            position: absolute;
-            bottom: 100%; /* über dem Icon */
-            right: 0; /* an der rechten Kante ausrichten -> öffnet nach links */
-            left: auto;
-            transform: none;
-            /* Größe/Lesbarkeit */
-            min-width: 160px;
-            max-width: min(320px, 92vw); /* niemals über den Viewport hinaus */
-            padding: .75rem;
-            background: var(--bg-card);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            box-shadow: var(--shadow);
-            white-space: normal;
-            word-wrap: break-word;
-            pointer-events: none;
-            /* Show/Hide */
-            visibility: hidden;
-            opacity: 0;
-            transition: opacity .2s ease, visibility .2s ease;
-            z-index: 9999;
-        }
-
-            /* Pfeil zeigt nach unten, sitzt rechts, weil Bubble links rausgeht */
-            .calculator-card .tooltip .tooltip-text::after {
-                content: '';
-                position: absolute;
-                bottom: -8px;
-                right: 12px;
-                border-width: 8px;
-                border-style: solid;
-                border-color: var(--bg-card) transparent transparent transparent;
-            }
-
-        .calculator-card .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-
-/* Mobile Feinheiten */
-@media (max-width: 640px) {
+    /* Titel 2-zeilig mit Ellipsis */
     .calculator-card .card-title {
+        grid-column: 1 / 2;
+        white-space: normal !important;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        line-height: 1.2;
+        min-width: 0;
+        overflow-wrap: anywhere;
         font-size: clamp(1rem, 2.5vw + .8rem, 1.15rem);
+    }
+
+    /* Icons fix rechts */
+    .calculator-card .card-header .tooltip {
+        grid-column: 2 / 3;
+        justify-self: end;
+        margin: 0 !important;
+    }
+
+    .calculator-card .card-header .fav-btn {
+        grid-column: 3 / 4;
+        justify-self: end;
     }
 
     .calculator-card .fav-btn {
         font-size: 1.05rem;
     }
 
+    /* Tooltip sicher innerhalb des Viewports */
     .calculator-card .tooltip .tooltip-text {
+        right: 0;
+        left: auto;
+        transform: none;
         max-width: 92vw;
+        min-width: 120px;
     }
-}
 
-/* ===== Handy-Footer Buttons mittig (aus vorherigem Fix) ===== */
-@media (max-width:640px) {
+    /* Footer-Buttons mittig als Grid */
     .calculator-card .card-footer {
         justify-content: center;
     }
@@ -421,101 +279,18 @@ html, body {
     }
 }
 
-@media (min-width:641px) {
-    .calculator-card .footer-actions {
-        display: flex;
-        gap: .5rem;
-        width: auto;
-        flex-wrap: nowrap;
-    }
-}
-
-/* === FINAL OVERRIDES (paste ganz ans Ende) === */
-
-/* Mehr Luft unter der Navbar auf der Progress-Seite */
+/* ================== Progress-Seite Header-Abstände ================== */
 .progress .page-title {
-    margin-top: 1.75rem; /* vorher 1.25rem; fühlt sich wieder „wie vorher“ an */
+    margin-top: 1.75rem;
+    margin-bottom: .25rem;
 }
 
-/* Mobile Header robust: Titel | Info | Stern als Grid + 2-Zeilen-Titel */
-@media (max-width: 640px) {
-    .calculator-card .card-header {
-        display: grid !important;
-        grid-template-columns: 1fr auto auto; /* Titel nimmt Platz, Icons fix */
-        column-gap: .5rem;
-        align-items: center;
-    }
-
-    .calculator-card .card-title {
-        /* überschreibt das frühere nowrap */
-        white-space: normal !important;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 2; /* max. 2 Zeilen */
-        -webkit-box-orient: vertical;
-        min-width: 0; /* wichtig für ellipsis */
-        line-height: 1.2;
-    }
-
-    /* Icons bleiben fix und rechtsbündig */
-    .calculator-card .tooltip,
-    .calculator-card .fav-btn {
-        justify-self: end;
-        flex: 0 0 auto;
-    }
-
-        /* Tooltip-Bubble sicher innerhalb des Viewports halten */
-        .calculator-card .tooltip .tooltip-text {
-            right: 0;
-            left: auto;
-            transform: none;
-            max-width: min(320px, 92vw);
-        }
-
-    .calculators-grid .card-header .card-title,
-    .calculators-grid .card-header > h3 {
-        margin: 0;
-        white-space: normal !important;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 2; /* max 2 Zeilen */
-        -webkit-box-orient: vertical;
-        min-width: 0;
-        line-height: 1.2;
-    }
-
-    /* die letzten zwei Elemente (i + ☆) bleiben fix */
-    .calculators-grid .card-header > :nth-last-child(-n + 2) {
-        justify-self: end;
-        flex: 0 0 auto;
-    }
+.progress .page-subtext {
+    margin-top: 0;
+    margin-bottom: 1rem;
 }
 
-.calculators-grid .card-header,
-.calculators-grid .card-header .card-title,
-.calculators-grid .card-header > h3 {
-    position: relative;
-    overflow: visible !important;
-}
-
-    /* Tooltip-Bubble rechts ausrichten -> öffnet nach links */
-    .calculators-grid .card-header .tooltip {
-        position: relative;
-        overflow: visible !important;
-        z-index: 1;
-    }
-
-@media (max-width:640px) {
-    .calculator-card .tooltip .tooltip-text {
-        right: 0; /* Bubble an rechter Kante der Karte ausrichten */
-        left: auto; /* linke Positionierung aufheben */
-        transform: none; /* kein Verschieben mehr */
-        max-width: 92vw; /* Bubble maximal 92% des Screens breit */
-    }
-}
-
+/* ================== Sicherheitsnetze ================== */
 .calculators-grid,
 .calculator-card,
 .calculator-card .card-header,
@@ -523,39 +298,58 @@ html, body {
     min-width: 0;
 }
 
-        .calculators-grid .card-header .tooltip .tooltip-text {
-            position: absolute;
-            bottom: 100%;
-            right: 0; /* an rechter Kante andocken */
-            left: auto;
-            transform: none;
-            min-width: 160px;
-            max-width: min(320px, 92vw);
-            padding: .75rem;
-            background: var(--bg-card);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            box-shadow: var(--shadow);
-            white-space: normal;
-            pointer-events: none;
-            visibility: hidden;
-            opacity: 0;
-            transition: opacity .2s ease, visibility .2s ease;
-            z-index: 9999;
+    .calculator-card .card-title .tooltip {
+        overflow: visible !important;
+        white-space: normal !important;
+    }
+
+    /* Für Tooltips in Card-Headern innerhalb des Grids */
+    .calculators-grid .card-header,
+    .calculators-grid .card-header .card-title,
+    .calculators-grid .card-header > h3 {
+        position: relative;
+        overflow: visible !important;
+    }
+
+        .calculators-grid .card-header .tooltip {
+            position: relative;
+            overflow: visible !important;
+            z-index: 1;
         }
 
-            .calculators-grid .card-header .tooltip .tooltip-text::after {
-                content: '';
+            .calculators-grid .card-header .tooltip .tooltip-text {
                 position: absolute;
-                bottom: -8px;
-                right: 12px;
-                border-width: 8px;
-                border-style: solid;
-                border-color: var(--bg-card) transparent transparent transparent;
+                bottom: 100%;
+                right: 0;
+                left: auto;
+                transform: none;
+                min-width: 160px;
+                max-width: min(320px, 92vw);
+                padding: .75rem;
+                background: var(--bg-card);
+                color: var(--text-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                box-shadow: var(--shadow);
+                white-space: normal;
+                pointer-events: none;
+                visibility: hidden;
+                opacity: 0;
+                transition: opacity .2s ease, visibility .2s ease;
+                z-index: 9999;
             }
 
-        .calculators-grid .card-header .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
+                .calculators-grid .card-header .tooltip .tooltip-text::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -8px;
+                    right: 12px;
+                    border-width: 8px;
+                    border-style: solid;
+                    border-color: var(--bg-card) transparent transparent transparent;
+                }
+
+            .calculators-grid .card-header .tooltip:hover .tooltip-text {
+                visibility: visible;
+                opacity: 1;
+            }

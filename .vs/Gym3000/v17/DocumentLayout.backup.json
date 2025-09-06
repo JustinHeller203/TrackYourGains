@@ -267,7 +267,7 @@
               "RelativeDocumentMoniker": "clientapp\\src\\pages\\Progress.vue",
               "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\pages\\Progress.vue",
               "RelativeToolTip": "clientapp\\src\\pages\\Progress.vue",
-              "ViewState": "AgIAABcAAAAAAAAAAAAlwCMAAAAyAAAAAAAAAA==",
+              "ViewState": "AgIAAL4KAAAAAAAAAAAQwNYKAAAfAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
               "WhenOpened": "2025-05-24T13:17:05.311Z",
               "EditorCaption": ""
@@ -508,7 +508,7 @@
               "RelativeDocumentMoniker": "clientapp\\src\\style.css",
               "ToolTip": "D:\\Users\\Justin\\source\\repos\\Gym3000\\clientapp\\src\\style.css",
               "RelativeToolTip": "clientapp\\src\\style.css",
-              "ViewState": "AgIAAOABAAAAAAAAAAAjwPgBAAAbAAAAAAAAAA==",
+              "ViewState": "AgIAAE0BAAAAAAAAAAAQwFYBAAAgAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
               "WhenOpened": "2025-05-29T20:50:23.678Z",
               "EditorCaption": ""
@@ -767,6 +767,10 @@
           "DockedHeight": 40,
           "SelectedChildIndex": -1,
           "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{dee22b65-9761-4a26-8fb2-759b971d6dfc}"
+            },
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{4a8466fe-5a05-4f81-ad45-7d7c1316817e}"
