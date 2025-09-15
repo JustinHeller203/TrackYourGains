@@ -461,66 +461,65 @@
         exercises: PlanExercise[];
     }
 
+    type ToastType =
+        | 'toast-default'
+        | 'toast-save'
+        | 'toast-add'
+        | 'toast-delete'
+        | 'toast-timer'
+        | 'toast-reset'
+
     interface Toast {
-        id: number;
-        message: string;
-        emoji: string;
-        type: string;
-        exiting: boolean;
+        id: number
+        message: string
+        emoji: string
+        type: ToastType
+        exiting: boolean
     }
 
+
     interface TimerInstance {
-        id: string;
-        name?: string;
-        seconds: string | null;
-        customSeconds: string | null;
-        time: number;
-        isRunning: boolean;
-        interval: number | null;
-        isFavorite: boolean;
-        sound: string;
-        isVisible: boolean;
-        shouldStaySticky: boolean;
-        left?: number;
-        top?: number;
+        id: string
+        name?: string
+        seconds: string | null
+        customSeconds: number | null 
+        time: number
+        isRunning: boolean
+        interval: number | null
+        isFavorite: boolean
+        sound: string
+        isVisible: boolean
+        shouldStaySticky: boolean
+        left?: number
+        top?: number
     }
 
     interface StopwatchInstance {
-        id: string;
-        name?: string;
-        time: number;
-        isRunning: boolean;
-        interval: number | null;
-        laps?: number[];
-        shouldStaySticky: boolean;
-        left?: number;
-        top?: number;
+        id: string
+        name?: string
+        time: number
+        isRunning: boolean
+        interval: number | null
+        laps?: number[]
+        isFavorite: boolean        
+        isVisible: boolean       
+        shouldStaySticky: boolean
+        left?: number
+        top?: number
     }
 
-    // Props ohne Destrukturierung definieren
     const props = defineProps<{
-        toast: Toast | null
-        dismissible?: boolean
-        position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
-        timers: TimerInstance[];
-        stopwatches: StopwatchInstance[];
-        startTimer: (timer: TimerInstance) => void;
-        stopTimer: (timer: TimerInstance) => void;
-        resetTimer: (timer: TimerInstance) => void;
-        toggleStopwatch: (sw: StopwatchInstance) => void;
-        resetStopwatch: (sw: StopwatchInstance) => void;
-        removeTimer: (id: string) => void;
-        removeStopwatch: (id: string) => void;
+        timers: TimerInstance[]
+        stopwatches: StopwatchInstance[]
+        startTimer: (timer: TimerInstance) => void
+        stopTimer: (timer: TimerInstance) => void
+        resetTimer: (timer: TimerInstance) => void
+        toggleStopwatch: (sw: StopwatchInstance) => void
+        resetStopwatch: (sw: StopwatchInstance) => void
+        removeTimer: (id: string) => void
+        removeStopwatch: (id: string) => void
     }>();
 
-    const positionClass = computed(() => {
-        switch (props.position) {
-            case 'top-left': return 'pos-top-left'
-            case 'top-right': return 'pos-top-right'
-            case 'bottom-left': return 'pos-bottom-left'
-            default: return 'pos-bottom-right'
-        }
-    })
     const emit = defineEmits<{
         (e: 'remove-timer', id: string): void;
         (e: 'remove-stopwatch', id: string): void;
