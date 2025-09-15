@@ -6,12 +6,12 @@ export default defineConfig({
     resolve: {
         alias: { "@": "/src" },
     },
+    base: '/',
     server: {
         port: 5173,
         proxy: {
-            // alles unter /api -> an .NET Backend
             "/api": {
-                target: "http://localhost:5054", // dein Backend-Port aus dotnet run
+                target: "http://localhost:5054", 
                 changeOrigin: true,
                 secure: false,
             },

@@ -10,7 +10,8 @@ import Profile from '@/pages/Profile.vue'
 import { useAuthStore } from '@/store/authStore'
 
 const router = createRouter({
-    history: createWebHistory(),
+    // nutzt BASE_URL (standard: "/"), spielt gut mit Vite/Vercel
+    history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         { path: '/', name: 'home', component: LandingPage },
         { path: '/training', name: 'training', component: Training },
@@ -24,17 +25,27 @@ const router = createRouter({
         { path: '/register', redirect: { name: 'login', query: { mode: 'register' } } },
         { path: '/:pathMatch(.*)*', redirect: { name: 'home' } },
     ],
+    // optional nice-to-have: immer nach oben scrollen bei Navigation
+    scrollBehavior() {
+        return { top: 0 }
+    },
 })
 
 router.beforeEach(async (to) => {
     const auth = useAuthStore()
-    if (auth.loading) await auth.init()
+
+    // nur initialisieren, wenn nötig (verhindert doppeltes init)
+    if (!auth.initialized && !auth.loading && typeof auth.init === 'function') {
+        await auth.init()
+    }
 
     if (to.meta.requiresAuth && !auth.isAuthenticated) {
         return { name: 'login', query: { redirect: to.fullPath } }
     }
     if (to.meta.guestOnly && auth.isAuthenticated) {
-        return (to.query.redirect as string) || '/'
+        // explizit als Location-Objekt zurückgeben
+        const redirect = (to.query.redirect as string) || '/'
+        return { path: redirect }
     }
 })
 
