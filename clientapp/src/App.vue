@@ -1,6 +1,5 @@
 ﻿<template>
     <div class="app-container">
-
         <!-- ✅ Navbar -->
         <nav class="main-nav" ref="navRef">
             <div class="nav-content">
@@ -19,20 +18,36 @@
                 </button>
 
                 <!-- Links -->
-                <ul id="mobile-nav-links"
-                    class="nav-links"
-                    :class="{ open: menuOpen }">
-                    <li><router-link to="/" class="nav-link"> <i class="fas fa-home"></i> Home</router-link></li>
-                    <li><router-link to="/training" class="nav-link"> <i class="fas fa-dumbbell"></i> Training</router-link></li>
-                    <li><router-link to="/nutrition" class="nav-link"> <i class="fas fa-utensils"></i> Ernährung</router-link></li>
-                    <li><router-link to="/progress" class="nav-link"> <i class="fas fa-chart-line"></i> Fortschritt</router-link></li>
-                    <li><router-link to="/tutorials" class="nav-link"> <i class="fas fa-video"></i> Tutorials</router-link></li>
-                    <li><router-link to="/settings" class="nav-link"> <i class="fas fa-cog"></i> Einstellungen</router-link></li>
+                <ul id="mobile-nav-links" class="nav-links" :class="{ open: menuOpen }">
+                    <li><router-link to="/" class="nav-link" @click="closeMenu"><i class="fas fa-home"></i> Home</router-link></li>
+                    <li><router-link to="/training" class="nav-link" @click="closeMenu"><i class="fas fa-dumbbell"></i> Training</router-link></li>
+                    <li><router-link to="/nutrition" class="nav-link" @click="closeMenu"><i class="fas fa-utensils"></i> Ernährung</router-link></li>
+                    <li><router-link to="/progress" class="nav-link" @click="closeMenu"><i class="fas fa-chart-line"></i> Fortschritt</router-link></li>
+                    <li><router-link to="/tutorials" class="nav-link" @click="closeMenu"><i class="fas fa-video"></i> Tutorials</router-link></li>
+                    <li><router-link to="/settings" class="nav-link" @click="closeMenu"><i class="fas fa-cog"></i> Einstellungen</router-link></li>
+
+                    <!-- 🔐 Login, wenn kein User -->
+                    <template v-if="!auth.isAuthenticated">
+                        <li>
+                            <router-link to="/login" class="nav-link" @click="closeMenu">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </router-link>
+                        </li>
+                    </template>
+
+                    <!-- ✅ Nur Profil, wenn eingeloggt -->
+                    <template v-else>
+                        <li>
+                            <router-link to="/profile" class="nav-link" @click="closeMenu">
+                                <i class="fas fa-user-circle"></i> Profil
+                            </router-link>
+                        </li>
+                    </template>
                 </ul>
             </div>
         </nav>
 
-        <!-- ✅ Overlay: klick außerhalb schließt Menü -->
+        <!-- ✅ Overlay -->
         <div v-if="menuOpen" class="nav-overlay" @click="closeMenu"></div>
 
         <!-- ✅ Sticky Timer -->
@@ -72,7 +87,9 @@
                     <li v-for="(error, index) in validationErrorMessages" :key="index">{{ error }}</li>
                 </ul>
                 <div class="popup-actions">
-                    <button class="popup-btn save-btn" @click="closeValidationPopup" ref="validationOkButton">OK</button>
+                    <button class="popup-btn save-btn" @click="closeValidationPopup" ref="validationOkButton">
+                        OK
+                    </button>
                 </div>
             </div>
         </div>
@@ -94,57 +111,63 @@
                          @remove-timer="removeTimer"
                          @remove-stopwatch="removeStopwatch" />
         </main>
-
     </div>
 </template>
 
 
-
 <script setup lang="ts">
-    import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue';
+    import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
     import { useRoute } from 'vue-router'
+    import { useAuthStore } from '@/store/authStore'
 
-    // Typ-Definitionen für Timer und Stoppuhr
+    const auth = useAuthStore()
+
+    async function logoutAndClose() {
+        await auth.signOut()
+        closeMenu()
+    }
+
+    // Typ-Definitionen
     interface TimerInstance {
-        id: string;
-        name: string;
-        seconds: string;
-        customSeconds: number | null;
-        time: number;
-        isRunning: boolean;
-        interval: NodeJS.Timeout | null;
-        isFavorite: boolean;
-        sound: string;
-        isVisible: boolean;
-        shouldStaySticky: boolean;
-        left?: number;
-        top?: number;
+        id: string
+        name: string
+        seconds: string
+        customSeconds: number | null
+        time: number
+        isRunning: boolean
+        interval: NodeJS.Timeout | null
+        isFavorite: boolean
+        sound: string
+        isVisible: boolean
+        shouldStaySticky: boolean
+        left?: number
+        top?: number
     }
 
     interface StopwatchInstance {
-        id: string;
-        name: string;
-        time: number;
-        isRunning: boolean;
-        interval: NodeJS.Timeout | null;
-        laps: number[];
-        isFavorite: boolean;
-        isVisible: boolean;
-        shouldStaySticky: boolean;
-        left?: number;
-        top?: number;
+        id: string
+        name: string
+        time: number
+        isRunning: boolean
+        interval: NodeJS.Timeout | null
+        laps: number[]
+        isFavorite: boolean
+        isVisible: boolean
+        shouldStaySticky: boolean
+        left?: number
+        top?: number
     }
 
     // Reaktive Zustände
-    const validationOkButton = ref<HTMLButtonElement | null>(null);
-    const validationErrorMessages = ref<string[]>([]);
-    const showValidationPopup = ref(false);
-    const validationPopup = ref<HTMLDivElement | null>(null);
-    const menuOpen = ref(false);
-    const dragging = ref(false);
-    const dragTarget = ref<any>(null);
-    const timers = ref<TimerInstance[]>([]); // Typisierte Deklaration
-    const stopwatches = ref<StopwatchInstance[]>([]); // Typisierte Deklaration
+    const validationOkButton = ref<HTMLButtonElement | null>(null)
+    const validationErrorMessages = ref<string[]>([])
+    const showValidationPopup = ref(false)
+    const validationPopup = ref<HTMLDivElement | null>(null)
+    const menuOpen = ref(false)
+    const dragging = ref(false)
+    const dragTarget = ref<any>(null)
+    const timers = ref<TimerInstance[]>([])
+    const stopwatches = ref<StopwatchInstance[]>([])
     const route = useRoute()
     const navRef = ref<HTMLElement | null>(null)
 
@@ -164,218 +187,205 @@
     }
 
     onMounted(() => {
-        // ESC schließt Menü (du hast bereits handleKeydown – erweitere ihn unten)
         document.addEventListener('click', handleDocClick, true)
     })
 
     onBeforeUnmount(() => {
         document.removeEventListener('click', handleDocClick, true)
     })
-    // Validation-Popup-Funktionen
+
+    // Validation-Popup
     function openValidationPopup(errors: string[]) {
-        validationErrorMessages.value = errors;
-        showValidationPopup.value = true;
-        nextTick(() => validationPopup.value?.focus());
+        validationErrorMessages.value = errors
+        showValidationPopup.value = true
+        nextTick(() => validationPopup.value?.focus())
     }
 
     function handleValidationKeydown(e: KeyboardEvent) {
         if (e.key === 'Escape' || e.key === 'Enter') {
-            e.preventDefault();
-            closeValidationPopup();
+            e.preventDefault()
+            closeValidationPopup()
         }
     }
 
     function handleOverlayClick(e: MouseEvent) {
-        if (e.target === e.currentTarget) closeValidationPopup();
+        if (e.target === e.currentTarget) closeValidationPopup()
     }
 
     function closeValidationPopup() {
-        showValidationPopup.value = false;
-        validationErrorMessages.value = [];
+        showValidationPopup.value = false
+        validationErrorMessages.value = []
     }
 
-    // Navbar-Funktionen
+    // Navbar
     const toggleMenu = () => {
-        menuOpen.value = !menuOpen.value;
-    };
+        menuOpen.value = !menuOpen.value
+    }
 
     const handleLogoError = (e: Event) => {
-        const target = e.target as HTMLImageElement;
-        target.src = 'https://via.placeholder.com/56?text=Logo';
-    };
+        const target = e.target as HTMLImageElement
+        target.src = 'https://via.placeholder.com/56?text=Logo'
+    }
 
-    // Timer- und Stoppuhr-Funktionen
+    // Timer / Stopwatch
     const addTimer = async (timer: TimerInstance) => {
-        console.log('addTimer aufgerufen mit:', timer);
-        timers.value = [...timers.value, timer];
-        console.log('Timers nach Hinzufügen:', timers.value);
-        await nextTick(); // Warte auf DOM-Update
-    };
+        timers.value = [...timers.value, timer]
+        await nextTick()
+    }
 
     const addStopwatch = async (stopwatch: StopwatchInstance) => {
-        console.log('addStopwatch aufgerufen mit:', stopwatch);
-        stopwatches.value = [...stopwatches.value, stopwatch];
-        console.log('Stopwatches nach Hinzufügen:', stopwatches.value);
-        await nextTick(); // Warte auf DOM-Update
-    };
+        stopwatches.value = [...stopwatches.value, stopwatch]
+        await nextTick()
+    }
 
     const removeTimer = async (id: string) => {
-        console.log('removeTimer aufgerufen mit ID:', id);
-        const timerIndex = timers.value.findIndex(t => t.id === id);
-        if (timerIndex !== -1) {
-            timers.value[timerIndex].shouldStaySticky = false;
-            timers.value[timerIndex].isRunning = false;
-            if (timers.value[timerIndex].interval) {
-                clearInterval(timers.value[timerIndex].interval);
-                timers.value[timerIndex].interval = null;
+        const idx = timers.value.findIndex(t => t.id === id)
+        if (idx !== -1) {
+            timers.value[idx].shouldStaySticky = false
+            timers.value[idx].isRunning = false
+            if (timers.value[idx].interval) {
+                clearInterval(timers.value[idx].interval!)
+                timers.value[idx].interval = null
             }
-            timers.value = timers.value.filter(t => t.id !== id);
-            console.log('Timers nach Löschen:', timers.value);
-            await nextTick(); // Warte auf DOM-Update
-            const clean = timers.value.map(({ interval, ...t }) => t);
-            localStorage.setItem('myAppTimers', JSON.stringify(clean));
+            timers.value = timers.value.filter(t => t.id !== id)
+            await nextTick()
+            const clean = timers.value.map(({ interval, ...t }) => t)
+            localStorage.setItem('myAppTimers', JSON.stringify(clean))
         }
-    };
+    }
 
     const removeStopwatch = async (id: string) => {
-        console.log('removeStopwatch aufgerufen mit ID:', id);
-        const stopwatchIndex = stopwatches.value.findIndex(sw => sw.id === id);
-        if (stopwatchIndex !== -1) {
-            stopwatches.value[stopwatchIndex].shouldStaySticky = false;
-            stopwatches.value[stopwatchIndex].isRunning = false;
-            if (stopwatches.value[stopwatchIndex].interval) {
-                clearInterval(stopwatches.value[stopwatchIndex].interval);
-                stopwatches.value[stopwatchIndex].interval = null;
+        const idx = stopwatches.value.findIndex(sw => sw.id === id)
+        if (idx !== -1) {
+            const sw = stopwatches.value[idx]
+            sw.shouldStaySticky = false
+            sw.isRunning = false
+            if (sw.interval) {
+                clearInterval(sw.interval)
+                sw.interval = null
             }
-            stopwatches.value = stopwatches.value.filter(sw => sw.id !== id);
-            console.log('Stopwatches nach Löschen:', stopwatches.value);
-            await nextTick(); // Warte auf DOM-Update
-            const clean = stopwatches.value.map(({ interval, ...s }) => s);
-            localStorage.setItem('myAppStopwatches', JSON.stringify(clean));
+            stopwatches.value = stopwatches.value.filter(s => s.id !== id)
+            await nextTick()
+            const clean = stopwatches.value.map(({ interval, ...s }) => s)
+            localStorage.setItem('myAppStopwatches', JSON.stringify(clean))
         }
-    };
+    }
 
     const startTimer = (timer: TimerInstance) => {
-        console.log('startTimer aufgerufen für:', timer.id);
-        const runningTimers = timers.value.filter(t => t.isRunning);
-        if (runningTimers.length >= 3) {
-            openValidationPopup(['Maximal 3 Timer dürfen gleichzeitig laufen!']);
-            return;
+        const running = timers.value.filter(t => t.isRunning)
+        if (running.length >= 3) {
+            openValidationPopup(['Maximal 3 Timer dürfen gleichzeitig laufen!'])
+            return
         }
         if (!timer.isRunning) {
-            timer.time = timer.time || Number(timer.seconds) || Number(timer.customSeconds) || 60;
-            timer.isRunning = true;
-            timer.shouldStaySticky = true;
-            if (timer.left === undefined) timer.left = 20;
-            if (timer.top === undefined) timer.top = 80;
+            timer.time = timer.time || Number(timer.seconds) || Number(timer.customSeconds) || 60
+            timer.isRunning = true
+            timer.shouldStaySticky = true
+            if (timer.left === undefined) timer.left = 20
+            if (timer.top === undefined) timer.top = 80
             timer.interval = setInterval(() => {
                 if (timer.time > 0) {
-                    timer.time--;
+                    timer.time--
                 } else {
-                    clearInterval(timer.interval);
-                    timer.interval = null;
-                    timer.isRunning = false;
+                    clearInterval(timer.interval!)
+                    timer.interval = null
+                    timer.isRunning = false
                 }
-            }, 1000);
+            }, 1000)
         }
-    };
+    }
 
     const stopTimer = (timer: TimerInstance) => {
-        console.log('stopTimer aufgerufen für:', timer.id);
         if (timer.interval) {
-            clearInterval(timer.interval);
-            timer.interval = null;
+            clearInterval(timer.interval)
+            timer.interval = null
         }
-        timer.isRunning = false;
-    };
+        timer.isRunning = false
+    }
 
     const resetTimer = (timer: TimerInstance) => {
-        console.log('resetTimer aufgerufen für:', timer.id);
-        stopTimer(timer);
-        timer.time = Number(timer.seconds) || Number(timer.customSeconds) || 60;
-        timer.shouldStaySticky = false;
-    };
+        stopTimer(timer)
+        timer.time = Number(timer.seconds) || Number(timer.customSeconds) || 60
+        timer.shouldStaySticky = false
+    }
 
     const toggleStopwatch = (sw: StopwatchInstance) => {
-        console.log('toggleStopwatch aufgerufen für:', sw.id);
         if (sw.isRunning) {
-            clearInterval(sw.interval);
-            sw.interval = null;
-            sw.isRunning = false;
+            clearInterval(sw.interval!)
+            sw.interval = null
+            sw.isRunning = false
         } else {
-            const runningSW = stopwatches.value.filter(s => s.isRunning);
-            if (runningSW.length >= 3) {
-                openValidationPopup(['Maximal 3 Stoppuhren dürfen gleichzeitig laufen!']);
-                return;
+            const running = stopwatches.value.filter(s => s.isRunning)
+            if (running.length >= 3) {
+                openValidationPopup(['Maximal 3 Stoppuhren dürfen gleichzeitig laufen!'])
+                return
             }
-            sw.isRunning = true;
-            sw.shouldStaySticky = true;
-            if (sw.left === undefined) sw.left = 20;
-            if (sw.top === undefined) sw.top = 140;
-            const startTime = Date.now() - (sw.time * 1000);
+            sw.isRunning = true
+            sw.shouldStaySticky = true
+            if (sw.left === undefined) sw.left = 20
+            if (sw.top === undefined) sw.top = 140
+            const startTime = Date.now() - sw.time * 1000
             sw.interval = setInterval(() => {
-                sw.time = (Date.now() - startTime) / 1000;
-            }, 10);
+                sw.time = (Date.now() - startTime) / 1000
+            }, 10)
         }
-    };
+    }
 
     const resetStopwatch = (sw: StopwatchInstance) => {
-        console.log('resetStopwatch aufgerufen für:', sw.id);
         if (sw.interval) {
-            clearInterval(sw.interval);
-            sw.interval = null;
+            clearInterval(sw.interval)
+            sw.interval = null
         }
-        sw.isRunning = false;
-        sw.time = 0;
-        sw.laps = [];
-        sw.shouldStaySticky = false;
-    };
+        sw.isRunning = false
+        sw.time = 0
+        sw.laps = []
+        sw.shouldStaySticky = false
+    }
 
     const addLap = (sw: StopwatchInstance) => {
-        console.log('addLap aufgerufen für:', sw.id);
-        if (!sw.laps) sw.laps = [];
-        sw.laps.push(sw.time);
-    };
+        if (!sw.laps) sw.laps = []
+        sw.laps.push(sw.time)
+    }
 
-    // Drag-and-Drop-Funktionen
+    // Drag & Drop
     function startDrag(e: MouseEvent, target: any) {
-        e.preventDefault();
-        dragging.value = true;
-        dragTarget.value = target;
-        target.offsetX = e.clientX - (target.left || 0);
-        target.offsetY = e.clientY - (target.top || 0);
-        window.addEventListener('mousemove', onDrag);
-        window.addEventListener('mouseup', stopDrag);
+        e.preventDefault()
+        dragging.value = true
+        dragTarget.value = target
+        target.offsetX = e.clientX - (target.left || 0)
+        target.offsetY = e.clientY - (target.top || 0)
+        window.addEventListener('mousemove', onDrag)
+        window.addEventListener('mouseup', stopDrag)
     }
 
     function onDrag(e: MouseEvent) {
-        if (!dragging.value || !dragTarget.value) return;
-        dragTarget.value.left = e.clientX - dragTarget.value.offsetX;
-        dragTarget.value.top = e.clientY - dragTarget.value.offsetY;
+        if (!dragging.value || !dragTarget.value) return
+        dragTarget.value.left = e.clientX - dragTarget.value.offsetX
+        dragTarget.value.top = e.clientY - dragTarget.value.offsetY
     }
 
     function stopDrag() {
-        dragging.value = false;
-        dragTarget.value = null;
-        window.removeEventListener('mousemove', onDrag);
-        window.removeEventListener('mouseup', stopDrag);
+        dragging.value = false
+        dragTarget.value = null
+        window.removeEventListener('mousemove', onDrag)
+        window.removeEventListener('mouseup', stopDrag)
     }
 
-    // Formatierungsfunktionen
+    // Format
     const formatTimer = (time: number) => {
-        const m = Math.floor(time / 60);
-        const s = time % 60;
-        return `${m}:${s.toString().padStart(2, '0')}`;
-    };
+        const m = Math.floor(time / 60)
+        const s = time % 60
+        return `${m}:${s.toString().padStart(2, '0')}`
+    }
 
     const formatStopwatch = (time: number) => {
-        const m = Math.floor(time / 60);
-        const s = Math.floor(time % 60);
-        const ms = Math.floor((time % 1) * 100);
-        return `${m}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
-    };
+        const m = Math.floor(time / 60)
+        const s = Math.floor(time % 60)
+        const ms = Math.floor((time % 1) * 100)
+        return `${m}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`
+    }
 
-    // Event-Handler für Tastatureingaben
+    // Keydown
     const handleKeydown = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
             if (menuOpen.value) {
@@ -392,27 +402,26 @@
         }
     }
 
-    // === Scrollbarbreite messen und als CSS-Variable setzen ===
+    // Scrollbarbreite als CSS-Var
     const setSBW = () => {
-        const sbw = window.innerWidth - document.documentElement.clientWidth;
-        document.documentElement.style.setProperty('--sbw', `${sbw}px`);
-    };
+        const sbw = window.innerWidth - document.documentElement.clientWidth
+        document.documentElement.style.setProperty('--sbw', `${sbw}px`)
+    }
 
     onMounted(() => {
-        setSBW();
-        window.addEventListener('resize', setSBW);
-    });
+        setSBW()
+        window.addEventListener('resize', setSBW)
+    })
 
     onBeforeUnmount(() => {
-        window.removeEventListener('resize', setSBW);
-    });
+        window.removeEventListener('resize', setSBW)
+    })
 
-
-    // Lade gespeicherte Daten
+    // Load saved data
     onMounted(() => {
         try {
-            const savedTimers = localStorage.getItem('myAppTimers');
-            const savedStopwatches = localStorage.getItem('myAppStopwatches');
+            const savedTimers = localStorage.getItem('myAppTimers')
+            const savedStopwatches = localStorage.getItem('myAppStopwatches')
             timers.value = savedTimers
                 ? JSON.parse(savedTimers).map((t: any) => ({
                     ...t,
@@ -420,9 +429,9 @@
                     isRunning: false,
                     shouldStaySticky: Boolean(t.shouldStaySticky),
                     left: t.left || undefined,
-                    top: t.top || undefined,
+                    top: t.top || undefined
                 }))
-                : [];
+                : []
             stopwatches.value = savedStopwatches
                 ? JSON.parse(savedStopwatches).map((s: any) => ({
                     ...s,
@@ -431,41 +440,46 @@
                     shouldStaySticky: Boolean(s.shouldStaySticky),
                     left: s.left || undefined,
                     top: s.top || undefined,
-                    laps: s.laps || [],
+                    laps: s.laps || []
                 }))
-                : [];
-            console.log('Geladene Timers:', timers.value);
-            console.log('Geladene Stopwatches:', stopwatches.value);
+                : []
         } catch (e) {
-            console.warn('Fehler beim Laden:', e);
+            console.warn('Fehler beim Laden:', e)
         }
-        window.addEventListener('keydown', handleKeydown);
-    });
+        window.addEventListener('keydown', handleKeydown)
+    })
 
-    // Bereinige Event-Listener
     onBeforeUnmount(() => {
-        window.removeEventListener('mousemove', onDrag);
-        window.removeEventListener('mouseup', stopDrag);
-        window.removeEventListener('keydown', handleKeydown);
-    });
+        window.removeEventListener('mousemove', onDrag)
+        window.removeEventListener('mouseup', stopDrag)
+        window.removeEventListener('keydown', handleKeydown)
+    })
 
-    // Speichere Änderungen in localStorage
-    watch(timers, (newVal) => {
-        const clean = newVal.map(({ interval, ...t }) => t);
-        localStorage.setItem('myAppTimers', JSON.stringify(clean));
-    }, { deep: true });
+    // Persist
+    watch(
+        timers,
+        newVal => {
+            const clean = newVal.map(({ interval, ...t }) => t)
+            localStorage.setItem('myAppTimers', JSON.stringify(clean))
+        },
+        { deep: true }
+    )
 
-    watch(stopwatches, (newVal) => {
-        const clean = newVal.map(({ interval, ...s }) => s);
-        localStorage.setItem('myAppStopwatches', JSON.stringify(clean));
-    }, { deep: true });
+    watch(
+        stopwatches,
+        newVal => {
+            const clean = newVal.map(({ interval, ...s }) => s)
+            localStorage.setItem('myAppStopwatches', JSON.stringify(clean))
+        },
+        { deep: true }
+    )
 </script>
-
 
 <style scoped>
     @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css');
 
-    /* === Grundlayout === */
+    /* === (deine Styles unverändert) === */
+
     .app-container {
         min-height: 100vh;
         display: flex;
@@ -483,7 +497,7 @@
         position: fixed;
         top: 0;
         left: 0;
-        width: 100vw; /* ⬅️ spannt über den visuellen Viewport inkl. Scrollbar */
+        width: 100vw;
         background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
         padding: 0.5rem 0 !important;
         z-index: 1000;
@@ -493,18 +507,16 @@
         line-height: var(--nav-h);
     }
 
-
-        /* Füllt exakt die Scrollbar-Breite rechts mit dem gleichen Background */
         .main-nav::after {
             content: "";
             position: fixed;
             top: 0;
             right: 0;
-            width: var(--sbw); /* kommt aus JS, 0–17px je nach OS */
+            width: var(--sbw);
             height: var(--nav-h);
-            background: inherit; /* gleicher Gradient wie die Navbar */
+            background: inherit;
             pointer-events: none;
-            z-index: 1000; /* direkt unter der Nav, über dem Content */
+            z-index: 1000;
         }
 
     html.dark-mode .main-nav {
@@ -522,7 +534,7 @@
     }
 
     .nav-content {
-        max-width: var(--nav-max); /* vorher: var(--page-max) */
+        max-width: var(--nav-max);
         margin: 0 auto;
         padding: 0 16px;
         display: flex;
@@ -531,7 +543,6 @@
         gap: .75rem;
         position: relative;
     }
-
 
     .logo {
         height: 56px;
@@ -543,7 +554,7 @@
         gap: 1rem;
         list-style: none;
         margin: 0;
-        margin-left: auto; /* ⬅️ schiebt Links (Desktop) nach rechts */
+        margin-left: auto;
     }
 
     .nav-link {
@@ -561,12 +572,12 @@
 
     .nav-overlay {
         position: fixed;
-        top: var(--nav-h); /* startet DIREKT unter der Navbar */
+        top: var(--nav-h);
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0,0,0,.15); /* leichtes Dimmen, gern anpassen/entfernen */
-        z-index: 950; /* unter der Navbar (1000), über dem Content */
+        background: rgba(0,0,0,.15);
+        z-index: 950;
     }
 
     html.dark-mode .nav-link {
@@ -576,7 +587,8 @@
     .nav-link i {
         font-size: 1rem;
     }
-    /* Overlay: macht den dunklen Hintergrund */
+
+    /* Popup usw. – unverändert (deine Styles bleiben) */
     .popup-overlay {
         position: fixed;
         top: 0;
@@ -590,7 +602,6 @@
         z-index: 2000;
     }
 
-    /* Popup-Box: zentriert & schön */
     .popup {
         background: var(--bg-card);
         padding: 1.5rem;
@@ -606,7 +617,6 @@
         color: #c9d1d9;
     }
 
-    /* Titel & Listen */
     .popup-title {
         font-size: 1.5rem;
         font-weight: 600;
@@ -662,8 +672,7 @@
         background: #fff;
     }
 
-    .nav-link:hover::after,
-    .nav-link.router-link-exact-active::after {
+    .nav-link:hover::after, .nav-link.router-link-exact-active::after {
         width: 100%;
         left: 0;
     }
@@ -677,8 +686,8 @@
         cursor: pointer;
         position: relative;
         z-index: 1100;
-        margin-left: auto; /* sorgt für Rechts-Ausrichtung */
-        margin-right: 12px; /* ⬅️ fügt einen kleinen Innenabstand ein */
+        margin-left: auto;
+        margin-right: 12px;
     }
 
         .burger-menu span {
@@ -710,11 +719,10 @@
         transform: translateY(-8px) rotate(-45deg);
     }
 
-
     @media (max-width: 1024px) {
         .nav-links {
             position: absolute;
-            top: calc(100% + var(--nav-dropdown-offset)); /* ⬅️ weiter runter */
+            top: calc(100% + var(--nav-dropdown-offset));
             left: 0;
             right: 0;
             background: var(--bg-card);
@@ -724,7 +732,6 @@
             padding: .75rem 0;
             display: flex;
             flex-direction: column;
-            /* Startzustand (versteckt) */
             transform: translateY(8px);
             opacity: 0;
             visibility: hidden;
@@ -763,8 +770,8 @@
         }
 
         .burger-menu {
-            display: block; /* ⬅️ Burger sichtbar */
-            margin-right: 12px; /* dein Feintuning */
+            display: block;
+            margin-right: 12px;
         }
     }
 
@@ -853,4 +860,3 @@
                 background: #5a7bc4;
             }
 </style>
-

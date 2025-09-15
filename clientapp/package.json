@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "type-check": "vue-tsc -b"
+    "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "axios": "^1.11.0",
     "canvas-confetti": "^1.9.3",
     "chart.js": "^4.5.0",
     "papaparse": "^5.5.3",

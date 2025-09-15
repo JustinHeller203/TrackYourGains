@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000.Api\\Gym3000.Api.csproj": {}
+    "D:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000.Api\\Gym3000.Api.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000.Api\\Gym3000.Api.csproj": {
+    "D:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000.Api\\Gym3000.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000.Api\\Gym3000.Api.csproj",
+        "projectUniqueName": "D:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000.Api\\Gym3000.Api.csproj",
         "projectName": "Gym3000.Api",
-        "projectPath": "C:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000.Api\\Gym3000.Api.csproj",
+        "projectPath": "D:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000.Api\\Gym3000.Api.csproj",
         "packagesPath": "C:\\Users\\Justin\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000.Api\\obj\\",
+        "outputPath": "D:\\Users\\Justin\\source\\repos\\Gym3000\\Gym3000.Api\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Justin\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -46,9 +46,45 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[8.0.19, )"
+            },
+            "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[8.0.19, )"
+            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[8.0.8, )"
+            },
+            "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[8.0.19, )"
+            },
+            "Microsoft.EntityFrameworkCore.Design": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.19, )"
+            },
+            "Microsoft.EntityFrameworkCore.Relational": {
+              "target": "Package",
+              "version": "[8.0.19, )"
+            },
+            "Microsoft.EntityFrameworkCore.Tools": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.19, )"
+            },
+            "Microsoft.Extensions.Identity.Core": {
+              "target": "Package",
+              "version": "[9.0.8, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
+              "target": "Package",
+              "version": "[8.0.4, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",

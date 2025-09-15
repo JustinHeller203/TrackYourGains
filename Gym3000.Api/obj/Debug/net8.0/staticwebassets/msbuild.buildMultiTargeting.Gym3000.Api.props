@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\Gym3000.Api.props" />
+</Project>

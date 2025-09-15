@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Gym3000.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4d5c2fc6f73167758827d3b0574a84aad583c9ae")]
 [assembly: System.Reflection.AssemblyProductAttribute("Gym3000.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Gym3000.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
