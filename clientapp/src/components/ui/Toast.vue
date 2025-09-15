@@ -20,6 +20,7 @@
 </template>
 
 <script setup lang="ts">
+    import type { Toast } from '@/types/toast';
     type ToastType =
         | 'toast-default'
         | 'toast-save'
@@ -37,13 +38,13 @@
     }
 
     const props = defineProps<{
-        toast: Toast | null
-        dismissible?: boolean
-    }>()
+        toast: Toast | null;
+        dismissible?: boolean;
+    }>();
 
     const emit = defineEmits<{
-        (e: 'dismiss'): void
-    }>()
+        (e: 'dismiss'): void;
+    }>();
 </script>
 
 
