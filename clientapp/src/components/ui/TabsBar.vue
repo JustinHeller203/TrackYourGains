@@ -18,7 +18,6 @@
             Pläne
         </button>
 
-        <!-- Suche nur bei Tab "calculators" -->
         <div v-if="modelValue === 'calculators'" class="search-container">
             <input :value="searchQuery"
                    @input="$emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
@@ -27,7 +26,6 @@
                    class="search-input" />
         </div>
 
-        <!-- Suche nur bei Tab "plans" -->
         <div v-if="modelValue === 'plans'" class="search-container">
             <input :value="planSearchQuery"
                    @input="$emit('update:planSearchQuery', ($event.target as HTMLInputElement).value)"
