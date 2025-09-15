@@ -12,21 +12,48 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ---- DB (Railway: DATABASE_URL oder ConnectionStrings:Default) ----
+// ---- DB (Railway: DATABASE_URL normalisieren) ----
 string? raw = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+// Falls raw eine URL ist (postgres:// oder postgresql://) -> umwandeln.
+// Falls raw bereits ein ConnString ist -> direkt verwenden.
+// Falls nix da -> ConnectionStrings:Default aus appsettings.
 string connStr = !string.IsNullOrWhiteSpace(raw)
-    ? raw // Npgsql versteht postgres://...
+    ? (raw.Contains("://", StringComparison.OrdinalIgnoreCase) ? ToNpgsqlConnString(raw) : raw)
     : builder.Configuration.GetConnectionString("Default")
       ?? throw new InvalidOperationException("No DB connection string");
 
-// SSL in Prod sicherstellen
-if (builder.Environment.IsProduction() &&
-    !connStr.Contains("Ssl Mode", StringComparison.OrdinalIgnoreCase))
+// In Production SSL sicherstellen
+if (builder.Environment.IsProduction()
+    && !connStr.Contains("SSL Mode", StringComparison.OrdinalIgnoreCase))
 {
-    connStr += (connStr.EndsWith(";") ? "" : ";") + "Ssl Mode=Require;Trust Server Certificate=true;";
+    connStr += (connStr.EndsWith(";") ? "" : ";") + "SSL Mode=Require;Trust Server Certificate=true;";
 }
 
 builder.Services.AddDbContext<ApplicationDbContext>(opt => opt.UseNpgsql(connStr));
+
+// --- Helper: URL -> Npgsql ConnectionString ---
+static string ToNpgsqlConnString(string url)
+{
+    var uri = new Uri(url); // akzeptiert postgres:// oder postgresql://
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var user = Uri.UnescapeDataString(userInfo[0]);
+    var pass = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+
+    // Query-Params (z.B. ?sslmode=require)
+    var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+    var sslmode = query["sslmode"];
+
+    var cs = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={user};Password={pass};";
+
+    if (!string.IsNullOrWhiteSpace(sslmode))
+        cs += $"SSL Mode={sslmode};";
+
+    if (!cs.Contains("Trust Server Certificate", StringComparison.OrdinalIgnoreCase))
+        cs += "Trust Server Certificate=true;";
+
+    return cs;
+}
 
 // ---- Identity (cookie-less) ----
 builder.Services
@@ -96,8 +123,16 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 // ---- Auto-Migrate ----
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "EF migration failed at startup");
+        // Wenn du willst: App trotzdem starten lassen
+    }
 }
 
 // ---- Swagger nur Dev ----
