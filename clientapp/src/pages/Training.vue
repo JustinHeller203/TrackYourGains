@@ -1449,7 +1449,8 @@
             emoji: emojis[type],
             type: types[type], // passt jetzt zu ToastType
             exiting: false
-        };        toastTimeout = setTimeout(() => {
+        };
+        toastTimeout = setTimeout(() => {
             if (toast.value) {
                 toast.value.exiting = true;
                 setTimeout(() => {

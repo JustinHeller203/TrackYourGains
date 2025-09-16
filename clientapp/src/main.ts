@@ -31,3 +31,4 @@ import { useAuthStore } from '@/store/authStore'
         app.use(router)
         app.mount('#app')
     })()
+    
