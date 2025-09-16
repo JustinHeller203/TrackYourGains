@@ -1,4 +1,4 @@
-// src/types/toast.ts
+
 export type ToastType =
     | 'toast-default'
     | 'toast-save'

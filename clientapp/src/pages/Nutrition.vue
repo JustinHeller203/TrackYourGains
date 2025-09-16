@@ -95,9 +95,15 @@
     import ExportPopup from '@/components/ui/popups/ExportPopup.vue'
     import GoalPopup from '@/components/ui/popups/GoalPopup.vue'
     import Toast from '@/components/ui/Toast.vue'
+    import type { Toast as ToastModel } from '@/types/toast'
 
-    interface Meal { name: string; calories: number; protein: number; carbs: number; fat: number }
-    interface ToastType { id: number; message: string; emoji: string; type: string; exiting: boolean }
+    interface Meal {
+        name: string
+        calories: number
+        protein: number
+        carbs: number
+        fat: number
+    }
 
     const meals = ref<Meal[]>([])
     const meal = ref<Meal>({ name: '', calories: 0, protein: 0, carbs: 0, fat: 0 })
@@ -119,11 +125,15 @@
         { name: 'Chicken & Rice', calories: 550, protein: 40, carbs: 60, fat: 8 },
         { name: 'Nuts Mix', calories: 250, protein: 8, carbs: 10, fat: 20 },
     ]
-    function quickAdd(q: Meal) { meals.value.unshift({ ...q }); addToast(`${q.name} hinzugefügt`, 'add'); updateChart() }
+    function quickAdd(q: Meal) {
+        meals.value.unshift({ ...q })
+        addToast(`${q.name} hinzugefügt`, 'add')
+        updateChart()
+    }
 
     // Filter + Suche
     const filteredMeals = computed(() => {
-        return meals.value.filter(m => {
+        return meals.value.filter((m) => {
             if (search.value && !m.name.toLowerCase().includes(search.value.toLowerCase())) return false
             if (filter.value === 'protein' && m.protein < 30) return false
             if (filter.value === 'carbs' && m.carbs < 50) return false
@@ -141,54 +151,118 @@
             type: 'doughnut',
             data: {
                 labels: ['Protein', 'Carbs', 'Fett'],
-                datasets: [{ data: [totalProtein.value, totalCarbs.value, totalFat.value], backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'] }]
+                datasets: [
+                    {
+                        data: [totalProtein.value, totalCarbs.value, totalFat.value],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'],
+                    },
+                ],
             },
-            options: { plugins: { legend: { position: 'bottom', labels: { color: 'var(--text-primary)' } } } }
+            options: {
+                plugins: { legend: { position: 'bottom', labels: { color: 'var(--text-primary)' } } },
+            },
         })
     }
     watch([totalProtein, totalCarbs, totalFat], () => nextTick(updateChart))
 
     // Meals Handling
-    function openMealPopup() { resetMeal(); showMealPopup.value = true; editingIndex.value = null }
-    function closeMealPopup() { showMealPopup.value = false }
+    function openMealPopup() {
+        resetMeal()
+        showMealPopup.value = true
+        editingIndex.value = null
+    }
+    function closeMealPopup() {
+        showMealPopup.value = false
+    }
     function saveMeal() {
         if (!meal.value.name || meal.value.calories <= 0) return
-        if (editingIndex.value !== null) { meals.value[editingIndex.value] = { ...meal.value }; addToast('Mahlzeit aktualisiert', 'add') }
-        else { meals.value.unshift({ ...meal.value }); addToast('Mahlzeit hinzugefügt', 'add') }
-        resetMeal(); showMealPopup.value = false; updateChart()
+        if (editingIndex.value !== null) {
+            meals.value[editingIndex.value] = { ...meal.value }
+            addToast('Mahlzeit aktualisiert', 'add')
+        } else {
+            meals.value.unshift({ ...meal.value })
+            addToast('Mahlzeit hinzugefügt', 'add')
+        }
+        resetMeal()
+        showMealPopup.value = false
+        updateChart()
     }
-    function editMeal(i: number) { meal.value = { ...meals.value[i] }; editingIndex.value = i; showMealPopup.value = true }
-    function deleteMeal(i: number) { meals.value.splice(i, 1); addToast('Mahlzeit gelöscht', 'delete'); updateChart() }
-    function resetMeal() { meal.value = { name: '', calories: 0, protein: 0, carbs: 0, fat: 0 } }
+    function editMeal(i: number) {
+        meal.value = { ...meals.value[i] }
+        editingIndex.value = i
+        showMealPopup.value = true
+    }
+    function deleteMeal(i: number) {
+        meals.value.splice(i, 1)
+        addToast('Mahlzeit gelöscht', 'delete')
+        updateChart()
+    }
+    function resetMeal() {
+        meal.value = { name: '', calories: 0, protein: 0, carbs: 0, fat: 0 }
+    }
 
     // Goal
     const showGoalPopup = ref(false)
-    function openGoalPopup() { showGoalPopup.value = true }
-    function closeGoalPopup() { showGoalPopup.value = false }
+    function openGoalPopup() {
+        showGoalPopup.value = true
+    }
+    function closeGoalPopup() {
+        showGoalPopup.value = false
+    }
 
     // Export
     const showExportPopup = ref(false)
     const exportFormat = ref<'html' | 'csv' | 'json' | 'pdf' | 'txt'>('html')
-    function openExportPopup() { showExportPopup.value = true }
-    function closeExportPopup() { showExportPopup.value = false }
+    function openExportPopup() {
+        showExportPopup.value = true
+    }
+    function closeExportPopup() {
+        showExportPopup.value = false
+    }
     function confirmExport() {
-        const data = { meals: meals.value, totals: { cal: totalCalories.value, protein: totalProtein.value, carbs: totalCarbs.value, fat: totalFat.value } }
+        const data = {
+            meals: meals.value,
+            totals: { cal: totalCalories.value, protein: totalProtein.value, carbs: totalCarbs.value, fat: totalFat.value },
+        }
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
         const url = URL.createObjectURL(blob)
-        const a = document.createElement('a'); a.href = url; a.download = `nutrition.${exportFormat.value}`; a.click(); URL.revokeObjectURL(url)
-        addToast('Daten exportiert', 'save'); closeExportPopup()
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `nutrition.${exportFormat.value}`
+        a.click()
+        URL.revokeObjectURL(url)
+        addToast('Daten exportiert', 'save')
+        closeExportPopup()
     }
 
     // Toast
-    const toast = ref<ToastType | null>(null); let toastId = 0; let timeout: NodeJS.Timeout | null = null
-    function addToast(msg: string, type: 'add' | 'delete' | 'save' | 'default' = 'default') {
-        if (timeout) clearTimeout(timeout)
-        const emojis = { add: '✅', delete: '🗑️', save: '💾', default: '📋' }
-        const classes = { add: 'toast-add', delete: 'toast-delete', save: 'toast-save', default: 'toast-default' }
-        toast.value = { id: toastId++, message: msg, emoji: emojis[type], type: classes[type], exiting: false }
-        timeout = setTimeout(() => toast.value = null, 3000)
+    const toast = ref<ToastModel | null>(null)
+    let toastId = 0
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null
+
+    function addToast(msg: string, kind: 'add' | 'delete' | 'save' | 'default' = 'default') {
+        if (timeoutHandle) clearTimeout(timeoutHandle)
+
+        const emojis = { add: '✅', delete: '🗑️', save: '💾', default: '📋' } as const
+        const classes = {
+            add: 'toast-add',
+            delete: 'toast-delete',
+            save: 'toast-save',
+            default: 'toast-default',
+        } as const
+
+        toast.value = {
+            id: toastId++,
+            message: msg,
+            emoji: emojis[kind],
+            type: classes[kind],
+            exiting: false,
+        }
+
+        timeoutHandle = setTimeout(() => (toast.value = null), 3000)
     }
 </script>
+
 
 <style scoped>
     .nutrition {

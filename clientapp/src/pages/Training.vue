@@ -825,7 +825,9 @@
                 plans.value = Array.isArray(parsed.plans) ? parsed.plans : [];
                 favoritePlans.value = Array.isArray(parsed.favoritePlans) ? parsed.favoritePlans : [];
                 customExercises.value = Array.isArray(parsed.customExercises)
-                    ? parsed.customExercises.filter(ex => ex && typeof ex === 'object' && typeof ex.name === 'string' && typeof ex.muscle === 'string')
+                    ? parsed.customExercises.filter((ex: any) =>
+                        ex && typeof ex === 'object' && typeof ex.name === 'string' && typeof ex.muscle === 'string'
+                    )
                     : [];
             }
         } catch (e) {
@@ -1433,16 +1435,21 @@
             save: '💾',
             timer: '⏰',
             load: '📋'
-        };
+        } as const;
         const types = {
             delete: 'toast-delete',
             add: 'toast-add',
             save: 'toast-save',
             timer: 'toast-timer',
             load: 'toast-default'
-        };
-        toast.value = { id, message, emoji: emojis[type], type: types[type], exiting: false };
-        toastTimeout = setTimeout(() => {
+        } as const;
+        toast.value = {
+            id,
+            message,
+            emoji: emojis[type],
+            type: types[type], // passt jetzt zu ToastType
+            exiting: false
+        };        toastTimeout = setTimeout(() => {
             if (toast.value) {
                 toast.value.exiting = true;
                 setTimeout(() => {

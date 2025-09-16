@@ -31,12 +31,20 @@ const router = createRouter({
     },
 })
 
+// nur einmalige Initialisierung zulassen
+let authInitOnce: Promise<void> | null = null
+
 router.beforeEach(async (to) => {
     const auth = useAuthStore()
 
-    // nur initialisieren, wenn nötig (verhindert doppeltes init)
-    if (!auth.initialized && !auth.loading && typeof auth.init === 'function') {
-        await auth.init()
+    // init nur einmal starten; weitere Guards warten auf dieselbe Promise
+    if (typeof auth.init === 'function') {
+        if (!authInitOnce && !auth.loading) {
+            authInitOnce = Promise.resolve(auth.init())
+        }
+        if (authInitOnce) {
+            await authInitOnce
+        }
     }
 
     if (to.meta.requiresAuth && !auth.isAuthenticated) {

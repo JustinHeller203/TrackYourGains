@@ -1,5 +1,6 @@
 <template>
-    <div class="toast-container">
+    <!-- ÄNDERN: positionClass binden -->
+    <div class="toast-container" :class="positionClass">
         <div v-if="toast"
              class="toast"
              :class="[toast.type, { 'toast-exit': toast.exiting }]"
@@ -12,7 +13,7 @@
                     class="toast-close"
                     type="button"
                     aria-label="Toast schließen"
-                    @click="$emit('dismiss')">
+                    @click="$emit('dismiss', toast!.id)">
                 ✕
             </button>
         </div>
@@ -20,31 +21,23 @@
 </template>
 
 <script setup lang="ts">
-    import type { Toast } from '@/types/toast';
-    type ToastType =
-        | 'toast-default'
-        | 'toast-save'
-        | 'toast-add'
-        | 'toast-delete'
-        | 'toast-timer'
-        | 'toast-reset'
-
-    interface Toast {
-        id: number
-        message: string
-        emoji: string
-        type: ToastType
-        exiting: boolean
-    }
-
+    /* HINZUFÜGEN */
+    import { computed } from 'vue'
+    import type { Toast as ToastModel } from '@/types/toast'
     const props = defineProps<{
-        toast: Toast | null;
-        dismissible?: boolean;
-    }>();
+        toast: ToastModel | null
+        dismissible?: boolean
+        position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+    }>()
 
-    const emit = defineEmits<{
-        (e: 'dismiss'): void;
-    }>();
+    const positionClass = computed(() => {
+        const pos = props.position ?? 'bottom-right'
+
+        const isTop = pos.startsWith('top')
+        return isTop ? 'pos-top-right' : 'pos-bottom-right'
+    })
+
+    const emit = defineEmits<{ (e: 'dismiss', id: number): void }>()
 </script>
 
 

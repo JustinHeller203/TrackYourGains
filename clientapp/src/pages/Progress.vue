@@ -209,21 +209,19 @@
                     <!-- GL Favorit -->
                     <GlycemicLoadCalculator v-if="isFavorite('Glykämische Last') && matchesCalc('Glykämische Last')"
                                             :autoCalcEnabled="autoCalcEnabled"
-                                            :glFood="glFood"
-                                            :glServing="glServing"
-                                            :glCarbs100="glCarbs100"
                                             :glGi="glGi"
+                                            :glCarbs="glCarbs"
                                             :glResult="glResult"
+                                            :glCategory="glCategory"
                                             :isFavorite="true"
                                             @toggleFavorite="() => toggleFavorite('Glykämische Last')"
-                                            @update:glFood="v => glFood = v"
-                                            @update:glServing="v => glServing = v"
-                                            @update:glCarbs100="v => glCarbs100 = v"
                                             @update:glGi="v => glGi = v"
+                                            @update:glCarbs="v => glCarbs = v"
                                             @calculate="calculateGlyLoad"
                                             @copy="copyGlyLoad"
                                             @export="openDownloadPopup('glyload')"
                                             @reset="resetCalculator('glyload')" />
+
 
                     <!-- Wasser Favorit -->
                     <WaterCalculator v-if="isFavorite('Wasserbedarf') && matchesCalc('Wasserbedarf')"
@@ -385,17 +383,14 @@
                 <!-- GL Standard -->
                 <GlycemicLoadCalculator v-if="matchesCalc('Glykämische Last') && !isFavorite('Glykämische Last')"
                                         :autoCalcEnabled="autoCalcEnabled"
-                                        :glFood="glFood"
-                                        :glServing="glServing"
-                                        :glCarbs100="glCarbs100"
                                         :glGi="glGi"
+                                        :glCarbs="glCarbs"
                                         :glResult="glResult"
+                                        :glCategory="glCategory"
                                         :isFavorite="isFavorite('Glykämische Last')"
                                         @toggleFavorite="() => toggleFavorite('Glykämische Last')"
-                                        @update:glFood="v => glFood = v"
-                                        @update:glServing="v => glServing = v"
-                                        @update:glCarbs100="v => glCarbs100 = v"
                                         @update:glGi="v => glGi = v"
+                                        @update:glCarbs="v => glCarbs = v"
                                         @calculate="calculateGlyLoad"
                                         @copy="copyGlyLoad"
                                         @export="openDownloadPopup('glyload')"
@@ -470,7 +465,7 @@
 
         <!-- Toast -->
         <Toast :toast="toast"
-               position="bottom-center"
+               position="bottom-right"
                :dismissible="true"
                @dismiss="startToastExit" />
 
@@ -499,6 +494,7 @@
     import ProteinCalculator from '@/components/ui/calculators/ProteinCalculator.vue'
     import CaffeineSafeDoseCalculator from '@/components/ui/calculators/CaffeineSafeDoseCalculator.vue'
     import GlycemicLoadCalculator from '@/components/ui/calculators/GlycemicLoadCalculator.vue'
+    import type { Toast as ToastModel } from '@/types/toast'
 
     // Interfaces
     interface PlanExercise {
@@ -556,12 +552,24 @@
         { name: 'Mittagessen', calories: 850 },
         { name: 'Snack', calories: 300 },
     ]);
-    // Glykämische Last
-    const glFood = ref < string > ('')
-    const glServing = ref < number | null > (null)
-    const glCarbs100 = ref < number | null > (null)
-    const glGi = ref < number | null > (null)
-    const glResult = ref < { gl: number; category: 'niedrig' | 'mittel' | 'hoch' } | null > (null)
+
+    const glFood = ref<string>('')          
+    const glServing = ref<number | null>(null)
+    const glCarbs100 = ref<number | null>(null)
+    const glGi = ref<number | null>(null)
+
+    const glCarbs = computed<number | null>(() => {
+        if (glServing.value == null || glCarbs100.value == null) return null
+        return (Number(glCarbs100.value) * Number(glServing.value)) / 100
+    })
+
+    const glResult = ref<number | null>(null)
+    const glCategory = computed<string>(() => {
+        if (glResult.value == null) return ''
+        if (glResult.value < 10) return 'niedrig'
+        if (glResult.value < 20) return 'mittel'
+        return 'hoch'
+    })
 
     const newWeight = ref < number | null > (null);
     const goal = ref < number | null > (null);
@@ -572,7 +580,7 @@
     const showValidationPopup = ref(false);
     const showDownloadPopup = ref(false);
     const validationErrorMessages = ref < string[] > ([]);
-    const toast = ref < Toast | null > (null);
+    const toast = ref<ToastModel | null>(null);
     const weightInput = ref < HTMLInputElement | null > (null);
     const goalInput = ref < HTMLInputElement | null > (null);
     const progressExerciseInput = ref < HTMLSelectElement | null > (null);
@@ -588,7 +596,7 @@
     const newProgressWeight = ref < number | null > (null);
     const newProgressReps = ref < number | null > (null);
     let toastId = 0;
-    let toastTimeout: NodeJS.Timeout | null = null;
+    let toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const activeTab = ref < 'stats' | 'calculators' | 'plans' > ('stats');
 
@@ -649,7 +657,7 @@
 
     const planSearchQuery = ref < string > ('');
     const maxEntries = ref(3);
-    const editingEntry = ref(null);
+    const editingEntry = ref<Workout | null>(null);
     // Zustand für "Mehr anzeigen"
     const showMore = ref < { [key: string]: boolean } > ({});
     const autoCalcEnabled = ref(false)
@@ -662,23 +670,24 @@
         }
     }
 
-    const editProgressEntry = (planId, entry) => {
-        currentPlanId.value = planId;
-        currentExercise.value = entry.exercise;
-        newProgressWeight.value = kgToDisplay(entry.weight);
-        newProgressReps.value = entry.reps;
-        editingEntry.value = entry;
-        showProgressPopup.value = true;
-    };
+    const editProgressEntry = (planId: string, entry: Workout) => {
+        currentPlanId.value = planId
+        currentExercise.value = entry.exercise
+        newProgressWeight.value = kgToDisplay(entry.weight)
+        newProgressReps.value = entry.reps
+        editingEntry.value = entry
+        showProgressPopup.value = true
+    }
 
     const matchesPlanSearch = (name: string) => {
         if (!planSearchQuery.value) return true;
         return name.toLowerCase().includes(planSearchQuery.value.toLowerCase());
     };
-    const deleteProgressEntry = (planId, date) => {
-        workouts.value = workouts.value.filter(w => !(w.planId === planId && w.date === date));
-        showToast({ message: 'Eintrag gelöscht!', type: 'success', emoji: '🗑️' });
-    };
+
+    const deleteProgressEntry = (planId: string, date: string) => {
+        workouts.value = workouts.value.filter(w => !(w.planId === planId && w.date === date))
+        showToast({ message: 'Eintrag gelöscht!', type: 'success', emoji: '🗑️' })
+    }
 
     const calculateProgress = (planId: string) => {
         const today = new Date().toISOString().split('T')[0];
@@ -840,12 +849,11 @@
         return errors;
     };
 
-    function startToastExit(id: number) {
-        if (!toast.value || toast.value.id !== id) return
+    function startToastExit() {
+        if (!toast.value) return
         toast.value.exiting = true
         setTimeout(() => { toast.value = null }, 300)
     }
-
 
     const resetWeightStats = () => {
         weightHistory.value = []
@@ -1084,33 +1092,31 @@
         const carbsPerServing = (carbs100 * serving) / 100
         const gl = (gi / 100) * carbsPerServing
 
-        let category: 'niedrig' | 'mittel' | 'hoch' = 'niedrig'
-        if (gl >= 20) category = 'hoch'
-        else if (gl >= 10) category = 'mittel'
-
-        glResult.value = { gl, category }
+        glResult.value = gl
         addToast('Glykämische Last berechnet', 'default')
 
+        // Speichere numerisches Ergebnis + Kategorie separat (passt zu neuem Typ)
         saveToLocalStorage('glyload', {
             food: glFood.value,
-            serving: serving,
-            carbs100: carbs100,
-            gi: gi,
+            serving,
+            carbs100,
+            gi,
             result: glResult.value,
+            category: glCategory.value,
         })
     }
 
     const copyGlyLoad = () => {
-        if (!glResult.value) return
-        const r = glResult.value
+        if (glResult.value == null) return
         const txt = `Glykämische Last
 - Lebensmittel: ${glFood.value || '-'}
 - Portion: ${glServing.value ?? '-'} g
 - KH (pro 100 g): ${glCarbs100.value ?? '-'} g
 - GI: ${glGi.value ?? '-'}
-- GL (Portion): ${r.gl.toFixed(1)} (${r.category})`
+- GL (Portion): ${glResult.value.toFixed(1)} (${glCategory.value})`
         copyText(txt)
     }
+
 
     const calculateCaffeine = () => {
         const errors = validateCaffeine()
@@ -1344,10 +1350,13 @@
             return;
         }
         if (editingEntry.value) {
-            const index = workouts.value.findIndex(w => w.planId === currentPlanId.value && w.date === editingEntry.value.date);
+            if (!editingEntry.value) return;
+            const index = workouts.value.findIndex(
+                w => w.planId === (currentPlanId.value ?? undefined) && w.date === editingEntry.value!.date
+            );
             if (index !== -1) {
                 workouts.value[index] = {
-                    planId: currentPlanId.value,
+                    planId: currentPlanId.value ?? undefined,
                     exercise: currentExercise.value,
                     weight: displayToKg(Number(newProgressWeight.value)),
                     reps: Number(newProgressReps.value),
@@ -1359,14 +1368,19 @@
         } else {
             const weightKg = displayToKg(Number(newProgressWeight.value));
             workouts.value.push({
-                planId: currentPlanId.value,
+                planId: currentPlanId.value ?? undefined,
                 exercise: currentExercise.value,
                 weight: weightKg,
                 reps: Number(newProgressReps.value),
                 date: new Date().toISOString(),
             });
 
-            checkMilestones(currentPlanId.value, currentExercise.value, newProgressWeight.value, newProgressReps.value);
+            checkMilestones(
+                currentPlanId.value ?? undefined,
+                currentExercise.value || undefined,
+                newProgressWeight.value ?? undefined,
+                newProgressReps.value ?? undefined
+            );
             showToast({ message: 'Fortschritt gespeichert!', type: 'success', emoji: '✅' });
         }
         closeProgressPopup();
@@ -1534,17 +1548,18 @@
                 break;
             }
             case 'glyload':
-                if (!glResult.value) { addToast('Kein GL-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return }
+                if (glResult.value == null) { addToast('Kein GL-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return }
                 data = {
                     food: glFood.value,
                     serving_g: glServing.value,
                     carbs_per_100g_g: glCarbs100.value,
                     gi: glGi.value,
-                    gl_per_serving: glResult.value.gl.toFixed(1),
-                    category: glResult.value.category,
+                    gl_per_serving: glResult.value.toFixed(1),
+                    category: glCategory.value,
                 }
                 filename = 'glycemic_load_result'
                 break
+
 
             case 'weightStats': {
                 if (!weightHistory.value.length) {
@@ -1796,8 +1811,14 @@
         glServing.value = parsed.serving
         glCarbs100.value = parsed.carbs100
         glGi.value = parsed.gi
-        glResult.value = parsed.result
+
+        if (parsed.result && typeof parsed.result === 'object' && 'gl' in parsed.result) {
+            glResult.value = Number(parsed.result.gl)
+        } else {
+            glResult.value = parsed.result ?? null
+        }
     }
+
 
     const caffeineData = localStorage.getItem('progress_caffeine')
     if (caffeineData) {

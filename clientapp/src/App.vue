@@ -12,7 +12,7 @@
                         @click="toggleMenu"
                         :class="{ open: menuOpen }"
                         aria-label="Menü"
-                        :aria-expanded="menuOpen.toString()"
+                        :aria-expanded="menuOpen"
                         aria-controls="mobile-nav-links">
                     <span></span><span></span><span></span>
                 </button>
