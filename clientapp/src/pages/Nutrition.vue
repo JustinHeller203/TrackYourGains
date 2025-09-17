@@ -4,7 +4,7 @@
         <p class="page-subtext">Tracke deine Mahlzeiten, Makros & Ziele</p>
 
         <!-- === Dashboard-Cards mit Balken === -->
-        <div class="dashboard-grid" :inert="comingSoon ? '' : null">
+        <div class="dashboard-grid" :inert="comingSoon || undefined">
             <DashboardCard title="Kalorien" clickable @click="openGoalPopup">
                 {{ totalCalories }} / {{ calorieGoal }} kcal
                 <div class="progress-bar">
@@ -17,12 +17,12 @@
         </div>
 
         <!-- === Chart === -->
-        <div class="chart-container" :inert="comingSoon ? '' : null">
+        <div class="chart-container" :inert="comingSoon || undefined">
             <canvas id="macroChart"></canvas>
         </div>
 
         <!-- === Aktionen === -->
-        <div class="actions" :inert="comingSoon ? '' : null">
+        <div class="actions" :inert="comingSoon || undefined">
             <button class="btn-ghost" @click="openMealPopup">+ Neue Mahlzeit</button>
             <button class="btn-ghost" @click="openExportPopup">⬇️ Exportieren</button>
             <select v-model="filter" class="filter-select">
@@ -34,7 +34,7 @@
         </div>
 
         <!-- === Liste der Mahlzeiten === -->
-        <div v-if="filteredMeals.length" class="meal-list" :inert="comingSoon ? '' : null">
+        <div v-if="filteredMeals.length" class="meal-list" :inert="comingSoon || undefined">
             <div v-for="(m, index) in filteredMeals" :key="index" class="meal-card">
                 <div class="meal-info">
                     <strong>{{ m.name }}</strong>
@@ -47,7 +47,7 @@
                 </div>
             </div>
         </div>
-        <p v-else class="no-meals" :inert="comingSoon ? '' : null">Noch keine Mahlzeiten eingetragen.</p>
+        <p v-else class="no-meals" :inert="comingSoon || undefined">Noch keine Mahlzeiten eingetragen.</p>
 
         <!-- === Popups === -->
         <BasePopup :show="showMealPopup"

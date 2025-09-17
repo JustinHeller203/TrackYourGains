@@ -1,5 +1,6 @@
 ﻿// src/lib/api.ts
 import axios from "axios";
+import type { AxiosRequestHeaders } from "axios";
 
 const TOKEN_KEY = "auth_token";
 
@@ -10,7 +11,11 @@ export const api = axios.create({
 
 api.interceptors.request.use((config) => {
     const t = localStorage.getItem(TOKEN_KEY);
-    if (t) config.headers.Authorization = `Bearer ${t}`;
+    if (t) {
+        const headers = (config.headers ?? {}) as AxiosRequestHeaders;
+        headers.Authorization = `Bearer ${t}`;
+        config.headers = headers;
+    }
     return config;
 });
 
