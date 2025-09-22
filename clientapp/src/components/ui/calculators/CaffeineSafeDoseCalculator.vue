@@ -4,23 +4,15 @@
     <div class="card-header">
       <h3 class="card-title">
         {{ title || 'Koffein – sichere Dosis' }}
-        <span class="tooltip">
-          ℹ️
-          <span class="tooltip-text">
-            Richtwerte (für gesunde Erwachsene): ca. 3–6 mg Koffein pro kg Körpergewicht.
-            Obergrenze häufig ~400 mg/Tag, Einzeldosis oft ~200 mg. Für Schwangere/Stillende
-            meist ≤ 200 mg/Tag. Keine medizinische Beratung.
-          </span>
-        </span>
+        <InfoHover :text="infoText" />
       </h3>
 
-      <button
-        class="fav-btn"
-        :aria-pressed="isFavorite"
-        @click="$emit('toggleFavorite')"
-        :title="isFavorite ? 'Favorit entfernen' : 'Als Favorit markieren'">
-        {{ isFavorite ? '⭐' : '☆' }}
-      </button>
+      <FavoriteButton
+        :active="isFavorite"
+        :titleActive="'Aus Favoriten entfernen'"
+        :titleInactive="'Zu Favoriten hinzufügen'"
+        @toggle="$emit('toggleFavorite')"
+      />
     </div>
 
     <div class="input-group">
@@ -30,7 +22,8 @@
         @input="onWeightInput"
         type="number"
         :placeholder="unit === 'kg' ? 'z.B. 75' : 'z.B. 165'"
-        class="edit-input" />
+        class="edit-input"
+      />
     </div>
 
     <div class="input-group">
@@ -50,20 +43,18 @@
       </select>
     </div>
 
-    <button v-if="!autoCalcEnabled" class="popup-btn save-btn" @click="$emit('calculate')">
-      Berechnen
-    </button>
+    <CalculateButton v-if="!autoCalcEnabled" @click="$emit('calculate')" />
 
-    <div v-if="cafResult !== null" class="result">
+    <div v-if="cafResult" class="result">
       <div class="result-header">
         <div>
-          <p><strong>Empfehlung (Einzeldosis):</strong> {{ cafResult!.perDose.toFixed(0) }} mg</p>
-          <p><strong>Max. pro Tag:</strong> {{ cafResult!.perDay.toFixed(0) }} mg</p>
+          <p><strong>Empfehlung (Einzeldosis):</strong> {{ cafResult.perDose.toFixed(0) }} mg</p>
+          <p><strong>Max. pro Tag:</strong> {{ cafResult.perDay.toFixed(0) }} mg</p>
         </div>
-        <button class="btn-ghost mini" @click="$emit('copy')">📋 Kopieren</button>
+        <CopyButton @click="$emit('copy')" />
       </div>
       <small class="hint">
-        Hinweis: Enthält dein Getränk z.B. 80&nbsp;mg pro Portion, kannst du damit überschlagen,
+        Beispiel: Hat ein Drink 80&nbsp;mg pro Portion, kannst du so schnell überschlagen,
         wie viele Portionen sinnvoll sind.
       </small>
     </div>
@@ -71,12 +62,8 @@
     <div class="card-footer">
       <div class="footer-spacer"></div>
       <div class="footer-actions">
-        <button class="btn-ghost" @click="$emit('export')">
-          <span class="btn-icon">⬇️</span> Exportieren
-        </button>
-        <button class="btn-danger-ghost" @click="$emit('reset')">
-          <span class="btn-icon">🔄</span> Zurücksetzen
-        </button>
+        <ExportButton @click="$emit('export')" />
+        <ResetButton @click="$emit('reset')" />
       </div>
     </div>
   </div>
@@ -84,6 +71,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import InfoHover from '@/components/ui/InfoHover.vue'
+import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
+import ExportButton from '@/components/ui/buttons/ExportButton.vue'
+import ResetButton from '@/components/ui/buttons/ResetButton.vue'
+import CopyButton from '@/components/ui/buttons/CopyButton.vue'
+import CalculateButton from '@/components/ui/buttons/CalculateButton.vue'
 
 type Unit = 'kg' | 'lb' | 'lbs' | string
 type Sensitivity = 'low' | 'normal' | 'high'
@@ -95,10 +88,10 @@ const props = defineProps<{
   cafWeight: number | null
   cafSensitivity: Sensitivity
   cafStatus: Status
-  /** Ergebnis wird vom Parent berechnet und übergeben */
   cafResult: { perDose: number; perDay: number } | null
   isFavorite: boolean
   title?: string
+  info?: string
 }>()
 
 const emit = defineEmits<{
@@ -117,23 +110,28 @@ const sensitivity = computed(() => props.cafSensitivity)
 const status = computed(() => props.cafStatus)
 const cafResult = computed(() => props.cafResult)
 
+const infoText = computed(
+  () =>
+    props.info ??
+    'Richtwerte (gesunde Erwachsene): ca. 3–6 mg/kg Körpergewicht. Übliche Tagesobergrenze ~400 mg (Schwangere/Stillende ≤ 200 mg). Keine medizinische Beratung.'
+)
+
 function onWeightInput(e: Event) {
   const raw = (e.target as HTMLInputElement).value
   const numeric = raw === '' ? null : Number(raw)
   emit('update:cafWeight', numeric === null || Number.isNaN(numeric) ? null : numeric)
 }
 function onSensitivityChange(e: Event) {
-  const val = (e.target as HTMLSelectElement).value as Sensitivity
-  emit('update:cafSensitivity', val)
+  emit('update:cafSensitivity', (e.target as HTMLSelectElement).value as Sensitivity)
 }
 function onStatusChange(e: Event) {
-  const val = (e.target as HTMLSelectElement).value as Status
-  emit('update:cafStatus', val)
+  emit('update:cafStatus', (e.target as HTMLSelectElement).value as Status)
 }
 </script>
 
 <style scoped>
-/* Card + Inputs (konsistent mit deinen anderen Calculators) */
+
+/* Card */
 .calculator-card {
   background: var(--bg-card);
   padding: 1.5rem;
@@ -142,6 +140,7 @@ function onStatusChange(e: Event) {
   border: 1px solid var(--border-color);
   transition: transform .3s, box-shadow .3s, border-color .3s;
   color: var(--text-primary);
+  font-family: inherit;
 }
 .calculator-card:hover {
   transform: translateY(-4px);
@@ -149,6 +148,7 @@ function onStatusChange(e: Event) {
   border-color: var(--accent-primary);
 }
 
+/* Header */
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -161,9 +161,18 @@ function onStatusChange(e: Event) {
   display: flex;
   align-items: center;
   gap: .5rem;
+  color: var(--text-primary);
 }
 
+/* Inputs */
 .input-group { margin-bottom: 1rem; }
+.input-group label {
+  display: block;
+  font-size: .9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: .25rem;
+}
 .edit-input {
   width: 100%;
   padding: .75rem;
@@ -180,30 +189,7 @@ function onStatusChange(e: Event) {
   outline: none;
 }
 
-.popup-btn {
-  padding: .75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: .9rem;
-  transition: background .2s, transform .1s;
-}
-.save-btn {
-  background: transparent;
-  border: 1px solid var(--accent-primary);
-  color: var(--accent-primary);
-  padding: .5rem .75rem;
-  border-radius: 8px;
-  font-size: .9rem;
-  font-weight: 500;
-}
-.save-btn:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
-  background-color: rgba(59,130,246,.1);
-  transform: translateY(-2px);
-}
-
+/* Result */
 .result {
   margin-top: 1rem;
   padding: 1rem;
@@ -224,6 +210,7 @@ function onStatusChange(e: Event) {
   color: var(--text-secondary);
 }
 
+/* Footer */
 .card-footer {
   border-top: 1px solid var(--border-color);
   padding: .75rem 1rem 0;
@@ -237,111 +224,5 @@ function onStatusChange(e: Event) {
   display: flex;
   gap: .5rem;
   flex-wrap: wrap;
-}
-
-.fav-btn {
-  background: transparent;
-  border: none;
-  font-size: 1.25rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: .25rem .4rem;
-  border-radius: 8px;
-  color: #6b7280;
-  transition: color .2s, text-shadow .2s, transform .1s;
-}
-.fav-btn:hover {
-  color: #F59E0B;
-  text-shadow: 0 0 8px #F59E0B, 0 0 4px #F59E0B;
-  transform: scale(1.05);
-}
-
-.btn-ghost {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  padding: .5rem .75rem;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text-secondary);
-  font-size: .9rem;
-  transition: border-color .2s, color .2s, transform .1s;
-}
-.btn-ghost:hover {
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-  transform: translateY(-1px);
-}
-.btn-ghost.mini {
-  padding: .35rem .6rem;
-  font-size: .8rem;
-  border-radius: 6px;
-}
-
-.btn-danger-ghost {
-  background: transparent;
-  border: 1px solid #b91c1c33;
-  padding: .5rem .75rem;
-  border-radius: 8px;
-  cursor: pointer;
-  color: #b91c1c;
-  font-size: .9rem;
-  transition: border-color .2s, color .2s, transform .1s;
-}
-.btn-danger-ghost:hover {
-  border-color: #b91c1c;
-  color: #7f1d1d;
-  transform: translateY(-1px);
-}
-.btn-icon { margin-right: .4rem; }
-
-/* Tooltip lokal */
-.tooltip {
-  position: relative;
-  display: inline-block;
-  cursor: help;
-}
-.tooltip .tooltip-text {
-  visibility: hidden;
-  min-width: 150px;
-  max-width: 300px;
-  background: var(--bg-card);
-  color: var(--text-tooltip);
-  text-align: left;
-  border-radius: 8px;
-  padding: .75rem;
-  position: absolute;
-  z-index: 1000;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: .8rem;
-  box-shadow: var(--shadow);
-  opacity: 0;
-  transition: opacity .3s, visibility .3s;
-  white-space: normal;
-  word-wrap: break-word;
-}
-.tooltip .tooltip-text::after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 8px;
-  border-style: solid;
-  border-color: var(--bg-card) transparent transparent transparent;
-}
-.tooltip:hover .tooltip-text {
-  visibility: visible;
-  opacity: 1;
-}
-
-@media (max-width: 600px) {
-  .tooltip .tooltip-text {
-    min-width: 120px;
-    max-width: 90vw;
-    font-size: .75rem;
-    padding: .5rem;
-  }
 }
 </style>

@@ -423,7 +423,11 @@
                     <div class="card-header">
                         <h3 class="card-title">📅 Trainingsplan</h3>
                         <div class="card-actions">
-                            <button class="action-btn" @click="openDownloadPopup('plans')">⬇️</button>
+                            <ActionIconButton ariaLabel="Trainingsplan herunterladen"
+                                              title="Herunterladen"
+                                              @click="openDownloadPopup('plans')">
+                                ⬇️
+                            </ActionIconButton>
                         </div>
                     </div>
                     <p>Dein aktueller Trainingsplan.</p>
@@ -433,7 +437,11 @@
                     <div class="card-header">
                         <h3 class="card-title">🥗 Ernährungsplan</h3>
                         <div class="card-actions">
-                            <button class="action-btn" @click="openDownloadPopup('nutrition')">⬇️</button>
+                            <ActionIconButton ariaLabel="Ernährungsplan herunterladen"
+                                              title="Herunterladen"
+                                              @click="openDownloadPopup('nutrition')">
+                                ⬇️
+                            </ActionIconButton>
                         </div>
                     </div>
                     <p>Dein Ernährungsplan.</p>
@@ -494,6 +502,8 @@
     import ProteinCalculator from '@/components/ui/calculators/ProteinCalculator.vue'
     import CaffeineSafeDoseCalculator from '@/components/ui/calculators/CaffeineSafeDoseCalculator.vue'
     import GlycemicLoadCalculator from '@/components/ui/calculators/GlycemicLoadCalculator.vue'
+    import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
+    import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
     import type { Toast as ToastModel } from '@/types/toast'
 
     // Interfaces
@@ -553,18 +563,19 @@
         { name: 'Snack', calories: 300 },
     ]);
 
-    const glFood = ref<string>('')          
-    const glServing = ref<number | null>(null)
-    const glCarbs100 = ref<number | null>(null)
-    const glGi = ref<number | null>(null)
+    const glFood = ref < string > ('')
+    const glServing = ref < number | null > (null)
+    const glCarbs100 = ref < number | null > (null)
+    const glGi = ref < number | null > (null)
+    const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
-    const glCarbs = computed<number | null>(() => {
+    const glCarbs = computed < number | null > (() => {
         if (glServing.value == null || glCarbs100.value == null) return null
         return (Number(glCarbs100.value) * Number(glServing.value)) / 100
     })
 
-    const glResult = ref<number | null>(null)
-    const glCategory = computed<string>(() => {
+    const glResult = ref < number | null > (null)
+    const glCategory = computed < string > (() => {
         if (glResult.value == null) return ''
         if (glResult.value < 10) return 'niedrig'
         if (glResult.value < 20) return 'mittel'
@@ -580,7 +591,7 @@
     const showValidationPopup = ref(false);
     const showDownloadPopup = ref(false);
     const validationErrorMessages = ref < string[] > ([]);
-    const toast = ref<ToastModel | null>(null);
+    const toast = ref < ToastModel | null > (null);
     const weightInput = ref < HTMLInputElement | null > (null);
     const goalInput = ref < HTMLInputElement | null > (null);
     const progressExerciseInput = ref < HTMLSelectElement | null > (null);
@@ -650,6 +661,9 @@
     const ffmiBodyFat = ref < number | null > (null);
     const ffmiResult = ref < { value: number; category: string } | null > (null);
 
+    const suppressToasts = ref(true)
+    let toastReleaseTimer: ReturnType<typeof setTimeout> | null = null
+
     const waterWeight = ref < number | null > (null);
     const waterActivity = ref < 'low' | 'moderate' | 'high' > ('low');
     const waterClimate = ref < 'temperate' | 'hot' | 'very_hot' > ('temperate');
@@ -657,7 +671,7 @@
 
     const planSearchQuery = ref < string > ('');
     const maxEntries = ref(3);
-    const editingEntry = ref<Workout | null>(null);
+    const editingEntry = ref < Workout | null > (null);
     // Zustand für "Mehr anzeigen"
     const showMore = ref < { [key: string]: boolean } > ({});
     const autoCalcEnabled = ref(false)
@@ -745,28 +759,32 @@
 
     const calculateProtein = () => {
         const errors = validateProtein()
-        if (errors.length) {
-            openValidationPopupError(errors)
-            return
-        }
+        if (errors.length) { openValidationPopupError(errors); return }
 
-        const weightKg = unit.value === 'kg' ? Number(proteinWeight.value) : Number(proteinWeight.value) * KG_PER_LB
+        const weightKg = unit.value === 'kg'
+            ? Number(proteinWeight.value)
+            : Number(proteinWeight.value) * KG_PER_LB
 
-        let factor = 1.6
-        let range: { min?: number; max?: number } = {}
-
-        if (proteinGoal.value === 'maintain') {
-            factor = 1.6
-            range = { min: 1.4 * weightKg, max: 1.8 * weightKg }
-        } else if (proteinGoal.value === 'bulk') {
-            factor = 2.0
-            range = { min: 1.8 * weightKg, max: 2.2 * weightKg }
+        // Basisfaktoren je Ziel
+        let baseFactor = 1.6, baseMin = 1.4, baseMax = 1.8
+        if (proteinGoal.value === 'bulk') {
+            baseFactor = 2.0; baseMin = 1.8; baseMax = 2.2
         } else if (proteinGoal.value === 'cut') {
-            factor = 2.2
-            range = { min: 2.0 * weightKg, max: 2.6 * weightKg }
+            baseFactor = 2.2; baseMin = 2.0; baseMax = 2.6
         }
+
+        // Aktivitäts-Delta
+        const delta = proteinActivity.value === 'low' ? -0.2
+            : proteinActivity.value === 'high' ? 0.3
+                : 0.0
+
+        const factor = clamp(baseFactor + delta, 1.2, 2.7)
+        const minF = clamp(baseMin + delta, 1.2, 2.7)
+        const maxF = clamp(baseMax + delta, 1.2, 2.7)
 
         const recommend = factor * weightKg
+        const range = { min: minF * weightKg, max: maxF * weightKg }
+
         proteinResult.value = {
             recommend,
             min: range.min,
@@ -779,9 +797,11 @@
         saveToLocalStorage('protein', {
             weight: proteinWeight.value,
             goal: proteinGoal.value,
+            activity: proteinActivity.value,     // <-- jetzt mitspeichern
             result: proteinResult.value
         })
     }
+
 
     const copyProtein = () => {
         if (!proteinResult.value) return
@@ -1385,6 +1405,19 @@
         }
         closeProgressPopup();
     };
+
+    function releaseToasts() {
+        if (!suppressToasts.value) return
+        suppressToasts.value = false
+        // Listener sauber entfernen
+        window.removeEventListener('pointerdown', releaseToasts)
+        window.removeEventListener('keydown', releaseToasts)
+        window.removeEventListener('touchstart', releaseToasts as any)
+        if (toastReleaseTimer) {
+            clearTimeout(toastReleaseTimer)
+            toastReleaseTimer = null
+        }
+    }
 
     function showToast(opts: { message: string; type?: 'default' | 'add' | 'delete' | 'save' | 'timer' | 'reset' | 'success'; emoji?: string }) {
         const mapped = opts.type === 'success' ? 'add' : (opts.type ?? 'default');
@@ -2033,14 +2066,14 @@
         message: string,
         type: 'delete' | 'add' | 'save' | 'timer' | 'load' | 'reset' | 'default' = 'load'
     ) => {
-
-        if (!toastsEnabled.value) return;
+        if (!toastsEnabled.value) return
+        if (suppressToasts.value) return  // 🔒 während Restore/Auto-Calc: keine Toasts
 
         if (toastTimeout) {
-            clearTimeout(toastTimeout);
-            toast.value = null;
+            clearTimeout(toastTimeout)
+            toast.value = null
         }
-        const id = toastId++;
+        const id = toastId++
         const emojis = {
             delete: '🗑️',
             add: '✅',
@@ -2049,7 +2082,7 @@
             load: '📋',
             reset: '♻️',
             default: '📋',
-        } as const;
+        } as const
 
         const types = {
             delete: 'toast-delete',
@@ -2059,21 +2092,23 @@
             load: 'toast-default',
             reset: 'toast-reset',
             default: 'toast-default',
-        } as const;
+        } as const
 
-        const mapped = types[type];
-        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false };
+        const mapped = types[type]
+        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false }
 
         toastTimeout = setTimeout(() => {
             if (toast.value) {
-                toast.value.exiting = true;
+                toast.value.exiting = true
                 setTimeout(() => {
-                    toast.value = null;
-                    toastTimeout = null;
-                }, 300);
+                    toast.value = null
+                    toastTimeout = null
+                }, 300)
             }
-        }, 3000);
-    };
+        }, 3000)
+    }
+
+
 
 
     const handleOverlayClick = (event: MouseEvent) => {
@@ -2464,7 +2499,7 @@
         if (!validateProtein().length) calculateProtein()
     }, 300)
 
-    watch([proteinWeight, proteinGoal, unit], () => {
+    watch([proteinWeight, proteinGoal, proteinActivity, unit], () => {
         if (autoCalcEnabled.value) debouncedCalcProtein()
     }, { flush: 'post' })
 
@@ -2472,10 +2507,9 @@
         if (on) debouncedCalcProtein()
     })
 
-    watch([proteinWeight, proteinGoal], () => {
+    watch([proteinWeight, proteinGoal, proteinActivity], () => {
         if (autoCalcEnabled.value && !validateProtein().length) calculateProtein()
     }, { immediate: true, flush: 'post' })
-
 
     watch(activeTab, (newValue) => {
         nextTick(() => {
@@ -2509,10 +2543,19 @@
     });
 
     onMounted(() => {
-        loadFromLocalStorage();
-        checkMilestones();
-        window.addEventListener('keydown', handleKeydown);
-    });
+        loadFromLocalStorage()
+        checkMilestones()
+        window.addEventListener('keydown', handleKeydown)
+
+        // Neu: Toasts erst nach User-Interaktion freigeben…
+        window.addEventListener('pointerdown', releaseToasts)
+        window.addEventListener('keydown', releaseToasts)
+        window.addEventListener('touchstart', releaseToasts as any)
+
+        // …oder automatisch nach kurzer Ruhephase (falls nur Viewing)
+        toastReleaseTimer = setTimeout(() => releaseToasts(), 1500)
+    })
+
 
     onUnmounted(() => {
         window.removeEventListener('keydown', handleKeydown);
@@ -2774,21 +2817,7 @@
         display: flex;
         gap: 0.5rem;
     }
-
-    .plan-card .action-btn {
-        background: none;
-        border: none;
-        font-size: 1rem;
-        cursor: pointer;
-        color: var(--text-secondary);
-        transition: color 0.3s ease;
-        padding: 0.25rem;
-    }
-
-        .plan-card .action-btn:hover {
-            color: var(--accent-primary);
-        }
-
+    
     /* ===================== EXPORT-POPUP ===================== */
 
     .plans-section {

@@ -14,14 +14,18 @@
                @keydown.enter.prevent="$emit('save')" />
         <!-- Footer-Buttons -->
         <template #actions>
-            <button class="popup-btn cancel-btn" @click="$emit('cancel')">Abbrechen</button>
-            <button class="popup-btn save-btn" @click="$emit('save')">Speichern</button>
+            <PopupCancelButton @click="$emit('cancel')">Abbrechen</PopupCancelButton>
+            <PopupSaveButton @click="$emit('confirm')">Download</PopupSaveButton>
         </template>
+
     </BasePopup>
 </template>
 <script setup lang="ts">
     import { ref, watch, nextTick } from 'vue'
     import BasePopup from './BasePopup.vue'
+    import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
+    import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
+
     const props = defineProps<{
         show: boolean
         modelValue: number | null

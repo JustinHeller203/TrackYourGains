@@ -127,26 +127,6 @@ defineEmits<{
   margin-top: 1rem;
 }
 
-.popup-actions :deep(.popup-btn),
-.popup-btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: background 0.2s, transform 0.1s;
-}
-
-.popup-actions :deep(.save-btn),
-.save-btn { background: #10b981; color: #ffffff; }
-.popup-actions :deep(.save-btn:hover),
-.save-btn:hover { background: #064e3b; transform: scale(1.05); }
-
-.popup-actions :deep(.cancel-btn),
-.cancel-btn { background: #6b7280; color: #ffffff; }
-.popup-actions :deep(.cancel-btn:hover),
-.cancel-btn:hover { background: #4b5563; transform: scale(1.05); }
-
 /* === Simple fade === */
 .fade-enter-active, .fade-leave-active { transition: opacity .18s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

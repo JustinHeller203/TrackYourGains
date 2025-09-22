@@ -4,40 +4,45 @@
         <div class="card-header">
             <h3 class="card-title">
                 {{ title || 'Wasserbedarfsrechner' }}
-                <span class="tooltip">
-                    ℹ️
-                    <span class="tooltip-text">Empfehlung nach Gewicht, Aktivität und Klima.</span>
-                </span>
+                <InfoHover :text="headerInfoText" />
             </h3>
 
-            <button class="fav-btn"
-                    :aria-pressed="isFavorite"
-                    @click="$emit('toggleFavorite')"
-                    :title="isFavorite ? 'Favorit entfernen' : 'Als Favorit markieren'">
-                {{ isFavorite ? '⭐' : '☆' }}
-            </button>
+            <FavoriteButton :active="isFavorite"
+                            :titleActive="'Aus Favoriten entfernen'"
+                            :titleInactive="'Zu Favoriten hinzufügen'"
+                            @toggle="$emit('toggleFavorite')" />
         </div>
 
         <div class="input-group">
-            <label>Gewicht ({{ unit === 'kg' ? 'kg' : 'lbs' }})</label>
-            <input :value="weight ?? ''"
+            <label>
+                Körpergewicht ({{ unit === 'kg' ? 'kg' : 'lbs' }})
+            </label>
+            <input :value="weightInputValue"
                    @input="onWeightInput"
                    type="number"
                    :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
-                   class="edit-input" />
+                   class="edit-input"
+                   step="any"
+                   min="0" />
         </div>
 
         <div class="input-group">
-            <label>Aktivitätslevel</label>
+            <label class="label-with-info">
+                Aktivitätslevel
+                <InfoHover :text="activityInfoText" />
+            </label>
             <select :value="activity" @change="onActivityChange" class="edit-input">
                 <option value="low">Niedrig (kein Sport)</option>
-                <option value="moderate">Moderat (1-3x Sport/Woche)</option>
-                <option value="high">Hoch (4-7x Sport/Woche)</option>
+                <option value="moderate">Moderat (1–3x/Woche)</option>
+                <option value="high">Hoch (4–7x/Woche)</option>
             </select>
         </div>
 
         <div class="input-group">
-            <label>Klima</label>
+            <label class="label-with-info">
+                Klima
+                <InfoHover :text="climateInfoText" />
+            </label>
             <select :value="climate" @change="onClimateChange" class="edit-input">
                 <option value="temperate">Gemäßigt</option>
                 <option value="hot">Heiß</option>
@@ -45,78 +50,104 @@
             </select>
         </div>
 
-        <button v-if="!autoCalcEnabled" class="popup-btn save-btn" @click="$emit('calculate')">
-            Berechnen
-        </button>
+        <CalculateButton v-if="!autoCalcEnabled" @click="$emit('calculate')" />
 
         <div v-if="result !== null" class="result">
             <div class="result-header">
                 <p><strong>Täglicher Wasserbedarf:</strong> {{ result!.toFixed(1) }} Liter</p>
-                <button class="btn-ghost mini" @click="$emit('copy')">📋 Kopieren</button>
+                <CopyButton @click="$emit('copy')" />
             </div>
         </div>
 
         <div class="card-footer">
             <div class="footer-spacer"></div>
             <div class="footer-actions">
-                <button class="btn-ghost" @click="$emit('export')">
-                    <span class="btn-icon">⬇️</span> Exportieren
-                </button>
-                <button class="btn-danger-ghost" @click="$emit('reset')">
-                    <span class="btn-icon">🔄</span> Zurücksetzen
-                </button>
+                <ExportButton @click="$emit('export')" />
+                <ResetButton @click="$emit('reset')" />
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+    import { computed } from 'vue'
+    import InfoHover from '@/components/ui/InfoHover.vue'
+    import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
+    import ExportButton from '@/components/ui/buttons/ExportButton.vue'
+    import ResetButton from '@/components/ui/buttons/ResetButton.vue'
+    import CopyButton from '@/components/ui/buttons/CopyButton.vue'
+    import CalculateButton from '@/components/ui/buttons/CalculateButton.vue'
 
-type Unit = 'kg' | 'lb' | 'lbs' | string
-type Activity = 'low' | 'moderate' | 'high'
-type Climate = 'temperate' | 'hot' | 'very_hot'
+    type Unit = 'kg' | 'lb' | 'lbs' | string
+    type Activity = 'low' | 'moderate' | 'high'
+    type Climate = 'temperate' | 'hot' | 'very_hot'
 
-const props = defineProps<{
-  unit: Unit
-  autoCalcEnabled: boolean
-  waterWeight: number | null
-  waterActivity: Activity
-  waterClimate: Climate
-  waterResult: number | null
-  isFavorite: boolean
-  title?: string
-}>()
+    const props = defineProps<{
+        unit: Unit
+        autoCalcEnabled: boolean
+        waterWeight: number | null
+        waterActivity: Activity
+        waterClimate: Climate
+        waterResult: number | null
+        isFavorite: boolean
+        title?: string
+        /** Optional: überschreibt den Standardtext im Header-InfoHover */
+        info?: string
+    }>()
 
-const emit = defineEmits<{
-  (e: 'toggleFavorite'): void
-  (e: 'update:waterWeight', v: number | null): void
-  (e: 'update:waterActivity', v: Activity): void
-  (e: 'update:waterClimate', v: Climate): void
-  (e: 'calculate'): void
-  (e: 'copy'): void
-  (e: 'export'): void
-  (e: 'reset'): void
-}>()
+    const emit = defineEmits<{
+        (e: 'toggleFavorite'): void
+        (e: 'update:waterWeight', v: number | null): void
+        (e: 'update:waterActivity', v: Activity): void
+        (e: 'update:waterClimate', v: Climate): void
+        (e: 'calculate'): void
+        (e: 'copy'): void
+        (e: 'export'): void
+        (e: 'reset'): void
+    }>()
 
-const weight = computed(() => props.waterWeight)
-const activity = computed(() => props.waterActivity)
-const climate = computed(() => props.waterClimate)
-const result  = computed(() => props.waterResult)
+    const weight = computed(() => props.waterWeight)
+    const activity = computed(() => props.waterActivity)
+    const climate = computed(() => props.waterClimate)
+    const result = computed(() => props.waterResult)
 
-function onWeightInput(e: Event) {
-  const raw = (e.target as HTMLInputElement).value
-  emit('update:waterWeight', raw === '' ? null : Number(raw))
-}
-function onActivityChange(e: Event) {
-  emit('update:waterActivity', (e.target as HTMLSelectElement).value as Activity)
-}
-function onClimateChange(e: Event) {
-  emit('update:waterClimate', (e.target as HTMLSelectElement).value as Climate)
-}
+    const weightInputValue = computed(() =>
+        weight.value === null || Number.isNaN(weight.value) ? '' : String(weight.value)
+    )
+
+    /** InfoHover-Texte (Header & Feld-Hilfen) – Header kann via prop.info überschrieben werden */
+    const headerInfoText = computed(
+        () =>
+            props.info ??
+            'Schätzt den täglichen Wasserbedarf basierend auf Gewicht, Aktivität und Klima. Richtwerte, keine medizinische Beratung.'
+    )
+    const activityInfoText =
+        'Mehr Aktivität ⇒ höherer Bedarf (Schweißverluste). Wähle dein typisches Wochenpensum.'
+    const climateInfoText =
+        'Heiß/Sehr heiß ⇒ mehr trinken (höhere Verdunstung/Schweiß). Gemäßigt für normale Bedingungen.'
+
+    function maybeAutoCalc() {
+        if (props.autoCalcEnabled) emit('calculate')
+    }
+
+    function onWeightInput(e: Event) {
+        const raw = (e.target as HTMLInputElement).value
+        const n = raw === '' ? null : Number(raw)
+        emit('update:waterWeight', raw === '' || Number.isNaN(n) ? null : n)
+        maybeAutoCalc()
+    }
+    function onActivityChange(e: Event) {
+        emit('update:waterActivity', (e.target as HTMLSelectElement).value as Activity)
+        maybeAutoCalc()
+    }
+    function onClimateChange(e: Event) {
+        emit('update:waterClimate', (e.target as HTMLSelectElement).value as Climate)
+        maybeAutoCalc()
+    }
 </script>
 
 <style scoped>
+    /* Minimal – gemeinsame Card/Form-Styles kommen global */
     .calculator-card {
         background: var(--bg-card);
         padding: 1.5rem;
@@ -152,6 +183,12 @@ function onClimateChange(e: Event) {
         margin-bottom: 1rem;
     }
 
+    .label-with-info {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
     .edit-input {
         width: 100%;
         padding: .75rem;
@@ -167,32 +204,6 @@ function onClimateChange(e: Event) {
             border-color: var(--accent-primary);
             box-shadow: 0 0 5px rgba(99,102,241,.5);
             outline: none;
-        }
-
-    .popup-btn {
-        padding: .75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: .9rem;
-        transition: background .2s, transform .1s;
-    }
-
-    .save-btn {
-        background: transparent;
-        border: 1px solid var(--accent-primary);
-        color: var(--accent-primary);
-        padding: .5rem .75rem;
-        border-radius: 8px;
-        font-size: .9rem;
-        font-weight: 500;
-    }
-
-        .save-btn:hover {
-            border-color: #3b82f6;
-            color: #3b82f6;
-            background-color: rgba(59,130,246,.1);
-            transform: translateY(-2px);
         }
 
     .result {
@@ -227,121 +238,5 @@ function onClimateChange(e: Event) {
         display: flex;
         gap: .5rem;
         flex-wrap: wrap;
-    }
-
-    .fav-btn {
-        background: transparent;
-        border: none;
-        font-size: 1.25rem;
-        line-height: 1;
-        cursor: pointer;
-        padding: .25rem .4rem;
-        border-radius: 8px;
-        color: #6b7280;
-        transition: color .2s, text-shadow .2s, transform .1s;
-    }
-
-        .fav-btn:hover {
-            color: #F59E0B;
-            text-shadow: 0 0 8px #F59E0B, 0 0 4px #F59E0B;
-            transform: scale(1.05);
-        }
-
-    .btn-ghost {
-        background: transparent;
-        border: 1px solid var(--border-color);
-        padding: .5rem .75rem;
-        border-radius: 8px;
-        cursor: pointer;
-        color: var(--text-secondary);
-        font-size: .9rem;
-        transition: border-color .2s, color .2s, transform .1s;
-    }
-
-        .btn-ghost:hover {
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-            transform: translateY(-1px);
-        }
-
-        .btn-ghost.mini {
-            padding: .35rem .6rem;
-            font-size: .8rem;
-            border-radius: 6px;
-        }
-
-    .btn-danger-ghost {
-        background: transparent;
-        border: 1px solid #b91c1c33;
-        padding: .5rem .75rem;
-        border-radius: 8px;
-        cursor: pointer;
-        color: #b91c1c;
-        font-size: .9rem;
-        transition: border-color .2s, color .2s, transform .1s;
-    }
-
-        .btn-danger-ghost:hover {
-            border-color: #b91c1c;
-            color: #7f1d1d;
-            transform: translateY(-1px);
-        }
-
-    .btn-icon {
-        margin-right: .4rem;
-    }
-
-    /* Tooltip lokal */
-    .tooltip {
-        position: relative;
-        display: inline-block;
-        cursor: help;
-    }
-
-        .tooltip .tooltip-text {
-            visibility: hidden;
-            min-width: 150px;
-            max-width: 300px;
-            background: var(--bg-card);
-            color: var(--text-tooltip);
-            text-align: left;
-            border-radius: 8px;
-            padding: .75rem;
-            position: absolute;
-            z-index: 1000;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: .8rem;
-            box-shadow: var(--shadow);
-            opacity: 0;
-            transition: opacity .3s, visibility .3s;
-            white-space: normal;
-            word-wrap: break-word;
-        }
-
-            .tooltip .tooltip-text::after {
-                content: '';
-                position: absolute;
-                bottom: -8px;
-                left: 50%;
-                transform: translateX(-50%);
-                border-width: 8px;
-                border-style: solid;
-                border-color: var(--bg-card) transparent transparent transparent;
-            }
-
-        .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-
-    @media (max-width: 600px) {
-        .tooltip .tooltip-text {
-            min-width: 120px;
-            max-width: 90vw;
-            font-size: .75rem;
-            padding: .5rem;
-        }
     }
 </style>

@@ -322,8 +322,9 @@
     .setting-control {
         display: flex;
         align-items: center;
-        gap: 1rem;
+        gap: 0.75rem;
     }
+
 
     .toggle-switch {
         width: 70px;
@@ -370,16 +371,17 @@
     }
 
     .toggle-label {
-        cursor: pointer;
-        user-select: none;
+        display: inline-flex;
+        align-items: center;
+        line-height: 1; /* verhindert Höhen-Jump */
     }
-
     .toggle-text {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: var(--text-secondary);
+        display: inline-block;
+        width: 3.2ch; /* genug für "AUS" */
+        text-align: left; /* bleibt an der gleichen Stelle wie vorher */
         text-transform: uppercase;
         letter-spacing: 1px;
+        white-space: nowrap; /* kein Umbruch */
     }
 
     html.dark-mode .toggle-text {

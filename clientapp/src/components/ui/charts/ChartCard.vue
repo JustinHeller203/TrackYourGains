@@ -10,17 +10,17 @@
         </div>
 
         <div class="card-footer">
-            <button v-if="exportable" class="btn-ghost" @click="$emit('export')">
-                <span class="btn-icon">⬇️</span> Exportieren
-            </button>
-            <button class="btn-danger-ghost" @click="$emit('reset')">
-                <span class="btn-icon">🔄</span> Zurücksetzen
-            </button>
+            <ExportButton v-if="exportable" @click="$emit('export')" />
+            <ResetButton @click="$emit('reset')" />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+    import ResetButton from '@/components/ui/buttons/ResetButton.vue'
+    import ExportButton from '@/components/ui/buttons/ExportButton.vue'
+
+
 defineProps<{ title: string; exportable?: boolean }>()
 defineEmits<{ (e: 'export'): void; (e: 'reset'): void }>()
 </script>
@@ -50,12 +50,6 @@ defineEmits<{ (e: 'export'): void; (e: 'reset'): void }>()
         margin-bottom: 0.5rem;
     }
 
-    .card-info {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--accent-primary);
-    }
-
     .chart-container {
         height: 300px;
         margin-top: 1rem;
@@ -67,43 +61,5 @@ defineEmits<{ (e: 'export'): void; (e: 'reset'): void }>()
         display: flex;
         justify-content: flex-end;
         gap: 0.75rem;
-    }
-
-    .btn-ghost {
-        background: transparent;
-        border: 1px solid var(--border-color);
-        padding: .5rem .75rem;
-        border-radius: 8px;
-        cursor: pointer;
-        color: var(--text-secondary);
-        font-size: .9rem;
-        transition: border-color .2s, color .2s, transform .1s;
-    }
-
-        .btn-ghost:hover {
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-            transform: translateY(-1px);
-        }
-
-    .btn-danger-ghost {
-        background: transparent;
-        border: 1px solid #b91c1c33;
-        padding: .5rem .75rem;
-        border-radius: 8px;
-        cursor: pointer;
-        color: #b91c1c;
-        font-size: .9rem;
-        transition: border-color .2s, color .2s, transform .1s;
-    }
-
-        .btn-danger-ghost:hover {
-            border-color: #b91c1c;
-            color: #7f1d1d;
-            transform: translateY(-1px);
-        }
-
-    .btn-icon {
-        margin-right: .4rem;
     }
 </style>

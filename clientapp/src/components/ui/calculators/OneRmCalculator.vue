@@ -1,21 +1,15 @@
-﻿<!-- src/components/ui/calculators/OneRmCalculator.vue -->
-<template>
+﻿<template>
     <div class="calculator-card">
         <div class="card-header">
             <h3 class="card-title">
                 {{ title || '1RM-Rechner' }}
-                <span class="tooltip">
-                    ℹ️
-                    <span class="tooltip-text">Schätzt dein einmaliges Maximalgewicht (Epley-Formel).</span>
-                </span>
+                <InfoHover :text="infoText" />
             </h3>
 
-            <button class="fav-btn"
-                    :aria-pressed="isFavorite"
-                    @click="$emit('toggleFavorite')"
-                    :title="isFavorite ? 'Favorit entfernen' : 'Als Favorit markieren'">
-                {{ isFavorite ? '⭐' : '☆' }}
-            </button>
+            <FavoriteButton :active="isFavorite"
+                            :titleActive="'Aus Favoriten entfernen'"
+                            :titleInactive="'Zu Favoriten hinzufügen'"
+                            @toggle="$emit('toggleFavorite')" />
         </div>
 
         <div class="input-group">
@@ -23,7 +17,7 @@
             <input :value="exercise"
                    @input="onExerciseInput"
                    type="text"
-                   placeholder="z.B. Bankdrücken"
+                   placeholder="z. B. Bankdrücken"
                    class="edit-input" />
         </div>
 
@@ -32,7 +26,8 @@
             <input :value="weight ?? ''"
                    @input="onWeightInput"
                    type="number"
-                   :placeholder="unit === 'kg' ? 'z.B. 80' : 'z.B. 175'"
+                   :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
+                   step="any"
                    class="edit-input" />
         </div>
 
@@ -41,82 +36,103 @@
             <input :value="reps ?? ''"
                    @input="onRepsInput"
                    type="number"
-                   placeholder="z.B. 8"
+                   min="1"
+                   step="1"
+                   placeholder="z. B. 8"
                    class="edit-input" />
         </div>
 
-        <button v-if="!autoCalcEnabled" class="popup-btn save-btn" @click="$emit('calculate')">
-            Berechnen
-        </button>
+        <CalculateButton v-if="!autoCalcEnabled" @click="$emit('calculate')" />
 
-        <div v-if="oneRmResult !== null" class="result">
+        <div v-if="oneRmResult !== null || formattedResult" class="result">
             <div class="result-header">
-                <p><strong>1RM für {{ exercise || 'Übung' }}:</strong> {{ displayResult }}</p>
-                <button class="btn-ghost mini" @click="$emit('copy')">📋 Kopieren</button>
+                <p>
+                    <strong>1RM für {{ exercise || 'Übung' }}:</strong>
+                    {{ displayResult }}
+                </p>
+                <CopyButton @click="$emit('copy')" />
             </div>
         </div>
 
         <div class="card-footer">
             <div class="footer-spacer"></div>
             <div class="footer-actions">
-                <button class="btn-ghost" @click="$emit('export')">
-                    <span class="btn-icon">⬇️</span> Exportieren
-                </button>
-                <button class="btn-danger-ghost" @click="$emit('reset')">
-                    <span class="btn-icon">🔄</span> Zurücksetzen
-                </button>
+                <ExportButton @click="$emit('export')" />
+                <ResetButton @click="$emit('reset')" />
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+    import { computed } from 'vue'
+    import InfoHover from '@/components/ui/InfoHover.vue'
+    import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
+    import ExportButton from '@/components/ui/buttons/ExportButton.vue'
+    import ResetButton from '@/components/ui/buttons/ResetButton.vue'
+    import CopyButton from '@/components/ui/buttons/CopyButton.vue'
+    import CalculateButton from '@/components/ui/buttons/CalculateButton.vue'
 
-type Unit = 'kg' | 'lb' | 'lbs' | string
+    type Unit = 'kg' | 'lb' | 'lbs' | string
 
-const props = defineProps<{
-  unit: Unit
-  autoCalcEnabled: boolean
-  oneRmExercise: string
-  oneRmWeight: number | null
-  oneRmReps: number | null
-  oneRmResult: number | null
-  isFavorite: boolean
-  title?: string
-  /* Optional: formatierter Text kann im Parent mit formatWeight kommen */
-  formattedResult?: string
-}>()
+    const props = defineProps<{
+        unit: Unit
+        autoCalcEnabled: boolean
+        oneRmExercise: string
+        oneRmWeight: number | null
+        oneRmReps: number | null
+        oneRmResult: number | null          // numerisch vom Parent berechnet
+        formattedResult?: string            // bevorzugt: vom Parent bereits mit Einheit formatiert
+        isFavorite: boolean
+        title?: string
+        info?: string
+    }>()
 
-const emit = defineEmits<{
-  (e: 'toggleFavorite'): void
-  (e: 'update:oneRmExercise', v: string): void
-  (e: 'update:oneRmWeight', v: number | null): void
-  (e: 'update:oneRmReps', v: number | null): void
-  (e: 'calculate'): void
-  (e: 'copy'): void
-  (e: 'export'): void
-  (e: 'reset'): void
-}>()
+    const emit = defineEmits<{
+        (e: 'toggleFavorite'): void
+        (e: 'update:oneRmExercise', v: string): void
+        (e: 'update:oneRmWeight', v: number | null): void
+        (e: 'update:oneRmReps', v: number | null): void
+        (e: 'calculate'): void
+        (e: 'copy'): void
+        (e: 'export'): void
+        (e: 'reset'): void
+    }>()
 
-const exercise = computed(() => props.oneRmExercise)
-const weight = computed(() => props.oneRmWeight)
-const reps = computed(() => props.oneRmReps)
+    /* Info */
+    const infoText = computed(
+        () =>
+            props.info ||
+            'Schätzt dein einmaliges Maximalgewicht. Standard: Epley-Formel (1RM = Gewicht × (1 + Wiederholungen/30)).'
+    )
 
-/** Falls du formatWeight im Parent nutzt, kannst du das Ergebnis schon formatiert übergeben */
-const displayResult = computed(() => props.formattedResult ?? (props.oneRmResult ?? 0).toFixed(1))
+    /* Bindings */
+    const exercise = computed(() => props.oneRmExercise)
+    const weight = computed(() => props.oneRmWeight)
+    const reps = computed(() => props.oneRmReps)
 
-function onExerciseInput(e: Event) {
-  emit('update:oneRmExercise', (e.target as HTMLInputElement).value)
-}
-function onWeightInput(e: Event) {
-  const raw = (e.target as HTMLInputElement).value
-  emit('update:oneRmWeight', raw === '' ? null : Number(raw))
-}
-function onRepsInput(e: Event) {
-  const raw = (e.target as HTMLInputElement).value
-  emit('update:oneRmReps', raw === '' ? null : Number(raw))
-}
+    /* Anzeige – nutzt bevorzugt formattedResult vom Parent (korrekte Einheit/Format), sonst lokal. */
+    const displayResult = computed(() => {
+        if (props.formattedResult) return props.formattedResult
+        if (props.oneRmResult === null || !Number.isFinite(props.oneRmResult)) return '–'
+        const u = String(props.unit || '').toLowerCase() === 'lbs' ? 'lbs' : 'kg'
+        return `${props.oneRmResult.toFixed(1)} ${u}`
+    })
+
+    /* Handlers */
+    function onExerciseInput(e: Event) {
+        emit('update:oneRmExercise', (e.target as HTMLInputElement).value)
+    }
+    function onWeightInput(e: Event) {
+        const raw = (e.target as HTMLInputElement).value
+        const n = raw === '' ? null : Number(raw)
+        emit('update:oneRmWeight', n === null || Number.isNaN(n) ? null : n)
+    }
+    function onRepsInput(e: Event) {
+        const raw = (e.target as HTMLInputElement).value
+        const n = raw === '' ? null : Number(raw)
+        emit('update:oneRmReps', n === null || Number.isNaN(n) ? null : Math.max(1, Math.floor(n)))
+    }
 </script>
 
 <style scoped>
@@ -171,32 +187,6 @@ function onRepsInput(e: Event) {
             border-color: var(--accent-primary);
             box-shadow: 0 0 5px rgba(99,102,241,.5);
             outline: none;
-        }
-
-    .popup-btn {
-        padding: .75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: .9rem;
-        transition: background .2s, transform .1s;
-    }
-
-    .save-btn {
-        background: transparent;
-        border: 1px solid var(--accent-primary);
-        color: var(--accent-primary);
-        padding: .5rem .75rem;
-        border-radius: 8px;
-        font-size: .9rem;
-        font-weight: 500;
-    }
-
-        .save-btn:hover {
-            border-color: #3b82f6;
-            color: #3b82f6;
-            background-color: rgba(59,130,246,.1);
-            transform: translateY(-2px);
         }
 
     .result {

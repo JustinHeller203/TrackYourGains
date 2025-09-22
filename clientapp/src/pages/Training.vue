@@ -82,9 +82,11 @@
                             {{ plan.name }} ({{ plan.exercises.length }} Übungen)
                         </span>
                         <div class="list-item-actions">
-                            <button class="favorite-btn" @click="toggleFavoritePlan(plan.id)">
-                                {{ favoritePlans.includes(plan.id) ? '★' : '☆' }}
-                            </button>
+                             <FavoriteButton  :active="favoritePlans.includes(plan.id)"
+                                               :titleActive="'Aus Favoriten entfernen'"
+                                               :titleInactive="'Zu Favoriten hinzufügen'"
+                                               @toggle="toggleFavoritePlan(plan.id)"
+                                               />
                             <button class="edit-btn" @click="editPlan(plan.id)">✏️</button>
                             <button class="delete-btn" @click="openDeletePopup(() => deletePlan(plan.id))">🗑️</button>
                             <button class="download-btn" @click="openDownloadPopup(plan)">⬇️</button>
@@ -110,9 +112,11 @@
                             {{ plan.name }} ({{ plan.exercises.length }} Übungen)
                         </span>
                         <div class="list-item-actions">
-                            <button class="favorite-btn" @click="toggleFavoritePlan(plan.id)">
-                                {{ favoritePlans.includes(plan.id) ? '★' : '☆' }}
-                            </button>
+                            <FavoriteButton :active="favoritePlans.includes(plan.id)"
+                                            :titleActive="'Aus Favoriten entfernen'"
+                                            :titleInactive="'Zu Favoriten hinzufügen'"
+                                            @toggle="toggleFavoritePlan(plan.id)" />
+
                             <button class="edit-btn" @click="editPlan(plan.id)">✏️</button>
                             <button class="delete-btn" @click="openDeletePopup(() => deletePlan(plan.id))">🗑️</button>
                             <button class="download-btn" @click="openDownloadPopup(plan)">⬇️</button>
@@ -205,11 +209,11 @@
                                 {{ timer.name || 'Timer' }}
                             </span>
                             <div class="timer-actions">
-                                <button class="favorite-btn"
-                                        @click="toggleFavoriteTimer(timer.id)"
-                                        :title="timer.isFavorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'">
-                                    {{ timer.isFavorite ? '★' : '☆' }}
-                                </button>
+                                <FavoriteButton :active="timer.isFavorite"
+                                                :titleActive="'Aus Favoriten entfernen'"
+                                                :titleInactive="'Zu Favoriten hinzufügen'"
+                                                @toggle="toggleFavoriteTimer(timer.id)" />
+
                                 <button class="close-timer-btn"
                                         @click="openDeleteTimerPopup(timer.id)"
                                         title="Timer löschen">
@@ -284,11 +288,11 @@
                             </span>
 
                             <div class="timer-actions">
-                                <button class="favorite-btn"
-                                        @click="toggleFavoriteStopwatch(stopwatch.id)"
-                                        :title="stopwatch.isFavorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'">
-                                    {{ stopwatch.isFavorite ? '★' : '☆' }}
-                                </button>
+                                <FavoriteButton :active="stopwatch.isFavorite"
+                                                :titleActive="'Aus Favoriten entfernen'"
+                                                :titleInactive="'Zu Favoriten hinzufügen'"
+                                                @toggle="toggleFavoriteStopwatch(stopwatch.id)" />
+
                                 <button class="close-timer-btn"
                                         @click="openDeleteStopwatchPopup(stopwatch.id)"
                                         title="Stoppuhr löschen">
@@ -446,6 +450,7 @@
     import { jsPDF } from 'jspdf';
     import Draggable from 'vuedraggable';
     import Toast from '@/components/ui/Toast.vue'
+    import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
 
     // Typ-Definitionen (bleiben unverändert)
     interface PlanExercise {
@@ -2389,25 +2394,6 @@
         color: #6b7280;
         border-radius: 8px;
         transition: color 0.2s, text-shadow 0.2s, transform 0.1s;
-    }
-
-    .favorite-btn {
-        color: #D4A017;
-    }
-
-    html.dark-mode .favorite-btn {
-        color: #FFD700;
-    }
-
-    .favorite-btn:hover {
-        color: #92400E;
-        text-shadow: 0 0 8px rgba(146, 64, 14, 0.5), 0 0 4px rgba(146, 64, 14, 0.5);
-        transform: scale(1.1);
-    }
-
-    html.dark-mode .favorite-btn:hover {
-        color: #92400E;
-        text-shadow: 0 0 8px #92400e, 0 0 4px #92400e;
     }
 
     .edit-btn {

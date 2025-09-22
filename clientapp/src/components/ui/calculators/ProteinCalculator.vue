@@ -4,30 +4,22 @@
         <div class="card-header">
             <h3 class="card-title">
                 {{ title || 'Proteinbedarf-Rechner' }}
-                <span class="tooltip">
-                    ℹ️
-                    <span class="tooltip-text">
-                        Berechnet deinen täglichen Proteinbedarf auf Basis von Körpergewicht, Ziel und Aktivität.
-                        Ausgabe in g/Tag und optional g pro Mahlzeit.
-                    </span>
-                </span>
+                <InfoHover v-if="infoToShow" :text="infoToShow" />
             </h3>
 
-            <button class="fav-btn"
-                    :aria-pressed="isFavorite"
-                    @click="$emit('toggleFavorite')"
-                    :title="isFavorite ? 'Favorit entfernen' : 'Als Favorit markieren'">
-                {{ isFavorite ? '⭐' : '☆' }}
-            </button>
+            <FavoriteButton :active="isFavorite"
+                            :titleActive="'Aus Favoriten entfernen'"
+                            :titleInactive="'Zu Favoriten hinzufügen'"
+                            @toggle="$emit('toggleFavorite')" />
         </div>
 
         <!-- Körpergewicht -->
         <div class="input-group">
-            <label>Körpergewicht ({{ unit === 'kg' ? 'kg' : 'lbs' }})</label>
+            <label>Körpergewicht ({{ unitNormalized === 'kg' ? 'kg' : 'lbs' }})</label>
             <input :value="weightInputValue"
                    @input="onWeightInput"
                    type="number"
-                   :placeholder="unit === 'kg' ? 'z. B. 75' : 'z. B. 165'"
+                   :placeholder="unitNormalized === 'kg' ? 'z. B. 75' : 'z. B. 165'"
                    class="edit-input"
                    step="any"
                    min="0" />
@@ -37,19 +29,19 @@
         <div class="input-group">
             <label>Ziel</label>
             <select :value="goal" @change="onGoalChange" class="edit-input">
-                <option value="fatloss">Fettverlust</option>
-                <option value="maintain">Gewicht halten</option>
-                <option value="muscle">Muskelaufbau</option>
-            </select>
-        </div>
-
-        <!-- Aktivität (bleibt nach Berechnen unverändert) -->
-        <div class="input-group">
-            <label>Aktivität</label>
-            <select :value="activity" @change="onActivityChange" class="edit-input">
                 <option value="cut">Fettverlust</option>
                 <option value="maintain">Gewicht halten</option>
                 <option value="bulk">Muskelaufbau</option>
+            </select>
+        </div>
+
+        <!-- Aktivität -->
+        <div class="input-group">
+            <label>Aktivität</label>
+            <select :value="activityEffective" @change="onActivityChange" class="edit-input">
+                <option value="low">Niedrig</option>
+                <option value="moderate">Moderat</option>
+                <option value="high">Hoch</option>
             </select>
         </div>
 
@@ -67,21 +59,17 @@
         </div>
 
         <!-- Manuelles Berechnen -->
-        <button v-if="!autoCalcEnabled" type="button" class="popup-btn save-btn" @click="$emit('calculate')">
-            Berechnen
-        </button>
+        <CalculateButton v-if="!autoCalcEnabled" @click="onCalculateClick" />
 
-        <!-- Ergebnis (niemals NaN anzeigen) -->
+        <!-- Ergebnis -->
         <div v-if="hasValidResult" class="result">
             <div class="result-header">
                 <p>
                     <strong>Empfehlung/Tag:</strong>
                     {{ roundedGramsPerDay }} g
-                    <span v-if="hasValidFactor">
-                        ({{ formattedFactor }} g/kg)
-                    </span>
+                    <span v-if="hasValidFactor">({{ formattedFactor }} g/kg)</span>
                 </p>
-                <button class="btn-ghost mini" @click="$emit('copy')">📋 Kopieren</button>
+                <CopyButton @click="$emit('copy')" />
             </div>
 
             <p v-if="showGramsPerMeal" class="result-sub">
@@ -92,12 +80,8 @@
         <div class="card-footer">
             <div class="footer-spacer"></div>
             <div class="footer-actions">
-                <button class="btn-ghost" @click="$emit('export')">
-                    <span class="btn-icon">⬇️</span> Exportieren
-                </button>
-                <button class="btn-danger-ghost" @click="$emit('reset')">
-                    <span class="btn-icon">🔄</span> Zurücksetzen
-                </button>
+                <ExportButton @click="$emit('export')" />
+                <ResetButton @click="$emit('reset')" />
             </div>
         </div>
     </div>
@@ -105,29 +89,34 @@
 
 <script setup lang="ts">
     import { ref, computed, watch } from 'vue'
+    import InfoHover from '@/components/ui/InfoHover.vue'
+    import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
+    import ExportButton from '@/components/ui/buttons/ExportButton.vue'
+    import ResetButton from '@/components/ui/buttons/ResetButton.vue'
+    import CopyButton from '@/components/ui/buttons/CopyButton.vue'
+    import CalculateButton from '@/components/ui/buttons/CalculateButton.vue'
 
     type Unit = 'kg' | 'lb' | 'lbs' | string
     type Goal = 'maintain' | 'bulk' | 'cut'
     type Activity = 'low' | 'moderate' | 'high'
 
+    interface ProteinResult {
+        recommend: number
+        factor: number
+        weightDisplay?: string
+    }
+
     const props = defineProps<{
         unit: Unit
         autoCalcEnabled: boolean
-        /* Inputs (vom Parent gesteuert) */
         proteinWeight: number | null
         proteinGoal: Goal
-        proteinActivity: Activity
+        proteinActivity: Activity | null
         proteinMeals: number | null
-        /* Ergebnis (im Parent berechnet) */
-        proteinResult: {
-            recommend: number
-            min?: number
-            max?: number
-            factor: number
-            weightDisplay: string
-        } | null
+        proteinResult?: ProteinResult | null
         isFavorite: boolean
         title?: string
+        info?: string
     }>()
 
     const emit = defineEmits<{
@@ -142,52 +131,95 @@
         (e: 'reset'): void
     }>()
 
+    /* ==== Helpers ==== */
+    const LBS_TO_KG = 0.45359237
+    const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
-    /* Bindings */
+    const unitNormalized = computed<'kg' | 'lbs'>(() => {
+        const u = String(props.unit || 'kg').toLowerCase()
+        return u === 'lb' || u === 'lbs' ? 'lbs' : 'kg'
+    })
+
+    /** Fallback: immer gültige Aktivität */
+    const activityEffective = computed<Activity>(() => {
+        const a = (props.proteinActivity as Activity | null) ?? null
+        return a === 'low' || a === 'moderate' || a === 'high' ? a : 'moderate'
+    })
+
+    function proteinFactor(goal: Goal, activity: Activity): number {
+        let base = goal === 'cut' ? 2.2 : goal === 'bulk' ? 1.8 : 1.6
+        const delta = activity === 'low' ? -0.2 : activity === 'high' ? 0.3 : 0.0
+        return clamp(base + delta, 1.2, 2.7)
+    }
+
+    function computeLocalResult(): ProteinResult | null {
+        const w = props.proteinWeight
+        if (w == null || !Number.isFinite(w) || w <= 0) return null
+        const weightKg = unitNormalized.value === 'kg' ? w : w * LBS_TO_KG
+        const factor = proteinFactor(props.proteinGoal, activityEffective.value)
+        const recommend = weightKg * factor
+        return { recommend, factor, weightDisplay: `${weightKg.toFixed(1)} kg` }
+    }
+
+    /* Lokaler Fallback */
+    const internalResult = ref<ProteinResult | null>(null)
+
+    /* Auto-Recompute */
+    watch(
+        () => [props.proteinWeight, props.proteinGoal, activityEffective.value, unitNormalized.value],
+        () => {
+            if (props.autoCalcEnabled) internalResult.value = computeLocalResult()
+        },
+        { immediate: true }
+    )
+
+    /* Ergebnis-Priorität:
+       - autoCalcEnabled: nimm lokal (snappier UI)
+       - sonst: nimm Parent, fallback lokal
+    */
+    const effectiveResult = computed<ProteinResult | null>(() => {
+        return props.autoCalcEnabled
+            ? (internalResult.value ?? props.proteinResult ?? null)
+            : (props.proteinResult ?? internalResult.value ?? null)
+    })
+
+    /* ==== Bindings & Anzeige ==== */
     const goal = computed(() => props.proteinGoal)
-    const activity = computed(() => props.proteinActivity ?? 'low')
     const meals = computed(() => props.proteinMeals ?? null)
 
-    /* Keine NaN-Ausgabe in Inputs */
     const weightInputValue = computed(() =>
-        props.proteinWeight === null || Number.isNaN(props.proteinWeight) ? '' : String(props.proteinWeight)
+        props.proteinWeight == null || Number.isNaN(props.proteinWeight) ? '' : String(props.proteinWeight)
     )
     const mealsInputValue = computed(() =>
-        props.proteinMeals === null || Number.isNaN(props.proteinMeals) ? '' : String(props.proteinMeals)
+        props.proteinMeals == null || Number.isNaN(props.proteinMeals) ? '' : String(props.proteinMeals)
     )
 
-    /* Ergebnis-Guards */
     const hasValidResult = computed(() =>
-        !!props.proteinResult &&
-        Number.isFinite(props.proteinResult.recommend) &&
-        props.proteinResult.recommend > 0
+        !!effectiveResult.value && Number.isFinite(effectiveResult.value!.recommend) && effectiveResult.value!.recommend > 0
     )
     const hasValidFactor = computed(() =>
-        !!props.proteinResult &&
-        Number.isFinite(props.proteinResult.factor) &&
-        props.proteinResult.factor > 0
+        !!effectiveResult.value && Number.isFinite(effectiveResult.value!.factor) && effectiveResult.value!.factor > 0
     )
-    const showGramsPerMeal = computed(() =>
-        !!props.proteinResult &&
-        !!props.proteinMeals &&
-        props.proteinMeals! >= 1
-    )
+    const showGramsPerMeal = computed(() => !!effectiveResult.value && !!props.proteinMeals && props.proteinMeals! >= 1)
 
-    /* Formatierungen */
-    const roundedGramsPerDay = computed(() =>
-        hasValidResult.value ? Math.round(props.proteinResult!.recommend) : 0
-    )
+    const roundedGramsPerDay = computed(() => (hasValidResult.value ? Math.round(effectiveResult.value!.recommend) : 0))
     const roundedGramsPerMeal = computed(() => {
         if (!showGramsPerMeal.value) return 0
-        const perMeal = props.proteinResult!.recommend / Number(props.proteinMeals)
+        const perMeal = effectiveResult.value!.recommend / Number(props.proteinMeals)
         return Number.isFinite(perMeal) && perMeal > 0 ? Math.round(perMeal) : 0
     })
-    const formattedFactor = computed(() =>
-        hasValidFactor.value ? props.proteinResult!.factor.toFixed(2) : ''
+    const formattedFactor = computed(() => (hasValidFactor.value ? effectiveResult.value!.factor.toFixed(2) : ''))
+
+    /* Info-Text */
+    const infoToShow = computed(
+        () => props.info ?? 'Berechnet g/Tag auf Basis von Gewicht, Ziel (Cut/Maintain/Bulk) und Aktivität. Einheiten (kg/lbs) werden automatisch berücksichtigt.'
     )
 
-
-    /* Input-Handler – niemals null für Aktivität/Ziel senden, nur gültige Werte */
+    /* ==== Events ==== */
+    function onCalculateClick() {
+        internalResult.value = computeLocalResult()
+        emit('calculate')
+    }
     function onWeightInput(e: Event) {
         const raw = (e.target as HTMLInputElement).value.trim()
         const value = raw === '' ? null : Number(raw)
@@ -195,31 +227,22 @@
     }
     function onGoalChange(e: Event) {
         const val = (e.target as HTMLSelectElement).value as Goal
-        // Safety: falls aus irgendeinem Grund leer, letzten Wert behalten (kein null senden)
         emit('update:proteinGoal', (val ?? props.proteinGoal) as Goal)
     }
     function onActivityChange(e: Event) {
         const val = (e.target as HTMLSelectElement).value as Activity
-        // Wichtig: nie null senden -> so bleibt die Auswahl auch nach „Berechnen“ stabil
-        emit('update:proteinActivity', (val ?? props.proteinActivity) as Activity)
+        emit('update:proteinActivity', (val ?? activityEffective.value) as Activity)
     }
     function onMealsInput(e: Event) {
         const raw = (e.target as HTMLInputElement).value.trim()
-        if (raw === '') {
-            emit('update:proteinMeals', null)
-            return
-        }
+        if (raw === '') return emit('update:proteinMeals', null)
         const parsed = Number(raw)
-        if (Number.isNaN(parsed)) {
-            emit('update:proteinMeals', null)
-        } else {
-            emit('update:proteinMeals', Math.max(1, Math.floor(parsed)))
-        }
+        emit('update:proteinMeals', Number.isNaN(parsed) ? null : Math.max(1, Math.floor(parsed)))
     }
 </script>
 
 <style scoped>
-    /* identische Optik wie deine anderen Rechner */
+    /* Bewusst nur die Teile, die nicht in globale Styles ausgelagert sind */
     .calculator-card {
         background: var(--bg-card);
         padding: 1.5rem;
@@ -278,32 +301,6 @@
         color: var(--text-secondary);
     }
 
-    .popup-btn {
-        padding: .75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: .9rem;
-        transition: background .2s, transform .1s;
-    }
-
-    .save-btn {
-        background: transparent;
-        border: 1px solid var(--accent-primary);
-        color: var(--accent-primary);
-        padding: .5rem .75rem;
-        border-radius: 8px;
-        font-size: .9rem;
-        font-weight: 500;
-    }
-
-        .save-btn:hover {
-            border-color: #3b82f6;
-            color: #3b82f6;
-            background-color: rgba(59,130,246,.1);
-            transform: translateY(-2px);
-        }
-
     .result {
         margin-top: 1rem;
         padding: 1rem;
@@ -341,121 +338,5 @@
         display: flex;
         gap: .5rem;
         flex-wrap: wrap;
-    }
-
-    .fav-btn {
-        background: transparent;
-        border: none;
-        font-size: 1.25rem;
-        line-height: 1;
-        cursor: pointer;
-        padding: .25rem .4rem;
-        border-radius: 8px;
-        color: #6b7280;
-        transition: color .2s, text-shadow .2s, transform .1s;
-    }
-
-        .fav-btn:hover {
-            color: #F59E0B;
-            text-shadow: 0 0 8px #F59E0B, 0 0 4px #F59E0B;
-            transform: scale(1.05);
-        }
-
-    .btn-ghost {
-        background: transparent;
-        border: 1px solid var(--border-color);
-        padding: .5rem .75rem;
-        border-radius: 8px;
-        cursor: pointer;
-        color: var(--text-secondary);
-        font-size: .9rem;
-        transition: border-color .2s, color .2s, transform .1s;
-    }
-
-        .btn-ghost:hover {
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-            transform: translateY(-1px);
-        }
-
-        .btn-ghost.mini {
-            padding: .35rem .6rem;
-            font-size: .8rem;
-            border-radius: 6px;
-        }
-
-    .btn-danger-ghost {
-        background: transparent;
-        border: 1px solid #b91c1c33;
-        padding: .5rem .75rem;
-        border-radius: 8px;
-        cursor: pointer;
-        color: #b91c1c;
-        font-size: .9rem;
-        transition: border-color .2s, color .2s, transform .1s;
-    }
-
-        .btn-danger-ghost:hover {
-            border-color: #b91c1c;
-            color: #7f1d1d;
-            transform: translateY(-1px);
-        }
-
-    .btn-icon {
-        margin-right: .4rem;
-    }
-
-    /* Tooltip */
-    .tooltip {
-        position: relative;
-        display: inline-block;
-        cursor: help;
-    }
-
-        .tooltip .tooltip-text {
-            visibility: hidden;
-            min-width: 150px;
-            max-width: 300px;
-            background: var(--bg-card);
-            color: var(--text-tooltip);
-            text-align: left;
-            border-radius: 8px;
-            padding: .75rem;
-            position: absolute;
-            z-index: 1000;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: .8rem;
-            box-shadow: var(--shadow);
-            opacity: 0;
-            transition: opacity .3s, visibility .3s;
-            white-space: normal;
-            word-wrap: break-word;
-        }
-
-            .tooltip .tooltip-text::after {
-                content: '';
-                position: absolute;
-                bottom: -8px;
-                left: 50%;
-                transform: translateX(-50%);
-                border-width: 8px;
-                border-style: solid;
-                border-color: var(--bg-card) transparent transparent transparent;
-            }
-
-        .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-
-    @media (max-width: 600px) {
-        .tooltip .tooltip-text {
-            min-width: 120px;
-            max-width: 90vw;
-            font-size: .75rem;
-            padding: .5rem;
-        }
     }
 </style>
