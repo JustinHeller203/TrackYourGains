@@ -209,6 +209,9 @@
                     <!-- GL Favorit -->
                     <GlycemicLoadCalculator v-if="isFavorite('Glykämische Last') && matchesCalc('Glykämische Last')"
                                             :autoCalcEnabled="autoCalcEnabled"
+                                            :glFood="glFood"
+                                            :glServing="glServing"
+                                            :glCarbs100="glCarbs100"
                                             :glGi="glGi"
                                             :glCarbs="glCarbs"
                                             :glResult="glResult"
@@ -383,6 +386,9 @@
                 <!-- GL Standard -->
                 <GlycemicLoadCalculator v-if="matchesCalc('Glykämische Last') && !isFavorite('Glykämische Last')"
                                         :autoCalcEnabled="autoCalcEnabled"
+                                        :glFood="glFood"
+                                        :glServing="glServing"
+                                        :glCarbs100="glCarbs100"
                                         :glGi="glGi"
                                         :glCarbs="glCarbs"
                                         :glResult="glResult"
@@ -395,6 +401,7 @@
                                         @copy="copyGlyLoad"
                                         @export="openDownloadPopup('glyload')"
                                         @reset="resetCalculator('glyload')" />
+
 
                 <!-- ========== Wasserbedarfsrechner ========== -->
                 <WaterCalculator v-if="matchesCalc('Wasserbedarf') && !isFavorite('Wasserbedarf')"

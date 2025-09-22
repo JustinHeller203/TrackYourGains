@@ -15,9 +15,8 @@
         <!-- Footer-Buttons -->
         <template #actions>
             <PopupCancelButton @click="$emit('cancel')">Abbrechen</PopupCancelButton>
-            <PopupSaveButton @click="$emit('confirm')">Download</PopupSaveButton>
+            <PopupSaveButton @click="$emit('save')">Speichern</PopupSaveButton>
         </template>
-
     </BasePopup>
 </template>
 <script setup lang="ts">
@@ -36,6 +35,7 @@
         (e: 'save'): void
         (e: 'cancel'): void
     }>()
+
     const inputRef = ref<HTMLInputElement | null>(null)
     watch(() => props.show, async (open) => {
         if (open) {
