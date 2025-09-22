@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="auth-wrapper">
         <div class="auth-card">
             <h2 class="title">{{ mode === 'login' ? 'Anmelden' : 'Registrieren' }}</h2>

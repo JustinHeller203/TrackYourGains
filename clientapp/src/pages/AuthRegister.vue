@@ -29,7 +29,7 @@ async function onSubmit() {
   busy.value = true
   try {
     await auth.signUp(email.value, password.value)
-    msg.value = 'Bestätigungs-Mail gesendet. Bitte E-Mail prüfen.'
+    msg.value = 'Best tigungs-Mail gesendet. Bitte E-Mail pr fen.'
   } catch (e: any) {
     err.value = e?.message || 'Registrierung fehlgeschlagen'
   } finally {
