@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt; // <— hinzufügen
 using System.Security.Claims;
 using System.Text;
 
@@ -11,7 +11,7 @@ public class JwtOptions
     public string Issuer { get; set; } = default!;
     public string Audience { get; set; } = default!;
     public string Key { get; set; } = default!;
-    public int ExpiresMinutes { get; set; } = 60; // optional
+    public int ExpiresMinutes { get; set; } = 60;
 }
 
 public interface IJwtService
@@ -22,16 +22,18 @@ public interface IJwtService
 public class JwtService : IJwtService
 {
     private readonly JwtOptions _o;
-
     public JwtService(IOptions<JwtOptions> opt) => _o = opt.Value;
 
     public string Create(string userId, string email)
     {
         var claims = new[]
         {
-            // "sub" = Subject → mappen wir in Program.cs auf NameIdentifier
             new Claim(JwtRegisteredClaimNames.Sub, userId),
             new Claim(JwtRegisteredClaimNames.Email, email),
+
+            // zusätzlich Identity-kompatibel, damit Claims überall sauber auflösbar sind
+            new Claim(ClaimTypes.NameIdentifier, userId),
+            new Claim(ClaimTypes.Email, email),
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_o.Key));
