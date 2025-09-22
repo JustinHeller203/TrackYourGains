@@ -4,8 +4,18 @@ import type { AxiosRequestHeaders } from "axios";
 
 const TOKEN_KEY = "auth_token";
 
+function buildBaseUrl(): string {
+    const raw = (import.meta as any).env?.VITE_API_URL as string | undefined;
+
+    if (!raw) return "/api";
+
+    let host = raw.trim().replace(/\/+$/u, "");
+    host = host.replace(/\/api$/iu, "");
+    return `${host}/api`;
+}
+
 export const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL, // <-- kommt aus Env-Variable
+    baseURL: buildBaseUrl(),
     withCredentials: false,
 });
 
