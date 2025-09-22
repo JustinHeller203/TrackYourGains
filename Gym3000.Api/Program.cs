@@ -2,11 +2,13 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Text;
+using System.Threading.RateLimiting;
 using Gym3000.Api.Data;
 using Gym3000.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -55,31 +57,58 @@ static string ToNpgsqlConnString(string url)
     return cs;
 }
 
-// ---- Identity (cookie-less) ----
+// ---- Identity (cookie-less) + Policies anziehen ----
 builder.Services
-    .AddIdentityCore<IdentityUser>(opt => { opt.User.RequireUniqueEmail = true; })
+    .AddIdentityCore<IdentityUser>(opt =>
+    {
+        opt.User.RequireUniqueEmail = true;
+        opt.Password.RequiredLength = 8;
+        opt.Password.RequireDigit = true;
+        opt.Password.RequireUppercase = true;
+        opt.Password.RequireLowercase = true;
+        opt.Password.RequireNonAlphanumeric = false;
+        opt.Lockout.AllowedForNewUsers = true;
+        opt.Lockout.MaxFailedAccessAttempts = 5;
+        opt.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
+    })
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-// ---- CORS: localhost + *.vercel.app + deine Domain ----
+// ---- CORS: aus Env "AllowedOrigins" (CSV). Fallback: vercel.app + localhost + trackyourgains.de ----
 builder.Services.AddCors(opt =>
 {
-    opt.AddPolicy("frontend", p => p
-        .SetIsOriginAllowed(origin =>
+    var originsCsv = builder.Configuration["AllowedOrigins"] ?? "";
+    var origins = originsCsv
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    opt.AddPolicy("frontend", p =>
+    {
+        if (origins.Length > 0)
         {
-            try
+            p.WithOrigins(origins)
+             .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+             .WithHeaders("Content-Type", "Authorization")
+             .AllowCredentials();
+        }
+        else
+        {
+            p.SetIsOriginAllowed(origin =>
             {
-                var uri = new Uri(origin);
-                return uri.Host.EndsWith("vercel.app")
-                       || origin.StartsWith("http://localhost")
-                       || origin.StartsWith("https://localhost")
-                       || uri.Host.EndsWith("trackyourgains.de")
-                       || uri.Host.EndsWith("www.trackyourgains.de");
-            }
-            catch { return false; }
-        })
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials());
+                try
+                {
+                    var uri = new Uri(origin);
+                    return uri.Host.EndsWith("vercel.app")
+                           || origin.StartsWith("http://localhost")
+                           || origin.StartsWith("https://localhost")
+                           || uri.Host.EndsWith("trackyourgains.de")
+                           || uri.Host.EndsWith("www.trackyourgains.de");
+                }
+                catch { return false; }
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+        }
+    });
 });
 
 // ---- JWT ----
@@ -108,6 +137,38 @@ builder.Services
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtService, JwtService>();
 
+// ---- Rate Limiting (global + spezielle "auth"-Policy) ----
+builder.Services.AddRateLimiter(opt =>
+{
+    opt.RejectionStatusCode = 429;
+
+    // Global: Token Bucket – schützt die gesamte API
+    opt.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetTokenBucketLimiter(
+            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+            factory: _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 200,
+                TokensPerPeriod = 200,
+                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    // Strenger für Auth-Endpunkte → per [EnableRateLimiting("auth")] am Controller nutzen
+    opt.AddPolicy("auth", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+});
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -131,7 +192,6 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         app.Logger.LogError(ex, "EF migration failed at startup");
-        // Wenn du willst: App trotzdem starten lassen
     }
 }
 
@@ -142,6 +202,32 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// ---- Prod-Härtung: Security Headers + HSTS + Fehlerseite ----
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+    app.Use(async (ctx, next) =>
+    {
+        // HTTPS-Erkennung hinter Proxy
+        var isHttps = ctx.Request.IsHttps ||
+                      string.Equals(ctx.Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
+
+        ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        ctx.Response.Headers["Referrer-Policy"] = "no-referrer";
+        ctx.Response.Headers["X-Frame-Options"] = "DENY";
+        ctx.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
+        if (isHttps)
+            ctx.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload";
+
+        await next();
+    });
+
+    app.UseExceptionHandler("/error");
+    app.MapGet("/error", (HttpContext http) => Results.Problem());
+}
+
+// ---- Pipeline ----
+app.UseRateLimiter();           // nach Headers, vor Auth
 app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
