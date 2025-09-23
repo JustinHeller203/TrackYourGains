@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Text;
 using System.Threading.RateLimiting;
+using System.Security.Claims; // <- neu
 using Gym3000.Api.Data;
 using Gym3000.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,15 +18,11 @@ var builder = WebApplication.CreateBuilder(args);
 // ---- DB (Railway: DATABASE_URL normalisieren) ----
 string? raw = Environment.GetEnvironmentVariable("DATABASE_URL");
 
-// Falls raw eine URL ist (postgres:// oder postgresql://) -> umwandeln.
-// Falls raw bereits ein ConnString ist -> direkt verwenden.
-// Falls nix da -> ConnectionStrings:Default aus appsettings.
 string connStr = !string.IsNullOrWhiteSpace(raw)
     ? (raw.Contains("://", StringComparison.OrdinalIgnoreCase) ? ToNpgsqlConnString(raw) : raw)
     : builder.Configuration.GetConnectionString("Default")
       ?? throw new InvalidOperationException("No DB connection string");
 
-// In Production SSL sicherstellen
 if (builder.Environment.IsProduction()
     && !connStr.Contains("SSL Mode", StringComparison.OrdinalIgnoreCase))
 {
@@ -37,27 +34,23 @@ builder.Services.AddDbContext<ApplicationDbContext>(opt => opt.UseNpgsql(connStr
 // --- Helper: URL -> Npgsql ConnectionString ---
 static string ToNpgsqlConnString(string url)
 {
-    var uri = new Uri(url); // akzeptiert postgres:// oder postgresql://
+    var uri = new Uri(url);
     var userInfo = uri.UserInfo.Split(':', 2);
     var user = Uri.UnescapeDataString(userInfo[0]);
     var pass = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
 
-    // Query-Params (z.B. ?sslmode=require)
     var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
     var sslmode = query["sslmode"];
 
     var cs = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={user};Password={pass};";
-
     if (!string.IsNullOrWhiteSpace(sslmode))
         cs += $"SSL Mode={sslmode};";
-
     if (!cs.Contains("Trust Server Certificate", StringComparison.OrdinalIgnoreCase))
         cs += "Trust Server Certificate=true;";
-
     return cs;
 }
 
-// ---- Identity (cookie-less) + Policies anziehen ----
+// ---- Identity ----
 builder.Services
     .AddIdentityCore<IdentityUser>(opt =>
     {
@@ -73,7 +66,7 @@ builder.Services
     })
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-// ---- CORS: aus Env "AllowedOrigins" (CSV). Fallback: vercel.app + localhost + trackyourgains.de ----
+// ---- CORS ----
 builder.Services.AddCors(opt =>
 {
     var originsCsv = builder.Configuration["AllowedOrigins"] ?? "";
@@ -132,17 +125,41 @@ builder.Services
             RoleClaimType = "role",
             ClockSkew = TimeSpan.Zero
         };
+
+        // Token-Versionierung prüfen
+        o.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async ctx =>
+            {
+                var userId = ctx.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                var tvClaim = ctx.Principal?.FindFirst("tv")?.Value;
+
+                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(tvClaim))
+                {
+                    ctx.Fail("invalid token claims");
+                    return;
+                }
+
+                var db = ctx.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+                var meta = await db.UserMetas.FindAsync(userId);
+                var currentTv = meta?.TokenVersion ?? 0;
+
+                if (tvClaim != currentTv.ToString())
+                {
+                    ctx.Fail("stale token");
+                }
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtService, JwtService>();
 
-// ---- Rate Limiting (global + spezielle "auth"-Policy) ----
+// ---- Rate Limiting ----
 builder.Services.AddRateLimiter(opt =>
 {
     opt.RejectionStatusCode = 429;
 
-    // Global: Token Bucket – schützt die gesamte API
     opt.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
         RateLimitPartition.GetTokenBucketLimiter(
             partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
@@ -156,7 +173,6 @@ builder.Services.AddRateLimiter(opt =>
                 QueueLimit = 0
             }));
 
-    // Strenger für Auth-Endpunkte → per [EnableRateLimiting("auth")] am Controller nutzen
     opt.AddPolicy("auth", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
@@ -175,7 +191,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// ---- Forwarded Headers (Railway Proxy) ----
+// ---- Forwarded Headers ----
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -202,13 +218,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// ---- Prod-Härtung: Security Headers + HSTS + Fehlerseite ----
+// ---- Prod-Härtung ----
 if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
     app.Use(async (ctx, next) =>
     {
-        // HTTPS-Erkennung hinter Proxy
         var isHttps = ctx.Request.IsHttps ||
                       string.Equals(ctx.Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
 
@@ -226,13 +241,52 @@ if (!app.Environment.IsDevelopment())
     app.MapGet("/error", (HttpContext http) => Results.Problem());
 }
 
+// ---- CSRF-Schutz für Refresh/Logout ----
+var allowedOriginsCsv = builder.Configuration["AllowedOrigins"] ?? "";
+var allowedOrigins = new HashSet<string>(
+    allowedOriginsCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+    StringComparer.OrdinalIgnoreCase
+);
+
+app.Use(async (ctx, next) =>
+{
+    if (HttpMethods.IsPost(ctx.Request.Method) &&
+        ctx.Request.Path.StartsWithSegments("/api/auth", out var rest) &&
+        (rest.StartsWithSegments("/refresh") || rest.StartsWithSegments("/logout")))
+    {
+        var origin = ctx.Request.Headers["Origin"].ToString();
+        var referer = ctx.Request.Headers["Referer"].ToString();
+        string toCheck = !string.IsNullOrEmpty(origin) ? origin : referer;
+
+        bool allowed = false;
+        if (!string.IsNullOrEmpty(toCheck))
+        {
+            try
+            {
+                var uri = new Uri(toCheck);
+                var host = $"{uri.Scheme}://{uri.Host}" + (uri.IsDefaultPort ? "" : $":{uri.Port}");
+                allowed = allowedOrigins.Contains(host);
+            }
+            catch { }
+        }
+
+        if (!allowed)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await ctx.Response.WriteAsJsonAsync(new { message = "Forbidden origin" });
+            return;
+        }
+    }
+    await next();
+});
+
 // ---- Pipeline ----
-app.UseRateLimiter();           // nach Headers, vor Auth
+app.UseRateLimiter();
 app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ---- Debug/Infra Endpoints ----
+// ---- Debug/Infra ----
 app.MapGet("/", () => Results.Text("Gym3000 API running"));
 app.MapGet("/health", () => Results.Json(new { status = "ok" }));
 app.MapGet("/routes", (Microsoft.AspNetCore.Routing.EndpointDataSource eds) =>
@@ -241,7 +295,7 @@ app.MapGet("/routes", (Microsoft.AspNetCore.Routing.EndpointDataSource eds) =>
     return Results.Json(list);
 });
 
-// ---- MVC / API ----
+// ---- Controllers ----
 app.MapControllers();
 
 app.Run();
