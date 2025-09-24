@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Gym3000.Api.Entities;
@@ -11,6 +11,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         : base(options) { }
 
     public DbSet<WeightEntry> WeightEntries => Set<WeightEntry>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<UserMeta> UserMetas => Set<UserMeta>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -19,22 +21,24 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         builder.Entity<WeightEntry>(e =>
         {
             e.HasKey(x => x.Id);
+            e.Property(x => x.UserId).IsRequired();
+            e.Property(x => x.Weight).HasPrecision(6, 2);
+            e.Property(x => x.Date).HasColumnType("date");
+            e.HasIndex(x => new { x.UserId, x.Date }).IsUnique();
+        });
 
-            // UserId Pflichtfeld
-            e.Property(x => x.UserId)
-             .IsRequired();
+        builder.Entity<RefreshToken>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.UserId).IsRequired();
+            e.Property(x => x.TokenHash).IsRequired().HasMaxLength(88);
+            e.HasIndex(x => new { x.UserId, x.TokenHash }).IsUnique();
+        });
 
-            // Gewicht als numeric(6,2)
-            e.Property(x => x.Weight)
-             .HasPrecision(6, 2);
-
-            // Datum ohne Uhrzeit
-            e.Property(x => x.Date)
-             .HasColumnType("date");
-
-            // Jeder User darf nur einen Eintrag pro Datum haben
-            e.HasIndex(x => new { x.UserId, x.Date })
-             .IsUnique();
+        builder.Entity<UserMeta>(e =>
+        {
+            e.HasKey(x => x.UserId);
+            e.Property(x => x.TokenVersion).HasDefaultValue(0);
         });
     }
 }
