@@ -21,9 +21,10 @@
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
         },
+
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; img-src *; script-src 'self'; style-src 'self' 'unsafe-inline'"
+          "value": "default-src 'self'; connect-src 'self' https://trackyourgains-production.up.railway.app; img-src 'self' data: https://*.cloudfront.net; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' https://*.cloudfront.net; frame-ancestors 'none'; base-uri 'self'"
         }
       ]
     }
