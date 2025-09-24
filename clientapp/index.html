@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TrackYourGains</title>
 
+    <!-- CSP: erlaubt API-Calls zur Railway-API + Google Fonts + CloudFront-Bilder -->
+    <meta http-equiv="Content-Security-Policy"
+          content="
+          default-src 'self';
+          connect-src 'self' https://trackyourgains-production.up.railway.app;
+          script-src 'self';
+          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+          font-src 'self' https://fonts.gstatic.com;
+          img-src 'self' data: https://*.cloudfront.net;
+          frame-ancestors 'none';
+          base-uri 'self'
+        ">
+
     <!-- Fonts -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
 
