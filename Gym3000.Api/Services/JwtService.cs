@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt; // <— hinzufügen
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
@@ -16,7 +16,7 @@ public class JwtOptions
 
 public interface IJwtService
 {
-    string Create(string userId, string email);
+    string Create(string userId, string email, int tokenVersion);
 }
 
 public class JwtService : IJwtService
@@ -24,16 +24,15 @@ public class JwtService : IJwtService
     private readonly JwtOptions _o;
     public JwtService(IOptions<JwtOptions> opt) => _o = opt.Value;
 
-    public string Create(string userId, string email)
+    public string Create(string userId, string email, int tokenVersion)
     {
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId),
             new Claim(JwtRegisteredClaimNames.Email, email),
-
-            // zusätzlich Identity-kompatibel, damit Claims überall sauber auflösbar sind
             new Claim(ClaimTypes.NameIdentifier, userId),
             new Claim(ClaimTypes.Email, email),
+            new Claim("tv", tokenVersion.ToString()) // <- TokenVersion
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_o.Key));
