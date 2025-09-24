@@ -1,8 +1,9 @@
-﻿using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
+﻿// src/Services/JwtService.cs
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Gym3000.Api.Services;
 
@@ -16,6 +17,7 @@ public class JwtOptions
 
 public interface IJwtService
 {
+    // <- NEU: tokenVersion als dritter Parameter
     string Create(string userId, string email, int tokenVersion);
 }
 
@@ -29,10 +31,15 @@ public class JwtService : IJwtService
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId),
-            new Claim(JwtRegisteredClaimNames.Email, email),
             new Claim(ClaimTypes.NameIdentifier, userId),
+            new Claim(JwtRegisteredClaimNames.Email, email),
             new Claim(ClaimTypes.Email, email),
-            new Claim("tv", tokenVersion.ToString()) // <- TokenVersion
+
+            // wichtige Versionierung fürs Invalidieren alter Tokens
+            new Claim("tv", tokenVersion.ToString()),
+
+            // optional aber nützlich: eindeutige Token-ID
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_o.Key));
