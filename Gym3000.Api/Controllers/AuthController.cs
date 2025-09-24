@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Gym3000.Api.Data;
 using Gym3000.Api.Dtos;
 using Gym3000.Api.Entities;
@@ -132,6 +133,29 @@ public class AuthController : ControllerBase
         return meta.TokenVersion;
     }
 
+    // ===== Audit-Log Helper =====
+    private async Task LogAuditAsync(string? userId, string action, object? meta = null)
+    {
+        try
+        {
+            _db.AuditLogs.Add(new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Action = action,
+                CreatedUtc = DateTime.UtcNow,
+                Ip = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = Request.Headers.UserAgent.ToString(),
+                Meta = meta is null ? null : JsonSerializer.Serialize(meta)
+            });
+            await _db.SaveChangesAsync();
+        }
+        catch
+        {
+            // Logging soll nie Requests killen
+        }
+    }
+
     // ===== Endpoints =====
 
     /// <summary>Registrierung</summary>
@@ -156,12 +180,17 @@ public class AuthController : ControllerBase
 
         var result = await _um.CreateAsync(user, dto.Password);
         if (!result.Succeeded)
+        {
+            await LogAuditAsync(null, "register_failed", new { email = dto.Email, errors = result.Errors.Select(e => e.Code) });
             return BadRequest(new { message = "Registrierung fehlgeschlagen.", errors = result.Errors.Select(e => e.Description) });
+        }
 
         // Init Refresh & TokenVersion
         await IssueRefreshTokenAsync(user, RefreshLifetime);
         _db.UserMetas.Add(new UserMeta { UserId = user.Id, TokenVersion = 0 });
         await _db.SaveChangesAsync();
+
+        await LogAuditAsync(user.Id, "register", new { email = user.Email });
 
         var tv = 0;
         var token = _jwt.Create(user.Id, user.Email!, tv);
@@ -178,15 +207,25 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         var user = await _um.FindByEmailAsync(dto.Email);
-        if (user is null) return Unauthorized(new { message = "Ungültige Anmeldedaten." });
+        if (user is null)
+        {
+            await LogAuditAsync(null, "login_failed", new { email = dto.Email, reason = "user_not_found" });
+            return Unauthorized(new { message = "Ungültige Anmeldedaten." });
+        }
 
         var ok = await _um.CheckPasswordAsync(user, dto.Password);
-        if (!ok) return Unauthorized(new { message = "Ungültige Anmeldedaten." });
+        if (!ok)
+        {
+            await LogAuditAsync(user.Id, "login_failed", new { email = dto.Email, reason = "bad_password" });
+            return Unauthorized(new { message = "Ungültige Anmeldedaten." });
+        }
 
         await IssueRefreshTokenAsync(user, RefreshLifetime);
 
         var tv = await GetTokenVersionAsync(user.Id);
         var token = _jwt.Create(user.Id, user.Email!, tv);
+
+        await LogAuditAsync(user.Id, "login_success");
         return Ok(new AuthResponseDto(user.Id, user.Email!, token));
     }
 
@@ -215,6 +254,8 @@ public class AuthController : ControllerBase
         // tv NICHT bumpen, nur erneut signieren
         var tv = await GetTokenVersionAsync(user.Id);
         var token = _jwt.Create(user.Id, user.Email!, tv);
+
+        await LogAuditAsync(user.Id, "token_refreshed");
         return Ok(new AuthResponseDto(user.Id, user.Email!, token));
     }
 
@@ -225,6 +266,8 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Logout()
     {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
         var raw = Request.Cookies["rt"];
         if (!string.IsNullOrWhiteSpace(raw))
         {
@@ -238,6 +281,8 @@ public class AuthController : ControllerBase
         }
 
         Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
+
+        await LogAuditAsync(userId, "logout");
         return Ok(new { ok = true });
     }
 
@@ -260,7 +305,10 @@ public class AuthController : ControllerBase
 
         var result = await _um.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
         if (!result.Succeeded)
+        {
+            await LogAuditAsync(user.Id, "change_password_failed", new { errors = result.Errors.Select(e => e.Code) });
             return BadRequest(new { message = "Passwortänderung fehlgeschlagen.", errors = result.Errors.Select(e => e.Description) });
+        }
 
         // alle RefreshTokens invalidieren + neuen ausstellen
         await RevokeAllAsync(user.Id);
@@ -269,6 +317,8 @@ public class AuthController : ControllerBase
         // tv bumpen -> alle alten Access-JWTs sofort ungültig
         var tv = await BumpTokenVersionAsync(user.Id);
         var token = _jwt.Create(user.Id, user.Email!, tv);
+
+        await LogAuditAsync(user.Id, "change_password_success");
         return Ok(new AuthResponseDto(user.Id, user.Email!, token));
     }
 
@@ -290,19 +340,32 @@ public class AuthController : ControllerBase
         if (user is null) return Unauthorized(new { message = "User nicht gefunden." });
 
         var pwOk = await _um.CheckPasswordAsync(user, dto.Password);
-        if (!pwOk) return BadRequest(new { message = "Passwort ist falsch." });
+        if (!pwOk)
+        {
+            await LogAuditAsync(user.Id, "change_email_failed", new { reason = "bad_password" });
+            return BadRequest(new { message = "Passwort ist falsch." });
+        }
 
         var exists = await _um.FindByEmailAsync(dto.NewEmail);
         if (exists is not null && exists.Id != user.Id)
+        {
+            await LogAuditAsync(user.Id, "change_email_failed", new { reason = "email_taken" });
             return BadRequest(new { message = "Diese E-Mail ist bereits registriert." });
+        }
 
         var setEmail = await _um.SetEmailAsync(user, dto.NewEmail);
         if (!setEmail.Succeeded)
+        {
+            await LogAuditAsync(user.Id, "change_email_failed", new { reason = "set_email_failed", errors = setEmail.Errors.Select(e => e.Code) });
             return BadRequest(new { message = "E-Mail konnte nicht gesetzt werden.", errors = setEmail.Errors.Select(e => e.Description) });
+        }
 
         var setUserName = await _um.SetUserNameAsync(user, dto.NewEmail);
         if (!setUserName.Succeeded)
+        {
+            await LogAuditAsync(user.Id, "change_email_failed", new { reason = "set_username_failed", errors = setUserName.Errors.Select(e => e.Code) });
             return BadRequest(new { message = "Username konnte nicht gesetzt werden.", errors = setUserName.Errors.Select(e => e.Description) });
+        }
 
         user.EmailConfirmed = true;
         await _um.UpdateAsync(user);
@@ -314,6 +377,8 @@ public class AuthController : ControllerBase
         // tv bumpen -> alte Access-Tokens invalid
         var tv = await BumpTokenVersionAsync(user.Id);
         var token = _jwt.Create(user.Id, user.Email!, tv);
+
+        await LogAuditAsync(user.Id, "change_email_success", new { newEmail = user.Email });
         return Ok(new AuthResponseDto(user.Id, user.Email!, token));
     }
 
@@ -335,7 +400,11 @@ public class AuthController : ControllerBase
         if (user is null) return Unauthorized(new { message = "User nicht gefunden." });
 
         var pwOk = await _um.CheckPasswordAsync(user, dto.Password);
-        if (!pwOk) return BadRequest(new { message = "Passwort ist falsch." });
+        if (!pwOk)
+        {
+            await LogAuditAsync(user.Id, "delete_account_failed", new { reason = "bad_password" });
+            return BadRequest(new { message = "Passwort ist falsch." });
+        }
 
         using var tx = await _db.Database.BeginTransactionAsync();
         try
@@ -357,6 +426,7 @@ public class AuthController : ControllerBase
             if (!delRes.Succeeded)
             {
                 await tx.RollbackAsync();
+                await LogAuditAsync(user.Id, "delete_account_failed", new { reason = "identity_delete_failed", errors = delRes.Errors.Select(e => e.Code) });
                 return BadRequest(new { message = "Profil löschen fehlgeschlagen.", errors = delRes.Errors.Select(e => e.Description) });
             }
 
@@ -364,11 +434,13 @@ public class AuthController : ControllerBase
 
             // Cookie löschen
             Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
+            await LogAuditAsync(user.Id, "delete_account_success");
             return Ok(new { ok = true });
         }
         catch (Exception ex)
         {
             await tx.RollbackAsync();
+            await LogAuditAsync(userId, "delete_account_failed", new { reason = "exception", detail = ex.Message });
             return StatusCode(500, new { message = "Serverfehler beim Löschen.", detail = ex.Message });
         }
     }
@@ -392,7 +464,6 @@ public class AuthController : ControllerBase
         var list = await _db.RefreshTokens
             .Where(r => r.UserId == userId && r.RevokedAtUtc == null)
             .OrderByDescending(r => r.ExpiresAtUtc)
-            // **OHNE benannte Argumente konstruieren**
             .Select(r => new SessionDto(
                 r.Id.ToString(),
                 r.ExpiresAtUtc,
@@ -402,6 +473,7 @@ public class AuthController : ControllerBase
             ))
             .ToListAsync();
 
+        await LogAuditAsync(userId, "sessions_listed", new { count = list.Count });
         return Ok(list);
     }
 
@@ -433,9 +505,9 @@ public class AuthController : ControllerBase
         if (!string.IsNullOrEmpty(raw) && HashToken(raw) == rt.TokenHash)
             Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
 
+        await LogAuditAsync(userId, "session_revoked", new { sessionId = dto.Id, self = (raw != null && HashToken(raw) == rt.TokenHash) });
         return Ok(new { ok = true });
     }
-
 }
 
 /// <summary>DTO für Login/Register/ChangePassword Response</summary>
