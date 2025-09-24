@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.2",
     "jspdf": "^3.0.1",
     "vuedraggable": "^4.1.0"
   }

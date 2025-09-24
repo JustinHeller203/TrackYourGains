@@ -1,37 +1,41 @@
 using Gym3000.Api.Data;
 using Gym3000.Api.Entities;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
-namespace Gym3000.Api.Services;
-
-public interface IAuditLogger
+namespace Gym3000.Api.Services
 {
-    Task LogAsync(string action, string result, HttpContext http,
-                  string? userId = null, string? email = null, string? detail = null);
-}
-
-public class AuditLogger(ApplicationDbContext db, ILogger<AuditLogger> log) : IAuditLogger
-{
-    public async Task LogAsync(string action, string result, HttpContext http,
-                               string? userId = null, string? email = null, string? detail = null)
+    public class AuditLogger : IAuditLogger
     {
-        try
+        private readonly ApplicationDbContext _db;
+
+        public AuditLogger(ApplicationDbContext db)
         {
-            var entry = new AuditLog
-            {
-                UserId = userId,
-                Email = email,
-                Action = action,
-                Result = result,
-                Ip = http.Connection.RemoteIpAddress?.ToString(),
-                UserAgent = http.Request.Headers.UserAgent.ToString(),
-                Detail = detail
-            };
-            db.AuditLogs.Add(entry);
-            await db.SaveChangesAsync();
+            _db = db;
         }
-        catch (Exception ex)
+
+        public async Task LogAsync(string? userId, string action, object? meta = null)
         {
-            log.LogWarning(ex, "Failed to write audit log {Action}", action);
+            try
+            {
+                var log = new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    Action = action,
+                    CreatedUtc = DateTime.UtcNow,
+                    Ip = "system", // falls kein HttpContext da
+                    UserAgent = "system",
+                    Meta = meta is null ? null : JsonSerializer.Serialize(meta)
+                };
+
+                _db.AuditLogs.Add(log);
+                await _db.SaveChangesAsync();
+            }
+            catch
+            {
+                // Logging darf nie Exceptions nach auﬂen werfen
+            }
         }
     }
 }

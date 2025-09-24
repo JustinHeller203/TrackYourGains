@@ -14,4 +14,5 @@ ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT}
 
 COPY --from=build /out .
 
-CMD ["dotnet", "Gym3000.Api.dll"]
+CMD ["sh", "-c", "ASPNETCORE_URLS=http://0.0.0.0:${PORT} dotnet Gym3000.Api.dll"]
+
