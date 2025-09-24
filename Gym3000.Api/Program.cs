@@ -78,22 +78,23 @@ builder.Services.AddCors(opt =>
         if (origins.Length > 0)
         {
             p.WithOrigins(origins)
-             .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-             .WithHeaders("Content-Type", "Authorization")
+             .AllowAnyHeader()           // wichtig für Preflight
+             .AllowAnyMethod()           // inkl. OPTIONS
              .AllowCredentials();
         }
         else
         {
+            // Fallback: Domains per Host-Match erlauben
             p.SetIsOriginAllowed(origin =>
             {
                 try
                 {
                     var uri = new Uri(origin);
-                    return uri.Host.EndsWith("vercel.app")
-                           || origin.StartsWith("http://localhost")
-                           || origin.StartsWith("https://localhost")
-                           || uri.Host.EndsWith("trackyourgains.de")
-                           || uri.Host.EndsWith("www.trackyourgains.de");
+                    var host = uri.Host.ToLowerInvariant();
+                    return host.EndsWith("vercel.app")
+                        || host == "trackyourgains.de"
+                        || host == "www.trackyourgains.de"
+                        || host == "localhost";
                 }
                 catch { return false; }
             })
@@ -103,6 +104,7 @@ builder.Services.AddCors(opt =>
         }
     });
 });
+
 
 // ---- JWT ----
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
