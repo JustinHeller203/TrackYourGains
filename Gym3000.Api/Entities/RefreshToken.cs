@@ -18,5 +18,5 @@ public class RefreshToken
 	public string? CreatedByIp { get; set; }
 	public string? UserAgent { get; set; }
 
-	public bool IsActive => RevokedAtUtc is null && DateTime.UtcNow < ExpiresAtUtc;
+    public bool IsActive => RevokedAtUtc == null && ExpiresAtUtc > DateTime.UtcNow;
 }

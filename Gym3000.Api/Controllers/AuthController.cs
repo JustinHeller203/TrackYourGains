@@ -242,11 +242,30 @@ public class AuthController : ControllerBase
 
         var hash = HashToken(raw);
         var rt = await _db.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == hash);
-        if (rt is null) return Unauthorized(new { message = "Ungültiger Refresh-Token." });
-        if (!rt.IsActive) return Unauthorized(new { message = "Refresh-Token inaktiv/abgelaufen." });
+
+        if (rt is null)
+            return Unauthorized(new { message = "Ungültiger Refresh-Token." });
+
+        // 🔒 Reuse-Detection
+        if (rt.RevokedAtUtc is not null)
+        {
+            await RevokeAllAsync(rt.UserId);
+            await LogAuditAsync(rt.UserId, "refresh_reuse_detected", new
+            {
+                presentedHash = hash,
+                revokedAt = rt.RevokedAtUtc
+            });
+
+            Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
+            return Unauthorized(new { message = "Session ungültig. Bitte erneut einloggen." });
+        }
+
+        if (!rt.IsActive)
+            return Unauthorized(new { message = "Refresh-Token inaktiv/abgelaufen." });
 
         var user = await _um.FindByIdAsync(rt.UserId);
-        if (user is null) return Unauthorized(new { message = "User nicht gefunden." });
+        if (user is null)
+            return Unauthorized(new { message = "User nicht gefunden." });
 
         // Rotation (wichtig gegen Replay)
         await RotateRefreshAsync(rt, user, RefreshLifetime);
@@ -310,11 +329,9 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Passwortänderung fehlgeschlagen.", errors = result.Errors.Select(e => e.Description) });
         }
 
-        // alle RefreshTokens invalidieren + neuen ausstellen
         await RevokeAllAsync(user.Id);
         await IssueRefreshTokenAsync(user, RefreshLifetime);
 
-        // tv bumpen -> alle alten Access-JWTs sofort ungültig
         var tv = await BumpTokenVersionAsync(user.Id);
         var token = _jwt.Create(user.Id, user.Email!, tv);
 
@@ -370,11 +387,9 @@ public class AuthController : ControllerBase
         user.EmailConfirmed = true;
         await _um.UpdateAsync(user);
 
-        // alle RefreshTokens invalidieren + neuen ausstellen
         await RevokeAllAsync(user.Id);
         await IssueRefreshTokenAsync(user, RefreshLifetime);
 
-        // tv bumpen -> alte Access-Tokens invalid
         var tv = await BumpTokenVersionAsync(user.Id);
         var token = _jwt.Create(user.Id, user.Email!, tv);
 

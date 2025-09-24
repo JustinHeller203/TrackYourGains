@@ -4,23 +4,23 @@ namespace Gym3000.Api.Entities;
 
 public class AuditLog
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
 
-    [MaxLength(64)]
-    public string? UserId { get; set; }   // kann null sein (z.B. Login-Fail ohne User)
+    // wer (optional, z.B. bei fehlgeschlagenem Login unbekannt)
+    [MaxLength(64)] public string? UserId { get; set; }
+    [MaxLength(256)] public string? Email { get; set; }
 
-    [Required, MaxLength(64)]
-    public string Action { get; set; } = default!; // e.g. LOGIN_SUCCESS, LOGIN_FAIL, CHANGE_EMAIL, etc.
+    // was
+    [MaxLength(64)] public string Action { get; set; } = default!; // z.B. "login.success", "login.fail", "password.change"
+    [MaxLength(32)] public string Result { get; set; } = "ok";     // "ok" | "fail"
 
-    [MaxLength(64)]
-    public string? Ip { get; set; }
+    // Kontext
+    [MaxLength(64)] public string? Ip { get; set; }
+    [MaxLength(512)] public string? UserAgent { get; set; }
 
-    [MaxLength(256)]
-    public string? UserAgent { get; set; }
+    // optionales Detail (Fehlergrund etc.)
+    [MaxLength(1024)] public string? Detail { get; set; }
 
-    // optional: zusätzliche Infos (z.B. target email)
-    [MaxLength(512)]
-    public string? Meta { get; set; }
-
+    // wann
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 }

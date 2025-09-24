@@ -184,6 +184,7 @@ builder.Services.AddRateLimiter(opt =>
                 QueueLimit = 0
             }));
 });
+builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
