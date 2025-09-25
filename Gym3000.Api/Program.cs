@@ -66,24 +66,43 @@ builder.Services
     })
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-// ---- CORS ----
+// ---- CORS (robust gegen “kaputte” Origins) ----
 builder.Services.AddCors(opt =>
 {
     var originsCsv = builder.Configuration["AllowedOrigins"] ?? "";
-    var origins = originsCsv
-        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    var given = originsCsv
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(s => s.Replace("\u200B", "")) // Zero-Width Space entfernen
+        .ToArray();
+
+    // gültige Ziel-Origins vorparsen
+    var allowedUris = given
+        .Where(s => Uri.TryCreate(s, UriKind.Absolute, out var u) &&
+                    (u!.Scheme == Uri.UriSchemeHttps || u.Scheme == Uri.UriSchemeHttp))
+        .Select(s => new Uri(s))
+        .ToArray();
 
     opt.AddPolicy("frontend", p =>
     {
-        if (origins.Length > 0)
+        if (allowedUris.Length > 0)
         {
-            p.WithOrigins(origins)
-             .AllowAnyHeader()
-             .AllowAnyMethod()
-             .AllowCredentials();
+            // sichere, exakte Match-Logik
+            p.SetIsOriginAllowed(origin =>
+            {
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var u)) return false;
+                if (u.Scheme != Uri.UriSchemeHttps && u.Scheme != Uri.UriSchemeHttp) return false;
+
+                string norm(Uri x) => $"{x.Scheme}://{x.Host}{(x.IsDefaultPort ? "" : $":{x.Port}")}";
+                var candidate = norm(u);
+                return allowedUris.Any(a => norm(a).Equals(candidate, StringComparison.OrdinalIgnoreCase));
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
         }
         else
         {
+            // Fallback: per Host-Match zulassen
             p.SetIsOriginAllowed(origin =>
             {
                 try
@@ -241,10 +260,13 @@ if (!app.Environment.IsDevelopment())
     app.MapGet("/error", (HttpContext http) => Results.Problem());
 }
 
-// ---- CSRF-Schutz für Refresh/Logout ----
+// ---- CSRF-Schutz für Refresh/Logout (selbe Origin-Liste) ----
 var allowedOriginsCsv = builder.Configuration["AllowedOrigins"] ?? "";
 var allowedOrigins = new HashSet<string>(
-    allowedOriginsCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+    allowedOriginsCsv
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(s => s.Replace("\u200B", ""))
+        .Where(s => Uri.TryCreate(s, UriKind.Absolute, out _)),
     StringComparer.OrdinalIgnoreCase
 );
 
@@ -259,15 +281,14 @@ app.Use(async (ctx, next) =>
         string toCheck = !string.IsNullOrEmpty(origin) ? origin : referer;
 
         bool allowed = false;
-        if (!string.IsNullOrEmpty(toCheck))
+        if (!string.IsNullOrEmpty(toCheck) && Uri.TryCreate(toCheck, UriKind.Absolute, out var u))
         {
-            try
-            {
-                var uri = new Uri(toCheck);
-                var host = $"{uri.Scheme}://{uri.Host}" + (uri.IsDefaultPort ? "" : $":{uri.Port}");
-                allowed = allowedOrigins.Contains(host);
-            }
-            catch { }
+            string norm(Uri x) => $"{x.Scheme}://{x.Host}" + (x.IsDefaultPort ? "" : $":{x.Port}");
+            var candidate = norm(u);
+
+            allowed = allowedOrigins
+                .Select(s => new Uri(s))
+                .Any(a => norm(a).Equals(candidate, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!allowed)
