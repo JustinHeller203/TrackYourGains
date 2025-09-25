@@ -40,26 +40,33 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
              .IsUnique();
         });
 
-        // -------- RefreshToken --------
+        // -------- RefreshToken (Rotation/Reuse-Detection) --------
         builder.Entity<RefreshToken>(e =>
         {
             e.HasKey(x => x.Id);
 
-            e.Property(x => x.UserId)
-             .IsRequired();
+            e.Property(x => x.UserId).IsRequired();
 
-            // Base64(SHA256) ist 44 Zeichen – wir lassen 88 für Spielraum (kein Breaking Change)
-            e.Property(x => x.TokenHash)
-             .IsRequired()
-             .HasMaxLength(88);
+            e.Property(x => x.FamilyId).IsRequired().HasMaxLength(64);
+            e.Property(x => x.DeviceId).HasMaxLength(64);
 
-            e.Property(x => x.ExpiresAtUtc)
-             .IsRequired();
+            e.Property(x => x.TokenHash).IsRequired().HasMaxLength(128);
+            e.Property(x => x.Salt).IsRequired().HasMaxLength(64);
 
-            e.HasIndex(x => new { x.UserId, x.TokenHash })
-             .IsUnique();
+            e.Property(x => x.UserAgent).HasMaxLength(512);
+            e.Property(x => x.CreatedByIp).HasMaxLength(64);
+            e.Property(x => x.LastSeenIp).HasMaxLength(64);
+            e.Property(x => x.JwtId).HasMaxLength(64);
 
+            e.Property(x => x.ExpiresAtUtc).IsRequired();
+
+            // Suche/Integrität
+            e.HasIndex(x => x.TokenHash).IsUnique();
+            e.HasIndex(x => new { x.UserId, x.FamilyId });
             e.HasIndex(x => x.ExpiresAtUtc);
+
+            // Genau 1 aktueller Token pro (User, Device, Family)
+            e.HasIndex(x => new { x.UserId, x.DeviceId, x.FamilyId, x.IsCurrent }).IsUnique();
         });
 
         // -------- UserMeta (Token-Versionierung) --------
