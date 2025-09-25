@@ -9,10 +9,10 @@ RUN dotnet publish Gym3000.Api/Gym3000.Api.csproj -c Release -o /out
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 
-# Railway gibt PORT vor → wir hören auf 0.0.0.0:${PORT}
+# Railway gibt $PORT automatisch vor
 ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT}
 
 COPY --from=build /out .
 
-CMD ["sh", "-c", "ASPNETCORE_URLS=http://0.0.0.0:${PORT} dotnet Gym3000.Api.dll"]
-
+# Nur einmal starten → keine doppelten ENV
+ENTRYPOINT ["dotnet", "Gym3000.Api.dll"]
