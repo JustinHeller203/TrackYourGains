@@ -3,7 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Text;
 using System.Threading.RateLimiting;
-using System.Security.Claims; // <- neu
+using System.Security.Claims;
 using Gym3000.Api.Data;
 using Gym3000.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -14,6 +14,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- Railway Port-Bindung (wichtig!) ---
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
 
 // ---- DB (Railway: DATABASE_URL normalisieren) ----
 string? raw = Environment.GetEnvironmentVariable("DATABASE_URL");
@@ -78,13 +85,12 @@ builder.Services.AddCors(opt =>
         if (origins.Length > 0)
         {
             p.WithOrigins(origins)
-             .AllowAnyHeader()           // wichtig für Preflight
-             .AllowAnyMethod()           // inkl. OPTIONS
+             .AllowAnyHeader()
+             .AllowAnyMethod()
              .AllowCredentials();
         }
         else
         {
-            // Fallback: Domains per Host-Match erlauben
             p.SetIsOriginAllowed(origin =>
             {
                 try
@@ -104,7 +110,6 @@ builder.Services.AddCors(opt =>
         }
     });
 });
-
 
 // ---- JWT ----
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
@@ -128,7 +133,6 @@ builder.Services
             ClockSkew = TimeSpan.Zero
         };
 
-        // Token-Versionierung prüfen
         o.Events = new JwtBearerEvents
         {
             OnTokenValidated = async ctx =>
@@ -156,6 +160,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 
 // ---- Rate Limiting ----
 builder.Services.AddRateLimiter(opt =>
@@ -186,7 +191,6 @@ builder.Services.AddRateLimiter(opt =>
                 QueueLimit = 0
             }));
 });
-builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -267,7 +271,7 @@ app.Use(async (ctx, next) =>
             try
             {
                 var uri = new Uri(toCheck);
-                var host = $"{uri.Scheme}://{uri.Host}" + (uri.IsDefaultPort ? "" : $":{uri.Port}");
+                var host = $"{uri.Scheme}://{uri.Host}" + (uri.IsDefaultPort ? "" : $":{uri.Port}";
                 allowed = allowedOrigins.Contains(host);
             }
             catch { }
@@ -298,7 +302,5 @@ app.MapGet("/routes", (Microsoft.AspNetCore.Routing.EndpointDataSource eds) =>
     return Results.Json(list);
 });
 
-// ---- Controllers ----
 app.MapControllers();
-
 app.Run();
