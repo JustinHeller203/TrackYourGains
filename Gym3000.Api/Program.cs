@@ -15,13 +15,6 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Railway Port-Bindung (wichtig!) ---
-var port = Environment.GetEnvironmentVariable("PORT");
-if (!string.IsNullOrWhiteSpace(port))
-{
-    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
-}
-
 // ---- DB (Railway: DATABASE_URL normalisieren) ----
 string? raw = Environment.GetEnvironmentVariable("DATABASE_URL");
 
@@ -160,7 +153,6 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 
 // ---- Rate Limiting ----
 builder.Services.AddRateLimiter(opt =>
@@ -191,6 +183,7 @@ builder.Services.AddRateLimiter(opt =>
                 QueueLimit = 0
             }));
 });
+builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -271,7 +264,7 @@ app.Use(async (ctx, next) =>
             try
             {
                 var uri = new Uri(toCheck);
-                var host = $"{uri.Scheme}://{uri.Host}" + (uri.IsDefaultPort ? "" : $":{uri.Port}";
+                var host = $"{uri.Scheme}://{uri.Host}" + (uri.IsDefaultPort ? "" : $":{uri.Port}");
                 allowed = allowedOrigins.Contains(host);
             }
             catch { }
@@ -302,5 +295,7 @@ app.MapGet("/routes", (Microsoft.AspNetCore.Routing.EndpointDataSource eds) =>
     return Results.Json(list);
 });
 
+// ---- Controllers ----
 app.MapControllers();
+
 app.Run();
