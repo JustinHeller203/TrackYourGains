@@ -315,15 +315,24 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // ======================================================================
-// Health & Debug
+// Routes-Dump (zeigt Pattern + erlaubte HTTP-Methoden)
 // ======================================================================
-app.MapGet("/", () => Results.Text("Gym3000 API running"));
-app.MapGet("/health", () => Results.Json(new { status = "ok" }));
 app.MapGet("/routes", (Microsoft.AspNetCore.Routing.EndpointDataSource eds) =>
 {
-    var list = eds.Endpoints.Select(e => e.DisplayName).OrderBy(x => x);
-    return Results.Json(list);
+    var routes = eds.Endpoints
+        .Select(e => new {
+            DisplayName = e.DisplayName,
+            Pattern = (e as Microsoft.AspNetCore.Routing.RouteEndpoint)?.RoutePattern?.RawText,
+            Methods = e.Metadata
+                .OfType<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()
+                .FirstOrDefault()?.HttpMethods
+        })
+        .OrderBy(x => x.Pattern ?? x.DisplayName)
+        .ToList();
+
+    return Results.Json(routes);
 });
+
 
 // --- TEMP: POST-Probe (nur Debug) ---
 app.MapPost("/__probe", () => Results.Ok(new { ok = true, ts = DateTime.UtcNow }));
