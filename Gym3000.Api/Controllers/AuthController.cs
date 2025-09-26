@@ -15,9 +15,10 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Gym3000.Api.Controllers;
 
 [ApiController]
-[Route("/api/auth")]                      // <- ABSOLUTER PFAD
+[Route("/api/auth")]                    // <- absolut
 [Produces("application/json")]
 public class AuthController : ControllerBase
+
 {
     private readonly UserManager<IdentityUser> _um;
     private readonly IJwtService _jwt;

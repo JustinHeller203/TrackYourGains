@@ -337,6 +337,16 @@ app.MapGet("/routes", (Microsoft.AspNetCore.Routing.EndpointDataSource eds) =>
 // --- TEMP: POST-Probe (nur Debug) ---
 app.MapPost("/__probe", () => Results.Ok(new { ok = true, ts = DateTime.UtcNow }));
 
+// --- Hard override für POST /api/auth/login (falls Attribute-Routing irgendwo geblockt wird)
+app.MapPost("/api/auth/login", async (
+    [FromServices] Gym3000.Api.Controllers.AuthController ctrl,
+    [FromBody] Gym3000.Api.Dtos.LoginDto dto
+) => await ctrl.Login(dto))
+   .Accepts<Gym3000.Api.Dtos.LoginDto>("application/json")
+   .Produces<Gym3000.Api.Controllers.AuthResponseDto>(StatusCodes.Status200OK)
+   .Produces(StatusCodes.Status401Unauthorized)
+   .RequireRateLimiting("auth");
+
 // ======================================================================
 // Controllers
 // ======================================================================
