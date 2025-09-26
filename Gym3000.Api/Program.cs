@@ -18,11 +18,8 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ======================================================================
-// DB (Railway: DATABASE_URL normalisieren)
-// ======================================================================
+// ========================== DB =========================================
 string? raw = Environment.GetEnvironmentVariable("DATABASE_URL");
-
 string connStr = !string.IsNullOrWhiteSpace(raw)
     ? (raw.Contains("://", StringComparison.OrdinalIgnoreCase) ? ToNpgsqlConnString(raw) : raw)
     : builder.Configuration.GetConnectionString("Default")
@@ -36,7 +33,6 @@ if (builder.Environment.IsProduction()
 
 builder.Services.AddDbContext<ApplicationDbContext>(opt => opt.UseNpgsql(connStr));
 
-// Helper: URL -> Npgsql ConnectionString
 static string ToNpgsqlConnString(string url)
 {
     var uri = new Uri(url);
@@ -55,9 +51,7 @@ static string ToNpgsqlConnString(string url)
     return cs;
 }
 
-// ======================================================================
-// Identity (stärkere Policies)
-// ======================================================================
+// ========================== Identity ====================================
 builder.Services
     .AddIdentityCore<IdentityUser>(opt =>
     {
@@ -73,16 +67,12 @@ builder.Services
     })
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-// ======================================================================
-// CORS – robustes Einlesen aus AllowedOrigins (CSV mit vollständigen Origins)
-// Beispiele: https://trackyourgains.de, https://www.trackyourgains.de, https://deine-app.vercel.app
-// ======================================================================
+// ========================== CORS ========================================
 string originsCsv = builder.Configuration["AllowedOrigins"] ?? "";
 var parsed = originsCsv
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
     .Where(o => o.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || o.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
     .Select(o => o.Trim())
-    .Where(o => Uri.TryCreate(o, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps))
     .Distinct(StringComparer.OrdinalIgnoreCase)
     .ToArray();
 
@@ -92,7 +82,6 @@ builder.Services.AddCors(opt =>
     {
         if (parsed.Length > 0)
         {
-            // Nur gültige, normalisierte Origins verwenden – vermeidet UriFormatException
             p.WithOrigins(parsed)
              .AllowAnyHeader()
              .AllowAnyMethod()
@@ -100,7 +89,6 @@ builder.Services.AddCors(opt =>
         }
         else
         {
-            // Fallback: Host-Match (vermeidet harte Abbrüche bei leerer Variable)
             p.SetIsOriginAllowed(origin =>
             {
                 try
@@ -121,9 +109,7 @@ builder.Services.AddCors(opt =>
     });
 });
 
-// ======================================================================
-// JWT (inkl. Token-Versionierung "tv" Prüfung)
-// ======================================================================
+// ========================== JWT ========================================
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()
           ?? throw new InvalidOperationException("Missing Jwt config");
@@ -144,64 +130,22 @@ builder.Services
             RoleClaimType = "role",
             ClockSkew = TimeSpan.Zero
         };
-
-        o.Events = new JwtBearerEvents
-        {
-            OnTokenValidated = async ctx =>
-            {
-                var userId = ctx.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
-                var tvClaim = ctx.Principal?.FindFirst("tv")?.Value;
-
-                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(tvClaim))
-                {
-                    ctx.Fail("invalid token claims");
-                    return;
-                }
-
-                var db = ctx.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
-                var meta = await db.UserMetas.FindAsync(userId);
-                var currentTv = meta?.TokenVersion ?? 0;
-
-                if (tvClaim != currentTv.ToString())
-                {
-                    ctx.Fail("stale token");
-                }
-            }
-        };
     });
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 
-// ======================================================================
-// Rate Limiting
-// ======================================================================
+// ========================== RateLimiting ================================
 builder.Services.AddRateLimiter(opt =>
 {
     opt.RejectionStatusCode = 429;
-
-    opt.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
-        RateLimitPartition.GetTokenBucketLimiter(
-            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
-            factory: _ => new TokenBucketRateLimiterOptions
-            {
-                TokenLimit = 200,
-                TokensPerPeriod = 200,
-                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
-                AutoReplenishment = true,
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 0
-            }));
-
     opt.AddPolicy("auth", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
-            factory: _ => new FixedWindowRateLimiterOptions
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+            _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 10,
                 Window = TimeSpan.FromMinutes(1),
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0
             }));
 });
@@ -212,145 +156,44 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// ======================================================================
-// Forwarded Headers (Railway Proxy)
-// ======================================================================
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
 
-// ======================================================================
-// Auto-Migrate
-// ======================================================================
-using (var scope = app.Services.CreateScope())
-{
-    try
-    {
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogError(ex, "EF migration failed at startup");
-    }
-}
-
-// ======================================================================
-// Swagger (nur Dev)
-// ======================================================================
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-// ======================================================================
-// Security Headers / HSTS
-// ======================================================================
 if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
-    app.Use(async (ctx, next) =>
-    {
-        var isHttps = ctx.Request.IsHttps ||
-                      string.Equals(ctx.Request.Headers["X-Forwarded-Proto"], "https", StringComparison.OrdinalIgnoreCase);
-
-        ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
-        ctx.Response.Headers["Referrer-Policy"] = "no-referrer";
-        ctx.Response.Headers["X-Frame-Options"] = "DENY";
-        ctx.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
-        if (isHttps)
-            ctx.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload";
-
-        await next();
-    });
-
-    app.UseExceptionHandler("/error");
-    app.MapGet("/error", (HttpContext http) => Results.Problem());
 }
 
-// ======================================================================
-// CORS muss VOR allem, was Antworten erzeugt (inkl. Custom-Middleware)
-// ======================================================================
-app.UseRateLimiter();
+// CORS zuerst
 app.UseCors("frontend");
 
-// ======================================================================
-// CSRF-Guard NUR für refresh/logout, tolerant falls AllowedOrigins leer
-// ======================================================================
-var allowedOriginSet = new HashSet<string>(parsed, StringComparer.OrdinalIgnoreCase);
-
-static bool IsOriginAllowed(HashSet<string> allowed, string? candidate)
-{
-    if (string.IsNullOrWhiteSpace(candidate)) return false;
-    if (!Uri.TryCreate(candidate, UriKind.Absolute, out var u)) return false;
-    var normalized = $"{u.Scheme}://{u.Host}{(u.IsDefaultPort ? "" : $":{u.Port}")}";
-    return allowed.Contains(normalized);
-}
-
-app.Use(async (ctx, next) =>
-{
-    // Nur schützen, wenn wir eine Whitelist haben
-    if (allowedOriginSet.Count > 0 &&
-        HttpMethods.IsPost(ctx.Request.Method) &&
-        ctx.Request.Path.StartsWithSegments("/api/auth", out var rest) &&
-        (rest.StartsWithSegments("/refresh") || rest.StartsWithSegments("/logout")))
-    {
-        var origin = ctx.Request.Headers["Origin"].ToString();
-        var referer = ctx.Request.Headers["Referer"].ToString();
-        var toCheck = !string.IsNullOrEmpty(origin) ? origin : referer;
-
-        if (!IsOriginAllowed(allowedOriginSet, toCheck))
-        {
-            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-            await ctx.Response.WriteAsJsonAsync(new { message = "Forbidden origin" });
-            return;
-        }
-    }
-
-    await next();
-});
-
+// RateLimiter, Auth
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ======================================================================
-// Routes-Dump (zeigt Pattern + erlaubte HTTP-Methoden)
-// ======================================================================
+// ========================== OPTIONS Preflight ===========================
+// <-- Preflight Handler
+app.MapMethods("/api/{**any}", new[] { "OPTIONS" }, (HttpContext ctx) =>
+{
+    return Results.Ok();
+});
+
+// ========================== Routes ======================================
+app.MapControllers();
+
+// Debug Route Dump
 app.MapGet("/routes", (Microsoft.AspNetCore.Routing.EndpointDataSource eds) =>
 {
     var routes = eds.Endpoints
         .Select(e => new {
-            DisplayName = e.DisplayName,
             Pattern = (e as Microsoft.AspNetCore.Routing.RouteEndpoint)?.RoutePattern?.RawText,
-            Methods = e.Metadata
-                .OfType<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()
-                .FirstOrDefault()?.HttpMethods
-        })
-        .OrderBy(x => x.Pattern ?? x.DisplayName)
-        .ToList();
-
+            Methods = e.Metadata.OfType<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()
+                                .FirstOrDefault()?.HttpMethods
+        });
     return Results.Json(routes);
 });
-
-
-// --- TEMP: POST-Probe (nur Debug) ---
-app.MapPost("/__probe", () => Results.Ok(new { ok = true, ts = DateTime.UtcNow }));
-
-// --- Hard override für POST /api/auth/login (falls Attribute-Routing irgendwo geblockt wird)
-app.MapPost("/api/auth/login", async (
-    [FromServices] Gym3000.Api.Controllers.AuthController ctrl,
-    [FromBody] Gym3000.Api.Dtos.LoginDto dto
-) => await ctrl.Login(dto))
-   .Accepts<Gym3000.Api.Dtos.LoginDto>("application/json")
-   .Produces<Gym3000.Api.Controllers.AuthResponseDto>(StatusCodes.Status200OK)
-   .Produces(StatusCodes.Status401Unauthorized)
-   .RequireRateLimiting("auth");
-
-// ======================================================================
-// Controllers
-// ======================================================================
-app.MapControllers();
 
 app.Run();
