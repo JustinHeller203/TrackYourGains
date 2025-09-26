@@ -325,6 +325,9 @@ app.MapGet("/routes", (Microsoft.AspNetCore.Routing.EndpointDataSource eds) =>
     return Results.Json(list);
 });
 
+// --- TEMP: POST-Probe (nur Debug) ---
+app.MapPost("/__probe", () => Results.Ok(new { ok = true, ts = DateTime.UtcNow }));
+
 // ======================================================================
 // Controllers
 // ======================================================================
