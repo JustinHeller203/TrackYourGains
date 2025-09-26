@@ -13,29 +13,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useAuthStore } from '@/store/authStore'
+    import { ref } from 'vue'
+    import { useAuthStore } from '@/store/authStore'
 
-const email = ref('')
-const password = ref('')
-const busy = ref(false)
-const err = ref('')
-const msg = ref('')
-const auth = useAuthStore()
+    const email = ref('')
+    const password = ref('')
+    const busy = ref(false)
+    const err = ref('')
+    const msg = ref('')
+    const auth = useAuthStore()
 
-async function onSubmit() {
-  err.value = ''
-  msg.value = ''
-  busy.value = true
-  try {
-    await auth.signUp(email.value, password.value)
-    msg.value = 'Best tigungs-Mail gesendet. Bitte E-Mail pr fen.'
-  } catch (e: any) {
-    err.value = e?.message || 'Registrierung fehlgeschlagen'
-  } finally {
-    busy.value = false
-  }
-}
+    async function onSubmit() {
+        err.value = ''
+        msg.value = ''
+        busy.value = true
+        try {
+            await auth.signUp(email.value, password.value, confirm.value)
+            msg.value = 'Best tigungs-Mail gesendet. Bitte E-Mail pr fen.'
+        } catch (e: any) {
+            err.value = e?.message || 'Registrierung fehlgeschlagen'
+        } finally {
+            busy.value = false
+        }
+    }
 </script>
 
 <style scoped>
