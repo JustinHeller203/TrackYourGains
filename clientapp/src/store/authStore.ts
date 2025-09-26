@@ -31,11 +31,11 @@ export const useAuthStore = defineStore("auth", {
             localStorage.setItem(EMAIL_KEY, data.email);
         },
 
-        async signUp(email: string, password: string) {
-            const data: AuthResponseDto = await register(email, password);
+        async signUp(email: string, password: string, confirmPassword: string) {
+            const data: AuthResponseDto = await register(email, password, confirmPassword); // <<< dritten Param übergeben
             this.user = { email: data.email };
             localStorage.setItem(EMAIL_KEY, data.email);
-        },
+        }
 
         async changePassword(current: string, next: string) {
             const data: AuthResponseDto = await changePasswordApi(current, next);

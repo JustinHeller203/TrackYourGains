@@ -86,7 +86,7 @@
                     error.value = 'Passwörter stimmen nicht überein.'
                     return
                 }
-                await auth.signUp(email.value, password.value)
+                await auth.signUp(email.value, password.value, confirm.value)
             }
             const target = (route.query.redirect as string) || '/'
             router.push(target)

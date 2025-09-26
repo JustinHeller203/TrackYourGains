@@ -9,8 +9,13 @@ export async function login(email: string, password: string) {
     return data;
 }
 
-export async function register(email: string, password: string) {
-    const { data } = await api.post<AuthResponse>("/auth/register", { email, password });
+export async function register(email: string, password: string, confirmPassword: string) {
+    const { data } = await api.post("/auth/register", {
+        email: email,
+        password: password,
+        confirmPassword: confirmPassword   
+    });
+
     setToken(data.token);
     return data;
 }
