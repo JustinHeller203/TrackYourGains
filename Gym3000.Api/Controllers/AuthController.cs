@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Gym3000.Api.Controllers;
 
 [ApiController]
-[Route("api/auth")]
+[Route("/api/auth")]                      // <- ABSOLUTER PFAD
 [Produces("application/json")]
 public class AuthController : ControllerBase
 {
@@ -76,7 +76,6 @@ public class AuthController : ControllerBase
 
     private CookieOptions RtCookieOptions(TimeSpan life)
     {
-        // Cross-site (Vercel -> Railway): SameSite=None & Secure MUSS
         return new CookieOptions
         {
             HttpOnly = true,
@@ -84,7 +83,6 @@ public class AuthController : ControllerBase
             SameSite = SameSiteMode.None,
             Expires = DateTimeOffset.UtcNow.Add(life),
             Path = "/",
-            // Domain = ".trackyourgains.de" // nur nötig, wenn eigene Domain für API
         };
     }
 
@@ -100,7 +98,7 @@ public class AuthController : ControllerBase
             FamilyId = Guid.NewGuid().ToString("N"), // neue Kette pro Login/Register
             DeviceId = deviceId,
             TokenHash = HashTokenWithPepper(raw),
-            Salt = "0", // placeholder, Feld ist required
+            Salt = "0",
             ExpiresAtUtc = now.Add(life),
             CreatedAtUtc = now,
             CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
@@ -111,7 +109,6 @@ public class AuthController : ControllerBase
         _db.RefreshTokens.Add(rt);
         await _db.SaveChangesAsync();
 
-        // Cookie setzen (rohes Token, nicht den Hash)
         Response.Cookies.Append("rt", raw, RtCookieOptions(life));
         return rt;
     }
@@ -122,7 +119,6 @@ public class AuthController : ControllerBase
         var raw = NewSecureToken();
         var now = DateTime.UtcNow;
 
-        // aktuellen Token schließen
         current.IsCurrent = false;
         current.RevokedAtUtc = now;
 
@@ -224,6 +220,7 @@ public class AuthController : ControllerBase
 
     /// <summary>Registrierung</summary>
     [HttpPost("register")]
+    [Consumes("application/json")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -249,7 +246,6 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Registrierung fehlgeschlagen.", errors = result.Errors.Select(e => e.Description) });
         }
 
-        // Init Refresh & TokenVersion
         await IssueRefreshTokenAsync(user, RefreshLifetime);
         _db.UserMetas.Add(new UserMeta { UserId = user.Id, TokenVersion = 0 });
         await _db.SaveChangesAsync();
@@ -263,6 +259,7 @@ public class AuthController : ControllerBase
 
     /// <summary>Login</summary>
     [HttpPost("login")]
+    [Consumes("application/json")]                // <- wichtig
     [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -295,6 +292,7 @@ public class AuthController : ControllerBase
 
     /// <summary>Access-Token via Refresh-Cookie rotieren</summary>
     [HttpPost("refresh")]
+    [Consumes("application/json")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -310,7 +308,6 @@ public class AuthController : ControllerBase
         if (rt is null)
             return Unauthorized(new { message = "Ungültiger Refresh-Token." });
 
-        // === Reuse-Detection: Token ist nicht mehr "current" ODER bereits widerrufen ===
         if (rt.IsCurrent == false || rt.RevokedAtUtc is not null)
         {
             await RevokeFamilyAsync(rt.UserId, rt.FamilyId);
@@ -331,15 +328,12 @@ public class AuthController : ControllerBase
         if (user is null)
             return Unauthorized(new { message = "User nicht gefunden." });
 
-        // Rotation innerhalb der Family
         await RotateRefreshAsync(rt, user, RefreshLifetime);
 
-        // Telemetrie
         rt.LastSeenAtUtc = DateTime.UtcNow;
         rt.LastSeenIp = HttpContext.Connection.RemoteIpAddress?.ToString();
         await _db.SaveChangesAsync();
 
-        // tv NICHT bumpen, nur erneut signieren
         var tv = await GetTokenVersionAsync(user.Id);
         var token = _jwt.Create(user.Id, user.Email!, tv);
 
@@ -350,6 +344,7 @@ public class AuthController : ControllerBase
     /// <summary>Logout (aktuellen Refresh revoke + Cookie löschen)</summary>
     [Authorize]
     [HttpPost("logout")]
+    [Consumes("application/json")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Logout()
@@ -378,6 +373,7 @@ public class AuthController : ControllerBase
     /// <summary>Passwort ändern (revoked all refresh + bump tv)</summary>
     [Authorize]
     [HttpPost("change-password")]
+    [Consumes("application/json")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -412,6 +408,7 @@ public class AuthController : ControllerBase
     /// <summary>E-Mail ändern (revoked all refresh + bump tv)</summary>
     [Authorize]
     [HttpPost("change-email")]
+    [Consumes("application/json")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -470,6 +467,7 @@ public class AuthController : ControllerBase
     /// <summary>Account + Daten löschen (revokes all)</summary>
     [Authorize]
     [HttpPost("delete-account")]
+    [Consumes("application/json")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -494,11 +492,9 @@ public class AuthController : ControllerBase
         using var tx = await _db.Database.BeginTransactionAsync();
         try
         {
-            // usergebundene Daten löschen
             var weights = _db.WeightEntries.Where(w => w.UserId == userId);
             _db.WeightEntries.RemoveRange(weights);
 
-            // auch Metas & RefreshTokens killen
             var metas = await _db.UserMetas.Where(m => m.UserId == userId).ToListAsync();
             _db.UserMetas.RemoveRange(metas);
 
@@ -517,7 +513,6 @@ public class AuthController : ControllerBase
 
             await tx.CommitAsync();
 
-            // Cookie löschen
             Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
             await LogAuditAsync(user.Id, "delete_account_success");
             return Ok(new { ok = true });
@@ -532,7 +527,6 @@ public class AuthController : ControllerBase
 
     // ===== Sessions / Geräteverwaltung =====
 
-    /// <summary>Aktive Sessions (Refresh-Tokens) des Users anzeigen</summary>
     [Authorize]
     [HttpGet("sessions")]
     [ProducesResponseType(typeof(List<SessionDto>), StatusCodes.Status200OK)]
@@ -542,7 +536,6 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized(new { message = "Nicht eingeloggt." });
 
-        // aktuellen Refresh-Cookie-Hash berechnen (falls vorhanden)
         var currentRaw = Request.Cookies["rt"];
         var currentHash = string.IsNullOrEmpty(currentRaw) ? null : HashTokenWithPepper(currentRaw);
 
@@ -562,9 +555,9 @@ public class AuthController : ControllerBase
         return Ok(list);
     }
 
-    /// <summary>Eine Session (Refresh-Token) widerrufen</summary>
     [Authorize]
     [HttpPost("sessions/revoke")]
+    [Consumes("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> RevokeSession([FromBody] RevokeSessionDto dto)
@@ -586,7 +579,6 @@ public class AuthController : ControllerBase
         rt.IsCurrent = false;
         await _db.SaveChangesAsync();
 
-        // falls gerade die eigene aktuelle Session: Cookie killen
         var raw = Request.Cookies["rt"];
         if (!string.IsNullOrEmpty(raw) && HashTokenWithPepper(raw) == rt.TokenHash)
             Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
@@ -594,12 +586,15 @@ public class AuthController : ControllerBase
         await LogAuditAsync(userId, "session_revoked", new { sessionId = dto.Id, self = (!string.IsNullOrEmpty(raw) && HashTokenWithPepper(raw) == rt.TokenHash) });
         return Ok(new { ok = true });
     }
+
+    // ---- OPTIONS Handler (Preflight) ----
+    [HttpOptions("{*any}")]
+    public IActionResult Options() => NoContent();
 }
 
 // ===== DTOs =====
 public record AuthResponseDto(string Id, string Email, string Token);
 
-// Sessions-DTOs
 public record SessionDto(
     string Id,
     DateTime ExpiresAtUtc,
