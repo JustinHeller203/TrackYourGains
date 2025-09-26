@@ -1,18 +1,10 @@
 ﻿// src/store/authStore.ts
 import { defineStore } from "pinia";
-import {
-    login,
-    register,
-    logout,
-    changePassword as changePasswordApi,
-    changeEmail as changeEmailApi,
-} from "@/services/auth";
+import { login, register, logout, changePassword as changePasswordApi, changeEmail as changeEmailApi, deleteAccount as deleteAccountApi } from "@/services/auth";
 import { getToken } from "@/lib/api";
-import { deleteAccount as deleteAccountApi } from "@/services/auth";
 
 type AuthResponseDto = { token: string; email: string };
 const EMAIL_KEY = "auth_email";
-
 type User = { email: string };
 
 export const useAuthStore = defineStore("auth", {
@@ -39,11 +31,6 @@ export const useAuthStore = defineStore("auth", {
             localStorage.setItem(EMAIL_KEY, data.email);
         },
 
-        async deleteAccount(password: string) {
-            await deleteAccountApi(password);
-            await this.signOut(); // Token vergessen + user null
-        },
-
         async signUp(email: string, password: string) {
             const data: AuthResponseDto = await register(email, password);
             this.user = { email: data.email };
@@ -62,9 +49,13 @@ export const useAuthStore = defineStore("auth", {
             localStorage.setItem(EMAIL_KEY, data.email);
         },
 
+        async deleteAccount(password: string) {
+            await deleteAccountApi(password);
+            await this.signOut();
+        },
 
         async signOut() {
-            logout();
+            await logout();                   // sorgt dafür, dass rt-Cookie invalid wird + Token gelöscht
             this.user = null;
             localStorage.removeItem(EMAIL_KEY);
         },

@@ -5,20 +5,24 @@ import type { AxiosRequestHeaders } from "axios";
 const TOKEN_KEY = "auth_token";
 
 function buildBaseUrl(): string {
-    const raw = (import.meta as any).env?.VITE_API_URL as string | undefined;
+    // Nutze VITE_API_BASE (volle Origin), fallback auf Railway
+    const env = (import.meta as any).env;
+    const raw = (env?.VITE_API_BASE as string | undefined)?.trim();
 
-    if (!raw) return "/api";
+    const base = raw && /^https?:\/\//i.test(raw)
+        ? raw.replace(/\/+$/u, "")               // z.B. https://…railway.app
+        : "https://trackyourgains-production.up.railway.app";
 
-    let host = raw.trim().replace(/\/+$/u, "");
-    host = host.replace(/\/api$/iu, "");
-    return `${host}/api`;
+    return base + "/api"; // Backend hängt unter /api
 }
 
 export const api = axios.create({
     baseURL: buildBaseUrl(),
-    withCredentials: false,
+    withCredentials: true,                      // <<< MUSS true sein (rt-Cookie)
+    headers: { "Content-Type": "application/json" },
 });
 
+// Token aus localStorage als Bearer mitschicken
 api.interceptors.request.use((config) => {
     const t = localStorage.getItem(TOKEN_KEY);
     if (t) {
@@ -33,7 +37,6 @@ export function setToken(token: string | null) {
     if (token) localStorage.setItem(TOKEN_KEY, token);
     else localStorage.removeItem(TOKEN_KEY);
 }
-
 export function getToken() {
     return localStorage.getItem(TOKEN_KEY);
 }
