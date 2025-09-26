@@ -15,10 +15,9 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Gym3000.Api.Controllers;
 
 [ApiController]
-[Route("/api/auth")]                    // <- absolut
+[Route("api/auth")]
 [Produces("application/json")]
 public class AuthController : ControllerBase
-
 {
     private readonly UserManager<IdentityUser> _um;
     private readonly IJwtService _jwt;
@@ -32,6 +31,13 @@ public class AuthController : ControllerBase
     }
 
     // ===== Helpers =====
+    private static string HashToken(string raw)
+    {
+        using var sha = SHA256.Create();
+        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(raw));
+        return Convert.ToBase64String(bytes);
+    }
+
     private static string NewSecureToken()
     {
         Span<byte> buf = stackalloc byte[64];
@@ -39,104 +45,52 @@ public class AuthController : ControllerBase
         return Convert.ToBase64String(buf); // lang genug
     }
 
-    // === Pepper-basiertes Hashing NUR für Refresh-Tokens ===
-    private static string GetPepper()
-    {
-        var p = Environment.GetEnvironmentVariable("REFRESH_TOKEN_PEPPER");
-        if (string.IsNullOrWhiteSpace(p)) throw new InvalidOperationException("Missing REFRESH_TOKEN_PEPPER");
-        return p!;
-    }
-    private static string HashTokenWithPepper(string raw)
-    {
-        var pepper = GetPepper();
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(pepper + raw));
-        return Convert.ToBase64String(bytes);
-    }
-
-    // === Device-ID (Header bevorzugt, sonst Cookie setzen) ===
-    private string GetOrSetDeviceId()
-    {
-        var fromHeader = Request.Headers["X-Device-Id"].ToString();
-        if (!string.IsNullOrWhiteSpace(fromHeader)) return fromHeader.Trim();
-
-        var cookie = Request.Cookies["device_id"];
-        if (!string.IsNullOrWhiteSpace(cookie)) return cookie;
-
-        var gen = Guid.NewGuid().ToString("N");
-        Response.Cookies.Append("device_id", gen, new CookieOptions
-        {
-            HttpOnly = false,
-            Secure = true,
-            SameSite = SameSiteMode.None,
-            Expires = DateTimeOffset.UtcNow.AddYears(1),
-            Path = "/"
-        });
-        return gen;
-    }
-
     private CookieOptions RtCookieOptions(TimeSpan life)
     {
+        // Cross-site (Vercel -> Railway): SameSite=None & Secure MUSS
         return new CookieOptions
         {
             HttpOnly = true,
             Secure = true,
             SameSite = SameSiteMode.None,
             Expires = DateTimeOffset.UtcNow.Add(life),
-            Path = "/",
+            Path = "/"
         };
     }
 
     private async Task<RefreshToken> IssueRefreshTokenAsync(IdentityUser user, TimeSpan life)
     {
-        var deviceId = GetOrSetDeviceId();
         var raw = NewSecureToken();
-        var now = DateTime.UtcNow;
-
         var rt = new RefreshToken
         {
             UserId = user.Id,
-            FamilyId = Guid.NewGuid().ToString("N"), // neue Kette pro Login/Register
-            DeviceId = deviceId,
-            TokenHash = HashTokenWithPepper(raw),
-            Salt = "0",
-            ExpiresAtUtc = now.Add(life),
-            CreatedAtUtc = now,
+            TokenHash = HashToken(raw),
+            ExpiresAtUtc = DateTime.UtcNow.Add(life),
             CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
-            UserAgent = Request.Headers.UserAgent.ToString(),
-            IsCurrent = true
+            UserAgent = Request.Headers.UserAgent.ToString()
         };
 
         _db.RefreshTokens.Add(rt);
         await _db.SaveChangesAsync();
 
+        // Cookie setzen (rohes Token, nicht den Hash)
         Response.Cookies.Append("rt", raw, RtCookieOptions(life));
         return rt;
     }
 
     private async Task RotateRefreshAsync(RefreshToken current, IdentityUser user, TimeSpan life)
     {
-        var deviceId = GetOrSetDeviceId();
+        current.RevokedAtUtc = DateTime.UtcNow;
         var raw = NewSecureToken();
-        var now = DateTime.UtcNow;
-
-        current.IsCurrent = false;
-        current.RevokedAtUtc = now;
 
         var next = new RefreshToken
         {
             UserId = user.Id,
-            FamilyId = current.FamilyId, // gleiche Kette
-            DeviceId = deviceId,
-            TokenHash = HashTokenWithPepper(raw),
-            Salt = "0",
-            ExpiresAtUtc = now.Add(life),
-            CreatedAtUtc = now,
+            TokenHash = HashToken(raw),
+            ExpiresAtUtc = DateTime.UtcNow.Add(life),
             CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
-            UserAgent = Request.Headers.UserAgent.ToString(),
-            IsCurrent = true
+            UserAgent = Request.Headers.UserAgent.ToString()
         };
-        current.ReplacedByTokenHash = next.TokenHash;
 
         _db.RefreshTokens.Add(next);
         await _db.SaveChangesAsync();
@@ -147,20 +101,7 @@ public class AuthController : ControllerBase
     private async Task RevokeAllAsync(string userId)
     {
         var all = _db.RefreshTokens.Where(x => x.UserId == userId && x.RevokedAtUtc == null);
-        await all.ExecuteUpdateAsync(s => s
-            .SetProperty(x => x.RevokedAtUtc, DateTime.UtcNow)
-            .SetProperty(x => x.IsCurrent, false)
-        );
-    }
-
-    private async Task RevokeFamilyAsync(string userId, string familyId)
-    {
-        await _db.RefreshTokens
-            .Where(r => r.UserId == userId && r.FamilyId == familyId && r.RevokedAtUtc == null)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(r => r.RevokedAtUtc, DateTime.UtcNow)
-                .SetProperty(r => r.IsCurrent, false)
-            );
+        await all.ExecuteUpdateAsync(s => s.SetProperty(x => x.RevokedAtUtc, DateTime.UtcNow));
     }
 
     private static TimeSpan RefreshLifetime => TimeSpan.FromDays(30);
@@ -190,6 +131,7 @@ public class AuthController : ControllerBase
         {
             meta.TokenVersion++;
         }
+
         await _db.SaveChangesAsync();
         return meta.TokenVersion;
     }
@@ -218,13 +160,8 @@ public class AuthController : ControllerBase
     }
 
     // ===== Endpoints =====
-
-    /// <summary>Registrierung</summary>
     [HttpPost("register")]
-    [Consumes("application/json")]
     [EnableRateLimiting("auth")]
-    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -253,17 +190,12 @@ public class AuthController : ControllerBase
 
         await LogAuditAsync(user.Id, "register", new { email = user.Email });
 
-        var tv = 0;
-        var token = _jwt.Create(user.Id, user.Email!, tv);
+        var token = _jwt.Create(user.Id, user.Email!, 0);
         return Ok(new AuthResponseDto(user.Id, user.Email!, token));
     }
 
-    /// <summary>Login</summary>
     [HttpPost("login")]
-    [Consumes("application/json")]                // <- wichtig
     [EnableRateLimiting("auth")]
-    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -291,39 +223,29 @@ public class AuthController : ControllerBase
         return Ok(new AuthResponseDto(user.Id, user.Email!, token));
     }
 
-    /// <summary>Access-Token via Refresh-Cookie rotieren</summary>
     [HttpPost("refresh")]
-    [Consumes("application/json")]
     [EnableRateLimiting("auth")]
-    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Refresh()
     {
         var raw = Request.Cookies["rt"];
         if (string.IsNullOrWhiteSpace(raw))
             return Unauthorized(new { message = "Kein Refresh-Cookie." });
 
-        var hash = HashTokenWithPepper(raw);
+        var hash = HashToken(raw);
         var rt = await _db.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == hash);
-
         if (rt is null)
             return Unauthorized(new { message = "Ungültiger Refresh-Token." });
 
-        if (rt.IsCurrent == false || rt.RevokedAtUtc is not null)
+        if (rt.RevokedAtUtc is not null)
         {
-            await RevokeFamilyAsync(rt.UserId, rt.FamilyId);
-            await LogAuditAsync(rt.UserId, "refresh_reuse_detected", new
-            {
-                family = rt.FamilyId,
-                token = rt.Id,
-                revokedAt = rt.RevokedAtUtc
-            });
+            await RevokeAllAsync(rt.UserId);
+            await LogAuditAsync(rt.UserId, "refresh_reuse_detected", new { presentedHash = hash, revokedAt = rt.RevokedAtUtc });
             Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
-            return Unauthorized(new { message = "Session ungültig. Bitte neu einloggen." });
+            return Unauthorized(new { message = "Session ungültig. Bitte erneut einloggen." });
         }
 
-        if (rt.ExpiresAtUtc <= DateTime.UtcNow)
-            return Unauthorized(new { message = "Refresh-Token abgelaufen." });
+        if (!rt.IsActive)
+            return Unauthorized(new { message = "Refresh-Token inaktiv/abgelaufen." });
 
         var user = await _um.FindByIdAsync(rt.UserId);
         if (user is null)
@@ -331,23 +253,16 @@ public class AuthController : ControllerBase
 
         await RotateRefreshAsync(rt, user, RefreshLifetime);
 
-        rt.LastSeenAtUtc = DateTime.UtcNow;
-        rt.LastSeenIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        await _db.SaveChangesAsync();
-
         var tv = await GetTokenVersionAsync(user.Id);
         var token = _jwt.Create(user.Id, user.Email!, tv);
 
-        await LogAuditAsync(user.Id, "token_refreshed", new { family = rt.FamilyId });
+        await LogAuditAsync(user.Id, "token_refreshed");
         return Ok(new AuthResponseDto(user.Id, user.Email!, token));
     }
 
-    /// <summary>Logout (aktuellen Refresh revoke + Cookie löschen)</summary>
     [Authorize]
     [HttpPost("logout")]
-    [Consumes("application/json")]
     [EnableRateLimiting("auth")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Logout()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -355,12 +270,11 @@ public class AuthController : ControllerBase
         var raw = Request.Cookies["rt"];
         if (!string.IsNullOrWhiteSpace(raw))
         {
-            var hash = HashTokenWithPepper(raw);
+            var hash = HashToken(raw);
             var rt = await _db.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == hash);
             if (rt is not null && rt.RevokedAtUtc is null)
             {
                 rt.RevokedAtUtc = DateTime.UtcNow;
-                rt.IsCurrent = false;
                 await _db.SaveChangesAsync();
             }
         }
@@ -371,166 +285,8 @@ public class AuthController : ControllerBase
         return Ok(new { ok = true });
     }
 
-    /// <summary>Passwort ändern (revoked all refresh + bump tv)</summary>
-    [Authorize]
-    [HttpPost("change-password")]
-    [Consumes("application/json")]
-    [EnableRateLimiting("auth")]
-    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
-    {
-        if (!ModelState.IsValid) return ValidationProblem(ModelState);
-
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized(new { message = "Nicht eingeloggt." });
-
-        var user = await _um.FindByIdAsync(userId);
-        if (user is null) return Unauthorized(new { message = "User nicht gefunden." });
-
-        var result = await _um.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
-        if (!result.Succeeded)
-        {
-            await LogAuditAsync(user.Id, "change_password_failed", new { errors = result.Errors.Select(e => e.Code) });
-            return BadRequest(new { message = "Passwortänderung fehlgeschlagen.", errors = result.Errors.Select(e => e.Description) });
-        }
-
-        await RevokeAllAsync(user.Id);
-        await IssueRefreshTokenAsync(user, RefreshLifetime);
-
-        var tv = await BumpTokenVersionAsync(user.Id);
-        var token = _jwt.Create(user.Id, user.Email!, tv);
-
-        await LogAuditAsync(user.Id, "change_password_success");
-        return Ok(new AuthResponseDto(user.Id, user.Email!, token));
-    }
-
-    /// <summary>E-Mail ändern (revoked all refresh + bump tv)</summary>
-    [Authorize]
-    [HttpPost("change-email")]
-    [Consumes("application/json")]
-    [EnableRateLimiting("auth")]
-    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailDto dto)
-    {
-        if (!ModelState.IsValid) return ValidationProblem(ModelState);
-
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized(new { message = "Nicht eingeloggt." });
-
-        var user = await _um.FindByIdAsync(userId);
-        if (user is null) return Unauthorized(new { message = "User nicht gefunden." });
-
-        var pwOk = await _um.CheckPasswordAsync(user, dto.Password);
-        if (!pwOk)
-        {
-            await LogAuditAsync(user.Id, "change_email_failed", new { reason = "bad_password" });
-            return BadRequest(new { message = "Passwort ist falsch." });
-        }
-
-        var exists = await _um.FindByEmailAsync(dto.NewEmail);
-        if (exists is not null && exists.Id != user.Id)
-        {
-            await LogAuditAsync(user.Id, "change_email_failed", new { reason = "email_taken" });
-            return BadRequest(new { message = "Diese E-Mail ist bereits registriert." });
-        }
-
-        var setEmail = await _um.SetEmailAsync(user, dto.NewEmail);
-        if (!setEmail.Succeeded)
-        {
-            await LogAuditAsync(user.Id, "change_email_failed", new { reason = "set_email_failed", errors = setEmail.Errors.Select(e => e.Code) });
-            return BadRequest(new { message = "E-Mail konnte nicht gesetzt werden.", errors = setEmail.Errors.Select(e => e.Description) });
-        }
-
-        var setUserName = await _um.SetUserNameAsync(user, dto.NewEmail);
-        if (!setUserName.Succeeded)
-        {
-            await LogAuditAsync(user.Id, "change_email_failed", new { reason = "set_username_failed", errors = setUserName.Errors.Select(e => e.Code) });
-            return BadRequest(new { message = "Username konnte nicht gesetzt werden.", errors = setUserName.Errors.Select(e => e.Description) });
-        }
-
-        user.EmailConfirmed = true;
-        await _um.UpdateAsync(user);
-
-        await RevokeAllAsync(user.Id);
-        await IssueRefreshTokenAsync(user, RefreshLifetime);
-
-        var tv = await BumpTokenVersionAsync(user.Id);
-        var token = _jwt.Create(user.Id, user.Email!, tv);
-
-        await LogAuditAsync(user.Id, "change_email_success", new { newEmail = user.Email });
-        return Ok(new AuthResponseDto(user.Id, user.Email!, token));
-    }
-
-    /// <summary>Account + Daten löschen (revokes all)</summary>
-    [Authorize]
-    [HttpPost("delete-account")]
-    [Consumes("application/json")]
-    [EnableRateLimiting("auth")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountDto dto)
-    {
-        if (!ModelState.IsValid) return ValidationProblem(ModelState);
-
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized(new { message = "Nicht eingeloggt." });
-
-        var user = await _um.FindByIdAsync(userId);
-        if (user is null) return Unauthorized(new { message = "User nicht gefunden." });
-
-        var pwOk = await _um.CheckPasswordAsync(user, dto.Password);
-        if (!pwOk)
-        {
-            await LogAuditAsync(user.Id, "delete_account_failed", new { reason = "bad_password" });
-            return BadRequest(new { message = "Passwort ist falsch." });
-        }
-
-        using var tx = await _db.Database.BeginTransactionAsync();
-        try
-        {
-            var weights = _db.WeightEntries.Where(w => w.UserId == userId);
-            _db.WeightEntries.RemoveRange(weights);
-
-            var metas = await _db.UserMetas.Where(m => m.UserId == userId).ToListAsync();
-            _db.UserMetas.RemoveRange(metas);
-
-            var rts = await _db.RefreshTokens.Where(r => r.UserId == userId).ToListAsync();
-            _db.RefreshTokens.RemoveRange(rts);
-
-            await _db.SaveChangesAsync();
-
-            var delRes = await _um.DeleteAsync(user);
-            if (!delRes.Succeeded)
-            {
-                await tx.RollbackAsync();
-                await LogAuditAsync(user.Id, "delete_account_failed", new { reason = "identity_delete_failed", errors = delRes.Errors.Select(e => e.Code) });
-                return BadRequest(new { message = "Profil löschen fehlgeschlagen.", errors = delRes.Errors.Select(e => e.Description) });
-            }
-
-            await tx.CommitAsync();
-
-            Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
-            await LogAuditAsync(user.Id, "delete_account_success");
-            return Ok(new { ok = true });
-        }
-        catch (Exception ex)
-        {
-            await tx.RollbackAsync();
-            await LogAuditAsync(userId, "delete_account_failed", new { reason = "exception", detail = ex.Message });
-            return StatusCode(500, new { message = "Serverfehler beim Löschen.", detail = ex.Message });
-        }
-    }
-
-    // ===== Sessions / Geräteverwaltung =====
-
     [Authorize]
     [HttpGet("sessions")]
-    [ProducesResponseType(typeof(List<SessionDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSessions()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -538,7 +294,7 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Nicht eingeloggt." });
 
         var currentRaw = Request.Cookies["rt"];
-        var currentHash = string.IsNullOrEmpty(currentRaw) ? null : HashTokenWithPepper(currentRaw);
+        var currentHash = string.IsNullOrEmpty(currentRaw) ? null : HashToken(currentRaw);
 
         var list = await _db.RefreshTokens
             .Where(r => r.UserId == userId && r.RevokedAtUtc == null)
@@ -558,9 +314,6 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpPost("sessions/revoke")]
-    [Consumes("application/json")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> RevokeSession([FromBody] RevokeSessionDto dto)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -577,20 +330,17 @@ public class AuthController : ControllerBase
             return NotFound(new { message = "Session nicht gefunden oder bereits widerrufen." });
 
         rt.RevokedAtUtc = DateTime.UtcNow;
-        rt.IsCurrent = false;
         await _db.SaveChangesAsync();
 
         var raw = Request.Cookies["rt"];
-        if (!string.IsNullOrEmpty(raw) && HashTokenWithPepper(raw) == rt.TokenHash)
+        if (!string.IsNullOrEmpty(raw) && HashToken(raw) == rt.TokenHash)
             Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
 
-        await LogAuditAsync(userId, "session_revoked", new { sessionId = dto.Id, self = (!string.IsNullOrEmpty(raw) && HashTokenWithPepper(raw) == rt.TokenHash) });
+        await LogAuditAsync(userId, "session_revoked",
+            new { sessionId = dto.Id, self = (!string.IsNullOrEmpty(raw) && HashToken(raw) == rt.TokenHash) });
+
         return Ok(new { ok = true });
     }
-
-    // ---- OPTIONS Handler (Preflight) ----
-    [HttpOptions("{*any}")]
-    public IActionResult Options() => NoContent();
 }
 
 // ===== DTOs =====
