@@ -1,10 +1,18 @@
 ﻿// src/store/authStore.ts
 import { defineStore } from "pinia";
-import { login, register, logout, changePassword as changePasswordApi, changeEmail as changeEmailApi, deleteAccount as deleteAccountApi } from "@/services/auth";
+import {
+    login,
+    register,
+    logout,
+    changePassword as changePasswordApi,
+    changeEmail as changeEmailApi,
+    deleteAccount as deleteAccountApi,
+} from "@/services/auth";
 import { getToken } from "@/lib/api";
 
 type AuthResponseDto = { token: string; email: string };
 const EMAIL_KEY = "auth_email";
+
 type User = { email: string };
 
 export const useAuthStore = defineStore("auth", {
@@ -31,11 +39,12 @@ export const useAuthStore = defineStore("auth", {
             localStorage.setItem(EMAIL_KEY, data.email);
         },
 
+        // ⬇️ Registrieren – jetzt mit confirmPassword
         async signUp(email: string, password: string, confirmPassword: string) {
-            const data: AuthResponseDto = await register(email, password, confirmPassword); // <<< dritten Param übergeben
+            const data: AuthResponseDto = await register(email, password, confirmPassword);
             this.user = { email: data.email };
             localStorage.setItem(EMAIL_KEY, data.email);
-        }
+        },
 
         async changePassword(current: string, next: string) {
             const data: AuthResponseDto = await changePasswordApi(current, next);
@@ -55,7 +64,7 @@ export const useAuthStore = defineStore("auth", {
         },
 
         async signOut() {
-            await logout();                   // sorgt dafür, dass rt-Cookie invalid wird + Token gelöscht
+            await logout();
             this.user = null;
             localStorage.removeItem(EMAIL_KEY);
         },
