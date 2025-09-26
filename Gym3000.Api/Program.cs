@@ -7,6 +7,7 @@ using System.Security.Claims;
 
 using Gym3000.Api.Data;
 using Gym3000.Api.Services;
+using Microsoft.AspNetCore.Mvc;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
