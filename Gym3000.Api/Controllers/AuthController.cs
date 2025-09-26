@@ -31,10 +31,22 @@ public class AuthController : ControllerBase
     }
 
     // ===== Helpers =====
-    private static string HashToken(string raw)
+
+    private static string GetPepper() =>
+    Environment.GetEnvironmentVariable("REFRESH_TOKEN_PEPPER") ?? "";
+
+    private static string NewSalt()
+    {
+        Span<byte> buf = stackalloc byte[16];
+        RandomNumberGenerator.Fill(buf);
+        return Convert.ToBase64String(buf); // <=64 Zeichen → passt zu MaxLength(64)
+    }
+
+    private static string HashToken(string raw, string salt)
     {
         using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(raw));
+        var combined = Encoding.UTF8.GetBytes(raw + "|" + salt + "|" + GetPepper());
+        var bytes = sha.ComputeHash(combined);
         return Convert.ToBase64String(bytes);
     }
 
@@ -58,22 +70,35 @@ public class AuthController : ControllerBase
         };
     }
 
+    private static TimeSpan RefreshLifetime => TimeSpan.FromDays(30);
+
+    // ===== RefreshToken-Ausgabe & Rotation =====
+
     private async Task<RefreshToken> IssueRefreshTokenAsync(IdentityUser user, TimeSpan life)
     {
         var raw = NewSecureToken();
+        var salt = NewSalt();
+        var fam = Guid.NewGuid().ToString("N"); // <- STRING! (ohne Bindestriche)
+
         var rt = new RefreshToken
         {
+            Id = Guid.NewGuid(),
             UserId = user.Id,
-            TokenHash = HashToken(raw),
+            TokenHash = HashToken(raw, salt),
+            Salt = salt,
             ExpiresAtUtc = DateTime.UtcNow.Add(life),
             CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
-            UserAgent = Request.Headers.UserAgent.ToString()
+            UserAgent = Request.Headers.UserAgent.ToString(),
+            FamilyId = fam,          // <- MUSS gesetzt sein (string, NOT NULL)
+            IsCurrent = true
         };
+
+        // DEBUG: sofort prüfen, was wir speichern
+        Console.WriteLine($"[RT-ISSUE] user={user.Id} fam={rt.FamilyId} salt.len={rt.Salt?.Length} hash.len={rt.TokenHash?.Length}");
 
         _db.RefreshTokens.Add(rt);
         await _db.SaveChangesAsync();
 
-        // Cookie setzen (rohes Token, nicht den Hash)
         Response.Cookies.Append("rt", raw, RtCookieOptions(life));
         return rt;
     }
@@ -81,16 +106,26 @@ public class AuthController : ControllerBase
     private async Task RotateRefreshAsync(RefreshToken current, IdentityUser user, TimeSpan life)
     {
         current.RevokedAtUtc = DateTime.UtcNow;
+        current.IsCurrent = false;
+
         var raw = NewSecureToken();
+        var salt = NewSalt();
+        var fam = string.IsNullOrEmpty(current.FamilyId) ? Guid.NewGuid().ToString("N") : current.FamilyId;
 
         var next = new RefreshToken
         {
+            Id = Guid.NewGuid(),
             UserId = user.Id,
-            TokenHash = HashToken(raw),
+            TokenHash = HashToken(raw, salt),
+            Salt = salt,
             ExpiresAtUtc = DateTime.UtcNow.Add(life),
             CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
-            UserAgent = Request.Headers.UserAgent.ToString()
+            UserAgent = Request.Headers.UserAgent.ToString(),
+            FamilyId = fam,          // <- in derselben Familie bleiben
+            IsCurrent = true
         };
+
+        Console.WriteLine($"[RT-ROTATE] user={user.Id} fam={next.FamilyId} salt.len={next.Salt?.Length}");
 
         _db.RefreshTokens.Add(next);
         await _db.SaveChangesAsync();
@@ -98,15 +133,16 @@ public class AuthController : ControllerBase
         Response.Cookies.Append("rt", raw, RtCookieOptions(life));
     }
 
+
     private async Task RevokeAllAsync(string userId)
     {
         var all = _db.RefreshTokens.Where(x => x.UserId == userId && x.RevokedAtUtc == null);
-        await all.ExecuteUpdateAsync(s => s.SetProperty(x => x.RevokedAtUtc, DateTime.UtcNow));
+        await all.ExecuteUpdateAsync(s => s.SetProperty(x => x.RevokedAtUtc, DateTime.UtcNow)
+                                           .SetProperty(x => x.IsCurrent, false));
     }
 
-    private static TimeSpan RefreshLifetime => TimeSpan.FromDays(30);
-
     // ===== Token-Versionierung (tv) =====
+
     private async Task<int> GetTokenVersionAsync(string userId)
     {
         var meta = await _db.UserMetas.FindAsync(userId);
@@ -137,6 +173,7 @@ public class AuthController : ControllerBase
     }
 
     // ===== Audit-Log Helper =====
+
     private async Task LogAuditAsync(string? userId, string action, object? meta = null)
     {
         try
@@ -160,6 +197,7 @@ public class AuthController : ControllerBase
     }
 
     // ===== Endpoints =====
+
     [HttpPost("register")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
@@ -231,18 +269,14 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(raw))
             return Unauthorized(new { message = "Kein Refresh-Cookie." });
 
-        var hash = HashToken(raw);
-        var rt = await _db.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == hash);
-        if (rt is null)
-            return Unauthorized(new { message = "Ungültiger Refresh-Token." });
+        // Kandidaten holen (nicht-revoked & aktuell)
+        var candidates = await _db.RefreshTokens
+    .Where(x => x.RevokedAtUtc == null && x.IsCurrent)
+    .OrderByDescending(x => x.ExpiresAtUtc)
+    .ToListAsync();
 
-        if (rt.RevokedAtUtc is not null)
-        {
-            await RevokeAllAsync(rt.UserId);
-            await LogAuditAsync(rt.UserId, "refresh_reuse_detected", new { presentedHash = hash, revokedAt = rt.RevokedAtUtc });
-            Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
-            return Unauthorized(new { message = "Session ungültig. Bitte erneut einloggen." });
-        }
+        var rt = candidates.FirstOrDefault(x => HashToken(raw, x.Salt) == x.TokenHash);
+        if (rt is null) return Unauthorized(new { message = "Ungültiger Refresh-Token." });
 
         if (!rt.IsActive)
             return Unauthorized(new { message = "Refresh-Token inaktiv/abgelaufen." });
@@ -270,11 +304,12 @@ public class AuthController : ControllerBase
         var raw = Request.Cookies["rt"];
         if (!string.IsNullOrWhiteSpace(raw))
         {
-            var hash = HashToken(raw);
-            var rt = await _db.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == hash);
-            if (rt is not null && rt.RevokedAtUtc is null)
+            var tokens = await _db.RefreshTokens.Where(t => t.RevokedAtUtc == null && t.IsCurrent).ToListAsync();
+            var rt = tokens.FirstOrDefault(x => HashToken(raw, x.Salt) == x.TokenHash);
+            if (rt is not null)
             {
                 rt.RevokedAtUtc = DateTime.UtcNow;
+                rt.IsCurrent = false;
                 await _db.SaveChangesAsync();
             }
         }
@@ -293,24 +328,28 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized(new { message = "Nicht eingeloggt." });
 
+        // rohes Cookie (kann null sein)
         var currentRaw = Request.Cookies["rt"];
-        var currentHash = string.IsNullOrEmpty(currentRaw) ? null : HashToken(currentRaw);
 
-        var list = await _db.RefreshTokens
+        // Wir brauchen Salt für den Vergleich -> zuerst materialisieren
+        var rows = await _db.RefreshTokens
             .Where(r => r.UserId == userId && r.RevokedAtUtc == null)
             .OrderByDescending(r => r.ExpiresAtUtc)
-            .Select(r => new SessionDto(
-                r.Id.ToString(),
-                r.ExpiresAtUtc,
-                currentHash != null && r.TokenHash == currentHash,
-                r.UserAgent,
-                r.CreatedByIp
-            ))
             .ToListAsync();
+
+        // IsCurrent korrekt bestimmen: Hash(raw, r.Salt) == r.TokenHash
+        var list = rows.Select(r => new SessionDto(
+            r.Id.ToString(),
+            r.ExpiresAtUtc,
+            !string.IsNullOrEmpty(currentRaw) && HashToken(currentRaw!, r.Salt) == r.TokenHash,
+            r.UserAgent,
+            r.CreatedByIp
+        )).ToList();
 
         await LogAuditAsync(userId, "sessions_listed", new { count = list.Count });
         return Ok(list);
     }
+
 
     [Authorize]
     [HttpPost("sessions/revoke")]
@@ -330,14 +369,15 @@ public class AuthController : ControllerBase
             return NotFound(new { message = "Session nicht gefunden oder bereits widerrufen." });
 
         rt.RevokedAtUtc = DateTime.UtcNow;
+        rt.IsCurrent = false;
         await _db.SaveChangesAsync();
 
         var raw = Request.Cookies["rt"];
-        if (!string.IsNullOrEmpty(raw) && HashToken(raw) == rt.TokenHash)
+        if (!string.IsNullOrEmpty(raw) && HashToken(raw, rt.Salt) == rt.TokenHash)
             Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
 
         await LogAuditAsync(userId, "session_revoked",
-            new { sessionId = dto.Id, self = (!string.IsNullOrEmpty(raw) && HashToken(raw) == rt.TokenHash) });
+            new { sessionId = dto.Id, self = (!string.IsNullOrEmpty(raw) && HashToken(raw, rt.Salt) == rt.TokenHash) });
 
         return Ok(new { ok = true });
     }

@@ -5,17 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TrackYourGains</title>
 
-    <!-- CSP: erlaubt API-Calls zur Railway-API + Google Fonts + CloudFront-Bilder -->
+    <!-- CSP: erlaubt DEV-API (localhost) + PROD-API (Railway) + Fonts + CloudFront -->
     <meta http-equiv="Content-Security-Policy"
           content="
           default-src 'self';
-          connect-src 'self' https://trackyourgains-production.up.railway.app;
+          connect-src
+            'self'
+            https://trackyourgains-production.up.railway.app
+            http://localhost:5054
+            http://localhost:5173
+            ws://localhost:5173;
           script-src 'self';
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
           font-src 'self' https://fonts.gstatic.com;
           img-src 'self' data: https://*.cloudfront.net;
           frame-ancestors 'none';
-          base-uri 'self'
+          base-uri 'self';
+          form-action 'self';
         ">
 
     <!-- Fonts -->
@@ -37,6 +43,7 @@
 </head>
 <body>
     <div id="app"></div>
+
     <!-- 👇 Für DEV immer die Source laden -->
     <script type="module" src="/src/main.ts"></script>
 </body>

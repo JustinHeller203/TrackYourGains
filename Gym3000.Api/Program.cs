@@ -175,20 +175,17 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // ========================== OPTIONS Preflight ===========================
-// <-- Preflight Handler
-app.MapMethods("/api/{**any}", new[] { "OPTIONS" }, (HttpContext ctx) =>
-{
-    return Results.Ok();
-});
+app.MapMethods("/api/{**any}", new[] { "OPTIONS" }, (HttpContext ctx) => Results.Ok());
 
-// ========================== Routes ======================================
+// ========================== Controllers/Routes ==========================
 app.MapControllers();
 
 // Debug Route Dump
 app.MapGet("/routes", (Microsoft.AspNetCore.Routing.EndpointDataSource eds) =>
 {
     var routes = eds.Endpoints
-        .Select(e => new {
+        .Select(e => new
+        {
             Pattern = (e as Microsoft.AspNetCore.Routing.RouteEndpoint)?.RoutePattern?.RawText,
             Methods = e.Metadata.OfType<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()
                                 .FirstOrDefault()?.HttpMethods
