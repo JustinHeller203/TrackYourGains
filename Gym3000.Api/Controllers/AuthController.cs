@@ -2,6 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.IdentityModel.Tokens.Jwt;
 using Gym3000.Api.Data;
 using Gym3000.Api.Dtos;
 using Gym3000.Api.Entities;
@@ -33,7 +34,7 @@ public class AuthController : ControllerBase
     // ===== Helpers =====
 
     private static string GetPepper() =>
-    Environment.GetEnvironmentVariable("REFRESH_TOKEN_PEPPER") ?? "";
+        Environment.GetEnvironmentVariable("REFRESH_TOKEN_PEPPER") ?? "";
 
     private static string NewSalt()
     {
@@ -59,12 +60,16 @@ public class AuthController : ControllerBase
 
     private CookieOptions RtCookieOptions(TimeSpan life)
     {
-        // Cross-site (Vercel -> Railway): SameSite=None & Secure MUSS
+        // Cross-site (Vercel -> Railway): In Prod SameSite=None + Secure MUSS.
+        // In Dev blockt Chrome SameSite=None ohne Secure → daher Lax in Dev.
+        var isDev = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                     ?.Equals("Development", StringComparison.OrdinalIgnoreCase) == true;
+
         return new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.None,
+            Secure = !isDev,
+            SameSite = isDev ? SameSiteMode.Lax : SameSiteMode.None,
             Expires = DateTimeOffset.UtcNow.Add(life),
             Path = "/"
         };
@@ -199,7 +204,7 @@ public class AuthController : ControllerBase
     // ===== Endpoints =====
 
     [HttpPost("register")]
-    [EnableRateLimiting("auth")]
+    [EnableRateLimiting("auth-register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -233,7 +238,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    [EnableRateLimiting("auth")]
+    [EnableRateLimiting("auth-login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -271,9 +276,9 @@ public class AuthController : ControllerBase
 
         // Kandidaten holen (nicht-revoked & aktuell)
         var candidates = await _db.RefreshTokens
-    .Where(x => x.RevokedAtUtc == null && x.IsCurrent)
-    .OrderByDescending(x => x.ExpiresAtUtc)
-    .ToListAsync();
+            .Where(x => x.RevokedAtUtc == null && x.IsCurrent && x.ExpiresAtUtc > DateTime.UtcNow)
+            .OrderByDescending(x => x.ExpiresAtUtc)
+            .ToListAsync();
 
         var rt = candidates.FirstOrDefault(x => HashToken(raw, x.Salt) == x.TokenHash);
         if (rt is null) return Unauthorized(new { message = "Ungültiger Refresh-Token." });
@@ -378,6 +383,144 @@ public class AuthController : ControllerBase
 
         await LogAuditAsync(userId, "session_revoked",
             new { sessionId = dto.Id, self = (!string.IsNullOrEmpty(raw) && HashToken(raw, rt.Salt) == rt.TokenHash) });
+
+        return Ok(new { ok = true });
+    }
+
+    [Authorize]
+    [HttpPost("change-email")]
+    [EnableRateLimiting("auth-changeemail")]
+    public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailDto dto)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized(new { message = "Nicht eingeloggt." });
+
+        var user = await _um.FindByIdAsync(userId);
+        if (user is null) return Unauthorized(new { message = "User nicht gefunden." });
+
+        // Passwort bestätigen
+        var ok = await _um.CheckPasswordAsync(user, dto.Password);
+        if (!ok) return Unauthorized(new { message = "Falsches Passwort." });
+
+        // Kollision checken
+        var exists = await _um.FindByEmailAsync(dto.NewEmail);
+        if (exists is not null && exists.Id != user.Id)
+            return BadRequest(new { message = "E-Mail ist bereits vergeben." });
+
+        // E-Mail + Username setzen
+        var setEmail = await _um.SetEmailAsync(user, dto.NewEmail);
+        if (!setEmail.Succeeded)
+            return BadRequest(new { message = "E-Mail konnte nicht gesetzt werden.", errors = setEmail.Errors.Select(e => e.Description) });
+
+        var setUserName = await _um.SetUserNameAsync(user, dto.NewEmail);
+        if (!setUserName.Succeeded)
+            return BadRequest(new { message = "Username konnte nicht gesetzt werden.", errors = setUserName.Errors.Select(e => e.Description) });
+
+        user.EmailConfirmed = true;
+        var upd = await _um.UpdateAsync(user);
+        if (!upd.Succeeded)
+            return BadRequest(new { message = "Update fehlgeschlagen.", errors = upd.Errors.Select(e => e.Description) });
+
+        // **Alle Refresh-Tokens widerrufen**
+        await RevokeAllAsync(user.Id);
+
+        // **Token-Version erhöhen → alte Access-JWTs sind ungültig**
+        var tv = await BumpTokenVersionAsync(user.Id);
+        var accessToken = _jwt.Create(user.Id, user.Email!, tv);
+
+        // **direkt wieder einen frischen Refresh-Token ausstellen (setzt Cookie)**
+        await IssueRefreshTokenAsync(user, RefreshLifetime);
+
+        await LogAuditAsync(user.Id, "email_changed", new { newEmail = user.Email });
+
+        return Ok(new AuthResponseDto(user.Id, user.Email!, accessToken));
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    [EnableRateLimiting("auth-changepw")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        // robust: NameIdentifier oder sub
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                   ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized(new { message = "Nicht eingeloggt." });
+
+        var user = await _um.FindByIdAsync(userId);
+        if (user is null) return Unauthorized(new { message = "User nicht gefunden." });
+
+        // 1) Aktuelles Passwort prüfen & ändern
+        var result = await _um.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+        if (!result.Succeeded)
+            return BadRequest(new { message = "Passwort ändern fehlgeschlagen.", errors = result.Errors.Select(e => e.Description) });
+
+        // 2) Alle Refresh-Sessions widerrufen & neuen RT ausstellen (sonst hängt das alte Cookie in der Luft)
+        await RevokeAllAsync(user.Id);
+        await IssueRefreshTokenAsync(user, RefreshLifetime);
+
+        // 3) Token-Version bumpen → alte JWTs unbrauchbar
+        var tv = await BumpTokenVersionAsync(user.Id);
+        var token = _jwt.Create(user.Id, user.Email!, tv);
+
+        await LogAuditAsync(user.Id, "password_changed");
+
+        return Ok(new AuthResponseDto(user.Id, user.Email!, token));
+    }
+
+    [Authorize]
+    [HttpPost("delete-account")]
+    [HttpDelete("delete-account")] // <- akzeptiert jetzt POST *und* DELETE, damit kein 405 mehr fliegt
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountDto dto)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        // robust: NameIdentifier oder sub
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                   ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized(new { message = "Nicht eingeloggt." });
+
+        var user = await _um.FindByIdAsync(userId);
+        if (user is null) return Unauthorized(new { message = "User nicht gefunden." });
+
+        // Passwort bestätigen
+        var ok = await _um.CheckPasswordAsync(user, dto.Password);
+        if (!ok) return Unauthorized(new { message = "Falsches Passwort." });
+
+        // Transaktion: erst alles eigene löschen, dann User löschen
+        await using var tx = await _db.Database.BeginTransactionAsync();
+
+        // Refresh Tokens + Metadaten + Audit Logs löschen (ggf. weitere Domänentabellen hier ergänzen)
+        var rts = _db.RefreshTokens.Where(r => r.UserId == user.Id);
+        _db.RefreshTokens.RemoveRange(rts);
+
+        var meta = await _db.UserMetas.FindAsync(user.Id);
+        if (meta is not null) _db.UserMetas.Remove(meta);
+
+        var audits = _db.AuditLogs.Where(a => a.UserId == user.Id);
+        _db.AuditLogs.RemoveRange(audits);
+
+        await _db.SaveChangesAsync();
+
+        // Identity-User löschen
+        var res = await _um.DeleteAsync(user);
+        if (!res.Succeeded)
+        {
+            await tx.RollbackAsync();
+            return BadRequest(new { message = "Konto konnte nicht gelöscht werden.", errors = res.Errors.Select(e => e.Description) });
+        }
+
+        await tx.CommitAsync();
+
+        // Refresh-Cookie entfernen
+        Response.Cookies.Delete("rt", RtCookieOptions(TimeSpan.Zero));
 
         return Ok(new { ok = true });
     }

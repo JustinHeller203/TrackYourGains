@@ -321,16 +321,20 @@
     function closePasswordPopup() {
         showPasswordPopup.value = false
     }
+
     async function handlePasswordChange({ current, next }: { current: string; next: string; repeat: string }) {
         try {
             await auth.changePassword(current, next)
             addToast('Passwort erfolgreich geändert ✅', 'save')
             closePasswordPopup()
         } catch (e: any) {
-            addToast(e?.response?.data?.message || 'Fehler beim Ändern.', 'delete')
+            const msg =
+                e?.response?.data?.errors?.join?.('\n') ||    // Identity-Fehlerliste
+                e?.response?.data?.message ||                // sonstige Meldung
+                'Fehler beim Ändern.'
+            addToast(msg, 'delete')
         }
     }
-
 
     async function submitPassword() {
         pwdError.value = '';

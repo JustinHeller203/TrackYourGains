@@ -1,4 +1,4 @@
-// src/services/auth.ts
+﻿// src/services/auth.ts
 import { api, setToken } from "@/lib/api";
 
 type AuthResponse = { id: string; email: string; token: string };
@@ -31,4 +31,28 @@ export async function logout() {
     } finally {
         setToken(null);
     }
+}
+
+/** E-Mail ändern */
+export async function changeEmail(newEmail: string, password: string) {
+    const { data } = await api.post<AuthResponse>("/auth/change-email", { newEmail, password });
+    setToken(data.token);
+    return data;
+}
+
+/** 🔐 Passwort ändern */
+export async function changePassword(current: string, next: string) {
+    const { data } = await api.post<AuthResponse>("/auth/change-password", {
+        currentPassword: current,
+        newPassword: next,
+    });
+    setToken(data.token);
+    return data;
+}
+
+/** 🗑️ Konto löschen (bestätigt mit Passwort) */
+export async function deleteAccount(password: string) {
+    await api.post("/auth/delete-account", { password });
+    setToken(null);
+    return { ok: true };
 }

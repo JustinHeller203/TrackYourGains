@@ -3,11 +3,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Text;
 using System.Threading.RateLimiting;
-using System.Security.Claims;
 
 using Gym3000.Api.Data;
 using Gym3000.Api.Services;
-using Microsoft.AspNetCore.Mvc;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -114,6 +112,11 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()
           ?? throw new InvalidOperationException("Missing Jwt config");
 
+// Key-Härtung: mindestens 32 Byte
+var keyBytes = Encoding.UTF8.GetBytes(jwt.Key ?? "");
+if (keyBytes.Length < 32)
+    throw new InvalidOperationException("Jwt.Key must be at least 32 bytes (use a long random secret).");
+
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
@@ -123,34 +126,91 @@ builder.Services
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateIssuerSigningKey = true,
+            ValidateLifetime = true,                  // wichtig
+            RequireExpirationTime = true,             // wichtig
             ValidIssuer = jwt.Issuer,
             ValidAudience = jwt.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
+            IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
             NameClaimType = JwtRegisteredClaimNames.Sub,
             RoleClaimType = "role",
             ClockSkew = TimeSpan.Zero
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Beispiel-Policy:
+    // options.AddPolicy("mfa", p => p.RequireClaim("mfa", "true"));
+});
+
 builder.Services.AddScoped<IJwtService, JwtService>();
 
 // ========================== RateLimiting ================================
+// differenzierte Policies + klare 429-Antwort
 builder.Services.AddRateLimiter(opt =>
 {
     opt.RejectionStatusCode = 429;
+    opt.OnRejected = async (ctx, token) =>
+    {
+        ctx.HttpContext.Response.ContentType = "application/json";
+        await ctx.HttpContext.Response.WriteAsync("""
+            {"message":"Zu viele Versuche. Bitte später nochmal probieren."}
+            """, token);
+    };
+
+    opt.AddPolicy("auth-login", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,               // 5/min
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    opt.AddPolicy("auth-register", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,               // 3/min
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    opt.AddPolicy("auth-changeemail", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,               // moderat
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    opt.AddPolicy("auth-changepw", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,               // 5/min
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // NEU: generische Policy für Refresh / Logout
     opt.AddPolicy("auth", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(
             ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 10,
+                PermitLimit = 10,              // etwas lockerer
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers();          // nur Controller-Attribute, kein Minimal-API-Mix
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -161,7 +221,12 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
 
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
 {
     app.UseHsts();
 }
@@ -177,7 +242,7 @@ app.UseAuthorization();
 // ========================== OPTIONS Preflight ===========================
 app.MapMethods("/api/{**any}", new[] { "OPTIONS" }, (HttpContext ctx) => Results.Ok());
 
-// ========================== Controllers/Routes ==========================
+// ========================== Controller-Routing ==========================
 app.MapControllers();
 
 // Debug Route Dump

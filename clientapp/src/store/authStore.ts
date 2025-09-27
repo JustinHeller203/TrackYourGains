@@ -1,6 +1,6 @@
 ﻿// src/store/authStore.ts
 import { defineStore } from "pinia";
-import { login, register, logout } from "@/services/auth";
+import { login, register, logout, changeEmail, changePassword, deleteAccount as svcDeleteAccount } from "@/services/auth";
 import { getToken } from "@/lib/api";
 
 type AuthResponseDto = { token: string; email: string };
@@ -41,6 +41,25 @@ export const useAuthStore = defineStore("auth", {
 
         async signOut() {
             await logout();
+            this.user = null;
+            localStorage.removeItem(EMAIL_KEY);
+        },
+
+        async changeEmail(newEmail: string, password: string) {
+            const data: AuthResponseDto = await changeEmail(newEmail, password);
+            this.user = { email: data.email };
+            localStorage.setItem(EMAIL_KEY, data.email);
+        },
+
+        async changePassword(current: string, next: string) {
+            const data: AuthResponseDto = await changePassword(current, next);
+            // Token wurde im Service gesetzt; E-Mail bleibt gleich
+            return data;
+        },
+
+        /** 🗑️ Konto löschen + lokalen State säubern */
+        async deleteAccount(password: string) {
+            await svcDeleteAccount(password);
             this.user = null;
             localStorage.removeItem(EMAIL_KEY);
         },
