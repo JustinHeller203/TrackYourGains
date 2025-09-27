@@ -426,19 +426,37 @@
 
             <!-- ===================== PLÄNE TAB ===================== -->
             <div v-show="activeTab === 'plans'" class="plans-section">
-                <div class="plan-card" v-if="matchesPlanSearch('Trainingsplan')">
-                    <div class="card-header">
-                        <h3 class="card-title">📅 Trainingsplan</h3>
-                        <div class="card-actions">
-                            <ActionIconButton ariaLabel="Trainingsplan herunterladen"
-                                              title="Herunterladen"
-                                              @click="openDownloadPopup('plans')">
-                                ⬇️
-                            </ActionIconButton>
-                        </div>
+                <!-- Progress.vue – REPLACE in "Pläne" -> "Trainingspläne" -->
+                <div class="workout-list">
+                    <h3 class="section-title">Deine Trainingspläne</h3>
+
+                    <div v-if="!trainingPlans.length" class="list-item">
+                        Noch keine Trainingspläne – erstelle welche unter „Training“.
                     </div>
-                    <p>Dein aktueller Trainingsplan.</p>
+
+                    <template v-else>
+                        <div v-if="favoritePlans.length">
+                            <h4 class="section-title" style="margin-top: .5rem;">Favoriten</h4>
+                            <div v-for="plan in favoritePlans" :key="plan.id" class="list-item plan-item">
+                                <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
+                                <div class="list-item-actions">
+                                    <button class="open-btn" @click="openInTraining(plan.id)">Öffnen</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="otherPlans.length">
+                            <h4 class="section-title" style="margin-top: .5rem;">Weitere Pläne</h4>
+                            <div v-for="plan in otherPlans" :key="plan.id" class="list-item plan-item">
+                                <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
+                                <div class="list-item-actions">
+                                    <button class="open-btn" @click="openInTraining(plan.id)">Öffnen</button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
+
 
                 <div class="plan-card" v-if="matchesPlanSearch('Ernährungsplan')">
                     <div class="card-header">
@@ -489,6 +507,7 @@
 
 <script setup lang="ts">
     import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+    import { useRouter } from 'vue-router'
     import Chart from 'chart.js/auto';
     import confetti from 'canvas-confetti';
     import jsPDF from 'jspdf';
@@ -515,16 +534,15 @@
 
     // Interfaces
     interface PlanExercise {
-        exercise: string;
-        sets: number;
-        reps: number;
-        goal?: string;
+        exercise: string
+        sets: number
+        reps: number
+        goal?: string
     }
-
     interface TrainingPlan {
-        id: string;
-        name: string;
-        exercises: PlanExercise[];
+        id: string
+        name: string
+        exercises: PlanExercise[]
     }
 
     interface WeightEntry {
@@ -556,19 +574,10 @@
     // Refs
     const { unit, kgToDisplay, displayToKg, formatWeight } = useUnits()
     const trainingPlans = ref < TrainingPlan[] > ([]);
-    const weightHistory = ref < WeightEntry[] > ([
-        { date: '2025-05-28', weight: 76.4 },
-        { date: '2025-05-27', weight: 76.2 },
-    ]);
-    const workouts = ref < Workout[] > ([
-        { exercise: 'Bankdrücken', weight: 80, reps: 8, date: new Date().toISOString(), planId: undefined },
-        { exercise: 'Kniebeuge', weight: 100, reps: 10, date: new Date().toISOString(), planId: undefined },
-    ]);
-    const meals = ref < Meal[] > ([
-        { name: 'Frühstück', calories: 600 },
-        { name: 'Mittagessen', calories: 850 },
-        { name: 'Snack', calories: 300 },
-    ]);
+    const weightHistory = ref<WeightEntry[]>([]);
+    const workouts = ref<Workout[]>([]);
+    const meals = ref<Meal[]>([]);
+
 
     const glFood = ref < string > ('')
     const glServing = ref < number | null > (null)
@@ -718,8 +727,8 @@
     };
 
     const currentWeightDisplay = computed(() =>
-        weightHistory.value.length ? formatWeight(weightHistory.value[0].weight, 1) : 'N/A'
-    )
+        weightHistory.value.length ? formatWeight(weightHistory.value[0].weight, 1) : 'Kein Gewicht erfasst'
+    );
 
     // Begrenzt die angezeigten Einträge
     const displayedEntries = (planId: string) => {
@@ -739,7 +748,40 @@
             : null
     );
 
+    const router = useRouter()
+    const favoritePlansIds = ref<string[]>([])
 
+    onMounted(() => {
+        try {
+            // Primär: gemeinsamer Speicher von Training.vue
+            const raw = localStorage.getItem('trainingData')
+            if (raw) {
+                const parsed = JSON.parse(raw)
+                trainingPlans.value = Array.isArray(parsed?.plans) ? parsed.plans : []
+                favoritePlansIds.value = Array.isArray(parsed?.favoritePlans) ? parsed.favoritePlans : []
+            } else {
+                // Fallback: alter Key, den Training.vue evtl. zusätzlich schreibt
+                const legacy = localStorage.getItem('trainingPlans')
+                trainingPlans.value = legacy ? JSON.parse(legacy) : []
+                favoritePlansIds.value = []
+            }
+        } catch {
+            trainingPlans.value = []
+            favoritePlansIds.value = []
+        }
+    })
+
+    const favoritePlans = computed(() =>
+        trainingPlans.value.filter(p => favoritePlansIds.value.includes(p.id))
+    )
+    const otherPlans = computed(() =>
+        trainingPlans.value.filter(p => !favoritePlansIds.value.includes(p.id))
+    )
+
+    const openInTraining = (planId: string) => {
+        localStorage.setItem('openPlanId', planId) // Bridge für Training.vue
+        router.push({ name: 'Training' })         // ggf. an deinen Routennamen anpassen
+    }
     const totalCalories = computed(() => meals.value.reduce((sum, meal) => sum + meal.calories, 0));
 
     const currentWeight = computed(() =>
@@ -2580,6 +2622,97 @@
         min-height: 100vh;
         font-family: 'Inter', sans-serif;
         color: var(--text-primary);
+    }
+
+    /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
+
+    .workout-list {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        box-shadow: var(--shadow-light);
+    }
+
+    .section-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: .25rem 0 .75rem;
+    }
+
+    .list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: .75rem 1rem;
+        margin-bottom: .5rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        transition: background .2s ease, border-color .2s ease, transform .12s ease;
+    }
+
+        .list-item:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+
+    .plan-item span {
+        color: var(--text-secondary);
+        font-size: .95rem;
+    }
+
+    .list-item-actions {
+        display: flex;
+        gap: .5rem;
+    }
+
+    /* Öffnen-Button in der Liste */
+    .open-btn {
+        appearance: none;
+        border: none;
+        background: var(--accent-primary);
+        color: #fff;
+        font-weight: 600;
+        padding: .45rem .8rem;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0,0,0,.06);
+        transition: filter .15s ease, transform .1s ease;
+    }
+
+        .open-btn:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+        }
+
+        .open-btn:active {
+            transform: translateY(0);
+        }
+
+    /* Leerer Zustand (nimmt die vorhandene .list-item Optik) */
+    .workout-list .list-item.empty,
+    .workout-list .list-item:has(> .empty) {
+        justify-content: center;
+        color: var(--text-secondary);
+    }
+
+    /* Mobile Feinschliff */
+    @media (max-width: 600px) {
+        .list-item {
+            padding: .65rem .8rem;
+        }
+
+        .plan-item span {
+            font-size: .9rem;
+        }
+
+        .open-btn {
+            padding: .4rem .7rem;
+            font-size: .95rem;
+        }
     }
 
     .page-title {

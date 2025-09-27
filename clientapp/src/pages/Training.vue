@@ -192,7 +192,7 @@
                 <button class="add-timer-btn" @click="openAddTimerPopup" title="Neuen Timer hinzufügen">+</button>
             </div>
 
-            <Draggable :modelValue="props.timers"
+            <Draggable :modelValue="sortedTimers"
                        item-key="id"
                        handle=".timer-drag-handle"
                        :ghost-class="'drag-ghost'"
@@ -200,7 +200,6 @@
                        tag="div"
                        class="drag-stack"
                        @update:modelValue="(val) => emit('reorder-timers', val)">
-
                 <template #item="{ element: timer }">
                     <div class="timer-card" :key="timer.id" :data-timer-id="timer.id" data-type="timer">
                         <div class="timer-header">
@@ -213,7 +212,6 @@
                                                 :titleActive="'Aus Favoriten entfernen'"
                                                 :titleInactive="'Zu Favoriten hinzufügen'"
                                                 @toggle="toggleFavoriteTimer(timer.id)" />
-
                                 <button class="close-timer-btn"
                                         @click="openDeleteTimerPopup(timer.id)"
                                         title="Timer löschen">
@@ -259,6 +257,7 @@
                     </div>
                 </template>
             </Draggable>
+
         </div>
 
 
@@ -270,7 +269,7 @@
                 <button class="add-timer-btn" @click="openAddStopwatchPopup" title="Neue Stoppuhr hinzufügen">+</button>
             </div>
 
-            <Draggable :modelValue="props.stopwatches"
+            <Draggable :modelValue="sortedStopwatches"
                        item-key="id"
                        handle=".stopwatch-drag-handle"
                        :ghost-class="'drag-ghost'"
@@ -278,7 +277,6 @@
                        tag="div"
                        class="drag-stack"
                        @update:modelValue="(val) => emit('reorder-stopwatches', val)">
-
                 <template #item="{ element: stopwatch }">
                     <div class="timer-card" :key="stopwatch.id" :data-stopwatch-id="stopwatch.id" data-type="stopwatch">
                         <div class="timer-header">
@@ -292,7 +290,6 @@
                                                 :titleActive="'Aus Favoriten entfernen'"
                                                 :titleInactive="'Zu Favoriten hinzufügen'"
                                                 @toggle="toggleFavoriteStopwatch(stopwatch.id)" />
-
                                 <button class="close-timer-btn"
                                         @click="openDeleteStopwatchPopup(stopwatch.id)"
                                         title="Stoppuhr löschen">
@@ -1934,14 +1931,16 @@
     };
 
     onMounted(() => {
-        loadFromStorage(); // einheitlich
+        loadFromStorage();
         requestNotificationPermission();
         window.addEventListener('scroll', checkScroll);
         window.addEventListener('keydown', handleKeydown);
         initResizeTable();
         initAudioElements();
+        tryOpenPlanFromStorage(); // 👈 neu: öffnet Plan, wenn von „Trainingspläne“ aus gewählt
         console.log('Stopwatches beim Mounten (Training.vue):', props.stopwatches);
     });
+
 
 
     onUnmounted(() => {
@@ -1959,6 +1958,15 @@
             });
         }
     });
+
+    // Öffnet ggf. einen von außerhalb gewählten Plan
+    const tryOpenPlanFromStorage = () => {
+        const id = localStorage.getItem('trainingOpenPlanId')
+        if (id) {
+            loadPlan(id)
+            localStorage.removeItem('trainingOpenPlanId')
+        }
+    }
 
     watch(() => [props.timers, props.stopwatches], () => {
         console.log('timers oder stopwatches geändert:', { timers: props.timers, stopwatches: props.stopwatches });
@@ -2377,7 +2385,6 @@
         gap: 0.5rem;
     }
 
-    .favorite-btn,
     .edit-btn,
     .delete-btn,
     .download-btn,
@@ -2395,6 +2402,7 @@
         border-radius: 8px;
         transition: color 0.2s, text-shadow 0.2s, transform 0.1s;
     }
+
 
     .edit-btn {
         color: #6b7280;
