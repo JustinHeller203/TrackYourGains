@@ -43,6 +43,9 @@
         line-height: 1;
     }
 
+    .toggle-exercise-btn:hover {
+        transform: none !important;
+    }
         .add-exercise-btn:hover {
             background: linear-gradient(45deg, #5a7bc4, #2a3b6a);
             transform: scale(1.05);

@@ -2350,11 +2350,15 @@
     }
 
         .toggle-exercise-btn:hover {
-            background-color: #f3f4f6; /* Leicht grauer Hover-Effekt */
-            border-color: #4B6CB7; /* Blauer Rand wie beim Fokus */
-            transform: scale(1.02);
+            background-color: #f3f4f6;
+            border-color: #4B6CB7;
+            /* kein Scale mehr */
         }
 
+    .form-card .add-exercise-btn:hover,
+    .form-card .toggle-exercise-btn:hover {
+        transform: none !important;
+    }
     html.dark-mode .toggle-exercise-btn {
         background-color: #1f2937; /* Ursprüngliche Farbe im Dark Mode */
         color: #fff;
