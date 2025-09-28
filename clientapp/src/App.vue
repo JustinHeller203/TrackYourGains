@@ -56,8 +56,11 @@
              class="sticky-timer-card"
              :style="{ left: timer.left + 'px', top: timer.top + 'px' }"
              @mousedown="startDrag($event, timer)">
-            <span>{{ timer.name || 'Timer' }}</span>
-            <span class="time">{{ formatTimer(timer.time) }}</span>
+            <span class="name-link"
+                  @click="focusInTraining('timer', timer.id)"
+                  @mousedown.stop>
+                {{ timer.name || 'Timer' }}
+            </span>            <span class="time">{{ formatTimer(timer.time) }}</span>
             <button @click="startTimer(timer)" :disabled="timer.isRunning">Start</button>
             <button @click="stopTimer(timer)" :disabled="!timer.isRunning">Stop</button>
             <button @click="resetTimer(timer)">Reset</button>
@@ -69,8 +72,11 @@
              class="sticky-stopwatch-card"
              :style="{ left: sw.left + 'px', top: sw.top + 'px' }"
              @mousedown="startDrag($event, sw)">
-            <span>{{ sw.name || 'Stoppuhr' }}</span>
-            <span class="time">{{ formatStopwatch(sw.time) }}</span>
+            <span class="name-link"
+                  @click="focusInTraining('stopwatch', sw.id)"
+                  @mousedown.stop>
+                {{ sw.name || 'Stoppuhr' }}
+            </span>            <span class="time">{{ formatStopwatch(sw.time) }}</span>
             <button @click="toggleStopwatch(sw)">{{ sw.isRunning ? 'Pause' : 'Start' }}</button>
             <button @click="resetStopwatch(sw)">Reset</button>
             <button @click="addLap(sw)" :disabled="!sw.isRunning">Runde</button>
@@ -96,8 +102,7 @@
 
         <!-- ✅ Seiten-Inhalt -->
         <main class="main-content">
-            <router-view :key="timers.length + stopwatches.length"
-                         :timers="timers"
+            <router-view :timers="timers"
                          :stopwatches="stopwatches"
                          :startTimer="startTimer"
                          :stopTimer="stopTimer"
@@ -109,7 +114,9 @@
                          @add-timer="addTimer"
                          @add-stopwatch="addStopwatch"
                          @remove-timer="removeTimer"
-                         @remove-stopwatch="removeStopwatch" />
+                         @remove-stopwatch="removeStopwatch"
+                         @reorder-timers="reorderTimers"
+                         @reorder-stopwatches="reorderStopwatches" />
         </main>
     </div>
 </template>
@@ -117,7 +124,7 @@
 
 <script setup lang="ts">
     import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
-    import { useRoute } from 'vue-router'
+    import { useRoute, useRouter } from 'vue-router'
     import { useAuthStore } from '@/store/authStore'
 
     const auth = useAuthStore()
@@ -135,13 +142,14 @@
         customSeconds: number | null
         time: number
         isRunning: boolean
-        interval: NodeJS.Timeout | null
+        interval: number | null
         isFavorite: boolean
         sound: string
         isVisible: boolean
         shouldStaySticky: boolean
         left?: number
         top?: number
+        endAt?: number | null
     }
 
     interface StopwatchInstance {
@@ -149,13 +157,15 @@
         name: string
         time: number
         isRunning: boolean
-        interval: NodeJS.Timeout | null
+        interval: number | null
         laps: number[]
         isFavorite: boolean
         isVisible: boolean
         shouldStaySticky: boolean
         left?: number
         top?: number
+        startedAt?: number | null
+        offsetSec?: number
     }
 
     // Reaktive Zustände
@@ -170,6 +180,68 @@
     const stopwatches = ref<StopwatchInstance[]>([])
     const route = useRoute()
     const navRef = ref<HTMLElement | null>(null)
+    const router = useRouter()
+
+    const TIMER_KEY = 'training_timers_v1'
+    const STOPWATCH_KEY = 'training_stopwatches_v1'
+
+    // === neue Refs & Konstanten oben zu den anderen Refs ===
+    const dragEl = ref<HTMLElement | null>(null)
+    const EDGE_PAD = 8  // Sicherheitsabstand zu den Rändern
+
+    function focusInTraining(type: 'timer' | 'stopwatch', id: string) {
+        localStorage.setItem('trainingFocusType', type)
+        localStorage.setItem('trainingFocusId', id)
+
+        if (router.currentRoute.value.path === '/training') {
+            // Schon dort → fokussieren ohne Route neu zu laden
+            window.dispatchEvent(new CustomEvent('training:focus', { detail: { type, id } }))
+        } else {
+            router.push('/training')
+        }
+    }
+
+
+    function clampObjToViewport(obj: any, elW?: number, elH?: number) {
+        const w = elW ?? 200
+        const h = elH ?? 80
+        const navH = navRef.value?.offsetHeight ?? 0
+        const minLeft = EDGE_PAD
+        const maxLeft = Math.max(minLeft, window.innerWidth - w - EDGE_PAD)
+        const minTop = navH + EDGE_PAD
+        const maxTop = Math.max(minTop, window.innerHeight - h - EDGE_PAD)
+
+        obj.left = Math.min(Math.max(obj.left ?? minLeft, minLeft), maxLeft)
+        obj.top = Math.min(Math.max(obj.top ?? minTop, minTop), maxTop)
+    }
+
+    function clampAllSticky() {
+        timers.value.filter(t => t.shouldStaySticky)
+            .forEach(t => clampObjToViewport(t, (t as any)._w, (t as any)._h))
+        stopwatches.value.filter(s => s.shouldStaySticky)
+            .forEach(s => clampObjToViewport(s, (s as any)._w, (s as any)._h))
+    }
+
+    function saveAll() {
+        const t = timers.value.map(({ interval, ...rest }) => rest)
+        const s = stopwatches.value.map(({ interval, ...rest }) => rest)
+        localStorage.setItem(TIMER_KEY, JSON.stringify(t))
+        localStorage.setItem(STOPWATCH_KEY, JSON.stringify(s))
+    }
+
+    function loadAll() {
+        const oldTimers = localStorage.getItem('myAppTimers')
+        const oldStop = localStorage.getItem('myAppStopwatches')
+        try {
+            const t = JSON.parse(localStorage.getItem(TIMER_KEY) || oldTimers || '[]')
+            const s = JSON.parse(localStorage.getItem(STOPWATCH_KEY) || oldStop || '[]')
+            timers.value = Array.isArray(t) ? t.map((x: any) => ({ ...x, interval: null })) : []
+            stopwatches.value = Array.isArray(s) ? s.map((x: any) => ({ ...x, interval: null, laps: x.laps || [] })) : []
+        } catch {
+            timers.value = []
+            stopwatches.value = []
+        }
+    }
 
     function closeMenu() {
         menuOpen.value = false
@@ -194,6 +266,14 @@
         document.removeEventListener('click', handleDocClick, true)
     })
 
+    function reorderTimers(newList: any[]) {
+        timers.value = newList
+        saveAll()
+    }
+    function reorderStopwatches(newList: any[]) {
+        stopwatches.value = newList
+        saveAll()
+    }
     // Validation-Popup
     function openValidationPopup(errors: string[]) {
         validationErrorMessages.value = errors
@@ -241,16 +321,13 @@
     const removeTimer = async (id: string) => {
         const idx = timers.value.findIndex(t => t.id === id)
         if (idx !== -1) {
-            timers.value[idx].shouldStaySticky = false
-            timers.value[idx].isRunning = false
-            if (timers.value[idx].interval) {
-                clearInterval(timers.value[idx].interval!)
-                timers.value[idx].interval = null
-            }
-            timers.value = timers.value.filter(t => t.id !== id)
+            const t = timers.value[idx]
+            t.shouldStaySticky = false
+            t.isRunning = false
+            if (t.interval) { clearInterval(t.interval); t.interval = null }
+            timers.value = timers.value.filter(x => x.id !== id)
             await nextTick()
-            const clean = timers.value.map(({ interval, ...t }) => t)
-            localStorage.setItem('myAppTimers', JSON.stringify(clean))
+            saveAll() // ⬅️ hinzufügen
         }
     }
 
@@ -260,86 +337,114 @@
             const sw = stopwatches.value[idx]
             sw.shouldStaySticky = false
             sw.isRunning = false
-            if (sw.interval) {
-                clearInterval(sw.interval)
-                sw.interval = null
-            }
+            if (sw.interval) { clearInterval(sw.interval); sw.interval = null }
             stopwatches.value = stopwatches.value.filter(s => s.id !== id)
             await nextTick()
-            const clean = stopwatches.value.map(({ interval, ...s }) => s)
-            localStorage.setItem('myAppStopwatches', JSON.stringify(clean))
+            saveAll() // ⬅️ hinzufügen
         }
     }
 
-    const startTimer = (timer: TimerInstance) => {
+    function startTimer(timer: TimerInstance) {
+        // optional: Limit gleichzeitiger Timer
         const running = timers.value.filter(t => t.isRunning)
         if (running.length >= 3) {
             openValidationPopup(['Maximal 3 Timer dürfen gleichzeitig laufen!'])
             return
         }
-        if (!timer.isRunning) {
-            timer.time = timer.time || Number(timer.seconds) || Number(timer.customSeconds) || 60
-            timer.isRunning = true
-            timer.shouldStaySticky = true
-            if (timer.left === undefined) timer.left = 20
-            if (timer.top === undefined) timer.top = 80
-            timer.interval = setInterval(() => {
-                if (timer.time > 0) {
-                    timer.time--
-                } else {
-                    clearInterval(timer.interval!)
-                    timer.interval = null
-                    timer.isRunning = false
-                }
-            }, 1000)
-        }
+
+        if (timer.isRunning) return
+
+        const remaining = Math.max(0, Math.ceil(timer.time || Number(timer.seconds) || Number(timer.customSeconds) || 60))
+        timer.endAt = Date.now() + remaining * 1000
+        timer.isRunning = true
+        timer.shouldStaySticky = true
+        if (timer.left === undefined) timer.left = 20
+        if (timer.top === undefined) timer.top = 80
+
+        if (timer.interval) clearInterval(timer.interval)
+        timer.interval = window.setInterval(() => {
+            const left = Math.ceil(((timer.endAt ?? Date.now()) - Date.now()) / 1000)
+            timer.time = Math.max(0, left)
+            if (timer.time <= 0) {
+                clearInterval(timer.interval!)
+                timer.interval = null
+                timer.isRunning = false
+                timer.endAt = null
+                saveAll()
+            }
+        }, 250)
+
+        saveAll()
     }
 
-    const stopTimer = (timer: TimerInstance) => {
-        if (timer.interval) {
-            clearInterval(timer.interval)
-            timer.interval = null
+    function stopTimer(timer: TimerInstance) {
+        if (timer.interval) clearInterval(timer.interval)
+        timer.interval = null
+        if (timer.endAt) {
+            const left = Math.ceil((timer.endAt - Date.now()) / 1000)
+            timer.time = Math.max(0, left)
         }
         timer.isRunning = false
+        timer.endAt = null
+        saveAll()
     }
 
-    const resetTimer = (timer: TimerInstance) => {
-        stopTimer(timer)
-        timer.time = Number(timer.seconds) || Number(timer.customSeconds) || 60
+    function resetTimer(timer: TimerInstance) {
+        if (timer.interval) clearInterval(timer.interval)
+        timer.interval = null
+        timer.isRunning = false
+        timer.endAt = null
+        const base = timer.seconds === 'custom'
+            ? (timer.customSeconds ?? 60)
+            : Number(timer.seconds ?? 60) || 60
+        timer.time = Math.max(1, base)
         timer.shouldStaySticky = false
+        saveAll()
     }
 
-    const toggleStopwatch = (sw: StopwatchInstance) => {
-        if (sw.isRunning) {
-            clearInterval(sw.interval!)
-            sw.interval = null
-            sw.isRunning = false
-        } else {
+    function toggleStopwatch(sw: StopwatchInstance) {
+        if (!sw.isRunning) {
             const running = stopwatches.value.filter(s => s.isRunning)
             if (running.length >= 3) {
                 openValidationPopup(['Maximal 3 Stoppuhren dürfen gleichzeitig laufen!'])
                 return
             }
             sw.isRunning = true
+            sw.startedAt = Date.now()
+            sw.offsetSec = sw.offsetSec ?? sw.time ?? 0
             sw.shouldStaySticky = true
             if (sw.left === undefined) sw.left = 20
             if (sw.top === undefined) sw.top = 140
-            const startTime = Date.now() - sw.time * 1000
-            sw.interval = setInterval(() => {
-                sw.time = (Date.now() - startTime) / 1000
-            }, 10)
+
+            if (sw.interval) clearInterval(sw.interval)
+            sw.interval = window.setInterval(() => {
+                const elapsed = (Date.now() - (sw.startedAt ?? Date.now())) / 1000
+                sw.time = (sw.offsetSec ?? 0) + elapsed
+            }, 100)
+
+            saveAll()
+        } else {
+            if (sw.interval) clearInterval(sw.interval)
+            sw.interval = null
+            const elapsed = (Date.now() - (sw.startedAt ?? Date.now())) / 1000
+            sw.offsetSec = (sw.offsetSec ?? 0) + elapsed
+            sw.time = sw.offsetSec
+            sw.isRunning = false
+            sw.startedAt = null
+            saveAll()
         }
     }
 
-    const resetStopwatch = (sw: StopwatchInstance) => {
-        if (sw.interval) {
-            clearInterval(sw.interval)
-            sw.interval = null
-        }
+    function resetStopwatch(sw: StopwatchInstance) {
+        if (sw.interval) clearInterval(sw.interval)
+        sw.interval = null
         sw.isRunning = false
+        sw.startedAt = null
+        sw.offsetSec = 0
         sw.time = 0
         sw.laps = []
         sw.shouldStaySticky = false
+        saveAll()
     }
 
     const addLap = (sw: StopwatchInstance) => {
@@ -347,26 +452,47 @@
         sw.laps.push(sw.time)
     }
 
-    // Drag & Drop
+    // === startDrag anpassen ===
     function startDrag(e: MouseEvent, target: any) {
         e.preventDefault()
         dragging.value = true
         dragTarget.value = target
+        dragEl.value = e.currentTarget as HTMLElement
+
+        const el = dragEl.value
+        target._w = el?.offsetWidth ?? 200
+        target._h = el?.offsetHeight ?? 80
         target.offsetX = e.clientX - (target.left || 0)
         target.offsetY = e.clientY - (target.top || 0)
+
+        // sicherheitshalber gleich beim Start clampen
+        clampObjToViewport(target, target._w, target._h)
+
         window.addEventListener('mousemove', onDrag)
         window.addEventListener('mouseup', stopDrag)
     }
 
+
+    // === onDrag anpassen ===
     function onDrag(e: MouseEvent) {
         if (!dragging.value || !dragTarget.value) return
-        dragTarget.value.left = e.clientX - dragTarget.value.offsetX
-        dragTarget.value.top = e.clientY - dragTarget.value.offsetY
+        const t = dragTarget.value
+
+        // neue Positionen
+        t.left = e.clientX - (t.offsetX ?? 0)
+        t.top = e.clientY - (t.offsetY ?? 0)
+
+        // an die Kanten klemmen
+        const elW = dragEl.value?.offsetWidth ?? t._w ?? 200
+        const elH = dragEl.value?.offsetHeight ?? t._h ?? 80
+        clampObjToViewport(t, elW, elH)
     }
 
+    // === stopDrag minimal ergänzen ===
     function stopDrag() {
         dragging.value = false
         dragTarget.value = null
+        dragEl.value = null
         window.removeEventListener('mousemove', onDrag)
         window.removeEventListener('mouseup', stopDrag)
     }
@@ -419,35 +545,51 @@
 
     // Load saved data
     onMounted(() => {
-        try {
-            const savedTimers = localStorage.getItem('myAppTimers')
-            const savedStopwatches = localStorage.getItem('myAppStopwatches')
-            timers.value = savedTimers
-                ? JSON.parse(savedTimers).map((t: any) => ({
-                    ...t,
-                    interval: null,
-                    isRunning: false,
-                    shouldStaySticky: Boolean(t.shouldStaySticky),
-                    left: t.left || undefined,
-                    top: t.top || undefined
-                }))
-                : []
-            stopwatches.value = savedStopwatches
-                ? JSON.parse(savedStopwatches).map((s: any) => ({
-                    ...s,
-                    interval: null,
-                    isRunning: false,
-                    shouldStaySticky: Boolean(s.shouldStaySticky),
-                    left: s.left || undefined,
-                    top: s.top || undefined,
-                    laps: s.laps || []
-                }))
-                : []
-        } catch (e) {
-            console.warn('Fehler beim Laden:', e)
-        }
+        loadAll()
+
+        // Timer rehydrieren
+        timers.value.forEach(t => {
+            if (t.isRunning && t.endAt) {
+                t.time = Math.max(0, Math.ceil((t.endAt - Date.now()) / 1000))
+                if (t.time > 0) {
+                    if (t.interval) clearInterval(t.interval)
+                    t.interval = window.setInterval(() => {
+                        const l = Math.ceil(((t.endAt ?? Date.now()) - Date.now()) / 1000)
+                        t.time = Math.max(0, l)
+                        if (t.time <= 0) {
+                            clearInterval(t.interval!)
+                            t.interval = null
+                            t.isRunning = false
+                            t.endAt = null
+                            saveAll()
+                        }
+                    }, 250)
+                } else {
+                    t.isRunning = false
+                    t.endAt = null
+                    t.time = 0
+                }
+            }
+        })
+
+        // Stopwatches rehydrieren
+        stopwatches.value.forEach(sw => {
+            if (sw.isRunning && sw.startedAt != null) {
+                const elapsed = (Date.now() - sw.startedAt) / 1000
+                sw.offsetSec = sw.offsetSec ?? 0
+                sw.time = (sw.offsetSec ?? 0) + elapsed
+                if (sw.interval) clearInterval(sw.interval)
+                sw.interval = window.setInterval(() => {
+                    const e = (Date.now() - (sw.startedAt ?? Date.now())) / 1000
+                    sw.time = (sw.offsetSec ?? 0) + e
+                }, 100)
+            }
+        })
+
+        saveAll()
         window.addEventListener('keydown', handleKeydown)
     })
+
 
     onBeforeUnmount(() => {
         window.removeEventListener('mousemove', onDrag)
@@ -456,23 +598,9 @@
     })
 
     // Persist
-    watch(
-        timers,
-        newVal => {
-            const clean = newVal.map(({ interval, ...t }) => t)
-            localStorage.setItem('myAppTimers', JSON.stringify(clean))
-        },
-        { deep: true }
-    )
-
-    watch(
-        stopwatches,
-        newVal => {
-            const clean = newVal.map(({ interval, ...s }) => s)
-            localStorage.setItem('myAppStopwatches', JSON.stringify(clean))
-        },
-        { deep: true }
-    )
+    watch([timers, stopwatches], () => {
+        saveAll()
+    }, { deep: true })
 </script>
 
 <style scoped>
@@ -543,6 +671,16 @@
         gap: .75rem;
         position: relative;
     }
+
+    .name-link {
+        cursor: pointer;
+        text-underline-offset: 2px;
+        font-weight: 600;
+    }
+
+        .name-link:hover {
+            text-decoration-thickness: 3px;
+        }
 
     .logo {
         height: 56px;
@@ -801,6 +939,7 @@
         font-size: 0.85rem;
         cursor: grab;
         z-index: 2000;
+        border: 1px solid var(--border-color); /* <— neu für Light-Mode */
     }
 
         .sticky-timer-card:active,

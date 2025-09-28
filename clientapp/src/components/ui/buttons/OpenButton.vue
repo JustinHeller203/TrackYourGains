@@ -1,12 +1,11 @@
-﻿<template>
-    <div class="icon-btn-wrap">
+<template>
+    <div class="open-btn-wrap">
         <BaseButton :type="type"
                     :title="title"
                     :aria-label="ariaLabel || title"
                     :disabled="disabled"
-                    :extraClass="['download-btn', extraClass]"
                     @click="$emit('click', $event)">
-            <slot>⬇️</slot>
+            Öffnen
         </BaseButton>
     </div>
 </template>
@@ -19,39 +18,36 @@
         title?: string
         ariaLabel?: string
         disabled?: boolean
-        /** optional weitere Klassen */
-        extraClass?: string | string[] | Record<string, boolean>
     }>()
 
     defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 </script>
 
 <style scoped>
-    /* Basis exakt wie in Training.vue (.edit/.delete/.download/.open-btn) */
-    .icon-btn-wrap .action-btn {
+    .open-btn-wrap .action-btn {
         background: none;
         border: none;
         font-size: 1.2rem;
         cursor: pointer;
         padding: 0.5rem;
-        color: #6b7280;
         border-radius: 8px;
         transition: color 0.2s, text-shadow 0.2s, transform 0.1s;
+        color: #10b981;
+        /* Zentrierung im Button selbst (zusätzlich zum Container) */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
     }
 
-    /* Download-spezifisch: 1:1 wie in Training.vue */
-    .icon-btn-wrap .download-btn {
-        color: #6b7280;
-    }
-
-        .icon-btn-wrap .download-btn:hover {
-            color: #5a7bc4;
-            text-shadow: 0 0 8px #5a7bc4, 0 0 4px #5a7bc4;
+        .open-btn-wrap .action-btn:hover {
+            color: #064e3b;
+            text-shadow: 0 0 8px rgba(6, 78, 59, 0.5), 0 0 4px rgba(6, 78, 59, 0.5);
             transform: scale(1.1);
         }
 
-    html.dark-mode .icon-btn-wrap .download-btn:hover {
-        color: #5a7bc4;
-        text-shadow: 0 0 8px #5a7bc4, 0 0 4px #5a7bc4;
+    html.dark-mode .open-btn-wrap .action-btn:hover {
+        color: #10b981;
+        text-shadow: 0 0 8px #10b981, 0 0 4px #10b981;
     }
 </style>

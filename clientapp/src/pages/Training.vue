@@ -49,8 +49,9 @@
                                 <td>{{ ex.sets }}</td>
                                 <td>{{ ex.reps }}</td>
                                 <td>
-                                    <button type="button" class="delete-btn" style="background: none; border: none; color: inherit; font-size: 1.2rem; padding: 4px; cursor: pointer; border-radius: 4px; transition: transform 0.2s ease, color 0.2s ease;" @click="removeExerciseFromPlan(index)" title="Übung entfernen">🗑️</button>
-                                </td>
+                                    <DeleteButton title="Übung entfernen"
+                                                  :extraClass="'table-delete-btn transparent'"
+                                                  @click="removeExerciseFromPlan(index)" />                                </td>
                                 <td v-if="selectedPlanExercises.some(ex => ex.goal)">{{ ex.goal || '-' }}</td>
                             </tr>
                         </tbody>
@@ -58,6 +59,7 @@
                 </div>
             </form>
         </div>
+
         <div v-if="plans.length" class="workout-list">
             <h3 class="section-title">Deine Trainingspläne</h3>
 
@@ -66,31 +68,36 @@
             </div>
 
             <!-- Favoriten sortieren -->
-            <Draggable v-if="filteredFavoritePlans.length"
+            <Draggable v-if="favoritePlanItems.length"
                        v-model="favoritePlanItems"
                        item-key="id"
                        handle=".plan-drag-handle"
                        :ghost-class="'drag-ghost'"
                        :animation="150"
+                       :disabled="planSearch.trim().length > 0"
                        tag="div"
                        class="plan-drag-stack">
-
                 <template #item="{ element: plan }">
-                    <div class="list-item plan-item" :key="plan.id">
+                    <div v-if="planMatchesSearch(plan)" class="list-item plan-item" :key="plan.id">
                         <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
                         <span @click="loadPlan(plan.id)" @dblclick="openEditPopup('planName', plan.id)">
                             {{ plan.name }} ({{ plan.exercises.length }} Übungen)
                         </span>
                         <div class="list-item-actions">
-                             <FavoriteButton  :active="favoritePlans.includes(plan.id)"
-                                               :titleActive="'Aus Favoriten entfernen'"
-                                               :titleInactive="'Zu Favoriten hinzufügen'"
-                                               @toggle="toggleFavoritePlan(plan.id)"
-                                               />
-                            <button class="edit-btn" @click="editPlan(plan.id)">✏️</button>
-                            <button class="delete-btn" @click="openDeletePopup(() => deletePlan(plan.id))">🗑️</button>
-                            <button class="download-btn" @click="openDownloadPopup(plan)">⬇️</button>
-                            <button class="open-btn" @click="loadPlan(plan.id)">Öffnen</button>
+                            <FavoriteButton :active="favoritePlans.includes(plan.id)"
+                                            :titleActive="'Aus Favoriten entfernen'"
+                                            :titleInactive="'Zu Favoriten hinzufügen'"
+                                            @toggle="toggleFavoritePlan(plan.id)" />
+                            <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
+                            <DeleteButton title="Plan löschen"
+                                          @click="openDeletePopup(() => deletePlan(plan.id))" />
+                            <ActionIconButton title="Download"
+                                              aria-label="Trainingsplan herunterladen"
+                                              :extraClass="'download-btn'"
+                                              @click="openDownloadPopup(plan)">
+                                ⬇️
+                            </ActionIconButton>
+                            <OpenButton title="Öffnen" @click="loadPlan(plan.id)" />
                         </div>
                     </div>
                 </template>
@@ -102,11 +109,11 @@
                        handle=".plan-drag-handle"
                        :ghost-class="'drag-ghost'"
                        :animation="150"
+                       :disabled="planSearch.trim().length > 0"
                        tag="div"
                        class="plan-drag-stack">
-
                 <template #item="{ element: plan }">
-                    <div class="list-item plan-item" :key="plan.id">
+                    <div v-if="planMatchesSearch(plan)" class="list-item plan-item" :key="plan.id">
                         <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
                         <span @click="loadPlan(plan.id)" @dblclick="openEditPopup('planName', plan.id)">
                             {{ plan.name }} ({{ plan.exercises.length }} Übungen)
@@ -117,54 +124,29 @@
                                             :titleInactive="'Zu Favoriten hinzufügen'"
                                             @toggle="toggleFavoritePlan(plan.id)" />
 
-                            <button class="edit-btn" @click="editPlan(plan.id)">✏️</button>
-                            <button class="delete-btn" @click="openDeletePopup(() => deletePlan(plan.id))">🗑️</button>
-                            <button class="download-btn" @click="openDownloadPopup(plan)">⬇️</button>
-                            <button class="open-btn" @click="loadPlan(plan.id)">Öffnen</button>
+                            <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
+                            <DeleteButton title="Plan löschen"
+                                          @click="openDeletePopup(() => deletePlan(plan.id))" />
+                            <ActionIconButton title="Download"
+                                              aria-label="Trainingsplan herunterladen"
+                                              :extraClass="'download-btn'"
+                                              @click="openDownloadPopup(plan)">
+                                ⬇️
+                            </ActionIconButton>
+                            <OpenButton title="Öffnen" @click="loadPlan(plan.id)" />
                         </div>
                     </div>
                 </template>
             </Draggable>
         </div>
 
-        <!-- Liste eigener Übungen -->
-        <button @click="toggleCustomExercises" class="toggle-exercise-btn" v-if="customExercises.length > 0">
-            {{ showCustomExercises ? ' Benutzerdefinierte Übungen ausblenden' : ' Benutzerdefinierte Übungen anzeigen' }}
-        </button>
-        <div v-if="showCustomExercises" class="custom-exercises-table">
-            <h4 class="section-title">Eigene Übungen</h4>
-            <table class="exercise-table full-width">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Muskelgruppe</th>
-                        <th>Aktion</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(ex, i) in customExercises" :key="i">
-                        <td @dblclick="openEditPopup('customExerciseName', i)">
-                            <input v-if="exerciseEditIndex === i && exerciseEditField === 'name'" v-model="ex.name" @blur="finishEdit" @keyup.enter="finishEdit" />
-                            <span v-else>{{ ex.name }}</span>
-                        </td>
-                        <td @dblclick="openEditPopup('customExerciseMuscle', i)">
-                            <input v-if="exerciseEditIndex === i && exerciseEditField === 'muscle'" v-model="ex.muscle" @blur="finishEdit" @keyup.enter="finishEdit" />
-                            <span v-else>{{ ex.muscle }}</span>
-                        </td>
-                        <td>
-                            <button class="table-delete-btn" @click="removeCustomExercise(i)">🗑️</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
         <!-- Ausgewählter Trainingsplan -->
         <div v-if="selectedPlan" class="workout-list">
             <div class="plan-header">
                 <h3 class="section-title" @dblclick="openEditPopup('selectedPlanName', selectedPlan.id)">
                     Trainingsplan: {{ selectedPlan.name }}
                 </h3>
-                <button class="close-plan-btn" @click="closePlan" title="Plan schließen">✖</button>
+                <CloseButton title="Plan schließen" @click="closePlan" />
             </div>
             <div class="exercise-table full-width">
                 <table ref="resizeTable">
@@ -184,15 +166,51 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Benutzerdefinierte Übungen: JETZT direkt unter dem geöffneten Plan -->
+            <button @click="toggleCustomExercises" class="toggle-exercise-btn" v-if="customExercises.length > 0">
+                {{ showCustomExercises ? ' Benutzerdefinierte Übungen ausblenden' : ' Benutzerdefinierte Übungen anzeigen' }}
+            </button>
+            <div v-if="showCustomExercises" class="custom-exercises-table">
+                <h4 class="section-title">Eigene Übungen</h4>
+                <table class="exercise-table full-width">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Muskelgruppe</th>
+                            <th>Aktion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(ex, i) in customExercises" :key="i">
+                            <td @dblclick="openEditPopup('customExerciseName', i)">
+                                <input v-if="exerciseEditIndex === i && exerciseEditField === 'name'" v-model="ex.name" @blur="finishEdit" @keyup.enter="finishEdit" />
+                                <span v-else>{{ ex.name }}</span>
+                            </td>
+                            <td @dblclick="openEditPopup('customExerciseMuscle', i)">
+                                <input v-if="exerciseEditIndex === i && exerciseEditField === 'muscle'" v-model="ex.muscle" @blur="finishEdit" @keyup.enter="finishEdit" />
+                                <span v-else>{{ ex.muscle }}</span>
+                            </td>
+                            <td>
+                                <DeleteButton title="Übung löschen"
+                                              :extraClass="'table-delete-btn transparent'"
+                                              @click="removeCustomExercise(i)" />
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- /Benutzerdefinierte Übungen -->
         </div>
+
         <!-- Satzpausen-Timer -->
         <div class="workout-list timer-container">
             <div class="plan-header">
                 <h3 class="section-title">Satzpausen-Timer</h3>
-                <button class="add-timer-btn" @click="openAddTimerPopup" title="Neuen Timer hinzufügen">+</button>
+                <AddButton title="Neuen Timer hinzufügen" @click="openAddTimerPopup" />
             </div>
 
-            <Draggable :modelValue="sortedTimers"
+            <Draggable :modelValue="props.timers"
                        item-key="id"
                        handle=".timer-drag-handle"
                        :ghost-class="'drag-ghost'"
@@ -212,11 +230,8 @@
                                                 :titleActive="'Aus Favoriten entfernen'"
                                                 :titleInactive="'Zu Favoriten hinzufügen'"
                                                 @toggle="toggleFavoriteTimer(timer.id)" />
-                                <button class="close-timer-btn"
-                                        @click="openDeleteTimerPopup(timer.id)"
-                                        title="Timer löschen">
-                                    ✖
-                                </button>
+                                <CloseButton title="Timer löschen" variant="timer" @click="openDeleteTimerPopup(timer.id)" />
+
                             </div>
                         </div>
 
@@ -249,9 +264,9 @@
                             </div>
 
                             <div class="timer-buttons">
-                                <button class="timer-btn start-btn" @click="startTimer(timer)" :disabled="timer.isRunning">Start</button>
-                                <button class="timer-btn stop-btn" @click="stopTimer(timer)" :disabled="!timer.isRunning">Stop</button>
-                                <button class="timer-btn reset-btn" @click="resetTimer(timer)">Reset</button>
+                                <StartButton title="Start" @click="startTimer(timer)" :disabled="timer.isRunning" />
+                                <StopButton title="Stop" @click="stopTimer(timer)" :disabled="!timer.isRunning" />
+                                <ResetControlButton title="Reset" @click="resetTimer(timer)" />
                             </div>
                         </div>
                     </div>
@@ -260,16 +275,14 @@
 
         </div>
 
-
-
         <!-- Übungs-Stoppuhr -->
         <div class="workout-list stopwatch-top">
             <div class="plan-header">
                 <h3 class="section-title">Übungs-Stoppuhr</h3>
-                <button class="add-timer-btn" @click="openAddStopwatchPopup" title="Neue Stoppuhr hinzufügen">+</button>
+                <AddButton title="Neue Stoppuhr hinzufügen" @click="openAddStopwatchPopup" />
             </div>
 
-            <Draggable :modelValue="sortedStopwatches"
+            <Draggable :modelValue="props.stopwatches"
                        item-key="id"
                        handle=".stopwatch-drag-handle"
                        :ghost-class="'drag-ghost'"
@@ -290,23 +303,21 @@
                                                 :titleActive="'Aus Favoriten entfernen'"
                                                 :titleInactive="'Zu Favoriten hinzufügen'"
                                                 @toggle="toggleFavoriteStopwatch(stopwatch.id)" />
-                                <button class="close-timer-btn"
-                                        @click="openDeleteStopwatchPopup(stopwatch.id)"
-                                        title="Stoppuhr löschen">
-                                    ✖
-                                </button>
+                                <CloseButton title="Stoppuhr löschen" variant="stopwatch" @click="openDeleteStopwatchPopup(stopwatch.id)" />
                             </div>
                         </div>
 
                         <div class="timer-controls">
                             <span class="timer-display">{{ formatStopwatchDisplay(stopwatch.time) }}</span>
                             <div class="timer-buttons">
-                                <button class="timer-btn start-btn" @click="toggleStopwatch(stopwatch)">
+                                <StartButton :title="stopwatch.isRunning ? 'Pause' : 'Start'"
+                                             @click="toggleStopwatch(stopwatch)">
                                     {{ stopwatch.isRunning ? 'Pause' : 'Start' }}
-                                </button>
-                                <button class="timer-btn reset-btn" @click="resetStopwatch(stopwatch)">Reset</button>
-                                <button class="timer-btn lap-btn" @click="addLapTime(stopwatch)" :disabled="!stopwatch.isRunning">Runde</button>
-                            </div>
+                                </StartButton>
+                                <ResetControlButton title="Reset" @click="resetStopwatch(stopwatch)" />
+                                <RoundButton title="Runde"
+                                             :disabled="!stopwatch.isRunning"
+                                             @click="addLapTime(stopwatch)" />                            </div>
                         </div>
 
                         <div v-if="stopwatch.laps.length" class="laps-container">
@@ -324,25 +335,15 @@
         </div>
 
         <!-- Pop-up für Bearbeitung -->
-        <div v-if="showEditPopup" class="popup-overlay" @mousedown="handleOverlayClick">
-            <div class="popup edit-popup" @click.stop>
-                <h3 class="popup-title">{{ editPopupTitle }}</h3>
-                <div class="input-group">
-                    <input v-model="editValue"
-                           :type="editInputType"
-                           :placeholder="editPlaceholder"
-                           :min="editInputType === 'number' ? 1 : undefined"
-                           class="edit-input"
-                           @keydown.enter.prevent="saveEdit"
-                           @keydown.escape.prevent="closeEditPopup"
-                           ref="editInput" />
-                </div>
-                <div class="popup-actions">
-                    <button class="popup-btn save-btn" @click="saveEdit">Speichern</button>
-                    <button class="popup-btn cancel-btn" @click="closeEditPopup">Abbrechen</button>
-                </div>
-            </div>
-        </div>
+        <EditPopup v-model="showEditPopup"
+                   :key="`${editType}-${editIndex}-${editCellIndex}`"
+                   :title="editPopupTitle"
+                   :input-type="editInputType"
+                   :placeholder="editPlaceholder"
+                   :value="editValue"
+                   @save="onEditPopupSave" />
+
+
         <!-- Pop-up für Löschbestätigung -->
         <div v-if="showDeletePopup" class="popup-overlay" @mousedown="handleOverlayClick">
             <div class="popup delete-popup" @click.stop>
@@ -442,12 +443,24 @@
     </div>
 </template>
 
+
 <script setup lang="ts">
     import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
     import { jsPDF } from 'jspdf';
     import Draggable from 'vuedraggable';
     import Toast from '@/components/ui/Toast.vue'
     import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
+    import EditPopup from '@/components/ui/popups/EditPopup.vue'
+    import EditButton from '@/components/ui/buttons/EditButton.vue'
+    import DeleteButton from '@/components/ui/buttons/DeleteButton.vue'
+    import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
+    import OpenButton from '@/components/ui/buttons/OpenButton.vue'
+    import CloseButton from '@/components/ui/buttons/CloseButton.vue'
+    import AddButton from '@/components/ui/buttons/AddButton.vue'
+    import StartButton from '@/components/ui/buttons/StartButton.vue'
+    import StopButton from '@/components/ui/buttons/StopButton.vue'
+    import ResetControlButton from '@/components/ui/buttons/ResetControlButton.vue'
+    import RoundButton from '@/components/ui/buttons/RoundButton.vue'
 
     // Typ-Definitionen (bleiben unverändert)
     interface PlanExercise {
@@ -484,7 +497,7 @@
         id: string
         name?: string
         seconds: string | null
-        customSeconds: number | null 
+        customSeconds: number | null
         time: number
         isRunning: boolean
         interval: number | null
@@ -494,6 +507,9 @@
         shouldStaySticky: boolean
         left?: number
         top?: number
+        startedAtMs?: number;       
+        endsAtMs?: number;         
+        pausedRemaining?: number;   
     }
 
     interface StopwatchInstance {
@@ -503,11 +519,13 @@
         isRunning: boolean
         interval: number | null
         laps?: number[]
-        isFavorite: boolean        
-        isVisible: boolean       
+        isFavorite: boolean
+        isVisible: boolean
         shouldStaySticky: boolean
         left?: number
         top?: number
+        startedAtMs?: number;       
+        offsetMs?: number;         
     }
 
     const props = defineProps<{
@@ -627,7 +645,6 @@
     const editType = ref<'table' | 'selectedPlan' | 'planName' | 'selectedPlanName' | 'timerName' | 'stopwatchName' | 'customExerciseName' | 'customExerciseMuscle'>('table');
     const editIndex = ref<number | string | null>(null);
     const editCellIndex = ref<number | null>(null);
-    const editInput = ref<HTMLInputElement | null>(null);
     const newTimerInput = ref<HTMLInputElement | null>(null);
     const newStopwatchInput = ref<HTMLInputElement | null>(null);
     const showCustomExercises = ref(false);
@@ -637,7 +654,7 @@
     const toast = ref<Toast | null>(null);
     const timerObservers = new Map<string, IntersectionObserver>();
     let toastId = 0;
-    let toastTimeout: NodeJS.Timeout | null = null;
+    let toastTimeout: number | null = null;
     const deleteConfirmButton = ref<HTMLButtonElement | null>(null);
     const isTimerSticky = ref(false); // Hinzugefügt für Sticky-Logik
     const isStopwatchSticky = ref(false); // Hinzugefügt für Sticky-Logik
@@ -663,6 +680,33 @@
             }
         }
     };
+    function tryFocusFromStorage() {
+        const type = localStorage.getItem('trainingFocusType')
+        const id = localStorage.getItem('trainingFocusId')
+        if (!type || !id) return
+
+        const selector = type === 'timer'
+            ? `.timer-card[data-timer-id="${id}"]`
+            : `.timer-card[data-stopwatch-id="${id}"]`
+
+        const focusIt = (attempts = 0) => {
+            const el = document.querySelector(selector) as HTMLElement | null
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                el.classList.add('flash-focus')
+                setTimeout(() => el.classList.remove('flash-focus'), 1500)
+                // Flags weg
+                localStorage.removeItem('trainingFocusType')
+                localStorage.removeItem('trainingFocusId')
+            } else if (attempts < 20) {
+                // UI ist noch nicht gemountet → kurz retry
+                requestAnimationFrame(() => focusIt(attempts + 1))
+            }
+        }
+
+        // einmal nach DOM-Render probieren
+        nextTick(() => focusIt())
+    }
 
     const requestNotificationPermission = () => {
         if ('Notification' in window && Notification.permission !== 'granted') {
@@ -701,13 +745,13 @@
     const filteredFavoritePlans = computed(() => {
         const q = planSearch.value.toLowerCase().trim();
         return favoritePlanItems.value.filter(p =>
-            p.name.toLowerCase().includes(q) || p.exercises.some(ex => ex.goal?.toLowerCase().includes(q))
+            p.name.toLowerCase().includes(q) || p.exercises.some(ex => (ex.goal ?? '').toLowerCase().includes(q))
         );
     });
     const filteredOtherPlans = computed(() => {
         const q = planSearch.value.toLowerCase().trim();
         return otherPlanItems.value.filter(p =>
-            p.name.toLowerCase().includes(q) || p.exercises.some(ex => ex.goal?.toLowerCase().includes(q))
+            p.name.toLowerCase().includes(q) || p.exercises.some(ex => (ex.goal ?? '').toLowerCase().includes(q))
         );
     });
 
@@ -746,6 +790,13 @@
         return null;
     });
 
+    const planMatchesSearch = (plan: TrainingPlan) => {
+        const q = planSearch.value.toLowerCase().trim();
+        return !q
+            || plan.name.toLowerCase().includes(q)
+            || plan.exercises.some(ex => (ex.goal ?? '').toLowerCase().includes(q));
+    };
+
     const editPopupTitle = computed(() => {
         if (editType.value === 'planName' || editType.value === 'selectedPlanName') return 'Planname bearbeiten';
         if (editType.value === 'timerName') return 'Timername bearbeiten';
@@ -782,7 +833,7 @@
             const bFav = order.has(b.id);
             if (aFav && !bFav) return -1;
             if (!aFav && bFav) return 1;
-            if (aFav && bFav) return order.get(a.id)! - order.get(b.id)!; 
+            if (aFav && bFav) return order.get(a.id)! - order.get(b.id)!;
             return a.name.localeCompare(b.name);
         });
     });
@@ -894,6 +945,12 @@
         return { name: trimmedName, muscle: trimmedMuscle };
     };
 
+    const onEditPopupSave = (val: string) => {
+        editValue.value = val;
+        saveEdit();        // nutzt jetzt den tatsächlich im Popup editierten Wert
+    };
+
+
     const validatePlanName = (name: string): string | false => {
         const trimmedName = name.trim();
         if (trimmedName.length < 3) return false;
@@ -901,10 +958,10 @@
         return trimmedName;
     };
 
-    const validateStopwatchName = (name: string) => {
-        const trimmedName = name.trim();
-        if (trimmedName.length > 30) return 'Stoppuhr darf maximal 30 Zeichen lang sein';
-        return trimmedName || 'Stoppuhr';
+    const validateStopwatchName = (name: string): string | false => {
+        const trimmed = name.trim();
+        if (trimmed.length > 30) return false;
+        return trimmed || 'Stoppuhr';
     };
 
     const collectValidationErrors = () => {
@@ -1269,15 +1326,11 @@
         openDeletePopup(async () => {
             console.log('Löschaktion ausführen für Timer ID:', id);
             const timer = props.timers.find(t => t.id === id);
-            if (timer) {
-                timer.shouldStaySticky = false;
-                if (timer.isRunning && timer.interval) {
-                    clearInterval(timer.interval);
-                    timer.interval = null;
-                    timer.isRunning = false;
-                }
+            if (timer && timer.isRunning) {
+                props.stopTimer(timer);
             }
             emit('remove-timer', id);
+
             addToast('Timer gelöscht', 'delete');
             await nextTick();
             console.log('Nach removeTimer, aktuelle timers:', props.timers);
@@ -1286,14 +1339,18 @@
 
     const toggleFavoriteTimer = (id: string) => {
         const timer = props.timers.find(t => t.id === id);
-        if (timer) {
-            timer.isFavorite = !timer.isFavorite;
-            // nach oben einsortieren
-            const favs = props.timers.filter(t => t.isFavorite);
-            const others = props.timers.filter(t => !t.isFavorite);
-            emit('reorder-timers', [...favs, ...others]);
-            addToast(timer.isFavorite ? 'Timer zu Favoriten hinzugefügt' : 'Timer aus Favoriten entfernt', timer.isFavorite ? 'add' : 'delete');
-        }
+        if (!timer) return;
+        timer.isFavorite = !timer.isFavorite;
+
+        const others = props.timers.filter(t => !t.isFavorite);
+        const favs = props.timers.filter(t => t.isFavorite && t.id !== id);
+
+        const ordered = timer.isFavorite
+            ? [timer, ...favs, ...others]   // neu favorisiert → ganz nach oben
+            : [...favs, timer, ...others];  // entfavorisiert → direkt hinter Fav-Bereich
+
+        emit('reorder-timers', ordered);
+        addToast(timer.isFavorite ? 'Timer zu Favoriten hinzugefügt' : 'Timer aus Favoriten entfernt', timer.isFavorite ? 'add' : 'delete');
     };
 
     const openAddStopwatchPopup = () => {
@@ -1311,10 +1368,11 @@
 
     const addStopwatch = async () => {
         const validatedName = validateStopwatchName(newStopwatchName.value);
-        if (typeof validatedName !== 'string') {
-            openValidationPopup([validatedName]);
+        if (validatedName === false) {
+            openValidationPopup(['Stoppuhr darf maximal 30 Zeichen lang sein']);
             return;
         }
+
         const newStopwatch: StopwatchInstance = {
             id: Date.now().toString(),
             name: validatedName,
@@ -1326,6 +1384,7 @@
             isVisible: true,
             shouldStaySticky: false
         };
+
         emit('add-stopwatch', newStopwatch);
         addToast('Stoppuhr hinzugefügt', 'add');
         closeAddStopwatchPopup();
@@ -1334,39 +1393,43 @@
     };
 
     const openDeleteStopwatchPopup = (id: string) => {
-        console.log('openDeleteStopwatchPopup aufgerufen mit ID:', id);
         if (props.stopwatches.length <= 1) {
             openValidationPopup(['Mindestens eine Stoppuhr muss geöffnet bleiben']);
             return;
         }
         openDeletePopup(async () => {
-            console.log('Löschaktion ausführen für Stoppuhr ID:', id);
-            const stopwatch = props.stopwatches.find(sw => sw.id === id);
-            if (stopwatch) {
-                stopwatch.shouldStaySticky = false;
-                if (stopwatch.isRunning && stopwatch.interval) {
-                    clearInterval(stopwatch.interval);
-                    stopwatch.interval = null;
-                    stopwatch.isRunning = false;
+            const sw = props.stopwatches.find(x => x.id === id);
+            if (sw) {
+                sw.shouldStaySticky = false; // optional; rein UI-Flag
+                if (sw.isRunning) {
+                    // ⏸ Parent pausiert/stoppt – keine lokale Interval-Logik hier
+                    props.toggleStopwatch(sw);
                 }
             }
             emit('remove-stopwatch', id);
             addToast('Stoppuhr gelöscht', 'delete');
             await nextTick();
-            console.log('Nach removeStopwatch, aktuelle stopwatches:', props.stopwatches);
         });
     };
 
+
+
     const toggleFavoriteStopwatch = (id: string) => {
-        const s = props.stopwatches.find(x => x.id === id);
-        if (s) {
-            s.isFavorite = !s.isFavorite;
-            const favs = props.stopwatches.filter(x => x.isFavorite);
-            const others = props.stopwatches.filter(x => !x.isFavorite);
-            emit('reorder-stopwatches', [...favs, ...others]);
-            addToast(s.isFavorite ? 'Stoppuhr zu Favoriten hinzugefügt' : 'Stoppuhr aus Favoriten entfernt', s.isFavorite ? 'add' : 'delete');
-        }
+        const sw = props.stopwatches.find(x => x.id === id);
+        if (!sw) return;
+        sw.isFavorite = !sw.isFavorite;
+
+        const others = props.stopwatches.filter(x => !x.isFavorite);
+        const favs = props.stopwatches.filter(x => x.isFavorite && x.id !== id);
+
+        const ordered = sw.isFavorite
+            ? [sw, ...favs, ...others]
+            : [...favs, sw, ...others];
+
+        emit('reorder-stopwatches', ordered);
+        addToast(sw.isFavorite ? 'Stoppuhr zu Favoriten hinzugefügt' : 'Stoppuhr aus Favoriten entfernt', sw.isFavorite ? 'add' : 'delete');
     };
+
 
     const updateCustomSeconds = (timer: TimerInstance) => {
         if (timer.customSeconds != null && !isNaN(timer.customSeconds) && timer.customSeconds > 0) {
@@ -1547,14 +1610,7 @@
 
         showEditPopup.value = true;
         console.log('showEditPopup gesetzt:', showEditPopup.value);
-        nextTick(() => {
-            if (editInput.value) {
-                editInput.value.focus();
-                console.log('Fokus auf Edit-Input gesetzt');
-            } else {
-                console.warn('editInput nicht gefunden');
-            }
-        });
+        
     };
 
     const saveEdit = () => {
@@ -1658,8 +1714,8 @@
             }
         } else if (editType.value === 'stopwatchName' && typeof editIndex.value === 'string') {
             const validatedName = validateStopwatchName(editValue.value);
-            if (typeof validatedName !== 'string') {
-                openValidationPopup([validatedName]);
+            if (validatedName === false) {
+                openValidationPopup(['Stoppuhr darf maximal 30 Zeichen lang sein']);
                 return;
             }
             const stopwatch = props.stopwatches.find(s => s.id === editIndex.value);
@@ -1693,6 +1749,23 @@
         }
         closeEditPopup();
     };
+
+    // unter deinen anderen imports/refs:
+    const onTrainingFocus = (e: Event) => {
+        const { type, id } = (e as CustomEvent<{ type: 'timer' | 'stopwatch'; id: string }>).detail
+        // dieselbe Logik wie beim initialen Fokus
+        localStorage.setItem('trainingFocusType', type)
+        localStorage.setItem('trainingFocusId', id)
+        nextTick(() => tryFocusFromStorage())
+    }
+
+    onMounted(() => {
+        window.addEventListener('training:focus', onTrainingFocus as EventListener)
+    })
+
+    onUnmounted(() => {
+        window.removeEventListener('training:focus', onTrainingFocus as EventListener)
+    })
 
     const updatePlanInStorage = () => {
         if (selectedPlan.value) {
@@ -1736,10 +1809,11 @@
     };
 
     const handleKeydown = (event: KeyboardEvent) => {
-        console.log('Keydown erkannt:', event.key);
+        // Wenn das Edit-Popup offen ist, handled es Enter/Escape selbst
+        if (showEditPopup.value) return;
+
         if (event.key === 'Escape') {
             if (showValidationPopup.value) {
-                console.log('Escape im Validierungspopup');
                 closeValidationPopup();
             } else {
                 closeEditPopup();
@@ -1751,28 +1825,21 @@
             }
         } else if (event.key === 'Enter') {
             if (showValidationPopup.value) {
-                console.log('Enter im Validierungspopup');
                 event.preventDefault();
                 closeValidationPopup();
-            } else if (showEditPopup.value) {
-                console.log('Enter im Bearbeitungspopup');
-                event.preventDefault();
-                saveEdit();
             } else if (showDeletePopup.value) {
-                console.log('Enter im Löschpopup');
                 event.preventDefault();
                 confirmDeleteAction();
             } else if (showAddTimerPopup.value) {
-                console.log('Enter im Timer-Popup');
                 event.preventDefault();
                 addTimer();
             } else if (showAddStopwatchPopup.value) {
-                console.log('Enter im Stoppuhr-Popup');
                 event.preventDefault();
                 addStopwatch();
             }
         }
     };
+
 
     const checkScroll = () => {
         // Timer
@@ -1914,10 +1981,7 @@
         });
 
         const cleanupResizers = () => {
-            resizers.forEach(resizer => {
-                resizer.removeEventListener('mousedown', () => { });
-                resizer.remove();
-            });
+            resizers.forEach(resizer => resizer.remove());
         };
 
         onUnmounted(() => cleanupResizers());
@@ -1932,6 +1996,7 @@
 
     onMounted(() => {
         loadFromStorage();
+        tryFocusFromStorage()
         requestNotificationPermission();
         window.addEventListener('scroll', checkScroll);
         window.addEventListener('keydown', handleKeydown);
@@ -1946,17 +2011,7 @@
     onUnmounted(() => {
         window.removeEventListener('scroll', checkScroll);
         window.removeEventListener('keydown', handleKeydown);
-        // Sicherstellen, dass props.timers und props.stopwatches Arrays sind
-        if (Array.isArray(props.timers)) {
-            props.timers.forEach(timer => {
-                if (timer.interval) clearInterval(timer.interval);
-            });
-        }
-        if (Array.isArray(props.stopwatches)) {
-            props.stopwatches.forEach(stopwatch => {
-                if (stopwatch.interval) clearInterval(stopwatch.interval);
-            });
-        }
+        
     });
 
     // Öffnet ggf. einen von außerhalb gewählten Plan
@@ -1976,8 +2031,8 @@
     watch(selectedPlan, (val) => {
         if (val) nextTick(() => initResizeTable());
     });
-    watch(plans, (newPlans) => {
-        localStorage.setItem('trainingPlans', JSON.stringify(newPlans));
+    watch(plans, () => {
+        saveToStorage();
     }, { deep: true });
     watch(
         () => props.timers.map(t => ({ id: t.id, time: t.time, sound: t.sound })),
@@ -1998,11 +2053,10 @@
                     sendNotification('Timer fertig', 'Deine Satzpause ist vorbei 💪');
 
                     const timer = props.timers.find(t => t.id === id);
-                    if (timer && timer.isRunning && timer.interval) {
-                        clearInterval(timer.interval);
-                        timer.isRunning = false;
-                        timer.interval = null;
+                    if (timer && timer.isRunning) {
+                        props.stopTimer(timer); // Parent regelt Interval + State
                     }
+
                 }
 
                 // Reset, wenn wieder >0
@@ -2264,6 +2318,20 @@
             width: 100%;
         }
 
+    /* Buttons rechts im Plan-Item vertikal zentrieren */
+    .list-item-actions {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center; /* <— NEU */
+    }
+
+        /* Einheitliches Innenleben für alle Buttons (Icon + Text) */
+        .list-item-actions .action-btn {
+            line-height: 1; /* kein extra Line-Height */
+            display: inline-flex; /* saubere vertikale Zentrierung im Button */
+            align-items: center;
+            justify-content: center;
+        }
 
     .toggle-exercise-btn {
         margin-top: 1rem;
@@ -2287,7 +2355,6 @@
         background-color: #1f2937; /* Ursprüngliche Farbe im Dark Mode */
         color: #fff;
         border: 1px solid #30363d;
-        border: none;
     }
 
         html.dark-mode .toggle-exercise-btn:hover {
@@ -2330,7 +2397,7 @@
         color: #374151;
     }
 
-        .custom-exercises-table td input.edit-input {
+        .custom-exercises-table td input {
             width: 90%;
             padding: 0.3rem 0.5rem;
             font-size: 0.9rem;
@@ -2339,7 +2406,7 @@
             outline: none;
         }
 
-            .custom-exercises-table td input.edit-input:focus {
+            .custom-exercises-table td input:focus {
                 border-color: #3b82f6;
                 box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
             }
@@ -2380,11 +2447,6 @@
         }
     }
 
-    .list-item-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
-
     .edit-btn,
     .delete-btn,
     .download-btn,
@@ -2401,22 +2463,6 @@
         color: #6b7280;
         border-radius: 8px;
         transition: color 0.2s, text-shadow 0.2s, transform 0.1s;
-    }
-
-
-    .edit-btn {
-        color: #6b7280;
-    }
-
-        .edit-btn:hover {
-            color: #F59E0B;
-            text-shadow: 0 0 8px #F59E0B, 0 0 4px #F59E0B;
-            transform: scale(1.1);
-        }
-
-    html.dark-mode .edit-btn:hover {
-        color: #F59E0B;
-        text-shadow: 0 0 8px #F59E0B, 0 0 4px #F59E0B;
     }
 
     .delete-btn,
@@ -2442,35 +2488,7 @@
         text-shadow: 0 0 8px #7f1d1d, 0 0 4px #7f1d1d;
     }
 
-    .download-btn {
-        color: #6b7280;
-    }
 
-        .download-btn:hover {
-            color: #5a7bc4;
-            text-shadow: 0 0 8px #5a7bc4, 0 0 4px #5a7bc4;
-            transform: scale(1.1);
-        }
-
-    html.dark-mode .download-btn:hover {
-        color: #5a7bc4;
-        text-shadow: 0 0 8px #5a7bc4, 0 0 4px #5a7bc4;
-    }
-
-    .open-btn {
-        color: #10b981;
-    }
-
-        .open-btn:hover {
-            color: #064e3b;
-            text-shadow: 0 0 8px rgba(6, 78, 59, 0.5), 0 0 4px rgba(6, 78, 59, 0.5);
-            transform: scale(1.1);
-        }
-
-    html.dark-mode .open-btn:hover {
-        color: #10b981;
-        text-shadow: 0 0 8px #10b981, 0 0 4px #10b981;
-    }
 
     .close-plan-btn,
     .close-timer-btn {
@@ -2488,17 +2506,6 @@
         top: 0.5rem;
         right: 0.5rem;
     }
-
-    .add-timer-btn {
-        color: #10b981;
-        font-size: 1.5rem;
-        padding: 0.25rem 0.5rem;
-    }
-
-        .add-timer-btn:hover {
-            color: #064e3b;
-            transform: scale(1.1);
-        }
 
     .exercise-input-group {
         display: flex;
@@ -2601,6 +2608,11 @@
         width: 10px;
         height: 100%;
         cursor: col-resize;
+    }
+    .flash-focus {
+        outline: 2px solid var(--accent-primary);
+        box-shadow: 0 0 0 3px var(--accent-primary), 0 0 18px var(--accent-hover);
+        transition: box-shadow .3s ease;
     }
 
     .exercise-table.full-width tr.resizable-row:hover::after {
@@ -2792,36 +2804,6 @@
         font-size: 0.9rem;
         transition: background 0.2s, transform 0.1s;
     }
-
-    .start-btn {
-        background: #10b981;
-        color: #ffffff;
-    }
-
-        .start-btn:hover {
-            background: #064e3b;
-            transform: scale(1.05);
-        }
-
-    .stop-btn {
-        background: #ef4444;
-        color: #ffffff;
-    }
-
-        .stop-btn:hover {
-            background: #b91c1c;
-            transform: scale(1.05);
-        }
-
-    .reset-btn {
-        background: #6b7280;
-        color: #ffffff;
-    }
-
-        .reset-btn:hover {
-            background: #4b5563;
-            transform: scale(1.05);
-        }
 
     .lap-btn {
         background: #4B6CB7;
