@@ -16,8 +16,12 @@
                     <input v-show="newExercise === 'custom'" v-model="customPlanExercise" placeholder="Eigene Übung eingeben" />
                     <input v-model.number="newReps" placeholder="Wiederholungen" type="number" min="1" />
                     <input v-model.number="newSets" placeholder="Sätze" type="number" min="1" />
-                    <button type="button" class="add-exercise-btn" @click="addExerciseToPlan">Übung hinzufügen</button>
-                    <button type="button" @click="toggleExtras" class="extras-toggle-btn">{{ showExtras ? 'Extras ausblenden' : 'Extras einblenden' }}</button>
+                    <AddExerciseButton title="Übung hinzufügen"
+                                       @click="addExerciseToPlan" />
+                    <ExtrasToggleButton :toggled="showExtras"
+                                        @click="toggleExtras">
+                        {{ showExtras ? 'Extras ausblenden' : 'Extras einblenden' }}
+                    </ExtrasToggleButton>
                     <div v-if="showExtras" class="extras-container show">
                         <div class="extras-content">
                             <select v-model="selectedGoal" class="goal-select">
@@ -26,10 +30,12 @@
                             </select>
                         </div>
                     </div>
-                    <button type="submit"
-                            :disabled="validatePlanName(planName) === false">
-                        {{ editingPlanId ? 'Plan speichern' : 'Plan erstellen' }}
-                    </button>
+                    <PlanSubmitButton :isEditing="!!editingPlanId"
+                                      :disabled="validatePlanName(planName) === false"
+                                      createLabel="Plan erstellen"
+                                      saveLabel="Plan speichern" />
+
+
 
                 </div>
                 <div v-if="selectedPlanExercises.length" class="exercise-table full-width">
@@ -461,6 +467,9 @@
     import StopButton from '@/components/ui/buttons/StopButton.vue'
     import ResetControlButton from '@/components/ui/buttons/ResetControlButton.vue'
     import RoundButton from '@/components/ui/buttons/RoundButton.vue'
+    import AddExerciseButton from '@/components/ui/buttons/AddExerciseButton.vue'
+    import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue'
+    import PlanSubmitButton from '@/components/ui/buttons/PlanSubmitButton.vue'
 
     // Typ-Definitionen (bleiben unverändert)
     interface PlanExercise {
@@ -2254,11 +2263,6 @@
         cursor: pointer;
         transition: background 0.2s, transform 0.2s;
     }
-
-        .form-card button:hover {
-            background: linear-gradient(45deg, #5a7bc4, #2a3b6a);
-            transform: scale(1.05);
-        }
 
         .form-card button:disabled {
             opacity: 0.5;

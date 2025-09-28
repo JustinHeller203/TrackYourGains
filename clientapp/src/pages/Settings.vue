@@ -456,11 +456,6 @@
         background: var(--accent-hover);
     }
 
-    html.dark-mode .save-button:hover {
-        background: #5a7bc4;
-    }
-
-
     @keyframes slideIn {
         from {
             transform: translateY(100px);
