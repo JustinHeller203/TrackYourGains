@@ -28,18 +28,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
 
     <!-- Theme Init -->
-    <script>
-        try {
-            const saved = localStorage.getItem('theme');
-            const prefersDark = window.matchMedia &&
-                window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const isDark = saved ? saved === 'dark' : prefersDark;
-            document.documentElement.classList.toggle('dark-mode', isDark);
-            document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-        } catch (e) {
-            console.warn('Theme Init Error:', e);
-        }
-    </script>
+    <script src="/theme-init.js"></script>
+
 </head>
 <body>
     <div id="app"></div>

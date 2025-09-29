@@ -16,7 +16,9 @@ export function initTheme() {
         apply(saved)
         return
     }
-    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    const prefersDark = typeof window !== 'undefined' && 'matchMedia' in window
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        : false
     apply(prefersDark ? 'dark' : 'light')
 }
 

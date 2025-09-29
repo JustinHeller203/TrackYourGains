@@ -40,4 +40,5 @@ defineEmits<{ (e:'click', ev:MouseEvent): void }>()
         text-shadow: 0 0 8px #F59E0B, 0 0 4px #F59E0B;
     }
 
+
 </style>

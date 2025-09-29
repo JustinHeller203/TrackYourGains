@@ -65,7 +65,9 @@
         </div>
 
         <div class="settings-footer">
-            <button class="save-button" @click="saveSettings">💾 Einstellungen speichern</button>
+            <SettingsSaveButton :disabled="false"
+                                title="Einstellungen speichern"
+                                @click="saveSettings" />
         </div>
 
         <Toast v-if="toast && toastsEnabled"
@@ -81,6 +83,7 @@
     import { isDark, initTheme, setTheme, previewTheme } from '@/composables/useTheme'
     import { onBeforeRouteLeave } from 'vue-router'
     import Toast from '@/components/ui/Toast.vue'
+    import SettingsSaveButton from '@/components/ui/buttons/SettingsSaveButton.vue'
 
     // Typen passend zu deiner Toast.vue
     type ToastType =
@@ -433,28 +436,6 @@
         border-color: #30363d;
     }
 
-    .save-button {
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        color: #ffffff;
-        border: none;
-        border-radius: 16px;
-        padding: 1rem 2.5rem;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: var(--shadow);
-    }
-
-    html.dark-mode .save-button {
-        background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
-    }
-
-    .save-button:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-hover);
-        background: var(--accent-hover);
-    }
 
     @keyframes slideIn {
         from {

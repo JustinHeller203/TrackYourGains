@@ -57,7 +57,8 @@
                                 <td>
                                     <DeleteButton title="Übung entfernen"
                                                   :extraClass="'table-delete-btn transparent'"
-                                                  @click="removeExerciseFromPlan(index)" />                                </td>
+                                                  @click="removeExerciseFromPlan(index)" />
+                                </td>
                                 <td v-if="selectedPlanExercises.some(ex => ex.goal)">{{ ex.goal || '-' }}</td>
                             </tr>
                         </tbody>
@@ -323,7 +324,8 @@
                                 <ResetControlButton title="Reset" @click="resetStopwatch(stopwatch)" />
                                 <RoundButton title="Runde"
                                              :disabled="!stopwatch.isRunning"
-                                             @click="addLapTime(stopwatch)" />                            </div>
+                                             @click="addLapTime(stopwatch)" />
+                            </div>
                         </div>
 
                         <div v-if="stopwatch.laps.length" class="laps-container">
@@ -351,90 +353,48 @@
 
 
         <!-- Pop-up für Löschbestätigung -->
-        <div v-if="showDeletePopup" class="popup-overlay" @mousedown="handleOverlayClick">
-            <div class="popup delete-popup" @click.stop>
-                <h3 class="popup-title">Löschen bestätigen</h3>
-                <p>Willst du das wirklich löschen?</p>
-                <div class="popup-actions">
-                    <button ref="deleteConfirmButton" class="popup-btn delete-confirm-btn" @click="confirmDeleteAction" @keydown.enter.prevent="confirmDeleteAction">Löschen</button>
-                    <button class="popup-btn cancel-btn" @click="closeDeletePopup" @keydown.enter.prevent="closeDeletePopup">Abbrechen</button>
-                </div>
-            </div>
-        </div>
+        <DeleteConfirmPopup :show="showDeletePopup"
+                            @confirm="confirmDeleteAction"
+                            @cancel="closeDeletePopup" />
+
         <!-- Pop-up für Timer -->
-        <div v-if="showTimerPopup" class="popup-overlay" @mousedown="handleOverlayClick">
-            <div class="popup" @click.stop>
-                <h3>Satzpause beendet!</h3>
-                <p>Deine Pause ist vorbei. Bereit für den nächsten Satz? 💪</p>
-                <div class="popup-actions">
-                    <button class="popup-btn save-btn" @click="closeTimerPopup" @keydown.enter.prevent="closeTimerPopup" @keydown.escape.prevent="closeTimerPopup">OK</button>
-                </div>
-            </div>
-        </div>
+        <InfoPopup :show="showTimerPopup"
+                   title="Satzpause beendet!"
+                   message="Deine Pause ist vorbei. Bereit für den nächsten Satz? 💪"
+                   overlayClass="timer-popup"
+                   okText="OK"
+                   @ok="closeTimerPopup"
+                   @cancel="closeTimerPopup" />
+
         <!-- Pop-up für neuen Timer -->
-        <div v-if="showAddTimerPopup" class="popup-overlay" @mousedown="handleOverlayClick">
-            <div class="popup" @click.stop>
-                <h3 class="popup-title">Neuen Timer hinzufügen</h3>
-                <div class="input-group">
-                    <input v-model="newTimerName" type="text" placeholder="Timer Name (optional)" class="edit-input" ref="newTimerInput" @keydown.enter.prevent="addTimer" @keydown.escape.prevent="closeAddTimerPopup" />
-                </div>
-                <div class="popup-actions">
-                    <button class="popup-btn save-btn" @click="addTimer">Hinzufügen</button>
-                    <button class="popup-btn cancel-btn" @click="closeAddTimerPopup">Abbrechen</button>
-                </div>
-            </div>
-        </div>
+        <NamePromptPopup :show="showAddTimerPopup"
+                         v-model="newTimerName"
+                         title="Neuen Timer hinzufügen"
+                         placeholder="Timer Name (optional)"
+                         overlayClass="timer-popup"
+                         @save="addTimer"
+                         @cancel="closeAddTimerPopup" />
+
         <!-- Pop-up für neue Stoppuhr -->
-        <div v-if="showAddStopwatchPopup" class="popup-overlay" @mousedown="handleOverlayClick">
-            <div class="popup" @click.stop>
-                <h3 class="popup-title">Neue Stoppuhr hinzufügen</h3>
-                <div class="input-group">
-                    <input v-model="newStopwatchName" type="text" placeholder="Stoppuhr Name (optional)" class="edit-input" ref="newStopwatchInput" @keydown.enter.prevent="addStopwatch" @keydown.escape.prevent="closeAddStopwatchPopup" />
-                </div>
-                <div class="popup-actions">
-                    <button class="popup-btn save-btn" @click="addStopwatch">Speichern</button>
-                    <button class="popup-btn cancel-btn" @click="closeAddStopwatchPopup">Abbrechen</button>
-                </div>
-            </div>
-        </div>
+        <NamePromptPopup :show="showAddStopwatchPopup"
+                         v-model="newStopwatchName"
+                         title="Neue Stoppuhr hinzufügen"
+                         placeholder="Stoppuhr Name (optional)"
+                         overlayClass="stopwatch-popup"
+                         @save="addStopwatch"
+                         @cancel="closeAddStopwatchPopup" />
+
         <!-- Pop-up für Download -->
-        <div v-if="showDownloadPopup" class="popup-overlay" @mousedown="handleOverlayClick">
-            <div class="popup" @click.stop>
-                <h3 class="popup-title">Trainingsplan herunterladen</h3>
-                <div class="input-group">
-                    <label class="downloaddistance">Download-Format wählen:</label>
-                    <select v-model="downloadFormat" class="edit-input">
-                        <option value="html">HTML</option>
-                        <option value="pdf">PDF</option>
-                        <option value="csv">CSV</option>
-                        <option value="json">JSON</option>
-                    </select>
-                </div>
-                <div class="popup-actions">
-                    <button class="popup-btn save-btn" @click="confirmDownload">Download</button>
-                    <button class="popup-btn cancel-btn" @click="closeDownloadPopup">Abbrechen</button>
-                </div>
-            </div>
-        </div>
+        <ExportPopup :show="showDownloadPopup"
+                     v-model="downloadFormat"
+                     @confirm="confirmDownload"
+                     @cancel="closeDownloadPopup" />
+
         <!-- Pop-up für Validierungsfehler -->
-        <div v-if="showValidationPopup" class="popup-overlay" @mousedown="handleOverlayClick">
-            <div class="popup edit-popup" @click.stop>
-                <h3 class="popup-title">Eingabefehler</h3>
-                <p class="validation-error-text">Bitte überprüfe die folgenden Fehler:</p>
-                <ul class="validation-error-list">
-                    <li v-for="(error, index) in validationErrorMessages" :key="index">{{ error }}</li>
-                </ul>
-                <div class="popup-actions">
-                    <button class="popup-btn save-btn"
-                            @click="closeValidationPopup"
-                            @keydown.enter.prevent="closeValidationPopup"
-                            @keydown.escape.prevent="closeValidationPopup"
-                            ref="validationOkButton">
-                        OK
-                    </button>
-                </div>
-            </div>
-        </div>
+        <ValidationPopup :show="showValidationPopup"
+                         :errors="validationErrorMessages"
+                         @close="closeValidationPopup" />
+
         <!-- Audio-Elemente für Timer-Sounds -->
         <audio id="audio-standard" preload="auto"></audio>
         <audio id="audio-alarm" preload="auto"></audio>
@@ -470,6 +430,11 @@
     import AddExerciseButton from '@/components/ui/buttons/AddExerciseButton.vue'
     import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue'
     import PlanSubmitButton from '@/components/ui/buttons/PlanSubmitButton.vue'
+    import ExportPopup from '@/components/ui/popups/ExportPopup.vue'
+    import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
+    import NamePromptPopup from '@/components/ui/popups/NamePromptPopup.vue'
+    import InfoPopup from '@/components/ui/popups/InfoPopup.vue'
+    import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
 
     // Typ-Definitionen (bleiben unverändert)
     interface PlanExercise {
@@ -516,9 +481,9 @@
         shouldStaySticky: boolean
         left?: number
         top?: number
-        startedAtMs?: number;       
-        endsAtMs?: number;         
-        pausedRemaining?: number;   
+        startedAtMs?: number;
+        endsAtMs?: number;
+        pausedRemaining?: number;
     }
 
     interface StopwatchInstance {
@@ -533,8 +498,8 @@
         shouldStaySticky: boolean
         left?: number
         top?: number
-        startedAtMs?: number;       
-        offsetMs?: number;         
+        startedAtMs?: number;
+        offsetMs?: number;
     }
 
     const props = defineProps<{
@@ -624,9 +589,8 @@
     const showDownloadPopup = ref(false);
     const showValidationPopup = ref(false);
     const validationErrorMessages = ref<string[]>([]);
-    const validationOkButton = ref<HTMLButtonElement | null>(null);
     const downloadPlan = ref<TrainingPlan | null>(null);
-    const downloadFormat = ref('html');
+    const downloadFormat = ref<'html' | 'pdf' | 'csv' | 'json' | 'txt'>('html');
     const newTimerName = ref('');
     const newStopwatchName = ref('');
     const deleteAction = ref<(() => void) | null>(null);
@@ -654,8 +618,6 @@
     const editType = ref<'table' | 'selectedPlan' | 'planName' | 'selectedPlanName' | 'timerName' | 'stopwatchName' | 'customExerciseName' | 'customExerciseMuscle'>('table');
     const editIndex = ref<number | string | null>(null);
     const editCellIndex = ref<number | null>(null);
-    const newTimerInput = ref<HTMLInputElement | null>(null);
-    const newStopwatchInput = ref<HTMLInputElement | null>(null);
     const showCustomExercises = ref(false);
     const exerciseEditIndex = ref<number | null>(null);
     const exerciseEditField = ref<'name' | 'muscle' | null>(null);
@@ -998,16 +960,10 @@
     };
 
     const openValidationPopup = (errors: string[]) => {
-        console.log('openValidationPopup aufgerufen mit Fehlern:', errors);
-        validationErrorMessages.value = Array.isArray(errors) ? errors : [errors];
+        validationErrorMessages.value = Array.isArray(errors) ? errors : [String(errors)];
         showValidationPopup.value = true;
-        nextTick(() => {
-            if (validationOkButton.value) {
-                validationOkButton.value.focus();
-                console.log('Fokus auf OK-Button im Validierungspopup gesetzt');
-            }
-        });
     };
+
 
     const closeValidationPopup = () => {
         showValidationPopup.value = false;
@@ -1283,6 +1239,22 @@
             link.click();
             URL.revokeObjectURL(link.href);
         }
+        else if (downloadFormat.value === 'txt') {
+            const lines = [
+                `Trainingsplan: ${title}`,
+                '',
+                'Übung\tSätze\tWiederholungen',
+                ...plan.exercises.map(ex => `${ex.exercise}\t${ex.sets}\t${ex.reps}`)
+            ].join('\n');
+
+            const blob = new Blob([lines], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${fileName}_Trainingsplan.txt`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
         addToast('Plan heruntergeladen', 'load');
         closeDownloadPopup();
     };
@@ -1292,12 +1264,9 @@
     };
 
     const openAddTimerPopup = () => {
-        newTimerName.value = '';
-        showAddTimerPopup.value = true;
-        nextTick(() => {
-            if (newTimerInput.value) newTimerInput.value.focus();
-        });
-    };
+        newTimerName.value = ''
+        showAddTimerPopup.value = true
+    }
 
     const closeAddTimerPopup = () => {
         showAddTimerPopup.value = false;
@@ -1363,11 +1332,8 @@
     };
 
     const openAddStopwatchPopup = () => {
-        newStopwatchName.value = '';
-        showAddStopwatchPopup.value = true;
-        nextTick(() => {
-            if (newStopwatchInput.value) newStopwatchInput.value.focus();
-        });
+        newStopwatchName.value = ''
+        showAddStopwatchPopup.value = true
     };
 
     const closeAddStopwatchPopup = () => {
@@ -1619,7 +1585,7 @@
 
         showEditPopup.value = true;
         console.log('showEditPopup gesetzt:', showEditPopup.value);
-        
+
     };
 
     const saveEdit = () => {
@@ -2020,7 +1986,7 @@
     onUnmounted(() => {
         window.removeEventListener('scroll', checkScroll);
         window.removeEventListener('keydown', handleKeydown);
-        
+
     });
 
     // Öffnet ggf. einen von außerhalb gewählten Plan
@@ -2359,6 +2325,7 @@
     .form-card .toggle-exercise-btn:hover {
         transform: none !important;
     }
+
     html.dark-mode .toggle-exercise-btn {
         background-color: #1f2937; /* Ursprüngliche Farbe im Dark Mode */
         color: #fff;
@@ -2428,10 +2395,6 @@
         transition: transform 0.2s ease;
     }
 
-        .delete-btn:hover {
-            transform: scale(1.2);
-        }
-
 
     @media (max-width: 600px) {
         .form-card {
@@ -2473,47 +2436,6 @@
         transition: color 0.2s, text-shadow 0.2s, transform 0.1s;
     }
 
-    .delete-btn,
-    .table-delete-btn {
-        color: #6b7280;
-    }
-
-        .delete-btn:hover,
-        .table-delete-btn:hover {
-            color: #7f1d1d;
-            text-shadow: 0 0 8px rgba(127, 29, 29, 0.5), 0 0 4px rgba(127, 29, 29, 0.5);
-            transform: scale(1.1);
-        }
-
-        .table-delete-btn.transparent {
-            background: transparent !important;
-            box-shadow: none !important;
-        }
-
-    html.dark-mode .delete-btn:hover,
-    html.dark-mode .table-delete-btn:hover {
-        color: #7f1d1d;
-        text-shadow: 0 0 8px #7f1d1d, 0 0 4px #7f1d1d;
-    }
-
-
-
-    .close-plan-btn,
-    .close-timer-btn {
-        color: #ff6b6b;
-    }
-
-        .close-plan-btn:hover,
-        .close-timer-btn:hover {
-            color: #b91c1c;
-            transform: scale(1.1);
-        }
-
-    .close-plan-btn {
-        position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
-    }
 
     .exercise-input-group {
         display: flex;
@@ -2617,6 +2539,7 @@
         height: 100%;
         cursor: col-resize;
     }
+
     .flash-focus {
         outline: 2px solid var(--accent-primary);
         box-shadow: 0 0 0 3px var(--accent-primary), 0 0 18px var(--accent-hover);
@@ -2892,49 +2815,6 @@
     html.dark-mode .sticky-timer-card {
         background: #0d1117;
     }
-
-    .popup-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 2000;
-    }
-
-    .popup {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-        max-width: 400px;
-        width: 90%;
-        text-align: center;
-    }
-
-    html.dark-mode .popup {
-        background: #1c2526;
-        color: #c9d1d9;
-    }
-
-    .popup-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-    }
-
-    .popup .input-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .edit-popup .input-group {
-        margin-bottom: 1rem;
-    }
-
     .edit-input {
         padding: 0.75rem;
         border: 1px solid var(--border-color);
@@ -2955,26 +2835,6 @@
         border-color: #4B6CB7;
         box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
         outline: none;
-    }
-
-    .input-group label.downloaddistance {
-        margin-bottom: 0.7rem; /* oder mehr, wenn du mehr Abstand willst */
-        display: block;
-    }
-
-    .popup-actions {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: center;
-    }
-
-    .popup-btn {
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: background 0.2s, transform 0.1s;
     }
 
     .save-btn {

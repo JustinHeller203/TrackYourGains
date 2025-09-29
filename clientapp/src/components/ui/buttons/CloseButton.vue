@@ -52,11 +52,12 @@
         transform: translateY(2px); /* ggf. auf 1px oder 3px anpassen */
     }
 
-    /* Variantenfarben wie in Training.vue */
+
     .close-plan-btn,
     .close-timer-btn {
-        color: #ff6b6b;
+        color: #ff6b6b !important;
     }
+
 
         /* Hover: Scale + Nudge beibehalten */
         .close-plan-btn:hover,
