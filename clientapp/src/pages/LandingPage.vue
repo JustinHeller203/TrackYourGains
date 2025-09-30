@@ -112,10 +112,7 @@
         background: var(--bg-primary);
     }
 
-        .landing.dark-mode {
-            background: #0d1117;
-        }
-
+    /* ===== Hero ===== */
     .hero {
         min-height: 80vh;
         display: flex;
@@ -135,10 +132,6 @@
         -webkit-text-fill-color: transparent;
     }
 
-        .hero-title.dark-mode {
-            background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
-        }
-
     .hero-subtitle {
         font-size: 1.5rem;
         max-width: 600px;
@@ -147,46 +140,27 @@
         color: var(--text-secondary);
     }
 
-        .hero-subtitle.dark-mode {
-            color: #c9d1d9;
-        }
-
-    .cta-button {
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        color: #ffffff;
-        padding: 1rem 2.5rem;
-        border-radius: 50px;
-        font-size: 1.2rem;
-        font-weight: 700;
-        text-decoration: none;
-        box-shadow: var(--shadow);
-        transition: all 0.3s ease;
+    /* Blinking cursor for typing effect */
+    .cursor {
+        display: inline-block;
+        width: 0.6ch;
+        color: var(--text-primary);
+        animation: blink 1s step-end infinite;
+        margin-left: 2px;
     }
 
-        .cta-button.dark-mode {
-            background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
-        }
-
-        .cta-button:hover {
-            transform: scale(1.05);
-            box-shadow: var(--shadow-hover);
-            background: var(--accent-hover);
-        }
-
-        .cta-button.dark-mode:hover {
-            background: #5a7bc4;
-        }
-
-    .stats, .features, .quick-links, .testimonials, .blog, .cta {
+    /* ===== Sections ===== */
+    .stats,
+    .features,
+    .quick-links,
+    .testimonials,
+    .blog,
+    .cta {
         padding: 4rem 1rem;
         max-width: 1200px;
         margin: 0 auto;
         text-align: center;
     }
-
-        .stats.dark-mode, .features.dark-mode, .quick-links.dark-mode, .testimonials.dark-mode, .blog.dark-mode, .cta.dark-mode {
-            background: #0d1117;
-        }
 
     .section-title {
         font-size: 2.5rem;
@@ -195,30 +169,32 @@
         margin-bottom: 2rem;
     }
 
-        .section-title.dark-mode {
-            color: #f0f6fc;
-        }
-
-    .stats-grid, .features-grid, .links-grid, .testimonials-grid, .blog-grid {
+    .stats-grid,
+    .features-grid,
+    .links-grid,
+    .testimonials-grid,
+    .blog-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1.5rem;
     }
 
-    .stat-card {
+    /* ===== Cards ===== */
+    .stat-card,
+    .feature-card,
+    .testimonial-card,
+    .blog-card {
         background: var(--bg-card);
         padding: 1.5rem;
         border-radius: 12px;
         box-shadow: var(--shadow);
-        transition: all 0.3s ease;
+        transition: transform .3s ease, box-shadow .3s ease;
     }
 
-        .stat-card.dark-mode {
-            background: #21262d;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .stat-card:hover {
+        .stat-card:hover,
+        .feature-card:hover,
+        .testimonial-card:hover,
+        .blog-card:hover {
             transform: scale(1.03);
             box-shadow: var(--shadow-hover);
         }
@@ -231,83 +207,21 @@
         margin-bottom: 0.5rem;
     }
 
-        .stat-number.dark-mode {
-            color: #6B8DD6;
-        }
-
-    .stat-text {
+    .stat-text,
+    .feature-text,
+    .testimonial-text,
+    .blog-text {
         font-size: 1rem;
         color: var(--text-secondary);
     }
 
-        .stat-text.dark-mode {
-            color: #c9d1d9;
-        }
-
-    .feature-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-        transition: all 0.3s ease;
-    }
-
-        .feature-card.dark-mode {
-            background: #21262d;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .feature-card:hover {
-            transform: scale(1.03);
-            box-shadow: var(--shadow-hover);
-        }
-
-    .feature-title {
+    .feature-title,
+    .blog-title {
         font-size: 1.4rem;
         font-weight: 700;
         color: var(--text-primary);
         margin-bottom: 0.5rem;
     }
-
-        .feature-title.dark-mode {
-            color: #f0f6fc;
-        }
-
-    .feature-text {
-        font-size: 1rem;
-        color: var(--text-secondary);
-    }
-
-        .feature-text.dark-mode {
-            color: #c9d1d9;
-        }
-
-    .testimonial-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-        transition: all 0.3s ease;
-    }
-
-        .testimonial-card.dark-mode {
-            background: #21262d;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .testimonial-card:hover {
-            transform: scale(1.03);
-            box-shadow: var(--shadow-hover);
-        }
-
-    .testimonial-text {
-        font-size: 1rem;
-        color: var(--text-secondary);
-    }
-
-        .testimonial-text.dark-mode {
-            color: #c9d1d9;
-        }
 
     .testimonial-author {
         font-size: 0.9rem;
@@ -316,74 +230,111 @@
         margin-top: 0.5rem;
     }
 
-        .testimonial-author.dark-mode {
-            color: #f0f6fc;
-        }
-
-    .blog-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-        transition: all 0.3s ease;
-    }
-
-        .blog-card.dark-mode {
-            background: #21262d;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .blog-card:hover {
-            transform: scale(1.03);
-            box-shadow: var(--shadow-hover);
-        }
-
-    .blog-title {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }
-
-        .blog-title.dark-mode {
-            color: #f0f6fc;
-        }
-
-    .blog-text {
-        font-size: 1rem;
-        color: var(--text-secondary);
-    }
-
-        .blog-text.dark-mode {
-            color: #c9d1d9;
-        }
-
+    /* ===== CTA + Link Buttons (with strong, clipped hover + sheen) ===== */
+    .cta-button,
     .link-button {
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        color: #ffffff;
-        padding: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        isolation: isolate; /* prevent the sheen from leaking */
+        overflow: hidden; /* clip pseudo-element inside */
         border-radius: 50px;
-        font-size: 1rem;
-        font-weight: 700;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        background-size: 200% 200%;
+        background-position: 0% 50%;
+        color: #fff;
         text-decoration: none;
+        padding: 1rem 2.5rem; /* CTA default size */
+        font-size: 1.2rem;
+        font-weight: 700;
         box-shadow: var(--shadow);
-        transition: all 0.3s ease;
+        transition: background-position .35s ease, filter .25s ease, box-shadow .25s ease, outline-color .25s ease;
     }
 
-        .link-button.dark-mode {
-            background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
-        }
+    /* Link buttons a bit smaller */
+    .link-button {
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+    }
 
+        .cta-button:hover,
         .link-button:hover {
-            transform: scale(1.05);
-            box-shadow: var(--shadow-hover);
-            background: var(--accent-hover);
+            background-position: 100% 50%;
+            filter: brightness(1.12) saturate(1.12);
+            box-shadow: var(--shadow-hover), 0 8px 22px rgba(0,0,0,.12);
+            outline: 3px solid var(--accent-primary);
+            outline-offset: 3px;
         }
 
-        .link-button.dark-mode:hover {
-            background: #5a7bc4;
+        /* Sheen highlight – fully clipped inside the button */
+        .cta-button::after,
+        .link-button::after {
+            content: '';
+            position: absolute;
+            top: -20%;
+            bottom: -20%;
+            left: -30%;
+            width: 30%;
+            transform: skewX(-20deg) translateX(0);
+            background: linear-gradient( to right, transparent 0%, rgba(255,255,255,.18) 45%, rgba(255,255,255,.35) 50%, rgba(255,255,255,.18) 55%, transparent 100% );
+            opacity: 0;
+            transition: transform .45s ease, opacity .2s ease;
+            pointer-events: none;
+            will-change: transform;
         }
 
+        /* Sheen/Strich beim Hover komplett deaktivieren */
+        .cta-button::after,
+        .link-button::after {
+            content: none !important;
+            display: none !important;
+        }
+
+        .cta-button:hover::after,
+        .link-button:hover::after {
+            opacity: 1;
+            transform: skewX(-20deg) translateX(260%);
+        }
+
+    /* ===== Dark mode variants ===== */
+    html.dark-mode .stat-card,
+    html.dark-mode .feature-card,
+    html.dark-mode .testimonial-card,
+    html.dark-mode .blog-card {
+        background: #21262d;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    html.dark-mode .section-title,
+    html.dark-mode .feature-title,
+    html.dark-mode .blog-title,
+    html.dark-mode .testimonial-author {
+        color: #f0f6fc;
+    }
+
+    html.dark-mode .stat-number {
+        color: #6B8DD6;
+    }
+
+    html.dark-mode .stat-text,
+    html.dark-mode .feature-text,
+    html.dark-mode .testimonial-text,
+    html.dark-mode .blog-text {
+        color: #c9d1d9;
+    }
+
+    html.dark-mode .cta-button,
+    html.dark-mode .link-button {
+        background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
+    }
+
+        html.dark-mode .cta-button:hover,
+        html.dark-mode .link-button:hover {
+            outline-color: #6B8DD6;
+        }
+
+    /* ===== Animations ===== */
     @keyframes fadeIn {
         from {
             opacity: 0;
@@ -410,6 +361,7 @@
         }
     }
 
+    /* ===== Responsive ===== */
     @media (max-width: 768px) {
         .hero-title {
             font-size: 2.8rem;
@@ -428,8 +380,14 @@
             font-size: 2rem;
         }
 
-        .stats, .features, .quick-links, .testimonials, .blog, .cta {
+        .stats,
+        .features,
+        .quick-links,
+        .testimonials,
+        .blog,
+        .cta {
             padding: 2rem 1rem;
         }
     }
 </style>
+
