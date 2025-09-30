@@ -625,7 +625,7 @@
     const toast = ref<Toast | null>(null);
     const timerObservers = new Map<string, IntersectionObserver>();
     let toastId = 0;
-    let toastTimeout: number | null = null;
+    let toastTimeout: ReturnType<typeof setTimeout> | null = null;
     const deleteConfirmButton = ref<HTMLButtonElement | null>(null);
     const isTimerSticky = ref(false); // Hinzugefügt für Sticky-Logik
     const isStopwatchSticky = ref(false); // Hinzugefügt für Sticky-Logik

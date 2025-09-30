@@ -3,7 +3,8 @@
                 :title="title"
                 :aria-label="ariaLabel || title"
                 :disabled="disabled"
-                :extraClass="['close-btn', variantClass, extraClass]"
+                class="close-btn"
+                :class="[variantClass, extraClass]"
                 @click="$emit('click', $event)">
         <span class="close-icon"><slot>✖</slot></span>
     </BaseButton>
@@ -22,9 +23,14 @@
         variant?: 'plan' | 'timer' | 'stopwatch'
     }>()
 
-    const variantClass = computed(() =>
-        props.variant === 'plan' ? 'close-plan-btn' : 'close-timer-btn'
-    )
+    const variantClass = computed<string>(() => {
+        switch (props.variant) {
+            case 'plan': return 'close-plan-btn'
+            case 'timer': return 'close-timer-btn'
+            case 'stopwatch': return 'close-stopwatch-btn'
+            default: return 'close-plan-btn'
+        }
+    })
 
     defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 </script>

@@ -4,7 +4,8 @@
                     :title="title"
                     :aria-label="ariaLabel || title"
                     :disabled="disabled"
-                    :extraClass="['download-btn', extraClass]"
+                    class="download-btn"
+                    :class="extraClass"
                     @click="$emit('click', $event)">
             <slot>⬇️</slot>
         </BaseButton>
@@ -19,7 +20,6 @@
         title?: string
         ariaLabel?: string
         disabled?: boolean
-        /** optional weitere Klassen */
         extraClass?: string | string[] | Record<string, boolean>
     }>()
 

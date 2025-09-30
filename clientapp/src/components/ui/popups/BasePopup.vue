@@ -1,52 +1,50 @@
 <template>
-  <teleport to="body">
-    <transition name="fade">
-      <div
-        v-if="show"
-        class="popup-overlay"
-        :class="overlayClass"
-        role="dialog"
-        aria-modal="true"
-        @mousedown.self="$emit('cancel')"
-      >
-        <div class="popup" @click.stop>
-          <h3 class="popup-title">{{ title }}</h3>
+    <teleport to="body">
+        <transition name="fade">
+            <div v-if="show"
+                 class="popup-overlay"
+                 :class="overlayClass"
+                 role="dialog"
+                 aria-modal="true"
+                 @mousedown.self="$emit('cancel')">
+                <div class="popup" @click.stop>
+                    <h3 v-if="title" class="popup-title">{{ title }}</h3>
 
-          <div class="popup-body">
-            <slot />
-          </div>
+                    <div class="popup-body">
+                        <slot />
+                    </div>
 
-          <div class="popup-actions" v-if="$slots.actions || showActions">
-            <slot name="actions">
-              <button class="popup-btn cancel-btn" type="button" @click="$emit('cancel')">
-                {{ cancelText }}
-              </button>
-              <button class="popup-btn save-btn" type="button" @click="$emit('save')">
-                {{ saveText }}
-              </button>
-            </slot>
-          </div>
-        </div>
-      </div>
-    </transition>
-  </teleport>
+                    <div class="popup-actions" v-if="$slots.actions || showActions">
+                        <slot name="actions">
+                            <button class="popup-btn cancel-btn" type="button" @click="$emit('cancel')">
+                                {{ cancelText }}
+                            </button>
+                            <button class="popup-btn save-btn" type="button" @click="$emit('save')">
+                                {{ saveText }}
+                            </button>
+                        </slot>
+                    </div>
+                </div>
+            </div>
+        </transition>
+    </teleport>
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  show: boolean
-  title: string
-  overlayClass?: string | string[]
-  showActions?: boolean
-  cancelText?: string
-  saveText?: string
-}>()
-
-defineEmits<{
-  (e: 'cancel'): void
-  (e: 'save'): void
-}>()
+    withDefaults(defineProps<{
+        show: boolean
+        title?: string
+        overlayClass?: string | string[] | Record<string, boolean>
+        showActions?: boolean
+        cancelText?: string
+        saveText?: string
+    }>(), {
+        cancelText: 'Abbrechen',
+        saveText: 'Speichern',
+    })
+    defineEmits<{ (e: 'cancel'): void; (e: 'save'): void }>()
 </script>
+
 
 <style scoped>
     /* === Overlay & Container === */

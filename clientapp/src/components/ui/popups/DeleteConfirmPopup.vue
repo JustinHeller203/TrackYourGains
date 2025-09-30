@@ -1,8 +1,7 @@
 <template>
     <BasePopup :show="show"
-               variant="delete-popup"
+               overlayClass="delete-popup"
                @cancel="$emit('cancel')">
-        <!-- Wir rendern Titel & Text selbst, damit Styles garantiert greifen -->
         <template #default>
             <h3 class="popup-title">Löschen bestätigen</h3>
             <p class="popup-message">Willst du das wirklich löschen?</p>

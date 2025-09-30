@@ -3,7 +3,8 @@
                 :title="title"
                 :aria-label="ariaLabel || title"
                 :disabled="disabled"
-                :extraClass="['add-exercise-btn', extraClass]"
+                class="add-exercise-btn toggle-exercise-btn"
+                :class="extraClass"
                 @click="$emit('click', $event)">
         <slot>Übung hinzufügen</slot>
     </BaseButton>
@@ -17,13 +18,13 @@
         title?: string
         ariaLabel?: string
         disabled?: boolean
-        /** optional weitere Klassen vom Parent */
         extraClass?: string | string[] | Record<string, boolean>
     }>(), {
         type: 'button',
         title: 'Übung hinzufügen',
         disabled: false,
     })
+
     defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 </script>
 
@@ -46,14 +47,15 @@
     .toggle-exercise-btn:hover {
         transform: none !important;
     }
-        .add-exercise-btn:hover {
-            background: linear-gradient(45deg, #5a7bc4, #2a3b6a);
-            transform: scale(1.05);
-        }
 
-        .add-exercise-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
+    .add-exercise-btn:hover {
+        background: linear-gradient(45deg, #5a7bc4, #2a3b6a);
+        transform: scale(1.05);
+    }
+
+    .add-exercise-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
 </style>
