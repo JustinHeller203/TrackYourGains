@@ -35,45 +35,42 @@
     defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 </script>
 
+<!-- CloseButton.vue – nur der <style>-Block geändert -->
 <style scoped>
-    /* Gemeinsame Basis + echte Vertikalzentrierung */
     .close-btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        line-height: 1; /* verhindert „extra“ Zeilenabstand */
-        vertical-align: middle;
+        line-height: 1;
         font-size: 1.2rem;
         padding: 0.5rem;
         border-radius: 8px;
         background: none;
         border: none;
         cursor: pointer;
-        transition: color 0.2s, text-shadow 0.2s, transform 0.1s;
+        transition: color .2s, text-shadow .2s, transform .1s;
     }
 
-    /* NUR das Glyph minimal nach unten schieben */
     .close-icon {
         display: inline-block;
-        transform: translateY(2px); /* ggf. auf 1px oder 3px anpassen */
+        transform: translateY(2px);
     }
 
-
+    /* 👉 jetzt ALLE drei Varianten rot */
     .close-plan-btn,
-    .close-timer-btn {
+    .close-timer-btn,
+    .close-stopwatch-btn {
         color: #ff6b6b !important;
     }
 
-
-        /* Hover: Scale + Nudge beibehalten */
         .close-plan-btn:hover,
-        .close-timer-btn:hover {
+        .close-timer-btn:hover,
+        .close-stopwatch-btn:hover {
             color: #b91c1c;
         }
 
     .close-btn:hover .close-icon {
         transform: translateY(2px) scale(1.1);
     }
-
-    /* Optional: Dark-Mode bleibt gleich (Farben identisch wie vorher) */
 </style>
+

@@ -16,12 +16,25 @@
                     <input v-show="newExercise === 'custom'" v-model="customPlanExercise" placeholder="Eigene Übung eingeben" />
                     <input v-model.number="newReps" placeholder="Wiederholungen" type="number" min="1" />
                     <input v-model.number="newSets" placeholder="Sätze" type="number" min="1" />
-                    <AddExerciseButton title="Übung hinzufügen"
-                                       @click="addExerciseToPlan" />
-                    <ExtrasToggleButton :toggled="showExtras"
-                                        @click="toggleExtras">
-                        {{ showExtras ? 'Extras ausblenden' : 'Extras einblenden' }}
-                    </ExtrasToggleButton>
+                    <!-- 👉 Neu: Gruppiere die Buttons in einem eigenen Flex-Container -->
+                    <div class="button-group">
+                        <div class="btn-cell">
+                            <AddExerciseButton class="action-btn add-exercise-btn"
+                                               title="Übung hinzufügen"
+                                               @click="addExerciseToPlan" />
+                        </div>
+
+                        <div class="btn-cell">
+                            <ExtrasToggleButton class="action-btn toggle-exercise-btn"
+                                                :toggled="showExtras"
+                                                @click="toggleExtras">
+                                {{ showExtras ? 'Extras ausblenden' : 'Extras einblenden' }}
+                            </ExtrasToggleButton>
+                        </div>
+                    </div>
+
+
+
                     <div v-if="showExtras" class="extras-container show">
                         <div class="extras-content">
                             <select v-model="selectedGoal" class="goal-select">
@@ -30,13 +43,11 @@
                             </select>
                         </div>
                     </div>
-                    <PlanSubmitButton :isEditing="!!editingPlanId"
+                    <PlanSubmitButton class="action-btn plan-submit-btn"
+                                      :isEditing="!!editingPlanId"
                                       :disabled="validatePlanName(planName) === false"
                                       createLabel="Plan erstellen"
                                       saveLabel="Plan speichern" />
-
-
-
                 </div>
                 <div v-if="selectedPlanExercises.length" class="exercise-table full-width">
                     <table>
@@ -175,7 +186,7 @@
             </div>
 
             <!-- Benutzerdefinierte Übungen: JETZT direkt unter dem geöffneten Plan -->
-            <button @click="toggleCustomExercises" class="toggle-exercise-btn" v-if="customExercises.length > 0">
+            <button @click="toggleCustomExercises" class="custom-toggle-btn" v-if="customExercises.length > 0">
                 {{ showCustomExercises ? ' Benutzerdefinierte Übungen ausblenden' : ' Benutzerdefinierte Übungen anzeigen' }}
             </button>
             <div v-if="showCustomExercises" class="custom-exercises-table">
@@ -2048,6 +2059,10 @@
 
 <style scoped>
     .training {
+        /* 👉 NEU: gemeinsame Control-Variablen */
+        --control-height: 48px;
+        --control-font-size: 0.95rem;
+        --control-padding-x: 1.5rem;
         padding: 1rem;
         background: var(--bg-primary);
         width: 100%;
@@ -2195,16 +2210,19 @@
 
     .form-card input,
     .form-card select {
+        height: var(--control-height); /* 👉 NEU */
+        font-size: var(--control-font-size); /* 👉 NEU */
+
         padding: 0.75rem;
         border: 1px solid var(--border-color);
         border-radius: 8px;
         flex: 1;
         min-width: 120px;
-        font-size: 0.9rem;
         background: var(--bg-secondary);
         color: var(--text-color);
         transition: border-color 0.2s, box-shadow 0.2s;
     }
+
 
     html.dark-mode .form-card input,
     html.dark-mode .form-card select {
@@ -2219,22 +2237,20 @@
         box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
         outline: none;
     }
-
-    .form-card button {
-        background: linear-gradient(45deg, #4B6CB7, #182848);
-        color: #ffffff;
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.2s, transform 0.2s;
+    .form-card .action-btn:not(.add-exercise-btn):not(.toggle-exercise-btn):not(.plan-submit-btn):not(.table-delete-btn) {
+         background: var(--bg-secondary);
+         color: var(--text-primary);
+         border: 1px solid var(--border-color);
+         border-radius: 8px;
+         padding: 0.75rem 1.5rem;
+         transition: background .2s, transform .2s;
     }
 
-        .form-card button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
+    .form-card .action-btn:not(.add-exercise-btn):not(.toggle-exercise-btn):not(.plan-submit-btn):not(.table-delete-btn):hover {
+         background: #f3f4f6;
+         transform: none;
+    }
+
 
     .extras-container {
         transition: max-height 0.3s ease, opacity 0.3s ease;
@@ -2247,8 +2263,9 @@
         .extras-container.show {
             max-height: 250px;
             opacity: 1;
-            margin-top: 0.1rem
+            margin-top: 0.75rem; /* 👉 größerer Abstand */
         }
+
 
     .timer-drag-handle {
         cursor: grab;
@@ -2303,40 +2320,33 @@
             justify-content: center;
         }
 
-    .toggle-exercise-btn {
+    .custom-toggle-btn {
         margin-top: 1rem;
         padding: 0.6rem 1.2rem;
         background: var(--bg-secondary);
-        color: #1f2937; /* Dunkle Textfarbe für Kontrast */
+        color: #1f2937;
         border-radius: 0.5rem;
-        border: none; /* Kein Rahmen */
+        border: none;
         cursor: pointer;
         font-size: 0.95rem;
         transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
     }
 
-        .toggle-exercise-btn:hover {
+        .custom-toggle-btn:hover {
             background-color: #f3f4f6;
             border-color: #4B6CB7;
-            /* kein Scale mehr */
         }
 
-    .form-card .add-exercise-btn:hover,
-    .form-card .toggle-exercise-btn:hover {
-        transform: none !important;
-    }
-
-    html.dark-mode .toggle-exercise-btn {
-        background-color: #1f2937; /* Ursprüngliche Farbe im Dark Mode */
+    html.dark-mode .custom-toggle-btn {
+        background-color: #1f2937;
         color: #fff;
         border: 1px solid #30363d;
     }
 
-        html.dark-mode .toggle-exercise-btn:hover {
+        html.dark-mode .custom-toggle-btn:hover {
             background-color: #374151;
             border-color: #4B6CB7;
         }
-
     .custom-ex-title {
         font-size: 1.1rem;
         margin: 1rem 0 0.5rem;
@@ -2442,6 +2452,29 @@
         gap: 1rem;
         flex-wrap: wrap;
         width: 100%;
+        align-items: stretch; /* 👉 NEU: gleiche Höhe in der Zeile */
+    }
+
+    .button-group {
+        display: flex; /* wichtig */
+        gap: 0.75rem;
+        align-items: stretch; /* gleiche Höhe wie Inputs */
+        margin-left: auto; /* schiebt die Buttons nach rechts = Abstand */
+        flex-wrap: nowrap;
+    }
+
+    @media (max-width: 600px) {
+        .button-group {
+            margin-left: 0;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+    }
+    /* nur den rechten Button minimal nach oben rücken */
+    @media (min-width: 601px) {
+        .button-group .btn-cell:last-child {
+            margin-top: -16px;
+        }
     }
 
     .exercise-table {
@@ -2528,6 +2561,40 @@
     html.dark-mode .exercise-table.full-width th {
         background: #0d1117;
         color: #ffffff;
+    }
+    /* feste, gleiche Button-Breiten über Wrapper */
+    .button-group {
+        display: flex;
+        gap: 0.75rem;
+        align-items: stretch;
+        margin-left: auto;
+        flex-wrap: nowrap;
+        --btn-width: 200px; /* hier Breite anpassen */
+        --btn-height: var(--control-height);
+        --btn-pad-x: var(--control-padding-x);
+    }
+
+        .button-group .btn-cell {
+            flex: 0 0 var(--btn-width);
+            display: flex; /* ermöglicht Stretch nach innen */
+            align-items: stretch;
+        }
+
+            .button-group .btn-cell > * {
+                width: 100%;
+                height: var(--btn-height);
+                padding-left: var(--btn-pad-x);
+                padding-right: var(--btn-pad-x);
+            }
+
+    /* mobil: Buttons untereinander & volle Breite */
+    @media (max-width: 600px) {
+        .button-group {
+            margin-left: 0;
+            flex-wrap: wrap;
+            width: 100%;
+            --btn-width: 100%;
+        }
     }
 
     .exercise-table.full-width th.resizable:hover::after {
@@ -2875,6 +2942,17 @@
         height: 100%;
         cursor: col-resize;
         user-select: none;
+    }
+    /* ⚠️ diesen Hack entfernen/überschreiben */
+    @media (min-width: 601px) {
+        .button-group .btn-cell:last-child {
+            margin-top: 0; /* vorher: -16px */
+        }
+    }
+
+    /* In der Button-Zeile alle Top-Margins neutralisieren */
+    .button-group .btn-cell > * {
+        margin-top: 0 !important;
     }
 
     .resizer.row-resizer {
