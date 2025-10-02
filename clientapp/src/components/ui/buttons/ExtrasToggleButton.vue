@@ -1,36 +1,49 @@
-<template>
+﻿<template>
     <BaseButton :type="type"
                 :title="title"
                 :aria-label="ariaLabel || title"
                 :disabled="disabled"
-                :extraClass="['btn-extras-look', 'toggle-exercise-btn', extraClass, { active: toggled }]"
+                :extraClass="mergedClass"
                 @click="$emit('click', $event)">
         <slot>Extras einblenden</slot>
     </BaseButton>
 </template>
 
 <script setup lang="ts">
+    import { computed } from 'vue'
     import BaseButton from '@/components/ui/buttons/BaseButton.vue'
 
-    withDefaults(defineProps<{
+    // self-contained types (kein externes types/ui)
+    type ClassLike = string | Record<string, boolean>
+    type ClassProp = ClassLike | ClassLike[]
+
+    const props = withDefaults(defineProps<{
         type?: 'button' | 'submit' | 'reset'
         title?: string
         ariaLabel?: string
         disabled?: boolean
-        extraClass?: string | string[] | Record<string, boolean>
+        extraClass?: ClassProp
         toggled?: boolean
     }>(), {
         type: 'button',
         title: 'Extras einblenden',
         disabled: false,
-        toggled: false
+        toggled: false,
     })
 
     defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
+
+    const mergedClass = computed<ClassLike[]>(() => [
+        'btn-extras-look',
+        'toggle-exercise-btn',
+        ...(Array.isArray(props.extraClass)
+            ? props.extraClass
+            : (props.extraClass ? [props.extraClass] : [])),
+        { active: !!props.toggled }, // !! erzwingt echtes boolean
+    ])
 </script>
 
 <style scoped>
-    /* Optional: leichtes visuelles Feedback, wenn toggled=true */
     .toggle-exercise-btn.active {
         filter: brightness(1.08);
     }

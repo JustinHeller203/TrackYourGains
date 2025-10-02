@@ -11,20 +11,22 @@
 </template>
 
 <script setup lang="ts">
+    // Self-contained Class-Types für :class
+    type ClassLike = string | Record<string, boolean>;
+    type ClassProp = ClassLike | ClassLike[];
+
     defineProps<{
         type?: 'button' | 'submit' | 'reset'
         title?: string
         ariaLabel?: string
         disabled?: boolean
-        extraClass?: string | string[] | Record<string, boolean>
+        extraClass?: ClassProp
     }>()
 
-    defineEmits<{
-        (e: 'click', ev: MouseEvent): void
-    }>()
+    defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 </script>
+
 <style scoped>
-    /* Primary-Look für beide Buttons */
     .action-btn.add-exercise-btn,
     .action-btn.toggle-exercise-btn {
         background: linear-gradient(45deg, #4B6CB7, #182848);
