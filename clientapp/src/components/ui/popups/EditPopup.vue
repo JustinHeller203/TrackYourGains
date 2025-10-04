@@ -4,7 +4,20 @@
                overlayClass="edit-popup"
                @cancel="$emit('update:modelValue', false)">
         <div class="input-group">
-            <input ref="inputEl"
+            <!-- NEU: Select -->
+            <select v-if="inputType === 'select'"
+                    ref="selectEl"
+                    v-model="localValue"
+                    class="edit-input"
+                    @keydown.enter.prevent="save">
+                <option v-for="opt in (options || [])" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                </option>
+            </select>
+
+            <!-- Bisheriges Input -->
+            <input v-else
+                   ref="inputEl"
                    v-model="localValue"
                    :type="inputType"
                    :placeholder="placeholder"
@@ -13,11 +26,8 @@
                    @keydown.enter.prevent="save" />
         </div>
 
-        <!-- Aktionen über Slot, mit ausgelagerten Button-Komponenten -->
         <template #actions>
-            <PopupSaveButton title="Speichern"
-                             aria-label="Speichern"
-                             @click="save" />
+            <PopupSaveButton title="Speichern" aria-label="Speichern" @click="save" />
             <PopupCancelButton title="Abbrechen"
                                aria-label="Abbrechen"
                                @click="$emit('update:modelValue', false)" />
@@ -26,19 +36,20 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, watch, onMounted } from 'vue'
+    import { ref, watch, onMounted, nextTick } from 'vue'
     import BasePopup from './BasePopup.vue'
-
-    // Buttons (liegen relativ zu /popups in ../buttons)
     import PopupSaveButton from '../buttons/PopupSaveButton.vue'
     import PopupCancelButton from '../buttons/PopupCancelButton.vue'
+
+    type InputKind = 'text' | 'number' | 'select'
 
     const props = defineProps<{
         modelValue: boolean
         title: string
-        inputType: 'text' | 'number'
+        inputType: InputKind
         placeholder: string
         value: string
+        options?: Array<{ label: string; value: string }>
     }>()
 
     const emit = defineEmits<{
@@ -51,13 +62,18 @@
     watch(() => props.value, v => (localValue.value = v))
 
     const inputEl = ref<HTMLInputElement | null>(null)
-    onMounted(() => inputEl.value?.focus())
+    const selectEl = ref<HTMLSelectElement | null>(null)
 
-    const save = () => emit('save', localValue.value.trim())
+    onMounted(async () => {
+        await nextTick()
+        if (props.inputType === 'select') selectEl.value?.focus()
+        else inputEl.value?.focus()
+    })
+
+    const save = () => emit('save', (localValue.value ?? '').toString().trim())
 </script>
 
 <style scoped>
-    /* Abstände im Popup */
     .popup .input-group {
         margin-bottom: 1.5rem;
     }
@@ -66,7 +82,6 @@
         margin-bottom: 1rem;
     }
 
-    /* Eingabefeld */
     .edit-input {
         padding: 0.75rem;
         border: 1px solid var(--border-color);

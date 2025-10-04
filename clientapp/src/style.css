@@ -386,3 +386,12 @@ button.action-btn.btn-extras-look {
         cursor: not-allowed;
         transform: none;
     }
+/* global, NICHT scoped */
+html, body {
+    min-height: 100%;
+}
+
+body {
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}

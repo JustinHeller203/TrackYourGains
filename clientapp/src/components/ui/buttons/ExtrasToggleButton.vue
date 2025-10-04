@@ -1,11 +1,21 @@
 ﻿<template>
     <BaseButton :type="type"
-                :title="title"
-                :aria-label="ariaLabel || title"
+                :title="computedTitle"
+                :aria-label="ariaLabel || computedTitle"
                 :disabled="disabled"
                 :extraClass="mergedClass"
+                :aria-pressed="toggled ? 'true' : 'false'"
                 @click="$emit('click', $event)">
-        <slot>Extras einblenden</slot>
+        <span class="extras-icon" :class="{ rotated: toggled }" aria-hidden="true">
+            <!-- schlankes „Sliders“-Icon -->
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M4 7h12M4 17h16M16 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm-8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </span>
+        <span class="extras-label">
+            {{ toggled ? 'Extras ausblenden' : 'Extras einblenden' }}
+        </span>
     </BaseButton>
 </template>
 
@@ -13,7 +23,6 @@
     import { computed } from 'vue'
     import BaseButton from '@/components/ui/buttons/BaseButton.vue'
 
-    // self-contained types (kein externes types/ui)
     type ClassLike = string | Record<string, boolean>
     type ClassProp = ClassLike | ClassLike[]
 
@@ -33,18 +42,35 @@
 
     defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 
+    const computedTitle = computed(() =>
+        props.toggled ? 'Extras ausblenden' : (props.title || 'Extras einblenden')
+    )
+
     const mergedClass = computed<ClassLike[]>(() => [
-        'btn-extras-look',
-        'toggle-exercise-btn',
-        ...(Array.isArray(props.extraClass)
-            ? props.extraClass
-            : (props.extraClass ? [props.extraClass] : [])),
-        { active: !!props.toggled }, // !! erzwingt echtes boolean
+        'toggle-exercise-btn',       // bleibt für BaseButton-Styling
+        'btn-extras-chip',           // semantische Klasse
+        ...(Array.isArray(props.extraClass) ? props.extraClass : props.extraClass ? [props.extraClass] : []),
+        { active: !!props.toggled },
     ])
 </script>
 
 <style scoped>
-    .toggle-exercise-btn.active {
-        filter: brightness(1.08);
+    .extras-icon {
+        display: inline-flex;
+        width: 1.05rem;
+        height: 1.05rem;
+        margin-right: .4rem;
+        transition: transform .18s ease;
+    }
+
+        .extras-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+    .extras-label {
+        line-height: 1;
+        white-space: nowrap;
+        font-weight: 600;
+        letter-spacing: .01em;
     }
 </style>

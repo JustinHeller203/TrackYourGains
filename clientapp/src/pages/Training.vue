@@ -4,79 +4,194 @@
         <!-- Trainingsplan Formular -->
         <div class="workout-list">
             <h3 class="section-title">Trainingsplan erstellen/bearbeiten</h3>
-            <form @submit.prevent="createOrUpdatePlan" class="form-card">
-                <input v-model="planName" placeholder="Planname (z.B. Push Day)" required class="plan-name-input" />
-                <div class="exercise-input-group">
-                    <input v-model="exerciseFilter" placeholder="Muskelgruppe" />
-                    <select v-model="newExercise">
-                        <option value="" disabled>Übung wählen</option>
-                        <option v-for="ex in filteredExercises" :key="ex" :value="ex">{{ ex }}</option>
-                        <option value="custom">Neue benutzerdefinierte Übung</option>
-                    </select>
-                    <input v-show="newExercise === 'custom'" v-model="customPlanExercise" placeholder="Eigene Übung eingeben" />
-                    <input v-model.number="newReps" placeholder="Wiederholungen" type="number" min="1" />
-                    <input v-model.number="newSets" placeholder="Sätze" type="number" min="1" />
-                    <!-- 👉 Neu: Gruppiere die Buttons in einem eigenen Flex-Container -->
-                    <div class="button-group">
-                        <div class="btn-cell">
-                            <AddExerciseButton class="action-btn add-exercise-btn"
-                                               title="Übung hinzufügen"
-                                               @click="addExerciseToPlan" />
+
+            <form @submit.prevent="createOrUpdatePlan" class="form-card builder-grid">
+                <!-- LEFT: Builder -->
+                <div class="builder-left">
+                    <!-- Kopf: Planname + Typ (Segmented) + Extras rechts -->
+                    <div class="builder-head">
+                        <input v-model="planName"
+                               class="plan-name-input slim"
+                               placeholder="Planname (z. B. Push Day)"
+                               required />
+
+                        <!-- Segmented Type Switch -->
+                        <div class="segmented seg-type">
+                            <button type="button" :class="{ on: trainingType==='kraft' }" @click="trainingType='kraft'">Kraft</button>
+                            <button type="button" :class="{ on: trainingType==='calisthenics' }" @click="trainingType='calisthenics'">Calisthenics</button>
+                            <button type="button" :class="{ on: trainingType==='ausdauer' }" @click="trainingType='ausdauer'">Ausdauer</button>
+                            <button type="button" :class="{ on: trainingType==='dehnung' }" @click="trainingType='dehnung'">Dehnung</button>
                         </div>
 
-                        <div class="btn-cell">
-                            <ExtrasToggleButton class="action-btn toggle-exercise-btn"
-                                                :toggled="showExtras"
-                                                @click="toggleExtras">
-                                {{ showExtras ? 'Extras ausblenden' : 'Extras einblenden' }}
-                            </ExtrasToggleButton>
-                        </div>
+                        <!-- Extras-Button rechtsbündig -->
+                        <ExtrasToggleButton class="action-btn toggle-exercise-btn extras-cta"
+                                            :toggled="showExtras"
+                                            @click="toggleExtras">
+                            {{ showExtras ? 'Extras ausblenden' : 'Extras einblenden' }}
+                        </ExtrasToggleButton>
                     </div>
 
-
-
-                    <div v-if="showExtras" class="extras-container show">
-                        <div class="extras-content">
+                    <!-- NEU: kein reservierter Platz, drückt nur bei Aktivierung -->
+                    <div v-show="showExtras" class="goal-row">
+                        <label class="field-label">Trainingsziel</label>
+                        <div class="field-row">
                             <select v-model="selectedGoal" class="goal-select">
                                 <option value="" disabled>Trainingsziel</option>
                                 <option v-for="goal in trainingGoals" :key="goal" :value="goal">{{ goal }}</option>
                             </select>
                         </div>
                     </div>
+
+                    <!-- Filter -->
+                    <div class="field-block" v-if="trainingType !== 'ausdauer'">
+                        <label class="field-label">Muskelgruppe</label>
+                        <div class="field-row">
+                            <input class="filter-input"
+                                   v-model="exerciseFilter"
+                                   placeholder="z. B. Brust, Oberkörper, Push" />
+                        </div>
+                    </div>
+
+                    <!-- Übungsauswahl -->
+                    <div class="field-block" v-if="trainingType !== 'ausdauer'">
+                        <label class="field-label">Übung</label>
+                        <div class="field-row">
+                            <select v-model="newExercise">
+                                <option value="" disabled>Übung wählen</option>
+                                <option v-for="ex in filteredExercises" :key="ex" :value="ex">{{ ex }}</option>
+                                <option value="custom">Eigene Übung hinzufügen…</option>
+                            </select>
+                            <input v-show="newExercise === 'custom'"
+                                   v-model="customPlanExercise"
+                                   placeholder="Eigene Übung eingeben" />
+                        </div>
+                    </div>
+
+                    <!-- Cardio -->
+                    <div class="field-block" v-else>
+                        <label class="field-label">Cardio-Art</label>
+                        <div class="field-row">
+                            <select v-model="cardioExercise">
+                                <option value="" disabled>Cardio-Art</option>
+                                <option v-for="ex in filteredExercises" :key="ex" :value="ex">{{ ex }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Parameter -->
+                    <div class="field-grid" v-if="trainingType === 'kraft' || trainingType === 'calisthenics'">
+                        <div class="field">
+                            <label>Sätze</label>
+                            <input v-model.number="newSets" type="number" min="1" placeholder="z. B. 4" />
+                        </div>
+                        <div class="field">
+                            <label>Wiederholungen</label>
+                            <input v-model.number="newReps" type="number" min="1" placeholder="z. B. 8–12" />
+                        </div>
+                    </div>
+
+                    <div class="field-grid" v-else-if="trainingType === 'dehnung'">
+                        <div class="field">
+                            <label>Holds</label>
+                            <input v-model.number="newSets" type="number" min="1" placeholder="z. B. 3" />
+                        </div>
+                        <div class="field">
+                            <label>Sekunden pro Hold</label>
+                            <input v-model.number="newReps" type="number" min="1" placeholder="z. B. 30" />
+                        </div>
+                    </div>
+
+                    <div class="field-grid" v-else>
+                        <div class="field">
+                            <label>Dauer (Min)</label>
+                            <input v-model.number="newDuration" type="number" min="1" placeholder="z. B. 25" />
+                        </div>
+                        <div class="field">
+                            <label>Distanz (km, optional)</label>
+                            <input v-model.number="newDistance" type="number" min="0" step="0.1" placeholder="z. B. 5" />
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="actions-row stack">
+                        <div class="button-group">
+                            <div class="btn-cell">
+                                <AddExerciseButton class="action-btn add-exercise-btn block"
+                                                   title="Übung hinzufügen"
+                                                   @click="addExerciseToPlan" />
+                            </div>
+                        </div>
+                    </div>
+
                     <PlanSubmitButton class="action-btn plan-submit-btn"
                                       :isEditing="!!editingPlanId"
                                       :disabled="validatePlanName(planName) === false"
                                       createLabel="Plan erstellen"
                                       saveLabel="Plan speichern" />
                 </div>
-                <div v-if="selectedPlanExercises.length" class="exercise-table full-width">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Übung</th>
-                                <th>Sätze</th>
-                                <th>Wiederholungen</th>
-                                <th>Aktion</th>
-                                <th v-if="selectedPlanExercises.some(ex => ex.goal)">Trainingsziel</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="(ex, index) in selectedPlanExercises" :key="index" @dblclick="openEditPopup('table', index, $event)">
-                                <td>{{ ex.exercise }}</td>
-                                <td>{{ ex.sets }}</td>
-                                <td>{{ ex.reps }}</td>
-                                <td>
-                                    <DeleteButton title="Übung entfernen"
-                                                  :extraClass="'table-delete-btn transparent'"
-                                                  @click="removeExerciseFromPlan(index)" />
-                                </td>
-                                <td v-if="selectedPlanExercises.some(ex => ex.goal)">{{ ex.goal || '-' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <!-- RIGHT: Live Preview (sticky) -->
+                <div class="builder-right">
+                    <div class="preview-card">
+                        <div class="preview-head">
+                            <h4>Live-Preview</h4>
+                            <span v-if="selectedPlanExercises.length" class="muted">
+                                {{ selectedPlanExercises.length }} Übung{{ selectedPlanExercises.length===1?'':'en' }}
+                            </span>
+                        </div>
+
+                        <div v-if="selectedPlanExercises.length" class="exercise-table full-width compact">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Übung</th>
+                                        <th>{{ selectedPlanExercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}</th>
+                                        <th>
+                                            {{
+                    selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+                      ? 'Wdh. / km / s'
+                      : 'Wdh.'
+                                            }}
+                                        </th>
+                                        <th>Aktion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(ex, index) in selectedPlanExercises"
+                                        :key="index"
+                                        @dblclick="openEditPopup('table', index, $event)">
+                                        <td>{{ ex.exercise }}</td>
+                                        <td>{{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}</td>
+                                        <td>
+                                            <template v-if="ex.type === 'ausdauer'">
+                                                {{ ex.reps ? `${ex.reps} km` : '-' }}
+                                            </template>
+                                            <template v-else-if="ex.type === 'dehnung'">
+                                                {{ ex.reps }} s
+                                            </template>
+                                            <template v-else>
+                                                {{ ex.reps }}
+                                            </template>
+                                        </td>
+                                        <td>
+                                            <DeleteButton title="Übung entfernen"
+                                                          :extraClass="'table-delete-btn transparent'"
+                                                          @click="removeExerciseFromPlan(index)" />
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div v-else class="empty-preview">
+                            <span>Noch keine Übung hinzugefügt.</span>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
+
+
 
         <div v-if="plans.length" class="workout-list">
             <h3 class="section-title">Deine Trainingspläne</h3>
@@ -171,18 +286,43 @@
                     <thead>
                         <tr>
                             <th class="resizable" :style="{ width: columnWidths[0] + '%' }">Übung</th>
-                            <th class="resizable" :style="{ width: columnWidths[1] + '%' }">Sätze</th>
-                            <th class="resizable" :style="{ width: columnWidths[2] + '%' }">Wiederholungen</th>
+                            <th class="resizable" :style="{ width: columnWidths[1] + '%' }">
+                                {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                            </th>
+                            <th class="resizable" :style="{ width: columnWidths[2] + '%' }">
+                                {{
+          selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+            ? 'Wdh. / km / s'
+            : 'Wiederholungen'
+                                }}
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(ex, index) in selectedPlan.exercises" :key="index" class="resizable-row" :style="{ height: rowHeights[index] + 'px' }" @dblclick="openEditPopup('selectedPlan', index, $event)">
                             <td :style="{ width: columnWidths[0] + '%' }">{{ ex.exercise }}</td>
-                            <td :style="{ width: columnWidths[1] + '%' }">{{ ex.sets }}</td>
-                            <td :style="{ width: columnWidths[2] + '%' }">{{ ex.reps }}</td>
+
+                            <!-- Sätze/Min -->
+                            <td :style="{ width: columnWidths[1] + '%' }">
+                                {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
+                            </td>
+
+                            <!-- Wdh./km/s -->
+                            <td :style="{ width: columnWidths[2] + '%' }">
+                                <template v-if="ex.type === 'ausdauer'">
+                                    {{ ex.reps ? `${ex.reps} km` : '-' }}
+                                </template>
+                                <template v-else-if="ex.type === 'dehnung'">
+                                    {{ ex.reps }} s
+                                </template>
+                                <template v-else>
+                                    {{ ex.reps }}
+                                </template>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
+
             </div>
 
             <!-- Benutzerdefinierte Übungen: JETZT direkt unter dem geöffneten Plan -->
@@ -196,19 +336,29 @@
                         <tr>
                             <th>Name</th>
                             <th>Muskelgruppe</th>
+                            <th>Typ</th>
                             <th>Aktion</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(ex, i) in customExercises" :key="i">
                             <td @dblclick="openEditPopup('customExerciseName', i)">
-                                <input v-if="exerciseEditIndex === i && exerciseEditField === 'name'" v-model="ex.name" @blur="finishEdit" @keyup.enter="finishEdit" />
+                                <input v-if="exerciseEditIndex === i && exerciseEditField === 'name'"
+                                       v-model="ex.name" @blur="finishEdit" @keyup.enter="finishEdit" />
                                 <span v-else>{{ ex.name }}</span>
                             </td>
+
                             <td @dblclick="openEditPopup('customExerciseMuscle', i)">
-                                <input v-if="exerciseEditIndex === i && exerciseEditField === 'muscle'" v-model="ex.muscle" @blur="finishEdit" @keyup.enter="finishEdit" />
+                                <input v-if="exerciseEditIndex === i && exerciseEditField === 'muscle'"
+                                       v-model="ex.muscle" @blur="finishEdit" @keyup.enter="finishEdit" />
                                 <span v-else>{{ ex.muscle }}</span>
                             </td>
+
+                            <!-- NEU: Doppelklick → Select im Popup -->
+                            <td @dblclick="openEditPopup('customExerciseType', i)">
+                                {{ typeLabel(ex.type) }}
+                            </td>
+
                             <td>
                                 <DeleteButton title="Übung löschen"
                                               :extraClass="'table-delete-btn transparent'"
@@ -360,8 +510,8 @@
                    :input-type="editInputType"
                    :placeholder="editPlaceholder"
                    :value="editValue"
+                   :options="editOptions"
                    @save="onEditPopupSave" />
-
 
         <!-- Pop-up für Löschbestätigung -->
         <DeleteConfirmPopup :show="showDeletePopup"
@@ -453,6 +603,7 @@
         sets: number;
         reps: number;
         goal?: string;
+        type?: 'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung';
     }
 
     interface TrainingPlan {
@@ -580,6 +731,9 @@
         }
     });
 
+    // NEU: gemeinsamer Typ für Übungskategorien
+    type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer';
+    type CustomExerciseType = Exclude<ExerciseType, 'ausdauer'>;
 
     // Refs (bleiben größtenteils unverändert)
     const plans = ref<TrainingPlan[]>([]);
@@ -589,6 +743,14 @@
     const customPlanExercise = ref('');
     const newReps = ref<number | null>(null);
     const newSets = ref<number | null>(null);
+    const trainingType = ref<'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung'>('kraft')
+    const cardioTypes = ref([
+        'Laufen', 'Radfahren', 'Rudern', 'Crosstrainer', 'Seilspringen', 'Treppensteigen', 'Schwimmen'
+    ])
+    const cardioExercise = ref('')
+    const newDuration = ref<number | null>(null)
+    const newDistance = ref<number | null>(null)
+
     const editingPlanId = ref<string | null>(null);
     const selectedPlanExercises = ref<PlanExercise[]>([]);
     const selectedPlan = ref<TrainingPlan | null>(null);
@@ -605,6 +767,83 @@
     const newTimerName = ref('');
     const newStopwatchName = ref('');
     const deleteAction = ref<(() => void) | null>(null);
+    // Alias → Kanonische Gruppen
+    const muscleGroupAliases: Record<string, string[]> = {
+        // deutsch
+        'brust': ['Brust'],
+        'rücken': ['Rücken'], 'ruecken': ['Rücken'],
+        'schulter': ['Schultern'], 'schultern': ['Schultern'],
+        'arme': ['Arme'], 'arm': ['Arme'],
+        'beine': ['Beine'], 'bein': ['Beine'], 'unterkörper': ['Beine', 'Bauch'], 'unterkoerper': ['Beine', 'Bauch'],
+        'bauch': ['Bauch'], 'core': ['Bauch'],
+        'oberkörper': ['Brust', 'Rücken', 'Schultern', 'Arme'], 'oberkoerper': ['Brust', 'Rücken', 'Schultern', 'Arme'],
+        'po': ['Beine'], 'gesäß': ['Beine'], 'glauteus': ['Beine'],
+        // Bewegungsmuster (Push/Pull) + Synonyme
+        'push': ['Brust', 'Schultern', 'Arme'],
+        'pull': ['Rücken', 'Arme'],
+        'drücken': ['Brust', 'Schultern', 'Arme'],
+        'ziehen': ['Rücken', 'Arme'],
+        'push day': ['Brust', 'Schultern', 'Arme'],
+        'pull day': ['Rücken', 'Arme'],
+        'pushday': ['Brust', 'Schultern', 'Arme'],
+        'pullday': ['Rücken', 'Arme'],
+
+        // ein paar Untergruppen → Obergruppe (hilft auch Custom)
+        'trizeps': ['Arme'],
+        'bizeps': ['Arme'],
+        'lat': ['Rücken'], 'lats': ['Rücken'], 'latissimus': ['Rücken'],
+
+        // englische Synonyme, falls mal genutzt
+        'chest': ['Brust'],
+        'back': ['Rücken'],
+        'shoulder': ['Schultern'], 'shoulders': ['Schultern'],
+        'arms': ['Arme'], 'biceps': ['Arme'], 'triceps': ['Arme'],
+        'legs': ['Beine'], 'lower body': ['Beine', 'Bauch'],
+        'abs': ['Bauch'], 'core ': ['Bauch'], // core mit Space, um "core " Matches robust zu machen
+        'upper body': ['Brust', 'Rücken', 'Schultern', 'Arme'],
+    };
+
+    // Calisthenics nach Muskelgruppen
+    const calisthenicsByGroup: Record<string, string[]> = {
+        Brust: ['Liegestütze', 'Archer Push-up', 'Dips'],
+        Rücken: ['Klimmzüge', 'Australian Pull-up', 'Archer Pull-up'],
+        Schultern: ['Handstand Push-up', 'Archer Push-up'],
+        Arme: ['Dips', 'Klimmzüge', 'Archer Pull-up'],
+        Bauch: ['L-Sit', 'Dragon Flag', 'Hollow Hold', 'Toes to Bar'],
+        Beine: ['Pistol Squat'],
+    };
+
+    // Dehnübungen nach Muskelgruppen
+    const stretchingByGroup: Record<string, string[]> = {
+        Brust: ['Brust-Dehnung'],
+        Rücken: ['Rücken-Dehnung'],
+        Schultern: ['Schulter-Dehnung', 'Trizeps-Dehnung'],
+        Arme: ['Trizeps-Dehnung'],
+        Bauch: [],
+        Beine: ['Hamstring-Dehnung', 'Waden-Dehnung', 'Quadrizeps-Dehnung', 'Adduktoren-Dehnung'],
+    };
+
+    // Hilfsfunktionen
+    const resolveGroups = (q: string): string[] => {
+        const key = (q || '').trim().toLowerCase();
+        return muscleGroupAliases[key] || [];
+    };
+    const uniq = <T,>(arr: T[]) => Array.from(new Set(arr));
+
+    // Nur Calisthenics-Übungen
+    const calisthenicsExercises = ref([
+        'Klimmzüge', 'Liegestütze', 'Dips', 'Muscle-Up', 'Handstand Push-up',
+        'L-Sit', 'Dragon Flag', 'Pistol Squat', 'Hollow Hold', 'Superman Hold',
+        'Archer Pull-up', 'Archer Push-up', 'Australian Pull-up', 'Toes to Bar',
+    ])
+
+    // Basis-Dehnübungen (kannst du erweitern)
+    const stretchingExercises = ref([
+        'Brust-Dehnung', 'Hüftbeuger-Dehnung', 'Hamstring-Dehnung',
+        'Waden-Dehnung', 'Schulter-Dehnung', 'Trizeps-Dehnung',
+        'Rücken-Dehnung', 'Quadrizeps-Dehnung', 'Adduktoren-Dehnung',
+    ])
+
     const predefinedExercises = ref([
         'Bankdrücken', 'Kniebeugen', 'Kreuzheben', 'Schulterdrücken', 'Liegestütze', 'Klimmzüge', 'Latzug', 'Rudern',
         'Bizepscurls', 'Trizepsdrücken', 'Beinpresse', 'Ausfallschritte', 'Butterfly', 'Seitheben', 'Wadenheben',
@@ -626,13 +865,13 @@
     const rowHeights = ref<number[]>([]);
     const planSearch = ref('');
     const editValue = ref('');
-    const editType = ref<'table' | 'selectedPlan' | 'planName' | 'selectedPlanName' | 'timerName' | 'stopwatchName' | 'customExerciseName' | 'customExerciseMuscle'>('table');
+    const editType = ref<'table' | 'selectedPlan' | 'planName' | 'selectedPlanName' | 'timerName' | 'stopwatchName' | 'customExerciseName' | 'customExerciseMuscle' | 'customExerciseType'>('table');
     const editIndex = ref<number | string | null>(null);
     const editCellIndex = ref<number | null>(null);
     const showCustomExercises = ref(false);
     const exerciseEditIndex = ref<number | null>(null);
     const exerciseEditField = ref<'name' | 'muscle' | null>(null);
-    const customExercises = ref<{ name: string; muscle: string }[]>([]);
+    const customExercises = ref<Array<{ name: string; muscle: string; type: CustomExerciseType }>>([]);
     const toast = ref<Toast | null>(null);
     const timerObservers = new Map<string, IntersectionObserver>();
     let toastId = 0;
@@ -643,7 +882,8 @@
     const resizeTable = ref<HTMLTableElement | null>(null);
     const prevTimes = new Map<string, number>();
     const finishedOnce = new Set<string>();
-
+    const typeLabel = (t: ExerciseType) =>
+        ({ kraft: 'Kraft', calisthenics: 'Calisthenics', dehnung: 'Dehnung', ausdauer: 'Ausdauer' } as const)[t];
     const audioPaths = {
         standard: '/sounds/standard.mp3',
         alarm: '/sounds/alarm.mp3',
@@ -748,21 +988,132 @@
     });
 
     const filteredExercises = computed(() => {
-        const filter = exerciseFilter.value.toLowerCase();
-        const predefined = predefinedExercises.value.filter(ex =>
-            ex.toLowerCase().includes(filter) ||
-            Object.entries(muscleGroups.value).some(([group, exercises]) =>
-                group.toLowerCase().includes(filter) && exercises.includes(ex)
+        const filter = exerciseFilter.value.trim().toLowerCase();
+        const groups = resolveGroups(filter);
+        const isPush = ['push', 'drücken', 'push day', 'pushday'].includes(filter);
+        const isPull = ['pull', 'ziehen', 'pull day', 'pullday'].includes(filter);
+
+        // Ausdauer
+        if (trainingType.value === 'ausdauer') {
+            return cardioTypes.value;
+        }
+
+        // Calisthenics
+        if (trainingType.value === 'calisthenics') {
+            const nameMatches = calisthenicsExercises.value.filter(x =>
+                x.toLowerCase().includes(filter)
+            );
+
+            const groupMatches = groups.length
+                ? groups.flatMap(g => (calisthenicsByGroup[g] || []))
+                : [];
+
+            const custom = customExercises.value
+                .filter(ex =>
+                    ex.type === 'calisthenics' &&
+                    (
+                        ex.name.toLowerCase().includes(filter) ||
+                        ex.muscle.toLowerCase().includes(filter) ||
+                        (groups.length && groups.some(g => ex.muscle.toLowerCase() === g.toLowerCase()))
+                    )
+                )
+                .map(ex => ex.name);
+
+            let list = uniq([...nameMatches, ...groupMatches, ...custom]);
+
+            // 👉 Push/Pull-Feinfilter (nur sinnvolle Bewegungen anzeigen)
+            if (isPush) {
+                const allow = new Set(['Liegestütze', 'Archer Push-up', 'Dips', 'Handstand Push-up']);
+                list = list.filter(x => allow.has(x));
+            } else if (isPull) {
+                const allow = new Set(['Klimmzüge', 'Australian Pull-up', 'Archer Pull-up']);
+                list = list.filter(x => allow.has(x));
+            }
+
+            return list;
+        }
+
+        // Dehnung
+        if (trainingType.value === 'dehnung') {
+            // ❗ Push/Pull (und Synonyme) sollen NICHT greifen
+            const isPushPull = [
+                'push', 'pull', 'drücken', 'ziehen', 'push day', 'pushday', 'pull day', 'pullday'
+            ].includes(filter)
+
+            // Gruppen nur auflösen, wenn NICHT Push/Pull
+            const groups = isPushPull ? [] : resolveGroups(filter)
+
+            // 1) Namens-Treffer in der Basisliste
+            const nameMatches = stretchingExercises.value.filter(x =>
+                !filter || x.toLowerCase().includes(filter)
             )
+
+            // 2) Gruppen-Treffer über Mapping (z.B. Oberkörper/Unterkörper)
+            const groupMatches = groups.length
+                ? groups.flatMap(g => stretchingByGroup[g] || [])
+                : []
+
+            // 3) Custom-Stretches per Name/Muskel oder Gruppen-Match
+            const custom = customExercises.value
+                .filter(ex =>
+                    ex.type === 'dehnung' && (
+                        ex.name.toLowerCase().includes(filter) ||
+                        ex.muscle.toLowerCase().includes(filter) ||
+                        (groups.length && groups.some(g => ex.muscle.toLowerCase() === g.toLowerCase()))
+                    )
+                )
+                .map(ex => ex.name)
+
+            // 4) Einzigartige Liste zurückgeben
+            return Array.from(new Set([...nameMatches, ...groupMatches, ...custom]))
+        }
+
+
+        // Kraft (default)
+        const caliSet = new Set(calisthenicsExercises.value.map(x => x.toLowerCase()));
+
+        const fromGroups = groups.length
+            ? groups.flatMap(g => ((muscleGroups.value as unknown as Record<string, string[]>)[g] || []))
+            : [];
+
+        const byName = predefinedExercises.value.filter(ex =>
+            ex.toLowerCase().includes(filter)
         );
+
+        let grouped = uniq([...fromGroups, ...byName]).filter(ex =>
+            !caliSet.has(ex.toLowerCase())
+        );
+
         const custom = customExercises.value
             .filter(ex =>
-                ex.name.toLowerCase().includes(filter) ||
-                ex.muscle.toLowerCase().includes(filter)
+                ex.type === 'kraft' &&
+                (
+                    ex.name.toLowerCase().includes(filter) ||
+                    ex.muscle.toLowerCase().includes(filter) ||
+                    (groups.length && groups.some(g => ex.muscle.toLowerCase() === g.toLowerCase()))
+                )
             )
             .map(ex => ex.name);
-        return [...new Set([...predefined, ...custom])];
+
+        let result = uniq([...grouped, ...custom]);
+
+        // 👉 Push/Pull-Feinfilter
+        if (isPush) {
+            const allow = new Set([
+                'Bankdrücken', 'Schulterdrücken', 'Liegestütze', 'Butterfly',
+                'Brustpresse', 'Dips', 'Seitheben', 'Trizepsdrücken'
+            ]);
+            result = result.filter(x => allow.has(x));
+        } else if (isPull) {
+            const allow = new Set([
+                'Klimmzüge', 'Latzug', 'Rudern', 'Bizepscurls', 'Rückenstrecker'
+            ]);
+            result = result.filter(x => allow.has(x));
+        }
+
+        return result;
     });
+
 
     const selectedPlanGoal = computed(() => {
         if (selectedPlan.value?.exercises.length) {
@@ -780,23 +1131,45 @@
     };
 
     const editPopupTitle = computed(() => {
+        if (editType.value === 'customExerciseType') return 'Übungstyp bearbeiten';
         if (editType.value === 'planName' || editType.value === 'selectedPlanName') return 'Planname bearbeiten';
         if (editType.value === 'timerName') return 'Timername bearbeiten';
         if (editType.value === 'stopwatchName') return 'Stoppuhrname bearbeiten';
         if (editType.value === 'customExerciseName') return 'Übungsname bearbeiten';
         if (editType.value === 'customExerciseMuscle') return 'Muskelgruppe bearbeiten';
         if (editCellIndex.value === 0) return 'Übung bearbeiten';
-        if (editCellIndex.value === 1) return 'Sätze bearbeiten';
-        if (editCellIndex.value === 2) return 'Wiederholungen bearbeiten';
+        if (editCellIndex.value === 1) return 'Sätze / Minuten bearbeiten';
+        if (editCellIndex.value === 2) return 'Wiederholungen / Kilometer bearbeiten';
         return 'Bearbeiten';
     });
 
+    const editOptions = computed(() => {
+        if (editType.value === 'customExerciseType') {
+            return [
+                { label: 'Kraft', value: 'kraft' },
+                { label: 'Calisthenics', value: 'calisthenics' },
+                { label: 'Dehnung', value: 'dehnung' },
+            ];
+        }
+        return [];
+    });
+
     const editInputType = computed(() => {
-        if (editType.value === 'planName' || editType.value === 'selectedPlanName' || editType.value === 'timerName' || editType.value === 'stopwatchName' || editType.value === 'customExerciseName' || editType.value === 'customExerciseMuscle') return 'text';
+        if (editType.value === 'customExerciseType') return 'select';
+        if (
+            editType.value === 'planName' ||
+            editType.value === 'selectedPlanName' ||
+            editType.value === 'timerName' ||
+            editType.value === 'stopwatchName' ||
+            editType.value === 'customExerciseName' ||
+            editType.value === 'customExerciseMuscle'
+        ) return 'text';
         return 'number';
     });
 
+
     const editPlaceholder = computed(() => {
+        if (editType.value === 'customExerciseType') return 'Typ: kraft | calisthenics | dehnung';
         if (editType.value === 'planName' || editType.value === 'selectedPlanName') return 'Neuer Planname (3-20 Zeichen)';
         if (editType.value === 'timerName') return 'Neuer Timername';
         if (editType.value === 'stopwatchName') return 'Neuer Stoppuhrname (max. 30 Zeichen)';
@@ -807,6 +1180,7 @@
         if (editCellIndex.value === 2) return 'Neue Wiederholungen (1-50)';
         return 'Neuer Wert';
     });
+
 
     const sortedPlans = computed(() => {
         const order = new Map(favoritePlans.value.map((id, i) => [id, i]));
@@ -855,14 +1229,30 @@
     const loadFromStorage = () => {
         try {
             const data = localStorage.getItem('trainingData');
+
             if (data) {
-                const parsed = JSON.parse(data);
+                const parsed = JSON.parse(data) ?? {};
+
+                // Pläne & Favoriten wie gehabt
                 plans.value = Array.isArray(parsed.plans) ? parsed.plans : [];
                 favoritePlans.value = Array.isArray(parsed.favoritePlans) ? parsed.favoritePlans : [];
+
+                // Custom-Übungen: robust validieren & auf 'kraft' fallen, wenn Typ fehlt/ungültig
                 customExercises.value = Array.isArray(parsed.customExercises)
-                    ? parsed.customExercises.filter((ex: any) =>
-                        ex && typeof ex === 'object' && typeof ex.name === 'string' && typeof ex.muscle === 'string'
-                    )
+                    ? parsed.customExercises
+                        .filter(
+                            (ex: any) =>
+                                ex &&
+                                typeof ex === 'object' &&
+                                typeof ex.name === 'string' &&
+                                typeof ex.muscle === 'string'
+                        )
+                        .map((ex: any) => {
+                            const t0 = normalizeTypeInput(ex.type) ?? 'kraft';
+                            const t: ExerciseType = (t0 === 'ausdauer') ? 'kraft' : t0; // Cardio bei Custom-Übungen verhindern
+                            return { name: ex.name, muscle: ex.muscle, type: t };
+                        })
+
                     : [];
             }
         } catch (e) {
@@ -873,6 +1263,7 @@
             addToast('Fehler beim Laden der Daten', 'delete');
         }
     };
+
 
     const saveToStorage = () => {
         try {
@@ -902,9 +1293,11 @@
     };
 
     const validateReps = (reps: number | null | undefined) => {
-        if (reps == null || isNaN(reps)) return 'Wiederholungen müssen eine Zahl sein';
-        if (reps < 1 || reps > 50) return 'Wiederholungen müssen zwischen 1 und 50 liegen';
-        if (!Number.isInteger(reps)) return 'Wiederholungen müssen eine Ganzzahl sein';
+        if (reps == null || isNaN(reps)) return 'Wiederholungen/Sekunden müssen eine Zahl sein';
+        if (!Number.isFinite(reps)) return 'Ungültige Zahl';
+        if (!Number.isInteger(reps)) return 'Wiederholungen/Sekunden müssen eine Ganzzahl sein';
+        // großzügiger, damit Dehnung (Sekunden) und hohe Wiederholungen funktionieren
+        if (reps < 1 || reps > 1000) return 'Wiederholungen/Sekunden müssen zwischen 1 und 1000 liegen';
         return null;
     };
 
@@ -915,16 +1308,34 @@
         return null;
     };
 
-    const validateCustomExercise = (name: string, muscle: string, editIndex: number | null = null) => {
-        const trimmedName = name.trim();
-        const trimmedMuscle = muscle.trim();
+    const validateCustomExercise = (
+        name: string,
+        muscle: string,
+        typeRaw: string | ExerciseType,
+        editIndex: number | null = null
+    ): { name: string; muscle: string; type: CustomExerciseType } | string => {
+        const trimmedName = (name ?? '').trim();
+        const trimmedMuscle = (muscle ?? '').trim();
+
         if (!trimmedName) return 'Übungsname ist erforderlich';
         if (!trimmedMuscle) return 'Muskelgruppe ist erforderlich';
         if (trimmedName.length > 50) return 'Übungsname darf maximal 50 Zeichen lang sein';
         if (trimmedMuscle.length > 50) return 'Muskelgruppe darf maximal 50 Zeichen lang sein';
-        const exists = customExercises.value.some((ex, i) => ex.name.toLowerCase() === trimmedName.toLowerCase() && (editIndex === null || i !== editIndex));
-        if (exists) return 'Übungsname existiert bereits';
-        return { name: trimmedName, muscle: trimmedMuscle };
+
+        const normalized = normalizeTypeInput(typeRaw);
+        if (!normalized) return 'Ungültiger Typ. Erlaubt sind: kraft, calisthenics, dehnung';
+        if (normalized === 'ausdauer') return '"Ausdauer" ist für benutzerdefinierte Übungen nicht erlaubt';
+
+        const type = normalized as CustomExerciseType;
+
+        const exists = customExercises.value.some((ex, i) =>
+            i !== editIndex &&
+            ex.type === type &&
+            ex.name.trim().toLowerCase() === trimmedName.toLowerCase()
+        );
+        if (exists) return 'Übungsname existiert in diesem Typ bereits';
+
+        return { name: trimmedName, muscle: trimmedMuscle, type };
     };
 
     const onEditPopupSave = (val: string) => {
@@ -946,29 +1357,53 @@
         return trimmed || 'Stoppuhr';
     };
 
-    const collectValidationErrors = () => {
-        const errors: string[] = [];
-        const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value;
+    const validateDurationMin = (val: number | null | undefined) => {
+        if (val == null || isNaN(val)) return 'Dauer (Minuten) muss eine Zahl sein'
+        if (!Number.isInteger(val)) return 'Dauer (Minuten) muss eine Ganzzahl sein'
+        if (val < 1 || val > 600) return 'Dauer (Minuten) muss zwischen 1 und 600 liegen'
+        return null
+    }
+    const validateDistanceKm = (val: number | null | undefined) => {
+        if (val == null || val === undefined || val === 0) return null // optional
+        if (val < 0 || val > 1000) return 'Distanz (km) muss zwischen 0 und 1000 liegen'
+        return null
+    }
 
-        if (!exerciseToAdd) errors.push('Übung auswählen oder benutzerdefinierte Übung eingeben');
-        else if (selectedPlanExercises.value.some(ex => ex.exercise.toLowerCase() === exerciseToAdd.toLowerCase())) {
-            errors.push('Übung bereits im Plan vorhanden');
+    const collectValidationErrors = () => {
+        const errors: string[] = []
+
+        if (trainingType.value === 'ausdauer') {
+            if (!cardioExercise.value) errors.push('Cardio-Art wählen')
+            const dErr = validateDurationMin(newDuration.value); if (dErr) errors.push(dErr)
+            const kErr = validateDistanceKm(newDistance.value); if (kErr) errors.push(kErr)
+            return errors
         }
 
-        const setsError = validateSets(newSets.value);
-        if (setsError) errors.push(setsError);
+        // Kraft / Calisthenics / Dehnung
+        const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value
+        if (!exerciseToAdd) errors.push('Übung auswählen oder benutzerdefinierte Übung eingeben')
+        else if (selectedPlanExercises.value.some(ex => ex.exercise.toLowerCase() === exerciseToAdd.toLowerCase())) {
+            errors.push('Übung bereits im Plan vorhanden')
+        }
 
-        const repsError = validateReps(newReps.value);
-        if (repsError) errors.push(repsError);
+        // Dehnung nutzt deine vorhandenen Felder: newSets = Holds, newReps = Sekunden/Hold
+        const setsError = validateSets(newSets.value); if (setsError) errors.push(setsError)
+        const repsError = validateReps(newReps.value); if (repsError) errors.push(repsError)
 
         if (newExercise.value === 'custom' && customPlanExercise.value) {
-            const muscleGroup = exerciseFilter.value || '';
-            const validated = validateCustomExercise(customPlanExercise.value, muscleGroup);
-            if (typeof validated === 'string') errors.push(validated);
+            const muscleGroup = exerciseFilter.value || ''
+            const validated = validateCustomExercise(
+                customPlanExercise.value,
+                muscleGroup,
+                trainingType.value, // 👈 wichtig: 'kraft' | 'calisthenics' | 'dehnung'
+            )
+            if (typeof validated === 'string') errors.push(validated)
         }
 
-        return errors;
-    };
+
+        return errors
+    }
+
 
     const openValidationPopup = (errors: string[]) => {
         validationErrorMessages.value = Array.isArray(errors) ? errors : [String(errors)];
@@ -1065,36 +1500,57 @@
     };
 
     const addExerciseToPlan = () => {
-        const errors = collectValidationErrors();
-        if (errors.length > 0) {
-            openValidationPopup(errors);
-            return;
+        const errors = collectValidationErrors()
+        if (errors.length > 0) { openValidationPopup(errors); return }
+
+        if (trainingType.value === 'ausdauer') {
+            selectedPlanExercises.value.push({
+                exercise: cardioExercise.value,
+                sets: newDuration.value!,                                   // Minuten
+                reps: newDistance.value ? Number(newDistance.value) : 0,    // km (optional)
+                goal: selectedGoal.value || undefined,
+                type: 'ausdauer'
+            })
+            rowHeights.value.push(40)
+            addToast('Cardio hinzugefügt', 'add')
+            cardioExercise.value = ''
+            newDuration.value = null
+            newDistance.value = null
+            selectedGoal.value = ''
+            return
         }
 
-        const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value;
+        // Kraft / Calisthenics / Dehnung
+        const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value
         if (newExercise.value === 'custom' && customPlanExercise.value) {
-            const muscleGroup = exerciseFilter.value || '';
-            const validated = validateCustomExercise(customPlanExercise.value, muscleGroup);
+            const muscleGroup = exerciseFilter.value || ''
+            const validated = validateCustomExercise(customPlanExercise.value, muscleGroup, trainingType.value)
             if (typeof validated !== 'string') {
-                customExercises.value.push({ name: validated.name, muscle: validated.muscle });
-                saveToStorage();
-                addToast('Benutzerdefinierte Übung gespeichert', 'add');
+                customExercises.value.push({ name: validated.name, muscle: validated.muscle, type: validated.type })
+                saveToStorage()
+                addToast('Benutzerdefinierte Übung gespeichert', 'add')
+            } else {
+                openValidationPopup([validated])
+                return
             }
         }
         selectedPlanExercises.value.push({
             exercise: exerciseToAdd,
             sets: newSets.value!,
             reps: newReps.value!,
-            goal: selectedGoal.value || undefined
-        });
-        rowHeights.value.push(40);
-        addToast('Übung hinzugefügt', 'add');
-        newExercise.value = '';
-        customPlanExercise.value = '';
-        newReps.value = null;
-        newSets.value = null;
-        selectedGoal.value = '';
-    };
+            goal: selectedGoal.value || undefined,
+            type: trainingType.value // 'kraft' | 'calisthenics' | 'dehnung'
+        })
+        rowHeights.value.push(40)
+        addToast('Übung hinzugefügt', 'add')
+
+        newExercise.value = ''
+        customPlanExercise.value = ''
+        newReps.value = null
+        newSets.value = null
+        selectedGoal.value = ''
+    }
+
 
     const removeExerciseFromPlan = (index: number) => {
         if (index < 0 || index >= selectedPlanExercises.value.length) {
@@ -1171,93 +1627,124 @@
     const confirmDownload = () => {
         if (!downloadPlan.value) return;
         const plan = downloadPlan.value;
-        const goal = [...new Set(plan.exercises.map(ex => ex.goal).filter(g => g))][0] || '';
-        const fileName = goal ? `${plan.name}` : plan.name;
-        const title = goal ? `${plan.name}` : plan.name;
+
+        // Header dynamisch wie im UI
+        const anyCardio = plan.exercises.some(ex => ex.type === 'ausdauer');
+        const anyStretch = plan.exercises.some(ex => ex.type === 'dehnung');
+
+        const setsHeader = anyCardio ? 'Sätze / Min' : 'Sätze';
+        const repsHeader = (anyCardio || anyStretch) ? 'Wdh. / km / s' : 'Wiederholungen';
+
+        // Zellen-Formatter mit Einheiten
+        const fmtSets = (ex: PlanExercise) => ex.type === 'ausdauer' ? `${ex.sets} min` : `${ex.sets}`;
+        const fmtReps = (ex: PlanExercise) => {
+            if (ex.type === 'ausdauer') return ex.reps ? `${ex.reps} km` : '-';
+            if (ex.type === 'dehnung') return `${ex.reps} s`;
+            return `${ex.reps}`;
+        };
+
+        const uniqueGoal = [...new Set(plan.exercises.map(ex => ex.goal).filter(Boolean))][0] as string | undefined;
+        const title = plan.name;
+        const fileName = plan.name;
 
         if (downloadFormat.value === 'html') {
             const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="de">
-        <head>
-          <meta charset="UTF-8">
-          <title>${title}</title>
-          <style>
-            body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
-            h1 { color: #4B6CB7; text-align: left; }
-            table { width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin: 20px 0; }
-            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-            th { background: #333; color: #ffffff; }
-            tr:nth-child(even) { background: #f9fafb; }
-            tr:hover { background: #e2e8f0; }
-            td { color: #4b5563; }
-          </style>
-        </head>
-        <body>
-          <h1>${title}</h1>
-          <table>
-            <tr>
-              <th>Übung</th>
-              <th>Sätze</th>
-              <th>Wiederholungen</th>
-            </tr>
-            ${plan.exercises.map(ex => `
-              <tr>
-                <td>${ex.exercise}</td>
-                <td>${ex.sets}</td>
-                <td>${ex.reps}</td>
-              </tr>
-            `).join('')}
-          </table>
-        </body>
-      </html>
-    `;
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <style>
+      body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+      h1 { color: #4B6CB7; text-align: left; }
+      table { width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 20px 0; }
+      th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+      th { background: #333; color: #fff; }
+      tr:nth-child(even) { background: #f9fafb; }
+      tr:hover { background: #e2e8f0; }
+      td { color: #4b5563; }
+      .muted { color: #6b7280; font-size: 0.9em; }
+    </style>
+  </head>
+  <body>
+    <h1>${title}${uniqueGoal ? ` <span class="muted">(${uniqueGoal})</span>` : ''}</h1>
+    <table>
+      <tr>
+        <th>Übung</th>
+        <th>${setsHeader}</th>
+        <th>${repsHeader}</th>
+      </tr>
+      ${plan.exercises.map(ex => `
+        <tr>
+          <td>${ex.exercise}</td>
+          <td>${fmtSets(ex)}</td>
+          <td>${fmtReps(ex)}</td>
+        </tr>
+      `).join('')}
+    </table>
+  </body>
+</html>`;
             const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `${fileName}_Trainingsplan.html`;
             link.click();
             URL.revokeObjectURL(link.href);
+
         } else if (downloadFormat.value === 'pdf') {
             const doc = new jsPDF();
             doc.setFont('Helvetica', 'normal');
             doc.setFontSize(16);
-            doc.text(title, 20, 20);
+            doc.text(title + (uniqueGoal ? ` (${uniqueGoal})` : ''), 20, 20);
             doc.setFontSize(12);
-            let yOffset = 40;
-            doc.text(['Übung', 'Sätze', 'Wiederholungen'].join(', '), 20, yOffset);
-            yOffset += 10;
+            let y = 40;
+            doc.text(['Übung', setsHeader, repsHeader].join(' | '), 20, y);
+            y += 10;
             plan.exercises.forEach(ex => {
-                doc.text([ex.exercise, `${ex.sets}`, `${ex.reps}`].join(', '), 20, yOffset);
-                yOffset += 10;
+                doc.text([ex.exercise, fmtSets(ex), fmtReps(ex)].join(' | '), 20, y);
+                y += 10;
             });
             doc.save(`${fileName}_Trainingsplan.pdf`);
+
         } else if (downloadFormat.value === 'csv') {
-            const csvContent = ['Übung', 'Sätze', 'Wiederholungen'].join(',') + '\n' +
-                plan.exercises.map(ex => `"${ex.exercise}",${ex.sets},${ex.reps}`).join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+            const header = ['Übung', setsHeader, repsHeader];
+            const rows = plan.exercises.map(ex => [
+                ex.exercise,
+                fmtSets(ex),
+                fmtReps(ex),
+            ]);
+            const csv = [header.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `${fileName}_Trainingsplan.csv`;
             link.click();
             URL.revokeObjectURL(link.href);
+
         } else if (downloadFormat.value === 'json') {
-            const jsonContent = JSON.stringify(plan.exercises.map(({ exercise, sets, reps }) => ({ exercise, sets, reps })), null, 2);
-            const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8' });
+            const json = plan.exercises.map(ex => ({
+                exercise: ex.exercise,
+                sets: ex.sets,
+                sets_unit: ex.type === 'ausdauer' ? 'min' : 'sets',
+                reps: ex.reps,
+                reps_unit: ex.type === 'ausdauer' ? 'km' : (ex.type === 'dehnung' ? 's' : 'reps'),
+                type: ex.type ?? 'kraft',
+                goal: ex.goal ?? null,
+            }));
+            const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json;charset=utf-8' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `${fileName}_Trainingsplan.json`;
             link.click();
             URL.revokeObjectURL(link.href);
-        }
-        else if (downloadFormat.value === 'txt') {
-            const lines = [
-                `Trainingsplan: ${title}`,
-                '',
-                'Übung\tSätze\tWiederholungen',
-                ...plan.exercises.map(ex => `${ex.exercise}\t${ex.sets}\t${ex.reps}`)
-            ].join('\n');
 
+        } else if (downloadFormat.value === 'txt') {
+            const lines = [
+                `Trainingsplan: ${title}${uniqueGoal ? ` (${uniqueGoal})` : ''}`,
+                '',
+                `Übung\t${setsHeader}\t${repsHeader}`,
+                ...plan.exercises.map(ex => `${ex.exercise}\t${fmtSets(ex)}\t${fmtReps(ex)}`)
+            ].join('\n');
             const blob = new Blob([lines], { type: 'text/plain;charset=utf-8' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -1269,6 +1756,7 @@
         addToast('Plan heruntergeladen', 'load');
         closeDownloadPopup();
     };
+
 
     const toggleExtras = () => {
         showExtras.value = !showExtras.value;
@@ -1512,7 +2000,20 @@
         }, 3000);
     };
 
-    const openEditPopup = (type: 'table' | 'selectedPlan' | 'planName' | 'selectedPlanName' | 'timerName' | 'stopwatchName' | 'customExerciseName' | 'customExerciseMuscle', index: number | string, event?: MouseEvent) => {
+    const openEditPopup = (
+        type:
+            | 'table'
+            | 'selectedPlan'
+            | 'planName'
+            | 'selectedPlanName'
+            | 'timerName'
+            | 'stopwatchName'
+            | 'customExerciseName'
+            | 'customExerciseMuscle'
+            | 'customExerciseType',
+        index: number | string,
+        event?: MouseEvent
+    ) => {
         console.log('openEditPopup aufgerufen:', { type, index });
         editType.value = type;
         editIndex.value = index;
@@ -1545,124 +2046,175 @@
             else if (editCellIndex.value === 2) editValue.value = String(exercise.reps);
         } else if (type === 'planName') {
             const plan = plans.value.find(p => p.id === index);
-            if (!plan) {
-                console.error('Plan nicht gefunden für ID:', index);
-                openValidationPopup(['Plan nicht gefunden']);
-                return;
-            }
+            if (!plan) { openValidationPopup(['Plan nicht gefunden']); return; }
             editValue.value = plan.name;
         } else if (type === 'selectedPlanName') {
-            if (!selectedPlan.value) {
-                console.error('Kein ausgewählter Plan vorhanden');
-                openValidationPopup(['Kein ausgewählter Plan']);
-                return;
-            }
+            if (!selectedPlan.value) { openValidationPopup(['Kein ausgewählter Plan']); return; }
             editValue.value = selectedPlan.value.name;
         } else if (type === 'timerName') {
             const timer = props.timers.find(t => t.id === index);
-            if (!timer) {
-                console.error('Timer nicht gefunden für ID:', index);
-                openValidationPopup(['Timer nicht gefunden']);
-                return;
-            }
+            if (!timer) { openValidationPopup(['Timer nicht gefunden']); return; }
             editValue.value = timer.name || '';
         } else if (type === 'stopwatchName') {
-            console.log('Bearbeite Stoppuhrname für ID:', index);
             const stopwatch = props.stopwatches.find(s => s.id === index);
-            if (!stopwatch) {
-                console.error('Keine Stoppuhr mit ID gefunden:', index);
-                openValidationPopup(['Stoppuhr nicht gefunden']);
-                return;
-            }
+            if (!stopwatch) { openValidationPopup(['Stoppuhr nicht gefunden']); return; }
             editValue.value = stopwatch.name || '';
-            console.log('editValue gesetzt:', editValue.value);
         } else if (type === 'customExerciseName') {
             const exercise = customExercises.value[index as number];
-            if (!exercise) {
-                console.error('Benutzerdefinierte Übung nicht gefunden für Index:', index);
-                openValidationPopup(['Übung nicht gefunden']);
-                return;
-            }
+            if (!exercise) { openValidationPopup(['Übung nicht gefunden']); return; }
             editValue.value = exercise.name;
         } else if (type === 'customExerciseMuscle') {
             const exercise = customExercises.value[index as number];
-            if (!exercise) {
-                console.error('Muskelgruppe nicht gefunden für Index:', index);
-                openValidationPopup(['Muskelgruppe nicht gefunden']);
-                return;
-            }
+            if (!exercise) { openValidationPopup(['Muskelgruppe nicht gefunden']); return; }
             editValue.value = exercise.muscle;
+        }
+        // NEU
+        else if (type === 'customExerciseType') {
+            const exercise = customExercises.value[index as number];
+            if (!exercise) { openValidationPopup(['Übung nicht gefunden']); return; }
+            editValue.value = exercise.type;
         }
 
         showEditPopup.value = true;
         console.log('showEditPopup gesetzt:', showEditPopup.value);
-
     };
+    const normalizeTypeInput = (raw: unknown): ExerciseType | null => {
+        const t = String(raw ?? '').trim().toLowerCase();
+        const map: Record<string, ExerciseType> = {
+            // kraft
+            kraft: 'kraft', strength: 'kraft',
+
+            // calisthenics
+            calisthenics: 'calisthenics', cali: 'calisthenics', bodyweight: 'calisthenics', bw: 'calisthenics',
+
+            // dehnung
+            dehnung: 'dehnung', stretch: 'dehnung', stretching: 'dehnung',
+
+            // ausdauer (nur fürs Normalisieren/Bestandsdaten; Auswahl ist gesperrt)
+            ausdauer: 'ausdauer', cardio: 'ausdauer', endurance: 'ausdauer',
+        };
+        return (map[t] ?? (['kraft', 'calisthenics', 'dehnung', 'ausdauer'].includes(t) ? (t as ExerciseType) : null));
+    };
+
 
     const saveEdit = () => {
         console.log('saveEdit aufgerufen mit:', { editType: editType.value, editValue: editValue.value });
+
+        // === 1) Tabelle "Auswahl" oben ============================================
         if (editType.value === 'table' && typeof editIndex.value === 'number') {
             const exercise = selectedPlanExercises.value[editIndex.value];
             if (!exercise) return;
+
             if (editCellIndex.value === 0 && editValue.value) {
-                if (selectedPlanExercises.value.some(ex => ex.exercise.toLowerCase() === editValue.value.trim().toLowerCase() && ex !== exercise)) {
+                const newName = editValue.value.trim();
+                if (selectedPlanExercises.value.some(ex => ex.exercise.toLowerCase() === newName.toLowerCase() && ex !== exercise)) {
                     openValidationPopup(['Übung existiert bereits im Plan']);
                     return;
                 }
-                exercise.exercise = editValue.value.trim();
+                exercise.exercise = newName;
                 addToast('Übung aktualisiert', 'save');
-            } else if (editCellIndex.value === 1) {
+                closeEditPopup();
+                return;
+            }
+
+            if (exercise.type === 'ausdauer') {
+                if (editCellIndex.value === 1) {
+                    const mins = Number(editValue.value);
+                    const err = validateDurationMin(mins);
+                    if (err) { openValidationPopup([err]); return; }
+                    exercise.sets = mins;
+                    addToast('Dauer aktualisiert', 'save');
+                } else if (editCellIndex.value === 2) {
+                    const kmRaw = Number(editValue.value);
+                    const km = isNaN(kmRaw) ? 0 : kmRaw;
+                    const err = validateDistanceKm(km);
+                    if (err) { openValidationPopup([err]); return; }
+                    exercise.reps = km;
+                    addToast('Distanz aktualisiert', 'save');
+                }
+                closeEditPopup();
+                return;
+            }
+
+            if (editCellIndex.value === 1) {
                 const sets = Number(editValue.value);
                 const setsError = validateSets(sets);
-                if (setsError) {
-                    openValidationPopup([setsError]);
-                    return;
-                }
+                if (setsError) { openValidationPopup([setsError]); return; }
                 exercise.sets = sets;
                 addToast('Sätze aktualisiert', 'save');
             } else if (editCellIndex.value === 2) {
                 const reps = Number(editValue.value);
                 const repsError = validateReps(reps);
-                if (repsError) {
-                    openValidationPopup([repsError]);
-                    return;
-                }
+                if (repsError) { openValidationPopup([repsError]); return; }
                 exercise.reps = reps;
-                addToast('Wiederholungen aktualisiert', 'save');
+                addToast(exercise.type === 'dehnung' ? 'Sekunden aktualisiert' : 'Wiederholungen aktualisiert', 'save');
             }
-        } else if (editType.value === 'selectedPlan' && typeof editIndex.value === 'number' && selectedPlan.value) {
+
+            closeEditPopup();
+            return;
+        }
+
+        // === 2) Tabelle im geöffneten Plan (selectedPlan) ==========================
+        if (editType.value === 'selectedPlan' && typeof editIndex.value === 'number' && selectedPlan.value) {
             const exercise = selectedPlan.value.exercises[editIndex.value];
             if (!exercise) return;
+
             if (editCellIndex.value === 0 && editValue.value) {
-                if (selectedPlan.value.exercises.some(ex => ex.exercise.toLowerCase() === editValue.value.trim().toLowerCase() && ex !== exercise)) {
+                const newName = editValue.value.trim();
+                if (selectedPlan.value.exercises.some(ex => ex.exercise.toLowerCase() === newName.toLowerCase() && ex !== exercise)) {
                     openValidationPopup(['Übung existiert bereits im Plan']);
                     return;
                 }
-                exercise.exercise = editValue.value.trim();
+                exercise.exercise = newName;
                 updatePlanInStorage();
                 addToast('Übung aktualisiert', 'save');
-            } else if (editCellIndex.value === 1) {
+                closeEditPopup();
+                return;
+            }
+
+            if (exercise.type === 'ausdauer') {
+                if (editCellIndex.value === 1) {
+                    const mins = Number(editValue.value);
+                    const err = validateDurationMin(mins);
+                    if (err) { openValidationPopup([err]); return; }
+                    exercise.sets = mins;
+                    updatePlanInStorage();
+                    addToast('Dauer aktualisiert', 'save');
+                } else if (editCellIndex.value === 2) {
+                    const kmRaw = Number(editValue.value);
+                    const km = isNaN(kmRaw) ? 0 : kmRaw;
+                    const err = validateDistanceKm(km);
+                    if (err) { openValidationPopup([err]); return; }
+                    exercise.reps = km;
+                    updatePlanInStorage();
+                    addToast('Distanz aktualisiert', 'save');
+                }
+                closeEditPopup();
+                return;
+            }
+
+            if (editCellIndex.value === 1) {
                 const sets = Number(editValue.value);
                 const setsError = validateSets(sets);
-                if (setsError) {
-                    openValidationPopup([setsError]);
-                    return;
-                }
+                if (setsError) { openValidationPopup([setsError]); return; }
                 exercise.sets = sets;
                 updatePlanInStorage();
                 addToast('Sätze aktualisiert', 'save');
             } else if (editCellIndex.value === 2) {
                 const reps = Number(editValue.value);
                 const repsError = validateReps(reps);
-                if (repsError) {
-                    openValidationPopup([repsError]);
-                    return;
-                }
+                if (repsError) { openValidationPopup([repsError]); return; }
                 exercise.reps = reps;
                 updatePlanInStorage();
-                addToast('Wiederholungen aktualisiert', 'save');
+                addToast(exercise.type === 'dehnung' ? 'Sekunden aktualisiert' : 'Wiederholungen aktualisiert', 'save');
             }
-        } else if (editType.value === 'planName' && typeof editIndex.value === 'string') {
+
+            closeEditPopup();
+            return;
+        }
+
+        // === 3) Restliche Edit-Fälle ===============================================
+        else if (editType.value === 'planName' && typeof editIndex.value === 'string') {
             const validatedName = validatePlanName(editValue.value);
             if (validatedName === false) {
                 openValidationPopup([
@@ -1710,29 +2262,72 @@
                 saveToStorage();
                 addToast('Stoppuhrname aktualisiert', 'timer');
             }
-        } else if (editType.value === 'customExerciseName' && typeof editIndex.value === 'number') {
-            const exercise = customExercises.value[editIndex.value];
-            if (!exercise) return;
-            const validated = validateCustomExercise(editValue.value, exercise.muscle, editIndex.value);
-            if (typeof validated === 'string') {
-                openValidationPopup([validated]);
+        }
+
+        // === NEU: Typ einer benutzerdefinierten Übung ==============================
+        else if (editType.value === 'customExerciseType' && typeof editIndex.value === 'number') {
+            const ex = customExercises.value[editIndex.value];
+            if (!ex) return;
+
+            const normalized = normalizeTypeInput(editValue.value);
+            if (!normalized) {
+                openValidationPopup(['Ungültiger Typ. Erlaubt sind: kraft, calisthenics, dehnung']);
                 return;
             }
+            if (normalized === 'ausdauer') {
+                openValidationPopup(['"Ausdauer" ist für benutzerdefinierte Übungen nicht erlaubt']);
+                return;
+            }
+
+            const duplicate = customExercises.value.some((c, i) =>
+                i !== editIndex.value &&
+                c.name.toLowerCase() === ex.name.toLowerCase() &&
+                c.type === normalized
+            );
+            if (duplicate) {
+                openValidationPopup(['Diese Übung existiert mit diesem Typ bereits']);
+                return;
+            }
+
+            ex.type = normalized;
+            saveToStorage();
+            addToast('Übungstyp aktualisiert', 'save');
+            closeEditPopup();
+            return;
+        }
+
+        else if (editType.value === 'customExerciseName' && typeof editIndex.value === 'number') {
+            const exercise = customExercises.value[editIndex.value];
+            if (!exercise) return;
+
+            const validated = validateCustomExercise(
+                editValue.value,
+                exercise.muscle,
+                exercise.type,
+                editIndex.value
+            );
+            if (typeof validated === 'string') { openValidationPopup([validated]); return; }
+
             exercise.name = validated.name;
             saveToStorage();
             addToast('Übungsname aktualisiert', 'save');
         } else if (editType.value === 'customExerciseMuscle' && typeof editIndex.value === 'number') {
             const exercise = customExercises.value[editIndex.value];
             if (!exercise) return;
-            const validated = validateCustomExercise(exercise.name, editValue.value, editIndex.value);
-            if (typeof validated === 'string') {
-                openValidationPopup([validated]);
-                return;
-            }
+
+            const validated = validateCustomExercise(
+                exercise.name,
+                editValue.value,
+                exercise.type,
+                editIndex.value
+            );
+            if (typeof validated === 'string') { openValidationPopup([validated]); return; }
+
             exercise.muscle = validated.muscle;
             saveToStorage();
             addToast('Muskelgruppe aktualisiert', 'save');
         }
+
         closeEditPopup();
     };
 
@@ -2059,19 +2654,19 @@
 
 <style scoped>
     .training {
-        /* 👉 NEU: gemeinsame Control-Variablen */
         --control-height: 48px;
         --control-font-size: 0.95rem;
         --control-padding-x: 1.5rem;
         padding: 1rem;
         background: var(--bg-primary);
         width: 100%;
-        max-width: 1200px;
+        max-width: 1200px; /* konstant */
         margin: 0 auto;
         display: flex;
         flex-direction: column;
         align-items: center;
         margin-top: 0;
+        min-height: 100dvh;
     }
 
     html.dark-mode .training {
@@ -2090,13 +2685,20 @@
     .workout-list {
         margin-top: 0.5rem;
         width: 100%;
+        min-width: 1200px; /* 👈 NEU: garantiert Mindestbreite */
+        max-width: 1200px;
         display: flex;
         flex-direction: column;
         gap: 1rem;
         padding: 0 1rem;
         box-sizing: border-box;
     }
-
+    @media (max-width: 1240px) {
+        .workout-list {
+            min-width: calc(100vw - 2rem);
+            max-width: calc(100vw - 2rem);
+        }
+    }
     .section-title {
         font-size: 1.5rem;
         font-weight: 700;
@@ -2138,6 +2740,258 @@
     /* Optional: während Drag nicht zusammenschrumpfen */
     .drag-ghost {
         opacity: 0.6;
+    }
+    /* Segmented-Type Control */
+    .segmented.seg-type {
+        display: flex;
+        gap: .5rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: .3rem;
+        align-items: center;
+    }
+
+        .segmented.seg-type > button {
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            padding: .45rem .9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s ease;
+            color: var(--text-primary);
+        }
+
+            .segmented.seg-type > button.on {
+                background: var(--bg-card);
+                border-color: var(--border-color);
+                box-shadow: 0 1px 2px rgba(0,0,0,.06);
+            }
+
+    /* Schlanker Filter-Input (gleiche Funktion, nur nicer) */
+    .filter-input {
+        border-radius: 999px;
+        padding-left: 2.25rem; /* Platz fürs Icon */
+        background: var(--bg-secondary);
+        position: relative;
+    }
+
+        .filter-input::placeholder {
+            opacity: .8;
+        }
+    /* ===== Zwei-Spalten Builder + Live-Preview (Idee 3) ===== */
+
+    /* Formular wird zum Grid: links Builder, rechts Preview */
+    .form-card.builder-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .builder-left,
+    .builder-head,
+    .builder-head > * {
+        min-width: 0;
+    }
+
+    /* ab Tablet: zwei Spalten */
+
+    .builder-left {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        min-width: 0; /* verhindert Overflow in Grids */
+    }
+
+    .builder-right {
+        min-width: 0; /* wichtig für Tables/Overflow */
+    }
+
+    /* Feldblöcke */
+    .field-block {
+        display: flex;
+        flex-direction: column;
+        gap: .5rem;
+    }
+
+    .field-label {
+        font-weight: 600;
+        font-size: .92rem;
+        color: var(--text-primary);
+    }
+
+    /* Zeile mit Inputs/Selects nebeneinander (wrappt auf mobil) */
+    .field-row {
+        display: flex;
+        gap: .75rem;
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+
+    /* 2-spaltige Parameter-Felder */
+    .field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .75rem;
+    }
+
+    @media (max-width: 600px) {
+        .field-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Fallback für einzelne Field-Container (optional) */
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: .4rem;
+    }
+
+    /* Actions: Buttons + Submit sauber stapeln */
+    .actions-row.stack {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        align-items: stretch; /* Kinder dürfen volle Breite nutzen */
+    }
+
+    /* ===== Preview Card (rechte Spalte) ===== */
+
+    .preview-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        position: sticky;
+        top: .75rem; /* bleibt beim Scrollen sichtbar */
+    }
+
+    .preview-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: .5rem;
+    }
+
+        .preview-head h4 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+    .preview-card .muted {
+        color: var(--text-secondary);
+        font-size: .85rem;
+    }
+
+    /* Leerer Zustand */
+    .empty-preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 160px;
+        background: var(--bg-secondary);
+        border: 1px dashed var(--border-color);
+        color: var(--text-secondary);
+        border-radius: 10px;
+    }
+    /* Builder-Grid behält immer maximale Breite */
+    .form-card.builder-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        width: 100%;
+        min-width: 1200px; /* 👈 NEU */
+        max-width: 1200px;
+    }
+
+    @media (max-width: 1240px) {
+        .form-card.builder-grid {
+            min-width: calc(100vw - 2rem);
+            max-width: calc(100vw - 2rem);
+        }
+    }
+
+    /* Workout-List (Container) behält Breite */
+    .workout-list {
+        margin-top: 0.5rem;
+        width: 100%;
+        max-width: 1200px; /* konstante Breite */
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0 1rem;
+        box-sizing: border-box;
+    }
+
+    /* Custom-Exercises-Table nimmt volle verfügbare Breite */
+    .custom-exercises-table {
+        width: 100%;
+        max-width: 100%;
+        overflow: visible;
+    }
+
+        .custom-exercises-table table {
+            width: 100%;
+            max-width: 100%;
+            table-layout: fixed;
+            min-width: 100%;
+        }
+    /* Tabelle in der Preview etwas kompakter */
+    .exercise-table.full-width.compact table {
+        width: 100%;
+    }
+
+    .exercise-table.full-width.compact th,
+    .exercise-table.full-width.compact td {
+        padding: .75rem;
+        font-size: .92rem;
+    }
+
+    /* Tabellenkopf leicht absetzen */
+    .exercise-table.full-width.compact thead th {
+        background: #f1f5f9;
+    }
+
+    html.dark-mode .exercise-table.full-width.compact thead th {
+        background: #0d1117;
+    }
+
+    /* Buttons in der Actions-Zeile gleiche Höhe wie Inputs */
+    .actions-row .button-group .btn-cell > *:not(.add-exercise-btn) {
+        height: var(--control-height);
+    }
+    /* Filter-Input volle Breite in seinem Row-Container */
+    .field-row .filter-input {
+        flex: 1 1 320px;
+        min-width: 220px;
+    }
+
+    .button-group:has(.add-exercise-btn) {
+        --btn-width: 100%;
+    }
+
+    .button-group .btn-cell:has(.add-exercise-btn) {
+        flex: 1 1 100%;
+    }
+
+    .button-group .btn-cell > .add-exercise-btn {
+        width: 100%;
+    }
+
+    .filter-input {
+        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%23888' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: .75rem center;
+        background-size: 16px 16px;
+    }
+
+    html.dark-mode .filter-input {
+        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%239aa3ab' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
     }
 
 
@@ -2237,19 +3091,20 @@
         box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
         outline: none;
     }
+
     .form-card .action-btn:not(.add-exercise-btn):not(.toggle-exercise-btn):not(.plan-submit-btn):not(.table-delete-btn) {
-         background: var(--bg-secondary);
-         color: var(--text-primary);
-         border: 1px solid var(--border-color);
-         border-radius: 8px;
-         padding: 0.75rem 1.5rem;
-         transition: background .2s, transform .2s;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        transition: background .2s, transform .2s;
     }
 
-    .form-card .action-btn:not(.add-exercise-btn):not(.toggle-exercise-btn):not(.plan-submit-btn):not(.table-delete-btn):hover {
-         background: #f3f4f6;
-         transform: none;
-    }
+        .form-card .action-btn:not(.add-exercise-btn):not(.toggle-exercise-btn):not(.plan-submit-btn):not(.table-delete-btn):hover {
+            background: #f3f4f6;
+            transform: none;
+        }
 
 
     .extras-container {
@@ -2347,6 +3202,7 @@
             background-color: #374151;
             border-color: #4B6CB7;
         }
+
     .custom-ex-title {
         font-size: 1.1rem;
         margin: 1rem 0 0.5rem;
@@ -2456,11 +3312,12 @@
     }
 
     .button-group {
-        display: flex; /* wichtig */
+        display: flex;
         gap: 0.75rem;
-        align-items: stretch; /* gleiche Höhe wie Inputs */
-        margin-left: auto; /* schiebt die Buttons nach rechts = Abstand */
+        align-items: stretch;
         flex-wrap: nowrap;
+        width: 100%; /* volle Breite der Spalte */
+        margin-left: 0; /* NICHT nach rechts wegschieben */
     }
 
     @media (max-width: 600px) {
@@ -2473,7 +3330,7 @@
     /* nur den rechten Button minimal nach oben rücken */
     @media (min-width: 601px) {
         .button-group .btn-cell:last-child {
-            margin-top: -16px;
+            margin-top: 0px;
         }
     }
 
@@ -2562,31 +3419,30 @@
         background: #0d1117;
         color: #ffffff;
     }
-    /* feste, gleiche Button-Breiten über Wrapper */
-    .button-group {
-        display: flex;
-        gap: 0.75rem;
-        align-items: stretch;
-        margin-left: auto;
-        flex-wrap: nowrap;
-        --btn-width: 200px; /* hier Breite anpassen */
-        --btn-height: var(--control-height);
-        --btn-pad-x: var(--control-padding-x);
+
+
+    .button-group .btn-cell > *:not(.add-exercise-btn) {
+        width: 100%;
+        height: var(--btn-height);
+        padding-left: var(--btn-pad-x);
+        padding-right: var(--btn-pad-x);
     }
 
-        .button-group .btn-cell {
-            flex: 0 0 var(--btn-width);
-            display: flex; /* ermöglicht Stretch nach innen */
-            align-items: stretch;
-        }
+    /* 👉 Add-Button exakt wie PlanSubmitButton */
+    .button-group .btn-cell > .action-btn.add-exercise-btn {
+        display: inline-flex; /* saubere vertikale Zentrierung */
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: calc(var(--control-height) - 4px); /* 48px → 44px */
+        padding-top: 0;
+        padding-bottom: 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
 
-            .button-group .btn-cell > * {
-                width: 100%;
-                height: var(--btn-height);
-                padding-left: var(--btn-pad-x);
-                padding-right: var(--btn-pad-x);
-            }
-
+    .action-btn.plan-submit-btn {
+        height: calc(var(--control-height) - 4px);
+    }
     /* mobil: Buttons untereinander & volle Breite */
     @media (max-width: 600px) {
         .button-group {
@@ -2794,13 +3650,8 @@
         justify-content: center;
     }
 
-    .timer-btn {
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: background 0.2s, transform 0.1s;
+    .goal-row {
+        margin-top: .5rem;
     }
 
     .lap-btn {
@@ -2882,6 +3733,7 @@
     html.dark-mode .sticky-timer-card {
         background: #0d1117;
     }
+
     .edit-input {
         padding: 0.75rem;
         border: 1px solid var(--border-color);
@@ -2943,16 +3795,77 @@
         cursor: col-resize;
         user-select: none;
     }
-    /* ⚠️ diesen Hack entfernen/überschreiben */
-    @media (min-width: 601px) {
-        .button-group .btn-cell:last-child {
-            margin-top: 0; /* vorher: -16px */
+
+    /* Tabelle der Custom-Übungen auf Containerbreite “einsperren” */
+    .custom-exercises-table table {
+        width: 100%;
+        max-width: 100%;
+        table-layout: fixed;
+        min-width: 100%; /* verhindert Schrumpfen */
+    }
+    .workout-list:has(.custom-exercises-table) {
+        width: 100%;
+        max-width: 1200px; /* oder dein gewünschter Wert */
+    }
+    .custom-exercises-table th,
+    .custom-exercises-table td {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* leicht größere Trainingsauswahl */
+    .builder-head .segmented.seg-type {
+        gap: .45rem; /* etwas mehr Luft zwischen Buttons */
+        padding: .26rem .35rem; /* minimal höhere/lebhaftere Fläche */
+        border-radius: 10px;
+    }
+
+        .builder-head .segmented.seg-type > button {
+            padding: .42rem .72rem; /* + ~2–3px in beide Richtungen */
+            font-size: .89rem; /* vorher ~.86rem */
+            border-radius: 9px;
         }
+
+    /* Name-Input darf mehr Platz nehmen, damit alles in eine Zeile passt */
+    .builder-head .plan-name-input.slim {
+        flex: 1 1 320px;
+        min-width: 180px;
+    }
+
+    /* Noch kompakter, wenn’s enger wird */
+    @media (max-width: 1100px) {
+        .builder-head .segmented.seg-type {
+            gap: .28rem;
+        }
+
+            .builder-head .segmented.seg-type > button {
+                padding: .28rem .5rem;
+                font-size: .82rem;
+            }
+    }
+    /* 👉 Builder-Header: schmale Screens */
+
+    /* ganz schmal: unter ~520px lieber umbrechen, aber Button rechts halten */
+    @media (max-width: 520px) {
+        .builder-head {
+            grid-template-columns: 1fr;
+        }
+
+            .builder-head .extras-cta {
+                grid-column: 1 / -1;
+                justify-self: start; /* oder center; Geschmackssache */
+            }
     }
 
     /* In der Button-Zeile alle Top-Margins neutralisieren */
     .button-group .btn-cell > * {
         margin-top: 0 !important;
+        width: 100%;
+        height: var(--control-height);
+        padding-left: var(--control-padding-x);
+        padding-right: var(--control-padding-x);
     }
 
     .resizer.row-resizer {
@@ -2963,5 +3876,61 @@
         height: 10px;
         cursor: row-resize;
         user-select: none;
+    }
+
+    /* Desktop: Button rechts mit fester Basisbreite */
+    @media (min-width: 960px) {
+        .builder-head .extras-cta {
+            flex: 0 0 calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
+            white-space: nowrap;
+        }
+    }
+    /* Header: Planname oben Full-Width; darunter links Typ, rechts Extras */
+    .builder-head {
+        display: grid;
+        grid-template-columns: 1fr auto; /* links: Typ (flexibel), rechts: Extras (auto) */
+        grid-template-rows: auto auto; /* 1: Planname, 2: Typ/Extras */
+        grid-template-areas:
+            "plan plan"
+            "type extras";
+        align-items: center;
+        gap: .75rem 1rem; /* Zeilen/Spalten-Abstand */
+    }
+
+
+        /* Planname füllt die ganze Breite */
+        .builder-head .plan-name-input.slim {
+            grid-area: plan;
+            width: 100%;
+        }
+
+        /* Trainingstyp links unter dem Planname */
+        .builder-head .segmented.seg-type {
+            grid-area: type;
+            justify-self: start;
+            margin-left: 0;
+        }
+
+        /* Extras-Button rechts daneben */
+        .builder-head .extras-cta {
+            grid-area: extras;
+            justify-self: end;
+            white-space: nowrap;
+        }
+
+    /* (Optional) feste Basisbreite, damit der Button beim Toggle nicht “springt” */
+    .training {
+        --extras-toggle-ch: 20;
+    }
+    /* ggf. 21–22, je nach Font */
+    .builder-head .extras-cta {
+        width: calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
+    }
+
+    /* Entferne frühere Flex/Grid-Definitionen für .builder-head an anderen Stellen */
+    .custom-exercises-table {
+        width: 100%;
+        max-width: 100%;
+        overflow: visible;
     }
 </style>
