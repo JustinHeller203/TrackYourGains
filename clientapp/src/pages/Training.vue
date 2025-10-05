@@ -2,7 +2,7 @@
     <div class="training">
         <h2 class="page-title">💪 Training</h2>
         <!-- Trainingsplan Formular -->
-        <div class="workout-list">
+        <div class="workout-list builder-section">
             <h3 class="section-title">Trainingsplan erstellen/bearbeiten</h3>
 
             <form @submit.prevent="createOrUpdatePlan" class="form-card builder-grid">
@@ -2650,13 +2650,36 @@
         },
         { deep: true }
     );
+
+    const syncFullscreenClass = () => {
+        const isFs = !!document.fullscreenElement;
+        document.documentElement.classList.toggle('is-fullscreen', isFs);
+    };
+
+    onMounted(() => {
+        document.addEventListener('fullscreenchange', syncFullscreenClass);
+        syncFullscreenClass(); // Initialzustand setzen, falls bereits FS
+    });
+
+    onUnmounted(() => {
+        document.removeEventListener('fullscreenchange', syncFullscreenClass);
+    });
+
 </script>
 
 <style scoped>
     .training {
+        --section-max: 1200px;
         --control-height: 48px;
         --control-font-size: 0.95rem;
         --control-padding-x: 1.5rem;
+        /* Feste Zielbreiten, damit Buttons nicht springen */
+        --extras-toggle-ch: 18; /* "Extras ausblenden" ≈ 18 Zeichen */
+        --extras-toggle-w: calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
+        /* Fix: „Benutzerdefinierte Übungen anzeigen/ausblenden“ */
+        /* +1ch wegen führendem Leerzeichen im Template-Text → 38ch */
+        --custom-toggle-ch: 38;
+        --custom-toggle-w: calc(var(--custom-toggle-ch) * 1ch + 2 * var(--control-padding-x));
         padding: 1rem;
         background: var(--bg-primary);
         width: 100%;
@@ -2667,8 +2690,8 @@
         align-items: center;
         margin-top: 0;
         min-height: 100dvh;
+        overflow-x: clip;
     }
-
     html.dark-mode .training {
         background: #161b22;
     }
@@ -2685,20 +2708,62 @@
     .workout-list {
         margin-top: 0.5rem;
         width: 100%;
-        min-width: 1200px; /* 👈 NEU: garantiert Mindestbreite */
-        max-width: 1200px;
+        max-width: var(--section-max); /* fix: keine 100vw-Jitter mehr */
         display: flex;
         flex-direction: column;
         gap: 1rem;
         padding: 0 1rem;
         box-sizing: border-box;
     }
+
+    /* Media-Override nicht mehr nötig – hier nur noch identisch halten */
     @media (max-width: 1240px) {
         .workout-list {
-            min-width: calc(100vw - 2rem);
-            max-width: calc(100vw - 2rem);
+            max-width: var(--section-max);
         }
     }
+
+    /* --- FIX: Konstante Breite für alle workout-list --- */
+    .training {
+        --section-max: 1200px;
+    }
+
+    .workout-list {
+        width: 100%;
+        max-width: var(--section-max) !important; /* erzwingt die Cap überall */
+        margin-inline: auto;
+    }
+
+    /* Desktop-weite Ansicht => streckt die Form wieder wie früher */
+    @media (min-width: 1241px) {
+        .training {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+            .training .workout-list {
+                max-width: var(--section-max); /* fix: keine 100vw-Logik */
+                width: 100%;
+                margin: 0 auto;
+            }
+
+            .training .form-card.builder-grid {
+                width: 100%;
+                max-width: 100%;
+                margin-inline: 0;
+                box-sizing: border-box;
+            }
+    }
+    /* Ab Tablet/Desktop echte 2 Spalten ohne Überbreite */
+    @media (min-width: 900px) {
+        .form-card.builder-grid {
+            grid-template-columns: 1fr 420px; /* links Builder, rechts Preview */
+            align-items: start;
+        }
+    }
+
+
     .section-title {
         font-size: 1.5rem;
         font-weight: 700;
@@ -2905,27 +2970,56 @@
         grid-template-columns: 1fr;
         gap: 1rem;
         width: 100%;
-        min-width: 1200px; /* 👈 NEU */
-        max-width: 1200px;
+        /* min-width/max-width hier WEG! */
+        box-sizing: border-box; /* damit Padding mitgerechnet wird */
     }
 
-    @media (max-width: 1240px) {
-        .form-card.builder-grid {
-            min-width: calc(100vw - 2rem);
-            max-width: calc(100vw - 2rem);
+    @media (max-width: 900px) {
+        .builder-head {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                "plan"
+                "type"
+                "extras";
+        }
+
+            .builder-head .extras-cta {
+                justify-self: start;
+                white-space: nowrap;
+                box-sizing: border-box;
+                inline-size: min(var(--extras-toggle-w), 100%);
+                min-inline-size: min(var(--extras-toggle-w), 100%);
+                max-inline-size: min(var(--extras-toggle-w), 100%);
+            }
+
+        .segmented.seg-type {
+            flex-wrap: wrap;
+            row-gap: .35rem;
         }
     }
 
-    /* Workout-List (Container) behält Breite */
-    .workout-list {
-        margin-top: 0.5rem;
-        width: 100%;
-        max-width: 1200px; /* konstante Breite */
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        padding: 0 1rem;
+
+    .form-card {
         box-sizing: border-box;
+    }
+
+    @media (max-width: 1240px) {
+        .training {
+            overflow-x: hidden;
+        }
+
+        .workout-list,
+        .form-card.builder-grid {
+            max-width: 100%;
+            min-width: 0;
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 1240px) {
+        .training {
+            overflow-x: hidden;
+        }
     }
 
     /* Custom-Exercises-Table nimmt volle verfügbare Breite */
@@ -2934,6 +3028,34 @@
         max-width: 100%;
         overflow: visible;
     }
+    /* === FIX: Keine Layout-Verbreiterung beim Anzeigen der benutzerdefinierten Übungen === */
+    .custom-exercises-table {
+        display: block;
+        inline-size: 100%;
+        max-inline-size: 100%;
+        /* kapselt Layout-Berechnung, damit nichts nach außen drückt */
+        contain: layout inline-size;
+        /* kein horizontales Auslaufen */
+        overflow-x: hidden; /* Fallback */
+        overflow-x: clip; /* moderne Browser */
+    }
+
+        .custom-exercises-table table {
+            inline-size: 100%;
+            max-inline-size: 100%;
+            min-width: 100%;
+            table-layout: fixed; /* verhindert intrinsische Breitenexpansion */
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .custom-exercises-table th,
+        .custom-exercises-table td {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap; /* bleibt kompakt */
+        }
 
         .custom-exercises-table table {
             width: 100%;
@@ -3397,7 +3519,7 @@
         .exercise-table.full-width td {
             padding: 1.5rem;
             text-align: center;
-            min-width: 150px;
+            min-width: 0; /* war 150px: verhindert Breiten-Inflation */
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -3803,10 +3925,7 @@
         table-layout: fixed;
         min-width: 100%; /* verhindert Schrumpfen */
     }
-    .workout-list:has(.custom-exercises-table) {
-        width: 100%;
-        max-width: 1200px; /* oder dein gewünschter Wert */
-    }
+
     .custom-exercises-table th,
     .custom-exercises-table td {
         min-width: 0;
@@ -3851,12 +3970,35 @@
     @media (max-width: 520px) {
         .builder-head {
             grid-template-columns: 1fr;
+            grid-template-areas:
+                "plan"
+                "type"
+                "extras";
         }
 
             .builder-head .extras-cta {
-                grid-column: 1 / -1;
-                justify-self: start; /* oder center; Geschmackssache */
+                justify-self: start;
+                white-space: nowrap;
+                box-sizing: border-box;
+                inline-size: min(var(--extras-toggle-w), 100%);
+                min-inline-size: min(var(--extras-toggle-w), 100%);
+                max-inline-size: min(var(--extras-toggle-w), 100%);
             }
+
+        .segmented.seg-type {
+            flex-wrap: wrap;
+            row-gap: .35rem;
+        }
+    }
+    @media (max-width: 480px) {
+        .exercise-table.full-width th,
+        .exercise-table.full-width td {
+            min-width: 0;
+            white-space: normal; /* Zeilenumbruch erlauben */
+            text-overflow: clip;
+            padding: .6rem;
+            font-size: .9rem;
+        }
     }
 
     /* In der Button-Zeile alle Top-Margins neutralisieren */
@@ -3881,23 +4023,22 @@
     /* Desktop: Button rechts mit fester Basisbreite */
     @media (min-width: 960px) {
         .builder-head .extras-cta {
-            flex: 0 0 calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
+            flex: 0 0 var(--extras-toggle-w);
             white-space: nowrap;
         }
     }
     /* Header: Planname oben Full-Width; darunter links Typ, rechts Extras */
     .builder-head {
         display: grid;
-        grid-template-columns: 1fr auto; /* links: Typ (flexibel), rechts: Extras (auto) */
-        grid-template-rows: auto auto; /* 1: Planname, 2: Typ/Extras */
+        /* rechte Spalte exakt so breit wie der lange Toggle – kein Springen */
+        grid-template-columns: 1fr var(--extras-toggle-w);
+        grid-template-rows: auto auto;
         grid-template-areas:
             "plan plan"
             "type extras";
         align-items: center;
-        gap: .75rem 1rem; /* Zeilen/Spalten-Abstand */
+        gap: .75rem 1rem;
     }
-
-
         /* Planname füllt die ganze Breite */
         .builder-head .plan-name-input.slim {
             grid-area: plan;
@@ -3916,21 +4057,114 @@
             grid-area: extras;
             justify-self: end;
             white-space: nowrap;
+            box-sizing: border-box;
+            /* exakt die feste Zielbreite, aber auf schmalen Screens nicht über 100% */
+            inline-size: min(var(--extras-toggle-w), 100%);
+            min-inline-size: min(var(--extras-toggle-w), 100%);
+            max-inline-size: min(var(--extras-toggle-w), 100%);
         }
 
     /* (Optional) feste Basisbreite, damit der Button beim Toggle nicht “springt” */
     .training {
-        --extras-toggle-ch: 20;
+        --extras-toggle-ch: 18;
+        --extras-toggle-w: calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
+        /* NEU: Benutzerdefinierte Übungen Toggle */
+        --custom-toggle-ch: 38;
+        --custom-toggle-w: calc(var(--custom-toggle-ch) * 1ch + 2 * var(--control-padding-x));
     }
-    /* ggf. 21–22, je nach Font */
     .builder-head .extras-cta {
-        width: calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
+        box-sizing: border-box;
+        inline-size: min(var(--extras-toggle-w), 100%);
     }
 
     /* Entferne frühere Flex/Grid-Definitionen für .builder-head an anderen Stellen */
     .custom-exercises-table {
         width: 100%;
         max-width: 100%;
-        overflow: visible;
+        overflow: hidden;
+    }
+
+    /* === Mobile-Optimierungen ≤ 420px === */
+    @media (max-width: 420px) {
+        /* kompaktere Controls */
+        .training {
+            --control-height: 44px;
+            --control-padding-x: 1.1rem;
+        }
+
+        .workout-list {
+            padding: 0 .5rem;
+        }
+
+        .form-card {
+            padding: 1rem;
+        }
+
+        .page-title {
+            font-size: 1.9rem;
+        }
+
+        /* Segmented-Type enger */
+        .builder-head .segmented.seg-type {
+            padding: .2rem;
+            gap: .25rem;
+        }
+
+            .builder-head .segmented.seg-type > button {
+                padding: .25rem .45rem;
+                font-size: .8rem;
+            }
+
+        /* Tabellen & Timer kompakter */
+        .exercise-table.full-width th,
+        .exercise-table.full-width td {
+            padding: .5rem;
+            font-size: .85rem;
+        }
+
+        .timer-display {
+            font-size: 2.4rem;
+        }
+
+        .timer-select,
+        .timer-input {
+            width: 120px;
+        }
+
+        /* Sicherheit: Fixbreite auch auf sehr schmalen Screens respektieren */
+        .custom-toggle-btn {
+            inline-size: min(var(--custom-toggle-w), 100%);
+        }
+    }
+
+    /* Mikro-Tuning für sehr kleine Breite ≤ 360px */
+    @media (max-width: 360px) {
+        .page-title {
+            font-size: 1.75rem;
+        }
+
+        .exercise-table.full-width th,
+        .exercise-table.full-width td {
+            font-size: .82rem;
+        }
+    }
+
+</style>
+<style>
+    /* Global: Scrollbar-Platz immer reservieren */
+    html, body {
+        min-height: 100%;
+    }
+
+    body {
+        overflow-y: auto;
+        scrollbar-gutter: stable both-edges;
+        overflow-x: clip;
+    }
+
+    @supports not (scrollbar-gutter: stable) {
+        body {
+            overflow-y: scroll; /* Fallback für ältere Browser */
+        }
     }
 </style>
