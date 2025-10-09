@@ -4377,6 +4377,92 @@
             justify-content: center;
         }
     }
+    /* === Extras-Button responsiv: Text+Icon breit, Icon-only schmal === */
+
+    /* Schmal: Icon-only, verhindert Überbreite */
+    @media (max-width: 960px) {
+        .builder-head .extras-cta {
+            inline-size: var(--control-height) !important;
+            min-inline-size: var(--control-height) !important;
+            max-inline-size: var(--control-height) !important;
+            padding-inline: 0 !important;
+            justify-content: center;
+        }
+
+        .extras-label {
+            display: none !important;
+        }
+        /* nur Icon zeigen */
+    }
+
+    /* Breit: Text + Icon, automatisch aber mit Kappung, keine Zeile sprengen */
+    @media (min-width: 961px) {
+        /* Auto-breite Spalte für den Button, drückt nichts über den Viewport */
+        .builder-head {
+            grid-template-columns: minmax(0, 1fr) auto !important;
+        }
+
+            .builder-head .extras-cta {
+                inline-size: auto !important;
+                min-inline-size: auto !important;
+                max-inline-size: clamp(180px, 24ch, 320px) !important; /* genug Platz für Label */
+                padding-inline: var(--control-padding-x) !important;
+                white-space: nowrap; /* Label bleibt einzeilig */
+            }
+
+        .extras-label {
+            display: inline !important;
+        }
+        /* Text wieder einblenden */
+    }
+    /* === EXTRAS-CTA: finale, robuste Regeln (ans Ende der Datei) === */
+
+    /* Desktop/Tablet: Text + Icon, Button passt sich dem Inhalt an */
+    .builder-head {
+        grid-template-columns: minmax(0, 1fr) auto !important; /* linke Spalte flexibel, rechts Content-breite */
+    }
+
+        .builder-head .extras-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            height: var(--control-height);
+            padding-inline: var(--control-padding-x);
+            border-radius: 8px;
+            /* Overflow-Schutz */
+            white-space: nowrap;
+            min-width: 0;
+            width: auto;
+            max-inline-size: clamp(180px, 26ch, 360px); /* 26ch reicht für „Extras ausblenden“ */
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    /* Nur auf sehr schmalen Screens: Icon-only (quadratisch) */
+    @media (max-width: 560px) {
+        .builder-head {
+            grid-template-columns: minmax(0, 1fr) var(--control-height) !important;
+        }
+
+            .builder-head .extras-cta {
+                inline-size: var(--control-height) !important;
+                max-inline-size: var(--control-height) !important;
+                padding-inline: 0 !important;
+                justify-content: center;
+            }
+
+        .extras-label {
+            display: none !important;
+        }
+        /* Text ausblenden → Icon-only */
+    }
+
+    /* Ab 561px immer mit Text */
+    @media (min-width: 561px) {
+        .extras-label {
+            display: inline !important;
+        }
+    }
 
 
 </style>
