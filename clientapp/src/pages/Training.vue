@@ -1,3 +1,4 @@
+ <!-- Training.vue -->
 <template>
     <div class="training">
         <h2 class="page-title">💪 Training</h2>
@@ -10,26 +11,51 @@
                 <div class="builder-left">
                     <!-- Kopf: Planname + Typ (Segmented) + Extras rechts -->
                     <div class="builder-head">
-                        <input v-model="planName"
-                               class="plan-name-input slim"
-                               placeholder="Planname (z. B. Push Day)"
-                               required />
-
-                        <!-- Segmented Type Switch -->
-                        <div class="segmented seg-type">
-                            <button type="button" :class="{ on: trainingType==='kraft' }" @click="trainingType='kraft'">Kraft</button>
-                            <button type="button" :class="{ on: trainingType==='calisthenics' }" @click="trainingType='calisthenics'">Calisthenics</button>
-                            <button type="button" :class="{ on: trainingType==='ausdauer' }" @click="trainingType='ausdauer'">Ausdauer</button>
-                            <button type="button" :class="{ on: trainingType==='dehnung' }" @click="trainingType='dehnung'">Dehnung</button>
+                        <!-- NEU: Planname mit Überschrift -->
+                        <div class="plan-block">
+                            <label for="plan-name" class="field-label">Planname</label>
+                            <input id="plan-name"
+                                   v-model="planName"
+                                   class="plan-name-input slim"
+                                   placeholder="Planname (z. B. Push Day)"
+                                   required />
                         </div>
 
-                        <!-- Extras-Button rechtsbündig -->
-                        <ExtrasToggleButton class="action-btn toggle-exercise-btn extras-cta"
+                        <!-- Trainingstyp (Desktop: Segmented + Überschrift) -->
+                        <div class="type-block desktop-only">
+                            <span class="type-heading field-label">Trainingstyp</span>
+                            <div class="segmented seg-type">
+                                <button type="button" :class="{ on: trainingType==='kraft' }" @click="trainingType='kraft'">Kraft</button>
+                                <button type="button" :class="{ on: trainingType==='calisthenics' }" @click="trainingType='calisthenics'">Calisthenics</button>
+                                <button type="button" :class="{ on: trainingType==='ausdauer' }" @click="trainingType='ausdauer'">Ausdauer</button>
+                                <button type="button" :class="{ on: trainingType==='dehnung' }" @click="trainingType='dehnung'">Dehnung</button>
+                            </div>
+                        </div>
+
+                        <!-- Trainingstyp (Mobile ≤560px: Label + Dropdown) -->
+                        <div class="type-block mobile-only">
+                            <label class="type-heading field-label" for="training-type">Trainingstyp</label>
+                            <select v-model="trainingType"
+                                    id="training-type"
+                                    class="seg-type-select"
+                                    aria-label="Trainingstyp wählen">
+                                <option value="" disabled>Trainingstyp wählen</option>
+                                <option value="kraft">Kraft</option>
+                                <option value="calisthenics">Calisthenics</option>
+                                <option value="ausdauer">Ausdauer</option>
+                                <option value="dehnung">Dehnung</option>
+                            </select>
+                        </div>
+
+                        <!-- Extras-Button rechtsbündig (unverändert) -->
+                        <ExtrasToggleButton :extraClass="['action-btn','extras-cta']"
                                             :toggled="showExtras"
-                                            @click="toggleExtras">
-                            {{ showExtras ? 'Extras ausblenden' : 'Extras einblenden' }}
-                        </ExtrasToggleButton>
+                                            :title="showExtras ? 'Extras ausblenden' : 'Extras einblenden'"
+                                            :aria-label="showExtras ? 'Extras ausblenden' : 'Extras einblenden'"
+                                            @click="toggleExtras" />
                     </div>
+
+
 
                     <!-- NEU: kein reservierter Platz, drückt nur bei Aktivierung -->
                     <div v-show="showExtras" class="goal-row">
@@ -123,7 +149,7 @@
                         </div>
                     </div>
 
-                    <PlanSubmitButton class="action-btn plan-submit-btn"
+                    <PlanSubmitButton class="action-btn"
                                       :isEditing="!!editingPlanId"
                                       :disabled="validatePlanName(planName) === false"
                                       createLabel="Plan erstellen"
@@ -873,7 +899,6 @@
     const exerciseEditField = ref<'name' | 'muscle' | null>(null);
     const customExercises = ref<Array<{ name: string; muscle: string; type: CustomExerciseType }>>([]);
     const toast = ref<Toast | null>(null);
-    const timerObservers = new Map<string, IntersectionObserver>();
     let toastId = 0;
     let toastTimeout: ReturnType<typeof setTimeout> | null = null;
     const deleteConfirmButton = ref<HTMLButtonElement | null>(null);
@@ -2668,30 +2693,31 @@
 </script>
 
 <style scoped>
+
     .training {
         --section-max: 1200px;
         --control-height: 48px;
         --control-font-size: 0.95rem;
         --control-padding-x: 1.5rem;
-        /* Feste Zielbreiten, damit Buttons nicht springen */
-        --extras-toggle-ch: 18; /* "Extras ausblenden" ≈ 18 Zeichen */
+        --extras-toggle-ch: 18;
         --extras-toggle-w: calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
-        /* Fix: „Benutzerdefinierte Übungen anzeigen/ausblenden“ */
-        /* +1ch wegen führendem Leerzeichen im Template-Text → 38ch */
         --custom-toggle-ch: 38;
         --custom-toggle-w: calc(var(--custom-toggle-ch) * 1ch + 2 * var(--control-padding-x));
         padding: 1rem;
         background: var(--bg-primary);
         width: 100%;
-        max-width: 1200px; /* konstant */
+        max-width: 100%; /* ← FIX: verhindert Overflow */
         margin: 0 auto;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
         margin-top: 0;
         min-height: 100dvh;
-        overflow-x: clip;
+        margin-inline: auto;
+        overflow-x: clip; /* ← WICHTIG */
+        box-sizing: border-box;
     }
+
     html.dark-mode .training {
         background: #161b22;
     }
@@ -2708,22 +2734,21 @@
     .workout-list {
         margin-top: 0.5rem;
         width: 100%;
-        max-width: var(--section-max); /* fix: keine 100vw-Jitter mehr */
+        max-width: 100%; /* ← FIX */
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        padding: 0 1rem;
+        padding: 0 0.5rem; /* ← reduziert von 1rem */
         box-sizing: border-box;
+        overflow-x: clip; /* ← NEU */
     }
 
-    /* Media-Override nicht mehr nötig – hier nur noch identisch halten */
     @media (max-width: 1240px) {
         .workout-list {
             max-width: var(--section-max);
         }
     }
 
-    /* --- FIX: Konstante Breite für alle workout-list --- */
     .training {
         --section-max: 1200px;
     }
@@ -2734,7 +2759,6 @@
         margin-inline: auto;
     }
 
-    /* Desktop-weite Ansicht => streckt die Form wieder wie früher */
     @media (min-width: 1241px) {
         .training {
             max-width: 1200px;
@@ -2755,10 +2779,14 @@
                 box-sizing: border-box;
             }
     }
-    /* Ab Tablet/Desktop echte 2 Spalten ohne Überbreite */
+    .form-card.builder-grid {
+        margin-inline: auto;
+    }
+
     @media (min-width: 900px) {
         .form-card.builder-grid {
-            grid-template-columns: 1fr 420px; /* links Builder, rechts Preview */
+            /* rechte Spalte spürbar schmaler */
+            grid-template-columns: minmax(0, 1fr) clamp(240px, 28vw, 360px);
             align-items: start;
         }
     }
@@ -2788,7 +2816,6 @@
         position: relative;
     }
 
-    /* Draggable-Container so stylen wie vorher die Liste */
     .drag-stack {
         display: flex;
         flex-direction: column;
@@ -2796,17 +2823,14 @@
         width: 100%;
     }
 
-        /* Sicherheitsnetz: Cards sollen volle Breite behalten */
         .drag-stack > .timer-card {
             width: 100%;
             max-width: 1200px;
         }
 
-    /* Optional: während Drag nicht zusammenschrumpfen */
     .drag-ghost {
         opacity: 0.6;
     }
-    /* Segmented-Type Control */
     .segmented.seg-type {
         display: flex;
         gap: .5rem;
@@ -2834,7 +2858,6 @@
                 box-shadow: 0 1px 2px rgba(0,0,0,.06);
             }
 
-    /* Schlanker Filter-Input (gleiche Funktion, nur nicer) */
     .filter-input {
         border-radius: 999px;
         padding-left: 2.25rem; /* Platz fürs Icon */
@@ -2845,9 +2868,7 @@
         .filter-input::placeholder {
             opacity: .8;
         }
-    /* ===== Zwei-Spalten Builder + Live-Preview (Idee 3) ===== */
 
-    /* Formular wird zum Grid: links Builder, rechts Preview */
     .form-card.builder-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -2859,8 +2880,6 @@
     .builder-head > * {
         min-width: 0;
     }
-
-    /* ab Tablet: zwei Spalten */
 
     .builder-left {
         display: flex;
@@ -2886,7 +2905,6 @@
         color: var(--text-primary);
     }
 
-    /* Zeile mit Inputs/Selects nebeneinander (wrappt auf mobil) */
     .field-row {
         display: flex;
         gap: .75rem;
@@ -2894,7 +2912,6 @@
         flex-wrap: wrap;
     }
 
-    /* 2-spaltige Parameter-Felder */
     .field-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2907,22 +2924,18 @@
         }
     }
 
-    /* Fallback für einzelne Field-Container (optional) */
     .field {
         display: flex;
         flex-direction: column;
         gap: .4rem;
     }
 
-    /* Actions: Buttons + Submit sauber stapeln */
     .actions-row.stack {
         display: flex;
         flex-direction: column;
         gap: .75rem;
         align-items: stretch; /* Kinder dürfen volle Breite nutzen */
     }
-
-    /* ===== Preview Card (rechte Spalte) ===== */
 
     .preview-card {
         background: var(--bg-card);
@@ -2953,7 +2966,6 @@
         font-size: .85rem;
     }
 
-    /* Leerer Zustand */
     .empty-preview {
         display: flex;
         align-items: center;
@@ -2964,13 +2976,12 @@
         color: var(--text-secondary);
         border-radius: 10px;
     }
-    /* Builder-Grid behält immer maximale Breite */
+
     .form-card.builder-grid {
         display: grid;
         grid-template-columns: 1fr;
         gap: 1rem;
         width: 100%;
-        /* min-width/max-width hier WEG! */
         box-sizing: border-box; /* damit Padding mitgerechnet wird */
     }
 
@@ -2992,13 +3003,14 @@
                 max-inline-size: min(var(--extras-toggle-w), 100%);
             }
 
+    }
+
+    @media (max-width: 1200px) {
         .segmented.seg-type {
             flex-wrap: wrap;
             row-gap: .35rem;
         }
     }
-
-
     .form-card {
         box-sizing: border-box;
     }
@@ -3022,21 +3034,17 @@
         }
     }
 
-    /* Custom-Exercises-Table nimmt volle verfügbare Breite */
     .custom-exercises-table {
         width: 100%;
         max-width: 100%;
         overflow: visible;
     }
-    /* === FIX: Keine Layout-Verbreiterung beim Anzeigen der benutzerdefinierten Übungen === */
     .custom-exercises-table {
         display: block;
         inline-size: 100%;
         max-inline-size: 100%;
-        /* kapselt Layout-Berechnung, damit nichts nach außen drückt */
         contain: layout inline-size;
-        /* kein horizontales Auslaufen */
-        overflow-x: hidden; /* Fallback */
+        overflow-x: hidden; 
         overflow-x: clip; /* moderne Browser */
     }
 
@@ -3044,7 +3052,7 @@
             inline-size: 100%;
             max-inline-size: 100%;
             min-width: 100%;
-            table-layout: fixed; /* verhindert intrinsische Breitenexpansion */
+            table-layout: fixed; 
             border-collapse: separate;
             border-spacing: 0;
         }
@@ -3063,7 +3071,6 @@
             table-layout: fixed;
             min-width: 100%;
         }
-    /* Tabelle in der Preview etwas kompakter */
     .exercise-table.full-width.compact table {
         width: 100%;
     }
@@ -3074,7 +3081,6 @@
         font-size: .92rem;
     }
 
-    /* Tabellenkopf leicht absetzen */
     .exercise-table.full-width.compact thead th {
         background: #f1f5f9;
     }
@@ -3083,11 +3089,10 @@
         background: #0d1117;
     }
 
-    /* Buttons in der Actions-Zeile gleiche Höhe wie Inputs */
     .actions-row .button-group .btn-cell > *:not(.add-exercise-btn) {
         height: var(--control-height);
     }
-    /* Filter-Input volle Breite in seinem Row-Container */
+
     .field-row .filter-input {
         flex: 1 1 320px;
         min-width: 220px;
@@ -3186,8 +3191,8 @@
 
     .form-card input,
     .form-card select {
-        height: var(--control-height); /* 👉 NEU */
-        font-size: var(--control-font-size); /* 👉 NEU */
+        height: var(--control-height); 
+        font-size: var(--control-font-size); 
 
         padding: 0.75rem;
         border: 1px solid var(--border-color);
@@ -3237,11 +3242,19 @@
         width: 100%;
     }
 
-        .extras-container.show {
-            max-height: 250px;
-            opacity: 1;
-            margin-top: 0.75rem; /* 👉 größerer Abstand */
-        }
+    .desktop-only {
+        display: initial;
+    }
+
+    .mobile-only {
+        display: none;
+    }
+
+    .extras-container.show {
+        max-height: 250px;
+        opacity: 1;
+        margin-top: 0.75rem; /* 👉 größerer Abstand */
+    }
 
 
     .timer-drag-handle {
@@ -3269,30 +3282,26 @@
         align-items: center;
     }
 
-    /* Draggable-Container für Trainingspläne mit mehr vertikalem Abstand */
     .plan-drag-stack {
         display: flex;
         flex-direction: column;
-        gap: 1.25rem; /* hier stellst du ein, wie weit auseinander die Cards sein sollen */
+        gap: 1.25rem; 
         width: 100%;
     }
 
-        /* Safety: Items auf volle Breite lassen */
         .plan-drag-stack > .plan-item {
             width: 100%;
         }
 
-    /* Buttons rechts im Plan-Item vertikal zentrieren */
     .list-item-actions {
         display: flex;
         gap: 0.6rem;
         align-items: center; /* <— NEU */
     }
 
-        /* Einheitliches Innenleben für alle Buttons (Icon + Text) */
         .list-item-actions .action-btn {
-            line-height: 1; /* kein extra Line-Height */
-            display: inline-flex; /* saubere vertikale Zentrierung im Button */
+            line-height: 1; 
+            display: inline-flex; 
             align-items: center;
             justify-content: center;
         }
@@ -3449,7 +3458,7 @@
             width: 100%;
         }
     }
-    /* nur den rechten Button minimal nach oben rücken */
+
     @media (min-width: 601px) {
         .button-group .btn-cell:last-child {
             margin-top: 0px;
@@ -3542,7 +3551,6 @@
         color: #ffffff;
     }
 
-
     .button-group .btn-cell > *:not(.add-exercise-btn) {
         width: 100%;
         height: var(--btn-height);
@@ -3550,7 +3558,6 @@
         padding-right: var(--btn-pad-x);
     }
 
-    /* 👉 Add-Button exakt wie PlanSubmitButton */
     .button-group .btn-cell > .action-btn.add-exercise-btn {
         display: inline-flex; /* saubere vertikale Zentrierung */
         align-items: center;
@@ -3565,7 +3572,7 @@
     .action-btn.plan-submit-btn {
         height: calc(var(--control-height) - 4px);
     }
-    /* mobil: Buttons untereinander & volle Breite */
+
     @media (max-width: 600px) {
         .button-group {
             margin-left: 0;
@@ -3578,13 +3585,17 @@
     .exercise-table.full-width th.resizable:hover::after {
         content: '';
         position: absolute;
-        right: -5px;
+        right: 0; /* kein Überhang nach rechts */
         top: 0;
-        width: 10px;
+        width: 8px; /* schlanker Resizer → weniger Risiko */
         height: 100%;
         cursor: col-resize;
+        pointer-events: none;
     }
-
+    .exercise-table.full-width th.resizable:hover::after {
+        right: 0; /* bleibt innerhalb der Zelle */
+        width: 8px; /* schlanker reicht völlig */
+    }
     .flash-focus {
         outline: 2px solid var(--accent-primary);
         box-shadow: 0 0 0 3px var(--accent-primary), 0 0 18px var(--accent-hover);
@@ -3772,8 +3783,23 @@
         justify-content: center;
     }
 
+    .builder-head .plan-block .field-label {
+        display: block;
+        margin-bottom: .6rem; /* Abstand Titel ↔ Input */
+    }
+
+    .builder-head .plan-block .plan-name-input {
+        width: 100%;
+    }
+
+    .type-block .type-heading {
+        display: block;
+        margin-bottom: .6rem;
+    }
+
     .goal-row {
-        margin-top: .5rem;
+        display: grid;
+        gap: .55rem; /* Abstand Titel ↔ Select */
     }
 
     .lap-btn {
@@ -3822,40 +3848,6 @@
     html.dark-mode .lap-item {
         background: #0d1117;
     }
-
-    .sticky-timer,
-    .sticky-stopwatch {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: var(--bg-card);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        z-index: 1000;
-        padding: 1rem;
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-    }
-
-    html.dark-mode .sticky-timer,
-    html.dark-mode .sticky-stopwatch {
-        background: #1c2526;
-    }
-
-    .sticky-timer-card {
-        background: var(--bg-secondary);
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    html.dark-mode .sticky-timer-card {
-        background: #0d1117;
-    }
-
     .edit-input {
         padding: 0.75rem;
         border: 1px solid var(--border-color);
@@ -3918,7 +3910,6 @@
         user-select: none;
     }
 
-    /* Tabelle der Custom-Übungen auf Containerbreite “einsperren” */
     .custom-exercises-table table {
         width: 100%;
         max-width: 100%;
@@ -3934,7 +3925,6 @@
         white-space: nowrap;
     }
 
-    /* leicht größere Trainingsauswahl */
     .builder-head .segmented.seg-type {
         gap: .45rem; /* etwas mehr Luft zwischen Buttons */
         padding: .26rem .35rem; /* minimal höhere/lebhaftere Fläche */
@@ -3947,13 +3937,13 @@
             border-radius: 9px;
         }
 
-    /* Name-Input darf mehr Platz nehmen, damit alles in eine Zeile passt */
+
     .builder-head .plan-name-input.slim {
         flex: 1 1 320px;
         min-width: 180px;
     }
 
-    /* Noch kompakter, wenn’s enger wird */
+
     @media (max-width: 1100px) {
         .builder-head .segmented.seg-type {
             gap: .28rem;
@@ -3964,9 +3954,7 @@
                 font-size: .82rem;
             }
     }
-    /* 👉 Builder-Header: schmale Screens */
 
-    /* ganz schmal: unter ~520px lieber umbrechen, aber Button rechts halten */
     @media (max-width: 520px) {
         .builder-head {
             grid-template-columns: 1fr;
@@ -3990,18 +3978,141 @@
             row-gap: .35rem;
         }
     }
-    @media (max-width: 480px) {
+
+    @media (max-width: 560px) {
+        .desktop-only {
+            display: none;
+        }
+        .builder-head .plan-block {
+            grid-area: plan; /* spannt über "plan plan" = beide Spalten */
+            width: 100%;
+            min-width: 0; /* verhindert Einquetschen durch Intrinsic-Width */
+        }
+
+            .builder-head .plan-block .plan-name-input {
+                width: 100% !important;
+                max-width: none !important;
+                min-width: 0;
+                box-sizing: border-box;
+            }
+        .mobile-only {
+            display: block;
+        }
+        .builder-head .type-block.desktop-only {
+            display: none !important;
+        }
+
+        .builder-head .type-block.mobile-only {
+            display: block;
+        }
+
+        .builder-head {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) var(--control-height) !important; /* 2. Spalte exakt Icon-Breite */
+            grid-template-areas:
+                "plan plan"
+                "type extras" !important;
+            align-items: start; /* nicht mittig zwischen den Zeilen hängen */
+            row-gap: .6rem;
+            column-gap: .75rem;
+        }
+
+            .builder-head .plan-name-input.slim {
+                grid-area: plan;
+                width: 100%; /* volle Breite */
+            }
+
+            .builder-head .type-block.mobile-only {
+                grid-area: type;
+            }
+
+            .builder-head .seg-type-select {
+                height: var(--control-height);
+                font-size: var(--control-font-size);
+                width: 100%;
+            }
+
+        .extras-label {
+            display: none;
+        }
+
+        .extras-icon {
+            margin-right: 0;
+        }
+
+        .builder-head .extras-cta {
+            grid-area: extras;
+            justify-self: end !important;
+            align-self: end; /* am unteren Rand der Zeile → Höhe vom Label ignorieren */
+            inline-size: var(--control-height) !important; /* quadratisch */
+            min-inline-size: var(--control-height) !important;
+            max-inline-size: var(--control-height) !important;
+            padding-inline: 0 !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Kleinkram */
+        .seg-type-select {
+            height: var(--control-height);
+            font-size: var(--control-font-size);
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-color);
+            padding: 0 .75rem;
+        }
+
         .exercise-table.full-width th,
-        .exercise-table.full-width td {
+        .exercise-table.full-width td,
+        .custom-exercises-table th,
+        .custom-exercises-table td {
             min-width: 0;
-            white-space: normal; /* Zeilenumbruch erlauben */
+            white-space: normal;
+            word-break: break-word;
             text-overflow: clip;
             padding: .6rem;
             font-size: .9rem;
         }
+
+        .preview-card {
+            position: static;
+            top: auto;
+        }
+
+        .list-item-actions,
+        .timer-buttons,
+        .timer-input-group {
+            flex-wrap: wrap;
+        }
+
+        .workout-list,
+        .form-card.builder-grid,
+        .builder-left,
+        .builder-right {
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        .workout-list {
+            padding: 0 .5rem;
+        }
+
+        .form-card {
+            padding: 1rem;
+        }
     }
 
-    /* In der Button-Zeile alle Top-Margins neutralisieren */
+    .workout-list,
+    .timer-container,
+    .stopwatch-top {
+        width: 100%;
+        max-width: var(--section-max);
+        margin-inline: auto !important;
+    }
+
     .button-group .btn-cell > * {
         margin-top: 0 !important;
         width: 100%;
@@ -4020,17 +4131,15 @@
         user-select: none;
     }
 
-    /* Desktop: Button rechts mit fester Basisbreite */
     @media (min-width: 960px) {
         .builder-head .extras-cta {
             flex: 0 0 var(--extras-toggle-w);
             white-space: nowrap;
         }
     }
-    /* Header: Planname oben Full-Width; darunter links Typ, rechts Extras */
+
     .builder-head {
         display: grid;
-        /* rechte Spalte exakt so breit wie der lange Toggle – kein Springen */
         grid-template-columns: 1fr var(--extras-toggle-w);
         grid-template-rows: auto auto;
         grid-template-areas:
@@ -4039,54 +4148,46 @@
         align-items: center;
         gap: .75rem 1rem;
     }
-        /* Planname füllt die ganze Breite */
         .builder-head .plan-name-input.slim {
             grid-area: plan;
             width: 100%;
         }
 
-        /* Trainingstyp links unter dem Planname */
         .builder-head .segmented.seg-type {
             grid-area: type;
             justify-self: start;
             margin-left: 0;
         }
 
-        /* Extras-Button rechts daneben */
         .builder-head .extras-cta {
             grid-area: extras;
             justify-self: end;
             white-space: nowrap;
             box-sizing: border-box;
-            /* exakt die feste Zielbreite, aber auf schmalen Screens nicht über 100% */
             inline-size: min(var(--extras-toggle-w), 100%);
             min-inline-size: min(var(--extras-toggle-w), 100%);
             max-inline-size: min(var(--extras-toggle-w), 100%);
         }
 
-    /* (Optional) feste Basisbreite, damit der Button beim Toggle nicht “springt” */
     .training {
         --extras-toggle-ch: 18;
         --extras-toggle-w: calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
-        /* NEU: Benutzerdefinierte Übungen Toggle */
         --custom-toggle-ch: 38;
         --custom-toggle-w: calc(var(--custom-toggle-ch) * 1ch + 2 * var(--control-padding-x));
     }
+
     .builder-head .extras-cta {
         box-sizing: border-box;
         inline-size: min(var(--extras-toggle-w), 100%);
     }
 
-    /* Entferne frühere Flex/Grid-Definitionen für .builder-head an anderen Stellen */
     .custom-exercises-table {
         width: 100%;
         max-width: 100%;
         overflow: hidden;
     }
 
-    /* === Mobile-Optimierungen ≤ 420px === */
     @media (max-width: 420px) {
-        /* kompaktere Controls */
         .training {
             --control-height: 44px;
             --control-padding-x: 1.1rem;
@@ -4104,7 +4205,6 @@
             font-size: 1.9rem;
         }
 
-        /* Segmented-Type enger */
         .builder-head .segmented.seg-type {
             padding: .2rem;
             gap: .25rem;
@@ -4115,7 +4215,6 @@
                 font-size: .8rem;
             }
 
-        /* Tabellen & Timer kompakter */
         .exercise-table.full-width th,
         .exercise-table.full-width td {
             padding: .5rem;
@@ -4131,13 +4230,19 @@
             width: 120px;
         }
 
-        /* Sicherheit: Fixbreite auch auf sehr schmalen Screens respektieren */
         .custom-toggle-btn {
             inline-size: min(var(--custom-toggle-w), 100%);
         }
     }
+    .training,
+    .workout-list,
+    .form-card,
+    .exercise-table.full-width,
+    .custom-exercises-table {
+        max-width: 100%;
+        overflow-x: clip;
+    }
 
-    /* Mikro-Tuning für sehr kleine Breite ≤ 360px */
     @media (max-width: 360px) {
         .page-title {
             font-size: 1.75rem;
@@ -4149,22 +4254,129 @@
         }
     }
 
-</style>
-<style>
-    /* Global: Scrollbar-Platz immer reservieren */
-    html, body {
-        min-height: 100%;
+    @media (min-width: 561px) {
+        .builder-head {
+            display: grid;
+            grid-template-columns: 1fr var(--extras-toggle-w);
+            grid-template-areas:
+                "plan plan"
+                "type extras";
+            gap: .75rem 1.55rem;
+        }
+            .builder-head .type-block.desktop-only .segmented.seg-type {
+                height: var(--control-height); /* fixe Zielhöhe, z. B. 48px */
+                padding-block: .25rem; /* etwas schlanker innen, damit’s nicht zu fett wirkt */
+                align-items: stretch; /* Buttons füllen die volle Höhe */
+            }
+
+                .builder-head .type-block.desktop-only .segmented.seg-type > button {
+                    display: inline-flex; /* Text vertikal mittig */
+                    align-items: center;
+                    justify-content: center;
+                }
+            .builder-head .plan-block {
+                grid-area: plan;
+                min-width: 0; /* verhindert Overflow */
+            }
+
+                .builder-head .plan-block .plan-name-input {
+                    width: 100%;
+                    max-width: none;
+                    min-width: 0;
+                    box-sizing: border-box;
+                }
+
+            .builder-head .type-block.desktop-only {
+                display: block;
+            }
+
+            .builder-head .type-block.mobile-only {
+                display: none !important;
+            }
+
+            .builder-head .extras-cta {
+                grid-area: extras;
+                justify-self: end;
+                white-space: nowrap;
+                align-self: end;
+            }
+
+            .builder-head .plan-name-input.slim {
+                grid-area: auto;
+            }
+
+            .builder-head .segmented.seg-type {
+                grid-area: auto;
+            }
+    }
+    @media (max-width: 960px) {
+        .builder-head .type-block.desktop-only {
+            display: none !important;
+        }
+
+        .builder-head .type-block.mobile-only {
+            display: block !important;
+        }
+
+        /* Extras-Button bleibt voll (Icon + Text) */
+        .builder-head .extras-cta {
+            inline-size: var(--extras-toggle-w);
+            min-inline-size: var(--extras-toggle-w);
+            max-inline-size: var(--extras-toggle-w);
+            padding-inline: var(--control-padding-x);
+            justify-self: end;
+        }
+
+        .extras-label {
+            display: inline;
+        }
+        /* sicherheitshalber sichtbar lassen */
     }
 
-    body {
-        overflow-y: auto;
-        scrollbar-gutter: stable both-edges;
-        overflow-x: clip;
+    @media (min-width: 561px) and (max-width: 960px) {
+        .type-block.desktop-only {
+            display: none !important;
+        }
+
+        .type-block.mobile-only {
+            display: block !important;
+        }
+
+        .builder-head {
+            /* 1) Links flexibel, rechts Spalte so breit wie der Button (kein calc, kein sbw) */
+            grid-template-columns: minmax(0, 1fr) auto !important;
+            grid-template-areas: "plan plan" "type extras" !important;
+            column-gap: .85rem;
+            align-items: end;
+            min-width: 0;
+            overflow: clip; /* falls ein Rundungs-Pixel entsteht: kein horizontaler Scroll */
+        }
+
+            /* 2) Button NICHT begrenzen – volle Eigenbreite, kein Quetschen */
+            .builder-head .extras-cta {
+                width: auto !important;
+                inline-size: auto !important;
+                max-width: none !important;
+                white-space: nowrap; /* Label bleibt in einer Zeile */
+                padding-inline: var(--control-padding-x); /* wie vorher */
+            }
+
+            /* 3) Der Select links darf die ganze linke Spur nutzen */
+            .builder-head .seg-type-select {
+                width: 100% !important;
+            }
     }
 
-    @supports not (scrollbar-gutter: stable) {
-        body {
-            overflow-y: scroll; /* Fallback für ältere Browser */
+    @media (max-width: 560px) {
+        .builder-head .extras-cta {
+            inline-size: var(--control-height);
+            min-inline-size: var(--control-height);
+            max-inline-size: var(--control-height);
+            padding-inline: 0;
+            display: inline-flex;
+            justify-content: center;
         }
     }
+
+
 </style>

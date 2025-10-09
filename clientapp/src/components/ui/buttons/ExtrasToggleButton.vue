@@ -1,26 +1,30 @@
-﻿<template>
-    <BaseButton :type="type"
-                :title="computedTitle"
-                :aria-label="ariaLabel || computedTitle"
-                :disabled="disabled"
-                :extraClass="mergedClass"
-                :aria-pressed="toggled ? 'true' : 'false'"
-                @click="$emit('click', $event)">
-        <span class="extras-icon" :class="{ rotated: toggled }" aria-hidden="true">
-            <!-- schlankes „Sliders“-Icon -->
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M4 7h12M4 17h16M16 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm-8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
-                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-        </span>
-        <span class="extras-label">
-            {{ toggled ? 'Extras ausblenden' : 'Extras einblenden' }}
-        </span>
-    </BaseButton>
+﻿<!-- ExtrasToggleButton.vue -->
+<template>
+    <BaseButton v-bind="$attrs"                     
+    :type="type"
+    :title="computedTitle"
+    :aria-label="ariaLabel || computedTitle"
+    :disabled="disabled"
+    :extraClass="mergedClass"         
+    :aria-pressed="toggled ? 'true' : 'false'"
+    @click="$emit('click', $event)"
+  >
+    <span class="extras-icon" :class="{ rotated: toggled }" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M4 7h12M4 17h16M16 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm-8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        />
+      </svg>
+    </span>
+    <span class="extras-label">
+      {{ toggled ? 'Extras ausblenden' : 'Extras einblenden' }}
+    </span>
+  </BaseButton>
 </template>
 
 <script setup lang="ts">
-    import { computed } from 'vue'
+    import { computed, useAttrs } from 'vue'
     import BaseButton from '@/components/ui/buttons/BaseButton.vue'
 
     type ClassLike = string | Record<string, boolean>
@@ -42,14 +46,20 @@
 
     defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 
+    const attrs = useAttrs()
+
     const computedTitle = computed(() =>
         props.toggled ? 'Extras ausblenden' : (props.title || 'Extras einblenden')
     )
 
+    const toArray = (cls?: ClassProp | null): ClassLike[] =>
+        cls ? (Array.isArray(cls) ? cls : [cls]) : []
+
     const mergedClass = computed<ClassLike[]>(() => [
-        'toggle-exercise-btn',       // bleibt für BaseButton-Styling
-        'btn-extras-chip',           // semantische Klasse
-        ...(Array.isArray(props.extraClass) ? props.extraClass : props.extraClass ? [props.extraClass] : []),
+        'toggle-exercise-btn',
+        'btn-extras-chip',
+        ...toArray(attrs.class as ClassProp | undefined),
+        ...toArray(props.extraClass),
         { active: !!props.toggled },
     ])
 </script>
@@ -72,5 +82,16 @@
         white-space: nowrap;
         font-weight: 600;
         letter-spacing: .01em;
+    }
+
+    /* Mobile: nur Icon anzeigen, kein gequetschter Text */
+    @media (max-width: 560px) {
+        .extras-label {
+            display: none;
+        }
+
+        .extras-icon {
+            margin-right: 0;
+        }
     }
 </style>
