@@ -94,4 +94,35 @@
             margin-right: 0;
         }
     }
+
+    .extras-icon {
+        display: inline-flex;
+        width: 1.05rem;
+        height: 1.05rem;
+        margin-right: .4rem;
+        transition: transform .18s ease;
+    }
+
+        .extras-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+    .extras-label {
+        line-height: 1;
+        white-space: nowrap;
+        font-weight: 600;
+        letter-spacing: .01em;
+    }
+
+    /* icon-only bis 960px */
+    @media (max-width: 960px) {
+        .extras-label {
+            display: none;
+        }
+
+        .extras-icon {
+            margin-right: 0;
+        }
+    }
+
 </style>
