@@ -237,28 +237,57 @@
                        tag="div"
                        class="plan-drag-stack">
                 <template #item="{ element: plan }">
-                    <div v-if="planMatchesSearch(plan)" class="list-item plan-item" :key="plan.id">
-                        <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
-                        <span @click="loadPlan(plan.id)" @dblclick="openEditPopup('planName', plan.id)">
-                            {{ plan.name }} ({{ plan.exercises.length }} Übungen)
-                        </span>
-                        <div class="list-item-actions">
-                            <FavoriteButton :active="favoritePlans.includes(plan.id)"
-                                            :titleActive="'Aus Favoriten entfernen'"
-                                            :titleInactive="'Zu Favoriten hinzufügen'"
-                                            @toggle="toggleFavoritePlan(plan.id)" />
-                            <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
-                            <DeleteButton title="Plan löschen"
-                                          @click="openDeletePopup(() => deletePlan(plan.id))" />
-                            <ActionIconButton title="Download"
-                                              aria-label="Trainingsplan herunterladen"
-                                              :extraClass="'download-btn'"
-                                              @click="openDownloadPopup(plan)">
-                                ⬇️
-                            </ActionIconButton>
-                            <OpenButton title="Öffnen" @click="loadPlan(plan.id)" />
+                    <div v-if="planMatchesSearch(plan)"
+                         class="list-item plan-item"
+                         :class="{ 'menu-open': planMenuOpenId === plan.id }"
+                         :key="plan.id">
+                        <div class="plan-row1">
+                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
+
+                            <span class="plan-title"
+                                  @click="loadPlan(plan.id)"
+                                  @dblclick="openEditPopup('planName', plan.id)">
+                                {{ plan.name }} <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
+                            </span>
+
+                            <div class="plan-right">
+                                <FavoriteButton :active="favoritePlans.includes(plan.id)"
+                                                :titleActive="'Aus Favoriten entfernen'"
+                                                :titleInactive="'Zu Favoriten hinzufügen'"
+                                                @toggle="toggleFavoritePlan(plan.id)" />
+
+                                <div class="inline-actions">
+                                    <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
+                                    <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
+                                    <ActionIconButton title="Download"
+                                                      aria-label="Trainingsplan herunterladen"
+                                                      @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
+                                </div>
+
+                                <span class="kebab-wrap">
+                                    <ActionIconButton title="Mehr"
+                                                      aria-label="Weitere Aktionen"
+                                                      @click.stop="togglePlanMenu(plan.id)">⋯</ActionIconButton>
+                                </span>
+                                <OpenButton class="primary-open desktop-open" title="Öffnen" @click="loadPlan(plan.id)" />
+                            </div>
+
+                            <div v-if="planMenuOpenId === plan.id" class="plan-menu" @click.stop>
+                                <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
+                                <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
+                                <ActionIconButton title="Download"
+                                                  aria-label="Trainingsplan herunterladen"
+                                                  @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
+                            </div>
+                        </div>
+
+
+                        <!-- Open-Button bleibt im schmalen Layout sichtbar (eigene Zeile) -->
+                        <div class="plan-row2">
+                            <OpenButton class="primary-open mobile-open" title="Öffnen" @click="loadPlan(plan.id)" />
                         </div>
                     </div>
+
                 </template>
             </Draggable>
 
@@ -272,29 +301,58 @@
                        tag="div"
                        class="plan-drag-stack">
                 <template #item="{ element: plan }">
-                    <div v-if="planMatchesSearch(plan)" class="list-item plan-item" :key="plan.id">
-                        <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
-                        <span @click="loadPlan(plan.id)" @dblclick="openEditPopup('planName', plan.id)">
-                            {{ plan.name }} ({{ plan.exercises.length }} Übungen)
-                        </span>
-                        <div class="list-item-actions">
-                            <FavoriteButton :active="favoritePlans.includes(plan.id)"
-                                            :titleActive="'Aus Favoriten entfernen'"
-                                            :titleInactive="'Zu Favoriten hinzufügen'"
-                                            @toggle="toggleFavoritePlan(plan.id)" />
+                    <div v-if="planMatchesSearch(plan)"
+                         class="list-item plan-item"
+                         :class="{ 'menu-open': planMenuOpenId === plan.id }"
+                         :key="plan.id">
+                        <div class="plan-row1">
+                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
 
-                            <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
-                            <DeleteButton title="Plan löschen"
-                                          @click="openDeletePopup(() => deletePlan(plan.id))" />
-                            <ActionIconButton title="Download"
-                                              aria-label="Trainingsplan herunterladen"
-                                              :extraClass="'download-btn'"
-                                              @click="openDownloadPopup(plan)">
-                                ⬇️
-                            </ActionIconButton>
-                            <OpenButton title="Öffnen" @click="loadPlan(plan.id)" />
+                            <span class="plan-title"
+                                  @click="loadPlan(plan.id)"
+                                  @dblclick="openEditPopup('planName', plan.id)">
+                                {{ plan.name }} <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
+                            </span>
+
+                            <div class="plan-right">
+                                <FavoriteButton :active="favoritePlans.includes(plan.id)"
+                                                :titleActive="'Aus Favoriten entfernen'"
+                                                :titleInactive="'Zu Favoriten hinzufügen'"
+                                                @toggle="toggleFavoritePlan(plan.id)" />
+
+                                <div class="inline-actions">
+                                    <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
+                                    <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
+                                    <ActionIconButton title="Download"
+                                                      aria-label="Trainingsplan herunterladen"
+                                                      @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
+                                </div>
+
+                                <span class="kebab-wrap">
+                                    <ActionIconButton title="Mehr"
+                                                      aria-label="Weitere Aktionen"
+                                                      @click.stop="togglePlanMenu(plan.id)">⋯</ActionIconButton>
+                                </span>
+
+                                <OpenButton class="primary-open desktop-open" title="Öffnen" @click="loadPlan(plan.id)" />
+                            </div>
+
+                            <div v-if="planMenuOpenId === plan.id" class="plan-menu" @click.stop>
+                                <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
+                                <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
+                                <ActionIconButton title="Download"
+                                                  aria-label="Trainingsplan herunterladen"
+                                                  @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
+                            </div>
+                        </div>
+
+
+                        <!-- Open-Button bleibt im schmalen Layout sichtbar (eigene Zeile) -->
+                        <div class="plan-row2">
+                            <OpenButton class="primary-open mobile-open" title="Öffnen" @click="loadPlan(plan.id)" />
                         </div>
                     </div>
+
                 </template>
             </Draggable>
         </div>
@@ -862,6 +920,24 @@
         'L-Sit', 'Dragon Flag', 'Pistol Squat', 'Hollow Hold', 'Superman Hold',
         'Archer Pull-up', 'Archer Push-up', 'Australian Pull-up', 'Toes to Bar',
     ])
+    // Menü-Status (Kebab)
+    const planMenuOpenId = ref<string | null>(null);
+
+    const togglePlanMenu = (id: string) => {
+        planMenuOpenId.value = (planMenuOpenId.value === id) ? null : id;
+    };
+
+    const closePlanMenu = () => {
+        planMenuOpenId.value = null;
+    };
+
+    // Klick außerhalb schließt Menü (Buttons/Menü selbst stoppen Bubbling via @click.stop)
+    const onDocClick = (e: MouseEvent) => {
+        const el = e.target as HTMLElement | null;
+        if (!el) return;
+        if (el.closest('.plan-menu') || el.closest('.kebab-wrap')) return;
+        closePlanMenu();
+    };
 
     // Basis-Dehnübungen (kannst du erweitern)
     const stretchingExercises = ref([
@@ -1619,6 +1695,7 @@
     };
 
     const loadPlan = (planId: string) => {
+        closePlanMenu(); // NEU
         const plan = plans.value.find(p => p.id === planId);
         if (plan) {
             selectedPlan.value = { ...plan };
@@ -1631,11 +1708,13 @@
     };
 
     const closePlan = () => {
+        closePlanMenu(); // NEU
         selectedPlan.value = null;
         columnWidths.value = [50, 25, 25];
         rowHeights.value = [];
         addToast('Plan geschlossen', 'load');
     };
+
 
     const openDownloadPopup = (plan: TrainingPlan) => {
         downloadPlan.value = plan;
@@ -2422,6 +2501,9 @@
             if (showValidationPopup.value) {
                 closeValidationPopup();
             } else {
+                // NEU: Kebab-Menü schließen
+                closePlanMenu();
+
                 closeEditPopup();
                 closeDeletePopup();
                 closeTimerPopup();
@@ -2445,6 +2527,7 @@
             }
         }
     };
+
 
 
     const checkScroll = () => {
@@ -2602,21 +2685,28 @@
 
     onMounted(() => {
         loadFromStorage();
-        tryFocusFromStorage()
+        tryFocusFromStorage();
         requestNotificationPermission();
+
         window.addEventListener('scroll', checkScroll);
         window.addEventListener('keydown', handleKeydown);
+
+        // NEU: Outside-Click fürs Kebab-Menü
+        document.addEventListener('click', onDocClick);
+
         initResizeTable();
         initAudioElements();
-        tryOpenPlanFromStorage(); // 👈 neu: öffnet Plan, wenn von „Trainingspläne“ aus gewählt
+        tryOpenPlanFromStorage();
         console.log('Stopwatches beim Mounten (Training.vue):', props.stopwatches);
     });
+
 
 
 
     onUnmounted(() => {
         window.removeEventListener('scroll', checkScroll);
         window.removeEventListener('keydown', handleKeydown);
+        document.removeEventListener('click', onDocClick);
 
     });
 
@@ -2675,6 +2765,7 @@
         },
         { deep: true }
     );
+    watch(planSearch, () => closePlanMenu());
 
     const syncFullscreenClass = () => {
         const isFs = !!document.fullscreenElement;
@@ -2734,7 +2825,7 @@
     .workout-list {
         margin-top: 0.5rem;
         width: 100%;
-        max-width: 100%; /* ← FIX */
+        max-width: var(--section-max);
         display: flex;
         flex-direction: column;
         gap: 1rem;
@@ -2747,16 +2838,6 @@
         .workout-list {
             max-width: var(--section-max);
         }
-    }
-
-    .training {
-        --section-max: 1200px;
-    }
-
-    .workout-list {
-        width: 100%;
-        max-width: var(--section-max) !important; /* erzwingt die Cap überall */
-        margin-inline: auto;
     }
 
     @media (min-width: 1241px) {
@@ -2778,9 +2859,6 @@
                 margin-inline: 0;
                 box-sizing: border-box;
             }
-    }
-    .form-card.builder-grid {
-        margin-inline: auto;
     }
 
     @media (min-width: 900px) {
@@ -2831,6 +2909,7 @@
     .drag-ghost {
         opacity: 0.6;
     }
+
     .segmented.seg-type {
         display: flex;
         gap: .5rem;
@@ -2868,12 +2947,6 @@
         .filter-input::placeholder {
             opacity: .8;
         }
-
-    .form-card.builder-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
 
     .builder-left,
     .builder-head,
@@ -3002,7 +3075,6 @@
                 min-inline-size: min(var(--extras-toggle-w), 100%);
                 max-inline-size: min(var(--extras-toggle-w), 100%);
             }
-
     }
 
     @media (max-width: 1200px) {
@@ -3011,6 +3083,7 @@
             row-gap: .35rem;
         }
     }
+
     .form-card {
         box-sizing: border-box;
     }
@@ -3028,34 +3101,14 @@
         }
     }
 
-    @media (max-width: 1240px) {
-        .training {
-            overflow-x: hidden;
-        }
-    }
-
-    .custom-exercises-table {
-        width: 100%;
-        max-width: 100%;
-        overflow: visible;
-    }
     .custom-exercises-table {
         display: block;
         inline-size: 100%;
         max-inline-size: 100%;
         contain: layout inline-size;
-        overflow-x: hidden; 
+        overflow-x: hidden;
         overflow-x: clip; /* moderne Browser */
     }
-
-        .custom-exercises-table table {
-            inline-size: 100%;
-            max-inline-size: 100%;
-            min-width: 100%;
-            table-layout: fixed; 
-            border-collapse: separate;
-            border-spacing: 0;
-        }
 
         .custom-exercises-table th,
         .custom-exercises-table td {
@@ -3071,6 +3124,7 @@
             table-layout: fixed;
             min-width: 100%;
         }
+
     .exercise-table.full-width.compact table {
         width: 100%;
     }
@@ -3191,9 +3245,8 @@
 
     .form-card input,
     .form-card select {
-        height: var(--control-height); 
-        font-size: var(--control-font-size); 
-
+        height: var(--control-height);
+        font-size: var(--control-font-size);
         padding: 0.75rem;
         border: 1px solid var(--border-color);
         border-radius: 8px;
@@ -3285,7 +3338,7 @@
     .plan-drag-stack {
         display: flex;
         flex-direction: column;
-        gap: 1.25rem; 
+        gap: 1.25rem;
         width: 100%;
     }
 
@@ -3300,8 +3353,8 @@
     }
 
         .list-item-actions .action-btn {
-            line-height: 1; 
-            display: inline-flex; 
+            line-height: 1;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
         }
@@ -3413,6 +3466,24 @@
             flex-direction: column;
             gap: 0.5rem;
         }
+    }
+    /* Karte selbst darf über Nachbarn stehen */
+    .plan-item {
+        position: relative;
+    }
+
+        /* Wenn Menü offen ist: Karte nach oben und kein Hover-Shift */
+        .plan-item.menu-open {
+            z-index: 999;
+        }
+
+            .plan-item.menu-open:hover {
+                transform: none !important;
+            }
+
+    /* Menü noch darüber */
+    .plan-menu {
+        z-index: 1000;
     }
 
     .edit-btn,
@@ -3582,34 +3653,10 @@
         }
     }
 
-    .exercise-table.full-width th.resizable:hover::after {
-        content: '';
-        position: absolute;
-        right: 0; /* kein Überhang nach rechts */
-        top: 0;
-        width: 8px; /* schlanker Resizer → weniger Risiko */
-        height: 100%;
-        cursor: col-resize;
-        pointer-events: none;
-    }
-    .exercise-table.full-width th.resizable:hover::after {
-        right: 0; /* bleibt innerhalb der Zelle */
-        width: 8px; /* schlanker reicht völlig */
-    }
     .flash-focus {
         outline: 2px solid var(--accent-primary);
         box-shadow: 0 0 0 3px var(--accent-primary), 0 0 18px var(--accent-hover);
         transition: box-shadow .3s ease;
-    }
-
-    .exercise-table.full-width tr.resizable-row:hover::after {
-        content: '';
-        position: absolute;
-        bottom: -5px;
-        left: 0;
-        width: 100%;
-        height: 10px;
-        cursor: row-resize;
     }
 
     .exercise-table.full-width tr:hover {
@@ -3720,15 +3767,117 @@
         background: linear-gradient(45deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1));
         box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.2);
     }
+    /* ========== Desktop/ab deinem Original-Breakpoint: alles in EINER Reihe ========== */
+
+    .plan-title {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Inline-Action-Buttons (Edit/Löschen/Download) sind standardmäßig sichtbar */
+    .inline-actions {
+        display: inline-flex;
+        gap: .4rem;
+    }
+    /* Kebab standardmäßig verstecken – wird erst ab schmaler Breite angezeigt */
+    
+
+    @media (max-width:1024px) {
+        .inline-actions {
+            display: none !important;
+        }
+
+        .desktop-open {
+            display: inline-flex !important;
+        }
+    }
+
+    /* ≤560px: weiterhin eine Zeile; mobile Zeile komplett aus */
+    @media (max-width:560px) {
+        .plan-row2 {
+            display: none !important;
+        }
+
+        .mobile-open {
+            display: none !important;
+        }
+
+        .desktop-open {
+            display: inline-flex !important;
+        }
+    }
+    /* Open-Button auch in einer Linie (Desktop) */
+    .desktop-open {
+        display: inline-flex;
+    }
+
+    .mobile-open {
+        display: none;
+    }
+
+    /* ========== Ab dem Original-Mobile-Breakpoint (~560px): schalte auf Kebab + eigene Open-Zeile ========== */
+    @media (max-width: 560px) {
+        .plan-item {
+            position: relative;
+            display: grid;
+            grid-template-rows: auto auto;
+            gap: .5rem;
+        }
+
+        /* Inline-Aktionen ausblenden, Kebab einblenden */
+        .inline-actions {
+            display: none;
+        }
+
+        /* Open-Button in eigener Zeile */
+        .desktop-open {
+            display: inline-flex !important;
+        }
+        /* war: none */
+        .mobile-open {
+            display: none !important;
+        }
+        /* war: inline-flex */
+        .plan-row2 {
+            display: none;
+        }
+
+            .plan-row2 .primary-open {
+                width: 100%;
+            }
+
+        .plan-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .plan-menu {
+            position: absolute;
+            right: .5rem;
+            top: calc(100% - 2.25rem);
+            display: flex;
+            gap: .3rem;
+            padding: .4rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: var(--shadow, 0 6px 18px rgba(0,0,0,.15));
+            z-index: 30;
+        }
+
+            .plan-menu > * {
+                inline-size: auto;
+            }
+    }
 
     .timer-display:hover,
     .timer:hover {
         transform: scale(1.02);
         box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    .drag-ghost {
-        opacity: 0.6;
     }
 
     .plan-drag-handle {
@@ -3848,6 +3997,7 @@
     html.dark-mode .lap-item {
         background: #0d1117;
     }
+
     .edit-input {
         padding: 0.75rem;
         border: 1px solid var(--border-color);
@@ -3900,29 +4050,12 @@
             transform: scale(1.05);
         }
 
-    .resizer.column-resizer {
-        position: absolute;
-        right: 0;
-        top: 0;
-        width: 10px;
-        height: 100%;
-        cursor: col-resize;
-        user-select: none;
-    }
 
     .custom-exercises-table table {
         width: 100%;
         max-width: 100%;
         table-layout: fixed;
         min-width: 100%; /* verhindert Schrumpfen */
-    }
-
-    .custom-exercises-table th,
-    .custom-exercises-table td {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
     }
 
     .builder-head .segmented.seg-type {
@@ -3983,6 +4116,7 @@
         .desktop-only {
             display: none;
         }
+
         .builder-head .plan-block {
             grid-area: plan; /* spannt über "plan plan" = beide Spalten */
             width: 100%;
@@ -3995,9 +4129,11 @@
                 min-width: 0;
                 box-sizing: border-box;
             }
+
         .mobile-only {
             display: block;
         }
+
         .builder-head .type-block.desktop-only {
             display: none !important;
         }
@@ -4121,16 +4257,6 @@
         padding-right: var(--control-padding-x);
     }
 
-    .resizer.row-resizer {
-        position: absolute;
-        bottom: -5px;
-        left: 0;
-        width: 100%;
-        height: 10px;
-        cursor: row-resize;
-        user-select: none;
-    }
-
     @media (min-width: 960px) {
         .builder-head .extras-cta {
             flex: 0 0 var(--extras-toggle-w);
@@ -4148,6 +4274,7 @@
         align-items: center;
         gap: .75rem 1rem;
     }
+
         .builder-head .plan-name-input.slim {
             grid-area: plan;
             width: 100%;
@@ -4169,23 +4296,10 @@
             max-inline-size: min(var(--extras-toggle-w), 100%);
         }
 
-    .training {
-        --extras-toggle-ch: 18;
-        --extras-toggle-w: calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
-        --custom-toggle-ch: 38;
-        --custom-toggle-w: calc(var(--custom-toggle-ch) * 1ch + 2 * var(--control-padding-x));
-    }
-
-    .builder-head .extras-cta {
-        box-sizing: border-box;
-        inline-size: min(var(--extras-toggle-w), 100%);
-    }
-
-    .custom-exercises-table {
-        width: 100%;
-        max-width: 100%;
-        overflow: hidden;
-    }
+        .builder-head .extras-cta {
+            box-sizing: border-box;
+            inline-size: min(var(--extras-toggle-w), 100%);
+        }
 
     @media (max-width: 420px) {
         .training {
@@ -4234,6 +4348,7 @@
             inline-size: min(var(--custom-toggle-w), 100%);
         }
     }
+
     .training,
     .workout-list,
     .form-card,
@@ -4263,6 +4378,7 @@
                 "type extras";
             gap: .75rem 1.55rem;
         }
+
             .builder-head .type-block.desktop-only .segmented.seg-type {
                 height: var(--control-height); /* fixe Zielhöhe, z. B. 48px */
                 padding-block: .25rem; /* etwas schlanker innen, damit’s nicht zu fett wirkt */
@@ -4274,6 +4390,7 @@
                     align-items: center;
                     justify-content: center;
                 }
+
             .builder-head .plan-block {
                 grid-area: plan;
                 min-width: 0; /* verhindert Overflow */
@@ -4309,6 +4426,7 @@
                 grid-area: auto;
             }
     }
+
     @media (max-width: 960px) {
         .builder-head .type-block.desktop-only {
             display: none !important;
@@ -4330,7 +4448,6 @@
         .extras-label {
             display: inline;
         }
-        /* sicherheitshalber sichtbar lassen */
     }
 
     @media (min-width: 561px) and (max-width: 960px) {
@@ -4352,7 +4469,6 @@
             overflow: clip; /* falls ein Rundungs-Pixel entsteht: kein horizontaler Scroll */
         }
 
-            /* 2) Button NICHT begrenzen – volle Eigenbreite, kein Quetschen */
             .builder-head .extras-cta {
                 width: auto !important;
                 inline-size: auto !important;
@@ -4361,7 +4477,6 @@
                 padding-inline: var(--control-padding-x); /* wie vorher */
             }
 
-            /* 3) Der Select links darf die ganze linke Spur nutzen */
             .builder-head .seg-type-select {
                 width: 100% !important;
             }
@@ -4377,9 +4492,7 @@
             justify-content: center;
         }
     }
-    /* === Extras-Button responsiv: Text+Icon breit, Icon-only schmal === */
 
-    /* Schmal: Icon-only, verhindert Überbreite */
     @media (max-width: 960px) {
         .builder-head .extras-cta {
             inline-size: var(--control-height) !important;
@@ -4395,9 +4508,7 @@
         /* nur Icon zeigen */
     }
 
-    /* Breit: Text + Icon, automatisch aber mit Kappung, keine Zeile sprengen */
     @media (min-width: 961px) {
-        /* Auto-breite Spalte für den Button, drückt nichts über den Viewport */
         .builder-head {
             grid-template-columns: minmax(0, 1fr) auto !important;
         }
@@ -4413,11 +4524,8 @@
         .extras-label {
             display: inline !important;
         }
-        /* Text wieder einblenden */
     }
-    /* === EXTRAS-CTA: finale, robuste Regeln (ans Ende der Datei) === */
 
-    /* Desktop/Tablet: Text + Icon, Button passt sich dem Inhalt an */
     .builder-head {
         grid-template-columns: minmax(0, 1fr) auto !important; /* linke Spalte flexibel, rechts Content-breite */
     }
@@ -4438,7 +4546,6 @@
             text-overflow: ellipsis;
         }
 
-    /* Nur auf sehr schmalen Screens: Icon-only (quadratisch) */
     @media (max-width: 560px) {
         .builder-head {
             grid-template-columns: minmax(0, 1fr) var(--control-height) !important;
@@ -4454,7 +4561,6 @@
         .extras-label {
             display: none !important;
         }
-        /* Text ausblenden → Icon-only */
     }
 
     /* Ab 561px immer mit Text */
@@ -4464,5 +4570,188 @@
         }
     }
 
+    @media (max-width: 900px) {
+        .plan-title .plan-count {
+            display: none;
+        }
+    }
+
+    .plan-row1 > .plan-title {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Öffnen */
+    .plan-row1 > .inline-actions {
+        display: inline-flex;
+        gap: .4rem;
+    }
+
+    @media (min-width:561px) and (max-width:1024px) {
+        .inline-actions {
+            display: none !important;
+        }
+
+        .desktop-open {
+            display: inline-flex !important;
+        }
+
+        .mobile-open {
+            display: none !important;
+        }
+    }
+
+    .plan-row1 {
+        width: 100%;
+        position: relative;
+    }
+
+    @media (min-width:1025px) {
+        .plan-row1 .inline-actions {
+            margin-left: auto;
+        }
+    }
+    /* NEU: gilt für alle Breakpoints */
+    .plan-menu {
+        position: absolute;
+        right: .5rem;
+        top: calc(100% + .5rem); /* unter der Zeile aufklappen */
+        display: flex;
+        gap: .35rem;
+        padding: .45rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        box-shadow: 0 6px 18px rgba(0,0,0,.15);
+        z-index: 50;
+    }
+
+        .plan-menu > * {
+            inline-size: auto;
+        }
+
+    /* === canonical layout for plan rows: drag | centered title | actions right === */
+    .plan-item > .plan-row1 {
+        display: grid !important;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        width: 100%;
+    }
+
+        .plan-item > .plan-row1 .plan-drag-handle {
+            grid-column: 1;
+        }
+
+        .plan-item > .plan-row1 .plan-title {
+            grid-column: 2;
+            justify-self: center;
+            text-align: center;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .plan-item > .plan-row1 .plan-right {
+            grid-column: 3;
+            justify-self: end;
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        .plan-item > .plan-row1 .desktop-open {
+            order: 3;
+        }
+
+    /* Responsive: wir behalten eine Zeile bei und blenden ggf. inline-actions aus */
+    @media (max-width:1024px) {
+        .plan-item > .plan-row1 .inline-actions {
+            display: none !important;
+        }
+
+        .plan-item > .plan-row1 .desktop-open {
+            display: inline-flex !important;
+        }
+    }
+
+    /* Mobile: keine zweite Zeile nötig */
+    @media (max-width:560px) {
+        .plan-row2, .mobile-open {
+            display: none !important;
+        }
+    }
+    /* FIX 1: Plan-Karte ist kein Flex-Container mehr */
+    .plan-item {
+        display: block; /* überschreibt .list-item { display:flex } */
+    }
+
+        /* FIX 2: Eine Reihe: drag | Titel zentriert | rechts Aktionen */
+        .plan-item > .plan-row1 {
+            display: grid !important;
+            grid-template-columns: auto 1fr auto; /* Drag | Titel | rechts */
+            align-items: center;
+            width: 100%;
+        }
+
+            .plan-item > .plan-row1 .plan-title {
+                justify-self: center;
+                text-align: center;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .plan-item > .plan-row1 .plan-right {
+                justify-self: end;
+                display: inline-flex;
+                align-items: center;
+                gap: .5rem;
+            }
+
+    /* FIX 3: Die mobile Zusatzzeile standardmäßig weg */
+    .plan-row2 {
+        display: none;
+    }
+
+    /* Nur auf sehr schmalen Screens (optional) die mobile Zeile reaktivieren */
+    @media (max-width:560px) {
+        .plan-row2 {
+            display: block;
+        }
+
+        .mobile-open {
+            display: inline-flex !important;
+        }
+        /* mobiler Open-Button sichtbar */
+        .desktop-open {
+            display: none !important;
+        }
+    }
+
+    /* Desktop-Default: Inline-Actions sichtbar, Kebab-Wrapper versteckt */
+    .inline-actions {
+        display: inline-flex;
+        gap: .4rem;
+    }
+
+    .kebab-wrap {
+        display: none;
+    }
+
+    /* Ab hier „verschieben“ sich deine Buttons → Inline-Actions aus, Kebab an */
+    @media (max-width: 1024px) {
+        .inline-actions {
+            display: none !important;
+        }
+
+        .kebab-wrap {
+            display: inline-flex !important;
+        }
+    }
 
 </style>
