@@ -170,18 +170,42 @@
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Übung</th>
-                                        <th>{{ selectedPlanExercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}</th>
+                                        <th><span class="th-text">Übung</span></th>
                                         <th>
-                                            {{
-                    selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                      ? 'Wdh. / km / s'
-                      : 'Wdh.'
-                                            }}
+                                            <span class="th-text">
+                                                {{ selectedPlanExercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                                            </span>
                                         </th>
+                                        <th class="th-wdh">
+                                            <span class="th-text th-label">
+                                                <span class="full">
+                                                    {{
+        selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+          ? 'Wdh. / km / s'
+          : 'Wiederholungen'
+                                                    }}
+                                                </span>
+                                                <span class="mid">
+                                                    {{
+        selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+          ? 'Wdh./km/s'
+          : 'Wiederhol...'
+                                                    }}
+                                                </span>
+                                                <span class="short">
+                                                    {{
+        selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+          ? 'W/km/s'
+          : 'Wdh.'
+                                                    }}
+                                                </span>
+                                            </span>
+                                        </th>
+
                                         <th>Aktion</th>
                                     </tr>
                                 </thead>
+
                                 <tbody>
                                     <tr v-for="(ex, index) in selectedPlanExercises"
                                         :key="index"
@@ -199,11 +223,12 @@
                                                 {{ ex.reps }}
                                             </template>
                                         </td>
-                                        <td>
-                                            <DeleteButton title="Übung entfernen"
-                                                          :extraClass="'table-delete-btn transparent'"
+                                        <td class="action-cell">
+                                            <DeleteButton class="table-delete-btn"
+                                                          title="Übung entfernen"
                                                           @click="removeExerciseFromPlan(index)" />
                                         </td>
+
                                     </tr>
                                 </tbody>
                             </table>
@@ -365,23 +390,46 @@
                 </h3>
                 <CloseButton title="Plan schließen" @click="closePlan" />
             </div>
-            <div class="exercise-table full-width">
+            <div class="exercise-table full-width narrow">
                 <table ref="resizeTable">
                     <thead>
                         <tr>
-                            <th class="resizable" :style="{ width: columnWidths[0] + '%' }">Übung</th>
-                            <th class="resizable" :style="{ width: columnWidths[1] + '%' }">
-                                {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                            <th class="resizable" :style="{ width: columnWidths[0] + '%' }">
+                                <span class="th-text">Übung</span>
                             </th>
-                            <th class="resizable" :style="{ width: columnWidths[2] + '%' }">
-                                {{
-          selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
-            ? 'Wdh. / km / s'
-            : 'Wiederholungen'
-                                }}
+                            <th class="resizable" :style="{ width: columnWidths[1] + '%' }">
+                                <span class="th-text">
+                                    {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                                </span>
+                            </th>
+                            <th class="resizable th-wdh" :style="{ width: columnWidths[2] + '%' }">
+                                <span class="th-text th-label">
+                                    <span class="full">
+                                        {{
+        selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+          ? 'Wdh. / km / s'
+          : 'Wiederholungen'
+                                        }}
+                                    </span>
+                                    <span class="mid">
+                                        {{
+        selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+          ? 'Wdh./km/s'
+          : 'Wiederhol...'
+                                        }}
+                                    </span>
+                                    <span class="short">
+                                        {{
+        selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+          ? 'W/km/s'
+          : 'Wdh.'
+                                        }}
+                                    </span>
+                                </span>
                             </th>
                         </tr>
                     </thead>
+
                     <tbody>
                         <tr v-for="(ex, index) in selectedPlan.exercises" :key="index" class="resizable-row" :style="{ height: rowHeights[index] + 'px' }" @dblclick="openEditPopup('selectedPlan', index, $event)">
                             <td :style="{ width: columnWidths[0] + '%' }">{{ ex.exercise }}</td>
@@ -409,45 +457,57 @@
 
             </div>
 
-            <!-- Benutzerdefinierte Übungen: JETZT direkt unter dem geöffneten Plan -->
             <button @click="toggleCustomExercises" class="custom-toggle-btn" v-if="customExercises.length > 0">
                 {{ showCustomExercises ? ' Benutzerdefinierte Übungen ausblenden' : ' Benutzerdefinierte Übungen anzeigen' }}
             </button>
             <div v-if="showCustomExercises" class="custom-exercises-table">
                 <h4 class="section-title">Eigene Übungen</h4>
-                <table class="exercise-table full-width">
+
+                <!-- NEU: ref="customResizeTable" -->
+                <table class="exercise-table full-width" ref="customResizeTable">
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>Muskelgruppe</th>
-                            <th>Typ</th>
-                            <th>Aktion</th>
+                            <th class="resizable" :style="{ width: customColWidths[0] + '%' }">
+                                <span class="th-text">Name</span>
+                            </th>
+                            <th class="resizable th-muskel" :style="{ width: customColWidths[1] + '%' }">
+                                <span class="th-text th-label">
+                                    <span class="full">Muskelgruppe</span>
+                                    <span class="mid">Muskelgr...</span>
+                                    <span class="short">Muskel...</span>
+                                </span>
+                            </th>
+                            <th class="resizable" :style="{ width: customColWidths[2] + '%' }">
+                                <span class="th-text">Typ</span>
+                            </th>
+                            <th class="resizable" :style="{ width: customColWidths[3] + '%' }">Aktion</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         <tr v-for="(ex, i) in customExercises" :key="i">
-                            <td @dblclick="openEditPopup('customExerciseName', i)">
+                            <td :style="{ width: customColWidths[0] + '%' }" @dblclick="openEditPopup('customExerciseName', i)">
                                 <input v-if="exerciseEditIndex === i && exerciseEditField === 'name'"
                                        v-model="ex.name" @blur="finishEdit" @keyup.enter="finishEdit" />
                                 <span v-else>{{ ex.name }}</span>
                             </td>
 
-                            <td @dblclick="openEditPopup('customExerciseMuscle', i)">
+                            <td class="v-stack" :style="{ width: customColWidths[1] + '%' }" @dblclick="openEditPopup('customExerciseMuscle', i)">
                                 <input v-if="exerciseEditIndex === i && exerciseEditField === 'muscle'"
                                        v-model="ex.muscle" @blur="finishEdit" @keyup.enter="finishEdit" />
                                 <span v-else>{{ ex.muscle }}</span>
                             </td>
 
-                            <!-- NEU: Doppelklick → Select im Popup -->
-                            <td @dblclick="openEditPopup('customExerciseType', i)">
+                            <td :style="{ width: customColWidths[2] + '%' }" @dblclick="openEditPopup('customExerciseType', i)">
                                 {{ typeLabel(ex.type) }}
                             </td>
 
-                            <td>
-                                <DeleteButton title="Übung löschen"
-                                              :extraClass="'table-delete-btn transparent'"
-                                              @click="removeCustomExercise(i)" />
+                            <td class="action-cell">
+                                <DeleteButton class="table-delete-btn"
+                                              title="Übung entfernen"
+                                              @click="removeExerciseFromPlan(index)" />
                             </td>
+
                         </tr>
                     </tbody>
                 </table>
@@ -850,6 +910,8 @@
     const downloadFormat = ref<'html' | 'pdf' | 'csv' | 'json' | 'txt'>('html');
     const newTimerName = ref('');
     const newStopwatchName = ref('');
+    const customColWidths = ref([40, 30, 15, 15]); // Start: Name|Muskel|Typ|Aktion
+    const customResizeTable = ref<HTMLTableElement | null>(null);
     const deleteAction = ref<(() => void) | null>(null);
     // Alias → Kanonische Gruppen
     const muscleGroupAliases: Record<string, string[]> = {
@@ -2561,120 +2623,174 @@
         }
         isStopwatchSticky.value = stickyStopwatches.length > 0 && !visibleStopwatchFound;
     };
+
+    let headerRO: ResizeObserver | null = null;
+
+    function applyHeaderState(th: HTMLElement) {
+        const label = th.querySelector('.th-label') as HTMLElement | null;
+        if (!label) return;
+        const w = th.clientWidth;
+        label.classList.remove('is-full', 'is-mid', 'is-short');
+        const SHORT = 80;   // <=80px -> "short"
+        const MID = 120;  // <=120px -> "mid"
+        if (w <= SHORT) label.classList.add('is-short');
+        else if (w <= MID) label.classList.add('is-mid');
+        else label.classList.add('is-full');
+    }
+
+    function setupHeaderShorteningFallback() {
+        // erst alte Observer lösen
+        headerRO?.disconnect();
+        headerRO = new ResizeObserver((entries) => {
+            entries.forEach(entry => applyHeaderState(entry.target as HTMLElement));
+        });
+
+        // Alle relevanten THs aus beiden Tabellen (Wdh + Muskel)
+        const ths = Array.from(document.querySelectorAll('th.th-wdh, th.th-muskel')) as HTMLElement[];
+        ths.forEach(th => {
+            applyHeaderState(th);     // Initial
+            headerRO!.observe(th);    // Beobachten
+        });
+    }
+
+    function teardownHeaderShorteningFallback() {
+        headerRO?.disconnect();
+        headerRO = null;
+    }
+
+
+    // ====== TRAININGSPLAN-TABELLE (oben / ausgewählter Plan) ======
     const initResizeTable = () => {
         const table = resizeTable.value;
         if (!table) return;
 
-        // Cleanup: alte Resizer entfernen, falls Funktion mehrfach aufgerufen wird
-        table.querySelectorAll('.resizer').forEach(el => el.remove());
+        table.querySelectorAll('.resizer,.row-resizer').forEach(el => el.remove());
 
-        const ths = table.querySelectorAll('th.resizable');
-        const resizers: HTMLElement[] = [];
+        // deutlich kleinere Mindestbreiten in PX
+        const MIN_PX_BY_COL = [16, 16, 16];
+        // --- Spalten-Resizer ---
+        const ths = Array.from(table.querySelectorAll('thead th.resizable')) as HTMLElement[];
+        const lastIdx = ths.length - 1;
 
         ths.forEach((th, colIndex) => {
+            if (colIndex === lastIdx) return; // letzte Spalte nicht direkt ziehbar
+            th.style.position = 'relative';
+
             const resizer = document.createElement('div');
             resizer.className = 'resizer';
-            resizer.style.width = '10px';
-            resizer.style.height = '100%';
-            resizer.style.position = 'absolute';
-            resizer.style.right = '0';
-            resizer.style.top = '0';
-            resizer.style.cursor = 'col-resize';
-            (th as HTMLElement).style.position = 'relative';
+            Object.assign(resizer.style, {
+                position: 'absolute',
+                top: '-1px',
+                right: '0',                          // vorher: -4px
+                transform: 'translateX(50%)',        // Klickfläche halb nach rechts in die Grenze
+                height: 'calc(100% + 2px)',
+                width: '10px',
+                cursor: 'col-resize',
+                zIndex: '3',
+                background: 'transparent',
+            });
             th.appendChild(resizer);
-            resizers.push(resizer);
 
-            let startX: number;
-            let startWidths: number[];
+            let startX = 0;
+            let start = [...columnWidths.value];
+
+            const onMouseMove = (e: MouseEvent) => {
+                requestAnimationFrame(() => {
+                    const tw = table.getBoundingClientRect().width;
+                    const dxRaw = e.pageX - startX;
+
+                    const currPx = (start[colIndex] / 100) * tw;
+                    const nextPx = (start[colIndex + 1] / 100) * tw;
+
+                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 40;
+                    const minNext = MIN_PX_BY_COL[colIndex + 1] ?? 40;
+
+                    const maxDxRight = nextPx - minNext;           // nach rechts (curr wächst)
+                    const maxDxLeft = -(currPx - minCurr);        // nach links  (curr schrumpft)
+                    const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight)); // clamp
+
+                    const newCurrPx = currPx + dx;
+                    const newNextPx = nextPx - dx;
+
+                    const newWidths = [...start];
+                    newWidths[colIndex] = (newCurrPx / tw) * 100;
+                    newWidths[colIndex + 1] = (newNextPx / tw) * 100;
+
+                    columnWidths.value = newWidths; // Summe bleibt konstant
+                });
+            };
+
+            const onMouseUp = () => {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                resizer.classList.remove('is-active');
+                document.body.classList.remove('is-resizing-col');
+            };
 
             const onMouseDown = (e: MouseEvent) => {
                 e.preventDefault();
                 startX = e.pageX;
-                startWidths = [...columnWidths.value];
+                start = [...columnWidths.value];
+                resizer.classList.add('is-active');
+                document.body.classList.add('is-resizing-col');
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
-            };
-
-            const onMouseMove = (e: MouseEvent) => {
-                requestAnimationFrame(() => {
-                    const tableWidth = table.getBoundingClientRect().width;
-                    const diffX = e.pageX - startX;
-                    const currentColWidth = (startWidths[colIndex] / 100) * tableWidth;
-                    const nextColWidth = colIndex < startWidths.length - 1 ? (startWidths[colIndex + 1] / 100) * tableWidth : 0;
-
-                    const newCurrentColWidth = Math.max(50, currentColWidth + diffX);
-                    const newNextColWidth = colIndex < startWidths.length - 1 ? Math.max(50, nextColWidth - diffX) : 0;
-
-                    const totalWidth = tableWidth;
-                    const newCurrentColPercent = (newCurrentColWidth / totalWidth) * 100;
-                    const newNextColPercent = colIndex < startWidths.length - 1 ? (newNextColWidth / totalWidth) * 100 : startWidths[colIndex + 1];
-
-                    const newWidths = [...startWidths];
-                    newWidths[colIndex] = newCurrentColPercent;
-                    if (colIndex < startWidths.length - 1) newWidths[colIndex + 1] = newNextColPercent;
-
-                    const totalPercent = newWidths.reduce((sum, w) => sum + w, 0);
-                    newWidths.forEach((_, i) => newWidths[i] = (newWidths[i] / totalPercent) * 100);
-
-                    columnWidths.value = newWidths;
-                });
-            };
-
-            const onMouseUp = () => {
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
             };
 
             resizer.addEventListener('mousedown', onMouseDown);
         });
 
-        const rows = table.querySelectorAll('tr.resizable-row');
+        // --- Zeilen-Resizer ---
+        const rows = Array.from(table.querySelectorAll('tbody tr.resizable-row')) as HTMLElement[];
         rows.forEach((row, rowIndex) => {
-            const resizer = document.createElement('div');
-            resizer.className = 'resizer row-resizer';
-            resizer.style.width = '100%';
-            resizer.style.height = '10px';
-            resizer.style.position = 'absolute';
-            resizer.style.bottom = '0';
-            resizer.style.left = '0';
-            resizer.style.cursor = 'row-resize';
-            (row as HTMLElement).style.position = 'relative';
-            row.appendChild(resizer);
-            resizers.push(resizer);
+            row.style.position = 'relative';
 
-            let startY: number;
-            let startHeight: number;
+            const r = document.createElement('div');
+            r.className = 'row-resizer';
+            Object.assign(r.style, {
+                position: 'absolute',
+                left: '0',
+                bottom: '-4px',
+                width: '100%',
+                height: '10px',
+                cursor: 'row-resize',
+                zIndex: '3',
+                background: 'transparent',
+            });
+            row.appendChild(r);
 
-            const onMouseDown = (e: MouseEvent) => {
+            let startY = 0;
+            let startH = rowHeights.value[rowIndex] || row.getBoundingClientRect().height;
+
+            const onMove = (e: MouseEvent) => {
+                requestAnimationFrame(() => {
+                    const dy = e.pageY - startY;
+                    const minH = 28;
+                    rowHeights.value[rowIndex] = Math.max(minH, Math.round(startH + dy));
+                });
+            };
+
+            const onUp = () => {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                r.classList.remove('is-active');
+                document.body.classList.remove('is-resizing-row');
+            };
+
+            const onDown = (e: MouseEvent) => {
                 e.preventDefault();
                 startY = e.pageY;
-                startHeight = rowHeights.value[rowIndex] || 40;
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
+                startH = rowHeights.value[rowIndex] || row.getBoundingClientRect().height;
+                r.classList.add('is-active');
+                document.body.classList.add('is-resizing-row');
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
             };
 
-            const onMouseMove = (e: MouseEvent) => {
-                requestAnimationFrame(() => {
-                    const diffY = e.pageY - startY;
-                    const newHeight = Math.max(30, startHeight + diffY);
-                    rowHeights.value[rowIndex] = newHeight;
-                });
-            };
-
-            const onMouseUp = () => {
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
-            };
-
-            resizer.addEventListener('mousedown', onMouseDown);
+            r.addEventListener('mousedown', onDown);
         });
-
-        const cleanupResizers = () => {
-            resizers.forEach(resizer => resizer.remove());
-        };
-
-        onUnmounted(() => cleanupResizers());
     };
+
 
     const initAudioElements = () => {
         Object.entries(audioPaths).forEach(([key, path]) => {
@@ -2700,8 +2816,88 @@
         console.log('Stopwatches beim Mounten (Training.vue):', props.stopwatches);
     });
 
+    // ====== CUSTOM-ÜBUNGEN-TABELLE (unten) ======
+    // ====== CUSTOM-ÜBUNGEN-TABELLE (unten) ======
+    const initCustomResizeTable = () => {
+        const table = customResizeTable.value;
+        if (!table) return;
 
+        table.querySelectorAll('.resizer').forEach(el => el.remove());
 
+        // kleinere Mindestbreiten, Aktion bleibt gut klickbar
+        // ganz oben in initCustomResizeTable:
+        const MIN_PX_BY_COL = [16, 16, 16, 44];
+        const ths = Array.from(table.querySelectorAll('thead th.resizable')) as HTMLElement[];
+        const lastIdx = ths.length - 1;
+
+        ths.forEach((th, colIndex) => {
+            if (colIndex === lastIdx) return;
+
+            th.style.position = 'relative';
+
+            const resizer = document.createElement('div');
+            resizer.className = 'resizer';
+            Object.assign(resizer.style, {
+                position: 'absolute',
+                top: '-1px',
+                right: '-4px',
+                height: 'calc(100% + 2px)',
+                width: '10px',
+                cursor: 'col-resize',
+                zIndex: '3',
+                background: 'transparent',
+            });
+            th.appendChild(resizer);
+
+            let startX = 0;
+            let start = [...customColWidths.value];
+
+            const onMouseMove = (e: MouseEvent) => {
+                requestAnimationFrame(() => {
+                    const tw = table.getBoundingClientRect().width;
+                    const dxRaw = e.pageX - startX;
+
+                    const currPx = (start[colIndex] / 100) * tw;
+                    const nextPx = (start[colIndex + 1] / 100) * tw;
+
+                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 40;
+                    const minNext = MIN_PX_BY_COL[colIndex + 1] ?? 40;
+
+                    const maxDxRight = nextPx - minNext;
+                    const maxDxLeft = -(currPx - minCurr);
+                    const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight));
+
+                    const newCurrPx = currPx + dx;
+                    const newNextPx = nextPx - dx;
+
+                    const newWidths = [...start];
+                    newWidths[colIndex] = (newCurrPx / tw) * 100;
+                    newWidths[colIndex + 1] = (newNextPx / tw) * 100;
+
+                    customColWidths.value = newWidths;
+                });
+            };
+
+            const onMouseUp = () => {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                resizer.classList.remove('is-active');
+                document.body.classList.remove('is-resizing-col');
+            };
+
+            const onMouseDown = (e: MouseEvent) => {
+                e.preventDefault();
+                startX = e.pageX;
+                start = [...customColWidths.value];
+                resizer.classList.add('is-active');
+                document.body.classList.add('is-resizing-col');
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+
+            resizer.addEventListener('mousedown', onMouseDown);
+        });
+    };
 
     onUnmounted(() => {
         window.removeEventListener('scroll', checkScroll);
@@ -2767,14 +2963,38 @@
     );
     watch(planSearch, () => closePlanMenu());
 
+    watch(showCustomExercises, (val) => {
+        if (val) nextTick(() => initCustomResizeTable());
+    });
     const syncFullscreenClass = () => {
         const isFs = !!document.fullscreenElement;
         document.documentElement.classList.toggle('is-fullscreen', isFs);
     };
+    onMounted(() => {
+        nextTick(() => setupHeaderShorteningFallback());
+    });
 
+    // beim Unmount
+    onUnmounted(() => {
+        teardownHeaderShorteningFallback();
+    });
+
+    // wenn der ausgewählte Plan geladen/geschlossen wird → Tabelle wechselt
+    watch(selectedPlan, (val) => {
+        if (val) nextTick(() => { initResizeTable(); setupHeaderShorteningFallback(); });
+        else nextTick(() => setupHeaderShorteningFallback());
+    });
+
+    // wenn die Custom-Übungen eingeblendet werden → Tabelle erscheint
+    watch(showCustomExercises, (val) => {
+        if (val) nextTick(() => { initCustomResizeTable(); setupHeaderShorteningFallback(); });
+    });
     onMounted(() => {
         document.addEventListener('fullscreenchange', syncFullscreenClass);
         syncFullscreenClass(); // Initialzustand setzen, falls bereits FS
+    });
+    onMounted(() => {
+        if (showCustomExercises.value) nextTick(() => initCustomResizeTable());
     });
 
     onUnmounted(() => {
@@ -2984,6 +3204,33 @@
         align-items: stretch;
         flex-wrap: wrap;
     }
+    /* Zelle wird selbst Container → reagiert auf ihre eigene Breite */
+    .v-stack {
+        container-type: inline-size;
+        white-space: normal;
+        word-break: break-word;
+        hyphens: auto;
+    }
+    /* Letzte Spalte (Aktion) – nicht unter 44px */
+    .custom-exercises-table th:last-child,
+    .custom-exercises-table td:last-child,
+    .exercise-table.full-width.compact th:last-child,
+    .exercise-table.full-width.compact td:last-child {
+        min-width: 44px !important; /* Platz fürs Icon */
+        white-space: nowrap;
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    /* Icon-Größe fix, damit nichts clippt */
+    .table-delete-btn {
+        width: 32px;
+        height: 32px;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
 
     .field-grid {
         display: grid;
@@ -3187,6 +3434,71 @@
         transition: transform 0.2s;
     }
 
+    /* Aktion-Spalte: keine Ellipsis, Icon zentriert + Mindestbreite */
+    .custom-exercises-table td:last-child,
+    .custom-exercises-table th:last-child,
+    .exercise-table.full-width.compact td:last-child,
+    .exercise-table.full-width.compact th:last-child {
+        overflow: visible; /* verhindert "…" */
+        text-overflow: clip;
+        white-space: nowrap;
+        min-width: 44px; /* genug Platz für das 🗑️-Icon */
+    }
+
+    .custom-exercises-table table tbody td:last-child .table-delete-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px !important;
+        height: 32px !important;
+        margin: 0 auto !important;
+        line-height: 1; /* keine Typo-Überhänge */
+    }
+    /* Zeilen-inhalt vertikal mittig ausrichten (alle Zellen) */
+    .custom-exercises-table td,
+    .custom-exercises-table th {
+        vertical-align: middle;
+    }
+
+        /* Falls das Emoji optisch nicht exakt zentriert wirkt: minimaler Nudge */
+        .custom-exercises-table td.action-cell .table-delete-btn {
+            transform: translateY(-0.5px);
+        }
+
+    /* Schlanke, aber normal lesbare Tabelle nur für den ausgewählten Plan */
+    .exercise-table.full-width.narrow {
+        max-inline-size: 100%;
+        margin-inline: auto;
+    }
+    /* Mobile bleibt voll breit */
+    @media (max-width: 720px) {
+        .exercise-table.full-width.narrow {
+            max-inline-size: 100%;
+        }
+    }
+
+    /* Optional: Nur die erste Spalte darf (falls nötig) auf zwei Zeilen umbrechen,
+   damit lange Übungsnamen nicht alles sprengen — ohne Mini-Schrift. */
+    .exercise-table.full-width.narrow td:first-child,
+    .exercise-table.full-width.narrow th:first-child {
+        white-space: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Icon selbst: nicht gestaucht/abgeschnitten */
+    .table-delete-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1; /* verhindert Emoji-/SVG-Clipping */
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        position: relative;
+        z-index: 1; /* falls irgendwas darüberliegt */
+    }
+
     html.dark-mode .list-item {
         background: #1c2526;
         color: #c9d1d9;
@@ -3286,6 +3598,13 @@
             transform: none;
         }
 
+    /* Aktion-Spalte: Button sauber zentriert, überschreibt frühere grid-Regeln */
+    td.action-cell {
+        min-width: 44px;
+        padding: .25rem 0;
+        display: grid;
+        place-items: center;
+    }
 
     .extras-container {
         transition: max-height 0.3s ease, opacity 0.3s ease;
@@ -3345,6 +3664,114 @@
         .plan-drag-stack > .plan-item {
             width: 100%;
         }
+    /* ===== sichtbare Griffe/Linien für Spalten ===== */
+    :root {
+        --resize-hit: 10px; /* Klickfläche */
+        --resize-line: 1px; /* Linienstärke normal */
+        --resize-line-hover: 2px; /* Linienstärke Hover/Active */
+        --resize-color: #94a3b8; /* Slate-400/500 */
+        --resize-color-hover: #60a5fa; /* Accent bei Hover/Active */
+    }
+
+    /* Cursor & Selection während Drag */
+    body.is-resizing-col {
+        cursor: col-resize;
+        user-select: none;
+    }
+
+    body.is-resizing-row {
+        cursor: row-resize;
+        user-select: none;
+    }
+
+    /* Die THs, an die der Handle angehängt wird */
+    .exercise-table.full-width th.resizable,
+    .custom-exercises-table th.resizable {
+        position: relative;
+        overflow: visible; /* damit der Handle nicht abgeschnitten wird */
+    }
+
+        /* Der eigentliche (unsichtbare) Griff – große Klickfläche */
+        .exercise-table.full-width th.resizable > .resizer,
+        .custom-exercises-table th.resizable > .resizer {
+            position: absolute;
+            top: -1px;
+            right: -4px; /* minimal nach außen, wirkt präziser */
+            width: var(--resize-hit);
+            height: calc(100% + 2px);
+            cursor: col-resize;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+        }
+
+            /* Sichtbare LINIE im Griff (vertikal) */
+            .exercise-table.full-width th.resizable > .resizer::before,
+            .custom-exercises-table th.resizable > .resizer::before {
+                content: "";
+                display: block;
+                width: var(--resize-line);
+                height: 60%;
+                border-radius: 1px;
+                background: var(--resize-color);
+                opacity: .7;
+                transition: width .12s ease, background-color .12s ease, opacity .12s ease;
+            }
+
+            /* Hover / aktiv (beim Draggen) */
+            .exercise-table.full-width th.resizable > .resizer:hover::before,
+            .custom-exercises-table th.resizable > .resizer:hover::before,
+            .exercise-table.full-width th.resizable > .resizer.is-active::before,
+            .custom-exercises-table th.resizable > .resizer.is-active::before {
+                width: var(--resize-line-hover);
+                background: var(--resize-color-hover);
+                opacity: 1;
+            }
+
+    /* ===== sichtbarer Griff für Zeilen ===== */
+    .exercise-table.full-width tr.resizable-row {
+        position: relative;
+    }
+
+        .exercise-table.full-width tr.resizable-row > .row-resizer {
+            position: absolute;
+            left: 0;
+            bottom: -4px;
+            width: 100%;
+            height: var(--resize-hit);
+            cursor: row-resize;
+            z-index: 3;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            background: transparent;
+        }
+
+            .exercise-table.full-width tr.resizable-row > .row-resizer::before {
+                content: "";
+                display: block;
+                height: var(--resize-line);
+                width: 60%;
+                background: var(--resize-color);
+                opacity: .7;
+                transition: height .12s ease, background-color .12s ease, opacity .12s ease;
+                border-radius: 1px;
+            }
+
+            .exercise-table.full-width tr.resizable-row > .row-resizer:hover::before,
+            .exercise-table.full-width tr.resizable-row > .row-resizer.is-active::before {
+                height: var(--resize-line-hover);
+                background: var(--resize-color-hover);
+                opacity: 1;
+            }
+
+    /* Dark-Mode Kontrast (optional feiner abstimmen) */
+    html.dark-mode :root {
+        --resize-color: #64748b; /* slate-500 */
+        --resize-color-hover: #3b82f6; /* blue-500 */
+    }
 
     .list-item-actions {
         display: flex;
@@ -3392,17 +3819,37 @@
         margin: 1rem 0 0.5rem;
         color: #111827;
     }
-
-    .custom-exercises-table table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        border-radius: 0.5rem;
-        overflow: hidden;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-        background-color: #f9fafb;
+    /* Header-THs können auf Breite reagieren */
+    .exercise-table.full-width th,
+    .custom-exercises-table th {
+        container-type: inline-size;
     }
 
+    /* Abkürzungs-Logik für Wiederholungen */
+    .th-label .mid,
+    .th-label .short {
+        display: none;
+    }
+
+    .custom-exercises-table .exercise-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+        .custom-exercises-table .exercise-table th,
+        .custom-exercises-table .exercise-table td {
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+        }
+
+            .custom-exercises-table .exercise-table th:last-child,
+            .custom-exercises-table .exercise-table td:last-child {
+                border-right: 0;
+            }
     .custom-exercises-table th,
     .custom-exercises-table td {
         padding: 0.75rem;
@@ -3590,17 +4037,50 @@
         margin: 0 auto;
         position: relative;
     }
+    .exercise-table th,
+    .exercise-table td,
+    .custom-exercises-table th,
+    .custom-exercises-table td {
+        min-width: 0;
+    }
 
-        .exercise-table.full-width table {
-            width: 100%;
+        .exercise-table th:last-child,
+        .exercise-table td:last-child,
+        .custom-exercises-table th:last-child,
+        .custom-exercises-table td:last-child {
+            min-width: 44px !important;
+            white-space: nowrap;
         }
 
+    /* Header reagieren auf Breite */
+    .exercise-table th,
+    .custom-exercises-table th {
+        container-type: inline-size;
+    }
+
+    /* Wrapper für Header-Text */
+    .th-text {
+        display: inline-block;
+        white-space: nowrap;
+        line-height: 1;
+    }
+
+    /* Body-Zellen bleiben horizontal, hart abkürzen */
+    .exercise-table td,
+    .custom-exercises-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .exercise-table.full-width table {
+        width: 100%;
+        table-layout: fixed; /* ← WICHTIG: stabilisiert Spaltenbreiten beim Drag */
+    }
         .exercise-table.full-width th,
         .exercise-table.full-width td {
             padding: 1.5rem;
             text-align: center;
             min-width: 0; /* war 150px: verhindert Breiten-Inflation */
-            overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
@@ -3638,6 +4118,35 @@
         padding-top: 0;
         padding-bottom: 0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Basis: nur "full" sichtbar */
+    .th-label .mid,
+    .th-label .short {
+        display: none;
+    }
+
+    /* Wenn per JS "mid" gesetzt wurde */
+    .th-label.is-mid .full {
+        display: none;
+    }
+
+    .th-label.is-mid .mid {
+        display: inline;
+    }
+
+    .th-label.is-mid .short {
+        display: none;
+    }
+
+    /* Wenn per JS "short" gesetzt wurde */
+    .th-label.is-short .full,
+    .th-label.is-short .mid {
+        display: none;
+    }
+
+    .th-label.is-short .short {
+        display: inline;
     }
 
     .action-btn.plan-submit-btn {
@@ -4753,5 +5262,38 @@
             display: inline-flex !important;
         }
     }
+    td.action-cell {
+        display: grid !important;
+        place-items: center !important; /* echte Mitte */
+        padding: 0; /* kein Padding-Shift */
+        min-width: 44px;
+    }
+
+
+    /* Der Button selbst: fixes Quadrat und auto-zentriert */
+    .table-delete-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        margin: 0 auto; /* falls text-align greifen sollte */
+        line-height: 1;
+    }
+
+    /* Öffneter Plan – Table darf die Seite NICHT verbreitern */
+    .exercise-table.full-width.narrow {
+        display: block; /* wichtig: nicht als Table-Wrapper mit auto-breiten Kindern */
+        max-inline-size: 100%;
+        overflow-x: clip; /* oder: hidden; (clip ist moderner) */
+        contain: inline-size; /* Kinder beeinflussen die Außenbreite nicht */
+    }
+
+        /* Sicherheitshalber die Tabelle fix einbremsen */
+        .exercise-table.full-width.narrow > table {
+            table-layout: fixed;
+            width: 100%;
+            max-width: 100%;
+        }
 
 </style>
