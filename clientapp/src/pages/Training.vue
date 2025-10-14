@@ -157,7 +157,6 @@
                 </div>
 
                 <!-- RIGHT: Live Preview (sticky) -->
-                <!-- RIGHT: Live Preview (sticky) -->
                 <div class="builder-right">
                     <div class="preview-card">
                         <div class="preview-head">
@@ -168,76 +167,78 @@
                         </div>
 
                         <div v-if="selectedPlanExercises.length" class="exercise-table full-width compact">
-                            <table ref="previewTable">
-                                <thead>
-                                    <tr>
-                                        <!-- 3 resizable Spalten -->
-                                        <th class="resizable" :style="{ width: previewColWidths[0] + '%' }">
-                                            <span class="th-text">Übung</span>
-                                        </th>
-                                        <th class="resizable" :style="{ width: previewColWidths[1] + '%' }">
-                                            <span class="th-text">
-                                                {{ selectedPlanExercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
-                                            </span>
-                                        </th>
-                                        <th class="resizable th-wdh" :style="{ width: previewColWidths[2] + '%' }">
-                                            <span class="th-text th-label">
-                                                <span class="full">
-                                                    {{
+                            <div class="table-scroll">
+                                <table ref="previewTable" data-cols="4">
+                                    <thead>
+                                        <tr>
+                                            <!-- 3 resizable Spalten -->
+                                            <th class="resizable" :style="{ width: previewColWidths[0] + '%' }">
+                                                <span class="th-text">Übung</span>
+                                            </th>
+                                            <th class="resizable" :style="{ width: previewColWidths[1] + '%' }">
+                                                <span class="th-text">
+                                                    {{ selectedPlanExercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                                                </span>
+                                            </th>
+                                            <th class="resizable th-wdh" :style="{ width: previewColWidths[2] + '%' }">
+                                                <span class="th-text th-label">
+                                                    <span class="full">
+                                                        {{
                     selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
                       ? 'Wdh. / km / s'
                       : 'Wiederholungen'
-                                                    }}
-                                                </span>
-                                                <span class="mid">
-                                                    {{
+                                                        }}
+                                                    </span>
+                                                    <span class="mid">
+                                                        {{
                     selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
                       ? 'Wdh./km/s'
                       : 'Wiederhol...'
-                                                    }}
-                                                </span>
-                                                <span class="short">
-                                                    {{
+                                                        }}
+                                                    </span>
+                                                    <span class="short">
+                                                        {{
                     selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
                       ? 'W/km/s'
                       : 'Wdh.'
-                                                    }}
+                                                        }}
+                                                    </span>
                                                 </span>
-                                            </span>
-                                        </th>
+                                            </th>
 
-                                        <!-- Aktion NICHT resizable, bekommt eigene feste Breite -->
-                                        <th :style="{ width: previewColWidths[3] + '%' }">Aktion</th>
-                                    </tr>
-                                </thead>
+                                            <!-- Aktion NICHT resizable, bekommt eigene feste Breite -->
+                                            <th :style="{ width: previewColWidths[3] + '%' }">Aktion</th>
+                                        </tr>
+                                    </thead>
 
-                                <tbody>
-                                    <tr v-for="(ex, index) in selectedPlanExercises"
-                                        :key="index"
-                                        @dblclick="openEditPopup('table', index, $event)">
-                                        <td :style="{ width: previewColWidths[0] + '%' }">{{ ex.exercise }}</td>
-                                        <td :style="{ width: previewColWidths[1] + '%' }">
-                                            {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
-                                        </td>
-                                        <td :style="{ width: previewColWidths[2] + '%' }">
-                                            <template v-if="ex.type === 'ausdauer'">
-                                                {{ ex.reps ? `${ex.reps} km` : '-' }}
-                                            </template>
-                                            <template v-else-if="ex.type === 'dehnung'">
-                                                {{ ex.reps }} s
-                                            </template>
-                                            <template v-else>
-                                                {{ ex.reps }}
-                                            </template>
-                                        </td>
-                                        <td class="action-cell">
-                                            <DeleteButton class="table-delete-btn"
-                                                          title="Übung entfernen"
-                                                          @click="removeExerciseFromPlan(index)" />
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                    <tbody>
+                                        <tr v-for="(ex, index) in selectedPlanExercises"
+                                            :key="index"
+                                            @dblclick="openEditPopup('table', index, $event)">
+                                            <td :style="{ width: previewColWidths[0] + '%' }">{{ ex.exercise }}</td>
+                                            <td :style="{ width: previewColWidths[1] + '%' }">
+                                                {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
+                                            </td>
+                                            <td :style="{ width: previewColWidths[2] + '%' }">
+                                                <template v-if="ex.type === 'ausdauer'">
+                                                    {{ ex.reps ? `${ex.reps} km` : '-' }}
+                                                </template>
+                                                <template v-else-if="ex.type === 'dehnung'">
+                                                    {{ ex.reps }} s
+                                                </template>
+                                                <template v-else>
+                                                    {{ ex.reps }}
+                                                </template>
+                                            </td>
+                                            <td class="action-cell">
+                                                <DeleteButton class="table-delete-btn"
+                                                              title="Übung entfernen"
+                                                              @click="removeExerciseFromPlan(index)" />
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
                         <div v-else class="empty-preview">
@@ -398,70 +399,71 @@
                 <CloseButton title="Plan schließen" @click="closePlan" />
             </div>
             <div class="exercise-table full-width narrow">
-                <table ref="resizeTable">
-                    <thead>
-                        <tr>
-                            <th class="resizable" :style="{ width: columnWidths[0] + '%' }">
-                                <span class="th-text">Übung</span>
-                            </th>
-                            <th class="resizable" :style="{ width: columnWidths[1] + '%' }">
-                                <span class="th-text">
-                                    {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
-                                </span>
-                            </th>
-                            <th class="resizable th-wdh" :style="{ width: columnWidths[2] + '%' }">
-                                <span class="th-text th-label">
-                                    <span class="full">
-                                        {{
+                <div class="table-scroll">
+                    <table ref="resizeTable" data-cols="3">
+                        <thead>
+                            <tr>
+                                <th class="resizable" :style="{ width: columnWidths[0] + '%' }">
+                                    <span class="th-text">Übung</span>
+                                </th>
+                                <th class="resizable" :style="{ width: columnWidths[1] + '%' }">
+                                    <span class="th-text">
+                                        {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                                    </span>
+                                </th>
+                                <th class="resizable th-wdh" :style="{ width: columnWidths[2] + '%' }">
+                                    <span class="th-text th-label">
+                                        <span class="full">
+                                            {{
         selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
           ? 'Wdh. / km / s'
           : 'Wiederholungen'
-                                        }}
-                                    </span>
-                                    <span class="mid">
-                                        {{
+                                            }}
+                                        </span>
+                                        <span class="mid">
+                                            {{
         selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
           ? 'Wdh./km/s'
           : 'Wiederhol...'
-                                        }}
-                                    </span>
-                                    <span class="short">
-                                        {{
+                                            }}
+                                        </span>
+                                        <span class="short">
+                                            {{
         selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
           ? 'W/km/s'
           : 'Wdh.'
-                                        }}
+                                            }}
+                                        </span>
                                     </span>
-                                </span>
-                            </th>
-                        </tr>
-                    </thead>
+                                </th>
+                            </tr>
+                        </thead>
 
-                    <tbody>
-                        <tr v-for="(ex, index) in selectedPlan.exercises" :key="index" class="resizable-row" :style="{ height: rowHeights[index] + 'px' }" @dblclick="openEditPopup('selectedPlan', index, $event)">
-                            <td :style="{ width: columnWidths[0] + '%' }">{{ ex.exercise }}</td>
+                        <tbody>
+                            <tr v-for="(ex, index) in selectedPlan.exercises" :key="index" class="resizable-row" :style="{ height: rowHeights[index] + 'px' }" @dblclick="openEditPopup('selectedPlan', index, $event)">
+                                <td :style="{ width: columnWidths[0] + '%' }">{{ ex.exercise }}</td>
 
-                            <!-- Sätze/Min -->
-                            <td :style="{ width: columnWidths[1] + '%' }">
-                                {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
-                            </td>
+                                <!-- Sätze/Min -->
+                                <td :style="{ width: columnWidths[1] + '%' }">
+                                    {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
+                                </td>
 
-                            <!-- Wdh./km/s -->
-                            <td :style="{ width: columnWidths[2] + '%' }">
-                                <template v-if="ex.type === 'ausdauer'">
-                                    {{ ex.reps ? `${ex.reps} km` : '-' }}
-                                </template>
-                                <template v-else-if="ex.type === 'dehnung'">
-                                    {{ ex.reps }} s
-                                </template>
-                                <template v-else>
-                                    {{ ex.reps }}
-                                </template>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
+                                <!-- Wdh./km/s -->
+                                <td :style="{ width: columnWidths[2] + '%' }">
+                                    <template v-if="ex.type === 'ausdauer'">
+                                        {{ ex.reps ? `${ex.reps} km` : '-' }}
+                                    </template>
+                                    <template v-else-if="ex.type === 'dehnung'">
+                                        {{ ex.reps }} s
+                                    </template>
+                                    <template v-else>
+                                        {{ ex.reps }}
+                                    </template>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <button @click="toggleCustomExercises" class="custom-toggle-btn" v-if="customExercises.length > 0">
@@ -469,54 +471,55 @@
             </button>
             <div v-if="showCustomExercises" class="custom-exercises-table">
                 <h4 class="section-title">Eigene Übungen</h4>
+                <div class="table-scroll">
+                    <!-- NEU: ref="customResizeTable" -->
+                    <table class="exercise-table full-width" ref="customResizeTable" data-cols="4">
+                        <thead>
+                            <tr>
+                                <th class="resizable" :style="{ width: customColWidths[0] + '%' }">
+                                    <span class="th-text">Name</span>
+                                </th>
+                                <th class="resizable th-muskel" :style="{ width: customColWidths[1] + '%' }">
+                                    <span class="th-text th-label">
+                                        <span class="full">Muskelgruppe</span>
+                                        <span class="mid">Muskelgr...</span>
+                                        <span class="short">Muskel...</span>
+                                    </span>
+                                </th>
+                                <th class="resizable" :style="{ width: customColWidths[2] + '%' }">
+                                    <span class="th-text">Typ</span>
+                                </th>
+                                <th class="resizable" :style="{ width: customColWidths[3] + '%' }">Aktion</th>
+                            </tr>
+                        </thead>
 
-                <!-- NEU: ref="customResizeTable" -->
-                <table class="exercise-table full-width" ref="customResizeTable">
-                    <thead>
-                        <tr>
-                            <th class="resizable" :style="{ width: customColWidths[0] + '%' }">
-                                <span class="th-text">Name</span>
-                            </th>
-                            <th class="resizable th-muskel" :style="{ width: customColWidths[1] + '%' }">
-                                <span class="th-text th-label">
-                                    <span class="full">Muskelgruppe</span>
-                                    <span class="mid">Muskelgr...</span>
-                                    <span class="short">Muskel...</span>
-                                </span>
-                            </th>
-                            <th class="resizable" :style="{ width: customColWidths[2] + '%' }">
-                                <span class="th-text">Typ</span>
-                            </th>
-                            <th class="resizable" :style="{ width: customColWidths[3] + '%' }">Aktion</th>
-                        </tr>
-                    </thead>
+                        <tbody>
+                            <tr v-for="(ex, i) in customExercises" :key="i">
+                                <td :style="{ width: customColWidths[0] + '%' }" @dblclick="openEditPopup('customExerciseName', i)">
+                                    <input v-if="exerciseEditIndex === i && exerciseEditField === 'name'"
+                                           v-model="ex.name" @blur="finishEdit" @keyup.enter="finishEdit" />
+                                    <span v-else>{{ ex.name }}</span>
+                                </td>
 
-                    <tbody>
-                        <tr v-for="(ex, i) in customExercises" :key="i">
-                            <td :style="{ width: customColWidths[0] + '%' }" @dblclick="openEditPopup('customExerciseName', i)">
-                                <input v-if="exerciseEditIndex === i && exerciseEditField === 'name'"
-                                       v-model="ex.name" @blur="finishEdit" @keyup.enter="finishEdit" />
-                                <span v-else>{{ ex.name }}</span>
-                            </td>
+                                <td class="v-stack" :style="{ width: customColWidths[1] + '%' }" @dblclick="openEditPopup('customExerciseMuscle', i)">
+                                    <input v-if="exerciseEditIndex === i && exerciseEditField === 'muscle'"
+                                           v-model="ex.muscle" @blur="finishEdit" @keyup.enter="finishEdit" />
+                                    <span v-else>{{ ex.muscle }}</span>
+                                </td>
 
-                            <td class="v-stack" :style="{ width: customColWidths[1] + '%' }" @dblclick="openEditPopup('customExerciseMuscle', i)">
-                                <input v-if="exerciseEditIndex === i && exerciseEditField === 'muscle'"
-                                       v-model="ex.muscle" @blur="finishEdit" @keyup.enter="finishEdit" />
-                                <span v-else>{{ ex.muscle }}</span>
-                            </td>
+                                <td :style="{ width: customColWidths[2] + '%' }" @dblclick="openEditPopup('customExerciseType', i)">
+                                    {{ typeLabel(ex.type) }}
+                                </td>
 
-                            <td :style="{ width: customColWidths[2] + '%' }" @dblclick="openEditPopup('customExerciseType', i)">
-                                {{ typeLabel(ex.type) }}
-                            </td>
-
-                            <td class="action-cell">
-                                <DeleteButton class="table-delete-btn"
-                                              title="Benutzerdefinierte Übung entfernen"
-                                              @click="removeCustomExercise(i)" />
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <td class="action-cell">
+                                    <DeleteButton class="table-delete-btn"
+                                                  title="Benutzerdefinierte Übung entfernen"
+                                                  @click="removeCustomExercise(i)" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <!-- /Benutzerdefinierte Übungen -->
         </div>
@@ -3638,7 +3641,7 @@
     }
 
     /* Optional: Nur die erste Spalte darf (falls nötig) auf zwei Zeilen umbrechen,
-   damit lange Übungsnamen nicht alles sprengen — ohne Mini-Schrift. */
+    damit lange Übungsnamen nicht alles sprengen — ohne Mini-Schrift. */
     .exercise-table.full-width.narrow td:first-child,
     .exercise-table.full-width.narrow th:first-child {
         white-space: normal;
@@ -4032,6 +4035,7 @@
             .custom-exercises-table .exercise-table td:last-child {
                 border-right: 0;
             }
+
     .custom-exercises-table th,
     .custom-exercises-table td {
         padding: 0.75rem;
@@ -4219,6 +4223,7 @@
         margin: 0 auto;
         position: relative;
     }
+
     .exercise-table th,
     .exercise-table td,
     .custom-exercises-table th,
@@ -4254,18 +4259,20 @@
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+
     .exercise-table.full-width table {
         width: 100%;
         table-layout: fixed; /* ← WICHTIG: stabilisiert Spaltenbreiten beim Drag */
     }
-        .exercise-table.full-width th,
-        .exercise-table.full-width td {
-            padding: 1.5rem;
-            text-align: center;
-            min-width: 0; /* war 150px: verhindert Breiten-Inflation */
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
+
+    .exercise-table.full-width th,
+    .exercise-table.full-width td {
+        padding: 1.5rem;
+        text-align: center;
+        min-width: 0; /* war 150px: verhindert Breiten-Inflation */
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 
     html.dark-mode .exercise-table.full-width th,
     html.dark-mode .exercise-table.full-width td {
@@ -4474,7 +4481,7 @@
         gap: .4rem;
     }
     /* Kebab standardmäßig verstecken – wird erst ab schmaler Breite angezeigt */
-    
+
 
     @media (max-width:1024px) {
         .inline-actions {
@@ -4574,10 +4581,12 @@
             font-size: .9rem;
         }
     }
+
     .exercise-table.full-width.narrow th.resizable > .resizer {
         right: -4px; /* Breite fressenden Außenrand vermeiden */
         width: 10px;
     }
+
     .timer-display:hover,
     .timer:hover {
         transform: scale(1.02);
@@ -5004,6 +5013,38 @@
             box-sizing: border-box;
             inline-size: min(var(--extras-toggle-w), 100%);
         }
+    /* Wrapper zeigt eine horizontale Scrollbar nur bei Bedarf */
+    .table-scroll {
+        overflow-x: auto;
+        overflow-y: hidden;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-gutter: stable both-edges; /* Layout springt nicht */
+    }
+
+        /* Tabelle darf breiter als der Container sein → dann erscheint die Scrollbar */
+        .table-scroll > table {
+            width: 100%;
+            table-layout: fixed; /* lässt deine Resizer unverändert funktionieren */
+        }
+
+            /* Minimal sinnvolle Breite pro Tabellentyp, damit nichts mikroskopisch wird.
+   → Scrollbar erscheint erst, wenn der Viewport kleiner ist. */
+            .table-scroll > table[data-cols="3"] {
+                min-width: 560px;
+            }
+            /* Übung | Sätze | Wdh. */
+            .table-scroll > table[data-cols="4"] {
+                min-width: 720px;
+            }
+    /* + Aktion/weitere Spalte */
+
+    /* Falls zuvor irgendwo "clip/hidden" gesetzt wurde: das Scrollen im Wrapper nicht wegklemmen */
+    .exercise-table.full-width.narrow,
+    .exercise-table.full-width.compact,
+    .custom-exercises-table {
+        overflow-x: visible; /* der eigentliche Scroll passiert im .table-scroll */
+    }
 
     @media (max-width: 420px) {
         .training {
@@ -5457,6 +5498,7 @@
             display: inline-flex !important;
         }
     }
+
     td.action-cell {
         display: grid !important;
         place-items: center !important; /* echte Mitte */
@@ -5490,5 +5532,37 @@
             width: 100%;
             max-width: 100%;
         }
+
+    /* === Geöffneter Trainingsplan: identischer Rahmen wie alle anderen === */
+    .exercise-table.full-width.narrow {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        overflow: hidden; /* Ecken sauber, nichts „blankes“ */
+    }
+
+        /* Keine künstlichen Rand-Gutters links/rechts */
+        .exercise-table.full-width.narrow .table-scroll {
+            scrollbar-gutter: auto;
+        }
+
+            /* Tabelle selbst bündig ohne Spalt bis an den Rahmen */
+            .exercise-table.full-width.narrow .table-scroll > table {
+                width: 100%;
+                table-layout: fixed;
+                border-collapse: collapse; /* entfernt die seitlichen Gaps */
+            }
+
+        /* Optional: vertikale Trennlinien wie bei den anderen (falls gewünscht) */
+        .exercise-table.full-width.narrow th,
+        .exercise-table.full-width.narrow td {
+            border-right: 1px solid var(--border-color);
+        }
+
+            .exercise-table.full-width.narrow th:last-child,
+            .exercise-table.full-width.narrow td:last-child {
+                border-right: 0;
+            }
 
 </style>
