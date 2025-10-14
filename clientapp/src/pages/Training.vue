@@ -157,6 +157,7 @@
                 </div>
 
                 <!-- RIGHT: Live Preview (sticky) -->
+                <!-- RIGHT: Live Preview (sticky) -->
                 <div class="builder-right">
                     <div class="preview-card">
                         <div class="preview-head">
@@ -167,42 +168,46 @@
                         </div>
 
                         <div v-if="selectedPlanExercises.length" class="exercise-table full-width compact">
-                            <table>
+                            <table ref="previewTable">
                                 <thead>
                                     <tr>
-                                        <th><span class="th-text">Übung</span></th>
-                                        <th>
+                                        <!-- 3 resizable Spalten -->
+                                        <th class="resizable" :style="{ width: previewColWidths[0] + '%' }">
+                                            <span class="th-text">Übung</span>
+                                        </th>
+                                        <th class="resizable" :style="{ width: previewColWidths[1] + '%' }">
                                             <span class="th-text">
                                                 {{ selectedPlanExercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
                                             </span>
                                         </th>
-                                        <th class="th-wdh">
+                                        <th class="resizable th-wdh" :style="{ width: previewColWidths[2] + '%' }">
                                             <span class="th-text th-label">
                                                 <span class="full">
                                                     {{
-        selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
-          ? 'Wdh. / km / s'
-          : 'Wiederholungen'
+                    selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+                      ? 'Wdh. / km / s'
+                      : 'Wiederholungen'
                                                     }}
                                                 </span>
                                                 <span class="mid">
                                                     {{
-        selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
-          ? 'Wdh./km/s'
-          : 'Wiederhol...'
+                    selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+                      ? 'Wdh./km/s'
+                      : 'Wiederhol...'
                                                     }}
                                                 </span>
                                                 <span class="short">
                                                     {{
-        selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
-          ? 'W/km/s'
-          : 'Wdh.'
+                    selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+                      ? 'W/km/s'
+                      : 'Wdh.'
                                                     }}
                                                 </span>
                                             </span>
                                         </th>
 
-                                        <th>Aktion</th>
+                                        <!-- Aktion NICHT resizable, bekommt eigene feste Breite -->
+                                        <th :style="{ width: previewColWidths[3] + '%' }">Aktion</th>
                                     </tr>
                                 </thead>
 
@@ -210,9 +215,11 @@
                                     <tr v-for="(ex, index) in selectedPlanExercises"
                                         :key="index"
                                         @dblclick="openEditPopup('table', index, $event)">
-                                        <td>{{ ex.exercise }}</td>
-                                        <td>{{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}</td>
-                                        <td>
+                                        <td :style="{ width: previewColWidths[0] + '%' }">{{ ex.exercise }}</td>
+                                        <td :style="{ width: previewColWidths[1] + '%' }">
+                                            {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
+                                        </td>
+                                        <td :style="{ width: previewColWidths[2] + '%' }">
                                             <template v-if="ex.type === 'ausdauer'">
                                                 {{ ex.reps ? `${ex.reps} km` : '-' }}
                                             </template>
@@ -228,7 +235,6 @@
                                                           title="Übung entfernen"
                                                           @click="removeExerciseFromPlan(index)" />
                                         </td>
-
                                     </tr>
                                 </tbody>
                             </table>
@@ -239,6 +245,7 @@
                         </div>
                     </div>
                 </div>
+
             </form>
         </div>
 
@@ -504,10 +511,9 @@
 
                             <td class="action-cell">
                                 <DeleteButton class="table-delete-btn"
-                                              title="Übung entfernen"
-                                              @click="removeExerciseFromPlan(index)" />
+                                              title="Benutzerdefinierte Übung entfernen"
+                                              @click="removeCustomExercise(i)" />
                             </td>
-
                         </tr>
                     </tbody>
                 </table>
@@ -894,7 +900,8 @@
     const cardioExercise = ref('')
     const newDuration = ref<number | null>(null)
     const newDistance = ref<number | null>(null)
-
+    const previewColWidths = ref([50, 25, 19, 6]); // Summe 100% (Übung | Sätze | Wdh | Aktion)
+    const previewTable = ref<HTMLTableElement | null>(null);
     const editingPlanId = ref<string | null>(null);
     const selectedPlanExercises = ref<PlanExercise[]>([]);
     const selectedPlan = ref<TrainingPlan | null>(null);
@@ -923,7 +930,7 @@
         'beine': ['Beine'], 'bein': ['Beine'], 'unterkörper': ['Beine', 'Bauch'], 'unterkoerper': ['Beine', 'Bauch'],
         'bauch': ['Bauch'], 'core': ['Bauch'],
         'oberkörper': ['Brust', 'Rücken', 'Schultern', 'Arme'], 'oberkoerper': ['Brust', 'Rücken', 'Schultern', 'Arme'],
-        'po': ['Beine'], 'gesäß': ['Beine'], 'glauteus': ['Beine'],
+        'po': ['Beine'], 'gesäß': ['Beine'], 'gluteus': ['Beine'],
         // Bewegungsmuster (Push/Pull) + Synonyme
         'push': ['Brust', 'Schultern', 'Arme'],
         'pull': ['Rücken', 'Arme'],
@@ -2681,8 +2688,7 @@
             Object.assign(resizer.style, {
                 position: 'absolute',
                 top: '-1px',
-                right: '0',                          // vorher: -4px
-                transform: 'translateX(50%)',        // Klickfläche halb nach rechts in die Grenze
+                right: '-4px',              // Griff bleibt innerhalb der TH-Breite
                 height: 'calc(100% + 2px)',
                 width: '10px',
                 cursor: 'col-resize',
@@ -2791,7 +2797,87 @@
         });
     };
 
+    const initPreviewResizeTable = () => {
+        const table = previewTable.value;
+        if (!table) return;
 
+        // alte Handles entfernen
+        table.querySelectorAll('.resizer').forEach(el => el.remove());
+
+        // Mindestbreiten in PX (letzte Spalte = Aktion → 44px)
+        const MIN_PX_BY_COL = [16, 16, 16, 44];
+
+        // Nur die als "resizable" markierten Header (hier: die ersten 3)
+        const ths = Array.from(table.querySelectorAll('thead th.resizable')) as HTMLElement[];
+
+        ths.forEach((th, colIndex) => {
+            th.style.position = 'relative';
+
+            const resizer = document.createElement('div');
+            resizer.className = 'resizer';
+            Object.assign(resizer.style, {
+                position: 'absolute',
+                top: '-1px',
+                right: '0',                 // schluckt keine Pixel
+                transform: 'translateX(50%)', // klickbar genau auf der Grenze
+                height: 'calc(100% + 2px)',
+                width: '10px',
+                cursor: 'col-resize',
+                zIndex: '3',
+                background: 'transparent',
+            });
+            th.appendChild(resizer);
+
+            let startX = 0;
+            let start = [...previewColWidths.value];
+
+            const onMouseMove = (e: MouseEvent) => {
+                requestAnimationFrame(() => {
+                    const tw = table.getBoundingClientRect().width;
+                    const dxRaw = e.pageX - startX;
+
+                    const currPx = (start[colIndex] / 100) * tw;
+                    const nextPx = (start[colIndex + 1] / 100) * tw; // ← bei "Wdh." ist das die Aktion
+
+                    const MIN_PX_BY_COL = [16, 16, 16, 44]; // Aktion min 44px
+                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 40;
+                    const minNext = MIN_PX_BY_COL[colIndex + 1] ?? 40;
+
+                    const maxDxRight = nextPx - minNext;
+                    const maxDxLeft = -(currPx - minCurr);
+                    const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight));
+
+                    const newCurrPx = currPx + dx;
+                    const newNextPx = nextPx - dx;
+
+                    const newWidths = [...start];
+                    newWidths[colIndex] = (newCurrPx / tw) * 100;
+                    newWidths[colIndex + 1] = (newNextPx / tw) * 100;
+
+                    previewColWidths.value = newWidths; // Summe bleibt 100%
+                });
+            };
+
+            const onMouseUp = () => {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                resizer.classList.remove('is-active');
+                document.body.classList.remove('is-resizing-col');
+            };
+
+            const onMouseDown = (e: MouseEvent) => {
+                e.preventDefault();
+                startX = e.pageX;
+                start = [...previewColWidths.value];
+                resizer.classList.add('is-active');
+                document.body.classList.add('is-resizing-col');
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+
+            resizer.addEventListener('mousedown', onMouseDown);
+        });
+    };
     const initAudioElements = () => {
         Object.entries(audioPaths).forEach(([key, path]) => {
             const audio = document.getElementById(`audio-${key}`) as HTMLAudioElement;
@@ -2962,6 +3048,15 @@
         { deep: true }
     );
     watch(planSearch, () => closePlanMenu());
+
+    onMounted(() => {
+        nextTick(() => initPreviewResizeTable());
+    });
+
+    // wenn Übungen in der Live-Preview wechseln/ändern → Handles neu setzen
+    watch(selectedPlanExercises, () => {
+        nextTick(() => initPreviewResizeTable());
+    }, { deep: true });
 
     watch(showCustomExercises, (val) => {
         if (val) nextTick(() => initCustomResizeTable());
@@ -3599,11 +3694,33 @@
         }
 
     /* Aktion-Spalte: Button sauber zentriert, überschreibt frühere grid-Regeln */
-    td.action-cell {
-        min-width: 44px;
-        padding: .25rem 0;
-        display: grid;
-        place-items: center;
+    /* gleiche Zellenlogik wie der Rest der Tabelle */
+    .exercise-table.full-width td.action-cell,
+    .custom-exercises-table td.action-cell {
+        display: table-cell; /* zurück auf echtes Table-Cell-Layout */
+        padding: 1rem; /* identisch zu deinen anderen <td>s */
+        text-align: center;
+        vertical-align: middle;
+    }
+
+        /* Button sauber in der Mitte, ohne Layout zu beeinflussen */
+        .exercise-table.full-width td.action-cell .table-delete-btn,
+        .custom-exercises-table td.action-cell .table-delete-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            margin: 0 auto;
+            line-height: 1;
+            transform: none;
+        }
+
+    .custom-exercises-table th,
+    .custom-exercises-table td,
+    .exercise-table.full-width th,
+    .exercise-table.full-width td {
+        border-bottom: 1px solid var(--border-color);
     }
 
     .extras-container {
