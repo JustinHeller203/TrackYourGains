@@ -2688,7 +2688,7 @@
             Object.assign(resizer.style, {
                 position: 'absolute',
                 top: '-1px',
-                right: '-4px',              // Griff bleibt innerhalb der TH-Breite
+                right: '0', /* was: -4px → rausgeragt */
                 height: 'calc(100% + 2px)',
                 width: '10px',
                 cursor: 'col-resize',
@@ -2744,6 +2744,8 @@
             };
 
             resizer.addEventListener('mousedown', onMouseDown);
+            nextTick(() => setupHeaderShorteningFallback());
+
         });
 
         // --- Zeilen-Resizer ---
@@ -2818,14 +2820,14 @@
             Object.assign(resizer.style, {
                 position: 'absolute',
                 top: '-1px',
-                right: '0',                 // schluckt keine Pixel
-                transform: 'translateX(50%)', // klickbar genau auf der Grenze
+                right: '0',
+                /* remove translateX to keep handle fully inside the TH */
                 height: 'calc(100% + 2px)',
                 width: '10px',
                 cursor: 'col-resize',
                 zIndex: '3',
                 background: 'transparent',
-            });
+            })
             th.appendChild(resizer);
 
             let startX = 0;
@@ -2926,7 +2928,7 @@
             Object.assign(resizer.style, {
                 position: 'absolute',
                 top: '-1px',
-                right: '-4px',
+                right: '0', /* was: -4px → rausgeragt */
                 height: 'calc(100% + 2px)',
                 width: '10px',
                 cursor: 'col-resize',
@@ -3073,7 +3075,10 @@
     onUnmounted(() => {
         teardownHeaderShorteningFallback();
     });
-
+    watch(
+        () => selectedPlan.value?.exercises.map(e => `${e.exercise}|${e.sets}|${e.reps}|${e.type}`).join(';'),
+        () => nextTick(() => initResizeTable())
+    )
     // wenn der ausgewählte Plan geladen/geschlossen wird → Tabelle wechselt
     watch(selectedPlan, (val) => {
         if (val) nextTick(() => { initResizeTable(); setupHeaderShorteningFallback(); });
@@ -3360,6 +3365,8 @@
         box-shadow: 0 2px 8px rgba(0,0,0,.06);
         position: sticky;
         top: .75rem; /* bleibt beim Scrollen sichtbar */
+        contain: inline-size; /* Inhalt beeinflusst keine äußere Breite */
+        overflow-x: clip;
     }
 
     .preview-head {
@@ -3562,9 +3569,13 @@
 
     /* Schlanke, aber normal lesbare Tabelle nur für den ausgewählten Plan */
     .exercise-table.full-width.narrow {
+        position: relative;
         max-inline-size: 100%;
         margin-inline: auto;
+        overflow-x: clip; /* <— wichtig */
+        table-layout: fixed; /* <— stabilisiert Spaltenbreiten */
     }
+
     /* Mobile bleibt voll breit */
     @media (max-width: 720px) {
         .exercise-table.full-width.narrow {
@@ -4498,8 +4509,21 @@
             .plan-menu > * {
                 inline-size: auto;
             }
-    }
 
+        .exercise-table.full-width.narrow th,
+        .exercise-table.full-width.narrow td {
+            min-width: 0;
+            white-space: normal;
+            word-break: break-word;
+            text-overflow: clip;
+            padding: .6rem;
+            font-size: .9rem;
+        }
+    }
+    .exercise-table.full-width.narrow th.resizable > .resizer {
+        right: -4px; /* Breite fressenden Außenrand vermeiden */
+        width: 10px;
+    }
     .timer-display:hover,
     .timer:hover {
         transform: scale(1.02);
@@ -4930,7 +4954,7 @@
     @media (max-width: 420px) {
         .training {
             --control-height: 44px;
-            --control-padding-x: 1.1rem;
+            --control-padding-x: 1rem;
         }
 
         .workout-list {
