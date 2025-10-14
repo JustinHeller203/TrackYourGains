@@ -3,7 +3,7 @@
     <div class="training">
         <h2 class="page-title">💪 Training</h2>
         <!-- Trainingsplan Formular -->
-        <div class="workout-list builder-section">
+        <div class="workout-list builder-section" ref="builderSection">
             <h3 class="section-title">Trainingsplan erstellen/bearbeiten</h3>
 
             <form @submit.prevent="createOrUpdatePlan" class="form-card builder-grid">
@@ -1741,7 +1741,7 @@
         });
     };
 
-    const editPlan = (planId: string) => {
+    const editPlan = async (planId: string) => {
         const plan = plans.value.find(p => p.id === planId);
         if (plan) {
             planName.value = plan.name;
@@ -1750,6 +1750,9 @@
             rowHeights.value = Array(plan.exercises.length).fill(40);
             selectedPlan.value = { ...plan };
             addToast('Plan wird bearbeitet', 'save');
+
+            await nextTick();   // DOM aktualisiert
+            scrollToBuilder();  // sanft nach oben + Highlight
         } else {
             addToast('Plan nicht gefunden', 'delete');
         }
@@ -1775,6 +1778,29 @@
             addToast('Plan nicht gefunden', 'delete');
         }
     };
+
+    // Scroll/Highlight zum Builder
+    const builderSection = ref<HTMLElement | null>(null);
+
+    function scrollToBuilder() {
+        const el = builderSection.value;
+        if (!el) return;
+
+        const offset = 8; // ggf. an fixe Headerhöhe anpassen
+        const top = el.getBoundingClientRect().top + window.scrollY - offset;
+
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top, behavior: prefersReduced ? 'auto' : 'smooth' });
+
+        // dezentes Highlight
+        el.classList.remove('builder-landing');
+        void el.offsetWidth; // Reflow, damit Animation neu startet
+        el.classList.add('builder-landing');
+
+        // optional: Planname fokussieren, ohne Scroll-Jump
+        const input = document.getElementById('plan-name') as HTMLInputElement | null;
+        if (input) input.focus({ preventScroll: true });
+    }
 
     const closePlan = () => {
         closePlanMenu(); // NEU
@@ -3195,6 +3221,34 @@
         font-weight: 700;
         color: var(--text-primary);
         text-align: center;
+    }
+    /* Smooth landing highlight when jumping to the builder */
+    @keyframes builderPop {
+        0% {
+            transform: translateY(-6px);
+            box-shadow: 0 0 0 rgba(99,102,241,0);
+        }
+
+        40% {
+            transform: translateY(0);
+            box-shadow: 0 8px 32px rgba(99,102,241,.20);
+        }
+
+        100% {
+            transform: translateY(0);
+            box-shadow: 0 0 0 rgba(99,102,241,0);
+        }
+    }
+
+    .builder-landing {
+        animation: builderPop .6s cubic-bezier(.2,.8,.2,1);
+        background-image: radial-gradient(1200px 120px at 50% -20px, rgba(99,102,241,.08), transparent 70%);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .builder-landing {
+            animation: none;
+        }
     }
 
     html.dark-mode .section-title {
