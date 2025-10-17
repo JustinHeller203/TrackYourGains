@@ -390,7 +390,331 @@ button.action-btn.btn-extras-look {
         opacity: .5;
         cursor: not-allowed;
         transform: none;
+        /* ===== Training.vue – globale Fixes (Resizer + Mobile-Layout) ===== */
+        /* Spalten-Resizer sichtbar & klickbar (auch bei scoped-Styles) */
+        .training .exercise-table.full-width th.resizable, .training .custom-exercises-table th.resizable
+
+{
+    position: relative !important;
+    overflow: visible !important;
+}
+
+/* Griff in der TH – komplett innerhalb der Zelle (kein Clipping) */
+.training .exercise-table.full-width th.resizable > .resizer,
+.training .custom-exercises-table th.resizable > .resizer {
+    position: absolute !important;
+    top: -1px !important;
+    right: 0 !important; /* NICHT negativ – sonst clipped es */
+    width: 10px !important;
+    height: calc(100% + 2px) !important;
+    cursor: col-resize !important;
+    z-index: 3 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    pointer-events: auto !important;
+}
+
+    .training .exercise-table.full-width th.resizable > .resizer::before,
+    .training .custom-exercises-table th.resizable > .resizer::before {
+        content: "" !important;
+        display: block !important;
+        width: 1px !important;
+        height: 60% !important;
+        border-radius: 1px !important;
+        background: #94a3b8 !important;
+        opacity: .7 !important;
+        transition: width .12s ease, background-color .12s ease, opacity .12s ease !important;
     }
+
+    .training .exercise-table.full-width th.resizable > .resizer:hover::before,
+    .training .custom-exercises-table th.resizable > .resizer:hover::before,
+    .training .exercise-table.full-width th.resizable > .resizer.is-active::before,
+    .training .custom-exercises-table th.resizable > .resizer.is-active::before {
+        width: 2px !important;
+        background: #60a5fa !important;
+        opacity: 1 !important;
+    }
+
+/* Zeilen-Resizer (unten an jeder TR) */
+.training .exercise-table.full-width tr.resizable-row {
+    position: relative !important;
+}
+
+    .training .exercise-table.full-width tr.resizable-row > .row-resizer {
+        position: absolute !important;
+        left: 0 !important;
+        bottom: -4px !important;
+        width: 100% !important;
+        height: 10px !important;
+        cursor: row-resize !important;
+        z-index: 3 !important;
+        display: flex !important;
+        align-items: flex-end !important;
+        justify-content: center !important;
+        background: transparent !important;
+    }
+
+        .training .exercise-table.full-width tr.resizable-row > .row-resizer::before {
+            content: "" !important;
+            display: block !important;
+            height: 1px !important;
+            width: 60% !important;
+            background: #94a3b8 !important;
+            opacity: .7 !important;
+            transition: height .12s ease, background-color .12s ease, opacity .12s ease !important;
+            border-radius: 1px !important;
+        }
+
+        .training .exercise-table.full-width tr.resizable-row > .row-resizer:hover::before,
+        .training .exercise-table.full-width tr.resizable-row > .row-resizer.is-active::before {
+            height: 2px !important;
+            background: #60a5fa !important;
+            opacity: 1 !important;
+        }
+
+/* Aktionsspalte (🗑️ etc.): nie zu schmal */
+.training table[data-cols="4"] th:last-child,
+.training table[data-cols="4"] td:last-child {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 64px !important;
+    white-space: nowrap !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+}
+
+/* Action-Zelle bleibt echte Table-Cell und zentriert den Button */
+.training .exercise-table.full-width td.action-cell,
+.training .custom-exercises-table td.action-cell {
+    display: table-cell !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+    .training .exercise-table.full-width td.action-cell .table-delete-btn,
+    .training .custom-exercises-table td.action-cell .table-delete-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 32px !important;
+        height: 32px !important;
+        line-height: 1 !important;
+        margin: 0 auto !important;
+    }
+
+/* Header-Label-Abkürzungen (Wdh./km/s) – falls scoped-Styles ausfallen */
+.training .th-label .mid,
+.training .th-label .short {
+    display: none;
+}
+
+.training .th-label.is-mid .full {
+    display: none;
+}
+
+.training .th-label.is-mid .mid {
+    display: inline;
+}
+
+.training .th-label.is-short .full,
+.training .th-label.is-short .mid {
+    display: none;
+}
+
+.training .th-label.is-short .short {
+    display: inline;
+}
+/* ===== Training.vue – globale Fixes (Resizer + Mobile-Layout) ===== */
+
+/* Spalten-Resizer sichtbar & klickbar (auch bei scoped-Styles) */
+.training .exercise-table.full-width th.resizable,
+.training .custom-exercises-table th.resizable {
+    position: relative !important;
+    overflow: visible !important;
+}
+
+    /* Griff in der TH – komplett innerhalb der Zelle (kein Clipping) */
+    .training .exercise-table.full-width th.resizable > .resizer,
+    .training .custom-exercises-table th.resizable > .resizer {
+        position: absolute !important;
+        top: -1px !important;
+        right: 0 !important; /* NICHT negativ – sonst clipped es */
+        width: 10px !important;
+        height: calc(100% + 2px) !important;
+        cursor: col-resize !important;
+        z-index: 3 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: transparent !important;
+        pointer-events: auto !important;
+    }
+
+        .training .exercise-table.full-width th.resizable > .resizer::before,
+        .training .custom-exercises-table th.resizable > .resizer::before {
+            content: "" !important;
+            display: block !important;
+            width: 1px !important;
+            height: 60% !important;
+            border-radius: 1px !important;
+            background: #94a3b8 !important;
+            opacity: .7 !important;
+            transition: width .12s ease, background-color .12s ease, opacity .12s ease !important;
+        }
+
+        .training .exercise-table.full-width th.resizable > .resizer:hover::before,
+        .training .custom-exercises-table th.resizable > .resizer:hover::before,
+        .training .exercise-table.full-width th.resizable > .resizer.is-active::before,
+        .training .custom-exercises-table th.resizable > .resizer.is-active::before {
+            width: 2px !important;
+            background: #60a5fa !important;
+            opacity: 1 !important;
+        }
+
+/* Zeilen-Resizer (unten an jeder TR) */
+.training .exercise-table.full-width tr.resizable-row {
+    position: relative !important;
+}
+
+    .training .exercise-table.full-width tr.resizable-row > .row-resizer {
+        position: absolute !important;
+        left: 0 !important;
+        bottom: -4px !important;
+        width: 100% !important;
+        height: 10px !important;
+        cursor: row-resize !important;
+        z-index: 3 !important;
+        display: flex !important;
+        align-items: flex-end !important;
+        justify-content: center !important;
+        background: transparent !important;
+    }
+
+        .training .exercise-table.full-width tr.resizable-row > .row-resizer::before {
+            content: "" !important;
+            display: block !important;
+            height: 1px !important;
+            width: 60% !important;
+            background: #94a3b8 !important;
+            opacity: .7 !important;
+            transition: height .12s ease, background-color .12s ease, opacity .12s ease !important;
+            border-radius: 1px !important;
+        }
+
+        .training .exercise-table.full-width tr.resizable-row > .row-resizer:hover::before,
+        .training .exercise-table.full-width tr.resizable-row > .row-resizer.is-active::before {
+            height: 2px !important;
+            background: #60a5fa !important;
+            opacity: 1 !important;
+        }
+
+/* Aktionsspalte (🗑️ etc.): nie zu schmal */
+.training table[data-cols="4"] th:last-child,
+.training table[data-cols="4"] td:last-child {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 64px !important;
+    white-space: nowrap !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+}
+
+/* Action-Zelle bleibt echte Table-Cell und zentriert den Button */
+.training .exercise-table.full-width td.action-cell,
+.training .custom-exercises-table td.action-cell {
+    display: table-cell !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+    .training .exercise-table.full-width td.action-cell .table-delete-btn,
+    .training .custom-exercises-table td.action-cell .table-delete-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 32px !important;
+        height: 32px !important;
+        line-height: 1 !important;
+        margin: 0 auto !important;
+    }
+
+/* Header-Label-Abkürzungen (Wdh./km/s) – falls scoped-Styles ausfallen */
+.training .th-label .mid,
+.training .th-label .short {
+    display: none;
+}
+
+.training .th-label.is-mid .full {
+    display: none;
+}
+
+.training .th-label.is-mid .mid {
+    display: inline;
+}
+
+.training .th-label.is-short .full,
+.training .th-label.is-short .mid {
+    display: none;
+}
+
+.training .th-label.is-short .short {
+    display: inline;
+}
+
+/* ===== Mobile-Fix (≤560px): konsistentes Verhalten der Plan-Karten ===== */
+@media (max-width:560px) {
+    .training .plan-item {
+        display: grid !important;
+        grid-template-rows: auto auto !important;
+        gap: .5rem !important;
+    }
+    ö
+    .training .inline-actions {
+        display: none !important;
+    }
+    /* Icons weg */
+    .training .desktop-open {
+        display: none !important;
+    }
+    /* Desktop-Open weg */
+    .training .mobile-open {
+        display: inline-flex !important;
+    }
+    /* Mobile-Open zeigen */
+    .training .plan-row2 {
+        display: block !important;
+    }
+    /* zweite Zeile sichtbar */
+}
+
+/* ===== Mobile-Fix (≤560px): konsistentes Verhalten der Plan-Karten ===== */
+@media (max-width:560px) {
+    .training .plan-item {
+        display: grid !important;
+        grid-template-rows: auto auto !important;
+        gap: .5rem !important;
+    }
+
+    .training .inline-actions {
+        display: none !important;
+    }
+    /* Icons weg */
+    .training .desktop-open {
+        display: none !important;
+    }
+    /* Desktop-Open weg */
+    .training .mobile-open {
+        display: inline-flex !important;
+    }
+    /* Mobile-Open zeigen */
+    .training .plan-row2 {
+        display: block !important;
+    }
+    /* zweite Zeile sichtbar */
+}
+
 /* global, NICHT scoped */
 html, body {
     min-height: 100%;

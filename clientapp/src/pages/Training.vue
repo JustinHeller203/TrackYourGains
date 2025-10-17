@@ -2560,6 +2560,55 @@
         }
     };
 
+    // === Sticky-Repositioning bei Resize/Orientierung ===
+    const clampStickyToViewport = () => {
+        const MARGIN = 12;
+
+        const clampEl = (el: HTMLElement) => {
+            const cs = getComputedStyle(el);
+            // Wenn keine floating-Position (fixed), wenigstens sichtbar machen:
+            if (cs.position !== 'fixed') {
+                el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                return;
+            }
+
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const rect = el.getBoundingClientRect();
+
+            // vorhandene inline-Werte bevorzugen, sonst aktuelle Lage nehmen
+            let left = Number.isFinite(parseFloat(el.style.left)) ? parseFloat(el.style.left) : rect.left;
+            let top = Number.isFinite(parseFloat(el.style.top)) ? parseFloat(el.style.top) : rect.top;
+
+            const maxLeft = Math.max(MARGIN, vw - rect.width - MARGIN);
+            const maxTop = Math.max(MARGIN, vh - rect.height - MARGIN);
+
+            left = Math.min(Math.max(left, MARGIN), maxLeft);
+            top = Math.min(Math.max(top, MARGIN), maxTop);
+
+            el.style.left = `${Math.round(left)}px`;
+            el.style.top = `${Math.round(top)}px`;
+        };
+
+        // Timer clampen
+        props.timers.filter(t => t.shouldStaySticky).forEach(t => {
+            const el = document.querySelector(`.timer-card[data-timer-id="${t.id}"]`) as HTMLElement | null;
+            if (el) clampEl(el);
+        });
+
+        // Stoppuhren clampen
+        props.stopwatches.filter(s => s.shouldStaySticky).forEach(s => {
+            const el = document.querySelector(`.timer-card[data-stopwatch-id="${s.id}"]`) as HTMLElement | null;
+            if (el) clampEl(el);
+        });
+    };
+
+    const onResize = () => {
+        // erst Logik für Sichtbarkeit, dann Koordinaten festzurren
+        checkScroll();
+        requestAnimationFrame(clampStickyToViewport);
+    };
+
     const removeCustomExercise = (index: number) => {
         customExercises.value.splice(index, 1);
         if (customExercises.value.length === 0) showCustomExercises.value = false;
@@ -2923,6 +2972,10 @@
 
         window.addEventListener('scroll', checkScroll);
         window.addEventListener('keydown', handleKeydown);
+        window.addEventListener('resize', onResize);
+        window.addEventListener('orientationchange', onResize);
+        // initial einmal clampen (falls Page schon schmal geladen wurde)
+        requestAnimationFrame(clampStickyToViewport);
 
         // NEU: Outside-Click fürs Kebab-Menü
         document.addEventListener('click', onDocClick);
@@ -2931,7 +2984,21 @@
         initAudioElements();
         tryOpenPlanFromStorage();
         console.log('Stopwatches beim Mounten (Training.vue):', props.stopwatches);
-    });
+
+        nextTick(() => bootstrapClockWidgets());
+});
+    // NEW: sorgt dafür, dass bei leerem Zustand automatisch 1 Timer + 1 Stoppuhr erstellt werden
+    const bootstrapClockWidgets = async () => {
+        // nur wenn wirklich nichts da ist
+        if (props.timers.length === 0) {
+            newTimerName.value = '';        // -> Default "Timer"
+            await addTimer();               // nutzt emit('add-timer', ...)
+        }
+        if (props.stopwatches.length === 0) {
+            newStopwatchName.value = '';    // -> Default "Stoppuhr"
+            await addStopwatch();           // nutzt emit('add-stopwatch', ...)
+        }
+    };
 
     // ====== CUSTOM-ÜBUNGEN-TABELLE (unten) ======
     // ====== CUSTOM-ÜBUNGEN-TABELLE (unten) ======
@@ -3019,8 +3086,10 @@
     onUnmounted(() => {
         window.removeEventListener('scroll', checkScroll);
         window.removeEventListener('keydown', handleKeydown);
-        document.removeEventListener('click', onDocClick);
+        window.removeEventListener('resize', onResize);
+        window.removeEventListener('orientationchange', onResize);
 
+        document.removeEventListener('click', onDocClick);
     });
 
     // Öffnet ggf. einen von außerhalb gewählten Plan
@@ -3851,11 +3920,11 @@
         }
     /* ===== sichtbare Griffe/Linien für Spalten ===== */
     :root {
-        --resize-hit: 10px; /* Klickfläche */
-        --resize-line: 1px; /* Linienstärke normal */
-        --resize-line-hover: 2px; /* Linienstärke Hover/Active */
-        --resize-color: #94a3b8; /* Slate-400/500 */
-        --resize-color-hover: #60a5fa; /* Accent bei Hover/Active */
+        --resize-hit: 10px;
+        --resize-line: 1px;
+        --resize-line-hover: 2px;
+        --resize-color: #94a3b8;
+        --resize-color-hover: #60a5fa;
     }
 
     /* Cursor & Selection während Drag */
@@ -3876,7 +3945,7 @@
         overflow: visible; /* damit der Handle nicht abgeschnitten wird */
     }
 
-        /* Der eigentliche (unsichtbare) Griff – große Klickfläche */
+        /* der eigentliche (unsichtbare) griff – große klickfläche */
         .exercise-table.full-width th.resizable > .resizer,
         .custom-exercises-table th.resizable > .resizer {
             position: absolute;
@@ -3954,9 +4023,11 @@
 
     /* Dark-Mode Kontrast (optional feiner abstimmen) */
     html.dark-mode :root {
-        --resize-color: #64748b; /* slate-500 */
-        --resize-color-hover: #3b82f6; /* blue-500 */
+        --resize-color: #64748b;
+        --resize-color-hover: #3b82f6;
     }
+
+
 
     .list-item-actions {
         display: flex;
