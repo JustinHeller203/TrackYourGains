@@ -5019,7 +5019,7 @@
         overflow-y: hidden;
         max-width: 100%;
         -webkit-overflow-scrolling: touch;
-        scrollbar-gutter: stable both-edges; /* Layout springt nicht */
+
     }
 
         /* Tabelle darf breiter als der Container sein → dann erscheint die Scrollbar */

@@ -688,3 +688,10 @@ button.action-btn.btn-extras-look {
 html, body {
     min-height: 100%;
 }
+
+/* ==== Training: keine Deko-Linien für Resizer, Handles bleiben klickbar ==== */
+.training .exercise-table.full-width th.resizable > .resizer::before,
+.training .custom-exercises-table th.resizable > .resizer::before,
+.training .exercise-table.full-width tr.resizable-row > .row-resizer::before {
+    content: none !important;
+}
