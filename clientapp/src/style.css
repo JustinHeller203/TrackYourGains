@@ -390,14 +390,7 @@ button.action-btn.btn-extras-look {
         opacity: .5;
         cursor: not-allowed;
         transform: none;
-        /* ===== Training.vue – globale Fixes (Resizer + Mobile-Layout) ===== */
-        /* Spalten-Resizer sichtbar & klickbar (auch bei scoped-Styles) */
-        .training .exercise-table.full-width th.resizable, .training .custom-exercises-table th.resizable
-
-{
-    position: relative !important;
-    overflow: visible !important;
-}
+    }
 
 /* Griff in der TH – komplett innerhalb der Zelle (kein Clipping) */
 .training .exercise-table.full-width th.resizable > .resizer,
@@ -664,30 +657,6 @@ button.action-btn.btn-extras-look {
 }
 
 /* ===== Mobile-Fix (≤560px): konsistentes Verhalten der Plan-Karten ===== */
-@media (max-width:560px) {
-    .training .plan-item {
-        display: grid !important;
-        grid-template-rows: auto auto !important;
-        gap: .5rem !important;
-    }
-    ö
-    .training .inline-actions {
-        display: none !important;
-    }
-    /* Icons weg */
-    .training .desktop-open {
-        display: none !important;
-    }
-    /* Desktop-Open weg */
-    .training .mobile-open {
-        display: inline-flex !important;
-    }
-    /* Mobile-Open zeigen */
-    .training .plan-row2 {
-        display: block !important;
-    }
-    /* zweite Zeile sichtbar */
-}
 
 /* ===== Mobile-Fix (≤560px): konsistentes Verhalten der Plan-Karten ===== */
 @media (max-width:560px) {
