@@ -473,7 +473,7 @@
                 <h4 class="section-title">Eigene Übungen</h4>
                 <div class="table-scroll">
                     <!-- NEU: ref="customResizeTable" -->
-                    <table class="exercise-table full-width" ref="customResizeTable" data-cols="4">
+                    <table class="exercise-table full-width compact" ref="customResizeTable" data-cols="4">
                         <thead>
                             <tr>
                                 <th class="resizable" :style="{ width: customColWidths[0] + '%' }">
@@ -489,7 +489,7 @@
                                 <th class="resizable" :style="{ width: customColWidths[2] + '%' }">
                                     <span class="th-text">Typ</span>
                                 </th>
-                                <th class="resizable" :style="{ width: customColWidths[3] + '%' }">Aktion</th>
+                                <th :style="{ width: customColWidths[3] + '%' }">Aktion</th>
                             </tr>
                         </thead>
 
@@ -1049,7 +1049,6 @@
     const toast = ref<Toast | null>(null);
     let toastId = 0;
     let toastTimeout: ReturnType<typeof setTimeout> | null = null;
-    const deleteConfirmButton = ref<HTMLButtonElement | null>(null);
     const isTimerSticky = ref(false); // Hinzugefügt für Sticky-Logik
     const isStopwatchSticky = ref(false); // Hinzugefügt für Sticky-Logik
     const resizeTable = ref<HTMLTableElement | null>(null);
@@ -2146,11 +2145,6 @@
     const openDeletePopup = (action: () => void) => {
         deleteAction.value = action;
         showDeletePopup.value = true;
-        nextTick(() => {
-            if (deleteConfirmButton.value) {
-                deleteConfirmButton.value.focus();
-            }
-        });
     };
 
     const closeDeletePopup = () => {
@@ -2694,105 +2688,90 @@
         headerRO = null;
     }
 
-
-    // ====== TRAININGSPLAN-TABELLE (oben / ausgewählter Plan) ======
     const initResizeTable = () => {
         const table = resizeTable.value;
         if (!table) return;
 
         table.querySelectorAll('.resizer,.row-resizer').forEach(el => el.remove());
 
-        // deutlich kleinere Mindestbreiten in PX
-        const MIN_PX_BY_COL = [16, 16, 16];
-        // --- Spalten-Resizer ---
+        const MIN_PX_BY_COL = [16, 16, 16]; // Übung | Sätze | Wdh.
         const ths = Array.from(table.querySelectorAll('thead th.resizable')) as HTMLElement[];
-        const lastIdx = ths.length - 1;
+        const lastIdx = ths.length - 1;      // letzte RESIZABLE-Spalte
 
         ths.forEach((th, colIndex) => {
-            if (colIndex === lastIdx) return; // letzte Spalte nicht direkt ziehbar
-            th.style.position = 'relative';
+            // 👉 Letzte resizable Spalte NICHT resizable machen
+            if (colIndex === lastIdx) return;
 
+            th.style.position = 'relative';
             const resizer = document.createElement('div');
             resizer.className = 'resizer';
             Object.assign(resizer.style, {
-                position: 'absolute',
-                top: '-1px',
-                right: '0', /* was: -4px → rausgeragt */
-                height: 'calc(100% + 2px)',
-                width: '10px',
-                cursor: 'col-resize',
-                zIndex: '3',
-                background: 'transparent',
+                position: 'absolute', top: '0', right: '0', height: '100%', width: '10px',
+                cursor: 'col-resize', zIndex: '5', background: 'transparent', touchAction: 'none',
             });
             th.appendChild(resizer);
 
             let startX = 0;
             let start = [...columnWidths.value];
 
-            const onMouseMove = (e: MouseEvent) => {
+            const onMove = (e: PointerEvent) => {
                 requestAnimationFrame(() => {
                     const tw = table.getBoundingClientRect().width;
-                    const dxRaw = e.pageX - startX;
+                    const dxRaw = e.clientX - startX;
 
+                    const nextIndex = colIndex + 1;
                     const currPx = (start[colIndex] / 100) * tw;
-                    const nextPx = (start[colIndex + 1] / 100) * tw;
+                    const nextPx = (start[nextIndex] / 100) * tw;
 
-                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 40;
-                    const minNext = MIN_PX_BY_COL[colIndex + 1] ?? 40;
+                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 16;
+                    const minNext = MIN_PX_BY_COL[nextIndex] ?? 16;
 
-                    const maxDxRight = nextPx - minNext;           // nach rechts (curr wächst)
-                    const maxDxLeft = -(currPx - minCurr);        // nach links  (curr schrumpft)
-                    const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight)); // clamp
+                    const maxDxRight = nextPx - minNext;
+                    const maxDxLeft = -(currPx - minCurr);
+                    const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight));
 
                     const newCurrPx = currPx + dx;
                     const newNextPx = nextPx - dx;
 
-                    const newWidths = [...start];
-                    newWidths[colIndex] = (newCurrPx / tw) * 100;
-                    newWidths[colIndex + 1] = (newNextPx / tw) * 100;
+                    const newW = [...start];
+                    newW[colIndex] = (newCurrPx / tw) * 100;
+                    newW[nextIndex] = (newNextPx / tw) * 100;
 
-                    columnWidths.value = newWidths; // Summe bleibt konstant
+                    columnWidths.value = normalizeToTotal(newW, 100, 0); // hält Summe = 100, pin Col 0
                 });
             };
 
-            const onMouseUp = () => {
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
+            const onUp = (e: PointerEvent) => {
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onUp);
                 resizer.classList.remove('is-active');
                 document.body.classList.remove('is-resizing-col');
+                try { resizer.releasePointerCapture(e.pointerId); } catch { }
             };
 
-            const onMouseDown = (e: MouseEvent) => {
-                e.preventDefault();
-                startX = e.pageX;
+            const onDown = (e: PointerEvent) => {
+                e.preventDefault(); e.stopPropagation();
+                startX = e.clientX;
                 start = [...columnWidths.value];
+                try { resizer.setPointerCapture(e.pointerId); } catch { }
                 resizer.classList.add('is-active');
                 document.body.classList.add('is-resizing-col');
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', onUp);
             };
 
-            resizer.addEventListener('mousedown', onMouseDown);
-            nextTick(() => setupHeaderShorteningFallback());
-
+            resizer.addEventListener('pointerdown', onDown);
         });
 
-        // --- Zeilen-Resizer ---
+        // Zeilen-Resizer unverändert …
         const rows = Array.from(table.querySelectorAll('tbody tr.resizable-row')) as HTMLElement[];
         rows.forEach((row, rowIndex) => {
             row.style.position = 'relative';
-
             const r = document.createElement('div');
             r.className = 'row-resizer';
             Object.assign(r.style, {
-                position: 'absolute',
-                left: '0',
-                bottom: '-4px',
-                width: '100%',
-                height: '10px',
-                cursor: 'row-resize',
-                zIndex: '3',
-                background: 'transparent',
+                position: 'absolute', left: '0', bottom: '-4px', width: '100%', height: '10px',
+                cursor: 'row-resize', zIndex: '3', background: 'transparent',
             });
             row.appendChild(r);
 
@@ -2806,14 +2785,12 @@
                     rowHeights.value[rowIndex] = Math.max(minH, Math.round(startH + dy));
                 });
             };
-
             const onUp = () => {
                 document.removeEventListener('mousemove', onMove);
                 document.removeEventListener('mouseup', onUp);
                 r.classList.remove('is-active');
                 document.body.classList.remove('is-resizing-row');
             };
-
             const onDown = (e: MouseEvent) => {
                 e.preventDefault();
                 startY = e.pageY;
@@ -2823,56 +2800,56 @@
                 document.addEventListener('mousemove', onMove);
                 document.addEventListener('mouseup', onUp);
             };
-
             r.addEventListener('mousedown', onDown);
         });
     };
 
+    const normalizeToTotal = (arr: number[], total = 100, pinIndex = 0) => {
+        const out = arr.map(v => Math.max(0, Number.parseFloat((+v).toFixed(4))));
+        const sum = out.reduce((a, b) => a + b, 0);
+        if (!sum || !Number.isFinite(sum)) return out;
+        const i = Math.max(0, Math.min(pinIndex, out.length - 1));
+        const diff = Number.parseFloat((total - sum).toFixed(4));
+        out[i] = Number.parseFloat((out[i] + diff).toFixed(4));
+        return out;
+    };
+
+    // PREVIEW: Aktion (Index 3) kann jetzt über den Griff an Spalte 2 mitverändert werden
     const initPreviewResizeTable = () => {
         const table = previewTable.value;
         if (!table) return;
 
-        // alte Handles entfernen
         table.querySelectorAll('.resizer').forEach(el => el.remove());
 
-        // Mindestbreiten in PX (letzte Spalte = Aktion → 44px)
-        const MIN_PX_BY_COL = [16, 16, 16, 44];
-
-        // Nur die als "resizable" markierten Header (hier: die ersten 3)
+        const MIN_PX_BY_COL = [16, 16, 16, 44]; // Übung | Sätze | Wdh. | Aktion (min 44px)
         const ths = Array.from(table.querySelectorAll('thead th.resizable')) as HTMLElement[];
 
         ths.forEach((th, colIndex) => {
             th.style.position = 'relative';
-
             const resizer = document.createElement('div');
             resizer.className = 'resizer';
             Object.assign(resizer.style, {
-                position: 'absolute',
-                top: '-1px',
-                right: '0',
-                /* remove translateX to keep handle fully inside the TH */
-                height: 'calc(100% + 2px)',
-                width: '10px',
-                cursor: 'col-resize',
-                zIndex: '3',
-                background: 'transparent',
-            })
+                position: 'absolute', top: 0, right: 0, height: '100%', width: '10px',
+                cursor: 'col-resize', zIndex: '5', background: 'transparent', touchAction: 'none',
+            });
             th.appendChild(resizer);
 
             let startX = 0;
             let start = [...previewColWidths.value];
 
-            const onMouseMove = (e: MouseEvent) => {
+            const onMove = (e: PointerEvent) => {
                 requestAnimationFrame(() => {
-                    const tw = table.getBoundingClientRect().width;
-                    const dxRaw = e.pageX - startX;
+                    const tw = table.getBoundingClientRect().width || 1;
+                    const dxRaw = e.clientX - startX;
+
+                    const nextIndex = colIndex + 1;              // immer Paar i ↔ i+1
+                    if (nextIndex >= start.length) return;
 
                     const currPx = (start[colIndex] / 100) * tw;
-                    const nextPx = (start[colIndex + 1] / 100) * tw; // ← bei "Wdh." ist das die Aktion
+                    const nextPx = (start[nextIndex] / 100) * tw;
 
-                    const MIN_PX_BY_COL = [16, 16, 16, 44]; // Aktion min 44px
-                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 40;
-                    const minNext = MIN_PX_BY_COL[colIndex + 1] ?? 40;
+                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 16;
+                    const minNext = MIN_PX_BY_COL[nextIndex] ?? 16;
 
                     const maxDxRight = nextPx - minNext;
                     const maxDxLeft = -(currPx - minCurr);
@@ -2881,34 +2858,39 @@
                     const newCurrPx = currPx + dx;
                     const newNextPx = nextPx - dx;
 
-                    const newWidths = [...start];
-                    newWidths[colIndex] = (newCurrPx / tw) * 100;
-                    newWidths[colIndex + 1] = (newNextPx / tw) * 100;
+                    const newW = [...start];
+                    newW[colIndex] = +(newCurrPx / tw * 100).toFixed(4);
+                    newW[nextIndex] = +(newNextPx / tw * 100).toFixed(4);
 
-                    previewColWidths.value = newWidths; // Summe bleibt 100%
+                    // DRIFT-FREE: knallhart auf 100% normalisieren, Diff in die rechte (nextIndex) Spalte zurückgeben
+                    previewColWidths.value = normalizeStrictTo100(newW, table, MIN_PX_BY_COL, nextIndex);
                 });
             };
 
-            const onMouseUp = () => {
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
+            const onUp = (e: PointerEvent) => {
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onUp);
                 resizer.classList.remove('is-active');
                 document.body.classList.remove('is-resizing-col');
+                try { resizer.releasePointerCapture(e.pointerId); } catch { }
             };
 
-            const onMouseDown = (e: MouseEvent) => {
-                e.preventDefault();
-                startX = e.pageX;
+            const onDown = (e: PointerEvent) => {
+                e.preventDefault(); e.stopPropagation();
+                startX = e.clientX;
                 start = [...previewColWidths.value];
+                try { resizer.setPointerCapture(e.pointerId); } catch { }
                 resizer.classList.add('is-active');
                 document.body.classList.add('is-resizing-col');
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', onUp);
             };
 
-            resizer.addEventListener('mousedown', onMouseDown);
+            resizer.addEventListener('pointerdown', onDown);
         });
     };
+
+
     const initAudioElements = () => {
         Object.entries(audioPaths).forEach(([key, path]) => {
             const audio = document.getElementById(`audio-${key}`) as HTMLAudioElement;
@@ -2916,69 +2898,41 @@
         });
     };
 
-    onMounted(() => {
-        loadFromStorage();
-        tryFocusFromStorage();
-        requestNotificationPermission();
-
-        window.addEventListener('scroll', checkScroll);
-        window.addEventListener('keydown', handleKeydown);
-
-        // NEU: Outside-Click fürs Kebab-Menü
-        document.addEventListener('click', onDocClick);
-
-        initResizeTable();
-        initAudioElements();
-        tryOpenPlanFromStorage();
-        console.log('Stopwatches beim Mounten (Training.vue):', props.stopwatches);
-    });
-
-    // ====== CUSTOM-ÜBUNGEN-TABELLE (unten) ======
-    // ====== CUSTOM-ÜBUNGEN-TABELLE (unten) ======
     const initCustomResizeTable = () => {
         const table = customResizeTable.value;
         if (!table) return;
 
         table.querySelectorAll('.resizer').forEach(el => el.remove());
 
-        // kleinere Mindestbreiten, Aktion bleibt gut klickbar
-        // ganz oben in initCustomResizeTable:
-        const MIN_PX_BY_COL = [16, 16, 16, 44];
+        const MIN_PX_BY_COL = [16, 16, 16, 44]; // Name | Muskel | Typ | Aktion
         const ths = Array.from(table.querySelectorAll('thead th.resizable')) as HTMLElement[];
-        const lastIdx = ths.length - 1;
 
         ths.forEach((th, colIndex) => {
-            if (colIndex === lastIdx) return;
-
             th.style.position = 'relative';
-
             const resizer = document.createElement('div');
             resizer.className = 'resizer';
             Object.assign(resizer.style, {
-                position: 'absolute',
-                top: '-1px',
-                right: '0', /* was: -4px → rausgeragt */
-                height: 'calc(100% + 2px)',
-                width: '10px',
-                cursor: 'col-resize',
-                zIndex: '3',
-                background: 'transparent',
+                position: 'absolute', top: 0, right: 0, height: '100%', width: '10px',
+                cursor: 'col-resize', zIndex: '5', background: 'transparent', touchAction: 'none',
             });
             th.appendChild(resizer);
 
             let startX = 0;
             let start = [...customColWidths.value];
 
-            const onMouseMove = (e: MouseEvent) => {
+            const onMove = (e: PointerEvent) => {
                 requestAnimationFrame(() => {
-                    const tw = table.getBoundingClientRect().width;
-                    const dxRaw = e.pageX - startX;
+                    const tw = table.getBoundingClientRect().width || 1;
+                    const dxRaw = e.clientX - startX;
+
+                    const nextIndex = colIndex + 1;
+                    if (nextIndex >= start.length) return;
 
                     const currPx = (start[colIndex] / 100) * tw;
-                    const nextPx = (start[colIndex + 1] / 100) * tw;
+                    const nextPx = (start[nextIndex] / 100) * tw;
 
-                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 40;
-                    const minNext = MIN_PX_BY_COL[colIndex + 1] ?? 40;
+                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 16;
+                    const minNext = MIN_PX_BY_COL[nextIndex] ?? 16;
 
                     const maxDxRight = nextPx - minNext;
                     const maxDxLeft = -(currPx - minCurr);
@@ -2987,41 +2941,59 @@
                     const newCurrPx = currPx + dx;
                     const newNextPx = nextPx - dx;
 
-                    const newWidths = [...start];
-                    newWidths[colIndex] = (newCurrPx / tw) * 100;
-                    newWidths[colIndex + 1] = (newNextPx / tw) * 100;
+                    const newW = [...start];
+                    newW[colIndex] = +(newCurrPx / tw * 100).toFixed(4);
+                    newW[nextIndex] = +(newNextPx / tw * 100).toFixed(4);
 
-                    customColWidths.value = newWidths;
+                    customColWidths.value = normalizeStrictTo100(newW, table, MIN_PX_BY_COL, nextIndex);
                 });
             };
 
-            const onMouseUp = () => {
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
+            const onUp = (e: PointerEvent) => {
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onUp);
                 resizer.classList.remove('is-active');
                 document.body.classList.remove('is-resizing-col');
+                try { (resizer as any).releasePointerCapture?.(e.pointerId); } catch { }
             };
 
-            const onMouseDown = (e: MouseEvent) => {
-                e.preventDefault();
-                startX = e.pageX;
+            const onDown = (e: PointerEvent) => {
+                e.preventDefault(); e.stopPropagation();
+                startX = e.clientX;
                 start = [...customColWidths.value];
+                try { (resizer as any).setPointerCapture?.(e.pointerId); } catch { }
                 resizer.classList.add('is-active');
                 document.body.classList.add('is-resizing-col');
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', onUp);
             };
 
-            resizer.addEventListener('mousedown', onMouseDown);
+            resizer.addEventListener('pointerdown', onDown);
         });
     };
 
-    onUnmounted(() => {
-        window.removeEventListener('scroll', checkScroll);
-        window.removeEventListener('keydown', handleKeydown);
-        document.removeEventListener('click', onDocClick);
+    function normalizeStrictTo100(
+        widthsPct: number[],
+        tableEl: HTMLTableElement,
+        minPxByCol: number[],
+        preferGiveBackIndex: number // wohin wir den Rundungsdiff geben (meist nextIndex)
+    ) {
+        const tw = tableEl.getBoundingClientRect().width || 1;
+        const minPct = minPxByCol.map(px => +(px / tw * 100).toFixed(4));
 
-    });
+        // 1) clamp je Spalte auf min
+        const clamped = widthsPct.map((v, i) => Math.max(minPct[i] ?? 0, +v));
+
+        // 2) Summe hart auf 100% bringen
+        let sum = +clamped.reduce((a, b) => a + b, 0).toFixed(4);
+        let diff = +(100 - sum).toFixed(4);
+        if (Math.abs(diff) > 0.0001) {
+            const idx = Math.min(Math.max(preferGiveBackIndex, 0), clamped.length - 1);
+            clamped[idx] = Math.max(minPct[idx] ?? 0, +(clamped[idx] + diff).toFixed(4));
+        }
+        return clamped;
+    }
+
 
     // Öffnet ggf. einen von außerhalb gewählten Plan
     const tryOpenPlanFromStorage = () => {
@@ -3037,9 +3009,6 @@
         nextTick(() => checkScroll());
     }, { deep: true });
 
-    watch(selectedPlan, (val) => {
-        if (val) nextTick(() => initResizeTable());
-    });
     watch(plans, () => {
         saveToStorage();
     }, { deep: true });
@@ -3080,30 +3049,28 @@
     );
     watch(planSearch, () => closePlanMenu());
 
-    onMounted(() => {
-        nextTick(() => initPreviewResizeTable());
-    });
-
-    // wenn Übungen in der Live-Preview wechseln/ändern → Handles neu setzen
-    watch(selectedPlanExercises, () => {
-        nextTick(() => initPreviewResizeTable());
-    }, { deep: true });
-
-    watch(showCustomExercises, (val) => {
-        if (val) nextTick(() => initCustomResizeTable());
-    });
     const syncFullscreenClass = () => {
         const isFs = !!document.fullscreenElement;
         document.documentElement.classList.toggle('is-fullscreen', isFs);
     };
-    onMounted(() => {
-        nextTick(() => setupHeaderShorteningFallback());
-    });
+    // Live-Preview: bei jeder Änderung an den Übungen
+    watch(selectedPlanExercises, () => {
+        nextTick(() => {
+            initPreviewResizeTable();
+            setupHeaderShorteningFallback();
+        });
+    }, { deep: true });
 
-    // beim Unmount
-    onUnmounted(() => {
-        teardownHeaderShorteningFallback();
-    });
+    // Eigene Übungen: bei Datenänderungen und wenn sichtbar
+    watch(customExercises, () => {
+        if (showCustomExercises.value) {
+            nextTick(() => {
+                initCustomResizeTable();
+                setupHeaderShorteningFallback();
+            });
+        }
+    }, { deep: true });
+
     watch(
         () => selectedPlan.value?.exercises.map(e => `${e.exercise}|${e.sets}|${e.reps}|${e.type}`).join(';'),
         () => nextTick(() => initResizeTable())
@@ -3118,2450 +3085,2634 @@
     watch(showCustomExercises, (val) => {
         if (val) nextTick(() => { initCustomResizeTable(); setupHeaderShorteningFallback(); });
     });
+
     onMounted(() => {
+        loadFromStorage();
+        tryFocusFromStorage();
+        requestNotificationPermission();
+
+        document.addEventListener('click', onDocClick);
+        window.addEventListener('scroll', checkScroll);
+        window.addEventListener('keydown', handleKeydown);
         document.addEventListener('fullscreenchange', syncFullscreenClass);
-        syncFullscreenClass(); // Initialzustand setzen, falls bereits FS
-    });
-    onMounted(() => {
-        if (showCustomExercises.value) nextTick(() => initCustomResizeTable());
+
+        syncFullscreenClass();
+        initAudioElements();
+
+        // Tabellen zuerst
+        initResizeTable();
+        initPreviewResizeTable();
+        if (showCustomExercises.value) initCustomResizeTable();
+
+        setupHeaderShorteningFallback();
+        tryOpenPlanFromStorage();
     });
 
     onUnmounted(() => {
+        document.removeEventListener('click', onDocClick);
+        window.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('keydown', handleKeydown);
         document.removeEventListener('fullscreenchange', syncFullscreenClass);
+        teardownHeaderShorteningFallback();
     });
 
 </script>
 
 <style scoped>
 
-    .training {
-        --section-max: 1200px;
-        --control-height: 48px;
-        --control-font-size: 0.95rem;
-        --control-padding-x: 1.5rem;
-        --extras-toggle-ch: 18;
-        --extras-toggle-w: calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
-        --custom-toggle-ch: 38;
-        --custom-toggle-w: calc(var(--custom-toggle-ch) * 1ch + 2 * var(--control-padding-x));
-        padding: 1rem;
-        background: var(--bg-primary);
-        width: 100%;
-        max-width: 100%; /* ← FIX: verhindert Overflow */
-        margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        margin-top: 0;
-        min-height: 100dvh;
-        margin-inline: auto;
-        overflow-x: clip; /* ← WICHTIG */
-        box-sizing: border-box;
-    }
-
-    html.dark-mode .training {
-        background: #161b22;
-    }
-
-    .page-title {
-        font-size: 2.25rem;
-        font-weight: 700;
-        margin-bottom: 1rem;
-        text-align: center;
-        color: var(--text-primary);
-        letter-spacing: -0.025em;
-    }
-
-    .workout-list {
-        margin-top: 0.5rem;
-        width: 100%;
-        max-width: var(--section-max);
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        padding: 0 0.5rem; /* ← reduziert von 1rem */
-        box-sizing: border-box;
-        overflow-x: clip; /* ← NEU */
-    }
-
-    @media (max-width: 1240px) {
-        .workout-list {
-            max-width: var(--section-max);
-        }
-    }
-
-    @media (min-width: 1241px) {
-        .training {
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-            .training .workout-list {
-                max-width: var(--section-max); /* fix: keine 100vw-Logik */
-                width: 100%;
-                margin: 0 auto;
-            }
-
-            .training .form-card.builder-grid {
-                width: 100%;
-                max-width: 100%;
-                margin-inline: 0;
-                box-sizing: border-box;
-            }
-    }
-
-    @media (min-width: 900px) {
-        .form-card.builder-grid {
-            /* rechte Spalte spürbar schmaler */
-            grid-template-columns: minmax(0, 1fr) clamp(240px, 28vw, 360px);
-            align-items: start;
-        }
-    }
-
-
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        text-align: center;
-    }
-    /* Smooth landing highlight when jumping to the builder */
-    @keyframes builderPop {
-        0% {
-            transform: translateY(-6px);
-            box-shadow: 0 0 0 rgba(99,102,241,0);
-        }
-
-        40% {
-            transform: translateY(0);
-            box-shadow: 0 8px 32px rgba(99,102,241,.20);
-        }
-
-        100% {
-            transform: translateY(0);
-            box-shadow: 0 0 0 rgba(99,102,241,0);
-        }
-    }
-
-    .builder-landing {
-        animation: builderPop .6s cubic-bezier(.2,.8,.2,1);
-        background-image: radial-gradient(1200px 120px at 50% -20px, rgba(99,102,241,.08), transparent 70%);
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .builder-landing {
-            animation: none;
-        }
-    }
-
-    html.dark-mode .section-title {
-        color: #ffffff;
-    }
-
-    .timer-container .plan-header,
-    .stopwatch-top .plan-header {
-        justify-content: center;
-    }
-
-    .plan-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        position: relative;
-    }
-
-    .drag-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem; /* Abstand zwischen den Cards wie vorher */
-        width: 100%;
-    }
-
-        .drag-stack > .timer-card {
-            width: 100%;
-            max-width: 1200px;
-        }
-
-    .drag-ghost {
-        opacity: 0.6;
-    }
-
-    .segmented.seg-type {
-        display: flex;
-        gap: .5rem;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: .3rem;
-        align-items: center;
-    }
-
-        .segmented.seg-type > button {
-            background: transparent;
-            border: 1px solid transparent;
-            border-radius: 10px;
-            padding: .45rem .9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all .15s ease;
-            color: var(--text-primary);
-        }
-
-            .segmented.seg-type > button.on {
-                background: var(--bg-card);
-                border-color: var(--border-color);
-                box-shadow: 0 1px 2px rgba(0,0,0,.06);
-            }
-
-    .filter-input {
-        border-radius: 999px;
-        padding-left: 2.25rem; /* Platz fürs Icon */
-        background: var(--bg-secondary);
-        position: relative;
-    }
-
-        .filter-input::placeholder {
-            opacity: .8;
-        }
-
-    .builder-left,
-    .builder-head,
-    .builder-head > * {
-        min-width: 0;
-    }
-
-    .builder-left {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        min-width: 0; /* verhindert Overflow in Grids */
-    }
-
-    .builder-right {
-        min-width: 0; /* wichtig für Tables/Overflow */
-    }
-
-    /* Feldblöcke */
-    .field-block {
-        display: flex;
-        flex-direction: column;
-        gap: .5rem;
-    }
-
-    .field-label {
-        font-weight: 600;
-        font-size: .92rem;
-        color: var(--text-primary);
-    }
-
-    .field-row {
-        display: flex;
-        gap: .75rem;
-        align-items: stretch;
-        flex-wrap: wrap;
-    }
-    /* Zelle wird selbst Container → reagiert auf ihre eigene Breite */
-    .v-stack {
-        container-type: inline-size;
-        white-space: normal;
-        word-break: break-word;
-        hyphens: auto;
-    }
-    /* Letzte Spalte (Aktion) – nicht unter 44px */
-    .custom-exercises-table th:last-child,
-    .custom-exercises-table td:last-child,
-    .exercise-table.full-width.compact th:last-child,
-    .exercise-table.full-width.compact td:last-child {
-        min-width: 44px !important; /* Platz fürs Icon */
-        white-space: nowrap;
-        overflow: visible;
-        text-overflow: clip;
-    }
-
-    /* Icon-Größe fix, damit nichts clippt */
-    .table-delete-btn {
-        width: 32px;
-        height: 32px;
-        line-height: 1;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .field-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: .75rem;
-    }
-
-    @media (max-width: 600px) {
-        .field-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .field {
-        display: flex;
-        flex-direction: column;
-        gap: .4rem;
-    }
-
-    .actions-row.stack {
-        display: flex;
-        flex-direction: column;
-        gap: .75rem;
-        align-items: stretch; /* Kinder dürfen volle Breite nutzen */
-    }
-
-    .preview-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,.06);
-        position: sticky;
-        top: .75rem; /* bleibt beim Scrollen sichtbar */
-        contain: inline-size; /* Inhalt beeinflusst keine äußere Breite */
-        overflow-x: clip;
-    }
-
-    .preview-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: .5rem;
-    }
-
-        .preview-head h4 {
-            margin: 0;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-    .preview-card .muted {
-        color: var(--text-secondary);
-        font-size: .85rem;
-    }
-
-    .empty-preview {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 160px;
-        background: var(--bg-secondary);
-        border: 1px dashed var(--border-color);
-        color: var(--text-secondary);
-        border-radius: 10px;
-    }
-
-    .form-card.builder-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1rem;
-        width: 100%;
-        box-sizing: border-box; /* damit Padding mitgerechnet wird */
-    }
-
-    @media (max-width: 900px) {
-        .builder-head {
-            grid-template-columns: 1fr;
-            grid-template-areas:
-                "plan"
-                "type"
-                "extras";
-        }
-
-            .builder-head .extras-cta {
-                justify-self: start;
-                white-space: nowrap;
-                box-sizing: border-box;
-                inline-size: min(var(--extras-toggle-w), 100%);
-                min-inline-size: min(var(--extras-toggle-w), 100%);
-                max-inline-size: min(var(--extras-toggle-w), 100%);
-            }
-    }
-
-    @media (max-width: 1200px) {
-        .segmented.seg-type {
-            flex-wrap: wrap;
-            row-gap: .35rem;
-        }
-    }
-
-    .form-card {
-        box-sizing: border-box;
-    }
-
-    @media (max-width: 1240px) {
-        .training {
-            overflow-x: hidden;
-        }
-
-        .workout-list,
-        .form-card.builder-grid {
-            max-width: 100%;
-            min-width: 0;
-            width: 100%;
-        }
-    }
-
-    .custom-exercises-table {
-        display: block;
-        inline-size: 100%;
-        max-inline-size: 100%;
-        contain: layout inline-size;
-        overflow-x: hidden;
-        overflow-x: clip; /* moderne Browser */
-    }
-
-        .custom-exercises-table th,
-        .custom-exercises-table td {
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap; /* bleibt kompakt */
-        }
-
-        .custom-exercises-table table {
-            width: 100%;
-            max-width: 100%;
-            table-layout: fixed;
-            min-width: 100%;
-        }
-
-    .exercise-table.full-width.compact table {
-        width: 100%;
-    }
-
-    .exercise-table.full-width.compact th,
-    .exercise-table.full-width.compact td {
-        padding: .75rem;
-        font-size: .92rem;
-    }
-
-    .exercise-table.full-width.compact thead th {
-        background: #f1f5f9;
-    }
-
-    html.dark-mode .exercise-table.full-width.compact thead th {
-        background: #0d1117;
-    }
-
-    .actions-row .button-group .btn-cell > *:not(.add-exercise-btn) {
-        height: var(--control-height);
-    }
-
-    .field-row .filter-input {
-        flex: 1 1 320px;
-        min-width: 220px;
-    }
-
-    .button-group:has(.add-exercise-btn) {
-        --btn-width: 100%;
-    }
-
-    .button-group .btn-cell:has(.add-exercise-btn) {
-        flex: 1 1 100%;
-    }
-
-    .button-group .btn-cell > .add-exercise-btn {
-        width: 100%;
-    }
-
-    .filter-input {
-        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%23888' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: .75rem center;
-        background-size: 16px 16px;
-    }
-
-    html.dark-mode .filter-input {
-        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%239aa3ab' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-    }
-
-
-    .list-item {
-        background: var(--bg-card);
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        transition: transform 0.2s;
-    }
-
-    /* Aktion-Spalte: keine Ellipsis, Icon zentriert + Mindestbreite */
-    .custom-exercises-table td:last-child,
-    .custom-exercises-table th:last-child,
-    .exercise-table.full-width.compact td:last-child,
-    .exercise-table.full-width.compact th:last-child {
-        overflow: visible; /* verhindert "…" */
-        text-overflow: clip;
-        white-space: nowrap;
-        min-width: 44px; /* genug Platz für das 🗑️-Icon */
-    }
-
-    .custom-exercises-table table tbody td:last-child .table-delete-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px !important;
-        height: 32px !important;
-        margin: 0 auto !important;
-        line-height: 1; /* keine Typo-Überhänge */
-    }
-    /* Zeilen-inhalt vertikal mittig ausrichten (alle Zellen) */
-    .custom-exercises-table td,
-    .custom-exercises-table th {
-        vertical-align: middle;
-    }
-
-        /* Falls das Emoji optisch nicht exakt zentriert wirkt: minimaler Nudge */
-        .custom-exercises-table td.action-cell .table-delete-btn {
-            transform: translateY(-0.5px);
-        }
-
-    /* Schlanke, aber normal lesbare Tabelle nur für den ausgewählten Plan */
-    .exercise-table.full-width.narrow {
-        position: relative;
-        max-inline-size: 100%;
-        margin-inline: auto;
-        overflow-x: clip; /* <— wichtig */
-        table-layout: fixed; /* <— stabilisiert Spaltenbreiten */
-    }
-
-    /* Mobile bleibt voll breit */
-    @media (max-width: 720px) {
-        .exercise-table.full-width.narrow {
-            max-inline-size: 100%;
-        }
-    }
-
-    /* Optional: Nur die erste Spalte darf (falls nötig) auf zwei Zeilen umbrechen,
-    damit lange Übungsnamen nicht alles sprengen — ohne Mini-Schrift. */
-    .exercise-table.full-width.narrow td:first-child,
-    .exercise-table.full-width.narrow th:first-child {
-        white-space: normal;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Icon selbst: nicht gestaucht/abgeschnitten */
-    .table-delete-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1; /* verhindert Emoji-/SVG-Clipping */
-        width: 32px;
-        height: 32px;
-        padding: 0;
-        position: relative;
-        z-index: 1; /* falls irgendwas darüberliegt */
-    }
-
-    html.dark-mode .list-item {
-        background: #1c2526;
-        color: #c9d1d9;
-    }
-
-    .list-item:hover {
-        transform: translateY(-2px);
-    }
-
-    .plan-item {
-        cursor: pointer;
-    }
-
-    .form-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        width: 100%;
-    }
-
-    .search-container {
-        margin-bottom: 1rem;
-        width: 100%;
-    }
-
-    .plan-search-input {
-        padding: 0.75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        width: 100%;
-        font-size: 0.9rem;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    html.dark-mode .plan-search-input {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
-    }
-
-    .plan-search-input:focus {
-        border-color: #4B6CB7;
-        box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
-        outline: none;
-    }
-
-    html.dark-mode .form-card {
-        background: #1c2526;
-    }
-
-    .form-card input,
-    .form-card select {
-        height: var(--control-height);
-        font-size: var(--control-font-size);
-        padding: 0.75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        flex: 1;
-        min-width: 120px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-
-    html.dark-mode .form-card input,
-    html.dark-mode .form-card select {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
-    }
-
-    .form-card input:focus,
-    .form-card select:focus {
-        border-color: #4B6CB7;
-        box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
-        outline: none;
-    }
-
-    .form-card .action-btn:not(.add-exercise-btn):not(.toggle-exercise-btn):not(.plan-submit-btn):not(.table-delete-btn) {
-        background: var(--bg-secondary);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        transition: background .2s, transform .2s;
-    }
-
-        .form-card .action-btn:not(.add-exercise-btn):not(.toggle-exercise-btn):not(.plan-submit-btn):not(.table-delete-btn):hover {
-            background: #f3f4f6;
-            transform: none;
-        }
-
-    /* Aktion-Spalte: Button sauber zentriert, überschreibt frühere grid-Regeln */
-    /* gleiche Zellenlogik wie der Rest der Tabelle */
-    .exercise-table.full-width td.action-cell,
-    .custom-exercises-table td.action-cell {
-        display: table-cell; /* zurück auf echtes Table-Cell-Layout */
-        padding: 1rem; /* identisch zu deinen anderen <td>s */
-        text-align: center;
-        vertical-align: middle;
-    }
-
-        /* Button sauber in der Mitte, ohne Layout zu beeinflussen */
-        .exercise-table.full-width td.action-cell .table-delete-btn,
-        .custom-exercises-table td.action-cell .table-delete-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            margin: 0 auto;
-            line-height: 1;
-            transform: none;
-        }
-
-    .custom-exercises-table th,
-    .custom-exercises-table td,
-    .exercise-table.full-width th,
-    .exercise-table.full-width td {
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .extras-container {
-        transition: max-height 0.3s ease, opacity 0.3s ease;
-        max-height: 0;
-        opacity: 0;
-        overflow: hidden;
-        width: 100%;
-    }
-
-    .desktop-only {
-        display: initial;
-    }
-
-    .mobile-only {
-        display: none;
-    }
-
-    .extras-container.show {
-        max-height: 250px;
-        opacity: 1;
-        margin-top: 0.75rem; /* 👉 größerer Abstand */
-    }
-
-
-    .timer-drag-handle {
-        cursor: grab;
-        user-select: none;
-        margin-right: .5rem;
-    }
-
-    .extras-content {
-        display: flex;
-        gap: 1.5rem;
-        align-items: center;
-        flex-wrap: wrap;
-        margin-bottom: 0.5rem;
-    }
-
-    .form-card button[type="submit"] {
-        width: 100%;
-    }
-
-    .extras-button-group {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-
-    .plan-drag-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-        width: 100%;
-    }
-
-        .plan-drag-stack > .plan-item {
-            width: 100%;
-        }
-    /* ===== sichtbare Griffe/Linien für Spalten ===== */
-    :root {
-        --resize-hit: 10px; /* Klickfläche */
-        --resize-line: 1px; /* Linienstärke normal */
-        --resize-line-hover: 2px; /* Linienstärke Hover/Active */
-        --resize-color: #94a3b8; /* Slate-400/500 */
-        --resize-color-hover: #60a5fa; /* Accent bei Hover/Active */
-    }
-
-    /* Cursor & Selection während Drag */
-    body.is-resizing-col {
-        cursor: col-resize;
-        user-select: none;
-    }
-
-    body.is-resizing-row {
-        cursor: row-resize;
-        user-select: none;
-    }
-
-    /* Die THs, an die der Handle angehängt wird */
-    .exercise-table.full-width th.resizable,
-    .custom-exercises-table th.resizable {
-        position: relative;
-        overflow: visible; /* damit der Handle nicht abgeschnitten wird */
-    }
-
-        /* Der eigentliche (unsichtbare) Griff – große Klickfläche */
-        .exercise-table.full-width th.resizable > .resizer,
-        .custom-exercises-table th.resizable > .resizer {
-            position: absolute;
-            top: -1px;
-            right: -4px; /* minimal nach außen, wirkt präziser */
-            width: var(--resize-hit);
-            height: calc(100% + 2px);
-            cursor: col-resize;
-            z-index: 3;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-        }
-
-            /* Sichtbare LINIE im Griff (vertikal) */
-            .exercise-table.full-width th.resizable > .resizer::before,
-            .custom-exercises-table th.resizable > .resizer::before {
-                content: "";
-                display: block;
-                width: var(--resize-line);
-                height: 60%;
-                border-radius: 1px;
-                background: var(--resize-color);
-                opacity: .7;
-                transition: width .12s ease, background-color .12s ease, opacity .12s ease;
-            }
-
-            /* Hover / aktiv (beim Draggen) */
-            .exercise-table.full-width th.resizable > .resizer:hover::before,
-            .custom-exercises-table th.resizable > .resizer:hover::before,
-            .exercise-table.full-width th.resizable > .resizer.is-active::before,
-            .custom-exercises-table th.resizable > .resizer.is-active::before {
-                width: var(--resize-line-hover);
-                background: var(--resize-color-hover);
-                opacity: 1;
-            }
-
-    /* ===== sichtbarer Griff für Zeilen ===== */
-    .exercise-table.full-width tr.resizable-row {
-        position: relative;
-    }
-
-        .exercise-table.full-width tr.resizable-row > .row-resizer {
-            position: absolute;
-            left: 0;
-            bottom: -4px;
-            width: 100%;
-            height: var(--resize-hit);
-            cursor: row-resize;
-            z-index: 3;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            background: transparent;
-        }
-
-            .exercise-table.full-width tr.resizable-row > .row-resizer::before {
-                content: "";
-                display: block;
-                height: var(--resize-line);
-                width: 60%;
-                background: var(--resize-color);
-                opacity: .7;
-                transition: height .12s ease, background-color .12s ease, opacity .12s ease;
-                border-radius: 1px;
-            }
-
-            .exercise-table.full-width tr.resizable-row > .row-resizer:hover::before,
-            .exercise-table.full-width tr.resizable-row > .row-resizer.is-active::before {
-                height: var(--resize-line-hover);
-                background: var(--resize-color-hover);
-                opacity: 1;
-            }
-
-    /* Dark-Mode Kontrast (optional feiner abstimmen) */
-    html.dark-mode :root {
-        --resize-color: #64748b; /* slate-500 */
-        --resize-color-hover: #3b82f6; /* blue-500 */
-    }
-
-    .list-item-actions {
-        display: flex;
-        gap: 0.6rem;
-        align-items: center; /* <— NEU */
-    }
-
-        .list-item-actions .action-btn {
-            line-height: 1;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-    .custom-toggle-btn {
-        margin-top: 1rem;
-        padding: 0.6rem 1.2rem;
-        background: var(--bg-secondary);
-        color: #1f2937;
-        border-radius: 0.5rem;
-        border: none;
-        cursor: pointer;
-        font-size: 0.95rem;
-        transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-    }
-
-        .custom-toggle-btn:hover {
-            background-color: #f3f4f6;
-            border-color: #4B6CB7;
-        }
-
-    html.dark-mode .custom-toggle-btn {
-        background-color: #1f2937;
-        color: #fff;
-        border: 1px solid #30363d;
-    }
-
-        html.dark-mode .custom-toggle-btn:hover {
-            background-color: #374151;
-            border-color: #4B6CB7;
-        }
-
-    .custom-ex-title {
-        font-size: 1.1rem;
-        margin: 1rem 0 0.5rem;
-        color: #111827;
-    }
-    /* Header-THs können auf Breite reagieren */
-    .exercise-table.full-width th,
-    .custom-exercises-table th {
-        container-type: inline-size;
-    }
-
-    /* Abkürzungs-Logik für Wiederholungen */
-    .th-label .mid,
-    .th-label .short {
-        display: none;
-    }
-
-    .custom-exercises-table .exercise-table {
-        width: 100%;
-        border-collapse: collapse;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-        .custom-exercises-table .exercise-table th,
-        .custom-exercises-table .exercise-table td {
-            border-bottom: 1px solid var(--border-color);
+     .training {
+         --section-max: 1200px;
+         --control-height: 48px;
+         --control-font-size: 0.95rem;
+         --control-padding-x: 1.5rem;
+         --extras-toggle-ch: 18;
+         --extras-toggle-w: calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
+         --custom-toggle-ch: 38;
+         --custom-toggle-w: calc(var(--custom-toggle-ch) * 1ch + 2 * var(--control-padding-x));
+         padding: 1rem;
+         background: var(--bg-primary);
+         width: 100%;
+         max-width: 100%; /* ← FIX: verhindert Overflow */
+         margin: 0 auto;
+         display: flex;
+         flex-direction: column;
+         align-items: stretch;
+         margin-top: 0;
+         min-height: 100dvh;
+         margin-inline: auto;
+         overflow-x: clip; /* ← WICHTIG */
+         box-sizing: border-box;
+     }
+
+     html.dark-mode .training {
+         background: #161b22;
+     }
+
+     .page-title {
+         font-size: 2.25rem;
+         font-weight: 700;
+         margin-bottom: 1rem;
+         text-align: center;
+         color: var(--text-primary);
+         letter-spacing: -0.025em;
+     }
+
+     .workout-list {
+         margin-top: 0.5rem;
+         width: 100%;
+         max-width: var(--section-max);
+         display: flex;
+         flex-direction: column;
+         gap: 1rem;
+         padding: 0 0.5rem; /* ← reduziert von 1rem */
+         box-sizing: border-box;
+         overflow-x: clip; /* ← NEU */
+     }
+
+     @media (max-width: 1240px) {
+         .workout-list {
+             max-width: var(--section-max);
+         }
+     }
+
+     @media (min-width: 1241px) {
+         .training {
+             max-width: 1200px;
+             margin: 0 auto;
+             width: 100%;
+         }
+
+             .training .workout-list {
+                 max-width: var(--section-max); /* fix: keine 100vw-Logik */
+                 width: 100%;
+                 margin: 0 auto;
+             }
+
+             .training .form-card.builder-grid {
+                 width: 100%;
+                 max-width: 100%;
+                 margin-inline: 0;
+                 box-sizing: border-box;
+             }
+     }
+
+     @media (min-width: 900px) {
+         .form-card.builder-grid {
+             /* rechte Spalte spürbar schmaler */
+             grid-template-columns: minmax(0, 1fr) clamp(240px, 28vw, 360px);
+             align-items: start;
+         }
+     }
+
+
+     .section-title {
+         font-size: 1.5rem;
+         font-weight: 700;
+         color: var(--text-primary);
+         text-align: center;
+     }
+     /* Smooth landing highlight when jumping to the builder */
+     @keyframes builderPop {
+         0% {
+             transform: translateY(-6px);
+             box-shadow: 0 0 0 rgba(99,102,241,0);
+         }
+
+         40% {
+             transform: translateY(0);
+             box-shadow: 0 8px 32px rgba(99,102,241,.20);
+         }
+
+         100% {
+             transform: translateY(0);
+             box-shadow: 0 0 0 rgba(99,102,241,0);
+         }
+     }
+
+     .builder-landing {
+         animation: builderPop .6s cubic-bezier(.2,.8,.2,1);
+         background-image: radial-gradient(1200px 120px at 50% -20px, rgba(99,102,241,.08), transparent 70%);
+     }
+
+     @media (prefers-reduced-motion: reduce) {
+         .builder-landing {
+             animation: none;
+         }
+     }
+
+     html.dark-mode .section-title {
+         color: #ffffff;
+     }
+
+     .timer-container .plan-header,
+     .stopwatch-top .plan-header {
+         justify-content: center;
+     }
+
+     .plan-header {
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         width: 100%;
+         position: relative;
+     }
+
+     .drag-stack {
+         display: flex;
+         flex-direction: column;
+         gap: 1rem; /* Abstand zwischen den Cards wie vorher */
+         width: 100%;
+     }
+
+         .drag-stack > .timer-card {
+             width: 100%;
+             max-width: 1200px;
+         }
+
+     .drag-ghost {
+         opacity: 0.6;
+     }
+
+     .segmented.seg-type {
+         display: flex;
+         gap: .5rem;
+         background: var(--bg-secondary);
+         border: 1px solid var(--border-color);
+         border-radius: 12px;
+         padding: .3rem;
+         align-items: center;
+     }
+
+         .segmented.seg-type > button {
+             background: transparent;
+             border: 1px solid transparent;
+             border-radius: 10px;
+             padding: .45rem .9rem;
+             font-weight: 600;
+             cursor: pointer;
+             transition: all .15s ease;
+             color: var(--text-primary);
+         }
+
+             .segmented.seg-type > button.on {
+                 background: var(--bg-card);
+                 border-color: var(--border-color);
+                 box-shadow: 0 1px 2px rgba(0,0,0,.06);
+             }
+
+     .filter-input {
+         border-radius: 999px;
+         padding-left: 2.25rem; /* Platz fürs Icon */
+         background: var(--bg-secondary);
+         position: relative;
+     }
+
+         .filter-input::placeholder {
+             opacity: .8;
+         }
+
+     .builder-left,
+     .builder-head,
+     .builder-head > * {
+         min-width: 0;
+     }
+
+     .builder-left {
+         display: flex;
+         flex-direction: column;
+         gap: 1rem;
+         min-width: 0; /* verhindert Overflow in Grids */
+     }
+
+     .builder-right {
+         min-width: 0; /* wichtig für Tables/Overflow */
+     }
+
+     /* Feldblöcke */
+     .field-block {
+         display: flex;
+         flex-direction: column;
+         gap: .5rem;
+     }
+
+     .field-label {
+         font-weight: 600;
+         font-size: .92rem;
+         color: var(--text-primary);
+     }
+
+     .field-row {
+         display: flex;
+         gap: .75rem;
+         align-items: stretch;
+         flex-wrap: wrap;
+     }
+     /* Zelle wird selbst Container → reagiert auf ihre eigene Breite */
+     .v-stack {
+         container-type: inline-size;
+         white-space: normal;
+         word-break: break-word;
+         hyphens: auto;
+     }
+     /* Letzte Spalte (Aktion) – nicht unter 44px */
+     .custom-exercises-table th:last-child,
+     .custom-exercises-table td:last-child,
+     .exercise-table.full-width.compact th:last-child,
+     .exercise-table.full-width.compact td:last-child {
+         min-width: 44px !important; /* Platz fürs Icon */
+         white-space: nowrap;
+         overflow: visible;
+         text-overflow: clip;
+     }
+
+     /* Icon-Größe fix, damit nichts clippt */
+     .table-delete-btn {
+         width: 32px;
+         height: 32px;
+         line-height: 1;
+         display: inline-flex;
+         align-items: center;
+         justify-content: center;
+     }
+
+     .field-grid {
+         display: grid;
+         grid-template-columns: repeat(2, minmax(0, 1fr));
+         gap: .75rem;
+     }
+
+     @media (max-width: 600px) {
+         .field-grid {
+             grid-template-columns: 1fr;
+         }
+     }
+
+     .field {
+         display: flex;
+         flex-direction: column;
+         gap: .4rem;
+     }
+
+     .actions-row.stack {
+         display: flex;
+         flex-direction: column;
+         gap: .75rem;
+         align-items: stretch; /* Kinder dürfen volle Breite nutzen */
+     }
+
+     .preview-card {
+         background: var(--bg-card);
+         border: 1px solid var(--border-color);
+         border-radius: 12px;
+         padding: 1rem;
+         box-shadow: 0 2px 8px rgba(0,0,0,.06);
+         position: sticky;
+         top: .75rem; /* bleibt beim Scrollen sichtbar */
+         contain: inline-size; /* Inhalt beeinflusst keine äußere Breite */
+         overflow-x: visible;
+     }
+
+     .preview-head {
+         display: flex;
+         align-items: center;
+         justify-content: space-between;
+         margin-bottom: .5rem;
+     }
+
+         .preview-head h4 {
+             margin: 0;
+             font-size: 1.05rem;
+             font-weight: 700;
+             color: var(--text-primary);
+         }
+
+     .preview-card .muted {
+         color: var(--text-secondary);
+         font-size: .85rem;
+     }
+
+     .empty-preview {
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         min-height: 160px;
+         background: var(--bg-secondary);
+         border: 1px dashed var(--border-color);
+         color: var(--text-secondary);
+         border-radius: 10px;
+     }
+
+     .form-card.builder-grid {
+         display: grid;
+         grid-template-columns: 1fr;
+         gap: 1rem;
+         width: 100%;
+         box-sizing: border-box; /* damit Padding mitgerechnet wird */
+     }
+
+     @media (max-width: 900px) {
+         .builder-head {
+             grid-template-columns: 1fr;
+             grid-template-areas:
+                 "plan"
+                 "type"
+                 "extras";
+         }
+
+             .builder-head .extras-cta {
+                 justify-self: start;
+                 white-space: nowrap;
+                 box-sizing: border-box;
+                 inline-size: min(var(--extras-toggle-w), 100%);
+                 min-inline-size: min(var(--extras-toggle-w), 100%);
+                 max-inline-size: min(var(--extras-toggle-w), 100%);
+             }
+     }
+
+     @media (max-width: 1200px) {
+         .segmented.seg-type {
+             flex-wrap: wrap;
+             row-gap: .35rem;
+         }
+     }
+
+     .form-card {
+         box-sizing: border-box;
+     }
+
+     @media (max-width: 1240px) {
+         .training {
+             overflow-x: hidden;
+         }
+
+         .workout-list,
+         .form-card.builder-grid {
+             max-width: 100%;
+             min-width: 0;
+             width: 100%;
+         }
+     }
+
+     .custom-exercises-table {
+         display: block;
+         inline-size: 100%;
+         max-inline-size: 100%;
+         contain: layout inline-size;
+         overflow-x: hidden;
+         overflow-x: clip; /* moderne Browser */
+     }
+
+         .custom-exercises-table th,
+         .custom-exercises-table td {
+             min-width: 0;
+             overflow: hidden;
+             text-overflow: ellipsis;
+             white-space: nowrap; /* bleibt kompakt */
+         }
+
+         .custom-exercises-table table {
+             width: 100%;
+             max-width: 100%;
+             table-layout: fixed;
+             min-width: 100%;
+         }
+
+     .exercise-table.full-width.compact table {
+         width: 100%;
+     }
+
+     .exercise-table.full-width.compact th,
+     .exercise-table.full-width.compact td {
+         padding: .75rem;
+         font-size: .92rem;
+     }
+
+     .exercise-table.full-width.compact thead th {
+         background: #f1f5f9;
+     }
+
+     html.dark-mode .exercise-table.full-width.compact thead th {
+         background: #0d1117;
+     }
+
+     .actions-row .button-group .btn-cell > *:not(.add-exercise-btn) {
+         height: var(--control-height);
+     }
+
+     .field-row .filter-input {
+         flex: 1 1 320px;
+         min-width: 220px;
+     }
+
+     .button-group:has(.add-exercise-btn) {
+         --btn-width: 100%;
+     }
+
+     .button-group .btn-cell:has(.add-exercise-btn) {
+         flex: 1 1 100%;
+     }
+
+     .button-group .btn-cell > .add-exercise-btn {
+         width: 100%;
+     }
+
+     .filter-input {
+         background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%23888' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+         background-repeat: no-repeat;
+         background-position: .75rem center;
+         background-size: 16px 16px;
+     }
+
+     html.dark-mode .filter-input {
+         background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%239aa3ab' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+     }
+
+
+     .list-item {
+         background: var(--bg-card);
+         padding: 1rem;
+         border-radius: 8px;
+         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         transition: transform 0.2s;
+     }
+
+     /* Aktion-Spalte: keine Ellipsis, Icon zentriert + Mindestbreite */
+     .custom-exercises-table td:last-child,
+     .custom-exercises-table th:last-child,
+     .exercise-table.full-width.compact td:last-child,
+     .exercise-table.full-width.compact th:last-child {
+         overflow: visible; /* verhindert "…" */
+         text-overflow: clip;
+         white-space: nowrap;
+         min-width: 44px; /* genug Platz für das 🗑️-Icon */
+     }
+
+     .custom-exercises-table table tbody td:last-child .table-delete-btn {
+         display: inline-flex;
+         align-items: center;
+         justify-content: center;
+         width: 32px !important;
+         height: 32px !important;
+         margin: 0 auto !important;
+         line-height: 1; /* keine Typo-Überhänge */
+     }
+     /* Zeilen-inhalt vertikal mittig ausrichten (alle Zellen) */
+     .custom-exercises-table td,
+     .custom-exercises-table th {
+         vertical-align: middle;
+     }
+
+         /* Falls das Emoji optisch nicht exakt zentriert wirkt: minimaler Nudge */
+         .custom-exercises-table td.action-cell .table-delete-btn {
+             transform: translateY(-0.5px);
+         }
+
+     /* Schlanke, aber normal lesbare Tabelle nur für den ausgewählten Plan */
+     .exercise-table.full-width.narrow {
+         position: relative;
+         max-inline-size: 100%;
+         margin-inline: auto;
+         overflow-x: visible; /* nicht clippen, der Scroll-Container übernimmt */
+         table-layout: fixed; /* stabilisiert Spaltenbreiten */
+     }
+     /* ADD: eigener Scroll-Container für Tabellen-Inhalte */
+     .table-scroll {
+         overflow-x: auto; /* ⇐ Scrollbar bleibt */
+         -webkit-overflow-scrolling: touch;
+         overscroll-behavior-x: contain;
+         background: var(--bg-card);
+         border-radius: 8px; /* wirkt wie „innen“ statt „außerhalb“ */
+     }
+
+         /* Mindestbreiten, damit rechte Spalten nicht „außerhalb“ wirken */
+         .table-scroll > table {
+             min-width: 640px; /* kannst du anpassen (z.B. 560px) */
+         }
+
+     /* Sicherheit: Header & letzte Spalte wirken sauber innen */
+     .exercise-table.full-width thead th,
+     .custom-exercises-table thead th {
+         background-clip: padding-box;
+     }
+
+     /* Mobile bleibt voll breit */
+     @media (max-width: 720px) {
+         .exercise-table.full-width.narrow {
+             max-inline-size: 100%;
+         }
+     }
+
+     /* Optional: Nur die erste Spalte darf (falls nötig) auf zwei Zeilen umbrechen,
+     damit lange Übungsnamen nicht alles sprengen — ohne Mini-Schrift. */
+     .exercise-table.full-width.narrow td:first-child,
+     .exercise-table.full-width.narrow th:first-child {
+         white-space: normal;
+         overflow: hidden;
+         text-overflow: ellipsis;
+     }
+
+     /* Icon selbst: nicht gestaucht/abgeschnitten */
+     .table-delete-btn {
+         display: inline-flex;
+         align-items: center;
+         justify-content: center;
+         line-height: 1; /* verhindert Emoji-/SVG-Clipping */
+         width: 32px;
+         height: 32px;
+         padding: 0;
+         position: relative;
+         z-index: 1; /* falls irgendwas darüberliegt */
+     }
+
+     html.dark-mode .list-item {
+         background: #1c2526;
+         color: #c9d1d9;
+     }
+
+     .list-item:hover {
+         transform: translateY(-2px);
+     }
+
+     .plan-item {
+         cursor: pointer;
+     }
+     /* ganz unten im <style scoped> ergänzen */
+     @supports not (overflow: clip) {
+         .training,
+         .workout-list,
+         .custom-exercises-table {
+             overflow-x: hidden;
+         }
+     }
+
+     /* falls du in manchen Containern knapp clippen willst */
+     :root {
+         --clip-margin: 8px;
+     }
+
+     .custom-exercises-table,
+     .exercise-table.full-width {
+         overflow-clip-margin: var(--clip-margin);
+     }
+
+     .form-card {
+         background: var(--bg-card);
+         padding: 1.5rem;
+         border-radius: 8px;
+         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+         display: flex;
+         flex-wrap: wrap;
+         gap: 1rem;
+         width: 100%;
+     }
+
+     .search-container {
+         margin-bottom: 1rem;
+         width: 100%;
+     }
+
+     .plan-search-input {
+         padding: 0.75rem;
+         border: 1px solid var(--border-color);
+         border-radius: 8px;
+         width: 100%;
+         font-size: 0.9rem;
+         background: var(--bg-secondary);
+         color: var(--text-color);
+         transition: border-color 0.2s, box-shadow 0.2s;
+     }
+
+     html.dark-mode .plan-search-input {
+         background: #0d1117;
+         border-color: #30363d;
+         color: #ffffff;
+     }
+
+     .plan-search-input:focus {
+         border-color: #4B6CB7;
+         box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
+         outline: none;
+     }
+
+     html.dark-mode .form-card {
+         background: #1c2526;
+     }
+
+     .form-card input,
+     .form-card select {
+         height: var(--control-height);
+         font-size: var(--control-font-size);
+         padding: 0.75rem;
+         border: 1px solid var(--border-color);
+         border-radius: 8px;
+         flex: 1;
+         min-width: 120px;
+         background: var(--bg-secondary);
+         color: var(--text-color);
+         transition: border-color 0.2s, box-shadow 0.2s;
+     }
+
+
+     html.dark-mode .form-card input,
+     html.dark-mode .form-card select {
+         background: #0d1117;
+         border-color: #30363d;
+         color: #ffffff;
+     }
+
+     .form-card input:focus,
+     .form-card select:focus {
+         border-color: #4B6CB7;
+         box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
+         outline: none;
+     }
+
+     .form-card .action-btn:not(.add-exercise-btn):not(.toggle-exercise-btn):not(.plan-submit-btn):not(.table-delete-btn) {
+         background: var(--bg-secondary);
+         color: var(--text-primary);
+         border: 1px solid var(--border-color);
+         border-radius: 8px;
+         padding: 0.75rem 1.5rem;
+         transition: background .2s, transform .2s;
+     }
+
+         .form-card .action-btn:not(.add-exercise-btn):not(.toggle-exercise-btn):not(.plan-submit-btn):not(.table-delete-btn):hover {
+             background: #f3f4f6;
+             transform: none;
+         }
+
+     /* Aktion-Spalte: Button sauber zentriert, überschreibt frühere grid-Regeln */
+     /* gleiche Zellenlogik wie der Rest der Tabelle */
+     .exercise-table.full-width td.action-cell,
+     .custom-exercises-table td.action-cell {
+         display: table-cell; /* zurück auf echtes Table-Cell-Layout */
+         padding: 1rem; /* identisch zu deinen anderen <td>s */
+         text-align: center;
+         vertical-align: middle;
+     }
+
+         /* Button sauber in der Mitte, ohne Layout zu beeinflussen */
+         .exercise-table.full-width td.action-cell .table-delete-btn,
+         .custom-exercises-table td.action-cell .table-delete-btn {
+             display: inline-flex;
+             align-items: center;
+             justify-content: center;
+             width: 32px;
+             height: 32px;
+             margin: 0 auto;
+             line-height: 1;
+             transform: none;
+         }
+
+     .custom-exercises-table th,
+     .custom-exercises-table td,
+     .exercise-table.full-width th,
+     .exercise-table.full-width td {
+         border-bottom: 1px solid var(--border-color);
+     }
+
+     .extras-container {
+         transition: max-height 0.3s ease, opacity 0.3s ease;
+         max-height: 0;
+         opacity: 0;
+         overflow: hidden;
+         width: 100%;
+     }
+
+     .desktop-only {
+         display: initial;
+     }
+
+     .mobile-only {
+         display: none;
+     }
+
+     .extras-container.show {
+         max-height: 250px;
+         opacity: 1;
+         margin-top: 0.75rem; /* 👉 größerer Abstand */
+     }
+
+
+     .timer-drag-handle {
+         cursor: grab;
+         user-select: none;
+         margin-right: .5rem;
+     }
+
+     .extras-content {
+         display: flex;
+         gap: 1.5rem;
+         align-items: center;
+         flex-wrap: wrap;
+         margin-bottom: 0.5rem;
+     }
+
+     .form-card button[type="submit"] {
+         width: 100%;
+     }
+
+     .extras-button-group {
+         display: flex;
+         gap: 1rem;
+         flex-wrap: wrap;
+         align-items: center;
+     }
+
+     .plan-drag-stack {
+         display: flex;
+         flex-direction: column;
+         gap: 1.25rem;
+         width: 100%;
+     }
+
+         .plan-drag-stack > .plan-item {
+             width: 100%;
+         }
+     /* ===== sichtbare Griffe/Linien für Spalten ===== */
+     :root {
+         --resize-hit: 10px; /* Klickfläche */
+         --resize-line: 1px; /* Linienstärke normal */
+         --resize-line-hover: 2px; /* Linienstärke Hover/Active */
+         --resize-color: #94a3b8; /* Slate-400/500 */
+         --resize-color-hover: #60a5fa; /* Accent bei Hover/Active */
+     }
+
+     /* Cursor & Selection während Drag */
+     body.is-resizing-col {
+         cursor: col-resize;
+         user-select: none;
+     }
+
+     body.is-resizing-row {
+         cursor: row-resize;
+         user-select: none;
+     }
+
+     .exercise-table.full-width th.resizable,
+     .custom-exercises-table th.resizable {
+         position: relative;
+         overflow: hidden; /* vorher: visible */
+     }
+
+         /* 2) Resizer-Handle bleibt *in* der Zelle */
+         .exercise-table.full-width th.resizable > .resizer,
+         .custom-exercises-table th.resizable > .resizer {
+             right: 0 !important; /* NIE negativ */
+             width: var(--resize-hit, 10px);
+         }
+
+     .exercise-table.full-width table {
+         table-layout: fixed;
+         border-collapse: collapse;
+     }
+     /* ganz unten im <style scoped> ergänzen */
+     .custom-exercises-table th:last-child,
+     .custom-exercises-table td:last-child {
+         min-width: 44px !important;
+     }
+
+     /* ===== sichtbarer Griff für Zeilen ===== */
+     .exercise-table.full-width tr.resizable-row {
+         position: relative;
+     }
+
+         .exercise-table.full-width tr.resizable-row > .row-resizer {
+             position: absolute;
+             left: 0;
+             bottom: -4px;
+             width: 100%;
+             height: var(--resize-hit);
+             cursor: row-resize;
+             z-index: 3;
+             display: flex;
+             align-items: flex-end;
+             justify-content: center;
+             background: transparent;
+         }
+
+             .exercise-table.full-width tr.resizable-row > .row-resizer::before {
+                 content: "";
+                 display: block;
+                 height: var(--resize-line);
+                 width: 60%;
+                 background: var(--resize-color);
+                 opacity: .7;
+                 transition: height .12s ease, background-color .12s ease, opacity .12s ease;
+                 border-radius: 1px;
+             }
+
+             .exercise-table.full-width tr.resizable-row > .row-resizer:hover::before,
+             .exercise-table.full-width tr.resizable-row > .row-resizer.is-active::before {
+                 height: var(--resize-line-hover);
+                 background: var(--resize-color-hover);
+                 opacity: 1;
+             }
+
+     /* Dark-Mode Kontrast (optional feiner abstimmen) */
+     html.dark-mode :root {
+         --resize-color: #64748b; /* slate-500 */
+         --resize-color-hover: #3b82f6; /* blue-500 */
+     }
+
+     .list-item-actions {
+         display: flex;
+         gap: 0.6rem;
+         align-items: center; /* <— NEU */
+     }
+
+         .list-item-actions .action-btn {
+             line-height: 1;
+             display: inline-flex;
+             align-items: center;
+             justify-content: center;
+         }
+
+     .custom-toggle-btn {
+         margin-top: 1rem;
+         padding: 0.6rem 1.2rem;
+         background: var(--bg-secondary);
+         color: #1f2937;
+         border-radius: 0.5rem;
+         border: none;
+         cursor: pointer;
+         font-size: 0.95rem;
+         transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+     }
+
+         .custom-toggle-btn:hover {
+             background-color: #f3f4f6;
+             border-color: #4B6CB7;
+         }
+
+     html.dark-mode .custom-toggle-btn {
+         background-color: #1f2937;
+         color: #fff;
+         border: 1px solid #30363d;
+     }
+
+         html.dark-mode .custom-toggle-btn:hover {
+             background-color: #374151;
+             border-color: #4B6CB7;
+         }
+
+     .custom-ex-title {
+         font-size: 1.1rem;
+         margin: 1rem 0 0.5rem;
+         color: #111827;
+     }
+     /* Header-THs können auf Breite reagieren */
+     .exercise-table.full-width th,
+     .custom-exercises-table th {
+         container-type: inline-size;
+     }
+
+     /* Abkürzungs-Logik für Wiederholungen */
+     /* Header-Kürzung: zeigt je nach Klasse genau EINS der Labels */
+     .th-label .full,
+     .th-label .mid,
+     .th-label .short {
+         display: none;
+     }
+
+     .th-label.is-full .full {
+         display: inline;
+     }
+
+     .th-label.is-mid .mid {
+         display: inline;
+     }
+
+     .th-label.is-short .short {
+         display: inline;
+     }
+
+
+     .custom-exercises-table .exercise-table {
+         width: 100%;
+         border-collapse: collapse;
+         background: var(--bg-card);
+         border: 1px solid var(--border-color);
+         border-radius: 8px;
+         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+     }
+
+         .custom-exercises-table .exercise-table th,
+         .custom-exercises-table .exercise-table td {
+             border-bottom: 1px solid var(--border-color);
+             border-right: 1px solid var(--border-color);
+         }
+
+             .custom-exercises-table .exercise-table th:last-child,
+             .custom-exercises-table .exercise-table td:last-child {
+                 border-right: 0;
+             }
+
+     .custom-exercises-table th,
+     .custom-exercises-table td {
+         padding: 0.75rem;
+         text-align: center;
+         border-bottom: 1px solid #e5e7eb;
+     }
+
+     .custom-exercises-table th {
+         background-color: #e5e7eb;
+         font-weight: 600;
+         font-size: 0.95rem;
+         color: #1f2937;
+     }
+
+     .custom-exercises-table td {
+         font-size: 0.92rem;
+         color: #374151;
+     }
+
+         .custom-exercises-table td input {
+             width: 90%;
+             padding: 0.3rem 0.5rem;
+             font-size: 0.9rem;
+             border: 1px solid #d1d5db;
+             border-radius: 0.4rem;
+             outline: none;
+         }
+
+             .custom-exercises-table td input:focus {
+                 border-color: #3b82f6;
+                 box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+             }
+
+     .delete-btn {
+         background: none;
+         border: none;
+         cursor: pointer;
+         font-size: 1.1rem;
+         color: #ef4444;
+         transition: transform 0.2s ease;
+     }
+
+
+     @media (max-width: 600px) {
+         .form-card {
+             flex-direction: column;
+             gap: 0.75rem;
+         }
+
+         .exercise-input-group {
+             flex-direction: column;
+             gap: 0.5rem;
+         }
+
+         .form-card input,
+         .form-card select {
+             width: 100%;
+         }
+
+         .extras-button-group {
+             flex-direction: column;
+             gap: 0.5rem;
+         }
+     }
+     /* Karte selbst darf über Nachbarn stehen */
+     .plan-item {
+         position: relative;
+     }
+
+         /* Wenn Menü offen ist: Karte nach oben und kein Hover-Shift */
+         .plan-item.menu-open {
+             z-index: 999;
+         }
+
+             .plan-item.menu-open:hover {
+                 transform: none !important;
+             }
+
+     /* Menü noch darüber */
+     .plan-menu {
+         z-index: 1000;
+     }
+
+     .edit-btn,
+     .delete-btn,
+     .download-btn,
+     .open-btn,
+     .table-delete-btn,
+     .close-plan-btn,
+     .close-timer-btn,
+     .add-timer-btn {
+         background: none;
+         border: none;
+         font-size: 1.2rem;
+         cursor: pointer;
+         padding: 0.5rem;
+         color: #6b7280;
+         border-radius: 8px;
+         transition: color 0.2s, text-shadow 0.2s, transform 0.1s;
+     }
+
+
+     .exercise-input-group {
+         display: flex;
+         gap: 1rem;
+         flex-wrap: wrap;
+         width: 100%;
+         align-items: stretch; /* 👉 NEU: gleiche Höhe in der Zeile */
+     }
+
+     .button-group {
+         display: flex;
+         gap: 0.75rem;
+         align-items: stretch;
+         flex-wrap: nowrap;
+         width: 100%; /* volle Breite der Spalte */
+         margin-left: 0; /* NICHT nach rechts wegschieben */
+     }
+
+     @media (max-width: 600px) {
+         .button-group {
+             margin-left: 0;
+             flex-wrap: wrap;
+             width: 100%;
+         }
+     }
+
+     @media (min-width: 601px) {
+         .button-group .btn-cell:last-child {
+             margin-top: 0px;
+         }
+     }
+
+     .exercise-table {
+         margin-top: 1rem;
+         width: 100%;
+         border-collapse: collapse;
+         background: var(--bg-card);
+         border-radius: 8px;
+         overflow: hidden;
+         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+         table-layout: fixed;
+     }
+
+     html.dark-mode .exercise-table {
+         background: #1c2526;
+         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+     }
+
+     .exercise-table th,
+     .exercise-table td {
+         padding: 1rem;
+         text-align: center;
+         border-bottom: 1px solid var(--border-color);
+     }
+
+     .exercise-table th {
+         background: #f1f5f9;
+     }
+
+     html.dark-mode .exercise-table th {
+         background: #0d1117;
+         color: #ffffff;
+     }
+
+     .exercise-table tr:nth-child(even) {
+         background: #f9fafb;
+     }
+
+     html.dark-mode .exercise-table tr:nth-child(even) {
+         background: #21262d;
+     }
+
+     .exercise-table tr:hover {
+         background: #d1d5db;
+     }
+
+     html.dark-mode .exercise-table tr:hover {
+         background: #2d333b;
+     }
+
+     .exercise-table.full-width {
+         table-layout: fixed;
+         width: 100%;
+         margin: 0 auto;
+         position: relative;
+     }
+         /* Fix: keine Hairline-Gaps & sauberes Clipping in allen Tabellen */
+         .exercise-table.full-width table,
+         .custom-exercises-table table {
+             border-collapse: separate !important;
+             border-spacing: 0 !important;
+         }
+
+         .exercise-table.full-width thead th,
+         .exercise-table.full-width tbody td,
+         .custom-exercises-table thead th,
+         .custom-exercises-table tbody td {
+             background-clip: padding-box; /* verhindert Farbabbruch an den Rändern */
+             overflow: hidden;
+         }
+
+     .exercise-table th,
+     .exercise-table td,
+     .custom-exercises-table th,
+     .custom-exercises-table td {
+         min-width: 0;
+     }
+
+         .exercise-table th:last-child,
+         .exercise-table td:last-child,
+         .custom-exercises-table th:last-child,
+         .custom-exercises-table td:last-child {
+             min-width: 44px !important;
+             white-space: nowrap;
+         }
+
+     /* Header reagieren auf Breite */
+     .exercise-table th,
+     .custom-exercises-table th {
+         container-type: inline-size;
+     }
+
+     /* Wrapper für Header-Text */
+     .th-text {
+         display: inline-block;
+         white-space: nowrap;
+         line-height: 1;
+     }
+
+     /* Body-Zellen bleiben horizontal, hart abkürzen */
+     .exercise-table td,
+     .custom-exercises-table td {
+         overflow: hidden;
+         text-overflow: ellipsis;
+         white-space: nowrap;
+     }
+
+     .exercise-table.full-width table {
+         width: 100%;
+         table-layout: fixed; /* ← WICHTIG: stabilisiert Spaltenbreiten beim Drag */
+     }
+
+     .exercise-table.full-width th,
+     .exercise-table.full-width td {
+         padding: 1.5rem;
+         text-align: center;
+         min-width: 0; /* war 150px: verhindert Breiten-Inflation */
+         text-overflow: ellipsis;
+         white-space: nowrap;
+     }
+
+     html.dark-mode .exercise-table.full-width th,
+     html.dark-mode .exercise-table.full-width td {
+         border-bottom: 1px solid #30363d;
+     }
+
+     .exercise-table.full-width th {
+         background: #f1f5f9;
+         color: var(--text-primary);
+         font-weight: 600;
+         position: relative;
+     }
+
+     html.dark-mode .exercise-table.full-width th {
+         background: #0d1117;
+         color: #ffffff;
+     }
+
+     .button-group .btn-cell > *:not(.add-exercise-btn) {
+         width: 100%;
+         height: var(--btn-height);
+         padding-left: var(--btn-pad-x);
+         padding-right: var(--btn-pad-x);
+     }
+
+     .button-group .btn-cell > .action-btn.add-exercise-btn {
+         display: inline-flex; /* saubere vertikale Zentrierung */
+         align-items: center;
+         justify-content: center;
+         width: 100%;
+         height: calc(var(--control-height) - 4px); /* 48px → 44px */
+         padding-top: 0;
+         padding-bottom: 0;
+         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+     }
+
+     /* Basis: nur "full" sichtbar */
+     .th-label .mid,
+     .th-label .short {
+         display: none;
+     }
+
+     /* Wenn per JS "mid" gesetzt wurde */
+     .th-label.is-mid .full {
+         display: none;
+     }
+
+     .th-label.is-mid .mid {
+         display: inline;
+     }
+
+     .th-label.is-mid .short {
+         display: none;
+     }
+
+     /* Wenn per JS "short" gesetzt wurde */
+     .th-label.is-short .full,
+     .th-label.is-short .mid {
+         display: none;
+     }
+
+     .th-label.is-short .short {
+         display: inline;
+     }
+
+     .action-btn.plan-submit-btn {
+         height: calc(var(--control-height) - 4px);
+     }
+
+     @media (max-width: 600px) {
+         .button-group {
+             margin-left: 0;
+             flex-wrap: wrap;
+             width: 100%;
+             --btn-width: 100%;
+         }
+     }
+
+     .flash-focus {
+         outline: 2px solid var(--accent-primary);
+         box-shadow: 0 0 0 3px var(--accent-primary), 0 0 18px var(--accent-hover);
+         transition: box-shadow .3s ease;
+     }
+
+     .exercise-table.full-width tr:hover {
+         background: #d1d5db;
+     }
+
+     html.dark-mode .exercise-table.full-width tr:hover {
+         background: #2d333b;
+     }
+
+     .exercise-table.full-width td {
+         color: var(--text-secondary);
+     }
+
+     html.dark-mode .exercise-table.full-width td {
+         color: #c9d1d9;
+     }
+
+     .timer-container,
+     .stopwatch-top {
+         display: flex;
+         flex-direction: column;
+         align-items: center;
+         width: 100%;
+         max-width: 1200px;
+         position: relative;
+     }
+
+     .timer-card {
+         background: var(--bg-card);
+         padding: 1.5rem;
+         border-radius: 8px;
+         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+         display: flex;
+         flex-direction: column;
+         gap: 1.5rem;
+         align-items: center;
+         width: 100%;
+         max-width: 1200px;
+         transition: box-shadow 0.2s;
+     }
+
+     html.dark-mode .timer-card {
+         background: #1c2526;
+         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+     }
+
+     .timer-card:hover {
+         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+     }
+
+     .timer-header {
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         width: 100%;
+     }
+
+     .custom-exercise-list .delete-btn {
+         background: none;
+         border: none;
+         color: #ef4444;
+         cursor: pointer;
+         margin-left: 0.5rem;
+         font-size: 1rem;
+     }
+
+     .custom-exercise-list li {
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         padding: 4px 0;
+     }
+
+     .timer-actions {
+         display: flex;
+         gap: 0.5rem;
+     }
+
+     .timer-name {
+         cursor: pointer;
+         font-weight: 600;
+         font-size: 1.2rem;
+         text-align: left;
+         pointer-events: auto;
+     }
+
+     .timer-display,
+     .timer {
+         font-size: 3rem;
+         font-weight: 800;
+         color: var(--text-primary);
+         width: 100%;
+         max-width: 400px;
+         text-align: center;
+         font-family: 'Roboto Mono', monospace;
+         background: linear-gradient(45deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.1));
+         padding: 0.75rem;
+         border-radius: 4px;
+         box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
+         transition: transform 0.2s, box-shadow 0.2s;
+         margin: 0 auto;
+     }
+
+     html.dark-mode .timer-display,
+     html.dark-mode .timer {
+         color: #ffffff;
+         background: linear-gradient(45deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1));
+         box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.2);
+     }
+     /* ========== Desktop/ab deinem Original-Breakpoint: alles in EINER Reihe ========== */
+
+     .plan-title {
+         flex: 1 1 auto;
+         min-width: 0;
+         overflow: hidden;
+         text-overflow: ellipsis;
+         white-space: nowrap;
+     }
+
+     /* Inline-Action-Buttons (Edit/Löschen/Download) sind standardmäßig sichtbar */
+     .inline-actions {
+         display: inline-flex;
+         gap: .4rem;
+     }
+     /* Kebab standardmäßig verstecken – wird erst ab schmaler Breite angezeigt */
+
+
+     @media (max-width:1024px) {
+         .inline-actions {
+             display: none !important;
+         }
+
+         .desktop-open {
+             display: inline-flex !important;
+         }
+     }
+
+     /* ≤560px: weiterhin eine Zeile; mobile Zeile komplett aus */
+     @media (max-width:560px) {
+         .plan-row2 {
+             display: none !important;
+         }
+
+         .mobile-open {
+             display: none !important;
+         }
+
+         .desktop-open {
+             display: inline-flex !important;
+         }
+     }
+     /* Open-Button auch in einer Linie (Desktop) */
+     .desktop-open {
+         display: inline-flex;
+     }
+
+     .mobile-open {
+         display: none;
+     }
+
+     /* ========== Ab dem Original-Mobile-Breakpoint (~560px): schalte auf Kebab + eigene Open-Zeile ========== */
+     @media (max-width: 560px) {
+         .plan-item {
+             position: relative;
+             display: grid;
+             grid-template-rows: auto auto;
+             gap: .5rem;
+         }
+
+         /* Inline-Aktionen ausblenden, Kebab einblenden */
+         .inline-actions {
+             display: none;
+         }
+
+         /* Open-Button in eigener Zeile */
+         .desktop-open {
+             display: inline-flex !important;
+         }
+         /* war: none */
+         .mobile-open {
+             display: none !important;
+         }
+         /* war: inline-flex */
+         .plan-row2 {
+             display: none;
+         }
+
+             .plan-row2 .primary-open {
+                 width: 100%;
+             }
+
+         .plan-title {
+             overflow: hidden;
+             text-overflow: ellipsis;
+             white-space: nowrap;
+         }
+
+         .plan-menu {
+             position: absolute;
+             right: .5rem;
+             top: calc(100% - 2.25rem);
+             display: flex;
+             gap: .3rem;
+             padding: .4rem;
+             background: var(--bg-card);
+             border: 1px solid var(--border-color);
+             border-radius: 10px;
+             box-shadow: var(--shadow, 0 6px 18px rgba(0,0,0,.15));
+             z-index: 30;
+         }
+
+             .plan-menu > * {
+                 inline-size: auto;
+             }
+
+         .exercise-table.full-width.narrow th,
+         .exercise-table.full-width.narrow td {
+             min-width: 0;
+             white-space: normal;
+             word-break: break-word;
+             text-overflow: clip;
+             padding: .6rem;
+             font-size: .9rem;
+         }
+     }
+
+     .exercise-table.full-width.narrow th.resizable > .resizer {
+         right: 0 !important;
+         width: var(--resize-hit, 10px);
+     }
+
+     .exercise-table.full-width th.resizable > .resizer::before,
+     .custom-exercises-table th.resizable > .resizer::before {
+         transform: none; /* vorher: translateX(1px) */
+     }
+
+     .timer-display:hover,
+     .timer:hover {
+         transform: scale(1.02);
+         box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.2);
+     }
+
+     .plan-drag-handle {
+         cursor: grab;
+         margin-right: .5rem;
+         user-select: none;
+     }
+
+     .timer-controls {
+         display: flex;
+         flex-direction: column;
+         gap: 1rem;
+         align-items: center;
+         width: 100%;
+     }
+
+     .timer-input-group {
+         display: flex;
+         gap: 0.5rem;
+         width: 100%;
+         justify-content: center;
+     }
+
+     .timer-select,
+     .timer-input {
+         padding: 0.5rem;
+         border: 1px solid var(--border-color);
+         border-radius: 8px;
+         background: var(--bg-secondary);
+         color: var(--text-color);
+         font-size: 0.9rem;
+         width: 150px;
+     }
+
+     .exercise-table.full-width th.resizable,
+     .custom-exercises-table th.resizable {
+         position: relative;
+         overflow: hidden;
+     }
+
+         .exercise-table.full-width th.resizable > .resizer,
+         .custom-exercises-table th.resizable > .resizer {
+             right: 0 !important;
+             width: 10px;
+         }
+
+     .exercise-table.full-width table,
+     .custom-exercises-table table {
+         border-collapse: separate !important;
+         border-spacing: 0 !important;
+     }
+
+     .exercise-table.full-width thead th,
+     .custom-exercises-table thead th {
+         background-clip: padding-box;
+     }
+
+     html.dark-mode .timer-select,
+     html.dark-mode .timer-input {
+         background: #0d1117;
+         border-color: #30363d;
+         color: #ffffff;
+     }
+
+     .timer-select:focus,
+     .timer-input:focus {
+         border-color: #4B6CB7;
+         box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
+         outline: none;
+     }
+
+     .timer-buttons {
+         display: flex;
+         gap: 0.5rem;
+         justify-content: center;
+     }
+
+     .builder-head .plan-block .field-label {
+         display: block;
+         margin-bottom: .6rem; /* Abstand Titel ↔ Input */
+     }
+
+     .builder-head .plan-block .plan-name-input {
+         width: 100%;
+     }
+
+     .type-block .type-heading {
+         display: block;
+         margin-bottom: .6rem;
+     }
+
+     .goal-row {
+         display: grid;
+         gap: .55rem; /* Abstand Titel ↔ Select */
+     }
+
+     .lap-btn {
+         background: #4B6CB7;
+         color: #ffffff;
+     }
+
+         .lap-btn:hover {
+             background: #3b5ca8;
+             transform: scale(1.05);
+         }
+
+     .timer-btn:disabled {
+         opacity: 0.5;
+         cursor: not-allowed;
+         transform: none;
+     }
+
+     .laps-container {
+         width: 100%;
+         max-width: 400px;
+         margin-top: 1rem;
+     }
+
+         .laps-container h4 {
+             font-size: 1rem;
+             font-weight: 600;
+             margin-bottom: 0.5rem;
+             text-align: center;
+         }
+
+     .laps-list {
+         display: flex;
+         flex-direction: column;
+         gap: 0.5rem;
+     }
+
+     .lap-item {
+         display: flex;
+         justify-content: space-between;
+         padding: 0.5rem;
+         background: var(--bg-secondary);
+         border-radius: 8px;
+     }
+
+     html.dark-mode .lap-item {
+         background: #0d1117;
+     }
+
+     .edit-input {
+         padding: 0.75rem;
+         border: 1px solid var(--border-color);
+         border-radius: 8px;
+         width: 100%;
+         font-size: 0.9rem;
+         background: var(--bg-secondary);
+         color: var(--text-color);
+     }
+
+     html.dark-mode .edit-input {
+         background: #0d1117;
+         border-color: #30363d;
+         color: #ffffff;
+     }
+
+     .edit-input:focus {
+         border-color: #4B6CB7;
+         box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
+         outline: none;
+     }
+
+     .save-btn {
+         background: #10b981;
+         color: #ffffff;
+     }
+
+         .save-btn:hover {
+             background: #064e3b;
+             transform: scale(1.05);
+         }
+
+     .cancel-btn {
+         background: #6b7280;
+         color: #ffffff;
+     }
+
+         .cancel-btn:hover {
+             background: #4b5563;
+             transform: scale(1.05);
+         }
+
+     .delete-confirm-btn {
+         background: #ef4444;
+         color: #ffffff;
+     }
+
+         .delete-confirm-btn:hover {
+             background: #b91c1c;
+             transform: scale(1.05);
+         }
+
+
+     .custom-exercises-table table {
+         width: 100%;
+         max-width: 100%;
+         table-layout: fixed;
+         min-width: 100%; /* verhindert Schrumpfen */
+     }
+
+     .builder-head .segmented.seg-type {
+         gap: .45rem; /* etwas mehr Luft zwischen Buttons */
+         padding: .26rem .35rem; /* minimal höhere/lebhaftere Fläche */
+         border-radius: 10px;
+     }
+
+         .builder-head .segmented.seg-type > button {
+             padding: .42rem .72rem; /* + ~2–3px in beide Richtungen */
+             font-size: .89rem; /* vorher ~.86rem */
+             border-radius: 9px;
+         }
+
+
+     .builder-head .plan-name-input.slim {
+         flex: 1 1 320px;
+         min-width: 180px;
+     }
+
+
+     @media (max-width: 1100px) {
+         .builder-head .segmented.seg-type {
+             gap: .28rem;
+         }
+
+             .builder-head .segmented.seg-type > button {
+                 padding: .28rem .5rem;
+                 font-size: .82rem;
+             }
+     }
+
+     @media (max-width: 520px) {
+         .builder-head {
+             grid-template-columns: 1fr;
+             grid-template-areas:
+                 "plan"
+                 "type"
+                 "extras";
+         }
+
+             .builder-head .extras-cta {
+                 justify-self: start;
+                 white-space: nowrap;
+                 box-sizing: border-box;
+                 inline-size: min(var(--extras-toggle-w), 100%);
+                 min-inline-size: min(var(--extras-toggle-w), 100%);
+                 max-inline-size: min(var(--extras-toggle-w), 100%);
+             }
+
+         .segmented.seg-type {
+             flex-wrap: wrap;
+             row-gap: .35rem;
+         }
+     }
+
+     @media (max-width: 560px) {
+         .desktop-only {
+             display: none;
+         }
+
+         .builder-head .plan-block {
+             grid-area: plan; /* spannt über "plan plan" = beide Spalten */
+             width: 100%;
+             min-width: 0; /* verhindert Einquetschen durch Intrinsic-Width */
+         }
+
+             .builder-head .plan-block .plan-name-input {
+                 width: 100% !important;
+                 max-width: none !important;
+                 min-width: 0;
+                 box-sizing: border-box;
+             }
+
+         .mobile-only {
+             display: block;
+         }
+
+         .builder-head .type-block.desktop-only {
+             display: none !important;
+         }
+
+         .builder-head .type-block.mobile-only {
+             display: block;
+         }
+
+         .builder-head {
+             display: grid !important;
+             grid-template-columns: minmax(0, 1fr) var(--control-height) !important; /* 2. Spalte exakt Icon-Breite */
+             grid-template-areas:
+                 "plan plan"
+                 "type extras" !important;
+             align-items: start; /* nicht mittig zwischen den Zeilen hängen */
+             row-gap: .6rem;
+             column-gap: .75rem;
+         }
+
+             .builder-head .plan-name-input.slim {
+                 grid-area: plan;
+                 width: 100%; /* volle Breite */
+             }
+
+             .builder-head .type-block.mobile-only {
+                 grid-area: type;
+             }
+
+             .builder-head .seg-type-select {
+                 height: var(--control-height);
+                 font-size: var(--control-font-size);
+                 width: 100%;
+             }
+
+         .extras-label {
+             display: none;
+         }
+
+         .extras-icon {
+             margin-right: 0;
+         }
+
+         .builder-head .extras-cta {
+             grid-area: extras;
+             justify-self: end !important;
+             align-self: end; /* am unteren Rand der Zeile → Höhe vom Label ignorieren */
+             inline-size: var(--control-height) !important; /* quadratisch */
+             min-inline-size: var(--control-height) !important;
+             max-inline-size: var(--control-height) !important;
+             padding-inline: 0 !important;
+             display: inline-flex;
+             align-items: center;
+             justify-content: center;
+         }
+
+         /* Kleinkram */
+         .seg-type-select {
+             height: var(--control-height);
+             font-size: var(--control-font-size);
+             width: 100%;
+             border: 1px solid var(--border-color);
+             border-radius: 8px;
+             background: var(--bg-secondary);
+             color: var(--text-color);
+             padding: 0 .75rem;
+         }
+
+         .exercise-table.full-width th,
+         .exercise-table.full-width td,
+         .custom-exercises-table th,
+         .custom-exercises-table td {
+             min-width: 0;
+             white-space: normal;
+             word-break: break-word;
+             text-overflow: clip;
+             padding: .6rem;
+             font-size: .9rem;
+         }
+
+         .preview-card {
+             position: static;
+             top: auto;
+         }
+
+         .list-item-actions,
+         .timer-buttons,
+         .timer-input-group {
+             flex-wrap: wrap;
+         }
+
+         .workout-list,
+         .form-card.builder-grid,
+         .builder-left,
+         .builder-right {
+             max-width: 100%;
+             min-width: 0;
+         }
+
+         .workout-list {
+             padding: 0 .5rem;
+         }
+
+         .form-card {
+             padding: 1rem;
+         }
+     }
+
+     .workout-list,
+     .timer-container,
+     .stopwatch-top {
+         width: 100%;
+         max-width: var(--section-max);
+         margin-inline: auto !important;
+     }
+
+     .button-group .btn-cell > * {
+         margin-top: 0 !important;
+         width: 100%;
+         height: var(--control-height);
+         padding-left: var(--control-padding-x);
+         padding-right: var(--control-padding-x);
+     }
+
+     @media (min-width: 960px) {
+         .builder-head .extras-cta {
+             flex: 0 0 var(--extras-toggle-w);
+             white-space: nowrap;
+         }
+     }
+
+     .builder-head {
+         display: grid;
+         grid-template-columns: 1fr var(--extras-toggle-w);
+         grid-template-rows: auto auto;
+         grid-template-areas:
+             "plan plan"
+             "type extras";
+         align-items: center;
+         gap: .75rem 1rem;
+     }
+
+         .builder-head .plan-name-input.slim {
+             grid-area: plan;
+             width: 100%;
+         }
+
+         .builder-head .segmented.seg-type {
+             grid-area: type;
+             justify-self: start;
+             margin-left: 0;
+         }
+
+         .builder-head .extras-cta {
+             grid-area: extras;
+             justify-self: end;
+             white-space: nowrap;
+             box-sizing: border-box;
+             inline-size: min(var(--extras-toggle-w), 100%);
+             min-inline-size: min(var(--extras-toggle-w), 100%);
+             max-inline-size: min(var(--extras-toggle-w), 100%);
+         }
+
+         .builder-head .extras-cta {
+             box-sizing: border-box;
+             inline-size: min(var(--extras-toggle-w), 100%);
+         }
+     /* Wrapper zeigt eine horizontale Scrollbar nur bei Bedarf */
+     .table-scroll {
+         overflow-x: auto;
+         overflow-y: hidden;
+         max-width: 100%;
+         -webkit-overflow-scrolling: touch;
+     }
+
+         /* Tabelle darf breiter als der Container sein → dann erscheint die Scrollbar */
+         .table-scroll > table {
+             width: 100%;
+             table-layout: fixed; /* lässt deine Resizer unverändert funktionieren */
+         }
+
+             /* Minimal sinnvolle Breite pro Tabellentyp, damit nichts mikroskopisch wird.
+    → Scrollbar erscheint erst, wenn der Viewport kleiner ist. */
+             .table-scroll > table[data-cols="3"] {
+                 min-width: 560px;
+             }
+             /* Übung | Sätze | Wdh. */
+             .table-scroll > table[data-cols="4"] {
+                 min-width: 720px;
+             }
+     /* + Aktion/weitere Spalte */
+
+     /* Falls zuvor irgendwo "clip/hidden" gesetzt wurde: das Scrollen im Wrapper nicht wegklemmen */
+     .exercise-table.full-width.narrow,
+     .exercise-table.full-width.compact,
+     .custom-exercises-table {
+         overflow-x: visible; /* der eigentliche Scroll passiert im .table-scroll */
+     }
+
+     @media (max-width: 420px) {
+         .training {
+             --control-height: 44px;
+             --control-padding-x: 1rem;
+         }
+
+         .workout-list {
+             padding: 0 .5rem;
+         }
+
+         .form-card {
+             padding: 1rem;
+         }
+
+         .page-title {
+             font-size: 1.9rem;
+         }
+
+         .builder-head .segmented.seg-type {
+             padding: .2rem;
+             gap: .25rem;
+         }
+
+             .builder-head .segmented.seg-type > button {
+                 padding: .25rem .45rem;
+                 font-size: .8rem;
+             }
+
+         .exercise-table.full-width th,
+         .exercise-table.full-width td {
+             padding: .5rem;
+             font-size: .85rem;
+         }
+
+         .timer-display {
+             font-size: 2.4rem;
+         }
+
+         .timer-select,
+         .timer-input {
+             width: 120px;
+         }
+
+         .custom-toggle-btn {
+             inline-size: min(var(--custom-toggle-w), 100%);
+         }
+     }
+
+     .training,
+     .workout-list,
+     .form-card,
+     .exercise-table.full-width,
+     .custom-exercises-table {
+         max-width: 100%;
+         overflow-x: clip;
+     }
+
+     @media (max-width: 360px) {
+         .page-title {
+             font-size: 1.75rem;
+         }
+
+         .exercise-table.full-width th,
+         .exercise-table.full-width td {
+             font-size: .82rem;
+         }
+     }
+
+     @media (min-width: 561px) {
+         .builder-head {
+             display: grid;
+             grid-template-columns: 1fr var(--extras-toggle-w);
+             grid-template-areas:
+                 "plan plan"
+                 "type extras";
+             gap: .75rem 1.55rem;
+         }
+
+             .builder-head .type-block.desktop-only .segmented.seg-type {
+                 height: var(--control-height); /* fixe Zielhöhe, z. B. 48px */
+                 padding-block: .25rem; /* etwas schlanker innen, damit’s nicht zu fett wirkt */
+                 align-items: stretch; /* Buttons füllen die volle Höhe */
+             }
+
+                 .builder-head .type-block.desktop-only .segmented.seg-type > button {
+                     display: inline-flex; /* Text vertikal mittig */
+                     align-items: center;
+                     justify-content: center;
+                 }
+
+             .builder-head .plan-block {
+                 grid-area: plan;
+                 min-width: 0; /* verhindert Overflow */
+             }
+
+                 .builder-head .plan-block .plan-name-input {
+                     width: 100%;
+                     max-width: none;
+                     min-width: 0;
+                     box-sizing: border-box;
+                 }
+
+             .builder-head .type-block.desktop-only {
+                 display: block;
+             }
+
+             .builder-head .type-block.mobile-only {
+                 display: none !important;
+             }
+
+             .builder-head .extras-cta {
+                 grid-area: extras;
+                 justify-self: end;
+                 white-space: nowrap;
+                 align-self: end;
+             }
+
+             .builder-head .plan-name-input.slim {
+                 grid-area: auto;
+             }
+
+             .builder-head .segmented.seg-type {
+                 grid-area: auto;
+             }
+     }
+
+     @media (max-width: 960px) {
+         .builder-head .type-block.desktop-only {
+             display: none !important;
+         }
+
+         .builder-head .type-block.mobile-only {
+             display: block !important;
+         }
+
+         /* Extras-Button bleibt voll (Icon + Text) */
+         .builder-head .extras-cta {
+             inline-size: var(--extras-toggle-w);
+             min-inline-size: var(--extras-toggle-w);
+             max-inline-size: var(--extras-toggle-w);
+             padding-inline: var(--control-padding-x);
+             justify-self: end;
+         }
+
+         .extras-label {
+             display: inline;
+         }
+     }
+
+     @media (min-width: 561px) and (max-width: 960px) {
+         .type-block.desktop-only {
+             display: none !important;
+         }
+
+         .type-block.mobile-only {
+             display: block !important;
+         }
+
+         .builder-head {
+             /* 1) Links flexibel, rechts Spalte so breit wie der Button (kein calc, kein sbw) */
+             grid-template-columns: minmax(0, 1fr) auto !important;
+             grid-template-areas: "plan plan" "type extras" !important;
+             column-gap: .85rem;
+             align-items: end;
+             min-width: 0;
+             overflow: clip; /* falls ein Rundungs-Pixel entsteht: kein horizontaler Scroll */
+         }
+
+             .builder-head .extras-cta {
+                 width: auto !important;
+                 inline-size: auto !important;
+                 max-width: none !important;
+                 white-space: nowrap; /* Label bleibt in einer Zeile */
+                 padding-inline: var(--control-padding-x); /* wie vorher */
+             }
+
+             .builder-head .seg-type-select {
+                 width: 100% !important;
+             }
+     }
+
+     @media (max-width: 560px) {
+         .builder-head .extras-cta {
+             inline-size: var(--control-height);
+             min-inline-size: var(--control-height);
+             max-inline-size: var(--control-height);
+             padding-inline: 0;
+             display: inline-flex;
+             justify-content: center;
+         }
+     }
+
+     @media (max-width: 960px) {
+         .builder-head .extras-cta {
+             inline-size: var(--control-height) !important;
+             min-inline-size: var(--control-height) !important;
+             max-inline-size: var(--control-height) !important;
+             padding-inline: 0 !important;
+             justify-content: center;
+         }
+
+         .extras-label {
+             display: none !important;
+         }
+         /* nur Icon zeigen */
+     }
+
+     @media (min-width: 961px) {
+         .builder-head {
+             grid-template-columns: minmax(0, 1fr) auto !important;
+         }
+
+             .builder-head .extras-cta {
+                 inline-size: auto !important;
+                 min-inline-size: auto !important;
+                 max-inline-size: clamp(180px, 24ch, 320px) !important; /* genug Platz für Label */
+                 padding-inline: var(--control-padding-x) !important;
+                 white-space: nowrap; /* Label bleibt einzeilig */
+             }
+
+         .extras-label {
+             display: inline !important;
+         }
+     }
+
+     .builder-head {
+         grid-template-columns: minmax(0, 1fr) auto !important; /* linke Spalte flexibel, rechts Content-breite */
+     }
+
+         .builder-head .extras-cta {
+             display: inline-flex;
+             align-items: center;
+             gap: .45rem;
+             height: var(--control-height);
+             padding-inline: var(--control-padding-x);
+             border-radius: 8px;
+             /* Overflow-Schutz */
+             white-space: nowrap;
+             min-width: 0;
+             width: auto;
+             max-inline-size: clamp(180px, 26ch, 360px); /* 26ch reicht für „Extras ausblenden“ */
+             overflow: hidden;
+             text-overflow: ellipsis;
+         }
+
+     @media (max-width: 560px) {
+         .builder-head {
+             grid-template-columns: minmax(0, 1fr) var(--control-height) !important;
+         }
+
+             .builder-head .extras-cta {
+                 inline-size: var(--control-height) !important;
+                 max-inline-size: var(--control-height) !important;
+                 padding-inline: 0 !important;
+                 justify-content: center;
+             }
+
+         .extras-label {
+             display: none !important;
+         }
+     }
+
+     /* Ab 561px immer mit Text */
+     @media (min-width: 561px) {
+         .extras-label {
+             display: inline !important;
+         }
+     }
+
+     @media (max-width: 900px) {
+         .plan-title .plan-count {
+             display: none;
+         }
+     }
+
+     .plan-row1 > .plan-title {
+         flex: 1 1 auto;
+         min-width: 0;
+         overflow: hidden;
+         text-overflow: ellipsis;
+         white-space: nowrap;
+     }
+
+     /* Öffnen */
+     .plan-row1 > .inline-actions {
+         display: inline-flex;
+         gap: .4rem;
+     }
+
+     @media (min-width:561px) and (max-width:1024px) {
+         .inline-actions {
+             display: none !important;
+         }
+
+         .desktop-open {
+             display: inline-flex !important;
+         }
+
+         .mobile-open {
+             display: none !important;
+         }
+     }
+
+     .plan-row1 {
+         width: 100%;
+         position: relative;
+     }
+
+     @media (min-width:1025px) {
+         .plan-row1 .inline-actions {
+             margin-left: auto;
+         }
+     }
+     /* NEU: gilt für alle Breakpoints */
+     .plan-menu {
+         position: absolute;
+         right: .5rem;
+         top: calc(100% + .5rem); /* unter der Zeile aufklappen */
+         display: flex;
+         gap: .35rem;
+         padding: .45rem;
+         background: var(--bg-card);
+         border: 1px solid var(--border-color);
+         border-radius: 10px;
+         box-shadow: 0 6px 18px rgba(0,0,0,.15);
+         z-index: 50;
+     }
+
+         .plan-menu > * {
+             inline-size: auto;
+         }
+
+     /* === canonical layout for plan rows: drag | centered title | actions right === */
+     .plan-item > .plan-row1 {
+         display: grid !important;
+         grid-template-columns: auto 1fr auto;
+         align-items: center;
+         width: 100%;
+     }
+
+         .plan-item > .plan-row1 .plan-drag-handle {
+             grid-column: 1;
+         }
+
+         .plan-item > .plan-row1 .plan-title {
+             grid-column: 2;
+             justify-self: center;
+             text-align: center;
+             min-width: 0;
+             overflow: hidden;
+             text-overflow: ellipsis;
+             white-space: nowrap;
+         }
+
+         .plan-item > .plan-row1 .plan-right {
+             grid-column: 3;
+             justify-self: end;
+             display: inline-flex;
+             align-items: center;
+             gap: .5rem;
+         }
+
+         .plan-item > .plan-row1 .desktop-open {
+             order: 3;
+         }
+
+     /* Responsive: wir behalten eine Zeile bei und blenden ggf. inline-actions aus */
+     @media (max-width:1024px) {
+         .plan-item > .plan-row1 .inline-actions {
+             display: none !important;
+         }
+
+         .plan-item > .plan-row1 .desktop-open {
+             display: inline-flex !important;
+         }
+     }
+
+     /* Mobile: keine zweite Zeile nötig */
+     @media (max-width:560px) {
+         .plan-row2, .mobile-open {
+             display: none !important;
+         }
+     }
+     /* FIX 1: Plan-Karte ist kein Flex-Container mehr */
+     .plan-item {
+         display: block; /* überschreibt .list-item { display:flex } */
+     }
+
+         /* FIX 2: Eine Reihe: drag | Titel zentriert | rechts Aktionen */
+         .plan-item > .plan-row1 {
+             display: grid !important;
+             grid-template-columns: auto 1fr auto; /* Drag | Titel | rechts */
+             align-items: center;
+             width: 100%;
+         }
+
+             .plan-item > .plan-row1 .plan-title {
+                 justify-self: center;
+                 text-align: center;
+                 min-width: 0;
+                 overflow: hidden;
+                 text-overflow: ellipsis;
+                 white-space: nowrap;
+             }
+
+             .plan-item > .plan-row1 .plan-right {
+                 justify-self: end;
+                 display: inline-flex;
+                 align-items: center;
+                 gap: .5rem;
+             }
+
+     /* FIX 3: Die mobile Zusatzzeile standardmäßig weg */
+     .plan-row2 {
+         display: none;
+     }
+
+     /* Nur auf sehr schmalen Screens (optional) die mobile Zeile reaktivieren */
+     @media (max-width:560px) {
+         .plan-row2 {
+             display: block;
+         }
+
+         .mobile-open {
+             display: inline-flex !important;
+         }
+         /* mobiler Open-Button sichtbar */
+         .desktop-open {
+             display: none !important;
+         }
+     }
+
+     /* Desktop-Default: Inline-Actions sichtbar, Kebab-Wrapper versteckt */
+     .inline-actions {
+         display: inline-flex;
+         gap: .4rem;
+     }
+
+     .kebab-wrap {
+         display: none;
+     }
+
+     /* Ab hier „verschieben“ sich deine Buttons → Inline-Actions aus, Kebab an */
+     @media (max-width: 1024px) {
+         .inline-actions {
+             display: none !important;
+         }
+
+         .kebab-wrap {
+             display: inline-flex !important;
+         }
+     }
+
+     /* Der Button selbst: fixes Quadrat und auto-zentriert */
+     .table-delete-btn {
+         display: inline-flex;
+         align-items: center;
+         justify-content: center;
+         width: 32px;
+         height: 32px;
+         margin: 0 auto; /* falls text-align greifen sollte */
+         line-height: 1;
+     }
+
+     /* Öffneter Plan – Table darf die Seite NICHT verbreitern */
+     .exercise-table.full-width.narrow {
+         display: block; /* wichtig: nicht als Table-Wrapper mit auto-breiten Kindern */
+         max-inline-size: 100%;
+         overflow-x: clip; /* oder: hidden; (clip ist moderner) */
+         contain: inline-size; /* Kinder beeinflussen die Außenbreite nicht */
+     }
+
+         /* Sicherheitshalber die Tabelle fix einbremsen */
+         .exercise-table.full-width.narrow > table {
+             table-layout: fixed;
+             width: 100%;
+             max-width: 100%;
+         }
+
+     /* === Geöffneter Trainingsplan: identischer Rahmen wie alle anderen === */
+     .exercise-table.full-width.narrow {
+         background: var(--bg-card);
+         border: 1px solid var(--border-color);
+         border-radius: 12px;
+         box-shadow: 0 2px 8px rgba(0,0,0,.06);
+         overflow: hidden; /* Ecken sauber, nichts „blankes“ */
+     }
+
+         /* Keine künstlichen Rand-Gutters links/rechts */
+         .exercise-table.full-width.narrow .table-scroll {
+             scrollbar-gutter: auto;
+         }
+
+             /* Tabelle selbst bündig ohne Spalt bis an den Rahmen */
+             .exercise-table.full-width.narrow .table-scroll > table {
+                 width: 100%;
+                 table-layout: fixed;
+                 border-collapse: collapse; /* entfernt die seitlichen Gaps */
+             }
+
+         /* Optional: vertikale Trennlinien wie bei den anderen (falls gewünscht) */
+         .exercise-table.full-width.narrow th,
+         .exercise-table.full-width.narrow td {
+             border-right: 1px solid var(--border-color);
+         }
+
+             .exercise-table.full-width.narrow th:last-child,
+             .exercise-table.full-width.narrow td:last-child {
+                 border-right: 0;
+             }
+     /* Host im TH: wird Clip-Container für den Resizer */
+     .exercise-table.full-width th .th-text,
+     .custom-exercises-table th .th-text {
+         position: relative;
+         display: block;
+         overflow: hidden; /* ← Wichtig: hier wird geklippt */
+         padding-right: 8px; /* etwas Raum neben dem Text */
+     }
+
+     /* NEU: Resizer hängt an .th-text (nicht am TH) */
+     th .th-text > .resizer {
+         position: absolute;
+         top: 0;
+         right: 0;
+         width: var(--resize-hit, 10px);
+         height: 100%;
+         cursor: col-resize;
+         z-index: 1;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         background: transparent;
+     }
+
+         /* Sichtbare Linie im Griff */
+         th .th-text > .resizer::before {
+             content: "";
+             width: var(--resize-line, 1px);
+             height: 100%;
+             background: var(--resize-color, #94a3b8);
+             opacity: .7;
+             transition: transform .12s ease, background-color .12s ease, opacity .12s ease;
+         }
+
+         th .th-text > .resizer:hover::before,
+         th .th-text > .resizer.is-active::before {
+             background: var(--resize-color-hover, #60a5fa);
+             opacity: 1;
+             transform: scaleX(2); /* optisch dicker beim Hover/Drag */
+         }
+
+     /* Header-Kürzung (Fallback) – zeigt je nach Klassenstatus genau EINS der Labels */
+     .th-label .full,
+     .th-label .mid,
+     .th-label .short {
+         display: none;
+     }
+
+     .th-label.is-full .full {
+         display: inline;
+     }
+
+     .th-label.is-mid .mid {
+         display: inline;
+     }
+
+     .th-label.is-short .short {
+         display: inline;
+     }
+     /* Sichtbare, schlanke Linie am Spaltenrand + größere Klickfläche */
+     .exercise-table.full-width th.resizable > .resizer::after,
+     .custom-exercises-table th.resizable > .resizer::after {
+         content: "";
+         position: absolute;
+         top: 0;
+         bottom: 0;
+         right: 4px; /* Linie sitzt innen */
+         width: 1px;
+         background: var(--resize-color);
+         opacity: .7;
+         transition: width .12s ease, background-color .12s ease, opacity .12s ease;
+     }
+
+     .exercise-table.full-width th.resizable > .resizer:hover::after,
+     .exercise-table.full-width th.resizable > .resizer.is-active::after,
+     .custom-exercises-table th.resizable > .resizer:hover::after,
+     .custom-exercises-table th.resizable > .resizer.is-active::after {
+         width: 2px;
+         background: var(--resize-color-hover);
+         opacity: 1;
+     }
+
+     /* sanfter Fokusrahmen, wenn via tryFocusFromStorage gescrollt wurde */
+     .flash-focus {
+         outline: 2px solid #60a5fa;
+         box-shadow: 0 0 0 4px rgba(96,165,250,.25);
+         transition: outline-color .3s ease, box-shadow .3s ease;
+     }
+    /* Live-Preview: vertikale Spaltentrenner wie bei den anderen Tabellen */
+    .preview-card .exercise-table.full-width.compact .table-scroll > table {
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+    }
+
+        .preview-card .exercise-table.full-width.compact .table-scroll > table th,
+        .preview-card .exercise-table.full-width.compact .table-scroll > table td {
             border-right: 1px solid var(--border-color);
         }
 
-            .custom-exercises-table .exercise-table th:last-child,
-            .custom-exercises-table .exercise-table td:last-child {
-                border-right: 0;
-            }
-
-    .custom-exercises-table th,
-    .custom-exercises-table td {
-        padding: 0.75rem;
-        text-align: center;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    .custom-exercises-table th {
-        background-color: #e5e7eb;
-        font-weight: 600;
-        font-size: 0.95rem;
-        color: #1f2937;
-    }
-
-    .custom-exercises-table td {
-        font-size: 0.92rem;
-        color: #374151;
-    }
-
-        .custom-exercises-table td input {
-            width: 90%;
-            padding: 0.3rem 0.5rem;
-            font-size: 0.9rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.4rem;
-            outline: none;
-        }
-
-            .custom-exercises-table td input:focus {
-                border-color: #3b82f6;
-                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-            }
-
-    .delete-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1.1rem;
-        color: #ef4444;
-        transition: transform 0.2s ease;
-    }
-
-
-    @media (max-width: 600px) {
-        .form-card {
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .exercise-input-group {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .form-card input,
-        .form-card select {
-            width: 100%;
-        }
-
-        .extras-button-group {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-    }
-    /* Karte selbst darf über Nachbarn stehen */
-    .plan-item {
-        position: relative;
-    }
-
-        /* Wenn Menü offen ist: Karte nach oben und kein Hover-Shift */
-        .plan-item.menu-open {
-            z-index: 999;
-        }
-
-            .plan-item.menu-open:hover {
-                transform: none !important;
-            }
-
-    /* Menü noch darüber */
-    .plan-menu {
-        z-index: 1000;
-    }
-
-    .edit-btn,
-    .delete-btn,
-    .download-btn,
-    .open-btn,
-    .table-delete-btn,
-    .close-plan-btn,
-    .close-timer-btn,
-    .add-timer-btn {
-        background: none;
-        border: none;
-        font-size: 1.2rem;
-        cursor: pointer;
-        padding: 0.5rem;
-        color: #6b7280;
-        border-radius: 8px;
-        transition: color 0.2s, text-shadow 0.2s, transform 0.1s;
-    }
-
-
-    .exercise-input-group {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        width: 100%;
-        align-items: stretch; /* 👉 NEU: gleiche Höhe in der Zeile */
-    }
-
-    .button-group {
-        display: flex;
-        gap: 0.75rem;
-        align-items: stretch;
-        flex-wrap: nowrap;
-        width: 100%; /* volle Breite der Spalte */
-        margin-left: 0; /* NICHT nach rechts wegschieben */
-    }
-
-    @media (max-width: 600px) {
-        .button-group {
-            margin-left: 0;
-            flex-wrap: wrap;
-            width: 100%;
-        }
-    }
-
-    @media (min-width: 601px) {
-        .button-group .btn-cell:last-child {
-            margin-top: 0px;
-        }
-    }
-
-    .exercise-table {
-        margin-top: 1rem;
-        width: 100%;
-        border-collapse: collapse;
-        background: var(--bg-card);
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        table-layout: fixed;
-    }
-
-    html.dark-mode .exercise-table {
-        background: #1c2526;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    .exercise-table th,
-    .exercise-table td {
-        padding: 1rem;
-        text-align: center;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .exercise-table th {
-        background: #f1f5f9;
-    }
-
-    html.dark-mode .exercise-table th {
-        background: #0d1117;
-        color: #ffffff;
-    }
-
-    .exercise-table tr:nth-child(even) {
-        background: #f9fafb;
-    }
-
-    html.dark-mode .exercise-table tr:nth-child(even) {
-        background: #21262d;
-    }
-
-    .exercise-table tr:hover {
-        background: #d1d5db;
-    }
-
-    html.dark-mode .exercise-table tr:hover {
-        background: #2d333b;
-    }
-
-    .exercise-table.full-width {
-        table-layout: fixed;
-        width: 100%;
-        margin: 0 auto;
-        position: relative;
-    }
-
-    .exercise-table th,
-    .exercise-table td,
-    .custom-exercises-table th,
-    .custom-exercises-table td {
-        min-width: 0;
-    }
-
-        .exercise-table th:last-child,
-        .exercise-table td:last-child,
-        .custom-exercises-table th:last-child,
-        .custom-exercises-table td:last-child {
-            min-width: 44px !important;
-            white-space: nowrap;
-        }
-
-    /* Header reagieren auf Breite */
-    .exercise-table th,
-    .custom-exercises-table th {
-        container-type: inline-size;
-    }
-
-    /* Wrapper für Header-Text */
-    .th-text {
-        display: inline-block;
-        white-space: nowrap;
-        line-height: 1;
-    }
-
-    /* Body-Zellen bleiben horizontal, hart abkürzen */
-    .exercise-table td,
-    .custom-exercises-table td {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .exercise-table.full-width table {
-        width: 100%;
-        table-layout: fixed; /* ← WICHTIG: stabilisiert Spaltenbreiten beim Drag */
-    }
-
-    .exercise-table.full-width th,
-    .exercise-table.full-width td {
-        padding: 1.5rem;
-        text-align: center;
-        min-width: 0; /* war 150px: verhindert Breiten-Inflation */
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    html.dark-mode .exercise-table.full-width th,
-    html.dark-mode .exercise-table.full-width td {
-        border-bottom: 1px solid #30363d;
-    }
-
-    .exercise-table.full-width th {
-        background: #f1f5f9;
-        color: var(--text-primary);
-        font-weight: 600;
-        position: relative;
-    }
-
-    html.dark-mode .exercise-table.full-width th {
-        background: #0d1117;
-        color: #ffffff;
-    }
-
-    .button-group .btn-cell > *:not(.add-exercise-btn) {
-        width: 100%;
-        height: var(--btn-height);
-        padding-left: var(--btn-pad-x);
-        padding-right: var(--btn-pad-x);
-    }
-
-    .button-group .btn-cell > .action-btn.add-exercise-btn {
-        display: inline-flex; /* saubere vertikale Zentrierung */
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: calc(var(--control-height) - 4px); /* 48px → 44px */
-        padding-top: 0;
-        padding-bottom: 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    /* Basis: nur "full" sichtbar */
-    .th-label .mid,
-    .th-label .short {
-        display: none;
-    }
-
-    /* Wenn per JS "mid" gesetzt wurde */
-    .th-label.is-mid .full {
-        display: none;
-    }
-
-    .th-label.is-mid .mid {
-        display: inline;
-    }
-
-    .th-label.is-mid .short {
-        display: none;
-    }
-
-    /* Wenn per JS "short" gesetzt wurde */
-    .th-label.is-short .full,
-    .th-label.is-short .mid {
-        display: none;
-    }
-
-    .th-label.is-short .short {
-        display: inline;
-    }
-
-    .action-btn.plan-submit-btn {
-        height: calc(var(--control-height) - 4px);
-    }
-
-    @media (max-width: 600px) {
-        .button-group {
-            margin-left: 0;
-            flex-wrap: wrap;
-            width: 100%;
-            --btn-width: 100%;
-        }
-    }
-
-    .flash-focus {
-        outline: 2px solid var(--accent-primary);
-        box-shadow: 0 0 0 3px var(--accent-primary), 0 0 18px var(--accent-hover);
-        transition: box-shadow .3s ease;
-    }
-
-    .exercise-table.full-width tr:hover {
-        background: #d1d5db;
-    }
-
-    html.dark-mode .exercise-table.full-width tr:hover {
-        background: #2d333b;
-    }
-
-    .exercise-table.full-width td {
-        color: var(--text-secondary);
-    }
-
-    html.dark-mode .exercise-table.full-width td {
-        color: #c9d1d9;
-    }
-
-    .timer-container,
-    .stopwatch-top {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
-        max-width: 1200px;
-        position: relative;
-    }
-
-    .timer-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        align-items: center;
-        width: 100%;
-        max-width: 1200px;
-        transition: box-shadow 0.2s;
-    }
-
-    html.dark-mode .timer-card {
-        background: #1c2526;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    .timer-card:hover {
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-    }
-
-    .timer-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-    }
-
-    .custom-exercise-list .delete-btn {
-        background: none;
-        border: none;
-        color: #ef4444;
-        cursor: pointer;
-        margin-left: 0.5rem;
-        font-size: 1rem;
-    }
-
-    .custom-exercise-list li {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 4px 0;
-    }
-
-    .timer-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .timer-name {
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 1.2rem;
-        text-align: left;
-        pointer-events: auto;
-    }
-
-    .timer-display,
-    .timer {
-        font-size: 3rem;
-        font-weight: 800;
-        color: var(--text-primary);
-        width: 100%;
-        max-width: 400px;
-        text-align: center;
-        font-family: 'Roboto Mono', monospace;
-        background: linear-gradient(45deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.1));
-        padding: 0.75rem;
-        border-radius: 4px;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s, box-shadow 0.2s;
-        margin: 0 auto;
-    }
-
-    html.dark-mode .timer-display,
-    html.dark-mode .timer {
-        color: #ffffff;
-        background: linear-gradient(45deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1));
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-    /* ========== Desktop/ab deinem Original-Breakpoint: alles in EINER Reihe ========== */
-
-    .plan-title {
-        flex: 1 1 auto;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    /* Inline-Action-Buttons (Edit/Löschen/Download) sind standardmäßig sichtbar */
-    .inline-actions {
-        display: inline-flex;
-        gap: .4rem;
-    }
-    /* Kebab standardmäßig verstecken – wird erst ab schmaler Breite angezeigt */
-
-
-    @media (max-width:1024px) {
-        .inline-actions {
-            display: none !important;
-        }
-
-        .desktop-open {
-            display: inline-flex !important;
-        }
-    }
-
-    /* ≤560px: weiterhin eine Zeile; mobile Zeile komplett aus */
-    @media (max-width:560px) {
-        .plan-row2 {
-            display: none !important;
-        }
-
-        .mobile-open {
-            display: none !important;
-        }
-
-        .desktop-open {
-            display: inline-flex !important;
-        }
-    }
-    /* Open-Button auch in einer Linie (Desktop) */
-    .desktop-open {
-        display: inline-flex;
-    }
-
-    .mobile-open {
-        display: none;
-    }
-
-    /* ========== Ab dem Original-Mobile-Breakpoint (~560px): schalte auf Kebab + eigene Open-Zeile ========== */
-    @media (max-width: 560px) {
-        .plan-item {
-            position: relative;
-            display: grid;
-            grid-template-rows: auto auto;
-            gap: .5rem;
-        }
-
-        /* Inline-Aktionen ausblenden, Kebab einblenden */
-        .inline-actions {
-            display: none;
-        }
-
-        /* Open-Button in eigener Zeile */
-        .desktop-open {
-            display: inline-flex !important;
-        }
-        /* war: none */
-        .mobile-open {
-            display: none !important;
-        }
-        /* war: inline-flex */
-        .plan-row2 {
-            display: none;
-        }
-
-            .plan-row2 .primary-open {
-                width: 100%;
-            }
-
-        .plan-title {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .plan-menu {
-            position: absolute;
-            right: .5rem;
-            top: calc(100% - 2.25rem);
-            display: flex;
-            gap: .3rem;
-            padding: .4rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            box-shadow: var(--shadow, 0 6px 18px rgba(0,0,0,.15));
-            z-index: 30;
-        }
-
-            .plan-menu > * {
-                inline-size: auto;
-            }
-
-        .exercise-table.full-width.narrow th,
-        .exercise-table.full-width.narrow td {
-            min-width: 0;
-            white-space: normal;
-            word-break: break-word;
-            text-overflow: clip;
-            padding: .6rem;
-            font-size: .9rem;
-        }
-    }
-
-    .exercise-table.full-width.narrow th.resizable > .resizer {
-        right: -4px; /* Breite fressenden Außenrand vermeiden */
-        width: 10px;
-    }
-
-    .timer-display:hover,
-    .timer:hover {
-        transform: scale(1.02);
-        box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    .plan-drag-handle {
-        cursor: grab;
-        margin-right: .5rem;
-        user-select: none;
-    }
-
-    .timer-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        align-items: center;
-        width: 100%;
-    }
-
-    .timer-input-group {
-        display: flex;
-        gap: 0.5rem;
-        width: 100%;
-        justify-content: center;
-    }
-
-    .timer-select,
-    .timer-input {
-        padding: 0.5rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        font-size: 0.9rem;
-        width: 150px;
-    }
-
-    html.dark-mode .timer-select,
-    html.dark-mode .timer-input {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
-    }
-
-    .timer-select:focus,
-    .timer-input:focus {
-        border-color: #4B6CB7;
-        box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
-        outline: none;
-    }
-
-    .timer-buttons {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: center;
-    }
-
-    .builder-head .plan-block .field-label {
-        display: block;
-        margin-bottom: .6rem; /* Abstand Titel ↔ Input */
-    }
-
-    .builder-head .plan-block .plan-name-input {
-        width: 100%;
-    }
-
-    .type-block .type-heading {
-        display: block;
-        margin-bottom: .6rem;
-    }
-
-    .goal-row {
-        display: grid;
-        gap: .55rem; /* Abstand Titel ↔ Select */
-    }
-
-    .lap-btn {
-        background: #4B6CB7;
-        color: #ffffff;
-    }
-
-        .lap-btn:hover {
-            background: #3b5ca8;
-            transform: scale(1.05);
-        }
-
-    .timer-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .laps-container {
-        width: 100%;
-        max-width: 400px;
-        margin-top: 1rem;
-    }
-
-        .laps-container h4 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            text-align: center;
-        }
-
-    .laps-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .lap-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 0.5rem;
-        background: var(--bg-secondary);
-        border-radius: 8px;
-    }
-
-    html.dark-mode .lap-item {
-        background: #0d1117;
-    }
-
-    .edit-input {
-        padding: 0.75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        width: 100%;
-        font-size: 0.9rem;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-    }
-
-    html.dark-mode .edit-input {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
-    }
-
-    .edit-input:focus {
-        border-color: #4B6CB7;
-        box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
-        outline: none;
-    }
-
-    .save-btn {
-        background: #10b981;
-        color: #ffffff;
-    }
-
-        .save-btn:hover {
-            background: #064e3b;
-            transform: scale(1.05);
-        }
-
-    .cancel-btn {
-        background: #6b7280;
-        color: #ffffff;
-    }
-
-        .cancel-btn:hover {
-            background: #4b5563;
-            transform: scale(1.05);
-        }
-
-    .delete-confirm-btn {
-        background: #ef4444;
-        color: #ffffff;
-    }
-
-        .delete-confirm-btn:hover {
-            background: #b91c1c;
-            transform: scale(1.05);
-        }
-
-
-    .custom-exercises-table table {
-        width: 100%;
-        max-width: 100%;
-        table-layout: fixed;
-        min-width: 100%; /* verhindert Schrumpfen */
-    }
-
-    .builder-head .segmented.seg-type {
-        gap: .45rem; /* etwas mehr Luft zwischen Buttons */
-        padding: .26rem .35rem; /* minimal höhere/lebhaftere Fläche */
-        border-radius: 10px;
-    }
-
-        .builder-head .segmented.seg-type > button {
-            padding: .42rem .72rem; /* + ~2–3px in beide Richtungen */
-            font-size: .89rem; /* vorher ~.86rem */
-            border-radius: 9px;
-        }
-
-
-    .builder-head .plan-name-input.slim {
-        flex: 1 1 320px;
-        min-width: 180px;
-    }
-
-
-    @media (max-width: 1100px) {
-        .builder-head .segmented.seg-type {
-            gap: .28rem;
-        }
-
-            .builder-head .segmented.seg-type > button {
-                padding: .28rem .5rem;
-                font-size: .82rem;
-            }
-    }
-
-    @media (max-width: 520px) {
-        .builder-head {
-            grid-template-columns: 1fr;
-            grid-template-areas:
-                "plan"
-                "type"
-                "extras";
-        }
-
-            .builder-head .extras-cta {
-                justify-self: start;
-                white-space: nowrap;
-                box-sizing: border-box;
-                inline-size: min(var(--extras-toggle-w), 100%);
-                min-inline-size: min(var(--extras-toggle-w), 100%);
-                max-inline-size: min(var(--extras-toggle-w), 100%);
-            }
-
-        .segmented.seg-type {
-            flex-wrap: wrap;
-            row-gap: .35rem;
-        }
-    }
-
-    @media (max-width: 560px) {
-        .desktop-only {
-            display: none;
-        }
-
-        .builder-head .plan-block {
-            grid-area: plan; /* spannt über "plan plan" = beide Spalten */
-            width: 100%;
-            min-width: 0; /* verhindert Einquetschen durch Intrinsic-Width */
-        }
-
-            .builder-head .plan-block .plan-name-input {
-                width: 100% !important;
-                max-width: none !important;
-                min-width: 0;
-                box-sizing: border-box;
-            }
-
-        .mobile-only {
-            display: block;
-        }
-
-        .builder-head .type-block.desktop-only {
-            display: none !important;
-        }
-
-        .builder-head .type-block.mobile-only {
-            display: block;
-        }
-
-        .builder-head {
-            display: grid !important;
-            grid-template-columns: minmax(0, 1fr) var(--control-height) !important; /* 2. Spalte exakt Icon-Breite */
-            grid-template-areas:
-                "plan plan"
-                "type extras" !important;
-            align-items: start; /* nicht mittig zwischen den Zeilen hängen */
-            row-gap: .6rem;
-            column-gap: .75rem;
-        }
-
-            .builder-head .plan-name-input.slim {
-                grid-area: plan;
-                width: 100%; /* volle Breite */
-            }
-
-            .builder-head .type-block.mobile-only {
-                grid-area: type;
-            }
-
-            .builder-head .seg-type-select {
-                height: var(--control-height);
-                font-size: var(--control-font-size);
-                width: 100%;
-            }
-
-        .extras-label {
-            display: none;
-        }
-
-        .extras-icon {
-            margin-right: 0;
-        }
-
-        .builder-head .extras-cta {
-            grid-area: extras;
-            justify-self: end !important;
-            align-self: end; /* am unteren Rand der Zeile → Höhe vom Label ignorieren */
-            inline-size: var(--control-height) !important; /* quadratisch */
-            min-inline-size: var(--control-height) !important;
-            max-inline-size: var(--control-height) !important;
-            padding-inline: 0 !important;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Kleinkram */
-        .seg-type-select {
-            height: var(--control-height);
-            font-size: var(--control-font-size);
-            width: 100%;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-secondary);
-            color: var(--text-color);
-            padding: 0 .75rem;
-        }
-
-        .exercise-table.full-width th,
-        .exercise-table.full-width td,
-        .custom-exercises-table th,
-        .custom-exercises-table td {
-            min-width: 0;
-            white-space: normal;
-            word-break: break-word;
-            text-overflow: clip;
-            padding: .6rem;
-            font-size: .9rem;
-        }
-
-        .preview-card {
-            position: static;
-            top: auto;
-        }
-
-        .list-item-actions,
-        .timer-buttons,
-        .timer-input-group {
-            flex-wrap: wrap;
-        }
-
-        .workout-list,
-        .form-card.builder-grid,
-        .builder-left,
-        .builder-right {
-            max-width: 100%;
-            min-width: 0;
-        }
-
-        .workout-list {
-            padding: 0 .5rem;
-        }
-
-        .form-card {
-            padding: 1rem;
-        }
-    }
-
-    .workout-list,
-    .timer-container,
-    .stopwatch-top {
-        width: 100%;
-        max-width: var(--section-max);
-        margin-inline: auto !important;
-    }
-
-    .button-group .btn-cell > * {
-        margin-top: 0 !important;
-        width: 100%;
-        height: var(--control-height);
-        padding-left: var(--control-padding-x);
-        padding-right: var(--control-padding-x);
-    }
-
-    @media (min-width: 960px) {
-        .builder-head .extras-cta {
-            flex: 0 0 var(--extras-toggle-w);
-            white-space: nowrap;
-        }
-    }
-
-    .builder-head {
-        display: grid;
-        grid-template-columns: 1fr var(--extras-toggle-w);
-        grid-template-rows: auto auto;
-        grid-template-areas:
-            "plan plan"
-            "type extras";
-        align-items: center;
-        gap: .75rem 1rem;
-    }
-
-        .builder-head .plan-name-input.slim {
-            grid-area: plan;
-            width: 100%;
-        }
-
-        .builder-head .segmented.seg-type {
-            grid-area: type;
-            justify-self: start;
-            margin-left: 0;
-        }
-
-        .builder-head .extras-cta {
-            grid-area: extras;
-            justify-self: end;
-            white-space: nowrap;
-            box-sizing: border-box;
-            inline-size: min(var(--extras-toggle-w), 100%);
-            min-inline-size: min(var(--extras-toggle-w), 100%);
-            max-inline-size: min(var(--extras-toggle-w), 100%);
-        }
-
-        .builder-head .extras-cta {
-            box-sizing: border-box;
-            inline-size: min(var(--extras-toggle-w), 100%);
-        }
-    /* Wrapper zeigt eine horizontale Scrollbar nur bei Bedarf */
-    .table-scroll {
-        overflow-x: auto;
-        overflow-y: hidden;
-        max-width: 100%;
-        -webkit-overflow-scrolling: touch;
-
-    }
-
-        /* Tabelle darf breiter als der Container sein → dann erscheint die Scrollbar */
-        .table-scroll > table {
-            width: 100%;
-            table-layout: fixed; /* lässt deine Resizer unverändert funktionieren */
-        }
-
-            /* Minimal sinnvolle Breite pro Tabellentyp, damit nichts mikroskopisch wird.
-   → Scrollbar erscheint erst, wenn der Viewport kleiner ist. */
-            .table-scroll > table[data-cols="3"] {
-                min-width: 560px;
-            }
-            /* Übung | Sätze | Wdh. */
-            .table-scroll > table[data-cols="4"] {
-                min-width: 720px;
-            }
-    /* + Aktion/weitere Spalte */
-
-    /* Falls zuvor irgendwo "clip/hidden" gesetzt wurde: das Scrollen im Wrapper nicht wegklemmen */
-    .exercise-table.full-width.narrow,
-    .exercise-table.full-width.compact,
-    .custom-exercises-table {
-        overflow-x: visible; /* der eigentliche Scroll passiert im .table-scroll */
-    }
-
-    @media (max-width: 420px) {
-        .training {
-            --control-height: 44px;
-            --control-padding-x: 1rem;
-        }
-
-        .workout-list {
-            padding: 0 .5rem;
-        }
-
-        .form-card {
-            padding: 1rem;
-        }
-
-        .page-title {
-            font-size: 1.9rem;
-        }
-
-        .builder-head .segmented.seg-type {
-            padding: .2rem;
-            gap: .25rem;
-        }
-
-            .builder-head .segmented.seg-type > button {
-                padding: .25rem .45rem;
-                font-size: .8rem;
-            }
-
-        .exercise-table.full-width th,
-        .exercise-table.full-width td {
-            padding: .5rem;
-            font-size: .85rem;
-        }
-
-        .timer-display {
-            font-size: 2.4rem;
-        }
-
-        .timer-select,
-        .timer-input {
-            width: 120px;
-        }
-
-        .custom-toggle-btn {
-            inline-size: min(var(--custom-toggle-w), 100%);
-        }
-    }
-
-    .training,
-    .workout-list,
-    .form-card,
-    .exercise-table.full-width,
-    .custom-exercises-table {
-        max-width: 100%;
-        overflow-x: clip;
-    }
-
-    @media (max-width: 360px) {
-        .page-title {
-            font-size: 1.75rem;
-        }
-
-        .exercise-table.full-width th,
-        .exercise-table.full-width td {
-            font-size: .82rem;
-        }
-    }
-
-    @media (min-width: 561px) {
-        .builder-head {
-            display: grid;
-            grid-template-columns: 1fr var(--extras-toggle-w);
-            grid-template-areas:
-                "plan plan"
-                "type extras";
-            gap: .75rem 1.55rem;
-        }
-
-            .builder-head .type-block.desktop-only .segmented.seg-type {
-                height: var(--control-height); /* fixe Zielhöhe, z. B. 48px */
-                padding-block: .25rem; /* etwas schlanker innen, damit’s nicht zu fett wirkt */
-                align-items: stretch; /* Buttons füllen die volle Höhe */
-            }
-
-                .builder-head .type-block.desktop-only .segmented.seg-type > button {
-                    display: inline-flex; /* Text vertikal mittig */
-                    align-items: center;
-                    justify-content: center;
-                }
-
-            .builder-head .plan-block {
-                grid-area: plan;
-                min-width: 0; /* verhindert Overflow */
-            }
-
-                .builder-head .plan-block .plan-name-input {
-                    width: 100%;
-                    max-width: none;
-                    min-width: 0;
-                    box-sizing: border-box;
-                }
-
-            .builder-head .type-block.desktop-only {
-                display: block;
-            }
-
-            .builder-head .type-block.mobile-only {
-                display: none !important;
-            }
-
-            .builder-head .extras-cta {
-                grid-area: extras;
-                justify-self: end;
-                white-space: nowrap;
-                align-self: end;
-            }
-
-            .builder-head .plan-name-input.slim {
-                grid-area: auto;
-            }
-
-            .builder-head .segmented.seg-type {
-                grid-area: auto;
-            }
-    }
-
-    @media (max-width: 960px) {
-        .builder-head .type-block.desktop-only {
-            display: none !important;
-        }
-
-        .builder-head .type-block.mobile-only {
-            display: block !important;
-        }
-
-        /* Extras-Button bleibt voll (Icon + Text) */
-        .builder-head .extras-cta {
-            inline-size: var(--extras-toggle-w);
-            min-inline-size: var(--extras-toggle-w);
-            max-inline-size: var(--extras-toggle-w);
-            padding-inline: var(--control-padding-x);
-            justify-self: end;
-        }
-
-        .extras-label {
-            display: inline;
-        }
-    }
-
-    @media (min-width: 561px) and (max-width: 960px) {
-        .type-block.desktop-only {
-            display: none !important;
-        }
-
-        .type-block.mobile-only {
-            display: block !important;
-        }
-
-        .builder-head {
-            /* 1) Links flexibel, rechts Spalte so breit wie der Button (kein calc, kein sbw) */
-            grid-template-columns: minmax(0, 1fr) auto !important;
-            grid-template-areas: "plan plan" "type extras" !important;
-            column-gap: .85rem;
-            align-items: end;
-            min-width: 0;
-            overflow: clip; /* falls ein Rundungs-Pixel entsteht: kein horizontaler Scroll */
-        }
-
-            .builder-head .extras-cta {
-                width: auto !important;
-                inline-size: auto !important;
-                max-width: none !important;
-                white-space: nowrap; /* Label bleibt in einer Zeile */
-                padding-inline: var(--control-padding-x); /* wie vorher */
-            }
-
-            .builder-head .seg-type-select {
-                width: 100% !important;
-            }
-    }
-
-    @media (max-width: 560px) {
-        .builder-head .extras-cta {
-            inline-size: var(--control-height);
-            min-inline-size: var(--control-height);
-            max-inline-size: var(--control-height);
-            padding-inline: 0;
-            display: inline-flex;
-            justify-content: center;
-        }
-    }
-
-    @media (max-width: 960px) {
-        .builder-head .extras-cta {
-            inline-size: var(--control-height) !important;
-            min-inline-size: var(--control-height) !important;
-            max-inline-size: var(--control-height) !important;
-            padding-inline: 0 !important;
-            justify-content: center;
-        }
-
-        .extras-label {
-            display: none !important;
-        }
-        /* nur Icon zeigen */
-    }
-
-    @media (min-width: 961px) {
-        .builder-head {
-            grid-template-columns: minmax(0, 1fr) auto !important;
-        }
-
-            .builder-head .extras-cta {
-                inline-size: auto !important;
-                min-inline-size: auto !important;
-                max-inline-size: clamp(180px, 24ch, 320px) !important; /* genug Platz für Label */
-                padding-inline: var(--control-padding-x) !important;
-                white-space: nowrap; /* Label bleibt einzeilig */
-            }
-
-        .extras-label {
-            display: inline !important;
-        }
-    }
-
-    .builder-head {
-        grid-template-columns: minmax(0, 1fr) auto !important; /* linke Spalte flexibel, rechts Content-breite */
-    }
-
-        .builder-head .extras-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: .45rem;
-            height: var(--control-height);
-            padding-inline: var(--control-padding-x);
-            border-radius: 8px;
-            /* Overflow-Schutz */
-            white-space: nowrap;
-            min-width: 0;
-            width: auto;
-            max-inline-size: clamp(180px, 26ch, 360px); /* 26ch reicht für „Extras ausblenden“ */
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-    @media (max-width: 560px) {
-        .builder-head {
-            grid-template-columns: minmax(0, 1fr) var(--control-height) !important;
-        }
-
-            .builder-head .extras-cta {
-                inline-size: var(--control-height) !important;
-                max-inline-size: var(--control-height) !important;
-                padding-inline: 0 !important;
-                justify-content: center;
-            }
-
-        .extras-label {
-            display: none !important;
-        }
-    }
-
-    /* Ab 561px immer mit Text */
-    @media (min-width: 561px) {
-        .extras-label {
-            display: inline !important;
-        }
-    }
-
-    @media (max-width: 900px) {
-        .plan-title .plan-count {
-            display: none;
-        }
-    }
-
-    .plan-row1 > .plan-title {
-        flex: 1 1 auto;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    /* Öffnen */
-    .plan-row1 > .inline-actions {
-        display: inline-flex;
-        gap: .4rem;
-    }
-
-    @media (min-width:561px) and (max-width:1024px) {
-        .inline-actions {
-            display: none !important;
-        }
-
-        .desktop-open {
-            display: inline-flex !important;
-        }
-
-        .mobile-open {
-            display: none !important;
-        }
-    }
-
-    .plan-row1 {
-        width: 100%;
-        position: relative;
-    }
-
-    @media (min-width:1025px) {
-        .plan-row1 .inline-actions {
-            margin-left: auto;
-        }
-    }
-    /* NEU: gilt für alle Breakpoints */
-    .plan-menu {
-        position: absolute;
-        right: .5rem;
-        top: calc(100% + .5rem); /* unter der Zeile aufklappen */
-        display: flex;
-        gap: .35rem;
-        padding: .45rem;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        box-shadow: 0 6px 18px rgba(0,0,0,.15);
-        z-index: 50;
-    }
-
-        .plan-menu > * {
-            inline-size: auto;
-        }
-
-    /* === canonical layout for plan rows: drag | centered title | actions right === */
-    .plan-item > .plan-row1 {
-        display: grid !important;
-        grid-template-columns: auto 1fr auto;
-        align-items: center;
-        width: 100%;
-    }
-
-        .plan-item > .plan-row1 .plan-drag-handle {
-            grid-column: 1;
-        }
-
-        .plan-item > .plan-row1 .plan-title {
-            grid-column: 2;
-            justify-self: center;
-            text-align: center;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .plan-item > .plan-row1 .plan-right {
-            grid-column: 3;
-            justify-self: end;
-            display: inline-flex;
-            align-items: center;
-            gap: .5rem;
-        }
-
-        .plan-item > .plan-row1 .desktop-open {
-            order: 3;
-        }
-
-    /* Responsive: wir behalten eine Zeile bei und blenden ggf. inline-actions aus */
-    @media (max-width:1024px) {
-        .plan-item > .plan-row1 .inline-actions {
-            display: none !important;
-        }
-
-        .plan-item > .plan-row1 .desktop-open {
-            display: inline-flex !important;
-        }
-    }
-
-    /* Mobile: keine zweite Zeile nötig */
-    @media (max-width:560px) {
-        .plan-row2, .mobile-open {
-            display: none !important;
-        }
-    }
-    /* FIX 1: Plan-Karte ist kein Flex-Container mehr */
-    .plan-item {
-        display: block; /* überschreibt .list-item { display:flex } */
-    }
-
-        /* FIX 2: Eine Reihe: drag | Titel zentriert | rechts Aktionen */
-        .plan-item > .plan-row1 {
-            display: grid !important;
-            grid-template-columns: auto 1fr auto; /* Drag | Titel | rechts */
-            align-items: center;
-            width: 100%;
-        }
-
-            .plan-item > .plan-row1 .plan-title {
-                justify-self: center;
-                text-align: center;
-                min-width: 0;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-
-            .plan-item > .plan-row1 .plan-right {
-                justify-self: end;
-                display: inline-flex;
-                align-items: center;
-                gap: .5rem;
-            }
-
-    /* FIX 3: Die mobile Zusatzzeile standardmäßig weg */
-    .plan-row2 {
-        display: none;
-    }
-
-    /* Nur auf sehr schmalen Screens (optional) die mobile Zeile reaktivieren */
-    @media (max-width:560px) {
-        .plan-row2 {
-            display: block;
-        }
-
-        .mobile-open {
-            display: inline-flex !important;
-        }
-        /* mobiler Open-Button sichtbar */
-        .desktop-open {
-            display: none !important;
-        }
-    }
-
-    /* Desktop-Default: Inline-Actions sichtbar, Kebab-Wrapper versteckt */
-    .inline-actions {
-        display: inline-flex;
-        gap: .4rem;
-    }
-
-    .kebab-wrap {
-        display: none;
-    }
-
-    /* Ab hier „verschieben“ sich deine Buttons → Inline-Actions aus, Kebab an */
-    @media (max-width: 1024px) {
-        .inline-actions {
-            display: none !important;
-        }
-
-        .kebab-wrap {
-            display: inline-flex !important;
-        }
-    }
-
-    td.action-cell {
-        display: grid !important;
-        place-items: center !important; /* echte Mitte */
-        padding: 0; /* kein Padding-Shift */
-        min-width: 44px;
-    }
-
-
-    /* Der Button selbst: fixes Quadrat und auto-zentriert */
-    .table-delete-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        margin: 0 auto; /* falls text-align greifen sollte */
-        line-height: 1;
-    }
-
-    /* Öffneter Plan – Table darf die Seite NICHT verbreitern */
-    .exercise-table.full-width.narrow {
-        display: block; /* wichtig: nicht als Table-Wrapper mit auto-breiten Kindern */
-        max-inline-size: 100%;
-        overflow-x: clip; /* oder: hidden; (clip ist moderner) */
-        contain: inline-size; /* Kinder beeinflussen die Außenbreite nicht */
-    }
-
-        /* Sicherheitshalber die Tabelle fix einbremsen */
-        .exercise-table.full-width.narrow > table {
-            table-layout: fixed;
-            width: 100%;
-            max-width: 100%;
-        }
-
-    /* === Geöffneter Trainingsplan: identischer Rahmen wie alle anderen === */
-    .exercise-table.full-width.narrow {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.06);
-        overflow: hidden; /* Ecken sauber, nichts „blankes“ */
-    }
-
-        /* Keine künstlichen Rand-Gutters links/rechts */
-        .exercise-table.full-width.narrow .table-scroll {
-            scrollbar-gutter: auto;
-        }
-
-            /* Tabelle selbst bündig ohne Spalt bis an den Rahmen */
-            .exercise-table.full-width.narrow .table-scroll > table {
-                width: 100%;
-                table-layout: fixed;
-                border-collapse: collapse; /* entfernt die seitlichen Gaps */
-            }
-
-        /* Optional: vertikale Trennlinien wie bei den anderen (falls gewünscht) */
-        .exercise-table.full-width.narrow th,
-        .exercise-table.full-width.narrow td {
-            border-right: 1px solid var(--border-color);
-        }
-
-            .exercise-table.full-width.narrow th:last-child,
-            .exercise-table.full-width.narrow td:last-child {
+            .preview-card .exercise-table.full-width.compact .table-scroll > table th:last-child,
+            .preview-card .exercise-table.full-width.compact .table-scroll > table td:last-child {
                 border-right: 0;
             }
 
