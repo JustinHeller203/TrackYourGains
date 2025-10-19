@@ -469,61 +469,61 @@
             <button @click="toggleCustomExercises" class="custom-toggle-btn" v-if="customExercises.length > 0">
                 {{ showCustomExercises ? ' Benutzerdefinierte Übungen ausblenden' : ' Benutzerdefinierte Übungen anzeigen' }}
             </button>
-            <div v-if="showCustomExercises" class="custom-exercises-table">
-                <h4 class="section-title">Eigene Übungen</h4>
-                <div class="table-scroll">
-                    <!-- NEU: ref="customResizeTable" -->
-                    <table class="exercise-table full-width compact" ref="customResizeTable" data-cols="4">
-                        <thead>
-                            <tr>
-                                <th class="resizable" :style="{ width: customColWidths[0] + '%' }">
-                                    <span class="th-text">Name</span>
-                                </th>
-                                <th class="resizable th-muskel" :style="{ width: customColWidths[1] + '%' }">
-                                    <span class="th-text th-label">
-                                        <span class="full">Muskelgruppe</span>
-                                        <span class="mid">Muskelgr...</span>
-                                        <span class="short">Muskel...</span>
-                                    </span>
-                                </th>
-                                <th class="resizable" :style="{ width: customColWidths[2] + '%' }">
-                                    <span class="th-text">Typ</span>
-                                </th>
-                                <th :style="{ width: customColWidths[3] + '%' }">Aktion</th>
-                            </tr>
-                        </thead>
+            <div v-if="showCustomExercises">
+                <h3 class="section-title">Eigene Übungen</h3>
+                <div class="exercise-table full-width narrow">
+                    <div class="table-scroll">
+                        <table ref="customResizeTable" data-cols="4">
+                            <thead>
+                                <tr>
+                                    <th class="resizable" :style="{ width: customColWidths[0] + '%' }">
+                                        <span class="th-text">Name</span>
+                                    </th>
+                                    <th class="resizable th-muskel" :style="{ width: customColWidths[1] + '%' }">
+                                        <span class="th-text th-label">
+                                            <span class="full">Muskelgruppe</span>
+                                            <span class="mid">Muskelgr...</span>
+                                            <span class="short">Muskel...</span>
+                                        </span>
+                                    </th>
+                                    <th class="resizable" :style="{ width: customColWidths[2] + '%' }">
+                                        <span class="th-text">Typ</span>
+                                    </th>
+                                    <th :style="{ width: customColWidths[3] + '%' }">Aktion</th>
+                                </tr>
+                            </thead>
 
-                        <tbody>
-                            <tr v-for="(ex, i) in customExercises" :key="i">
-                                <td :style="{ width: customColWidths[0] + '%' }" @dblclick="openEditPopup('customExerciseName', i)">
-                                    <input v-if="exerciseEditIndex === i && exerciseEditField === 'name'"
-                                           v-model="ex.name" @blur="finishEdit" @keyup.enter="finishEdit" />
-                                    <span v-else>{{ ex.name }}</span>
-                                </td>
+                            <tbody>
+                                <tr v-for="(ex, i) in customExercises" :key="i">
+                                    <td :style="{ width: customColWidths[0] + '%' }" @dblclick="openEditPopup('customExerciseName', i)">
+                                        <input v-if="exerciseEditIndex === i && exerciseEditField === 'name'"
+                                               v-model="ex.name" @blur="finishEdit" @keyup.enter="finishEdit" />
+                                        <span v-else>{{ ex.name }}</span>
+                                    </td>
 
-                                <td class="v-stack" :style="{ width: customColWidths[1] + '%' }" @dblclick="openEditPopup('customExerciseMuscle', i)">
-                                    <input v-if="exerciseEditIndex === i && exerciseEditField === 'muscle'"
-                                           v-model="ex.muscle" @blur="finishEdit" @keyup.enter="finishEdit" />
-                                    <span v-else>{{ ex.muscle }}</span>
-                                </td>
+                                    <td class="v-stack" :style="{ width: customColWidths[1] + '%' }" @dblclick="openEditPopup('customExerciseMuscle', i)">
+                                        <input v-if="exerciseEditIndex === i && exerciseEditField === 'muscle'"
+                                               v-model="ex.muscle" @blur="finishEdit" @keyup.enter="finishEdit" />
+                                        <span v-else>{{ ex.muscle }}</span>
+                                    </td>
 
-                                <td :style="{ width: customColWidths[2] + '%' }" @dblclick="openEditPopup('customExerciseType', i)">
-                                    {{ typeLabel(ex.type) }}
-                                </td>
+                                    <td :style="{ width: customColWidths[2] + '%' }" @dblclick="openEditPopup('customExerciseType', i)">
+                                        {{ typeLabel(ex.type) }}
+                                    </td>
 
-                                <td class="action-cell">
-                                    <DeleteButton class="table-delete-btn"
-                                                  title="Benutzerdefinierte Übung entfernen"
-                                                  @click="removeCustomExercise(i)" />
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                    <td class="action-cell">
+                                        <DeleteButton class="table-delete-btn"
+                                                      title="Benutzerdefinierte Übung entfernen"
+                                                      @click="removeCustomExercise(i)" />
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+                <!-- /Benutzerdefinierte Übungen -->
             </div>
-            <!-- /Benutzerdefinierte Übungen -->
         </div>
-
         <!-- Satzpausen-Timer -->
         <div class="workout-list timer-container">
             <div class="plan-header">
@@ -2695,75 +2695,94 @@
         table.querySelectorAll('.resizer,.row-resizer').forEach(el => el.remove());
 
         const MIN_PX_BY_COL = [16, 16, 16]; // Übung | Sätze | Wdh.
-        const ths = Array.from(table.querySelectorAll('thead th.resizable')) as HTMLElement[];
-        const lastIdx = ths.length - 1;      // letzte RESIZABLE-Spalte
+        const ths = Array.from(table.querySelectorAll('thead th')) as HTMLElement[]; // <-- alle THs
+        const lastIdx = ths.length - 1;
 
         ths.forEach((th, colIndex) => {
-            // 👉 Letzte resizable Spalte NICHT resizable machen
-            if (colIndex === lastIdx) return;
-
             th.style.position = 'relative';
-            const resizer = document.createElement('div');
-            resizer.className = 'resizer';
-            Object.assign(resizer.style, {
-                position: 'absolute', top: '0', right: '0', height: '100%', width: '10px',
-                cursor: 'col-resize', zIndex: '5', background: 'transparent', touchAction: 'none',
-            });
-            th.appendChild(resizer);
+            const isLast = colIndex === lastIdx;
 
-            let startX = 0;
-            let start = [...columnWidths.value];
+            const makeResizer = (side: 'right' | 'left') => {
+                const resizer = document.createElement('div');
+                resizer.className = `resizer resizer-${side}`;
+                th.appendChild(resizer);
 
-            const onMove = (e: PointerEvent) => {
-                requestAnimationFrame(() => {
-                    const tw = table.getBoundingClientRect().width;
-                    const dxRaw = e.clientX - startX;
+                // Position per Inline-Style (CSS setzt Rest)
+                if (side === 'right') { resizer.style.right = '0'; resizer.style.left = 'auto'; }
+                else { resizer.style.left = '0'; resizer.style.right = 'auto'; }
 
-                    const nextIndex = colIndex + 1;
-                    const currPx = (start[colIndex] / 100) * tw;
-                    const nextPx = (start[nextIndex] / 100) * tw;
+                let startX = 0;
+                let start = [...columnWidths.value];
 
-                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 16;
-                    const minNext = MIN_PX_BY_COL[nextIndex] ?? 16;
+                const onMove = (e: PointerEvent) => {
+                    requestAnimationFrame(() => {
+                        const tw = table.getBoundingClientRect().width || 1;
 
-                    const maxDxRight = nextPx - minNext;
-                    const maxDxLeft = -(currPx - minCurr);
-                    const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight));
+                        const raw = e.clientX - startX;
+                        // WICHTIG:
+                        // - letzter TH + linker Griff  => dir=-1 (Grenze links verschieben)
+                        // - alle anderen Griffe        => dir=+1  (Grenze rechts verschieben)
+                        const dir = (isLast && side === 'left') ? -1 : 1;
+                        const dxRaw = dir * raw;
 
-                    const newCurrPx = currPx + dx;
-                    const newNextPx = nextPx - dx;
+                        const partnerIndex = isLast ? colIndex - 1 : colIndex + 1;
+                        if (partnerIndex < 0 || partnerIndex >= start.length) return;
 
-                    const newW = [...start];
-                    newW[colIndex] = (newCurrPx / tw) * 100;
-                    newW[nextIndex] = (newNextPx / tw) * 100;
+                        const currPx = (start[colIndex] / 100) * tw;
+                        const partnerPx = (start[partnerIndex] / 100) * tw;
 
-                    columnWidths.value = normalizeToTotal(newW, 100, 0); // hält Summe = 100, pin Col 0
-                });
+                        const minCurr = MIN_PX_BY_COL[colIndex] ?? 16;
+                        const minPartner = MIN_PX_BY_COL[partnerIndex] ?? 16;
+
+                        const maxDxRight = partnerPx - minPartner;
+                        const maxDxLeft = -(currPx - minCurr);
+                        const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight));
+
+                        const newCurrPx = currPx + dx;
+                        const newPartnerPx = partnerPx - dx;
+
+                        const next = [...start];
+                        next[colIndex] = +(newCurrPx / tw * 100).toFixed(4);
+                        next[partnerIndex] = +(newPartnerPx / tw * 100).toFixed(4);
+
+                        columnWidths.value = normalizeStrictTo100(next, table, MIN_PX_BY_COL, partnerIndex);
+                    });
+                };
+
+                const onUp = (e: PointerEvent) => {
+                    window.removeEventListener('pointermove', onMove);
+                    window.removeEventListener('pointerup', onUp);
+                    resizer.classList.remove('is-active');
+                    document.body.classList.remove('is-resizing-col');
+                    try { (resizer as any).releasePointerCapture?.(e.pointerId); } catch { }
+                };
+
+                const onDown = (e: PointerEvent) => {
+                    e.preventDefault(); e.stopPropagation();
+                    startX = e.clientX;
+                    start = [...columnWidths.value];
+                    try { (resizer as any).setPointerCapture?.(e.pointerId); } catch { }
+                    resizer.classList.add('is-active');
+                    document.body.classList.add('is-resizing-col');
+                    window.addEventListener('pointermove', onMove);
+                    window.addEventListener('pointerup', onUp);
+                };
+
+                resizer.addEventListener('pointerdown', onDown);
             };
 
-            const onUp = (e: PointerEvent) => {
-                window.removeEventListener('pointermove', onMove);
-                window.removeEventListener('pointerup', onUp);
-                resizer.classList.remove('is-active');
-                document.body.classList.remove('is-resizing-col');
-                try { resizer.releasePointerCapture(e.pointerId); } catch { }
-            };
-
-            const onDown = (e: PointerEvent) => {
-                e.preventDefault(); e.stopPropagation();
-                startX = e.clientX;
-                start = [...columnWidths.value];
-                try { resizer.setPointerCapture(e.pointerId); } catch { }
-                resizer.classList.add('is-active');
-                document.body.classList.add('is-resizing-col');
-                window.addEventListener('pointermove', onMove);
-                window.addEventListener('pointerup', onUp);
-            };
-
-            resizer.addEventListener('pointerdown', onDown);
+            if (isLast) {
+                // ➕ zwei Griffe am letzten TH
+                makeResizer('left');   // innen
+                makeResizer('right');  // am Tabellenrand
+            } else {
+                makeResizer('right');  // wie gehabt
+            }
         });
 
-        // Zeilen-Resizer unverändert …
+
+
+        // Zeilen-Resizer bleibt unverändert …
         const rows = Array.from(table.querySelectorAll('tbody tr.resizable-row')) as HTMLElement[];
         rows.forEach((row, rowIndex) => {
             row.style.position = 'relative';
@@ -2804,6 +2823,7 @@
         });
     };
 
+
     const normalizeToTotal = (arr: number[], total = 100, pinIndex = 0) => {
         const out = arr.map(v => Math.max(0, Number.parseFloat((+v).toFixed(4))));
         const sum = out.reduce((a, b) => a + b, 0);
@@ -2821,74 +2841,83 @@
 
         table.querySelectorAll('.resizer').forEach(el => el.remove());
 
-        const MIN_PX_BY_COL = [16, 16, 16, 44]; // Übung | Sätze | Wdh. | Aktion (min 44px)
-        const ths = Array.from(table.querySelectorAll('thead th.resizable')) as HTMLElement[];
+        const MIN_PX_BY_COL = [16, 16, 16, 44]; // Übung | Sätze | Wdh. | Aktion
+        const ths = Array.from(table.querySelectorAll('thead th')) as HTMLElement[]; // <-- alle THs
+        const lastIdx = ths.length - 1;
 
         ths.forEach((th, colIndex) => {
             th.style.position = 'relative';
-            const resizer = document.createElement('div');
-            resizer.className = 'resizer';
-            Object.assign(resizer.style, {
-                position: 'absolute', top: 0, right: 0, height: '100%', width: '10px',
-                cursor: 'col-resize', zIndex: '5', background: 'transparent', touchAction: 'none',
-            });
-            th.appendChild(resizer);
+            const isLast = colIndex === lastIdx;
 
-            let startX = 0;
-            let start = [...previewColWidths.value];
+            const makeResizer = (side: 'right' | 'left') => {
+                const resizer = document.createElement('div');
+                resizer.className = `resizer resizer-${side}`;
+                th.appendChild(resizer);
+                if (side === 'right') { resizer.style.right = '0'; resizer.style.left = 'auto'; }
+                else { resizer.style.left = '0'; resizer.style.right = 'auto'; }
 
-            const onMove = (e: PointerEvent) => {
-                requestAnimationFrame(() => {
-                    const tw = table.getBoundingClientRect().width || 1;
-                    const dxRaw = e.clientX - startX;
+                let startX = 0;
+                let start = [...previewColWidths.value];
 
-                    const nextIndex = colIndex + 1;              // immer Paar i ↔ i+1
-                    if (nextIndex >= start.length) return;
+                const onMove = (e: PointerEvent) => {
+                    requestAnimationFrame(() => {
+                        const tw = table.getBoundingClientRect().width || 1;
+                        const raw = e.clientX - startX;
+                        const dir = (isLast && side === 'left') ? -1 : 1;
+                        const dxRaw = dir * raw;
 
-                    const currPx = (start[colIndex] / 100) * tw;
-                    const nextPx = (start[nextIndex] / 100) * tw;
+                        const partnerIndex = isLast ? colIndex - 1 : colIndex + 1;
+                        if (partnerIndex < 0 || partnerIndex >= start.length) return;
 
-                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 16;
-                    const minNext = MIN_PX_BY_COL[nextIndex] ?? 16;
+                        const currPx = (start[colIndex] / 100) * tw;
+                        const partnerPx = (start[partnerIndex] / 100) * tw;
 
-                    const maxDxRight = nextPx - minNext;
-                    const maxDxLeft = -(currPx - minCurr);
-                    const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight));
+                        const minCurr = MIN_PX_BY_COL[colIndex] ?? 16;
+                        const minPartner = MIN_PX_BY_COL[partnerIndex] ?? 16;
 
-                    const newCurrPx = currPx + dx;
-                    const newNextPx = nextPx - dx;
+                        const maxDxRight = partnerPx - minPartner;
+                        const maxDxLeft = -(currPx - minCurr);
+                        const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight));
 
-                    const newW = [...start];
-                    newW[colIndex] = +(newCurrPx / tw * 100).toFixed(4);
-                    newW[nextIndex] = +(newNextPx / tw * 100).toFixed(4);
+                        const newCurrPx = currPx + dx;
+                        const newPartnerPx = partnerPx - dx;
 
-                    // DRIFT-FREE: knallhart auf 100% normalisieren, Diff in die rechte (nextIndex) Spalte zurückgeben
-                    previewColWidths.value = normalizeStrictTo100(newW, table, MIN_PX_BY_COL, nextIndex);
-                });
+                        const next = [...start];
+                        next[colIndex] = +(newCurrPx / tw * 100).toFixed(4);
+                        next[partnerIndex] = +(newPartnerPx / tw * 100).toFixed(4);
+
+                        previewColWidths.value = normalizeStrictTo100(next, table, MIN_PX_BY_COL, partnerIndex);
+                    });
+                };
+
+                const onUp = (e: PointerEvent) => {
+                    window.removeEventListener('pointermove', onMove);
+                    window.removeEventListener('pointerup', onUp);
+                    resizer.classList.remove('is-active');
+                    document.body.classList.remove('is-resizing-col');
+                    try { (resizer as any).releasePointerCapture?.(e.pointerId); } catch { }
+                };
+
+                const onDown = (e: PointerEvent) => {
+                    e.preventDefault(); e.stopPropagation();
+                    startX = e.clientX;
+                    start = [...previewColWidths.value];
+                    try { (resizer as any).setPointerCapture?.(e.pointerId); } catch { }
+                    resizer.classList.add('is-active');
+                    document.body.classList.add('is-resizing-col');
+                    window.addEventListener('pointermove', onMove);
+                    window.addEventListener('pointerup', onUp);
+                };
+
+                resizer.addEventListener('pointerdown', onDown);
             };
 
-            const onUp = (e: PointerEvent) => {
-                window.removeEventListener('pointermove', onMove);
-                window.removeEventListener('pointerup', onUp);
-                resizer.classList.remove('is-active');
-                document.body.classList.remove('is-resizing-col');
-                try { resizer.releasePointerCapture(e.pointerId); } catch { }
-            };
-
-            const onDown = (e: PointerEvent) => {
-                e.preventDefault(); e.stopPropagation();
-                startX = e.clientX;
-                start = [...previewColWidths.value];
-                try { resizer.setPointerCapture(e.pointerId); } catch { }
-                resizer.classList.add('is-active');
-                document.body.classList.add('is-resizing-col');
-                window.addEventListener('pointermove', onMove);
-                window.addEventListener('pointerup', onUp);
-            };
-
-            resizer.addEventListener('pointerdown', onDown);
+            if (isLast) { makeResizer('left'); makeResizer('right'); }
+            else { makeResizer('right'); }
         });
+
     };
+
 
 
     const initAudioElements = () => {
@@ -2905,71 +2934,80 @@
         table.querySelectorAll('.resizer').forEach(el => el.remove());
 
         const MIN_PX_BY_COL = [16, 16, 16, 44]; // Name | Muskel | Typ | Aktion
-        const ths = Array.from(table.querySelectorAll('thead th.resizable')) as HTMLElement[];
+        const ths = Array.from(table.querySelectorAll('thead th')) as HTMLElement[]; // <-- alle THs
+        const lastIdx = ths.length - 1;
 
         ths.forEach((th, colIndex) => {
             th.style.position = 'relative';
-            const resizer = document.createElement('div');
-            resizer.className = 'resizer';
-            Object.assign(resizer.style, {
-                position: 'absolute', top: 0, right: 0, height: '100%', width: '10px',
-                cursor: 'col-resize', zIndex: '5', background: 'transparent', touchAction: 'none',
-            });
-            th.appendChild(resizer);
+            const isLast = colIndex === lastIdx;
 
-            let startX = 0;
-            let start = [...customColWidths.value];
+            const makeResizer = (side: 'right' | 'left') => {
+                const resizer = document.createElement('div');
+                resizer.className = `resizer resizer-${side}`;
+                th.appendChild(resizer);
+                if (side === 'right') { resizer.style.right = '0'; resizer.style.left = 'auto'; }
+                else { resizer.style.left = '0'; resizer.style.right = 'auto'; }
 
-            const onMove = (e: PointerEvent) => {
-                requestAnimationFrame(() => {
-                    const tw = table.getBoundingClientRect().width || 1;
-                    const dxRaw = e.clientX - startX;
+                let startX = 0;
+                let start = [...customColWidths.value];
 
-                    const nextIndex = colIndex + 1;
-                    if (nextIndex >= start.length) return;
+                const onMove = (e: PointerEvent) => {
+                    requestAnimationFrame(() => {
+                        const tw = table.getBoundingClientRect().width || 1;
+                        const raw = e.clientX - startX;
+                        const dir = (isLast && side === 'left') ? -1 : 1;
+                        const dxRaw = dir * raw;
 
-                    const currPx = (start[colIndex] / 100) * tw;
-                    const nextPx = (start[nextIndex] / 100) * tw;
+                        const partnerIndex = isLast ? colIndex - 1 : colIndex + 1;
+                        if (partnerIndex < 0 || partnerIndex >= start.length) return;
 
-                    const minCurr = MIN_PX_BY_COL[colIndex] ?? 16;
-                    const minNext = MIN_PX_BY_COL[nextIndex] ?? 16;
+                        const currPx = (start[colIndex] / 100) * tw;
+                        const partnerPx = (start[partnerIndex] / 100) * tw;
 
-                    const maxDxRight = nextPx - minNext;
-                    const maxDxLeft = -(currPx - minCurr);
-                    const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight));
+                        const minCurr = MIN_PX_BY_COL[colIndex] ?? 16;
+                        const minPartner = MIN_PX_BY_COL[partnerIndex] ?? 16;
 
-                    const newCurrPx = currPx + dx;
-                    const newNextPx = nextPx - dx;
+                        const maxDxRight = partnerPx - minPartner;
+                        const maxDxLeft = -(currPx - minCurr);
+                        const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight));
 
-                    const newW = [...start];
-                    newW[colIndex] = +(newCurrPx / tw * 100).toFixed(4);
-                    newW[nextIndex] = +(newNextPx / tw * 100).toFixed(4);
+                        const newCurrPx = currPx + dx;
+                        const newPartnerPx = partnerPx - dx;
 
-                    customColWidths.value = normalizeStrictTo100(newW, table, MIN_PX_BY_COL, nextIndex);
-                });
+                        const next = [...start];
+                        next[colIndex] = +(newCurrPx / tw * 100).toFixed(4);
+                        next[partnerIndex] = +(newPartnerPx / tw * 100).toFixed(4);
+
+                        customColWidths.value = normalizeStrictTo100(next, table, MIN_PX_BY_COL, partnerIndex);
+                    });
+                };
+
+                const onUp = (e: PointerEvent) => {
+                    window.removeEventListener('pointermove', onMove);
+                    window.removeEventListener('pointerup', onUp);
+                    resizer.classList.remove('is-active');
+                    document.body.classList.remove('is-resizing-col');
+                    try { (resizer as any).releasePointerCapture?.(e.pointerId); } catch { }
+                };
+
+                const onDown = (e: PointerEvent) => {
+                    e.preventDefault(); e.stopPropagation();
+                    startX = e.clientX;
+                    start = [...customColWidths.value];
+                    try { (resizer as any).setPointerCapture?.(e.pointerId); } catch { }
+                    resizer.classList.add('is-active');
+                    document.body.classList.add('is-resizing-col');
+                    window.addEventListener('pointermove', onMove);
+                    window.addEventListener('pointerup', onUp);
+                };
+
+                resizer.addEventListener('pointerdown', onDown);
             };
 
-            const onUp = (e: PointerEvent) => {
-                window.removeEventListener('pointermove', onMove);
-                window.removeEventListener('pointerup', onUp);
-                resizer.classList.remove('is-active');
-                document.body.classList.remove('is-resizing-col');
-                try { (resizer as any).releasePointerCapture?.(e.pointerId); } catch { }
-            };
-
-            const onDown = (e: PointerEvent) => {
-                e.preventDefault(); e.stopPropagation();
-                startX = e.clientX;
-                start = [...customColWidths.value];
-                try { (resizer as any).setPointerCapture?.(e.pointerId); } catch { }
-                resizer.classList.add('is-active');
-                document.body.classList.add('is-resizing-col');
-                window.addEventListener('pointermove', onMove);
-                window.addEventListener('pointerup', onUp);
-            };
-
-            resizer.addEventListener('pointerdown', onDown);
+            if (isLast) { makeResizer('left'); makeResizer('right'); }
+            else { makeResizer('right'); }
         });
+
     };
 
     function normalizeStrictTo100(
@@ -5715,5 +5753,102 @@
             .preview-card .exercise-table.full-width.compact .table-scroll > table td:last-child {
                 border-right: 0;
             }
+    /* Default: volle Beschriftung sichtbar */
+    .th-label .full {
+        display: inline;
+    }
+
+    .th-label .mid, .th-label .short {
+        display: none;
+    }
+
+    /* Wenn per JS verkürzt wird */
+    .th-label.is-mid .full {
+        display: none;
+    }
+
+    .th-label.is-mid .mid {
+        display: inline;
+    }
+
+    .th-label.is-short .full,
+    .th-label.is-short .mid {
+        display: none;
+    }
+
+    .th-label.is-short .short {
+        display: inline;
+    }
+    /* Live-Preview: kompaktere Zellen */
+    /* Live-Preview: wieder höher + keine abgeschnittenen Diakritika */
+    .preview-card .exercise-table.full-width.compact th,
+    .preview-card .exercise-table.full-width.compact td {
+        /* mehr Höhe über Padding-Block, horizontal bleibt schlank */
+        padding: 1.0rem 0.4rem; /* vorher .5rem .6rem */
+        font-size: .9rem; /* minimal größer als .88rem */
+        line-height: 1.25; /* verhindert Ü/Ä/Ö-Clipping */
+    }
+
+    /* Header-Text in der Live-Preview: überschreibt dein globales .th-text { line-height: 1; } */
+    .preview-card .exercise-table.full-width.compact .th-text {
+        line-height: 1.25;
+    }
+    /* Trainingsplan (geöffneter Plan): mehr vertikale Luft + saubere Umlaute */
+    .exercise-table.full-width.narrow th,
+    .exercise-table.full-width.narrow td,
+    .custom-exercises-table th,
+    .custom-exercises-table td {
+        padding: 1.5rem .5rem; /* vertikal höher, horizontal schlank */
+        font-size: .94rem;
+        line-height: 1.3; /* verhindert Ü/Ä/Ö-Clipping */
+    }
+
+    .exercise-table.full-width.narrow .th-text,
+    .custom-exercises-table .th-text {
+        line-height: 1.3;
+    }
+
+    /* Live-Preview: Tabelle nutzt nur so viel Platz wie nötig */
+    .preview-card .table-scroll > table {
+        width: max-content;
+        max-width: 100%;
+        min-width: 540px; /* leicht erhöht, damit vertikale Luft nicht „zu gedrungen“ wirkt */
+    }
+
+    /* Mobile: ebenfalls etwas höher, aber kompakt */
+    @media (max-width: 560px) {
+        .preview-card .exercise-table.full-width.compact th,
+        .preview-card .exercise-table.full-width.compact td {
+            padding: .9rem .5rem; /* vorher .45rem .5rem */
+            font-size: .88rem;
+            line-height: 1.25;
+        }
+
+        .preview-card .table-scroll > table {
+            min-width: 500px; /* optional: 480–500px nach Gefühl */
+        }
+
+        .exercise-table.full-width.narrow th,
+        .exercise-table.full-width.narrow td,
+        .custom-exercises-table th,
+        .custom-exercises-table td {
+            padding: 1.4rem .5rem;
+            font-size: .9rem;
+            line-height: 1.28;
+        }
+    }
+    /* Griff für *alle* THs (nicht nur .resizable), inkl. ganz rechts */
+    .exercise-table.full-width thead th > .resizer,
+    .custom-exercises-table thead th > .resizer {
+        position: absolute;
+        top: 0;
+        right: 0; /* sitzt an der *rechten* Tabellenlinie */
+        height: 100%;
+        width: var(--resize-hit, 10px);
+        cursor: col-resize;
+        z-index: 5;
+        background: transparent;
+        touch-action: none;
+    }
 
 </style>

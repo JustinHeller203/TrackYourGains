@@ -9,19 +9,24 @@
             <div class="dashboard-grid">
                 <DashboardCard title="Aktuelles Gewicht"
                                :info="currentWeightDisplay"
+                               :muted="!weightHistory.length"
                                clickable
                                @click="openWeightPopup" />
 
                 <DashboardCard title="Kalorien heute"
-                               :info="totalCalories + ' / 2500 kcal'" />
+                               :info="totalCalories + ' / 2500 kcal'"
+                               :muted="totalCalories === 0" />
 
                 <DashboardCard title="Letztes Training"
-                               :info="lastWorkout || 'Kein Training erfasst'" />
+                               :info="lastWorkout || 'Kein Training erfasst'"
+                               :muted="!lastWorkout" />
 
                 <DashboardCard title="Zielgewicht"
                                :info="goal ? formatWeight(goal, 1) : 'Kein Ziel gesetzt'"
+                               :muted="true"
                                clickable
                                @click="openGoalPopup" />
+
             </div>
 
             <!-- ===================== TABS ===================== -->
@@ -440,7 +445,8 @@
                             <div v-for="plan in favoritePlans" :key="plan.id" class="list-item plan-item">
                                 <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
                                 <div class="list-item-actions">
-                                    <button class="open-btn" @click="openInTraining(plan.id)">Öffnen</button>
+                                    <button class="open-btn" @click="openProgressPopup(plan.id)">Eintragen</button>
+                                    <button class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
                             </div>
                         </div>
@@ -450,7 +456,8 @@
                             <div v-for="plan in otherPlans" :key="plan.id" class="list-item plan-item">
                                 <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
                                 <div class="list-item-actions">
-                                    <button class="open-btn" @click="openInTraining(plan.id)">Öffnen</button>
+                                    <button class="open-btn" @click="openProgressPopup(plan.id)">Eintragen</button>
+                                    <button class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
                             </div>
                         </div>
@@ -489,6 +496,60 @@
                    @save="saveGoal"
                    @cancel="closeGoalPopup" />
 
+        <!-- Fortschritt eintragen -->
+        <ProgressEntryModal v-model:show="showProgressPopup"
+                            :unit="unit"
+                            :exercises="getExercisesForPlan(currentPlanId)"
+                            v-model:exercise="currentExercise"
+                            v-model:sets="newProgressSets"
+                            v-model:weight="newProgressWeight"
+                            v-model:reps="newProgressReps"
+                            v-model:note="newProgressNote"
+                            :errors="validationErrorMessages"
+                            @save="saveProgress"
+                            @cancel="closeProgressPopup" />
+
+
+        <!-- Fortschritt ansehen -->
+        <div v-if="showPlanProgressPopup && currentPlanId" class="modal-overlay" @click="handleOverlayClick">
+            <div class="modal" role="dialog" aria-modal="true" @click.stop>
+                <div class="card-header">
+                    <h3 class="modal-title">📖 Fortschritt – {{ currentPlanName }}</h3>
+                    <div class="card-actions">
+                        <ActionIconButton ariaLabel="Herunterladen"
+                                          title="Herunterladen"
+                                          @click="openDownloadPopup('progress', currentPlanId!)">⬇️</ActionIconButton>
+                    </div>
+                </div>
+
+                <div v-if="!sortedPlanEntries.length" class="list-item empty">
+                    Noch kein Fortschritt erfasst.
+                    <button class="open-btn" style="margin-left:.5rem" @click="addEntryFromPlanView">Eintragen</button>
+                </div>
+
+                <ul v-else class="progress-entries">
+                    <li v-for="entry in sortedPlanEntries"
+                        :key="entry.date + entry.exercise"
+                        class="list-item plan-item">
+                        <div class="entry-text">
+                            <strong>{{ formatDate(entry.date) }}</strong> ·
+                            {{ entry.exercise }} — {{ formatWeight(entry.weight, 0) }} × {{ entry.reps }}
+                            <span v-if="entry.sets">({{ entry.sets }} Sätze)</span>
+                            <span v-if="entry.note" class="note"> – {{ entry.note }}</span>
+                        </div>
+                        <div class="list-item-actions">
+                            <button class="open-btn" @click="editProgressEntry(currentPlanId!, entry)">Bearbeiten</button>
+                            <button class="open-btn" @click="deleteProgressEntry(currentPlanId!, entry.date)">Löschen</button>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="modal-actions">
+                    <button class="btn ghost" @click="addEntryFromPlanView">Eintragen</button>
+                    <PopupCancelButton ariaLabel="Schließen" @click="closePlanProgressPopup" />
+                </div>
+            </div>
+        </div>
 
         <!-- Export-Popup -->
         <ExportPopup :show="showDownloadPopup"
@@ -529,8 +590,10 @@
     import CaffeineSafeDoseCalculator from '@/components/ui/calculators/CaffeineSafeDoseCalculator.vue'
     import GlycemicLoadCalculator from '@/components/ui/calculators/GlycemicLoadCalculator.vue'
     import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
-    import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
     import type { Toast as ToastModel } from '@/types/toast'
+    import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
+    import ProgressEntryModal from '@/components/ui/popups/ProgressEntryModal.vue'
+
 
     // Interfaces
     interface PlanExercise {
@@ -557,18 +620,12 @@
 
     interface Workout {
         exercise: string;
+        sets: number;
         weight: number;
         reps: number;
+        note?: string;
         date: string;
         planId?: string;
-    }
-
-    interface Toast {
-        id: number;
-        message: string;
-        emoji: string;
-        type: string;
-        exiting: boolean;
     }
 
     // Refs
@@ -604,16 +661,11 @@
     const showWeightPopup = ref(false);
     const showGoalPopup = ref(false);
     const showProgressPopup = ref(false);
-    const showValidationPopup = ref(false);
     const showDownloadPopup = ref(false);
     const validationErrorMessages = ref < string[] > ([]);
     const toast = ref < ToastModel | null > (null);
     const weightInput = ref < HTMLInputElement | null > (null);
     const goalInput = ref < HTMLInputElement | null > (null);
-    const progressExerciseInput = ref < HTMLSelectElement | null > (null);
-    const progressWeightInput = ref < HTMLInputElement | null > (null);
-    const downloadFormatInput = ref < HTMLSelectElement | null > (null);
-    const validationOkButton = ref < HTMLButtonElement | null > (null);
     const downloadFormat = ref < 'html' | 'csv' | 'json' | 'pdf' | 'txt' > ('html');
     const downloadCalculator = ref < string | null > (null);
     const downloadPlanId = ref < string | null > (null);
@@ -622,6 +674,8 @@
     const currentExercise = ref < string > ('');
     const newProgressWeight = ref < number | null > (null);
     const newProgressReps = ref < number | null > (null);
+    const newProgressSets = ref < number | null > (null);
+    const newProgressNote = ref < string > ('');
     let toastId = 0;
     let toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -692,6 +746,36 @@
     const showMore = ref < { [key: string]: boolean } > ({});
     const autoCalcEnabled = ref(false)
 
+    // --- Fortschritt ansehen Modal ---
+    const showPlanProgressPopup = ref(false)
+    const reopenPlanProgressAfterSave = ref(false)
+
+    const currentPlanName = computed(() =>
+        trainingPlans.value.find(p => p.id === currentPlanId.value)?.name ?? ''
+    )
+
+    const sortedPlanEntries = computed < Workout[] > (() => {
+        if (!currentPlanId.value) return []
+        return [...getProgressForPlan(currentPlanId.value)]
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    })
+
+    const openPlanProgress = (planId: string) => {
+        currentPlanId.value = planId
+        showPlanProgressPopup.value = true
+    }
+
+    const closePlanProgressPopup = () => {
+        showPlanProgressPopup.value = false
+    }
+
+    const addEntryFromPlanView = () => {
+        if (!currentPlanId.value) return
+        reopenPlanProgressAfterSave.value = true
+        showPlanProgressPopup.value = false
+        openProgressPopup(currentPlanId.value)
+    }
+
     function debounce<F extends (...args: any[]) => void>(fn: F, wait = 300) {
         let t: number | undefined
         return (...args: Parameters<F>) => {
@@ -703,9 +787,20 @@
     const editProgressEntry = (planId: string, entry: Workout) => {
         currentPlanId.value = planId
         currentExercise.value = entry.exercise
+        newProgressSets.value = entry.sets ?? 1
         newProgressWeight.value = kgToDisplay(entry.weight)
         newProgressReps.value = entry.reps
+        newProgressNote.value = entry.note ?? ''
         editingEntry.value = entry
+
+        // Wenn wir aus der Fortschritt-Ansicht kommen: nach Speichern wieder öffnen
+        if (showPlanProgressPopup.value) {
+            reopenPlanProgressAfterSave.value = true
+            showPlanProgressPopup.value = false
+        } else {
+            reopenPlanProgressAfterSave.value = false
+        }
+
         showProgressPopup.value = true
     }
 
@@ -715,9 +810,10 @@
     };
 
     const deleteProgressEntry = (planId: string, date: string) => {
-        workouts.value = workouts.value.filter(w => !(w.planId === planId && w.date === date))
-        showToast({ message: 'Eintrag gelöscht!', type: 'success', emoji: '🗑️' })
-    }
+        workouts.value = workouts.value.filter(w => !(w.planId === planId && w.date === date));
+        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value));
+        showToast({ message: 'Eintrag gelöscht!', type: 'success', emoji: '🗑️' });
+    };
 
     const calculateProgress = (planId: string) => {
         const today = new Date().toISOString().split('T')[0];
@@ -742,12 +838,13 @@
         showMore.value[planId] = !showMore.value[planId];
     };
     // Computed Properties
-    const lastWorkout = computed(() =>
-        workouts.value.length
-            ? `${workouts.value[0].exercise} – ${formatWeight(workouts.value[0].weight, 0)} x ${workouts.value[0].reps}`
-            : null
-    );
-
+    const lastWorkout = computed(() => {
+        if (!workouts.value.length) return null
+        const last = workouts.value.reduce((a, b) =>
+            new Date(a.date) > new Date(b.date) ? a : b
+        )
+        return `${last.exercise} – ${formatWeight(last.weight, 0)} × ${last.reps}`
+    })
     const router = useRouter()
     const favoritePlansIds = ref<string[]>([])
 
@@ -897,10 +994,11 @@
         return null;
     };
 
-
     const validateProgress = (): string[] => {
         const errors: string[] = [];
         if (!currentExercise.value) errors.push('Eine Übung muss ausgewählt sein');
+        if (newProgressSets.value === null || isNaN(newProgressSets.value) || newProgressSets.value <= 0)
+            errors.push('Sätze müssen größer als 0 sein');
         if (newProgressWeight.value === null || isNaN(newProgressWeight.value) || newProgressWeight.value <= 0)
             errors.push('Gewicht muss größer als 0 sein');
         if (newProgressReps.value === null || isNaN(newProgressReps.value) || newProgressReps.value <= 0)
@@ -1403,57 +1501,63 @@
 
     const openProgressPopup = (planId: string) => {
         currentPlanId.value = planId;
-        currentExercise.value = getExercisesForPlan(planId)[0]?.exercise || '';
+        const first = getExercisesForPlan(planId)[0];
+        currentExercise.value = first?.exercise || '';
+        newProgressSets.value = first?.sets ? Number(first.sets) : null;
         newProgressWeight.value = null;
         newProgressReps.value = null;
+        newProgressNote.value = '';
         showProgressPopup.value = true;
-        nextTick(() => {
-            if (progressExerciseInput.value) progressExerciseInput.value.focus();
-        });
     };
 
+
     const saveProgress = () => {
-        if (!currentExercise.value || !newProgressWeight.value || !newProgressReps.value) {
-            validationErrorMessages.value = ['Bitte alle Felder ausfüllen.'];
+        const errors = validateProgress();
+        if (errors.length) {
+            validationErrorMessages.value = errors;
             showValidationPopup.value = true;
             return;
         }
+
+        const payload: Workout = {
+            planId: currentPlanId.value ?? undefined,
+            exercise: currentExercise.value,
+            sets: Number(newProgressSets.value),
+            weight: displayToKg(Number(newProgressWeight.value)),
+            reps: Number(newProgressReps.value),
+            note: newProgressNote.value?.trim() || undefined,
+            date: editingEntry.value?.date ?? new Date().toISOString(),
+        };
+
         if (editingEntry.value) {
-            if (!editingEntry.value) return;
-            const index = workouts.value.findIndex(
-                w => w.planId === (currentPlanId.value ?? undefined) && w.date === editingEntry.value!.date
+            const idx = workouts.value.findIndex(
+                w => w.planId === payload.planId && w.date === editingEntry.value!.date
             );
-            if (index !== -1) {
-                workouts.value[index] = {
-                    planId: currentPlanId.value ?? undefined,
-                    exercise: currentExercise.value,
-                    weight: displayToKg(Number(newProgressWeight.value)),
-                    reps: Number(newProgressReps.value),
-                    date: editingEntry.value.date,
-                };
+            if (idx !== -1) {
+                workouts.value[idx] = payload;
                 showToast({ message: 'Fortschritt aktualisiert!', type: 'success', emoji: '✅' });
             }
             editingEntry.value = null;
         } else {
-            const weightKg = displayToKg(Number(newProgressWeight.value));
-            workouts.value.push({
-                planId: currentPlanId.value ?? undefined,
-                exercise: currentExercise.value,
-                weight: weightKg,
-                reps: Number(newProgressReps.value),
-                date: new Date().toISOString(),
-            });
-
-            checkMilestones(
-                currentPlanId.value ?? undefined,
-                currentExercise.value || undefined,
-                newProgressWeight.value ?? undefined,
-                newProgressReps.value ?? undefined
-            );
+            workouts.value.push(payload);
+            checkMilestones(payload.planId, payload.exercise, payload.weight, payload.reps);
             showToast({ message: 'Fortschritt gespeichert!', type: 'success', emoji: '✅' });
         }
+
+        // Persist
+        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value));
         closeProgressPopup();
+
+        if (reopenPlanProgressAfterSave.value) {
+            const planIdForReopen = payload.planId
+            if (planIdForReopen) {
+                currentPlanId.value = planIdForReopen
+                showPlanProgressPopup.value = true
+            }
+            reopenPlanProgressAfterSave.value = false
+        }
     };
+
 
     function releaseToasts() {
         if (!suppressToasts.value) return
@@ -1477,9 +1581,12 @@
         showProgressPopup.value = false;
         currentPlanId.value = null;
         currentExercise.value = '';
+        newProgressSets.value = null;
         newProgressWeight.value = null;
         newProgressReps.value = null;
+        newProgressNote.value = '';
     };
+
 
     // clean version
     const openDownloadPopup = (calculator: string, planId?: string) => {
@@ -1621,7 +1728,8 @@
                     planName: plan?.name || 'Unbekannter Plan',
                     progress: progress.map((entry) => ({
                         exercise: entry.exercise,
-                        weight: entry.weight,
+                        weight_display: formatWeight(entry.weight, 1),
+                        weight_raw_kg: entry.weight,
                         reps: entry.reps,
                         date: formatDate(entry.date),
                     })),
@@ -1629,6 +1737,7 @@
                 filename = `progress_${(plan?.name || 'plan').toLowerCase().replace(/\s+/g, '_')}`;
                 break;
             }
+
             case 'glyload':
                 if (glResult.value == null) { addToast('Kein GL-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return }
                 data = {
@@ -1773,10 +1882,10 @@
 
             case 'csv':
                 if (downloadCalculator.value === 'progress') {
-                    content = `exercise,weight,reps,date\n${data.progress.map((e: any) =>
-                        `${e.exercise},${e.weight},${e.reps},${e.date}`
+                    content = `exercise,weight_display,weight_raw_kg,reps,date\n${data.progress.map((e: any) =>
+                        `${e.exercise},${e.weight_display},${e.weight_raw_kg},${e.reps},${e.date}`
                     ).join('\n')}`;
-                } else {
+                } else  {
                     content = Object.entries(data).map(([k, v]) => {
                         if (typeof v === 'object' && v !== null) {
                             return `${k},"${Object.entries(v).map(([kk, vv]) => `${kk}:${vv}`).join(';')}"`;
@@ -1835,11 +1944,10 @@
         closeDownloadPopup();
     };
 
-
     const checkMilestones = (
         planId?: string,
         exercise?: string,
-        weight?: number,
+        weightKg?: number,
         reps?: number
     ) => {
         // 1) Generisches Workout-Milestone
@@ -1848,24 +1956,28 @@
         }
 
         // 2) Gewichts-Meilenstein
-        if (initialWeight.value && currentWeight.value) {
+        if (initialWeight.value && typeof currentWeight.value === 'string') {
             const weightChange = Math.abs(Number(currentWeight.value) - initialWeight.value);
             if (weightChange >= 5) {
                 celebrateMilestone('Meilenstein: 5 kg Gewichtsveränderung! 🎉');
             }
         }
 
-        // 3) Übungsspezifischer Meilenstein
-        if (planId && exercise && typeof weight === 'number' && typeof reps === 'number') {
+        // 3) Übungsspezifischer Meilenstein (Vergleich in kg)
+        if (planId && exercise && typeof weightKg === 'number' && typeof reps === 'number') {
             const progressEntries = getProgressForPlan(planId);
             const lastEntry = progressEntries
                 .filter(e => e.exercise === exercise)
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
             if (lastEntry) {
-                if (weight > lastEntry.weight || (weight === lastEntry.weight && reps > lastEntry.reps)) {
+                const improved =
+                    weightKg > lastEntry.weight ||
+                    (weightKg === lastEntry.weight && reps > lastEntry.reps);
+
+                if (improved) {
                     showToast({
-                        message: `Meilenstein erreicht! ${exercise}: ${weight} kg x ${reps} Wdh. 🎉`,
+                        message: `Meilenstein erreicht! ${exercise}: ${formatWeight(weightKg, 0)} × ${reps} Wdh. 🎉`,
                         type: 'success',
                         emoji: '🎉',
                     });
@@ -1874,6 +1986,7 @@
             }
         }
     };
+
 
     const debouncedCalcGlyLoad = debounce(() => {
         if (!validateGlyLoad().length) calculateGlyLoad()
@@ -1938,6 +2051,13 @@
     const loadFromLocalStorage = () => {
         try {
             // Load Progress data
+            const weightsData = localStorage.getItem('progress_weights');
+            if (weightsData) {
+                const parsed = JSON.parse(weightsData);
+                if (Array.isArray(parsed)) {
+                    weightHistory.value = parsed;
+                }
+            }
             const bmiData = localStorage.getItem('progress_bmi');
             if (bmiData) {
                 const parsed = JSON.parse(bmiData);
@@ -2056,6 +2176,8 @@
         const today = new Date().toISOString().split('T')[0];
         const weightKg = displayToKg(Number(newWeight.value));
         weightHistory.value.unshift({ date: today, weight: weightKg });
+        // Persistieren
+        localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value));
         newWeight.value = null;
         updateWeightChart();
         addToast('Gewicht gespeichert', 'save');
@@ -2099,16 +2221,10 @@
     };
 
     const openValidationPopupError = (errors: string[]) => {
+        // weiterhin für Formular-Komponenten sichtbar halten
         validationErrorMessages.value = errors;
-        showValidationPopup.value = true;
-        nextTick(() => {
-            if (validationOkButton.value) validationOkButton.value.focus();
-        });
-    };
-
-    const closeValidationPopup = () => {
-        showValidationPopup.value = false;
-        validationErrorMessages.value = [];
+        // zusätzlich: schnelle Rückmeldung als Toasts
+        errors.forEach(e => addToast(e, 'default'));
     };
 
     const addToast = (
@@ -2157,15 +2273,11 @@
         }, 3000)
     }
 
-
-
-
     const handleOverlayClick = (event: MouseEvent) => {
         if (event.target === event.currentTarget) {
             closeWeightPopup();
             closeGoalPopup();
             closeProgressPopup();
-            closeValidationPopup();
             closeDownloadPopup();
         }
     };
@@ -2175,13 +2287,9 @@
             closeWeightPopup();
             closeGoalPopup();
             closeProgressPopup();
-            closeValidationPopup();
             closeDownloadPopup();
         } else if (event.key === 'Enter') {
-            if (showValidationPopup.value) {
-                event.preventDefault();
-                closeValidationPopup();
-            } else if (showWeightPopup.value) {
+            if (showWeightPopup.value) {
                 event.preventDefault();
                 saveWeight();
             } else if (showGoalPopup.value) {
@@ -2196,6 +2304,7 @@
             }
         }
     };
+
 
     let weightChart: Chart | null = null;
     let workoutChart: Chart | null = null;
@@ -2605,14 +2714,17 @@
         toastReleaseTimer = setTimeout(() => releaseToasts(), 1500)
     })
 
-
     onUnmounted(() => {
         window.removeEventListener('keydown', handleKeydown);
         window.removeEventListener('toasts-enabled-changed', handleToastsSetting);
+        window.removeEventListener('pointerdown', releaseToasts);
+        window.removeEventListener('keydown', releaseToasts);
+        window.removeEventListener('touchstart', releaseToasts as any);
         if (weightChart) weightChart.destroy();
         if (workoutChart) workoutChart.destroy();
         if (macroChart) macroChart.destroy();
     });
+
 </script>
 
 <style scoped>
@@ -3073,4 +3185,169 @@
             font-size: 0.9rem;
         }
     }
+
+    /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
+
+    .list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: .75rem 1rem;
+        margin-bottom: .5rem;
+        background: var(--bg-card); /* vorher: var(--bg-secondary) */
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        transition: background .2s ease, border-color .2s ease, transform .12s ease;
+    }
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.4);
+        display: grid;
+        place-items: center;
+        z-index: 60;
+    }
+
+    .modal {
+        width: min(560px, 92vw);
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        padding: 1rem 1rem 0.75rem;
+    }
+
+    .modal-title {
+        font-weight: 700;
+        margin: .25rem 0 0.75rem;
+    }
+
+    .field-label {
+        display: block;
+        font-size: .9rem;
+        color: var(--text-secondary);
+        margin: .5rem 0 .25rem;
+    }
+
+    .input {
+        width: 100%;
+        padding: .6rem .75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+    .select {
+        appearance: auto;
+    }
+
+    .modal-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: .75rem;
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: .5rem;
+        margin-top: .9rem;
+    }
+
+    .btn {
+        appearance: none;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: .55rem .9rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+        .btn.ghost {
+            background: transparent;
+            color: var(--text-primary);
+        }
+
+        .btn.primary {
+            background: var(--accent-primary);
+            color: #fff;
+            border-color: transparent;
+        }
+
+    .errors {
+        margin: .75rem 0 1rem;
+        color: #b91c1c;
+        font-size: .9rem;
+    }
+
+    @media (max-width: 520px) {
+        .modal-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+        .list-item:hover {
+            background: var(--bg-secondary); /* dezente Hover-Fläche */
+            border-color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+
+    .plan-item span {
+        color: var(--text-secondary);
+        font-size: .95rem;
+    }
+
+    .list-item-actions {
+        display: flex;
+        gap: .5rem;
+    }
+
+    /* Öffnen-Button: von „schwarz“ zu Ghost/Outline */
+    .open-btn {
+        appearance: none;
+        border: 1px solid var(--border-color);
+        background: transparent;
+        color: var(--text-primary);
+        font-weight: 600;
+        padding: .45rem .8rem;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: none;
+        transition: border-color .15s ease, color .15s ease, background .15s ease, transform .1s ease;
+    }
+
+        .open-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            background: var(--bg-secondary);
+            transform: translateY(-1px);
+        }
+
+        .open-btn:active {
+            transform: translateY(0);
+        }
+
+    /* Mobile Feinschliff */
+    @media (max-width: 600px) {
+        .list-item {
+            padding: .65rem .8rem;
+        }
+
+        .plan-item span {
+            font-size: .9rem;
+        }
+
+        .open-btn {
+            padding: .4rem .7rem;
+            font-size: .95rem;
+        }
+    }
+
 </style>
