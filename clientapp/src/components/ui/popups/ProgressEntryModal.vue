@@ -18,39 +18,104 @@
                 </option>
             </select>
 
-            <div class="modal-grid">
+            <!-- Cardio-Inputs -->
+            <div v-if="inputType === 'ausdauer'" class="modal-grid grid-2">
                 <div>
-                    <label class="field-label" for="progress-sets">Sätze</label>
-                    <input id="progress-sets"
+                    <label class="field-label" for="progress-duration">Dauer (Min)</label>
+                    <input id="progress-duration"
+                           ref="durationInput"
                            type="number"
                            min="1"
+                           v-model.number="durationProxy"
+                           class="input"
+                           placeholder="z. B. 30" />
+                </div>
+
+                <div>
+                    <label class="field-label" for="progress-distance">Distanz (km, optional)</label>
+                    <input id="progress-distance"
+                           type="number"
+                           min="0"
+                           step="0.1"
+                           v-model.number="distanceProxy"
+                           class="input"
+                           placeholder="z. B. 5" />
+                </div>
+            </div>
+
+            <!-- Dehnung-Inputs -->
+            <div v-else-if="inputType === 'dehnung'" class="modal-grid">
+                <div>
+                    <label class="field-label" for="stretch-duration">Dauer (Min)</label>
+                    <input id="stretch-duration"
+                           ref="durationInput"
+                           type="number" min="1"
+                           v-model.number="durationProxy"
+                           class="input"
+                           placeholder="z. B. 2" />
+                </div>
+
+                <div>
+                    <label class="field-label" for="stretch-sets">Sätze insgesamt</label>
+                    <input id="stretch-sets"
+                           type="number" min="1"
                            v-model.number="setsProxy"
                            class="input"
                            placeholder="z. B. 3" />
                 </div>
 
                 <div>
-                    <label class="field-label" for="progress-weight">Gewicht ({{ unit }})</label>
-                    <input id="progress-weight"
-                           ref="weightInput"
-                           type="number"
-                           min="0"
-                           step="0.5"
-                           v-model.number="weightProxy"
+                    <label class="field-label" for="stretch-reps">Wiederholungen</label>
+                    <input id="stretch-reps"
+                           type="number" min="1"
+                           v-model.number="repsProxy"
                            class="input"
+                           placeholder="z. B. 30" />
+                </div>
+            </div>
+
+
+            <!-- Kraft/Calisthenics (Standard) -->
+            <div v-else class="modal-grid">
+                <div>
+                    <label class="field-label" for="progress-sets">Sätze insgesamt</label>
+                    <input id="progress-sets" type="number" min="1"
+                           v-model.number="setsProxy" class="input" placeholder="z. B. 3" />
+                </div>
+
+                <div>
+                    <label class="field-label" for="progress-weight">Gewicht ({{ unit }})</label>
+                    <input id="progress-weight" ref="weightInput" type="number" min="0" step="0.5"
+                           v-model.number="weightProxy" class="input"
                            :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'" />
                 </div>
 
                 <div>
                     <label class="field-label" for="progress-reps">Wiederholungen</label>
-                    <input id="progress-reps"
-                           type="number"
-                           min="1"
-                           v-model.number="repsProxy"
-                           class="input"
-                           placeholder="z. B. 8" />
+                    <input id="progress-reps" type="number" min="1"
+                           v-model.number="repsProxy" class="input" placeholder="z. B. 8" />
                 </div>
             </div>
+
+            <!-- Einzelsätze (erscheint automatisch wenn Sätze > 0) -->
+            <div v-if="Number(setsProxy) > 0" class="set-rows">
+                <div v-for="(row, i) in setDetailsProxy" :key="i" class="set-row">
+                    <div class="set-row-label">Satz {{ i + 1 }}</div>
+
+                    <input type="number" min="0" step="0.5"
+                           class="input"
+                           :placeholder="unit === 'kg' ? 'Gewicht' : 'Weight'"
+                           :value="row?.weight ?? ''"
+                           @input="onRowChange(i, 'weight', ($event.target as HTMLInputElement).valueAsNumber)" />
+
+                    <input type="number" min="1"
+                           class="input"
+                           placeholder="Wdh."
+                           :value="row?.reps ?? ''"
+                           @input="onRowChange(i, 'reps', ($event.target as HTMLInputElement).valueAsNumber)" />
+                </div>
+            </div>
+
 
             <label class="field-label" for="progress-note">Notiz (optional)</label>
             <input id="progress-note"
@@ -64,104 +129,153 @@
                 <PopupSaveButton ariaLabel="Speichern" @click="onSave" />
             </div>
 
-            <ul v-if="errors && errors.length" class="errors">
-                <li v-for="(e,i) in errors" :key="i">• {{ e }}</li>
-            </ul>
+            <ValidationPopup :show="Boolean(errors && errors.length)"
+                             :errors="errors || []"
+                             @close="$emit('dismissErrors')" />
+
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
-import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
+    import { computed, nextTick, onMounted, ref, watch } from 'vue'
+    import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
+    import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
+    import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
 
-type Unit = 'kg' | 'lbs'
-interface PlanExercise {
-  exercise: string
-  sets: number
-  reps: number
-  goal?: string
-}
+    type Unit = 'kg' | 'lbs'
+    interface PlanExercise {
+        exercise: string
+        sets: number
+        reps: number
+        goal?: string
+    }
 
-const props = defineProps<{
-  show: boolean
-  unit: Unit
-  exercises: PlanExercise[]
-  /** v-models für die Felder */
-  exercise: string
-  sets: number | null
-  weight: number | null
-  reps: number | null
-  note: string
-  /** vom Parent gereicht: Validierungsfehler (Anzeige findet hier statt) */
-  errors?: string[]
-}>()
+    type SetDetail = { weight: number | null; reps: number | null }
 
-const emit = defineEmits<{
-  (e: 'update:show', v: boolean): void
-  (e: 'update:exercise', v: string): void
-  (e: 'update:sets', v: number | null): void
-  (e: 'update:weight', v: number | null): void
-  (e: 'update:reps', v: number | null): void
-  (e: 'update:note', v: string): void
-  (e: 'save'): void
-  (e: 'cancel'): void
-}>()
+    const props = defineProps<{
+        show: boolean
+        unit: Unit
+        exercises: PlanExercise[]
+        exercise: string
+        sets: number | null
+        weight: number | null
+        reps: number | null
+        note: string
+        errors?: string[]
+        // ▼ neu:
+        inputType: 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
+        duration: number | null
+        distance: number | null
+        setDetails: SetDetail[]           // <-- NEU
+    }>()
 
-/** Proxys für saubere v-model:foo Bindings */
-const exerciseProxy = computed({
-  get: () => props.exercise,
-  set: v => emit('update:exercise', v),
-})
-const setsProxy = computed({
-  get: () => props.sets,
-  set: v => emit('update:sets', v),
-})
-const weightProxy = computed({
-  get: () => props.weight,
-  set: v => emit('update:weight', v),
-})
-const repsProxy = computed({
-  get: () => props.reps,
-  set: v => emit('update:reps', v),
-})
-const noteProxy = computed({
-  get: () => props.note,
-  set: v => emit('update:note', v),
-})
+    const emit = defineEmits<{
+        (e: 'update:show', v: boolean): void
+        (e: 'update:exercise', v: string): void
+        (e: 'update:sets', v: number | null): void
+        (e: 'update:weight', v: number | null): void
+        (e: 'update:reps', v: number | null): void
+        (e: 'update:note', v: string): void
+        (e: 'update:duration', v: number | null): void
+        (e: 'update:distance', v: number | null): void
+        (e: 'save'): void
+        (e: 'cancel'): void
+        (e: 'dismissErrors'): void            // ⬅️ NEU
+        (e: 'update:setDetails', v: SetDetail[]): void
 
-const exerciseSelect = ref<HTMLSelectElement | null>(null)
-const weightInput = ref<HTMLInputElement | null>(null)
+    }>()
 
-function focusFirst() {
-  // Erst Auswahl, dann direkt aufs Gewicht (fühlt sich beim Eintragen schneller an)
-  nextTick(() => {
-    exerciseSelect.value?.focus()
-    nextTick(() => weightInput.value?.focus())
-  })
-}
+    const setDetailsProxy = computed<SetDetail[]>({
+        get: () => props.setDetails ?? [],
+        set: v => emit('update:setDetails', v),
+    })
 
-function onCancel() {
-  emit('update:show', false)
-  emit('cancel')
-}
+    /** Proxys für saubere v-model:foo Bindings */
+    const exerciseProxy = computed({
+        get: () => props.exercise,
+        set: v => emit('update:exercise', v),
+    })
+    const setsProxy = computed({
+        get: () => props.sets,
+        set: v => emit('update:sets', v),
+    })
+    const weightProxy = computed({
+        get: () => props.weight,
+        set: v => emit('update:weight', v),
+    })
+    const repsProxy = computed({
+        get: () => props.reps,
+        set: v => emit('update:reps', v),
+    })
+    const noteProxy = computed({
+        get: () => props.note,
+        set: v => emit('update:note', v),
+    })
 
-function onSave() {
-  emit('save') // Parent validiert & speichert; schließt anschließend selbst
-}
+    const exerciseSelect = ref<HTMLSelectElement | null>(null)
+    const weightInput = ref<HTMLInputElement | null>(null)
+    const durationInput = ref<HTMLInputElement | null>(null) // ▼ neu
 
-function onOverlayClick(e: MouseEvent) {
-  if (e.target === e.currentTarget) onCancel()
-}
+    function focusFirst() {
+        nextTick(() => {
+            exerciseSelect.value?.focus()
+            nextTick(() => {
+                (props.inputType === 'ausdauer' || props.inputType === 'dehnung'
+                    ? durationInput.value
+                    : weightInput.value
+                )?.focus()
+            })
+        })
+    }
 
-watch(() => props.show, v => {
-  if (v) focusFirst()
-})
+    function onCancel() {
+        emit('update:show', false)
+        emit('cancel')
+    }
+    const durationProxy = computed({
+        get: () => props.duration,
+        set: v => emit('update:duration', v),
+    })
+    const distanceProxy = computed({
+        get: () => props.distance,
+        set: v => emit('update:distance', v),
+    })
+    function onSave() {
+        emit('save') // Parent validiert & speichert; schließt anschließend selbst
+    }
 
-onMounted(() => {
-  if (props.show) focusFirst()
-})
+    function onOverlayClick(e: MouseEvent) {
+        if (e.target === e.currentTarget) onCancel()
+    }
+
+    watch(() => props.show, v => {
+        if (v) focusFirst()
+    })
+
+    onMounted(() => {
+        if (props.show) focusFirst()
+    })
+
+    watch(setsProxy, (n) => {
+        const count = Math.max(0, Number(n) || 0)
+        const next = [...setDetailsProxy.value]
+        if (count > next.length) {
+            for (let i = next.length; i < count; i++) {
+                next.push({ weight: weightProxy.value ?? null, reps: repsProxy.value ?? null })
+            }
+        } else if (count < next.length) {
+            next.splice(count)
+        }
+        emit('update:setDetails', next)
+    })
+
+    function onRowChange(i: number, field: 'weight' | 'reps', val: number | null) {
+        const next = setDetailsProxy.value.map((r, idx) =>
+            idx === i ? { ...r, [field]: val } : r
+        )
+        emit('update:setDetails', next)
+    }
 </script>
 
 <style scoped>
@@ -237,4 +351,39 @@ onMounted(() => {
             grid-template-columns: 1fr;
         }
     }
+
+    .modal-grid.grid-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 520px) {
+        .modal-grid.grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+    .set-rows {
+        margin-top: .5rem;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: .4rem;
+    }
+
+    .set-row {
+        display: grid;
+        grid-template-columns: 90px 1fr 1fr;
+        gap: .5rem;
+        align-items: center;
+    }
+
+    .set-row-label {
+        font-size: .9rem;
+        color: var(--text-secondary);
+    }
+
+    @media (max-width: 520px) {
+        .set-row {
+            grid-template-columns: 80px 1fr 1fr;
+        }
+    }
+
 </style>

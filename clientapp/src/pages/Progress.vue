@@ -445,7 +445,6 @@
                             <div v-for="plan in favoritePlans" :key="plan.id" class="list-item plan-item">
                                 <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
                                 <div class="list-item-actions">
-                                    <button class="open-btn" @click="openProgressPopup(plan.id)">Eintragen</button>
                                     <button class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
                             </div>
@@ -456,7 +455,6 @@
                             <div v-for="plan in otherPlans" :key="plan.id" class="list-item plan-item">
                                 <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
                                 <div class="list-item-actions">
-                                    <button class="open-btn" @click="openProgressPopup(plan.id)">Eintragen</button>
                                     <button class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
                             </div>
@@ -496,7 +494,7 @@
                    @save="saveGoal"
                    @cancel="closeGoalPopup" />
 
-        <!-- Fortschritt eintragen -->
+        <!-- dein ProgressEntryModal -->
         <ProgressEntryModal v-model:show="showProgressPopup"
                             :unit="unit"
                             :exercises="getExercisesForPlan(currentPlanId)"
@@ -505,48 +503,103 @@
                             v-model:weight="newProgressWeight"
                             v-model:reps="newProgressReps"
                             v-model:note="newProgressNote"
+                            :inputType="detectedInputType"
+                            v-model:duration="newProgressDuration"
+                            v-model:distance="newProgressDistance"
                             :errors="validationErrorMessages"
                             @save="saveProgress"
-                            @cancel="closeProgressPopup" />
+                            @cancel="cancelProgressEdit"
+                            @dismissErrors="validationErrorMessages = []"
+                            v-model:setDetails="newProgressSetDetails" />
 
-
-        <!-- Fortschritt ansehen -->
+        <!-- Fortschritt ansehen (Cards je Tag) -->
         <div v-if="showPlanProgressPopup && currentPlanId" class="modal-overlay" @click="handleOverlayClick">
             <div class="modal" role="dialog" aria-modal="true" @click.stop>
                 <div class="card-header">
                     <h3 class="modal-title">📖 Fortschritt – {{ currentPlanName }}</h3>
-                    <div class="card-actions">
+                    <div class="card-actions" v-if="dayCards.length">
                         <ActionIconButton ariaLabel="Herunterladen"
                                           title="Herunterladen"
-                                          @click="openDownloadPopup('progress', currentPlanId!)">⬇️</ActionIconButton>
+                                          @click="openDownloadPopup('progress', currentPlanId!)">
+                            ⬇️
+                        </ActionIconButton>
                     </div>
                 </div>
 
-                <div v-if="!sortedPlanEntries.length" class="list-item empty">
+                <div v-if="!dayCards.length" class="list-item empty">
                     Noch kein Fortschritt erfasst.
                     <button class="open-btn" style="margin-left:.5rem" @click="addEntryFromPlanView">Eintragen</button>
                 </div>
 
-                <ul v-else class="progress-entries">
-                    <li v-for="entry in sortedPlanEntries"
-                        :key="entry.date + entry.exercise"
-                        class="list-item plan-item">
-                        <div class="entry-text">
-                            <strong>{{ formatDate(entry.date) }}</strong> ·
-                            {{ entry.exercise }} — {{ formatWeight(entry.weight, 0) }} × {{ entry.reps }}
-                            <span v-if="entry.sets">({{ entry.sets }} Sätze)</span>
-                            <span v-if="entry.note" class="note"> – {{ entry.note }}</span>
+                <div v-else class="day-card-list">
+                    <article v-for="c in visibleDayCards" :key="c.day" class="day-card">
+                        <div class="day-card-row">
+                            <div class="day-card-main">
+                                <div class="day-date">{{ formatDayLong(c.day) }}</div>
+                                <div class="day-meta">
+                                    <span class="count">{{ c.uniqueExercises }} Übungen</span>
+                                </div>
+                            </div>
+                            <div class="day-card-actions">
+                                <button class="open-btn" @click="editLatestEntryForDay(c.day)">Bearbeiten</button>
+                                <button class="open-btn" @click="toggleDay(c.day)">
+                                    {{ expandedDay === c.day ? 'Schließen' : 'Öffnen' }}
+                                </button>
+                            </div>
+
                         </div>
-                        <div class="list-item-actions">
-                            <button class="open-btn" @click="editProgressEntry(currentPlanId!, entry)">Bearbeiten</button>
-                            <button class="open-btn" @click="deleteProgressEntry(currentPlanId!, entry.date)">Löschen</button>
+
+                        <!-- Details (sauber gruppiert) -->
+                        <div v-if="expandedDay === c.day" class="day-details">
+                            <div v-for="g in groupsForDay(c.day)" :key="g.exercise" class="exercise-block">
+                                <div class="exercise-header">{{ g.exercise }}</div>
+
+                                <div class="set-table">
+                                    <!-- Kopfzeile -->
+                                    <div class="set-row set-row--head">
+                                        <div class="cell cell--set">Satz</div>
+                                        <div class="cell cell--weight">Gewicht</div>
+                                        <div class="cell cell--reps">Wdh.</div>
+
+                                        <!-- Dynamische Dropsatz-Header (maximale Anzahl über alle Sätze) -->
+                                        <template v-if="maxDropsets(g.entries) > 0">
+                                            <template v-for="j in maxDropsets(g.entries)" :key="'h-w'+j">
+                                                <div class="cell cell--ds">DS{{ j }} Gewicht</div>
+                                                <div class="cell cell--ds">DS{{ j }} Wdh.</div>
+                                            </template>
+                                        </template>
+                                    </div>
+
+                                    <!-- Sätze -->
+                                    <div v-for="(e, i) in g.entries" :key="e.date + '|' + i" class="set-row">
+                                        <div class="cell cell--set">Satz {{ i + 1 }}</div>
+                                        <div class="cell cell--weight">{{ formatWeight(e.weight, 0) }}</div>
+                                        <div class="cell cell--reps">{{ e.reps }}</div>
+
+                                        <!-- Dropsatz-Spalten (pro Satz) -->
+                                        <template v-if="maxDropsets(g.entries) > 0">
+                                            <template v-for="(ds, j) in padDropsets(e.dropsets, maxDropsets(g.entries))" :key="'ds-'+i+'-'+j">
+                                                <div class="cell cell--ds">{{ ds ? formatWeight(ds.weight, 0) : '–' }}</div>
+                                                <div class="cell cell--ds">{{ ds ? ds.reps : '–' }}</div>
+                                            </template>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <div v-if="g.note" class="note">— {{ g.note }}</div>
+                            </div>
                         </div>
-                    </li>
-                </ul>
+
+                    </article>
+
+                    <div v-if="dayCards.length > visibleDays" class="load-more">
+                        <button class="open-btn" @click="visibleDays += 7">Weitere Tage laden</button>
+                    </div>
+                </div>
 
                 <div class="modal-actions">
-                    <button class="btn ghost" @click="addEntryFromPlanView">Eintragen</button>
-                    <PopupCancelButton ariaLabel="Schließen" @click="closePlanProgressPopup" />
+                    <PopupCancelButton ariaLabel="Abbrechen" @click="closePlanProgressPopup" />
+                    <PopupSaveButton ariaLabel="Eintragen" @click="addEntryFromPlanView">Eintragen</PopupSaveButton>
                 </div>
             </div>
         </div>
@@ -593,7 +646,7 @@
     import type { Toast as ToastModel } from '@/types/toast'
     import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
     import ProgressEntryModal from '@/components/ui/popups/ProgressEntryModal.vue'
-
+    import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
 
     // Interfaces
     interface PlanExercise {
@@ -617,24 +670,46 @@
         name: string;
         calories: number;
     }
-
-    interface Workout {
-        exercise: string;
-        sets: number;
-        weight: number;
-        reps: number;
-        note?: string;
-        date: string;
-        planId?: string;
-    }
+    // oben bei den Refs:
+    const newProgressSetDetails = ref < Array < { weight: number | null; reps: number | null } >> ([])
 
     // Refs
     const { unit, kgToDisplay, displayToKg, formatWeight } = useUnits()
     const trainingPlans = ref < TrainingPlan[] > ([]);
-    const weightHistory = ref<WeightEntry[]>([]);
-    const workouts = ref<Workout[]>([]);
-    const meals = ref<Meal[]>([]);
+    const weightHistory = ref < WeightEntry[] > ([]);
+    const workouts = ref < Workout[] > ([]);
+    const meals = ref < Meal[] > ([]);
+    // ▼ Erkennung nur über den Namen der gewählten Übung
+    type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
+    const isCardioName = (name: string) => {
+        const n = (name || '').toLowerCase()
+        const kw = [
+            'lauf', 'jogg', 'run', 'treadmill',
+            'rad', 'fahrrad', 'bike', 'spinning', 'cycling',
+            'row', 'rudern', 'ergometer',
+            'crosstrainer', 'ellip',
+            'seilspring', 'rope',
+            'treppen', 'stairs',
+            'schwimm', 'walk', 'hike'
+        ]
+        return kw.some(k => n.includes(k))
+    }
+    // ▼ neu
+    const isStretchName = (name: string) => {
+        const n = (name || '').toLowerCase()
+        const kw = [
+            'dehn', 'stretch', 'mobil', 'mobility', 'beweglich',
+            'yoga', 'faszien', 'smr', 'roll', 'piriformis',
+            'hamstring', 'calf stretch', 'hip opener'
+        ]
+        return kw.some(k => n.includes(k))
+    }
 
+    const detectedInputType = computed < ExerciseType > (() =>
+        isStretchName(currentExercise.value) ? 'dehnung'
+            : isCardioName(currentExercise.value) ? 'ausdauer'
+                : 'kraft'
+    )
 
     const glFood = ref < string > ('')
     const glServing = ref < number | null > (null)
@@ -733,6 +808,185 @@
 
     const suppressToasts = ref(true)
     let toastReleaseTimer: ReturnType<typeof setTimeout> | null = null
+    // -------- Journal-View + Tages-Cards (sauber) --------
+
+    const journalSearch = ref < string > ('')
+    const journalType = ref < 'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer' > ('alle')
+
+    // Ein sichtbares Limit für beide Ansichten (Journal + Cards)
+    const visibleDays = ref(7)
+    const expandedDay = ref < string | null > (null)
+
+    const TYPE_LABEL: Record<WorkoutType, string> = {
+        kraft: 'Kraft',
+        calisthenics: 'Calisthenics',
+        dehnung: 'Dehnung',
+        ausdauer: 'Cardio',
+    }
+
+    const formatDayLong = (yyyyMMdd: string) => {
+        const [y, m, d] = yyyyMMdd.split('-').map(Number)
+        return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString('de-DE', {
+            weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric'
+        })
+    }
+    const maxDropsets = (entries: Workout[]) =>
+        Math.max(0, ...entries.map(e => e.dropsets?.length ?? 0))
+
+    const padDropsets = (
+        drops: Array<{ weight: number; reps: number }> | undefined,
+        n: number
+    ) => {
+        const arr = drops ? [...drops] : []
+        while (arr.length < n) arr.push(undefined as any)
+        return arr
+    }
+
+    const toggleDay = (day: string) => {
+        expandedDay.value = (expandedDay.value === day ? null : day)
+    }
+
+    // ---- Map: Tag -> Einträge (nur aktueller Plan) ----
+    const entriesByDay = computed(() => {
+        const map = new Map < string, Workout[]> ()
+        if (!currentPlanId.value) return map
+        for (const w of getProgressForPlan(currentPlanId.value)) {
+            const day = (w.date || '').slice(0, 10)
+            if (!map.has(day)) map.set(day, [])
+            map.get(day)!.push(w)
+        }
+        // absteigend nach Datum
+        return new Map([...map.entries()].sort((a, b) => b[0].localeCompare(a[0])))
+    })
+
+    // ---- Kategorie-Zusammenfassung für die Cards ----
+    const summarizeCategories = (items: Workout[]): string => {
+        const types = new Set < WorkoutType > (items.map(w => (w.type ?? 'kraft') as WorkoutType))
+        const labels = [...types].map(t => TYPE_LABEL[t])
+        if (labels.length === 1) return labels[0]
+        if (labels.length > 3) return 'Gemischt'
+        return labels.join(' + ')
+    }
+
+    type DayCard = { day: string; uniqueExercises: number }
+
+    const dayCards = computed < DayCard[] > (() => {
+        return [...entriesByDay.value.entries()].map(([day, items]) => {
+            const uniqueExercises = new Set(items.map(i => i.exercise)).size
+            return { day, uniqueExercises }
+        })
+    })
+
+
+    const visibleDayCards = computed(() => dayCards.value.slice(0, visibleDays.value))
+
+    // ⬇️ direkt oberhalb/bei aggregateDay einfügen
+    type JournalGroup = {
+        exercise: string
+        entries: Workout[]      // bereits auf "Sätze" expandiert
+        note: string | null
+    }
+
+    // Gruppiert einen Tag nach Übung und expandiert die Sätze zu einzelnen Zeilen
+    function aggregateDay(items: Workout[]): JournalGroup[] {
+        // Für die Tabelle zeigen wir nur Kraft/Calisthenics an (kein Cardio/Dehnung in der Set-Tabelle)
+        const strength = items.filter(it => (it.type ?? 'kraft') === 'kraft' || it.type === 'calisthenics')
+
+        const byExercise = new Map < string, { entries: Workout[]; notes: string[]
+    }> ()
+    for (const it of strength) {
+        const key = it.exercise || 'Unbenannte Übung'
+        if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
+
+        // Sätze in einzelne Zeilen aufdröseln
+        const setCount = Math.max(1, Number(it.sets ?? 1))
+        for (let s = 0; s < setCount; s++) {
+            const detail = it.setDetails?.[s]
+            byExercise.get(key)!.entries.push({
+                ...it,
+                sets: 1,
+                weight: detail ? detail.weight : it.weight,
+                reps: detail ? detail.reps : it.reps,
+            })
+        }
+
+        if (it.note) byExercise.get(key)!.notes.push(it.note)
+    }
+
+    const groups: JournalGroup[] = []
+    for (const [exercise, { entries, notes }] of byExercise.entries()) {
+        groups.push({
+            exercise,
+            entries,
+            note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
+        })
+    }
+
+    // alphabetisch nach Übungsnamen
+    return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
+}
+    // Nur den Editor schließen; ggf. Fortschritt-Modal wieder öffnen
+    const cancelProgressEdit = () => {
+        const planIdForReopen = reopenPlanProgressAfterSave.value ? currentPlanId.value : null
+        closeProgressPopup() // räumt den Editor-State auf
+
+        if (planIdForReopen) {
+            currentPlanId.value = planIdForReopen
+            showPlanProgressPopup.value = true
+            reopenPlanProgressAfterSave.value = false
+        }
+    }
+
+    const editLatestEntryForDay = (day: string) => {
+        if (!currentPlanId.value) return
+        const items = getProgressForPlan(currentPlanId.value)
+            .filter(w => (w.date || '').slice(0, 10) === day)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+        if (!items.length) {
+            showToast({ message: 'Kein Eintrag für diesen Tag', type: 'default' })
+            return
+        }
+        editProgressEntry(currentPlanId.value, items[0])
+    }
+
+    // (Optional) komplettes Journal (nach Tag, mit Suche/Filter)
+    type JournalDay = { day: string; groups: JournalGroup[] }
+
+    const journalDays = computed < JournalDay[] > (() => {
+        if (!currentPlanId.value) return []
+        const all = getProgressForPlan(currentPlanId.value)
+
+        const filtered = all.filter(w => {
+            const t = (w.type ?? 'kraft') as WorkoutType
+            const typeOk = journalType.value === 'alle' || t === journalType.value
+            if (!typeOk) return false
+            const q = journalSearch.value.trim().toLowerCase()
+            if (!q) return true
+            const inExercise = (w.exercise || '').toLowerCase().includes(q)
+            const inNote = (w.note || '').toLowerCase().includes(q)
+            return inExercise || inNote
+        })
+
+        const byDay = new Map < string, Workout[]> ()
+        for (const w of filtered) {
+            const day = (w.date || '').slice(0, 10)
+            if (!byDay.has(day)) byDay.set(day, [])
+            byDay.get(day)!.push(w)
+        }
+
+        return Array.from(byDay.entries())
+            .sort((a, b) => b[0].localeCompare(a[0]))
+            .map(([day, items]) => ({ day, groups: aggregateDay(items) }))
+    })
+
+    const visibleJournalDays = computed(() => journalDays.value.slice(0, visibleDays.value))
+
+    const groupsForDay = (day: string) => {
+        const items = entriesByDay.value.get(day) ?? []
+        return aggregateDay(items)
+    }
+    /** baut das gesamte Journal (nach Tag absteigend) inkl. Suche/Filter */
 
     const waterWeight = ref < number | null > (null);
     const waterActivity = ref < 'low' | 'moderate' | 'high' > ('low');
@@ -745,10 +999,40 @@
     // Zustand für "Mehr anzeigen"
     const showMore = ref < { [key: string]: boolean } > ({});
     const autoCalcEnabled = ref(false)
+    const newProgressIsDropset = ref(false)
+    const newProgressDropsets = ref < Array < { weight: number | null; reps: number | null } >> ([])
 
     // --- Fortschritt ansehen Modal ---
     const showPlanProgressPopup = ref(false)
     const reopenPlanProgressAfterSave = ref(false)
+    // ▼ neu: WorkoutType & optionale Cardio-Felder
+    type WorkoutType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
+    interface DropSetEntry { weight: number; reps: number }
+
+    interface Workout {
+        exercise: string
+        sets: number
+        weight: number
+        reps: number
+        note?: string
+        date: string
+        planId?: string
+
+        // optional (weiterhin vorhanden – wird aber für die Anzeige nicht mehr genutzt)
+        type?: WorkoutType
+        durationMin?: number
+        distanceKm?: number
+        setDetails?: Array<{ weight: number; reps: number }> // NEU (kg & absolute Zahlen)
+
+        // 🔽 NEU für Dropsätze
+        isDropset?: boolean
+        dropsets?: DropSetEntry[]
+    }
+
+
+    // … bei den Refs zu den Fortschritt-Inputs:
+    const newProgressDuration = ref < number | null > (null)   // ▼ neu
+    const newProgressDistance = ref < number | null > (null)   // ▼ neu
 
     const currentPlanName = computed(() =>
         trainingPlans.value.find(p => p.id === currentPlanId.value)?.name ?? ''
@@ -784,14 +1068,40 @@
         }
     }
 
+    // ✅ Ganze Funktion: editProgressEntry
     const editProgressEntry = (planId: string, entry: Workout) => {
+        // Plan & Übung setzen
         currentPlanId.value = planId
-        currentExercise.value = entry.exercise
+        currentExercise.value = entry.exercise || ''
+
+        // Basis-Satzdaten
         newProgressSets.value = entry.sets ?? 1
-        newProgressWeight.value = kgToDisplay(entry.weight)
-        newProgressReps.value = entry.reps
+        newProgressWeight.value = entry.weight != null ? kgToDisplay(entry.weight) : null
+        newProgressReps.value = entry.reps ?? null
         newProgressNote.value = entry.note ?? ''
         editingEntry.value = entry
+
+        // Zeit-/Distanz-Felder (Cardio/Dehnung)
+        newProgressDuration.value = entry.durationMin ?? null
+        newProgressDistance.value = entry.distanceKm ?? null
+
+        // 🔹 Einzelsätze in Anzeige-Einheit übernehmen
+        if (entry.setDetails && entry.setDetails.length) {
+            newProgressSetDetails.value = entry.setDetails.map(s => ({
+                weight: s.weight != null ? kgToDisplay(s.weight) : null,
+                reps: s.reps ?? null,
+            }))
+            newProgressSets.value = entry.setDetails.length
+        } else {
+            newProgressSetDetails.value = []
+        }
+
+        // (Optional) Dropsätze in den Editor-State übernehmen
+        newProgressIsDropset.value = Boolean(entry.isDropset && (entry.dropsets?.length ?? 0) > 0)
+        newProgressDropsets.value = (entry.dropsets ?? []).map(ds => ({
+            weight: ds.weight != null ? kgToDisplay(ds.weight) : null,
+            reps: ds.reps ?? null,
+        }))
 
         // Wenn wir aus der Fortschritt-Ansicht kommen: nach Speichern wieder öffnen
         if (showPlanProgressPopup.value) {
@@ -803,6 +1113,7 @@
 
         showProgressPopup.value = true
     }
+
 
     const matchesPlanSearch = (name: string) => {
         if (!planSearchQuery.value) return true;
@@ -843,10 +1154,19 @@
         const last = workouts.value.reduce((a, b) =>
             new Date(a.date) > new Date(b.date) ? a : b
         )
+        if (last.type === 'ausdauer') {
+            const dist = last.distanceKm != null ? ` · ${last.distanceKm} km` : ''
+            return `${last.exercise} – ${last.durationMin} Min${dist}`
+        }
+        if (last.type === 'dehnung') {
+            const sr = last.sets ? ` · ${last.sets}×${last.reps}` : ''
+            return `${last.exercise} – ${last.durationMin} Min${sr}`
+        }
         return `${last.exercise} – ${formatWeight(last.weight, 0)} × ${last.reps}`
     })
+
     const router = useRouter()
-    const favoritePlansIds = ref<string[]>([])
+    const favoritePlansIds = ref < string[] > ([])
 
     onMounted(() => {
         try {
@@ -994,17 +1314,65 @@
         return null;
     };
 
+    // ✅ Ganze Funktion: validateProgress
     const validateProgress = (): string[] => {
-        const errors: string[] = [];
-        if (!currentExercise.value) errors.push('Eine Übung muss ausgewählt sein');
-        if (newProgressSets.value === null || isNaN(newProgressSets.value) || newProgressSets.value <= 0)
-            errors.push('Sätze müssen größer als 0 sein');
-        if (newProgressWeight.value === null || isNaN(newProgressWeight.value) || newProgressWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (newProgressReps.value === null || isNaN(newProgressReps.value) || newProgressReps.value <= 0)
-            errors.push('Wiederholungen müssen größer als 0 sein');
-        return errors;
-    };
+        const errors: string[] = []
+
+        if (!currentExercise.value) errors.push('Eine Übung muss ausgewählt sein')
+
+        // Cardio
+        if (detectedInputType.value === 'ausdauer') {
+            if (newProgressDuration.value == null || isNaN(newProgressDuration.value) || newProgressDuration.value <= 0)
+                errors.push('Dauer (Min) muss größer als 0 sein')
+            if (newProgressDistance.value != null && (isNaN(newProgressDistance.value) || newProgressDistance.value < 0))
+                errors.push('Distanz (km) muss ≥ 0 sein')
+            return errors
+        }
+
+        // Dehnung
+        if (detectedInputType.value === 'dehnung') {
+            if (newProgressDuration.value == null || isNaN(newProgressDuration.value) || newProgressDuration.value <= 0)
+                errors.push('Dauer (Min) muss größer als 0 sein')
+            if (newProgressSets.value == null || isNaN(newProgressSets.value) || newProgressSets.value <= 0)
+                errors.push('Sätze müssen größer als 0 sein')
+            if (newProgressReps.value == null || isNaN(newProgressReps.value) || newProgressReps.value <= 0)
+                errors.push('Wiederholungen müssen größer als 0 sein')
+            return errors
+        }
+
+        // Kraft / Calisthenics
+        const perSet = (newProgressSetDetails.value ?? []).filter(r => r !== undefined)
+
+        if (perSet.length > 0) {
+            // Pro-Satz-Validierung
+            perSet.forEach((r, i) => {
+                const w = Number(r.weight)
+                const reps = Number(r.reps)
+                if (!Number.isFinite(w) || w <= 0) errors.push(`Satz ${i + 1}: Gewicht muss > 0 sein`)
+                if (!Number.isFinite(reps) || reps <= 0) errors.push(`Satz ${i + 1}: Wdh. müssen > 0 sein`)
+            })
+        } else {
+            // Aggregierte Felder als Fallback
+            if (newProgressSets.value == null || isNaN(newProgressSets.value) || newProgressSets.value <= 0)
+                errors.push('Sätze müssen größer als 0 sein')
+            if (newProgressWeight.value == null || isNaN(newProgressWeight.value) || newProgressWeight.value <= 0)
+                errors.push('Gewicht muss größer als 0 sein')
+            if (newProgressReps.value == null || isNaN(newProgressReps.value) || newProgressReps.value <= 0)
+                errors.push('Wiederholungen müssen größer als 0 sein')
+        }
+
+        // (Optional) Dropsatz-Validierung
+        if (newProgressIsDropset.value && (newProgressDropsets.value?.length ?? 0) > 0) {
+            newProgressDropsets.value.forEach((ds, j) => {
+                const any = ds.weight != null || ds.reps != null
+                if (!any) return
+                if (ds.weight == null || isNaN(ds.weight) || ds.weight <= 0) errors.push(`Dropsatz ${j + 1}: Gewicht muss > 0 sein`)
+                if (ds.reps == null || isNaN(ds.reps) || ds.reps <= 0) errors.push(`Dropsatz ${j + 1}: Wdh. müssen > 0 sein`)
+            })
+        }
+
+        return errors
+    }
 
     const validateBMI = (): string[] => {
         const errors: string[] = [];
@@ -1507,46 +1875,96 @@
         newProgressWeight.value = null;
         newProgressReps.value = null;
         newProgressNote.value = '';
+        newProgressIsDropset.value = false
+        newProgressDropsets.value = []
         showProgressPopup.value = true;
+        newProgressDuration.value = null   // ▼ neu
+        newProgressDistance.value = null   // ▼ neu
+        newProgressSetDetails.value = []    // NEU
     };
 
 
     const saveProgress = () => {
-        const errors = validateProgress();
+        const errors = validateProgress()
         if (errors.length) {
-            validationErrorMessages.value = errors;
-            showValidationPopup.value = true;
-            return;
+            openValidationPopupError(errors) // ⬅️ setzt validationErrorMessages => ValidationPopup geht auf
+            return
         }
 
-        const payload: Workout = {
-            planId: currentPlanId.value ?? undefined,
-            exercise: currentExercise.value,
-            sets: Number(newProgressSets.value),
-            weight: displayToKg(Number(newProgressWeight.value)),
-            reps: Number(newProgressReps.value),
-            note: newProgressNote.value?.trim() || undefined,
-            date: editingEntry.value?.date ?? new Date().toISOString(),
-        };
+        let payload: Workout
+
+        if (detectedInputType.value === 'ausdauer') {
+            payload = {
+                planId: currentPlanId.value ?? undefined,
+                exercise: currentExercise.value,
+                sets: 0, weight: 0, reps: 0,
+                note: newProgressNote.value?.trim() || undefined,
+                date: editingEntry.value?.date ?? new Date().toISOString(),
+                type: 'ausdauer',
+                durationMin: Number(newProgressDuration.value),
+                distanceKm: newProgressDistance.value != null ? Number(newProgressDistance.value) : undefined,
+            }
+        } else if (detectedInputType.value === 'dehnung') {
+            payload = {
+                planId: currentPlanId.value ?? undefined,
+                exercise: currentExercise.value,
+                sets: Number(newProgressSets.value) || 0,
+                weight: 0, // bei Dehnung irrelevant
+                reps: Number(newProgressReps.value) || 0,
+                note: newProgressNote.value?.trim() || undefined,
+                date: editingEntry.value?.date ?? new Date().toISOString(),
+                type: 'dehnung',
+                durationMin: Number(newProgressDuration.value)
+            }
+        } else {
+            // Per-Satz vorhanden?
+            const hasPerSet = (newProgressSetDetails.value?.length ?? 0) > 0
+            const perSet = hasPerSet
+                ? newProgressSetDetails.value
+                    .filter(r => r.weight != null && r.reps != null)
+                    .map(r => ({
+                        weight: displayToKg(Number(r.weight)), // in kg persistieren
+                        reps: Number(r.reps),
+                    }))
+                : []
+
+            const first = perSet[0]
+
+            payload = {
+                planId: currentPlanId.value ?? undefined,
+                exercise: currentExercise.value,
+                sets: hasPerSet ? perSet.length : Number(newProgressSets.value),
+                weight: hasPerSet ? first.weight : displayToKg(Number(newProgressWeight.value)),
+                reps: hasPerSet ? first.reps : Number(newProgressReps.value),
+                note: newProgressNote.value?.trim() || undefined,
+                date: editingEntry.value?.date ?? new Date().toISOString(),
+                type: 'kraft',
+                isDropset: newProgressIsDropset.value || undefined,     // (falls du Dropsätze weiter nutzt)
+                dropsets: newProgressIsDropset.value ? /* …wie gehabt… */ undefined : undefined,
+                setDetails: hasPerSet ? perSet : undefined               // <-- NEU
+            }
+        }
+
+        
+
 
         if (editingEntry.value) {
-            const idx = workouts.value.findIndex(
-                w => w.planId === payload.planId && w.date === editingEntry.value!.date
-            );
+            const idx = workouts.value.findIndex(w => w.planId === payload.planId && w.date === editingEntry.value!.date)
             if (idx !== -1) {
-                workouts.value[idx] = payload;
-                showToast({ message: 'Fortschritt aktualisiert!', type: 'success', emoji: '✅' });
+                workouts.value[idx] = payload
+                showToast({ message: 'Fortschritt aktualisiert!', type: 'success', emoji: '✅' })
             }
-            editingEntry.value = null;
+            editingEntry.value = null
         } else {
-            workouts.value.push(payload);
-            checkMilestones(payload.planId, payload.exercise, payload.weight, payload.reps);
-            showToast({ message: 'Fortschritt gespeichert!', type: 'success', emoji: '✅' });
+            workouts.value.push(payload)
+            if (payload.type !== 'ausdauer') {
+                checkMilestones(payload.planId, payload.exercise, payload.weight, payload.reps)
+            }
+            showToast({ message: 'Fortschritt gespeichert!', type: 'success', emoji: '✅' })
         }
 
-        // Persist
-        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value));
-        closeProgressPopup();
+        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
+        closeProgressPopup()
 
         if (reopenPlanProgressAfterSave.value) {
             const planIdForReopen = payload.planId
@@ -1556,7 +1974,7 @@
             }
             reopenPlanProgressAfterSave.value = false
         }
-    };
+    }
 
 
     function releaseToasts() {
@@ -1585,6 +2003,8 @@
         newProgressWeight.value = null;
         newProgressReps.value = null;
         newProgressNote.value = '';
+        newProgressSetDetails.value = []    // NEU
+
     };
 
 
@@ -1721,21 +2141,30 @@
 
             case 'progress': {
                 if (!downloadPlanId.value) { addToast('Kein Plan ausgewählt', 'default'); closeDownloadPopup(); return; }
-                const plan = trainingPlans.value.find(p => p.id === downloadPlanId.value);
-                const progress = getProgressForPlan(downloadPlanId.value);
+                const plan = trainingPlans.value.find(p => p.id === downloadPlanId.value)
+                const progress = getProgressForPlan(downloadPlanId.value)
                 if (!progress.length) { addToast('Kein Fortschritt zum Herunterladen', 'default'); closeDownloadPopup(); return; }
+
                 data = {
                     planName: plan?.name || 'Unbekannter Plan',
-                    progress: progress.map((entry) => ({
-                        exercise: entry.exercise,
-                        weight_display: formatWeight(entry.weight, 1),
-                        weight_raw_kg: entry.weight,
-                        reps: entry.reps,
-                        date: formatDate(entry.date),
+                    progress: progress.map((e) => ({
+                        type: e.type ?? 'kraft',
+                        exercise: e.exercise,
+                        date: formatDate(e.date),
+                        // zeit-/streckenbasiert
+                        duration_min: (e.type === 'ausdauer' || e.type === 'dehnung') ? (e.durationMin ?? null) : null,
+                        distance_km: (e.type === 'ausdauer') ? (e.distanceKm ?? null) : null,
+                        // satz-/wiederholungsbasiert
+                        sets: e.sets ?? null,
+                        reps: e.reps ?? null,
+                        weight_raw_kg: (e.type === 'kraft' || e.type === 'calisthenics') ? e.weight : null,
+                        weight_display: (e.type === 'kraft' || e.type === 'calisthenics') ? formatWeight(e.weight, 1) : null,
+                        // Notiz immer mitnehmen
+                        note: e.note ?? null,
                     })),
-                };
-                filename = `progress_${(plan?.name || 'plan').toLowerCase().replace(/\s+/g, '_')}`;
-                break;
+                }
+                filename = `progress_${(plan?.name || 'plan').toLowerCase().replace(/\s+/g, '_')}`
+                break
             }
 
             case 'glyload':
@@ -1882,10 +2311,15 @@
 
             case 'csv':
                 if (downloadCalculator.value === 'progress') {
-                    content = `exercise,weight_display,weight_raw_kg,reps,date\n${data.progress.map((e: any) =>
-                        `${e.exercise},${e.weight_display},${e.weight_raw_kg},${e.reps},${e.date}`
-                    ).join('\n')}`;
-                } else  {
+                    const header = 'type,exercise,date,duration_min,distance_km,sets,reps,weight_raw_kg,weight_display,note'
+                    content = header + '\n' + data.progress.map((e: any) => [
+                        e.type, e.exercise, e.date,
+                        e.duration_min ?? '', e.distance_km ?? '',
+                        e.sets ?? '', e.reps ?? '',
+                        e.weight_raw_kg ?? '', e.weight_display ?? '',
+                        (e.note ?? '').toString().replace(/\n/g, ' ')
+                    ].join(',')).join('\n')
+                } else {
                     content = Object.entries(data).map(([k, v]) => {
                         if (typeof v === 'object' && v !== null) {
                             return `${k},"${Object.entries(v).map(([kk, vv]) => `${kk}:${vv}`).join(';')}"`;
@@ -1897,6 +2331,7 @@
                 filename += '.csv';
                 break;
 
+
             case 'json':
                 content = JSON.stringify(data, null, 2);
                 type = 'application/json';
@@ -1906,7 +2341,16 @@
             case 'txt':
                 if (downloadCalculator.value === 'progress') {
                     content = `Plan: ${data.planName}\n\n` + data.progress.map((e: any, i: number) =>
-                        `#${i + 1}\nÜbung: ${e.exercise}\nGewicht: ${e.weight}\nWdh: ${e.reps}\nDatum: ${e.date}\n`
+                        `#${i + 1}
+Typ: ${e.type}
+Übung: ${e.exercise}
+Datum: ${e.date}
+Dauer (Min): ${e.duration_min ?? '-'}
+Distanz (km): ${e.distance_km ?? '-'}
+Sätze: ${e.sets ?? '-'}
+Wdh: ${e.reps ?? '-'}
+Gewicht: ${e.weight_display ?? '-'}
+Notiz: ${e.note ?? '-'}\n`
                     ).join('\n');
                 } else {
                     const toLines = (obj: any, indent = ''): string => {
@@ -1923,6 +2367,7 @@
                 type = 'text/plain';
                 filename += '.txt';
                 break;
+
 
             default:
                 addToast('Unbekanntes Exportformat', 'default');
@@ -2221,11 +2666,9 @@
     };
 
     const openValidationPopupError = (errors: string[]) => {
-        // weiterhin für Formular-Komponenten sichtbar halten
-        validationErrorMessages.value = errors;
-        // zusätzlich: schnelle Rückmeldung als Toasts
-        errors.forEach(e => addToast(e, 'default'));
-    };
+        validationErrorMessages.value = errors   // ⬅️ wichtig: füllt das Array fürs Popup
+        errors.forEach(e => addToast(e, 'default')) // optional: Toasts
+    }
 
     const addToast = (
         message: string,
@@ -2283,28 +2726,32 @@
     };
 
     const handleKeydown = (event: KeyboardEvent) => {
+        // Falls das Validierungs-Popup offen ist: nur das schließen
+        if (validationErrorMessages.value.length) {
+            if (event.key === 'Escape' || event.key === 'Enter') {
+                event.preventDefault();
+                validationErrorMessages.value = [];
+            }
+            return;
+        }
+
         if (event.key === 'Escape') {
+            if (showProgressPopup.value) {
+                event.preventDefault();
+                cancelProgressEdit();
+                return;
+            }
+            // Standard: andere Popups schließen
             closeWeightPopup();
             closeGoalPopup();
-            closeProgressPopup();
             closeDownloadPopup();
         } else if (event.key === 'Enter') {
-            if (showWeightPopup.value) {
-                event.preventDefault();
-                saveWeight();
-            } else if (showGoalPopup.value) {
-                event.preventDefault();
-                saveGoal();
-            } else if (showProgressPopup.value) {
-                event.preventDefault();
-                saveProgress();
-            } else if (showDownloadPopup.value) {
-                event.preventDefault();
-                confirmDownload();
-            }
+            if (showWeightPopup.value) { event.preventDefault(); saveWeight(); }
+            else if (showGoalPopup.value) { event.preventDefault(); saveGoal(); }
+            else if (showProgressPopup.value) { event.preventDefault(); saveProgress(); }
+            else if (showDownloadPopup.value) { event.preventDefault(); confirmDownload(); }
         }
     };
-
 
     let weightChart: Chart | null = null;
     let workoutChart: Chart | null = null;
@@ -3069,7 +3516,7 @@
         display: flex;
         gap: 0.5rem;
     }
-    
+
     /* ===================== EXPORT-POPUP ===================== */
 
     .plans-section {
@@ -3200,6 +3647,7 @@
         border-radius: 10px;
         transition: background .2s ease, border-color .2s ease, transform .12s ease;
     }
+
     .modal-overlay {
         position: fixed;
         inset: 0;
@@ -3293,11 +3741,11 @@
         }
     }
 
-        .list-item:hover {
-            background: var(--bg-secondary); /* dezente Hover-Fläche */
-            border-color: var(--accent-primary);
-            transform: translateY(-1px);
-        }
+    .list-item:hover {
+        background: var(--bg-secondary); /* dezente Hover-Fläche */
+        border-color: var(--accent-primary);
+        transform: translateY(-1px);
+    }
 
     .plan-item span {
         color: var(--text-secondary);
@@ -3349,5 +3797,315 @@
             font-size: .95rem;
         }
     }
+    /* Fortschritt ansehen – Header mit Download-Button rechts */
+    .modal .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: .75rem; /* etwas Luft unter dem Header */
+    }
 
+    .modal .card-actions {
+        margin-left: auto;
+        display: flex;
+        gap: .5rem;
+    }
+
+    /* Optional: Titel enger machen, damit er optisch auf gleicher Höhe sitzt */
+    .modal .modal-title {
+        margin: .25rem 0 .5rem;
+    }
+    /* Journal Toolbar */
+    .journal-toolbar {
+        display: flex;
+        gap: .5rem;
+        margin: .25rem 0 .75rem;
+    }
+
+    .journal {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+    }
+
+    .journal-day {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: .5rem .75rem;
+    }
+
+    .journal-day-header {
+        display: flex;
+        align-items: baseline;
+        gap: .5rem;
+        margin-bottom: .25rem;
+    }
+
+    .journal-entries {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .journal-entry {
+        padding: .6rem .5rem;
+        border-top: 1px dashed var(--border-color);
+    }
+
+        .journal-entry:first-child {
+            border-top: 0;
+        }
+
+    .entry-head {
+        display: flex;
+        align-items: center;
+        gap: .5rem .6rem;
+        flex-wrap: wrap;
+    }
+
+    .entry-exercise {
+        font-weight: 600;
+    }
+
+    .entry-summary {
+        margin-left: auto;
+        font-size: .9rem;
+        color: var(--text-secondary);
+    }
+
+    .type-chip {
+        font-size: .75rem;
+        padding: .15rem .45rem;
+        border-radius: 999px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+    }
+
+        .type-chip[data-type="ausdauer"] {
+            border-color: #60a5fa22;
+        }
+
+        .type-chip[data-type="dehnung"] {
+            border-color: #34d39922;
+        }
+
+        .type-chip[data-type="kraft"],
+        .type-chip[data-type="calisthenics"] {
+            border-color: #a78bfa22;
+        }
+
+    .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .35rem;
+        margin-top: .35rem;
+    }
+
+    .chip {
+        padding: .2rem .45rem;
+        border-radius: 999px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        font-size: .85rem;
+    }
+
+    .note {
+        margin-top: .25rem;
+        color: var(--text-secondary);
+        font-size: .9rem;
+    }
+
+    .load-more {
+        display: flex;
+        justify-content: center;
+        margin-top: .5rem;
+    }
+
+    .muted {
+        color: var(--text-secondary);
+    }
+    /* Tages-Cards */
+    .day-card-list {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+    }
+
+    .day-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: .6rem .75rem;
+    }
+
+    .day-card-row {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .day-card-main {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .day-date {
+        font-weight: 700;
+    }
+
+    .day-meta {
+        display: flex;
+        align-items: center;
+        gap: .35rem;
+        color: var(--text-secondary);
+        font-size: .9rem;
+    }
+
+    .day-card-actions {
+        display: flex;
+        align-items: center;
+        gap: .4rem; /* Abstand zwischen "Bearbeiten" und "Öffnen/Schließen" */
+    }
+
+    .day-details {
+        margin-top: .5rem;
+    }
+
+    /* Details (nutzt dein Journal-Layout) */
+    .journal-entries {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .journal-entry {
+        padding: .6rem .5rem;
+        border-top: 1px dashed var(--border-color);
+    }
+
+        .journal-entry:first-child {
+            border-top: 0;
+        }
+
+    .entry-head {
+        display: flex;
+        gap: .6rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .entry-exercise {
+        font-weight: 600;
+    }
+
+    .entry-summary {
+        margin-left: auto;
+        font-size: .9rem;
+        color: var(--text-secondary);
+    }
+
+    .type-chip {
+        font-size: .75rem;
+        padding: .15rem .45rem;
+        border-radius: 999px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+    }
+
+        .type-chip[data-type="ausdauer"] {
+            border-color: #60a5fa22;
+        }
+
+        .type-chip[data-type="dehnung"] {
+            border-color: #34d39922;
+        }
+
+        .type-chip[data-type="kraft"],
+        .type-chip[data-type="calisthenics"] {
+            border-color: #a78bfa22;
+        }
+
+    .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .35rem;
+        margin-top: .35rem;
+    }
+
+    .chip {
+        padding: .2rem .45rem;
+        border-radius: 999px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        font-size: .85rem;
+    }
+
+    .note {
+        margin-top: .25rem;
+        color: var(--text-secondary);
+        font-size: .9rem;
+    }
+
+    .load-more {
+        display: flex;
+        justify-content: center;
+        margin-top: .5rem;
+    }
+
+    .exercise-block {
+        margin: .5rem 0 1rem;
+    }
+
+    .exercise-header {
+        font-weight: 700;
+        margin: .1rem 0 .4rem;
+    }
+
+    .set-table {
+        display: flex;
+        flex-direction: column;
+        gap: .35rem;
+    }
+
+    .set-row {
+        display: flex;
+        gap: .5rem;
+        align-items: center;
+        flex-wrap: wrap; /* bricht auf kleinen Screens sauber um */
+    }
+
+    .set-row--head {
+        font-size: .85rem;
+        color: var(--text-secondary);
+    }
+
+    .cell {
+        padding: .25rem .45rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        text-align: center;
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .cell--set {
+        min-width: 70px;
+        font-weight: 600;
+    }
+
+    .cell--weight, .cell--reps, .cell--ds {
+        min-width: 88px;
+    }
+
+    @media (max-width: 560px) {
+        .cell--weight, .cell--reps, .cell--ds {
+            min-width: 76px;
+        }
+    }
 </style>
