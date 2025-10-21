@@ -514,7 +514,7 @@
 
         <!-- Fortschritt ansehen (Cards je Tag) -->
         <div v-if="showPlanProgressPopup && currentPlanId" class="modal-overlay" @click="handleOverlayClick">
-            <div class="modal" role="dialog" aria-modal="true" @click.stop>
+            <div class="modal modal--progress" role="dialog" aria-modal="true" @click.stop>
                 <div class="card-header">
                     <h3 class="modal-title">📖 Fortschritt – {{ currentPlanName }}</h3>
                     <div class="card-actions" v-if="dayCards.length">
@@ -543,25 +543,25 @@
                             <div class="day-card-actions">
                                 <button class="open-btn" @click="editLatestEntryForDay(c.day)">Bearbeiten</button>
                                 <button class="open-btn" @click="toggleDay(c.day)">
-                                    {{ expandedDay === c.day ? 'Schließen' : 'Öffnen' }}
+                                    {{ expandedDays.has(c.day) ? 'Schließen' : 'Öffnen' }}
                                 </button>
                             </div>
 
                         </div>
 
                         <!-- Details (sauber gruppiert) -->
-                        <div v-if="expandedDay === c.day" class="day-details">
+                        <div v-if="expandedDays.has(c.day)" class="day-details">
                             <div v-for="g in groupsForDay(c.day)" :key="g.exercise" class="exercise-block">
                                 <div class="exercise-header">{{ g.exercise }}</div>
 
-                                <div class="set-table">
+                                <!-- HIER: Grid-Definition je nach Anzahl Dropsätze -->
+                                <div class="set-table" :style="{ '--grid-cols': gridCols(maxDropsets(g.entries)) }">
                                     <!-- Kopfzeile -->
                                     <div class="set-row set-row--head">
                                         <div class="cell cell--set">Satz</div>
                                         <div class="cell cell--weight">Gewicht</div>
                                         <div class="cell cell--reps">Wdh.</div>
 
-                                        <!-- Dynamische Dropsatz-Header (maximale Anzahl über alle Sätze) -->
                                         <template v-if="maxDropsets(g.entries) > 0">
                                             <template v-for="j in maxDropsets(g.entries)" :key="'h-w'+j">
                                                 <div class="cell cell--ds">DS{{ j }} Gewicht</div>
@@ -570,13 +570,12 @@
                                         </template>
                                     </div>
 
-                                    <!-- Sätze -->
+                                    <!-- Zeilen -->
                                     <div v-for="(e, i) in g.entries" :key="e.date + '|' + i" class="set-row">
                                         <div class="cell cell--set">Satz {{ i + 1 }}</div>
                                         <div class="cell cell--weight">{{ formatWeight(e.weight, 0) }}</div>
                                         <div class="cell cell--reps">{{ e.reps }}</div>
 
-                                        <!-- Dropsatz-Spalten (pro Satz) -->
                                         <template v-if="maxDropsets(g.entries) > 0">
                                             <template v-for="(ds, j) in padDropsets(e.dropsets, maxDropsets(g.entries))" :key="'ds-'+i+'-'+j">
                                                 <div class="cell cell--ds">{{ ds ? formatWeight(ds.weight, 0) : '–' }}</div>
@@ -589,6 +588,7 @@
                                 <div v-if="g.note" class="note">— {{ g.note }}</div>
                             </div>
                         </div>
+
 
                     </article>
 
@@ -815,8 +815,9 @@
 
     // Ein sichtbares Limit für beide Ansichten (Journal + Cards)
     const visibleDays = ref(7)
-    const expandedDay = ref < string | null > (null)
+    const expandedDays = ref < Set < string >> (new Set())
 
+    
     const TYPE_LABEL: Record<WorkoutType, string> = {
         kraft: 'Kraft',
         calisthenics: 'Calisthenics',
@@ -842,10 +843,11 @@
         return arr
     }
 
-    const toggleDay = (day: string) => {
-        expandedDay.value = (expandedDay.value === day ? null : day)
+    function toggleDay(day: string) {
+        const next = new Set(expandedDays.value)
+        next.has(day) ? next.delete(day) : next.add(day)
+        expandedDays.value = next
     }
-
     // ---- Map: Tag -> Einträge (nur aktueller Plan) ----
     const entriesByDay = computed(() => {
         const map = new Map < string, Workout[]> ()
@@ -858,6 +860,12 @@
         // absteigend nach Datum
         return new Map([...map.entries()].sort((a, b) => b[0].localeCompare(a[0])))
     })
+    function gridCols(n: number) {
+        // 3 Basis-Spalten (Satz, Gewicht, Wdh.) + je Dropsatz 2 Spalten
+        const base = ['0.7fr', '1fr', '0.9fr']
+        const ds = Array.from({ length: n }, () => ['1fr', '0.9fr']).flat()
+        return [...base, ...ds].join(' ')
+    }
 
     // ---- Kategorie-Zusammenfassung für die Cards ----
     const summarizeCategories = (items: Workout[]): string => {
@@ -1868,21 +1876,18 @@
     };
 
     const openProgressPopup = (planId: string) => {
-        currentPlanId.value = planId;
-        const first = getExercisesForPlan(planId)[0];
-        currentExercise.value = first?.exercise || '';
-        newProgressSets.value = first?.sets ? Number(first.sets) : null;
-        newProgressWeight.value = null;
-        newProgressReps.value = null;
-        newProgressNote.value = '';
+        currentPlanId.value = planId
+        currentExercise.value = ''          // <— wichtig: Placeholder aktiv
+        newProgressSets.value = null
+        newProgressWeight.value = null
+        newProgressReps.value = null
+        newProgressNote.value = ''
         newProgressIsDropset.value = false
         newProgressDropsets.value = []
-        showProgressPopup.value = true;
-        newProgressDuration.value = null   // ▼ neu
-        newProgressDistance.value = null   // ▼ neu
-        newProgressSetDetails.value = []    // NEU
-    };
-
+        newProgressDuration.value = null
+        newProgressDistance.value = null
+        showProgressPopup.value = true
+    }
 
     const saveProgress = () => {
         const errors = validateProgress()
@@ -4108,4 +4113,45 @@ Notiz: ${e.note ?? '-'}\n`
             min-width: 76px;
         }
     }
+
+    /* Tabelle nutzt volle Breite des Modals */
+    .set-table {
+        width: 100%;
+    }
+
+    /* Jede Zeile ist ein Grid mit gemeinsamen Spalten (per CSS-Var) */
+    .set-row {
+        display: grid;
+        grid-template-columns: var(--grid-cols, 0.7fr 1fr 0.9fr);
+        gap: .5rem;
+        align-items: center;
+    }
+
+    /* Kopfzeile optisch dezenter */
+    .set-row--head {
+        font-size: .9rem;
+        color: var(--text-secondary);
+    }
+
+    /* Zellen ohne starre Mindestbreite – füllen die Grid-Spalten */
+    .cell {
+        min-width: 0; /* überschreibt alte min-width */
+        padding: .35rem .5rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        text-align: center;
+    }
+
+    /* linke „Satz“-Spalte leicht linksbündig und markanter */
+    .cell--set {
+        text-align: left;
+        font-weight: 600;
+    }
+
+    /* alte Min-Breiten abschalten, damit das Grid regiert */
+    .cell--weight, .cell--reps, .cell--ds {
+        min-width: 0;
+    }
+
 </style>

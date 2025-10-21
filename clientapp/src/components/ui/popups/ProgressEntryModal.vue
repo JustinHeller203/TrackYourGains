@@ -11,12 +11,14 @@
                     ref="exerciseSelect"
                     v-model="exerciseProxy"
                     class="input select">
+                <option value="" disabled>Übung wählen</option>
                 <option v-for="ex in exercises"
                         :key="ex.exercise"
                         :value="ex.exercise">
                     {{ ex.exercise }}
                 </option>
             </select>
+
 
             <!-- Cardio-Inputs -->
             <div v-if="inputType === 'ausdauer'" class="modal-grid grid-2">
@@ -384,6 +386,9 @@
         .set-row {
             grid-template-columns: 80px 1fr 1fr;
         }
+    }
+    .select option[disabled] {
+        color: var(--text-secondary);
     }
 
 </style>
