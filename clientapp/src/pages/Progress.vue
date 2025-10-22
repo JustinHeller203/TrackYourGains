@@ -1076,6 +1076,13 @@
         }
     }
 
+    // Führt fn aus, während Toasts stummgeschaltet sind (für Auto-Calc/Restore)
+    function withSilentToasts(fn: () => void) {
+        const prev = suppressToasts.value
+        suppressToasts.value = true
+        try { fn() } finally { suppressToasts.value = prev }
+    }
+
     // ✅ Ganze Funktion: editProgressEntry
     const editProgressEntry = (planId: string, entry: Workout) => {
         // Plan & Übung setzen
@@ -2437,10 +2444,10 @@ Notiz: ${e.note ?? '-'}\n`
         }
     };
 
-
     const debouncedCalcGlyLoad = debounce(() => {
-        if (!validateGlyLoad().length) calculateGlyLoad()
+        if (!validateGlyLoad().length) withSilentToasts(calculateGlyLoad)
     })
+
     watch([glFood, glServing, glCarbs100, glGi], () => {
         if (autoCalcEnabled.value) debouncedCalcGlyLoad()
     })
@@ -2480,8 +2487,9 @@ Notiz: ${e.note ?? '-'}\n`
     };
 
     const debouncedCalcCaffeine = debounce(() => {
-        if (!validateCaffeine().length) calculateCaffeine()
+        if (!validateCaffeine().length) withSilentToasts(calculateCaffeine)
     })
+
     watch([cafWeight, cafSensitivity, cafStatus], () => {
         if (autoCalcEnabled.value) debouncedCalcCaffeine()
     })
@@ -3049,48 +3057,54 @@ Notiz: ${e.note ?? '-'}\n`
 
     // ===== Auto-BMI =====
     const debouncedCalcBMI = debounce(() => {
-        if (!validateBMI().length) calculateBMI()
+        if (!validateBMI().length) withSilentToasts(calculateBMI)
     })
+
     watch([bmiGender, bmiWeight, bmiHeight], () => {
         if (autoCalcEnabled.value) debouncedCalcBMI()
     })
 
     // ===== Auto-Kalorien =====
     const debouncedCalcCalories = debounce(() => {
-        if (!validateCalories().length) calculateCalories()
+        if (!validateCalories().length) withSilentToasts(calculateCalories)
     })
+
     watch([calorieAge, calorieGender, calorieWeight, calorieHeight, calorieActivity, calorieGoal], () => {
         if (autoCalcEnabled.value) debouncedCalcCalories()
     })
 
     // ===== Auto-1RM =====
     const debouncedCalc1RM = debounce(() => {
-        if (!validateOneRm().length) calculateOneRm()
+        if (!validateOneRm().length) withSilentToasts(calculateOneRm)
     })
+
     watch([oneRmWeight, oneRmReps, oneRmExercise], () => {
         if (autoCalcEnabled.value) debouncedCalc1RM()
     })
 
     // ===== Auto-Körperfett =====
     const debouncedCalcBodyFat = debounce(() => {
-        if (!validateBodyFat().length) calculateBodyFat()
+        if (!validateBodyFat().length) withSilentToasts(calculateBodyFat)
     })
+
     watch([bodyFatGender, bodyFatWaist, bodyFatNeck, bodyFatHip, bodyFatHeight], () => {
         if (autoCalcEnabled.value) debouncedCalcBodyFat()
     })
 
     // ===== Auto-FFMI =====
     const debouncedCalcFFMI = debounce(() => {
-        if (!validateFFMI().length) calculateFFMI()
+        if (!validateFFMI().length) withSilentToasts(calculateFFMI)
     })
+
     watch([ffmiWeight, ffmiHeight, ffmiBodyFat], () => {
         if (autoCalcEnabled.value) debouncedCalcFFMI()
     })
 
     // ===== Auto-Wasser =====
     const debouncedCalcWater = debounce(() => {
-        if (!validateWater().length) calculateWater()
+        if (!validateWater().length) withSilentToasts(calculateWater)
     })
+
     watch([waterWeight, waterActivity, waterClimate], () => {
         if (autoCalcEnabled.value) debouncedCalcWater()
     })
@@ -3106,8 +3120,9 @@ Notiz: ${e.note ?? '-'}\n`
     })
 
     const debouncedCalcProtein = debounce(() => {
-        if (!validateProtein().length) calculateProtein()
+        if (!validateProtein().length) withSilentToasts(calculateProtein)
     }, 300)
+
 
     watch([proteinWeight, proteinGoal, proteinActivity, unit], () => {
         if (autoCalcEnabled.value) debouncedCalcProtein()
@@ -3118,7 +3133,7 @@ Notiz: ${e.note ?? '-'}\n`
     })
 
     watch([proteinWeight, proteinGoal, proteinActivity], () => {
-        if (autoCalcEnabled.value && !validateProtein().length) calculateProtein()
+        if (autoCalcEnabled.value && !validateProtein().length) withSilentToasts(calculateProtein)
     }, { immediate: true, flush: 'post' })
 
     watch(activeTab, (newValue) => {
@@ -3153,7 +3168,7 @@ Notiz: ${e.note ?? '-'}\n`
     });
 
     onMounted(() => {
-        loadFromLocalStorage()
+        withSilentToasts(loadFromLocalStorage)
         checkMilestones()
         window.addEventListener('keydown', handleKeydown)
 
