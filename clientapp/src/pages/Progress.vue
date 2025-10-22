@@ -528,7 +528,7 @@
 
                 <div v-if="!dayCards.length" class="list-item empty">
                     Noch kein Fortschritt erfasst.
-                    <button class="open-btn" style="margin-left:.5rem" @click="addEntryFromPlanView">Eintragen</button>
+                    <button class="open-btn" style="margin-left:.5rem" @click="addEntryFromPlanView">Erster Eintrag</button>
                 </div>
 
                 <div v-else class="day-card-list">
@@ -596,10 +596,11 @@
                         <button class="open-btn" @click="visibleDays += 7">Weitere Tage laden</button>
                     </div>
                 </div>
+                <div class="scroll-sentinel-end" aria-hidden="true" style="height:1px"></div>
 
                 <div class="modal-actions">
                     <PopupCancelButton ariaLabel="Abbrechen" @click="closePlanProgressPopup" />
-                    <PopupSaveButton ariaLabel="Eintragen" @click="addEntryFromPlanView">Eintragen</PopupSaveButton>
+                    <PopupSaveButton ariaLabel="Eintragen" @click="addEntryFromPlanView">Neuer Eintrag</PopupSaveButton>
                 </div>
             </div>
         </div>
@@ -671,14 +672,14 @@
         calories: number;
     }
     // oben bei den Refs:
-    const newProgressSetDetails = ref < Array < { weight: number | null; reps: number | null } >> ([])
+    const newProgressSetDetails = ref<Array<{ weight: number | null; reps: number | null }>>([])
 
     // Refs
     const { unit, kgToDisplay, displayToKg, formatWeight } = useUnits()
-    const trainingPlans = ref < TrainingPlan[] > ([]);
-    const weightHistory = ref < WeightEntry[] > ([]);
-    const workouts = ref < Workout[] > ([]);
-    const meals = ref < Meal[] > ([]);
+    const trainingPlans = ref<TrainingPlan[]>([]);
+    const weightHistory = ref<WeightEntry[]>([]);
+    const workouts = ref<Workout[]>([]);
+    const meals = ref<Meal[]>([]);
     // ▼ Erkennung nur über den Namen der gewählten Übung
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
     const isCardioName = (name: string) => {
@@ -705,119 +706,120 @@
         return kw.some(k => n.includes(k))
     }
 
-    const detectedInputType = computed < ExerciseType > (() =>
+    const detectedInputType = computed<ExerciseType>(() =>
         isStretchName(currentExercise.value) ? 'dehnung'
             : isCardioName(currentExercise.value) ? 'ausdauer'
                 : 'kraft'
     )
 
-    const glFood = ref < string > ('')
-    const glServing = ref < number | null > (null)
-    const glCarbs100 = ref < number | null > (null)
-    const glGi = ref < number | null > (null)
+    const glFood = ref<string>('')
+    const glServing = ref<number | null>(null)
+    const glCarbs100 = ref<number | null>(null)
+    const glGi = ref<number | null>(null)
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
-    const glCarbs = computed < number | null > (() => {
+    const glCarbs = computed<number | null>(() => {
         if (glServing.value == null || glCarbs100.value == null) return null
         return (Number(glCarbs100.value) * Number(glServing.value)) / 100
     })
 
-    const glResult = ref < number | null > (null)
-    const glCategory = computed < string > (() => {
+    const glResult = ref<number | null>(null)
+    const glCategory = computed<string>(() => {
         if (glResult.value == null) return ''
         if (glResult.value < 10) return 'niedrig'
         if (glResult.value < 20) return 'mittel'
         return 'hoch'
     })
+    const progressModalEl = ref<HTMLElement | null>(null)
 
-    const newWeight = ref < number | null > (null);
-    const goal = ref < number | null > (null);
-    const newGoal = ref < number | null > (null);
+    const newWeight = ref<number | null>(null);
+    const goal = ref<number | null>(null);
+    const newGoal = ref<number | null>(null);
     const showWeightPopup = ref(false);
     const showGoalPopup = ref(false);
     const showProgressPopup = ref(false);
     const showDownloadPopup = ref(false);
-    const validationErrorMessages = ref < string[] > ([]);
-    const toast = ref < ToastModel | null > (null);
-    const weightInput = ref < HTMLInputElement | null > (null);
-    const goalInput = ref < HTMLInputElement | null > (null);
-    const downloadFormat = ref < 'html' | 'csv' | 'json' | 'pdf' | 'txt' > ('html');
-    const downloadCalculator = ref < string | null > (null);
-    const downloadPlanId = ref < string | null > (null);
-    const searchQuery = ref < string > ('');
-    const currentPlanId = ref < string | null > (null);
-    const currentExercise = ref < string > ('');
-    const newProgressWeight = ref < number | null > (null);
-    const newProgressReps = ref < number | null > (null);
-    const newProgressSets = ref < number | null > (null);
-    const newProgressNote = ref < string > ('');
+    const validationErrorMessages = ref<string[]>([]);
+    const toast = ref<ToastModel | null>(null);
+    const weightInput = ref<HTMLInputElement | null>(null);
+    const goalInput = ref<HTMLInputElement | null>(null);
+    const downloadFormat = ref<'html' | 'csv' | 'json' | 'pdf' | 'txt'>('html');
+    const downloadCalculator = ref<string | null>(null);
+    const downloadPlanId = ref<string | null>(null);
+    const searchQuery = ref<string>('');
+    const currentPlanId = ref<string | null>(null);
+    const currentExercise = ref<string>('');
+    const newProgressWeight = ref<number | null>(null);
+    const newProgressReps = ref<number | null>(null);
+    const newProgressSets = ref<number | null>(null);
+    const newProgressNote = ref<string>('');
     let toastId = 0;
     let toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    const activeTab = ref < 'stats' | 'calculators' | 'plans' > ('stats');
+    const activeTab = ref<'stats' | 'calculators' | 'plans'>('stats');
 
     // Calculator Data
-    const bmiGender = ref < 'male' | 'female' > ('male');
-    const bmiWeight = ref < number | null > (null);
-    const bmiHeight = ref < number | null > (null);
-    const bmiResult = ref < { value: number; category: string } | null > (null);
-    const proteinActivity = ref < 'low' | 'moderate' | 'high' > ('low')
-    const proteinMeals = ref < number | null > (null)
+    const bmiGender = ref<'male' | 'female'>('male');
+    const bmiWeight = ref<number | null>(null);
+    const bmiHeight = ref<number | null>(null);
+    const bmiResult = ref<{ value: number; category: string } | null>(null);
+    const proteinActivity = ref<'low' | 'moderate' | 'high'>('low')
+    const proteinMeals = ref<number | null>(null)
 
-    const calorieAge = ref < number | null > (null);
-    const calorieGender = ref < 'male' | 'female' > ('male');
-    const calorieWeight = ref < number | null > (null);
-    const calorieHeight = ref < number | null > (null);
-    const calorieActivity = ref < string > ('1.2');
-    const calorieGoal = ref < number > (0);
-    const calorieResult = ref < {
+    const calorieAge = ref<number | null>(null);
+    const calorieGender = ref<'male' | 'female'>('male');
+    const calorieWeight = ref<number | null>(null);
+    const calorieHeight = ref<number | null>(null);
+    const calorieActivity = ref<string>('1.2');
+    const calorieGoal = ref<number>(0);
+    const calorieResult = ref<{
         total: number;
         macros: { carbs: number; protein: number; fat: number };
-    } | null > (null);
-    const proteinWeight = ref < number | null > (null)
-    const proteinGoal = ref < 'maintain' | 'bulk' | 'cut' > ('maintain')
-    const proteinResult = ref < { recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null > (null)
+    } | null>(null);
+    const proteinWeight = ref<number | null>(null)
+    const proteinGoal = ref<'maintain' | 'bulk' | 'cut'>('maintain')
+    const proteinResult = ref<{ recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null>(null)
 
     // Abgeleitete Liste für das Template-Header-Check
     const favoriteCalcs = computed(() => Array.from(favoriteCalculators.value));
-    const cafWeight = ref < number | null > (null)
-    const cafSensitivity = ref < 'low' | 'normal' | 'high' > ('normal')
-    const cafStatus = ref < 'none' | 'pregnant' > ('none')
-    const cafResult = ref < { perDose: number; perDay: number } | null > (null)
+    const cafWeight = ref<number | null>(null)
+    const cafSensitivity = ref<'low' | 'normal' | 'high'>('normal')
+    const cafStatus = ref<'none' | 'pregnant'>('none')
+    const cafResult = ref<{ perDose: number; perDay: number } | null>(null)
 
     const isFavorite = (id: string) => isFavCalculator(id);
     const toggleFavorite = (id: string) => toggleFavCalculator(id);
 
-    const oneRmExercise = ref < string > ('');
-    const oneRmWeight = ref < number | null > (null);
-    const oneRmReps = ref < number | null > (null);
-    const oneRmResult = ref < number | null > (null);
+    const oneRmExercise = ref<string>('');
+    const oneRmWeight = ref<number | null>(null);
+    const oneRmReps = ref<number | null>(null);
+    const oneRmResult = ref<number | null>(null);
 
-    const bodyFatGender = ref < 'male' | 'female' > ('male');
-    const bodyFatWaist = ref < number | null > (null);
-    const bodyFatNeck = ref < number | null > (null);
-    const bodyFatHip = ref < number | null > (null);
-    const bodyFatHeight = ref < number | null > (null);
-    const bodyFatResult = ref < number | null > (null);
+    const bodyFatGender = ref<'male' | 'female'>('male');
+    const bodyFatWaist = ref<number | null>(null);
+    const bodyFatNeck = ref<number | null>(null);
+    const bodyFatHip = ref<number | null>(null);
+    const bodyFatHeight = ref<number | null>(null);
+    const bodyFatResult = ref<number | null>(null);
     const toastsEnabled = ref(true);
 
-    const ffmiWeight = ref < number | null > (null);
-    const ffmiHeight = ref < number | null > (null);
-    const ffmiBodyFat = ref < number | null > (null);
-    const ffmiResult = ref < { value: number; category: string } | null > (null);
+    const ffmiWeight = ref<number | null>(null);
+    const ffmiHeight = ref<number | null>(null);
+    const ffmiBodyFat = ref<number | null>(null);
+    const ffmiResult = ref<{ value: number; category: string } | null>(null);
 
     const suppressToasts = ref(true)
     let toastReleaseTimer: ReturnType<typeof setTimeout> | null = null
     // -------- Journal-View + Tages-Cards (sauber) --------
 
-    const journalSearch = ref < string > ('')
-    const journalType = ref < 'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer' > ('alle')
+    const journalSearch = ref<string>('')
+    const journalType = ref<'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'>('alle')
 
     // Ein sichtbares Limit für beide Ansichten (Journal + Cards)
     const visibleDays = ref(7)
-    const expandedDays = ref < Set < string >> (new Set())
+    const expandedDays = ref<Set<string>>(new Set())
 
-    
+
     const TYPE_LABEL: Record<WorkoutType, string> = {
         kraft: 'Kraft',
         calisthenics: 'Calisthenics',
@@ -850,7 +852,7 @@
     }
     // ---- Map: Tag -> Einträge (nur aktueller Plan) ----
     const entriesByDay = computed(() => {
-        const map = new Map < string, Workout[]> ()
+        const map = new Map<string, Workout[]>()
         if (!currentPlanId.value) return map
         for (const w of getProgressForPlan(currentPlanId.value)) {
             const day = (w.date || '').slice(0, 10)
@@ -869,7 +871,7 @@
 
     // ---- Kategorie-Zusammenfassung für die Cards ----
     const summarizeCategories = (items: Workout[]): string => {
-        const types = new Set < WorkoutType > (items.map(w => (w.type ?? 'kraft') as WorkoutType))
+        const types = new Set<WorkoutType>(items.map(w => (w.type ?? 'kraft') as WorkoutType))
         const labels = [...types].map(t => TYPE_LABEL[t])
         if (labels.length === 1) return labels[0]
         if (labels.length > 3) return 'Gemischt'
@@ -878,7 +880,7 @@
 
     type DayCard = { day: string; uniqueExercises: number }
 
-    const dayCards = computed < DayCard[] > (() => {
+    const dayCards = computed<DayCard[]>(() => {
         return [...entriesByDay.value.entries()].map(([day, items]) => {
             const uniqueExercises = new Set(items.map(i => i.exercise)).size
             return { day, uniqueExercises }
@@ -900,39 +902,40 @@
         // Für die Tabelle zeigen wir nur Kraft/Calisthenics an (kein Cardio/Dehnung in der Set-Tabelle)
         const strength = items.filter(it => (it.type ?? 'kraft') === 'kraft' || it.type === 'calisthenics')
 
-        const byExercise = new Map < string, { entries: Workout[]; notes: string[]
-    }> ()
-    for (const it of strength) {
-        const key = it.exercise || 'Unbenannte Übung'
-        if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
+        const byExercise = new Map<string, {
+            entries: Workout[]; notes: string[]
+        }>()
+        for (const it of strength) {
+            const key = it.exercise || 'Unbenannte Übung'
+            if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
 
-        // Sätze in einzelne Zeilen aufdröseln
-        const setCount = Math.max(1, Number(it.sets ?? 1))
-        for (let s = 0; s < setCount; s++) {
-            const detail = it.setDetails?.[s]
-            byExercise.get(key)!.entries.push({
-                ...it,
-                sets: 1,
-                weight: detail ? detail.weight : it.weight,
-                reps: detail ? detail.reps : it.reps,
+            // Sätze in einzelne Zeilen aufdröseln
+            const setCount = Math.max(1, Number(it.sets ?? 1))
+            for (let s = 0; s < setCount; s++) {
+                const detail = it.setDetails?.[s]
+                byExercise.get(key)!.entries.push({
+                    ...it,
+                    sets: 1,
+                    weight: detail ? detail.weight : it.weight,
+                    reps: detail ? detail.reps : it.reps,
+                })
+            }
+
+            if (it.note) byExercise.get(key)!.notes.push(it.note)
+        }
+
+        const groups: JournalGroup[] = []
+        for (const [exercise, { entries, notes }] of byExercise.entries()) {
+            groups.push({
+                exercise,
+                entries,
+                note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
             })
         }
 
-        if (it.note) byExercise.get(key)!.notes.push(it.note)
+        // alphabetisch nach Übungsnamen
+        return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
     }
-
-    const groups: JournalGroup[] = []
-    for (const [exercise, { entries, notes }] of byExercise.entries()) {
-        groups.push({
-            exercise,
-            entries,
-            note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
-        })
-    }
-
-    // alphabetisch nach Übungsnamen
-    return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
-}
     // Nur den Editor schließen; ggf. Fortschritt-Modal wieder öffnen
     const cancelProgressEdit = () => {
         const planIdForReopen = reopenPlanProgressAfterSave.value ? currentPlanId.value : null
@@ -961,7 +964,7 @@
     // (Optional) komplettes Journal (nach Tag, mit Suche/Filter)
     type JournalDay = { day: string; groups: JournalGroup[] }
 
-    const journalDays = computed < JournalDay[] > (() => {
+    const journalDays = computed<JournalDay[]>(() => {
         if (!currentPlanId.value) return []
         const all = getProgressForPlan(currentPlanId.value)
 
@@ -976,7 +979,7 @@
             return inExercise || inNote
         })
 
-        const byDay = new Map < string, Workout[]> ()
+        const byDay = new Map<string, Workout[]>()
         for (const w of filtered) {
             const day = (w.date || '').slice(0, 10)
             if (!byDay.has(day)) byDay.set(day, [])
@@ -996,19 +999,19 @@
     }
     /** baut das gesamte Journal (nach Tag absteigend) inkl. Suche/Filter */
 
-    const waterWeight = ref < number | null > (null);
-    const waterActivity = ref < 'low' | 'moderate' | 'high' > ('low');
-    const waterClimate = ref < 'temperate' | 'hot' | 'very_hot' > ('temperate');
-    const waterResult = ref < number | null > (null);
+    const waterWeight = ref<number | null>(null);
+    const waterActivity = ref<'low' | 'moderate' | 'high'>('low');
+    const waterClimate = ref<'temperate' | 'hot' | 'very_hot'>('temperate');
+    const waterResult = ref<number | null>(null);
 
-    const planSearchQuery = ref < string > ('');
+    const planSearchQuery = ref<string>('');
     const maxEntries = ref(3);
-    const editingEntry = ref < Workout | null > (null);
+    const editingEntry = ref<Workout | null>(null);
     // Zustand für "Mehr anzeigen"
-    const showMore = ref < { [key: string]: boolean } > ({});
+    const showMore = ref<{ [key: string]: boolean }>({});
     const autoCalcEnabled = ref(false)
     const newProgressIsDropset = ref(false)
-    const newProgressDropsets = ref < Array < { weight: number | null; reps: number | null } >> ([])
+    const newProgressDropsets = ref<Array<{ weight: number | null; reps: number | null }>>([])
 
     // --- Fortschritt ansehen Modal ---
     const showPlanProgressPopup = ref(false)
@@ -1039,14 +1042,14 @@
 
 
     // … bei den Refs zu den Fortschritt-Inputs:
-    const newProgressDuration = ref < number | null > (null)   // ▼ neu
-    const newProgressDistance = ref < number | null > (null)   // ▼ neu
+    const newProgressDuration = ref<number | null>(null)   // ▼ neu
+    const newProgressDistance = ref<number | null>(null)   // ▼ neu
 
     const currentPlanName = computed(() =>
         trainingPlans.value.find(p => p.id === currentPlanId.value)?.name ?? ''
     )
 
-    const sortedPlanEntries = computed < Workout[] > (() => {
+    const sortedPlanEntries = computed<Workout[]>(() => {
         if (!currentPlanId.value) return []
         return [...getProgressForPlan(currentPlanId.value)]
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -1181,7 +1184,7 @@
     })
 
     const router = useRouter()
-    const favoritePlansIds = ref < string[] > ([])
+    const favoritePlansIds = ref<string[]>([])
 
     onMounted(() => {
         try {
@@ -1596,7 +1599,7 @@
     // ---- Kategorien-Filter ----
     type CalcCategory = 'alle' | 'gesundheit' | 'kraft' | 'ernaehrung' | 'alltag'
 
-    const calcCategory = ref < CalcCategory > ('alle')
+    const calcCategory = ref<CalcCategory>('alle')
 
     const CALC_CATEGORY: Record<string, CalcCategory> = {
         'BMI': 'gesundheit',
@@ -1957,7 +1960,7 @@
             }
         }
 
-        
+
 
 
         if (editingEntry.value) {
@@ -3019,7 +3022,7 @@ Notiz: ${e.note ?? '-'}\n`
     }
 
     // ===== Favoriten-Rechner =====
-    const favoriteCalculators = ref < Set < string >> (new Set())
+    const favoriteCalculators = ref<Set<string>>(new Set())
 
     const FAVORITES_KEY = 'progress_favorite_calculators'
 
@@ -3052,6 +3055,28 @@ Notiz: ${e.note ?? '-'}\n`
         }
         saveFavoriteCalculators()
     }
+    let endIO: IntersectionObserver | null = null
+
+    onMounted(() => {
+        const root = progressModalEl.value
+        if (!root) return
+        const endEl = root.querySelector('.scroll-sentinel-end')
+        if (!endEl) return
+
+        endIO = new IntersectionObserver(
+            ([entry]) => {
+                // ist der untere Sentinel im Sichtbereich der Modal-Scrollfläche?
+                root.classList.toggle('at-bottom', entry.isIntersecting)
+            },
+            { root, threshold: 1.0 }
+        )
+        endIO.observe(endEl)
+    })
+
+    onUnmounted(() => {
+        endIO?.disconnect()
+        endIO = null
+    })
 
     const isFavCalculator = (id: string) => favoriteCalculators.value.has(id)
 
@@ -4167,6 +4192,233 @@ Notiz: ${e.note ?? '-'}\n`
     /* alte Min-Breiten abschalten, damit das Grid regiert */
     .cell--weight, .cell--reps, .cell--ds {
         min-width: 0;
+    }
+    /* Fortschritt-Modal: scrollt erst ab Schwellenhöhe, responsiv */
+    .modal--progress {
+        display: flex;
+        flex-direction: column;
+        /* zeigt die Scrollbar nur, wenn die Höhe überschritten wird */
+        overflow: auto;
+        /* Schwelle: nimm die kleinere von 92% der Viewport-Höhe (mobile sicher)
+     und 760px (auf großen Monitoren nicht unendlich hoch) */
+        max-height: min(92svh, 760px);
+        /* Breite angenehm und responsiv clamped */
+        width: clamp(320px, 92vw, 720px);
+        /* verhindert “Hintergrund-Scroll-Mitnahme” beim starken Scrollen */
+        overscroll-behavior: contain;
+        /* Layout springt nicht, wenn die Scrollbar auftaucht */
+        scrollbar-gutter: stable;
+    }
+
+    /* etwas “Atemluft”, damit das Modal auf Mini-Screens nicht am Rand klebt */
+    .modal-overlay {
+        padding: 2svh 1rem;
+    }
+
+    /* Tablet-Feintuning (optional): etwas kleinere Hartkapp */
+    @media (max-width: 900px) {
+        .modal--progress {
+            max-height: min(92svh, 680px);
+        }
+    }
+
+    /* sehr kleine Geräte: volle Höhe nutzen, Breite enger */
+    @media (max-width: 640px) {
+        .modal--progress {
+            width: 96vw;
+            max-height: 92svh;
+            border-radius: 10px;
+        }
+    }
+
+    /* Fallback für Browser ohne svh-Unterstützung */
+    @supports not (height: 1svh) {
+        .modal--progress {
+            max-height: min(92vh, 760px);
+        }
+
+        .modal-overlay {
+            padding: 2vh 1rem;
+        }
+    }
+
+    /* (optional) dezente Scrollbar */
+    .modal--progress::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .modal--progress::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 8px;
+    }
+
+    .modal--progress {
+        scrollbar-width: thin;
+    }
+        /* 1) Fortschritt-Header sticky halten */
+        .modal--progress > .card-header {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            margin: 0 0 .5rem;
+            padding: .75rem .75rem .5rem; /* etwas mehr Padding */
+            background: var(--bg-card); /* füllt die Fläche vollständig */
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: none; /* kein „durchscheinender“ Rand */
+        }
+
+
+        /* Optional: Footer-Buttons ebenfalls sticky unten (komfortabel bei langen Listen) */
+        .modal--progress > .modal-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 2;
+            padding: .5rem .25rem;
+            margin: .5rem 0 0; /* kein negativer Rand-Trick */
+            background: transparent; /* Streifen weg */
+            border-top: 0;
+            box-shadow: none;
+        }
+
+        /* Nur wenn man GANZ UNTEN ist → wieder normaler Footer-Hintergrund */
+        .modal--progress.at-bottom > .modal-actions {
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+        }
+
+    /* 3) Overlay: auf Mini-Screens Ränder sichern */
+    .modal-overlay {
+        /* damit oben/unten genug Luft ist und man bis ganz zum Anfang/Ende scrollen kann */
+        padding: clamp(8px, 2svh, 20px) 12px;
+    }
+
+    /* Tablet/kleine Laptops */
+    @media (max-width: 900px) {
+        .modal--progress {
+            max-height: min(92svh, 640px);
+        }
+    }
+    @media (max-width: 900px) {
+        .modal--progress {
+            max-height: min(92svh, 640px);
+        }
+    }
+
+    @media (max-width: 540px) {
+        .modal--progress {
+            width: clamp(300px, 82vw, 560px);
+        }
+    }
+
+    @media (max-width: 420px) {
+        .modal--progress {
+            width: 94vw;
+            max-height: 92svh;
+            border-radius: 10px;
+        }
+    }
+
+    /* Fallback für Browser ohne svh */
+    @supports not (height: 1svh) {
+        .modal--progress {
+            max-height: min(90vh, 680px);
+        }
+
+        .modal-overlay {
+            padding: clamp(8px, 2vh, 20px) 12px;
+        }
+    }
+
+    /* sehr kleine Geräte */
+    @media (max-width: 640px) {
+        .modal--progress {
+            width: 96vw;
+            max-height: 92svh;
+            border-radius: 10px;
+        }
+    }
+
+    /* Fallback für Browser ohne svh */
+    @supports not (height: 1svh) {
+        .modal--progress {
+            max-height: min(90vh, 680px);
+        }
+
+        .modal-overlay {
+            padding: clamp(8px, 2vh, 20px) 12px;
+        }
+    }
+
+    /* dezente, schmale Scrollbar (optional) */
+    .modal--progress::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .modal--progress::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 8px;
+    }
+
+    .modal--progress {
+        scrollbar-width: thin;
+    }
+
+    /* 4) Compact spacing im Inhalt (macht das Popup "schmaler/dünner" wirkend) */
+    .day-card {
+        padding: .5rem .6rem;
+    }
+
+    .set-row {
+        gap: .4rem;
+    }
+
+    .cell {
+        padding: .3rem .45rem;
+    }
+
+    .day-card-actions {
+        gap: .35rem;
+    }
+
+    /* --- Fix: Lücke über dem Fortschritt-Titel + sticky Header --- */
+    .modal--progress {
+        /* entfernt das leere Top-Padding der Modal-Box */
+        padding-top: 0;
+        /* allgemein etwas schmaler + niedriger als bisher */
+        width: clamp(300px, 84vw, 640px);
+        max-height: min(88svh, 640px);
+        /* Rest wie gehabt */
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+    }
+
+        /* Header füllt die komplette Fläche oben aus */
+        .modal--progress > .card-header {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            margin: 0; /* kein zusätzlicher Spalt */
+            padding: 1rem 1rem .5rem; /* ersetzt dein .75rem .75rem .5rem */
+            background: var(--bg-card); /* deckt die Fläche */
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: none;
+        }
+    /* Tablet */
+    @media (max-width: 900px) {
+        .modal--progress {
+            width: clamp(300px, 86vw, 600px);
+            max-height: min(86svh, 600px);
+        }
+    }
+
+
+</style>
+<style>
+    body:has(.modal-overlay) {
+        overflow: hidden;
     }
 
 </style>

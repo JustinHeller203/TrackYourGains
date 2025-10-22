@@ -4,8 +4,8 @@
          :tabindex="clickable ? 0 : undefined"
          :role="clickable ? 'button' : undefined"
          @click="handleClick"
-         @keydown.enter.space="handleClick">
-        <span class="accent" aria-hidden="true"></span>
+@keydown.enter="handleClick">
+         <span class="accent" aria-hidden="true"></span>
 
         <h3 class="card-title">{{ title }}</h3>
         <p class="card-info"
