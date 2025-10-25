@@ -341,37 +341,35 @@
         }
     }
 
-
     function snapshotCurrentExercise() {
         const ex = (exerciseProxy.value || '').trim()
         if (!ex) return
         draftCache.value[ex] = {
             type: props.inputType,
             sets: setsProxy.value ?? null,
-            weight: weightProxy.value ?? null,
+            // kein weight hier – bleibt global
             reps: repsProxy.value ?? null,
             setDetails: [...(setDetailsProxy.value ?? [])],
             duration: durationProxy.value ?? null,
             distance: distanceProxy.value ?? null,
             note: noteProxy.value ?? ''
-        }
+        } as Draft
     }
 
     function restoreExerciseDraft(ex: string) {
         const d = draftCache.value[ex]
         if (d) {
             emit('update:sets', d.sets)
-            emit('update:weight', d.weight)
+            // weight absichtlich NICHT anfassen
             emit('update:reps', d.reps)
             emit('update:setDetails', [...d.setDetails])
             emit('update:duration', d.duration)
             emit('update:distance', d.distance)
             emit('update:note', d.note)
         } else {
-            // frische Felder, nichts „mitschleppen“
             emit('update:setDetails', [])
             emit('update:sets', null)
-            emit('update:weight', null)
+            // weight nicht ändern
             emit('update:reps', null)
             emit('update:duration', null)
             emit('update:distance', null)
