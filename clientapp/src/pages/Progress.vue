@@ -46,7 +46,7 @@
                            exportable
                            @export="openDownloadPopup('weightStats')"
                            @reset="resetWeightStats">
-                    <canvas id="weightChart"></canvas>
+                    <canvas id="weightChart" class="chart-canvas"></canvas>
                 </ChartCard>
 
                 <ChartCard title="Trainingsstatistik"
@@ -56,7 +56,7 @@
                     <template #subtitle>
                         <p class="card-info">Gesamt-Workouts: {{ workouts.length }}</p>
                     </template>
-                    <canvas id="workoutChart"></canvas>
+                    <canvas id="workoutChart" class="chart-canvas"></canvas>
                 </ChartCard>
             </div>
 
@@ -633,6 +633,7 @@
     import { useRouter } from 'vue-router'
     import Chart from 'chart.js/auto';
     import confetti from 'canvas-confetti';
+    import jsPDF from 'jspdf';
     import { useUnits, KG_PER_LB } from '@/composables/useUnits'
     import Toast from '@/components/ui/Toast.vue'
     import DashboardCard from '@/components/ui/DashboardCard.vue'
@@ -2116,7 +2117,7 @@
         downloadFormat.value = 'html';
     };
 
-    const confirmDownload = async () => {
+    const confirmDownload = () => {
         if (!downloadCalculator.value) return;
 
         let data: any = {};
@@ -2243,12 +2244,15 @@
                         type: e.type ?? 'kraft',
                         exercise: e.exercise,
                         date: formatDate(e.date),
+                        // zeit-/streckenbasiert
                         duration_min: (e.type === 'ausdauer' || e.type === 'dehnung') ? (e.durationMin ?? null) : null,
                         distance_km: (e.type === 'ausdauer') ? (e.distanceKm ?? null) : null,
+                        // satz-/wiederholungsbasiert
                         sets: e.sets ?? null,
                         reps: e.reps ?? null,
                         weight_raw_kg: (e.type === 'kraft' || e.type === 'calisthenics') ? e.weight : null,
                         weight_display: (e.type === 'kraft' || e.type === 'calisthenics') ? formatWeight(e.weight, 1) : null,
+                        // Notiz immer mitnehmen
                         note: e.note ?? null,
                     })),
                 }
@@ -2268,6 +2272,7 @@
                 }
                 filename = 'glycemic_load_result'
                 break
+
 
             case 'weightStats': {
                 if (!weightHistory.value.length) {
@@ -2312,16 +2317,15 @@
                 closeDownloadPopup();
                 return;
 
+
             default:
                 addToast('Unbekannter Exporttyp', 'default');
                 closeDownloadPopup();
                 return;
         }
 
-        // ==== PDF direkt mit jsPDF (dynamisch laden) ====
+        // 2) PDF direkt mit jsPDF
         if (downloadFormat.value === 'pdf') {
-            // @ts-ignore – falls keine Typdeklarationen installiert sind
-            const { default: jsPDF } = await import('jspdf');
             const doc = new jsPDF();
             doc.setFontSize(16);
             const title = (downloadCalculator.value === 'progress' ? 'Fortschritt' : downloadCalculator.value.toUpperCase()) + ' Ergebnis';
@@ -2339,7 +2343,7 @@
                 if (Array.isArray(value)) {
                     if (y > 275) { doc.addPage(); y = 20; }
                     doc.text(`${key}:`, 20, y); y += 8;
-                    (value as any[]).forEach((item: any, idx: number) => {
+                    value.forEach((item: any, idx: number) => {
                         if (y > 275) { doc.addPage(); y = 20; }
                         doc.text(`Eintrag ${idx + 1}:`, 25, y); y += 8;
                         Object.entries(item).forEach(([k, v]) => writeKV(`  ${k}`, v));
@@ -2348,7 +2352,7 @@
                 } else if (typeof value === 'object' && value !== null) {
                     if (y > 275) { doc.addPage(); y = 20; }
                     doc.text(`${key}:`, 20, y); y += 8;
-                    Object.entries(value as Record<string, unknown>).forEach(([k, v]) => writeKV(`  ${k}`, v));
+                    Object.entries(value).forEach(([k, v]) => writeKV(`  ${k}`, v));
                 } else {
                     writeKV(key, value);
                 }
@@ -2360,9 +2364,8 @@
             return;
         }
 
-        // ==== alle anderen Formate ====
         switch (downloadFormat.value) {
-            case 'html': {
+            case 'html':
                 content = `
 <!DOCTYPE html>
 <html lang="de">
@@ -2398,9 +2401,8 @@
                 type = 'text/html';
                 filename += '.html';
                 break;
-            }
 
-            case 'csv': {
+            case 'csv':
                 if (downloadCalculator.value === 'progress') {
                     const header = 'type,exercise,date,duration_min,distance_km,sets,reps,weight_raw_kg,weight_display,note'
                     content = header + '\n' + data.progress.map((e: any) => [
@@ -2421,16 +2423,15 @@
                 type = 'text/csv';
                 filename += '.csv';
                 break;
-            }
 
-            case 'json': {
+
+            case 'json':
                 content = JSON.stringify(data, null, 2);
                 type = 'application/json';
                 filename += '.json';
                 break;
-            }
 
-            case 'txt': {
+            case 'txt':
                 if (downloadCalculator.value === 'progress') {
                     content = `Plan: ${data.planName}\n\n` + data.progress.map((e: any, i: number) =>
                         `#${i + 1}
@@ -2459,7 +2460,7 @@ Notiz: ${e.note ?? '-'}\n`
                 type = 'text/plain';
                 filename += '.txt';
                 break;
-            }
+
 
             default:
                 addToast('Unbekanntes Exportformat', 'default');
@@ -3335,6 +3336,15 @@ Notiz: ${e.note ?? '-'}\n`
         min-height: 100vh;
         font-family: 'Inter', sans-serif;
         color: var(--text-primary);
+        overflow-x: hidden; /* ⟵ verhindert seitliches Wischen */
+    }
+    /* Canvas nie breiter als der Container */
+    .chart-canvas {
+        display: block;
+        width: 100% !important; /* überschreibt Chart.js-Inlinebreite */
+        max-width: 100%;
+        height: 240px !important; /* fixe, angenehme Mobile-Höhe */
+        box-sizing: border-box;
     }
 
     /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
@@ -3479,10 +3489,23 @@ Notiz: ${e.note ?? '-'}\n`
         display: flex;
         gap: 1.5rem;
         flex-wrap: wrap;
-        margin-bottom: 2rem;
+        margin-bottom: 1.25rem;
         overflow: visible;
+        width: 100%;
+        max-width: 100%;
     }
 
+        .dashboard-grid > * {
+            min-width: 0;
+        }
+    /* Flex-Kinder spreizen nicht */
+
+    @media (max-width: 600px) {
+        .dashboard-grid > * {
+            flex: 1 1 100%;
+        }
+        /* 1-spaltig, sicher */
+    }
     .btn-ghost.mini {
         padding: .35rem .6rem;
         font-size: .8rem;
@@ -3521,10 +3544,16 @@ Notiz: ${e.note ?? '-'}\n`
 
     .progress-charts {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); /* flexibler */
         gap: 1.5rem;
         margin-bottom: 2rem;
+        max-width: 100%;
+        overflow-x: clip; /* nix darf herausragen */
     }
+
+        .progress-charts > * {
+            min-width: 0;
+        } 
 
     .calculator-card {
         display: inline-block;
