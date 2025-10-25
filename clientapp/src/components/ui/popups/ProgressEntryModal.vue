@@ -1,9 +1,10 @@
-﻿<template>
-    <div v-if="show" class="modal-overlay" @click="onOverlayClick">
-        <div class="modal"
-             role="dialog"
-             aria-modal="true"
-             @click.stop>
+﻿<!--ProgressEntryModal.vue-->
+<template>
+    <div v-if="show"
+         class="modal-overlay"
+         @pointerdown="onOverlayPointerDown"
+         @pointerup="onOverlayPointerUp">
+        <div class="modal" role="dialog" aria-modal="true" @click.stop>
             <h3 class="modal-title">📥 Fortschritt eintragen</h3>
 
             <label class="field-label" for="progress-exercise">Übung</label>
@@ -65,20 +66,10 @@
                            class="input"
                            placeholder="z. B. 3" />
                 </div>
-
-                <div>
-                    <label class="field-label" for="stretch-reps">Wiederholungen</label>
-                    <input id="stretch-reps"
-                           type="number" min="1"
-                           v-model.number="repsProxy"
-                           class="input"
-                           placeholder="z. B. 30" />
-                </div>
             </div>
 
-
             <!-- Kraft/Calisthenics (Standard) -->
-            <div v-else class="modal-grid">
+            <div v-else class="modal-grid grid-2">
                 <div>
                     <label class="field-label" for="progress-sets">Sätze insgesamt</label>
                     <input id="progress-sets" type="number" min="1"
@@ -86,28 +77,36 @@
                 </div>
 
                 <div>
-                    <label class="field-label" for="progress-weight">Gewicht ({{ unit }})</label>
-                    <input id="progress-weight" ref="weightInput" type="number" min="0" step="0.5"
-                           v-model.number="weightProxy" class="input"
-                           :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'" />
-                </div>
+                    <label class="field-label" for="progress-weight">Körpergewicht ({{ unit }})</label>
+                    <div class="input-with-extras">
+                        <input id="progress-weight"
+                               ref="weightInput"
+                               type="number" min="0" step="0.5"
+                               v-model.number="weightProxy"
+                               class="input"
+                               :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'" />
 
-                <div>
-                    <label class="field-label" for="progress-reps">Wiederholungen</label>
-                    <input id="progress-reps" type="number" min="1"
-                           v-model.number="repsProxy" class="input" placeholder="z. B. 8" />
+                        <!-- WICHTIG: Klasse für Chip-Optik + rechts ausrichten -->
+                        <ExtrasToggleButton :toggled="!!props.showExtras"
+                                            title="Extras einblenden"
+                                            aria-label="Extras einblenden"
+                                            :extraClass="['btn-extras-chip','extras-align']"
+                                            @click="emit('update:showExtras', !props.showExtras)" />
+                    </div>
                 </div>
             </div>
 
             <!-- Einzelsätze (erscheint automatisch wenn Sätze > 0) -->
-            <div v-if="Number(setsProxy) > 0" class="set-rows">
+            <div v-if="(inputType === 'kraft' || inputType === 'calisthenics') && Number(setsProxy) > 0"
+                 class="set-rows">
                 <div v-for="(row, i) in setDetailsProxy" :key="i" class="set-row">
                     <div class="set-row-label">Satz {{ i + 1 }}</div>
 
                     <input type="number" min="0" step="0.5"
                            class="input"
-                           :placeholder="unit === 'kg' ? 'Gewicht' : 'Weight'"
-                           :value="row?.weight ?? ''"
+                           :placeholder="(inputType === 'calisthenics'
+  ? (unit === 'kg' ? 'Zusatzgewicht' : 'Added weight')
+  : (unit === 'kg' ? 'Gewicht' : 'Weight'))" :value="row?.weight ?? ''"
                            @input="onRowChange(i, 'weight', ($event.target as HTMLInputElement).valueAsNumber)" />
 
                     <input type="number" min="1"
@@ -144,6 +143,7 @@
     import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
     import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
+    import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue' // ⬅️ NEU
 
     type Unit = 'kg' | 'lbs'
     interface PlanExercise {
@@ -169,7 +169,8 @@
         inputType: 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
         duration: number | null
         distance: number | null
-        setDetails: SetDetail[]           // <-- NEU
+        setDetails: SetDetail[]
+        showExtras?: boolean
     }>()
 
     const emit = defineEmits<{
@@ -185,13 +186,14 @@
         (e: 'cancel'): void
         (e: 'dismissErrors'): void            // ⬅️ NEU
         (e: 'update:setDetails', v: SetDetail[]): void
-
+        (e: 'update:showExtras', v: boolean): void
     }>()
 
     const setDetailsProxy = computed<SetDetail[]>({
         get: () => props.setDetails ?? [],
         set: v => emit('update:setDetails', v),
     })
+    const keyFor = (ex: string, t: DraftType) => (ex ? `${ex}::${t}` : '')
 
     /** Proxys für saubere v-model:foo Bindings */
     const exerciseProxy = computed({
@@ -232,6 +234,7 @@
     }
 
     function onCancel() {
+        clearCache()
         emit('update:show', false)
         emit('cancel')
     }
@@ -244,12 +247,155 @@
         set: v => emit('update:distance', v),
     })
     function onSave() {
-        emit('save') // Parent validiert & speichert; schließt anschließend selbst
+        emit('save')
+        nextTick(clearCache) // nach dem Speichern nicht weiter vorhalten
     }
 
-    function onOverlayClick(e: MouseEvent) {
-        if (e.target === e.currentTarget) onCancel()
+    const overlayDown = ref(false)
+    const overlayStart = ref<{ x: number; y: number } | null>(null)
+
+    function onOverlayPointerDown(e: PointerEvent) {
+        if (e.target !== e.currentTarget) { overlayDown.value = false; return }
+        overlayDown.value = true
+        overlayStart.value = { x: e.clientX, y: e.clientY }
     }
+
+    function onOverlayPointerUp(e: PointerEvent) {
+        if (!overlayDown.value) return
+        if (e.target !== e.currentTarget) { overlayDown.value = false; return }
+
+        const start = overlayStart.value
+        const moved = start ? Math.hypot(e.clientX - start.x, e.clientY - start.y) : 0
+        const hasSelection = !!(window.getSelection && window.getSelection()?.toString())
+
+        if (moved < 6 && !hasSelection) onCancel()  // ✅ nur „absichtlicher“ Klick
+        overlayDown.value = false
+        overlayStart.value = null
+    }
+    type DraftType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
+    type Draft = {
+        type: DraftType
+        sets: number | null
+        reps: number | null
+        setDetails: SetDetail[]
+        duration: number | null
+        distance: number | null
+        note: string
+    }
+    const draftCache = ref<Record<string, Draft>>({})
+
+    function snapshot(ex: string, t: DraftType) {
+        if (!ex) return
+        const k = keyFor(ex, t)
+        draftCache.value[k] = {
+            type: t,
+            sets: setsProxy.value ?? null,
+            // weight: weightProxy.value ?? null,  ⬅️ raus
+            reps: repsProxy.value ?? null,
+            setDetails: [...(setDetailsProxy.value ?? [])],
+            duration: durationProxy.value ?? null,
+            distance: distanceProxy.value ?? null,
+            note: noteProxy.value ?? ''
+        }
+    }
+
+    function resetForType(t: DraftType) {
+        emit('update:setDetails', [])
+        emit('update:note', '')
+        if (t === 'ausdauer') {
+            emit('update:duration', null)
+            emit('update:distance', null)
+            emit('update:sets', null)
+            // emit('update:weight', null) ⬅️ NICHT anfassen (global!)
+            emit('update:reps', null)
+        } else if (t === 'dehnung') {
+            emit('update:duration', null)
+            emit('update:sets', null)
+            // emit('update:weight', null) ⬅️ NICHT
+            emit('update:reps', null)
+        } else {
+            // kraft/calisthenics
+            emit('update:sets', null)
+            // emit('update:weight', null) ⬅️ NICHT
+            emit('update:reps', null)
+            emit('update:duration', null)
+            emit('update:distance', null)
+        }
+    }
+
+
+    function restore(ex: string, t: DraftType) {
+        if (!ex) { resetForType(t); return }
+        const k = keyFor(ex, t)
+        const d = draftCache.value[k]
+        if (d) {
+            emit('update:sets', d.sets)
+            // emit('update:weight', d.weight) ⬅️ raus
+            emit('update:reps', d.reps)
+            emit('update:setDetails', [...d.setDetails])
+            emit('update:duration', d.duration)
+            emit('update:distance', d.distance)
+            emit('update:note', d.note)
+        } else {
+            resetForType(t)
+        }
+    }
+
+
+    function snapshotCurrentExercise() {
+        const ex = (exerciseProxy.value || '').trim()
+        if (!ex) return
+        draftCache.value[ex] = {
+            type: props.inputType,
+            sets: setsProxy.value ?? null,
+            weight: weightProxy.value ?? null,
+            reps: repsProxy.value ?? null,
+            setDetails: [...(setDetailsProxy.value ?? [])],
+            duration: durationProxy.value ?? null,
+            distance: distanceProxy.value ?? null,
+            note: noteProxy.value ?? ''
+        }
+    }
+
+    function restoreExerciseDraft(ex: string) {
+        const d = draftCache.value[ex]
+        if (d) {
+            emit('update:sets', d.sets)
+            emit('update:weight', d.weight)
+            emit('update:reps', d.reps)
+            emit('update:setDetails', [...d.setDetails])
+            emit('update:duration', d.duration)
+            emit('update:distance', d.distance)
+            emit('update:note', d.note)
+        } else {
+            // frische Felder, nichts „mitschleppen“
+            emit('update:setDetails', [])
+            emit('update:sets', null)
+            emit('update:weight', null)
+            emit('update:reps', null)
+            emit('update:duration', null)
+            emit('update:distance', null)
+            emit('update:note', '')
+        }
+    }
+
+    function clearCache() {
+        draftCache.value = {}
+    }
+
+    watch(() => props.inputType, (nextType, prevType) => {
+        const ex = exerciseProxy.value || ''
+        if (!ex) return
+        if (prevType) snapshot(ex, prevType)  // alten Typ sichern
+        nextTick(() => restore(ex, nextType)) // neuen Typ laden / defaults
+    })
+
+    watch(exerciseProxy, (nextEx, prevEx) => {
+        const t = props.inputType
+        if (prevEx) snapshot(prevEx, t)       // alten Zustand sichern (alte Übung + aktueller Typ)
+        nextTick(() => restore(nextEx || '', t)) // neuen Zustand laden / defaults für diesen Typ
+    })
+
 
     watch(() => props.show, v => {
         if (v) focusFirst()
@@ -264,7 +410,8 @@
         const next = [...setDetailsProxy.value]
         if (count > next.length) {
             for (let i = next.length; i < count; i++) {
-                next.push({ weight: weightProxy.value ?? null, reps: repsProxy.value ?? null })
+                // ⬇️ NICHT mehr weightProxy als Default
+                next.push({ weight: null, reps: repsProxy.value ?? null })
             }
         } else if (count < next.length) {
             next.splice(count)
@@ -355,7 +502,16 @@
     }
 
     .modal-grid.grid-2 {
+        display: grid;
         grid-template-columns: repeat(2, 1fr);
+        align-items: center; /* statt end -> mittig */
+        gap: 1rem;
+    }
+
+    .input {
+        width: 100%;
+        padding: .7rem 0.9rem; /* größerer Input */
+        font-size: 0.9rem; /* besser lesbar */
     }
 
     @media (max-width: 520px) {
@@ -363,6 +519,7 @@
             grid-template-columns: 1fr;
         }
     }
+
     .set-rows {
         margin-top: .5rem;
         display: grid;
@@ -387,8 +544,127 @@
             grid-template-columns: 80px 1fr 1fr;
         }
     }
+
     .select option[disabled] {
         color: var(--text-secondary);
     }
+    /* Input + Toggle nebeneinander, stabil */
+    .input-with-extras {
+        display: grid;
+        grid-template-columns: minmax(0,1fr) auto; /* Input dehnt sich, Button so breit wie nötig */
+        align-items: center;
+        gap: .5rem;
+    }
 
+    /* Chip-Optik (überschreibt BaseButton-Defaults: keine volle Breite) */
+    .btn-extras-chip {
+        display: inline-flex;
+        width: auto;
+        margin: 0;
+        padding: .5rem .6rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap; /* kein Umbruch des Labels */
+    }
+
+    /* Button an das rechte Grid-Ende pinnen */
+    .extras-align {
+        justify-self: end;
+    }
+
+    .btn-extras-chip:hover {
+        background: var(--bg-secondary);
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+        transform: translateY(-1px);
+    }
+
+    .btn-extras-chip.active {
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+    }
+
+    /* etwas kompakter auf sehr kleinen Screens */
+    @media (max-width:560px) {
+        .input-with-extras {
+            gap: .4rem;
+        }
+
+        .btn-extras-chip {
+            padding: .5rem .55rem;
+        }
+    }
+
+    /* Chip-Optik für den Toggle (wird über :extraClass gesetzt) */
+    .btn-extras-chip {
+        padding: .5rem .6rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-weight: 600;
+        line-height: 1;
+    }
+
+        .btn-extras-chip:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+
+        .btn-extras-chip.active {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+    @media (max-width:560px) {
+        .input-with-extras {
+            gap: .4rem;
+        }
+    }
+    /* Legt Input + Button in eine feste 2-Spalten-Reihe */
+    .input-with-extras {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: .5rem;
+        align-items: center;
+    }
+
+    /* BaseButton-Defaults überstimmen: NICHT volle Breite */
+    .btn-extras-chip {
+        display: inline-flex; /* wichtig */
+        width: auto; /* wichtig */
+        margin: 0; /* sicherheitshalber */
+        padding: .5rem .6rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-weight: 600;
+        line-height: 1;
+    }
+
+        .btn-extras-chip:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+
+        .btn-extras-chip.active {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+    /* etwas enger auf sehr kleinen Screens */
+    @media (max-width:560px) {
+        .input-with-extras {
+            gap: .4rem;
+        }
+    }
 </style>

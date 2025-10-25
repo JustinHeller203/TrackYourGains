@@ -27,6 +27,7 @@
     import { computed, useAttrs } from 'vue'
     import BaseButton from '@/components/ui/buttons/BaseButton.vue'
 
+
     type ClassLike = string | Record<string, boolean>
     type ClassProp = ClassLike | ClassLike[]
 
