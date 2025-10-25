@@ -20,7 +20,14 @@
             <div v-else class="tutorials-grid">
                 <div v-for="tutorial in filteredTutorials" :key="tutorial.id" class="tutorial-card">
                     <h3 class="card-title">{{ tutorial.title }}</h3>
-                    <iframe v-if="tutorial.videoUrl" :src="tutorial.videoUrl" frameborder="0" allowfullscreen class="video-frame"></iframe>
+                    <iframe v-if="tutorial.videoUrl"
+                            :src="tutorial.videoUrl"
+                            class="video-frame"
+                            frameborder="0"
+                            allowfullscreen
+                            loading="lazy"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin" />
                     <div v-else class="video-placeholder">
                         <p>Video wird bald hinzugefügt</p>
                     </div>
@@ -141,6 +148,8 @@
     .tutorials {
         padding: 2rem;
         background: var(--bg-primary);
+        overflow-x: hidden; /* ⟵ verhindert seitliches Wischen */
+        max-width: 100%;
     }
 
         .tutorials.dark-mode {
@@ -162,8 +171,30 @@
 
     .search-and-filter {
         display: flex;
-        justify-content: space-between;
+        align-items: center;
+        gap: .75rem; /* statt margin-right auf dem Input */
+        flex-wrap: wrap; /* darf umbrechen */
         margin-bottom: 1.5rem;
+    }
+
+    .search-bar, .category-filter {
+        min-width: 0;
+    }
+    /* dürfen schrumpfen */
+
+    @media (max-width: 600px) {
+        .tutorials {
+            padding: 1rem;
+        }
+        /* angenehmer auf Phone */
+        .search-and-filter {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .search-bar, .category-filter {
+            width: 100%;
+        }
     }
 
     .search-bar, .category-filter {
@@ -172,24 +203,32 @@
         border: 1px solid var(--border-color);
     }
 
-    .search-bar {
-        flex: 1;
-        margin-right: 1rem;
-    }
-
     .tutorials-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* flexibler */
+        gap: 1.25rem;
+        max-width: 100%;
+        overflow-x: clip;
     }
+
+        .tutorials-grid > * {
+            min-width: 0;
+        }
 
     .tutorial-card {
         background: var(--bg-card);
-        padding: 1.5rem;
+        padding: 1.25rem;
         border-radius: 12px;
         box-shadow: var(--shadow);
         transition: transform 0.3s;
+        max-width: 100%;
     }
+
+    .card-title, .card-info {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
 
         .tutorial-card.dark-mode {
             background: #21262d;
@@ -213,9 +252,13 @@
         }
 
     .video-frame {
-        width: 100%;
-        height: 150px;
+        display: block;
+        width: 100% !important; /* überschreibt evtl. Inline-Werte */
+        max-width: 100%;
+        aspect-ratio: 16 / 9; /* responsive Höhe */
+        height: auto; /* mit aspect-ratio */
         border-radius: 8px;
+        box-sizing: border-box;
     }
 
     .video-placeholder {
