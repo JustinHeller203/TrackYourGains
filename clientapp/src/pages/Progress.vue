@@ -633,7 +633,6 @@
     import { useRouter } from 'vue-router'
     import Chart from 'chart.js/auto';
     import confetti from 'canvas-confetti';
-    import jsPDF from 'jspdf';
     import { useUnits, KG_PER_LB } from '@/composables/useUnits'
     import Toast from '@/components/ui/Toast.vue'
     import DashboardCard from '@/components/ui/DashboardCard.vue'
@@ -2117,7 +2116,7 @@
         downloadFormat.value = 'html';
     };
 
-    const confirmDownload = () => {
+    const confirmDownload = async () => {
         if (!downloadCalculator.value) return;
 
         let data: any = {};
@@ -2244,15 +2243,12 @@
                         type: e.type ?? 'kraft',
                         exercise: e.exercise,
                         date: formatDate(e.date),
-                        // zeit-/streckenbasiert
                         duration_min: (e.type === 'ausdauer' || e.type === 'dehnung') ? (e.durationMin ?? null) : null,
                         distance_km: (e.type === 'ausdauer') ? (e.distanceKm ?? null) : null,
-                        // satz-/wiederholungsbasiert
                         sets: e.sets ?? null,
                         reps: e.reps ?? null,
                         weight_raw_kg: (e.type === 'kraft' || e.type === 'calisthenics') ? e.weight : null,
                         weight_display: (e.type === 'kraft' || e.type === 'calisthenics') ? formatWeight(e.weight, 1) : null,
-                        // Notiz immer mitnehmen
                         note: e.note ?? null,
                     })),
                 }
@@ -2272,7 +2268,6 @@
                 }
                 filename = 'glycemic_load_result'
                 break
-
 
             case 'weightStats': {
                 if (!weightHistory.value.length) {
@@ -2317,15 +2312,16 @@
                 closeDownloadPopup();
                 return;
 
-
             default:
                 addToast('Unbekannter Exporttyp', 'default');
                 closeDownloadPopup();
                 return;
         }
 
-        // 2) PDF direkt mit jsPDF
+        // ==== PDF direkt mit jsPDF (dynamisch laden) ====
         if (downloadFormat.value === 'pdf') {
+            // @ts-ignore – falls keine Typdeklarationen installiert sind
+            const { default: jsPDF } = await import('jspdf');
             const doc = new jsPDF();
             doc.setFontSize(16);
             const title = (downloadCalculator.value === 'progress' ? 'Fortschritt' : downloadCalculator.value.toUpperCase()) + ' Ergebnis';
@@ -2343,7 +2339,7 @@
                 if (Array.isArray(value)) {
                     if (y > 275) { doc.addPage(); y = 20; }
                     doc.text(`${key}:`, 20, y); y += 8;
-                    value.forEach((item: any, idx: number) => {
+                    (value as any[]).forEach((item: any, idx: number) => {
                         if (y > 275) { doc.addPage(); y = 20; }
                         doc.text(`Eintrag ${idx + 1}:`, 25, y); y += 8;
                         Object.entries(item).forEach(([k, v]) => writeKV(`  ${k}`, v));
@@ -2352,7 +2348,7 @@
                 } else if (typeof value === 'object' && value !== null) {
                     if (y > 275) { doc.addPage(); y = 20; }
                     doc.text(`${key}:`, 20, y); y += 8;
-                    Object.entries(value).forEach(([k, v]) => writeKV(`  ${k}`, v));
+                    Object.entries(value as Record<string, unknown>).forEach(([k, v]) => writeKV(`  ${k}`, v));
                 } else {
                     writeKV(key, value);
                 }
@@ -2364,8 +2360,9 @@
             return;
         }
 
+        // ==== alle anderen Formate ====
         switch (downloadFormat.value) {
-            case 'html':
+            case 'html': {
                 content = `
 <!DOCTYPE html>
 <html lang="de">
@@ -2401,8 +2398,9 @@
                 type = 'text/html';
                 filename += '.html';
                 break;
+            }
 
-            case 'csv':
+            case 'csv': {
                 if (downloadCalculator.value === 'progress') {
                     const header = 'type,exercise,date,duration_min,distance_km,sets,reps,weight_raw_kg,weight_display,note'
                     content = header + '\n' + data.progress.map((e: any) => [
@@ -2423,15 +2421,16 @@
                 type = 'text/csv';
                 filename += '.csv';
                 break;
+            }
 
-
-            case 'json':
+            case 'json': {
                 content = JSON.stringify(data, null, 2);
                 type = 'application/json';
                 filename += '.json';
                 break;
+            }
 
-            case 'txt':
+            case 'txt': {
                 if (downloadCalculator.value === 'progress') {
                     content = `Plan: ${data.planName}\n\n` + data.progress.map((e: any, i: number) =>
                         `#${i + 1}
@@ -2460,7 +2459,7 @@ Notiz: ${e.note ?? '-'}\n`
                 type = 'text/plain';
                 filename += '.txt';
                 break;
-
+            }
 
             default:
                 addToast('Unbekanntes Exportformat', 'default');
