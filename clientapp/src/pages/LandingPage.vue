@@ -110,6 +110,9 @@
     .landing {
         font-family: 'Inter', sans-serif;
         background: var(--bg-primary);
+        overflow-x: hidden; /* ⟵ kein seitliches Wischen mehr */
+        scrollbar-gutter: stable; /* ⟵ verhindert „Layout-Zucken“ bei Scrollbar-Wechsel */
+        max-width: 100%;
     }
 
     /* ===== Hero ===== */
@@ -168,7 +171,6 @@
         color: var(--text-primary);
         margin-bottom: 2rem;
     }
-
     .stats-grid,
     .features-grid,
     .links-grid,
@@ -177,7 +179,17 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1.5rem;
+        max-width: 100%;
+        overflow-x: clip; /* ⟵ nichts ragt „außerhalb“ */
     }
+
+        .stats-grid > *,
+        .features-grid > *,
+        .links-grid > *,
+        .testimonials-grid > *,
+        .blog-grid > * {
+            min-width: 0; /* ⟵ Kinder dürfen schrumpfen */
+        }
 
     /* ===== Cards ===== */
     .stat-card,
@@ -191,13 +203,24 @@
         transition: transform .3s ease, box-shadow .3s ease;
     }
 
+    .stat-card,
+    .feature-card,
+    .testimonial-card,
+    .blog-card {
+        will-change: transform;
+        contain: paint; /* ⟵ verhindert Einfluss nach außen */
+    }
+
+    /* Hover nur dort, wo Hover existiert (kein Mobile) */
+    @media (hover: hover) {
         .stat-card:hover,
         .feature-card:hover,
         .testimonial-card:hover,
         .blog-card:hover {
-            transform: scale(1.03);
+            transform: translateY(-4px); /* ⟵ keine Breitenänderung mehr */
             box-shadow: var(--shadow-hover);
         }
+    }
 
     .stat-number {
         font-size: 2.5rem;
