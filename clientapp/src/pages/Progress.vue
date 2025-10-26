@@ -1,3 +1,4 @@
+<!--Progress.vue-->
 <template>
     <div class="progress">
         <!-- ===================== HEADER / INTRO ===================== -->
@@ -498,8 +499,20 @@
                    @save="saveGoal"
                    @cancel="closeGoalPopup" />
 
-        <!-- dein ProgressEntryModal -->
-        <ProgressEntryModal v-model:show="showProgressPopup"
+        <ProgressEntryModal ref="progressEntryModalRef"
+                            v-model:show="showProgressPopup"
+                            :isEditing="Boolean(editingEntry)" 
+                            @delete="() => {
+    if (currentPlanId && editingEntry) {
+      deleteProgressEntry(currentPlanId, editingEntry.date)
+      editingEntry = null
+      showProgressPopup = false
+      if (reopenPlanProgressAfterSave) {
+        showPlanProgressPopup = true
+        reopenPlanProgressAfterSave = false
+      }
+    }
+  }"
                             v-model:showExtras="showProgressExtras"
                             :unit="unit"
                             :exercises="getExercisesForPlan(currentPlanId)"
@@ -514,15 +527,30 @@
                             :errors="validationErrorMessages"
                             @save="saveProgress"
                             @cancel="cancelProgressEdit"
-                            @dismissErrors="validationErrorMessages = []"
-                            v-model:setDetails="newProgressSetDetails" />
-
-        <!-- Fortschritt ansehen (Cards je Tag) -->
+                            @dismissErrors="clearValidation"
+                            v-model:setDetails="newProgressSetDetails"
+                            v-model:tempo="newProgressTempo"
+                            v-model:restSeconds="newProgressRestSeconds"
+                            v-model:avgHr="newProgressAvgHr"
+                            v-model:calories="newProgressCalories"
+                            v-model:pace="newProgressPace"
+                            v-model:hrZone="newProgressHrZone"
+                            v-model:borg="newProgressBorg"
+                            v-model:painFree="newProgressPainFree"
+                            v-model:movementQuality="newProgressMovementQuality"
+                            v-model:equipment="newProgressEquipment"
+                            v-model:equipmentCustom="newProgressEquipmentCustom"
+                            v-model:side="newProgressSide"
+                            @invalid="openValidationPopupError" />
+        <!-- Fortschritt ansehen (Cards je Tag) — OHNE Teleport -->
         <div v-if="showPlanProgressPopup && currentPlanId"
              class="modal-overlay"
-             @pointerdown="onProgressOverlayPointerDown"
-             @pointerup="onProgressOverlayPointerUp">
-            <div class="modal modal--progress" role="dialog" aria-modal="true" @click.stop>
+             @click.self="closePlanProgressPopup">
+            <div class="modal modal--progress"
+                 role="dialog"
+                 aria-modal="true"
+                 ref="progressModalEl"
+                 @click.stop>
                 <div class="card-header">
                     <h3 class="modal-title">📖 Fortschritt – {{ currentPlanName }}</h3>
                     <div class="card-actions" v-if="dayCards.length">
@@ -536,7 +564,9 @@
 
                 <div v-if="!dayCards.length" class="list-item empty">
                     Noch kein Fortschritt erfasst.
-                    <button class="open-btn" style="margin-left:.5rem" @click="addEntryFromPlanView">Erster Eintrag</button>
+                    <button class="open-btn" style="margin-left:.5rem" @click="addEntryFromPlanView">
+                        Erster Eintrag
+                    </button>
                 </div>
 
                 <div v-else class="day-card-list">
@@ -554,17 +584,15 @@
                                     {{ expandedDays.has(c.day) ? 'Schließen' : 'Öffnen' }}
                                 </button>
                             </div>
-
                         </div>
 
-                        <!-- Details (sauber gruppiert) -->
+                        <!-- Details -->
                         <div v-if="expandedDays.has(c.day)" class="day-details">
                             <div v-for="g in groupsForDay(c.day)" :key="g.exercise" class="exercise-block">
                                 <div class="exercise-header">{{ g.exercise }}</div>
 
-                                <!-- HIER: Grid-Definition je nach Anzahl Dropsätze -->
                                 <div class="set-table" :style="{ '--grid-cols': gridCols(maxDropsets(g.entries)) }">
-                                    <!-- Kopfzeile -->
+                                    <!-- Kopf -->
                                     <div class="set-row set-row--head">
                                         <div class="cell cell--set">Satz</div>
                                         <div class="cell cell--weight">Gewicht</div>
@@ -585,7 +613,8 @@
                                         <div class="cell cell--reps">{{ e.reps }}</div>
 
                                         <template v-if="maxDropsets(g.entries) > 0">
-                                            <template v-for="(ds, j) in padDropsets(e.dropsets, maxDropsets(g.entries))" :key="'ds-'+i+'-'+j">
+                                            <template v-for="(ds, j) in padDropsets(e.dropsets, maxDropsets(g.entries))"
+                                                      :key="'ds-'+i+'-'+j">
                                                 <div class="cell cell--ds">{{ ds ? formatWeight(ds.weight, 0) : '–' }}</div>
                                                 <div class="cell cell--ds">{{ ds ? ds.reps : '–' }}</div>
                                             </template>
@@ -596,22 +625,24 @@
                                 <div v-if="g.note" class="note">— {{ g.note }}</div>
                             </div>
                         </div>
-
-
                     </article>
 
                     <div v-if="dayCards.length > visibleDays" class="load-more">
                         <button class="open-btn" @click="visibleDays += 7">Weitere Tage laden</button>
                     </div>
                 </div>
+
                 <div class="scroll-sentinel-end" aria-hidden="true" style="height:1px"></div>
 
                 <div class="modal-actions">
                     <PopupCancelButton ariaLabel="Abbrechen" @click="closePlanProgressPopup" />
-                    <PopupSaveButton ariaLabel="Eintragen" @click="addEntryFromPlanView">Neuer Eintrag</PopupSaveButton>
+                    <PopupSaveButton ariaLabel="Eintragen" @click="addEntryFromPlanView">
+                        Neuer Eintrag
+                    </PopupSaveButton>
                 </div>
             </div>
         </div>
+
 
         <!-- Export-Popup -->
         <ExportPopup :show="showDownloadPopup"
@@ -680,15 +711,15 @@
         calories: number;
     }
     // oben bei den Refs:
-    const newProgressSetDetails = ref < Array < { weight: number | null; reps: number | null } >> ([])
+    const newProgressSetDetails = ref<Array<{ weight: number | null; reps: number | null }>>([])
 
     // Refs
     const showProgressExtras = ref(false)
     const { unit, kgToDisplay, displayToKg, formatWeight } = useUnits()
-    const trainingPlans = ref < TrainingPlan[] > ([]);
-    const weightHistory = ref < WeightEntry[] > ([]);
-    const workouts = ref < Workout[] > ([]);
-    const meals = ref < Meal[] > ([]);
+    const trainingPlans = ref<TrainingPlan[]>([]);
+    const weightHistory = ref<WeightEntry[]>([]);
+    const workouts = ref<Workout[]>([]);
+    const meals = ref<Meal[]>([]);
     // ▼ Erkennung nur über den Namen der gewählten Übung
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
     const isCardioName = (name: string) => {
@@ -715,118 +746,135 @@
         return kw.some(k => n.includes(k))
     }
 
-    const detectedInputType = computed < ExerciseType > (() =>
+    const detectedInputType = computed<ExerciseType>(() =>
         isStretchName(currentExercise.value) ? 'dehnung'
             : isCardioName(currentExercise.value) ? 'ausdauer'
                 : 'kraft'
     )
 
-    const glFood = ref < string > ('')
-    const glServing = ref < number | null > (null)
-    const glCarbs100 = ref < number | null > (null)
-    const glGi = ref < number | null > (null)
+    const glFood = ref<string>('')
+    const glServing = ref<number | null>(null)
+    const glCarbs100 = ref<number | null>(null)
+    const glGi = ref<number | null>(null)
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
-    const glCarbs = computed < number | null > (() => {
+    const glCarbs = computed<number | null>(() => {
         if (glServing.value == null || glCarbs100.value == null) return null
         return (Number(glCarbs100.value) * Number(glServing.value)) / 100
     })
 
-    const glResult = ref < number | null > (null)
-    const glCategory = computed < string > (() => {
+    const glResult = ref<number | null>(null)
+    const glCategory = computed<string>(() => {
         if (glResult.value == null) return ''
         if (glResult.value < 10) return 'niedrig'
         if (glResult.value < 20) return 'mittel'
         return 'hoch'
     })
-    const progressModalEl = ref < HTMLElement | null > (null)
+    const progressModalEl = ref<HTMLElement | null>(null)
+    // Kraft/Calisthenics
+    const newProgressTempo = ref<string>('')
+    const newProgressRestSeconds = ref<number | null>(null)
 
-    const newWeight = ref < number | null > (null);
-    const goal = ref < number | null > (null);
-    const newGoal = ref < number | null > (null);
+    // Ausdauer
+    const newProgressAvgHr = ref<number | null>(null)
+    const newProgressCalories = ref<number | null>(null)
+    const newProgressPace = ref<string>('')
+    const newProgressHrZone = ref<number | null>(null)
+    const newProgressBorg = ref<number | null>(null)
+
+    // Dehnung
+    const newProgressPainFree = ref<number | null>(null)
+    const newProgressMovementQuality = ref<number | null>(null)
+    const newProgressEquipment = ref<string>('')
+    const newProgressEquipmentCustom = ref<string>('')
+    const newProgressSide = ref<'' | 'links' | 'rechts' | 'beidseitig'>('')
+
+    const newWeight = ref<number | null>(null);
+    const goal = ref<number | null>(null);
+    const newGoal = ref<number | null>(null);
     const showWeightPopup = ref(false);
     const showGoalPopup = ref(false);
     const showProgressPopup = ref(false);
     const showDownloadPopup = ref(false);
-    const validationErrorMessages = ref < string[] > ([]);
-    const toast = ref < ToastModel | null > (null);
-    const weightInput = ref < HTMLInputElement | null > (null);
-    const goalInput = ref < HTMLInputElement | null > (null);
-    const downloadFormat = ref < 'html' | 'csv' | 'json' | 'pdf' | 'txt' > ('html');
-    const downloadCalculator = ref < string | null > (null);
-    const downloadPlanId = ref < string | null > (null);
-    const searchQuery = ref < string > ('');
-    const currentPlanId = ref < string | null > (null);
-    const currentExercise = ref < string > ('');
-    const newProgressWeight = ref < number | null > (null);
-    const newProgressReps = ref < number | null > (null);
-    const newProgressSets = ref < number | null > (null);
-    const newProgressNote = ref < string > ('');
+    const validationErrorMessages = ref<string[]>([]);
+    const toast = ref<ToastModel | null>(null);
+    const weightInput = ref<HTMLInputElement | null>(null);
+    const goalInput = ref<HTMLInputElement | null>(null);
+    const downloadFormat = ref<'html' | 'csv' | 'json' | 'pdf' | 'txt'>('html');
+    const downloadCalculator = ref<string | null>(null);
+    const downloadPlanId = ref<string | null>(null);
+    const searchQuery = ref<string>('');
+    const currentPlanId = ref<string | null>(null);
+    const currentExercise = ref<string>('');
+    const newProgressWeight = ref<number | null>(null);
+    const newProgressReps = ref<number | null>(null);
+    const newProgressSets = ref<number | null>(null);
+    const newProgressNote = ref<string>('');
     let toastId = 0;
     let toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    const activeTab = ref < 'stats' | 'calculators' | 'plans' > ('stats');
+    const activeTab = ref<'stats' | 'calculators' | 'plans'>('stats');
 
     // Calculator Data
-    const bmiGender = ref < 'male' | 'female' > ('male');
-    const bmiWeight = ref < number | null > (null);
-    const bmiHeight = ref < number | null > (null);
-    const bmiResult = ref < { value: number; category: string } | null > (null);
-    const proteinActivity = ref < 'low' | 'moderate' | 'high' > ('low')
-    const proteinMeals = ref < number | null > (null)
+    const bmiGender = ref<'male' | 'female'>('male');
+    const bmiWeight = ref<number | null>(null);
+    const bmiHeight = ref<number | null>(null);
+    const bmiResult = ref<{ value: number; category: string } | null>(null);
+    const proteinActivity = ref<'low' | 'moderate' | 'high'>('low')
+    const proteinMeals = ref<number | null>(null)
 
-    const calorieAge = ref < number | null > (null);
-    const calorieGender = ref < 'male' | 'female' > ('male');
-    const calorieWeight = ref < number | null > (null);
-    const calorieHeight = ref < number | null > (null);
-    const calorieActivity = ref < string > ('1.2');
-    const calorieGoal = ref < number > (0);
-    const calorieResult = ref < {
+    const calorieAge = ref<number | null>(null);
+    const calorieGender = ref<'male' | 'female'>('male');
+    const calorieWeight = ref<number | null>(null);
+    const calorieHeight = ref<number | null>(null);
+    const calorieActivity = ref<string>('1.2');
+    const calorieGoal = ref<number>(0);
+    const calorieResult = ref<{
         total: number;
         macros: { carbs: number; protein: number; fat: number };
-    } | null > (null);
-    const proteinWeight = ref < number | null > (null)
-    const proteinGoal = ref < 'maintain' | 'bulk' | 'cut' > ('maintain')
-    const proteinResult = ref < { recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null > (null)
+    } | null>(null);
+    const proteinWeight = ref<number | null>(null)
+    const proteinGoal = ref<'maintain' | 'bulk' | 'cut'>('maintain')
+    const proteinResult = ref<{ recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null>(null)
 
     // Abgeleitete Liste für das Template-Header-Check
     const favoriteCalcs = computed(() => Array.from(favoriteCalculators.value));
-    const cafWeight = ref < number | null > (null)
-    const cafSensitivity = ref < 'low' | 'normal' | 'high' > ('normal')
-    const cafStatus = ref < 'none' | 'pregnant' > ('none')
-    const cafResult = ref < { perDose: number; perDay: number } | null > (null)
+    const cafWeight = ref<number | null>(null)
+    const cafSensitivity = ref<'low' | 'normal' | 'high'>('normal')
+    const cafStatus = ref<'none' | 'pregnant'>('none')
+    const cafResult = ref<{ perDose: number; perDay: number } | null>(null)
 
     const isFavorite = (id: string) => isFavCalculator(id);
     const toggleFavorite = (id: string) => toggleFavCalculator(id);
 
-    const oneRmExercise = ref < string > ('');
-    const oneRmWeight = ref < number | null > (null);
-    const oneRmReps = ref < number | null > (null);
-    const oneRmResult = ref < number | null > (null);
+    const oneRmExercise = ref<string>('');
+    const oneRmWeight = ref<number | null>(null);
+    const oneRmReps = ref<number | null>(null);
+    const oneRmResult = ref<number | null>(null);
 
-    const bodyFatGender = ref < 'male' | 'female' > ('male');
-    const bodyFatWaist = ref < number | null > (null);
-    const bodyFatNeck = ref < number | null > (null);
-    const bodyFatHip = ref < number | null > (null);
-    const bodyFatHeight = ref < number | null > (null);
-    const bodyFatResult = ref < number | null > (null);
+    const bodyFatGender = ref<'male' | 'female'>('male');
+    const bodyFatWaist = ref<number | null>(null);
+    const bodyFatNeck = ref<number | null>(null);
+    const bodyFatHip = ref<number | null>(null);
+    const bodyFatHeight = ref<number | null>(null);
+    const bodyFatResult = ref<number | null>(null);
     const toastsEnabled = ref(true);
 
-    const ffmiWeight = ref < number | null > (null);
-    const ffmiHeight = ref < number | null > (null);
-    const ffmiBodyFat = ref < number | null > (null);
-    const ffmiResult = ref < { value: number; category: string } | null > (null);
+    const ffmiWeight = ref<number | null>(null);
+    const ffmiHeight = ref<number | null>(null);
+    const ffmiBodyFat = ref<number | null>(null);
+    const ffmiResult = ref<{ value: number; category: string } | null>(null);
 
     const suppressToasts = ref(true)
     let toastReleaseTimer: ReturnType<typeof setTimeout> | null = null
     // -------- Journal-View + Tages-Cards (sauber) --------
 
-    const journalSearch = ref < string > ('')
-    const journalType = ref < 'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer' > ('alle')
+    const journalSearch = ref<string>('')
+    const journalType = ref<'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'>('alle')
 
     // Ein sichtbares Limit für beide Ansichten (Journal + Cards)
     const visibleDays = ref(7)
-    const expandedDays = ref < Set < string >> (new Set())
+    const expandedDays = ref<Set<string>>(new Set())
 
 
     const TYPE_LABEL: Record<WorkoutType, string> = {
@@ -859,9 +907,13 @@
         next.has(day) ? next.delete(day) : next.add(day)
         expandedDays.value = next
     }
+
+    const clearValidation = () => {
+        validationErrorMessages.value = []
+    }
     // ---- Map: Tag -> Einträge (nur aktueller Plan) ----
     const entriesByDay = computed(() => {
-        const map = new Map < string, Workout[]> ()
+        const map = new Map<string, Workout[]>()
         if (!currentPlanId.value) return map
         for (const w of getProgressForPlan(currentPlanId.value)) {
             const day = (w.date || '').slice(0, 10)
@@ -880,7 +932,7 @@
 
     // ---- Kategorie-Zusammenfassung für die Cards ----
     const summarizeCategories = (items: Workout[]): string => {
-        const types = new Set < WorkoutType > (items.map(w => (w.type ?? 'kraft') as WorkoutType))
+        const types = new Set<WorkoutType>(items.map(w => (w.type ?? 'kraft') as WorkoutType))
         const labels = [...types].map(t => TYPE_LABEL[t])
         if (labels.length === 1) return labels[0]
         if (labels.length > 3) return 'Gemischt'
@@ -889,7 +941,7 @@
 
     type DayCard = { day: string; uniqueExercises: number }
 
-    const dayCards = computed < DayCard[] > (() => {
+    const dayCards = computed<DayCard[]>(() => {
         return [...entriesByDay.value.entries()].map(([day, items]) => {
             const uniqueExercises = new Set(items.map(i => i.exercise)).size
             return { day, uniqueExercises }
@@ -905,45 +957,51 @@
         entries: Workout[]      // bereits auf "Sätze" expandiert
         note: string | null
     }
+    // Robust in Zahl umwandeln (komma erlaubt). Ungültig => null
+    const toNum = (v: unknown): number | null => {
+        if (v == null) return null
+        const n = Number(String(v).replace(',', '.').trim())
+        return Number.isFinite(n) ? n : null
+    }
 
     // Gruppiert einen Tag nach Übung und expandiert die Sätze zu einzelnen Zeilen
     function aggregateDay(items: Workout[]): JournalGroup[] {
         // Für die Tabelle zeigen wir nur Kraft/Calisthenics an (kein Cardio/Dehnung in der Set-Tabelle)
         const strength = items.filter(it => (it.type ?? 'kraft') === 'kraft' || it.type === 'calisthenics')
 
-        const byExercise = new Map < string, {
+        const byExercise = new Map<string, {
             entries: Workout[]; notes: string[]
-    }> ()
-    for (const it of strength) {
-        const key = it.exercise || 'Unbenannte Übung'
-        if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
+        }>()
+        for (const it of strength) {
+            const key = it.exercise || 'Unbenannte Übung'
+            if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
 
-        // Sätze in einzelne Zeilen aufdröseln
-        const setCount = Math.max(1, Number(it.sets ?? 1))
-        for (let s = 0; s < setCount; s++) {
-            const detail = it.setDetails?.[s]
-            byExercise.get(key)!.entries.push({
-                ...it,
-                sets: 1,
-                weight: detail ? detail.weight : it.weight,
-                reps: detail ? detail.reps : it.reps,
+            // Sätze in einzelne Zeilen aufdröseln
+            const setCount = Math.max(1, Number(it.sets ?? 1))
+            for (let s = 0; s < setCount; s++) {
+                const detail = it.setDetails?.[s]
+                byExercise.get(key)!.entries.push({
+                    ...it,
+                    sets: 1,
+                    weight: detail ? detail.weight : it.weight,
+                    reps: detail ? detail.reps : it.reps,
+                })
+            }
+
+            if (it.note) byExercise.get(key)!.notes.push(it.note)
+        }
+
+        const groups: JournalGroup[] = []
+        for (const [exercise, { entries, notes }] of byExercise.entries()) {
+            groups.push({
+                exercise,
+                entries,
+                note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
             })
         }
 
-        if (it.note) byExercise.get(key)!.notes.push(it.note)
-    }
-
-    const groups: JournalGroup[] = []
-    for (const [exercise, { entries, notes }] of byExercise.entries()) {
-        groups.push({
-            exercise,
-            entries,
-            note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
-        })
-    }
-
-    // alphabetisch nach Übungsnamen
-    return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
+        // alphabetisch nach Übungsnamen
+        return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
     }
     // Nur den Editor schließen; ggf. Fortschritt-Modal wieder öffnen
     const cancelProgressEdit = () => {
@@ -973,7 +1031,7 @@
     // (Optional) komplettes Journal (nach Tag, mit Suche/Filter)
     type JournalDay = { day: string; groups: JournalGroup[] }
 
-    const journalDays = computed < JournalDay[] > (() => {
+    const journalDays = computed<JournalDay[]>(() => {
         if (!currentPlanId.value) return []
         const all = getProgressForPlan(currentPlanId.value)
 
@@ -988,7 +1046,7 @@
             return inExercise || inNote
         })
 
-        const byDay = new Map < string, Workout[]> ()
+        const byDay = new Map<string, Workout[]>()
         for (const w of filtered) {
             const day = (w.date || '').slice(0, 10)
             if (!byDay.has(day)) byDay.set(day, [])
@@ -1008,19 +1066,19 @@
     }
     /** baut das gesamte Journal (nach Tag absteigend) inkl. Suche/Filter */
 
-    const waterWeight = ref < number | null > (null);
-    const waterActivity = ref < 'low' | 'moderate' | 'high' > ('low');
-    const waterClimate = ref < 'temperate' | 'hot' | 'very_hot' > ('temperate');
-    const waterResult = ref < number | null > (null);
+    const waterWeight = ref<number | null>(null);
+    const waterActivity = ref<'low' | 'moderate' | 'high'>('low');
+    const waterClimate = ref<'temperate' | 'hot' | 'very_hot'>('temperate');
+    const waterResult = ref<number | null>(null);
 
-    const planSearchQuery = ref < string > ('');
+    const planSearchQuery = ref<string>('');
     const maxEntries = ref(3);
-    const editingEntry = ref < Workout | null > (null);
+    const editingEntry = ref<Workout | null>(null);
     // Zustand für "Mehr anzeigen"
-    const showMore = ref < { [key: string]: boolean } > ({});
+    const showMore = ref<{ [key: string]: boolean }>({});
     const autoCalcEnabled = ref(false)
     const newProgressIsDropset = ref(false)
-    const newProgressDropsets = ref < Array < { weight: number | null; reps: number | null } >> ([])
+    const newProgressDropsets = ref<Array<{ weight: number | null; reps: number | null }>>([])
 
     // --- Fortschritt ansehen Modal ---
     const showPlanProgressPopup = ref(false)
@@ -1047,18 +1105,35 @@
         // 🔽 NEU für Dropsätze
         isDropset?: boolean
         dropsets?: DropSetEntry[]
+
+        tempo?: string
+        restSeconds?: number | null
+
+        // Extras Ausdauer
+        avgHr?: number | null
+        calories?: number | null
+        pace?: string | null
+        hrZone?: number | null
+        borg?: number | null
+
+        // Extras Dehnung
+        painFree?: number | null
+        movementQuality?: number | null
+        equipment?: string | null
+        equipmentCustom?: string | null
+        side?: '' | 'links' | 'rechts' | 'beidseitig' | null
     }
 
 
     // … bei den Refs zu den Fortschritt-Inputs:
-    const newProgressDuration = ref < number | null > (null)   // ▼ neu
-    const newProgressDistance = ref < number | null > (null)   // ▼ neu
+    const newProgressDuration = ref<number | null>(null)   // ▼ neu
+    const newProgressDistance = ref<number | null>(null)   // ▼ neu
 
     const currentPlanName = computed(() =>
         trainingPlans.value.find(p => p.id === currentPlanId.value)?.name ?? ''
     )
 
-    const sortedPlanEntries = computed < Workout[] > (() => {
+    const sortedPlanEntries = computed<Workout[]>(() => {
         if (!currentPlanId.value) return []
         return [...getProgressForPlan(currentPlanId.value)]
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -1088,7 +1163,7 @@
         }
     }
     // ganz oben bei deinen Refs/Computed einfügen
-    const isMobile = ref < boolean > (window.matchMedia('(max-width: 600px)').matches)
+    const isMobile = ref<boolean>(window.matchMedia('(max-width: 600px)').matches)
 
     onMounted(() => {
         const mq = window.matchMedia('(max-width: 600px)')
@@ -1209,7 +1284,7 @@
     })
 
     const router = useRouter()
-    const favoritePlansIds = ref < string[] > ([])
+    const favoritePlansIds = ref<string[]>([])
 
     onMounted(() => {
         try {
@@ -1362,13 +1437,22 @@
         const errors: string[] = []
 
         if (!currentExercise.value) errors.push('Eine Übung muss ausgewählt sein')
-
-        // Cardio
+        //Cardio
         if (detectedInputType.value === 'ausdauer') {
             if (newProgressDuration.value == null || isNaN(newProgressDuration.value) || newProgressDuration.value <= 0)
                 errors.push('Dauer (Min) muss größer als 0 sein')
             if (newProgressDistance.value != null && (isNaN(newProgressDistance.value) || newProgressDistance.value < 0))
                 errors.push('Distanz (km) muss ≥ 0 sein')
+
+            const borgN = toNum(newProgressBorg.value)
+            if (borgN != null) {
+                if (borgN < 6 || borgN > 20) errors.push('Borg-Skala muss zwischen 6 und 20 liegen')
+            }
+            else if (newProgressBorg.value != null && String(newProgressBorg.value).trim() !== '') {
+                // etwas Eingetragenes, aber keine gültige Zahl
+                errors.push('Borg-Skala muss eine Zahl sein')
+            }
+
             return errors
         }
 
@@ -1623,7 +1707,7 @@
     // ---- Kategorien-Filter ----
     type CalcCategory = 'alle' | 'gesundheit' | 'kraft' | 'ernaehrung' | 'alltag'
 
-    const calcCategory = ref < CalcCategory > ('alle')
+    const calcCategory = ref<CalcCategory>('alle')
 
     const CALC_CATEGORY: Record<string, CalcCategory> = {
         'BMI': 'gesundheit',
@@ -1657,6 +1741,10 @@
             errors.push('Glykämischer Index muss zwischen 0 und 110 liegen')
         return errors
     }
+    // Typ der exposed API des Modals
+    type ProgressEntryModalExposed = { submit: () => void }
+    // Ref auf das Fortschritt-Modal
+    const progressEntryModalRef = ref<ProgressEntryModalExposed | null>(null)
 
     const calculateGlyLoad = () => {
         const errors = validateGlyLoad()
@@ -1924,7 +2012,15 @@
     }
 
     const saveProgress = () => {
-        // === Gewicht-Only: nur Körpergewicht wurde geändert, sonst gar nichts ===
+        // kleine lokale Helper: robuste Zahl (Komma erlaubt) & Trim-Check
+        const toNum = (v: unknown): number | null => {
+            if (v == null) return null
+            const n = Number(String(v).replace(',', '.').trim())
+            return Number.isFinite(n) ? n : null
+        }
+        const hasText = (v: unknown) => String(v ?? '').trim() !== ''
+
+        // === Nur Körpergewicht geändert? (ohne Übung/sonstige Felder) ===
         const hasExercise = Boolean((currentExercise.value || '').trim())
 
         const displayWeight = newProgressWeight.value
@@ -1959,23 +2055,37 @@
             newProgressWeight.value = kgToDisplay(enteredKg)
             updateWeightChart()
 
-            // gewünschter Toast
             addToast('Aktuelles Gewicht aktualisiert', 'save')
-
-            // Editor zu – fertig (keine Workout-Validierung)
             closeProgressPopup()
             return
         }
 
+        // === Validierung (Basis) ===
         const errors = validateProgress()
+
+        // ➕ Zusätzliche, robuste Borg-Prüfung (damit allein diese Funktion dicht ist)
+        if (detectedInputType.value === 'ausdauer') {
+            const borgRaw = newProgressBorg.value
+            const borgN = toNum(borgRaw)
+
+            if (hasText(borgRaw) && borgN == null) {
+                errors.push('Borg-Skala muss eine Zahl sein')
+            } else if (borgN != null && (borgN < 6 || borgN > 20)) {
+                errors.push('Borg-Skala muss zwischen 6 und 20 liegen')
+            }
+        }
+
         if (errors.length) {
-            openValidationPopupError(errors) // ⬅️ setzt validationErrorMessages => ValidationPopup geht auf
+            openValidationPopupError(errors)
             return
         }
 
+        // === Payload bauen ===
         let payload: Workout
 
         if (detectedInputType.value === 'ausdauer') {
+            const borgN = toNum(newProgressBorg.value)
+
             payload = {
                 planId: currentPlanId.value ?? undefined,
                 exercise: currentExercise.value,
@@ -1985,21 +2095,35 @@
                 type: 'ausdauer',
                 durationMin: Number(newProgressDuration.value),
                 distanceKm: newProgressDistance.value != null ? Number(newProgressDistance.value) : undefined,
+
+                // Extras (Cardio) – numerisch gesäubert
+                avgHr: toNum(newProgressAvgHr.value) ?? undefined,
+                calories: toNum(newProgressCalories.value) ?? undefined,
+                pace: newProgressPace.value?.trim() || undefined,
+                hrZone: toNum(newProgressHrZone.value) ?? undefined,
+                borg: borgN ?? undefined,
             }
         } else if (detectedInputType.value === 'dehnung') {
             payload = {
                 planId: currentPlanId.value ?? undefined,
                 exercise: currentExercise.value,
                 sets: Number(newProgressSets.value) || 0,
-                weight: 0, // bei Dehnung irrelevant
+                weight: 0,
                 reps: Number(newProgressReps.value) || 0,
                 note: newProgressNote.value?.trim() || undefined,
                 date: editingEntry.value?.date ?? new Date().toISOString(),
                 type: 'dehnung',
-                durationMin: Number(newProgressDuration.value)
+                durationMin: Number(newProgressDuration.value),
+
+                // Extras (Dehnung) – numerisch gesäubert
+                painFree: toNum(newProgressPainFree.value) ?? undefined,
+                movementQuality: toNum(newProgressMovementQuality.value) ?? undefined,
+                equipment: newProgressEquipment.value || undefined,
+                equipmentCustom: newProgressEquipmentCustom.value || undefined,
+                side: newProgressSide.value || undefined,
             }
         } else {
-            // Per-Satz vorhanden?
+            // Kraft / Calisthenics
             const hasPerSet = (newProgressSetDetails.value?.length ?? 0) > 0
             const perSet = hasPerSet
                 ? newProgressSetDetails.value
@@ -2021,11 +2145,28 @@
                 note: newProgressNote.value?.trim() || undefined,
                 date: editingEntry.value?.date ?? new Date().toISOString(),
                 type: 'kraft',
-                isDropset: newProgressIsDropset.value || undefined,     // (falls du Dropsätze weiter nutzt)
-                dropsets: newProgressIsDropset.value ? /* …wie gehabt… */ undefined : undefined,
-                setDetails: hasPerSet ? perSet : undefined
+
+                // Extras (Kraft)
+                tempo: newProgressTempo.value?.trim() || undefined,
+                restSeconds: toNum(newProgressRestSeconds.value) ?? undefined,
+
+                // Optional: Dropsätze
+                isDropset: newProgressIsDropset.value || undefined,
+                dropsets: newProgressIsDropset.value
+                    ? (newProgressDropsets.value ?? [])
+                        .filter(ds => ds.weight != null && ds.reps != null)
+                        .map(ds => ({
+                            weight: displayToKg(Number(ds.weight)),
+                            reps: Number(ds.reps),
+                        }))
+                    : undefined,
+
+                // Einzelsatz-Details
+                setDetails: hasPerSet ? perSet : undefined,
             }
         }
+
+        // === Körpergewicht ggf. zusätzlich persistieren ===
         {
             const displayWeight2 = newProgressWeight.value
             const enteredKg2 = (displayWeight2 != null && !isNaN(displayWeight2) && Number(displayWeight2) > 0)
@@ -2038,11 +2179,14 @@
                 weightHistory.value.unshift({ date: today2, weight: enteredKg2 })
                 localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
                 updateWeightChart()
-                // Hinweis: kein besonderer Toast hier – nur beim reinen Gewicht-Update.
             }
         }
+
+        // === Speichern / Aktualisieren ===
         if (editingEntry.value) {
-            const idx = workouts.value.findIndex(w => w.planId === payload.planId && w.date === editingEntry.value!.date)
+            const idx = workouts.value.findIndex(
+                w => w.planId === payload.planId && w.date === editingEntry.value!.date
+            )
             if (idx !== -1) {
                 workouts.value[idx] = payload
                 showToast({ message: 'Fortschritt aktualisiert!', type: 'success', emoji: '✅' })
@@ -2059,6 +2203,7 @@
         localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
         closeProgressPopup()
 
+        // ggf. „Fortschritt ansehen“-Modal wieder öffnen
         if (reopenPlanProgressAfterSave.value) {
             const planIdForReopen = payload.planId
             if (planIdForReopen) {
@@ -2812,65 +2957,36 @@ Notiz: ${e.note ?? '-'}\n`
         }, 3000)
     }
 
-    const progressOverlayDown = ref(false)
-    const progressOverlayStart = ref<{ x: number; y: number } | null>(null)
-
-    function onProgressOverlayPointerDown(e: PointerEvent) {
-        if (e.target !== e.currentTarget) { progressOverlayDown.value = false; return }
-        progressOverlayDown.value = true
-        progressOverlayStart.value = { x: e.clientX, y: e.clientY }
-    }
-
-    function onProgressOverlayPointerUp(e: PointerEvent) {
-        if (!progressOverlayDown.value) return
-        if (e.target !== e.currentTarget) { progressOverlayDown.value = false; return }
-
-        const start = progressOverlayStart.value
-        const moved = start ? Math.hypot(e.clientX - start.x, e.clientY - start.y) : 0
-        const hasSelection = !!(window.getSelection && window.getSelection()?.toString())
-
-        // Nur absichtlicher Klick → schließen
-        if (moved < 6 && !hasSelection) {
-            closePlanProgressPopup()          // ✅ dieses Popup schließen
-            // optional wie vorher: andere Popups sicherheitshalber auch schließen
-            closeWeightPopup()
-            closeGoalPopup()
-            closeProgressPopup()
-            closeDownloadPopup()
-        }
-
-        progressOverlayDown.value = false
-        progressOverlayStart.value = null
-    }
-
-
     const handleKeydown = (event: KeyboardEvent) => {
-        // Falls das Validierungs-Popup offen ist: nur das schließen
         if (validationErrorMessages.value.length) {
             if (event.key === 'Escape' || event.key === 'Enter') {
-                event.preventDefault();
-                validationErrorMessages.value = [];
+                event.preventDefault()
+                validationErrorMessages.value = []
             }
-            return;
+            return
         }
 
         if (event.key === 'Escape') {
             if (showProgressPopup.value) {
-                event.preventDefault();
-                cancelProgressEdit();
-                return;
+                event.preventDefault()
+                cancelProgressEdit()
+                return
             }
-            // Standard: andere Popups schließen
-            closeWeightPopup();
-            closeGoalPopup();
-            closeDownloadPopup();
+            closeWeightPopup()
+            closeGoalPopup()
+            closeDownloadPopup()
         } else if (event.key === 'Enter') {
-            if (showWeightPopup.value) { event.preventDefault(); saveWeight(); }
-            else if (showGoalPopup.value) { event.preventDefault(); saveGoal(); }
-            else if (showProgressPopup.value) { event.preventDefault(); saveProgress(); }
-            else if (showDownloadPopup.value) { event.preventDefault(); confirmDownload(); }
+            if (showWeightPopup.value) { event.preventDefault(); saveWeight() }
+            else if (showGoalPopup.value) { event.preventDefault(); saveGoal() }
+            else if (showProgressPopup.value) {
+                event.preventDefault()
+                // 🔽 Statt Parent-save: Child-Submit (inkl. Borg-Validation im Modal)
+                progressEntryModalRef.value?.submit?.()
+            }
+            else if (showDownloadPopup.value) { event.preventDefault(); confirmDownload() }
         }
-    };
+    }
+
 
     let weightChart: Chart | null = null;
     let workoutChart: Chart | null = null;
@@ -3125,7 +3241,7 @@ Notiz: ${e.note ?? '-'}\n`
     }
 
     // ===== Favoriten-Rechner =====
-    const favoriteCalculators = ref < Set < string >> (new Set())
+    const favoriteCalculators = ref<Set<string>>(new Set())
 
     const FAVORITES_KEY = 'progress_favorite_calculators'
 
@@ -3214,6 +3330,10 @@ Notiz: ${e.note ?? '-'}\n`
     const debouncedCalcBodyFat = debounce(() => {
         if (!validateBodyFat().length) withSilentToasts(calculateBodyFat)
     })
+    watch(showPlanProgressPopup, v => {
+        document.body.style.overflow = v ? 'hidden' : ''
+    })
+    onUnmounted(() => { document.body.style.overflow = '' })
 
     watch([bodyFatGender, bodyFatWaist, bodyFatNeck, bodyFatHip, bodyFatHeight], () => {
         if (autoCalcEnabled.value) debouncedCalcBodyFat()
@@ -3506,6 +3626,7 @@ Notiz: ${e.note ?? '-'}\n`
         }
         /* 1-spaltig, sicher */
     }
+
     .btn-ghost.mini {
         padding: .35rem .6rem;
         font-size: .8rem;
@@ -3553,7 +3674,7 @@ Notiz: ${e.note ?? '-'}\n`
 
         .progress-charts > * {
             min-width: 0;
-        } 
+        }
 
     .calculator-card {
         display: inline-block;
@@ -4558,7 +4679,6 @@ Notiz: ${e.note ?? '-'}\n`
     .modal--progress > .card-header + .day-card-list {
         margin-top: 1rem; /* taste dich bei Bedarf ran: .75rem – 1.25rem */
     }
-
 </style>
 <style>
     body:has(.modal-overlay) {

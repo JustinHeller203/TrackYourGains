@@ -1,3 +1,4 @@
+<!--ChartCard.vue-->
 <template>
     <div class="chart-card">
         <h3 class="card-title">{{ title }}</h3>
@@ -21,8 +22,8 @@
     import ExportButton from '@/components/ui/buttons/ExportButton.vue'
 
 
-defineProps<{ title: string; exportable?: boolean }>()
-defineEmits<{ (e: 'export'): void; (e: 'reset'): void }>()
+    defineProps<{ title: string; exportable?: boolean }>()
+    defineEmits<{ (e: 'export'): void; (e: 'reset'): void }>()
 </script>
 
 <style scoped>

@@ -1,3 +1,4 @@
+<!--Tutorial.vue-->
 <template>
     <div class="tutorials" :class="{ 'dark-mode': darkMode }">
         <h2 class="page-title">🎥 Übungstutorials</h2>
@@ -230,15 +231,15 @@
     }
 
 
-        .tutorial-card.dark-mode {
-            background: #21262d;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
+    .tutorial-card.dark-mode {
+        background: #21262d;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
 
-        .tutorial-card:hover {
-            transform: translateY(-6px);
-            box-shadow: var(--shadow-hover);
-        }
+    .tutorial-card:hover {
+        transform: translateY(-6px);
+        box-shadow: var(--shadow-hover);
+    }
 
     .card-title {
         font-size: 1.5rem;

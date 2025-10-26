@@ -1,3 +1,4 @@
+<!--LandingPage.vue-->
 <template>
     <div class="landing">
         <section class="hero">
@@ -171,6 +172,7 @@
         color: var(--text-primary);
         margin-bottom: 2rem;
     }
+
     .stats-grid,
     .features-grid,
     .links-grid,

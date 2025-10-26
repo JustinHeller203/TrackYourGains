@@ -1,3 +1,4 @@
+<!--Toast.vue-->
 <template>
     <!-- ÄNDERN: positionClass binden -->
     <div class="toast-container" :class="positionClass">

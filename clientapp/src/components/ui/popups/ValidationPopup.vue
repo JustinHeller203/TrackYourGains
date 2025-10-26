@@ -1,4 +1,5 @@
-﻿<template>
+﻿<!--ValidationPopup.vue-->
+<template>
     <BasePopup :show="show"
                :title="title"
                overlayClass="validation-popup"
