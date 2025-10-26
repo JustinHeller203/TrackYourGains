@@ -978,6 +978,81 @@
         margin-top: .9rem;
     }
 
+    /* === Mobile: Buttons gleich breit, keine Mindestbreiten erzwingen === */
+    @media (max-width: 480px) {
+        /* Grid statt Flex */
+        .modal-actions {
+            display: grid;
+            gap: .5rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr)); /* Standard: 2 Spalten (Cancel/Save) */
+        }
+
+            /* Wenn Delete sichtbar: 3 gleich breite Spalten */
+            .modal-actions.has-delete {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            /* WICHTIG: Min-Breiten der Button-Komponenten knacken */
+            .modal-actions > * {
+                min-width: 0 !important;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            /* Viele UI-Buttons haben große Default-Paddings – kompakter machen */
+            .modal-actions :is(button, a, .btn, .base-button) {
+                padding: .55rem .5rem !important;
+                font-size: .92rem !important;
+                line-height: 1.1;
+                white-space: nowrap;
+            }
+    }
+
+    /* === Sehr schmale Geräte: Delete oben full width, darunter Cancel/Save === */
+    @media (max-width: 360px) {
+        .modal-actions {
+            grid-template-columns: 1fr 1fr; /* 2 Spalten */
+            grid-template-areas: "cancel save"; /* ohne Delete */
+        }
+
+            .modal-actions.has-delete {
+                grid-template-columns: 1fr 1fr;
+                grid-template-areas:
+                    "delete delete"
+                    "cancel save";
+            }
+
+            /* Mapping über deine Klassen aus dem Template */
+            .modal-actions .action-delete {
+                grid-area: delete;
+            }
+
+            .modal-actions .action-cancel {
+                grid-area: cancel;
+            }
+
+            .modal-actions .action-save {
+                grid-area: save;
+            }
+
+            /* Auf extrem schmal: noch etwas kompakter */
+            .modal-actions :is(button, a, .btn, .base-button) {
+                padding: .5rem .45rem !important;
+                font-size: .9rem !important;
+            }
+    }
+
+    /* Optional: Buttons unten immer sichtbar halten (bleibt im Scrollbereich „kleben“) */
+    @media (max-width: 480px) {
+        .modal-actions {
+            position: sticky;
+            bottom: 0;
+            background: linear-gradient(to top, var(--bg-card), color-mix(in oklab, var(--bg-card) 80%, transparent));
+            padding-bottom: .75rem;
+            /* Falls der Modal innen seitliche Padding hat: nichts überstehen lassen */
+        }
+    }
+
     @media (max-width: 420px) {
         /* Grid statt Flex: gleiche Breite, kein Überlaufen */
         .modal-actions {
