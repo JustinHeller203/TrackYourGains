@@ -281,12 +281,18 @@
                    :readonly="!hasExerciseSelected"
                    @focus="!hasExerciseSelected && requireExercise('note')" />
 
-            <div class="modal-actions">
+            <div class="modal-actions" :class="{ 'has-delete': !!props.isEditing }">
                 <PopupDeleteButton v-if="props.isEditing"
+                                   class="action-delete"
                                    @click="onDelete">Löschen</PopupDeleteButton>
 
-                <PopupCancelButton ariaLabel="Abbrechen" @click="onCancel" />
-                <PopupSaveButton ariaLabel="Speichern" @click="onSave" />
+                <PopupCancelButton class="action-cancel"
+                                   ariaLabel="Abbrechen"
+                                   @click="onCancel" />
+
+                <PopupSaveButton class="action-save"
+                                 ariaLabel="Speichern"
+                                 @click="onSave" />
             </div>
 
             <ValidationPopup :show="Boolean(errors && errors.length)"
@@ -972,6 +978,56 @@
         margin-top: .9rem;
     }
 
+    @media (max-width: 420px) {
+        /* Grid statt Flex: gleiche Breite, kein Überlaufen */
+        .modal-actions {
+            display: grid;
+            gap: .5rem;
+            grid-template-columns: repeat(2, 1fr); /* Standard: 2 Spalten (Cancel/Save) */
+        }
+
+            /* Wenn Delete sichtbar ist: 3 Spalten nebeneinander */
+            .modal-actions.has-delete {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            /* Buttons sollen die Zelle vollständig füllen */
+            .modal-actions > * {
+                width: 100%;
+            }
+    }
+
+    /* === Sehr schmale Geräte: Delete oben volle Breite, darunter Cancel/Save === */
+    @media (max-width: 340px) {
+        .modal-actions {
+            grid-template-columns: 1fr 1fr; /* 2 Spalten */
+            grid-template-areas: "cancel save"; /* ohne Delete */
+        }
+
+            .modal-actions.has-delete {
+                grid-template-columns: 1fr 1fr;
+                grid-template-areas:
+                    "delete delete"
+                    "cancel save";
+            }
+
+            /* Zielbereiche anhand der neuen Klassen */
+            .modal-actions .action-delete {
+                grid-area: delete;
+            }
+
+            .modal-actions .action-cancel {
+                grid-area: cancel;
+            }
+
+            .modal-actions .action-save {
+                grid-area: save;
+            }
+
+            .modal-actions > * {
+                width: 100%;
+            }
+    }
     .errors {
         margin: .75rem 0 1rem;
         color: #b91c1c;
