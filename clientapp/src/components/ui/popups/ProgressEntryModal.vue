@@ -1065,7 +1065,26 @@
     /* Kleine Breiten: noch strenger limitieren */
     @media (max-width: 560px) {
         .modal {
-            max-height: 72svh; /* Scroll setzt schneller ein */
+            max-height: 68svh;
+        }
+        /* früher Scroll auf kleinen Screens */
+    }
+
+    @media (max-width: 480px) {
+        .modal {
+            max-height: 64svh;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .modal {
+            max-height: 60svh;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .modal {
+            max-height: 56svh;
         }
     }
         .modal::-webkit-scrollbar {
