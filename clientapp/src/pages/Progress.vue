@@ -1123,32 +1123,32 @@
         exercise: string
         sets: number
         weight: number
-        reps: number
+        reps?: number            // ✅ optional (für Dehnung/Cardio)
         note?: string
         date: string
         planId?: string
 
-        // optional (weiterhin vorhanden – wird aber für die Anzeige nicht mehr genutzt)
         type?: WorkoutType
         durationMin?: number
         distanceKm?: number
-        setDetails?: Array<{ weight: number; reps: number }> // NEU (kg & absolute Zahlen)
 
-        // 🔽 NEU für Dropsätze
+        // bleibt streng, weil nur für Kraft/Calisthenics genutzt:
+        setDetails?: Array<{ weight: number; reps: number }>
+        // Dropsets bleiben auch strikt:
         isDropset?: boolean
-        dropsets?: DropSetEntry[]
+        dropsets?: Array<{ weight: number; reps: number }>
 
         tempo?: string
         restSeconds?: number | null
 
-        // Extras Ausdauer
+        // Ausdauer-Extras
         avgHr?: number | null
         calories?: number | null
         pace?: string | null
         hrZone?: number | null
         borg?: number | null
 
-        // Extras Dehnung
+        // Dehnungs-Extras
         painFree?: number | null
         movementQuality?: number | null
         equipment?: string | null
@@ -2159,8 +2159,10 @@
                 borg: borgN ?? undefined,
             }
         } else if (detectedInputType.value === 'dehnung') {
-            const repsOpt = (newProgressReps.value != null && String(newProgressReps.value).trim() !== '')
-                ? Number(newProgressReps.value) : undefined
+            const repsOpt =
+                (newProgressReps.value != null && String(newProgressReps.value).trim() !== '')
+                    ? Number(newProgressReps.value)
+                    : undefined
             const durOpt = (newProgressDuration.value != null && String(newProgressDuration.value).trim() !== '')
                 ? Number(newProgressDuration.value) : undefined
 
@@ -2169,7 +2171,7 @@
                 exercise: currentExercise.value,
                 sets: Number(newProgressSets.value) || 0,
                 weight: 0,
-                reps: repsOpt,
+                reps: repsOpt,   // ✅ jetzt gültig
                 note: newProgressNote.value?.trim() || undefined,
                 date: editingEntry.value?.date ?? new Date().toISOString(),
                 type: 'dehnung',
