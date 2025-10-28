@@ -1042,14 +1042,53 @@
         border: 1px solid var(--border-color);
         border-radius: 12px;
         box-shadow: var(--shadow);
+        /* Innenraum + Platz fürs Sticky-Action-Bar-Ende */
         padding: 1rem 1rem 0.75rem;
-        /* NEU: begrenzen + scrollbar */
-        max-height: 88vh;
+        scroll-padding-bottom: 6rem;
+        /* Höhenlimit + Scrollen */
+        max-height: min(88vh, 100dvh - 24px);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
+        /* Custom-Scrollbar (Firefox) */
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in oklab, var(--accent-primary) 70%, transparent) color-mix(in oklab, var(--bg-secondary) 92%, transparent);
+        /* Konsistenter Layout-Shift bei sichtbarer Leiste */
+        scrollbar-gutter: stable both-edges;
+        /* Größe für WebKit */
+        --sb-size: 12px;
     }
+        .modal::-webkit-scrollbar {
+            width: var(--sb-size);
+            height: var(--sb-size);
+        }
 
+        .modal::-webkit-scrollbar-track {
+            background: color-mix(in oklab, var(--bg-secondary) 92%, transparent);
+            border-left: 1px solid var(--border-color);
+            border-radius: 999px;
+        }
+
+        .modal::-webkit-scrollbar-thumb {
+            /* On-brand Daumen mit leichtem Glow-Ring */
+            background: linear-gradient( 180deg, color-mix(in oklab, var(--accent-primary) 85%, #fff), var(--accent-primary) );
+            border-radius: 999px;
+            border: 3px solid transparent; /* macht den Thumb schlanker */
+            background-clip: padding-box;
+            box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-primary) 40%, transparent);
+        }
+
+            .modal::-webkit-scrollbar-thumb:hover {
+                background: linear-gradient( 180deg, color-mix(in oklab, var(--accent-primary) 92%, #fff), var(--accent-primary) );
+            }
+
+            .modal::-webkit-scrollbar-thumb:active {
+                background: linear-gradient( 180deg, var(--accent-primary), color-mix(in oklab, var(--accent-primary) 80%, #000) );
+            }
+
+        .modal::-webkit-scrollbar-corner {
+            background: transparent;
+        }
     .modal-title {
         font-weight: 700;
         margin: .25rem 0 0.75rem;
