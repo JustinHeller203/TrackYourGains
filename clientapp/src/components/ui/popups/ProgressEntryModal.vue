@@ -59,31 +59,16 @@
             <!-- Dehnung-Inputs -->
             <div v-else-if="inputType === 'dehnung'" class="modal-grid grid-2">
                 <div>
-                    <label class="field-label" for="stretch-duration">Dauer (Min)</label>
-                    <input id="stretch-duration"
-                           ref="durationInput"
-                           type="number" min="1"
-                           v-model.number="durationProxy"
-                           class="input"
-                           placeholder="z. B. 2"
-                           :readonly="!hasExerciseSelected"
-                           @focus="!hasExerciseSelected && requireExercise('duration')" />
-                </div>
-
-                <div>
                     <label class="field-label" for="stretch-sets">Sätze insgesamt</label>
-                    <div class="input-with-extras">
-                        <input id="stretch-sets"
-                               type="number" min="1" max="7"
-                               v-model.number="setsProxy"
-                               class="input"
-                               placeholder="z. B. 3"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('sets')" />
-                    </div>
+                    <input id="stretch-sets"
+                           type="number" min="1" max="7"
+                           v-model.number="setsProxy"
+                           class="input"
+                           placeholder="z. B. 3"
+                           :readonly="!hasExerciseSelected"
+                           @focus="!hasExerciseSelected && requireExercise('sets')" />
                 </div>
 
-                <!-- Körpergewicht (immer erlaubt) + Extras-Button daneben -->
                 <div>
                     <label class="field-label" for="stretch-weight">Körpergewicht ({{ unit }})</label>
                     <div class="input-with-extras">
@@ -99,16 +84,15 @@
                                             @click="() => { if (requireExercise('extras')) emit('update:showExtras', !props.showExtras) }" />
                     </div>
                 </div>
-
             </div>
             <!-- Kraft/Calisthenics (Standard) -->
             <div v-else class="modal-grid grid-2">
                 <div>
                     <label class="field-label" for="progress-sets">Sätze insgesamt</label>
                     <input id="progress-sets" type="number" min="1" max="7"
-                    v-model.number="setsProxy" class="input" placeholder="z. B. 3"
-                    :readonly="!hasExerciseSelected"
-                    @focus="!hasExerciseSelected && requireExercise('sets')" />
+                           v-model.number="setsProxy" class="input" placeholder="z. B. 3"
+                           :readonly="!hasExerciseSelected"
+                           @focus="!hasExerciseSelected && requireExercise('sets')" />
                 </div>
 
                 <div>
@@ -132,23 +116,51 @@
             </div>
 
             <!-- Einzelsätze (erscheint automatisch wenn Sätze > 0) -->
-            <div v-if="(inputType === 'kraft' || inputType === 'calisthenics') && Number(setsProxy) > 0"
+            <div v-if="Number(setsProxy) > 0 && (inputType === 'kraft' || inputType === 'calisthenics' || inputType === 'dehnung')"
                  class="set-rows">
                 <div v-for="(row, i) in setDetailsProxy" :key="i" class="set-row">
                     <div class="set-row-label">Satz {{ i + 1 }}</div>
 
-                    <input type="number" min="0" step="0.5" class="input"
-                           :placeholder="(inputType === 'calisthenics' ? (unit === 'kg' ? 'Zusatzgewicht' : 'Added weight') : (unit === 'kg' ? 'Gewicht' : 'Weight'))"
-                           :value="row?.weight ?? ''"
-                           :readonly="!hasExerciseSelected"
-                           @focus="!hasExerciseSelected && requireExercise('set-weight')"
-                           @input="onRowChange(i, 'weight', ($event.target as HTMLInputElement).valueAsNumber)" />
+                    <!-- Kraft / Calisthenics: Gewicht + Wdh. -->
+                    <template v-if="inputType === 'kraft' || inputType === 'calisthenics'">
+                        <input type="number" min="0" step="0.5" class="input"
+                               :placeholder="(inputType === 'calisthenics' ? (unit === 'kg' ? 'Zusatzgewicht' : 'Added weight') : (unit === 'kg' ? 'Gewicht' : 'Weight'))"
+                               :value="row?.weight ?? ''"
+                               :readonly="!hasExerciseSelected"
+                               @focus="!hasExerciseSelected && requireExercise('set-weight')"
+                               @input="onRowChange(i, 'weight', ($event.target as HTMLInputElement).valueAsNumber)" />
 
-                    <input type="number" min="1" class="input" placeholder="Wdh."
-                           :value="row?.reps ?? ''"
-                           :readonly="!hasExerciseSelected"
-                           @focus="!hasExerciseSelected && requireExercise('set-reps')"
-                           @input="onRowChange(i, 'reps', ($event.target as HTMLInputElement).valueAsNumber)" />
+                        <input type="number" min="1" class="input" placeholder="Wdh."
+                               :value="row?.reps ?? ''"
+                               :readonly="!hasExerciseSelected"
+                               @focus="!hasExerciseSelected && requireExercise('set-reps')"
+                               @input="onRowChange(i, 'reps', ($event.target as HTMLInputElement).valueAsNumber)" />
+                    </template>
+
+                    <!-- Dehnung: Dauer (Sek.) + optionale Wdh. -->
+                    <template v-else>
+                        <input type="number" min="5" max="600" step="5" class="input"
+                               placeholder="Dauer (Sek.)"
+                               :value="(row as any)?.durationSec ?? ''"
+                               :readonly="!hasExerciseSelected"
+                               @focus="!hasExerciseSelected && requireExercise('stretch-duration')"
+                               @input="onRowChange(i, 'durationSec', ($event.target as HTMLInputElement).valueAsNumber)" />
+
+                        <input type="number" min="1" max="10" class="input" placeholder="Wdh. (optional)"
+                               :value="row?.reps ?? ''"
+                               :readonly="!hasExerciseSelected"
+                               @focus="!hasExerciseSelected && requireExercise('stretch-reps')"
+                               @input="onRowChange(i, 'reps', ($event.target as HTMLInputElement).valueAsNumber)" />
+                    </template>
+                </div>
+
+                <!-- Quick-Buttons nur für Dehnung -->
+                <div v-if="inputType==='dehnung'" class="set-quick-actions">
+                    <button type="button" class="btn-extras-chip" @click="applyStretchDuration(30)">30s</button>
+                    <button type="button" class="btn-extras-chip" @click="applyStretchDuration(45)">45s</button>
+                    <button type="button" class="btn-extras-chip" @click="applyStretchDuration(60)">60s</button>
+                    <button type="button" class="btn-extras-chip" @click="applyStretchDuration(90)">90s</button>
+                    <button type="button" class="btn-extras-chip" @click="applyStretchDurationFromFirst()">Alle übernehmen</button>
                 </div>
             </div>
 
@@ -281,8 +293,8 @@
                    :readonly="!hasExerciseSelected"
                    @focus="!hasExerciseSelected && requireExercise('note')" />
 
-            <div class="modal-actions" :class="{ 'has-delete': !!props.isEditing }">
-                <PopupDeleteButton v-if="props.isEditing"
+            <div class="modal-actions" :class="{ 'has-delete': localIsEditing }">
+                <PopupDeleteButton v-if="localIsEditing"
                                    class="action-delete"
                                    @click="onDelete">Löschen</PopupDeleteButton>
 
@@ -294,6 +306,7 @@
                                  ariaLabel="Speichern"
                                  @click="onSave" />
             </div>
+
 
             <ValidationPopup :show="Boolean(errors && errors.length)"
                              :errors="errors || []"
@@ -359,8 +372,8 @@
         }
 
         if (n < 6 || n > 20) {
-            emit('invalid', [`Borg-Skala muss zwischen 6 und 20 liegen (dein Wert: ${n}).`])
-            nextTick(() => borgInput.value?.focus())
+            borgErrors.value = [`Borg-Skala muss zwischen 6 und 20 liegen (dein Wert: ${n}).`]
+            showBorgError.value = true
             return
         }
 
@@ -387,8 +400,10 @@
         reps: number
         goal?: string
     }
+    const localIsEditing = ref(false)  // steuert Delete-Button/Actions lokal
+    const wasCanceled = ref(false)     // merkt: zuletzt Abbrechen gedrückt
 
-    type SetDetail = { weight: number | null; reps: number | null }
+    type SetDetail = { weight: number | null; reps: number | null; durationSec?: number | null }
 
     const props = defineProps<{
         show: boolean
@@ -445,7 +460,7 @@
         // Extras
         (e: 'update:tempo', v: string): void
         (e: 'update:restSeconds', v: number | null): void
-        (e: 'delete'): void           // ⬅️ NEU
+        (e: 'delete'): void
 
         (e: 'update:avgHr', v: number | null): void
         (e: 'update:calories', v: number | null): void
@@ -460,8 +475,13 @@
         (e: 'update:equipmentCustom', v: string): void
         (e: 'invalid', errors: string[]): void
 
+        // 🔽 NEU: Parent-Flag explizit kontrollieren können
+        (e: 'update:isEditing', v: boolean): void
     }>()
 
+    watch([() => props.isEditing, () => props.exercise, () => props.show], ([isEditing, ex, show]) => {
+        localIsEditing.value = !!(show && isEditing && !!ex?.trim() && !wasCanceled.value)
+    })
     function onDelete() {
         // Optional: confirm() einbauen, wenn du willst
         // if (!confirm('Eintrag wirklich löschen?')) return
@@ -499,12 +519,11 @@
     const exerciseSelect = ref<HTMLSelectElement | null>(null)
     const weightInput = ref<HTMLInputElement | null>(null)
     const durationInput = ref<HTMLInputElement | null>(null) // ▼ neu
-
     function focusFirst() {
         nextTick(() => {
             exerciseSelect.value?.focus()
             nextTick(() => {
-                (props.inputType === 'ausdauer' || props.inputType === 'dehnung'
+                (props.inputType === 'ausdauer'
                     ? durationInput.value
                     : weightInput.value
                 )?.focus()
@@ -512,8 +531,15 @@
         })
     }
     function onCancel() {
+        wasCanceled.value = true
+        localIsEditing.value = false
+        emit('update:isEditing', false)
+
+        // wichtig: alte Übung killen -> kein „Edit klebt“
+        emit('update:exercise', '')
+
         clearCache()
-        emit('update:showExtras', false) // Extras zurücksetzen
+        emit('update:showExtras', false)
         emit('update:show', false)
         emit('cancel')
     }
@@ -579,15 +605,45 @@
         if (!hasExerciseSelected.value && (props.inputType !== 'kraft' && props.inputType !== 'calisthenics')) {
             if (!requireExercise('save')) return
         }
+
+        // Ausdauer: Borg prüfen (wie gehabt)
         if (props.inputType === 'ausdauer') {
             const n = parseBorg(borgLocal.value)
             if (n != null && (n < 6 || n > 20)) {
-                emit('invalid', [`Borg-Skala muss zwischen 6 und 20 liegen (dein Wert: ${n}).`])
-                nextTick(() => borgInput.value?.focus())
+                borgErrors.value = [`Borg-Skala muss zwischen 6 und 20 liegen (dein Wert: ${n}).`]
+                showBorgError.value = true
                 return
             }
             emit('update:borg', n ?? null)
         }
+
+        // Dehnung: NUR per-Satz Dauer validieren (>0), Reps sind optional
+        if (props.inputType === 'dehnung') {
+            // 1) Validieren: pro Satz Dauer > 0
+            const rows = Array.isArray(setDetailsProxy.value) ? setDetailsProxy.value : []
+            const hasInvalid = rows.some(r => {
+                const d = (r as any)?.durationSec
+                return !(typeof d === 'number' && isFinite(d) && d > 0)
+            })
+            if (hasInvalid) {
+                emit('invalid', ['Bitte pro Satz eine Dauer in Sekunden > 0 angeben.'])
+                return
+            }
+
+            // 2) Normalisieren: Gewicht auf 0 (falls Parent generisch auf number prüft),
+            //    Wdh. wirklich optional -> null lassen, Werte runden/clampen
+            const clean = rows.map(r => {
+                const d = Math.max(5, Math.min(600, Math.round((r as any)?.durationSec ?? 0)))
+                const reps = (r?.reps != null && r.reps >= 1) ? Math.round(r.reps) : null
+                return { weight: 0, durationSec: d, reps }
+            })
+            emit('update:setDetails', clean)
+
+            // 3) Globale Felder für Dehnung auf „nicht relevant“
+            emit('update:reps', null)
+            emit('update:duration', null)
+        }
+
         emit('save')
         nextTick(clearCache)
     }
@@ -595,9 +651,21 @@
         !!(props.exercise && props.exercise.trim())
     )
 
-    function requireExercise(_reason?: string): boolean {
+    function requireExercise(reason?: string): boolean {
         if (hasExerciseSelected.value) return true
-        emit('invalid', ['Bitte wähle zuerst eine Übung, bevor du Werte eingibst.'])
+
+        // Focus-/Tippen-Cases ohne Popup halten
+        const silentReasons = new Set([
+            'duration', 'sets', 'set-weight', 'set-reps', 'stretch-duration', 'stretch-reps',
+            'tempo', 'rest', 'distance', 'avgHr', 'calories', 'pace', 'hrZone', 'borg',
+            'painFree', 'moveQuality', 'equipmentCustom', 'note', 'extras'
+        ])
+        const silent = reason ? silentReasons.has(reason) : false
+
+        if (!silent) {
+            emit('invalid', ['Bitte wähle zuerst eine Übung, bevor du Werte eingibst.'])
+        }
+        nextTick(() => exerciseSelect.value?.focus())
         return false
     }
 
@@ -863,12 +931,24 @@
 
     watch(() => props.show, v => {
         if (v) {
+            if (wasCanceled.value) {
+                // Nach "Abbrechen" immer frischer Create-State
+                localIsEditing.value = false
+                emit('update:isEditing', false)
+                wasCanceled.value = false
+            } else {
+                // ECHTES Edit nur, wenn Flag true UND eine Übung vorliegt
+                localIsEditing.value = !!(props.isEditing && !!props.exercise?.trim())
+            }
+
             focusFirst()
-            nextTick(() => openSyncBorg())   // ⬅️ sync nach Render
+            nextTick(() => openSyncBorg())
         } else {
             emit('update:showExtras', false)
+            localIsEditing.value = false
         }
     })
+
 
     onMounted(() => {
         if (props.show) {
@@ -880,11 +960,9 @@
     watch(setsProxy, (n) => {
         let raw = Number(n) || 0
 
-        // NEU: max 7 Sätze + Validierungspopup
         if (raw > 7) {
             emit('invalid', ['Maximal 7 Sätze erlaubt.'])
             raw = 7
-            // zurücksetzen auf 7 (verhindert >7 via Tastatur/Paste)
             emit('update:sets', 7)
         }
 
@@ -893,20 +971,57 @@
 
         if (count > next.length) {
             for (let i = next.length; i < count; i++) {
-                next.push({ weight: null, reps: repsProxy.value ?? null })
+                if (props.inputType === 'dehnung') {
+                    // Gewicht = 0, damit generische Parent-Checks nicht wegen null meckern
+                    next.push({ weight: 0, reps: null, durationSec: 30 })
+                } else {
+                    next.push({ weight: null, reps: repsProxy.value ?? null })
+                }
             }
         } else if (count < next.length) {
             next.splice(count)
         }
         emit('update:setDetails', next)
     })
-
-
-    function onRowChange(i: number, field: 'weight' | 'reps', val: number | null) {
+    function onRowChange(i: number, field: 'weight' | 'reps' | 'durationSec', val: number | null) {
         if (!hasExerciseSelected.value) { requireExercise('set-row'); return }
+
+        // NaN -> null, optionales Verhalten für Reps bei Dehnung: 0 => null
+        let n: number | null
+        if (typeof val === 'number' && Number.isFinite(val)) {
+            n = val
+        } else {
+            n = null
+        }
+
+        // Dehnung: Wenn user "0" tippt bei Wdh., behandeln wir es als "leer"
+        if (field === 'reps' && (n == null || n < 1)) {
+            n = null
+        }
+
+        // Dehnung Dauer clampen (5..600) und auf Integer runden
+        if (field === 'durationSec' && n != null) {
+            n = Math.max(5, Math.min(600, Math.round(n)))
+        }
+
         const next = setDetailsProxy.value.map((r, idx) =>
-            idx === i ? { ...r, [field]: val } : r
+            idx === i ? { ...r, [field]: n } : r
         )
+        emit('update:setDetails', next)
+    }
+
+    function applyStretchDuration(sec: number) {
+        if (!hasExerciseSelected.value) { requireExercise('stretch-quick'); return }
+        const s = Math.max(5, Math.min(600, Number(sec) || 0))
+        const next = setDetailsProxy.value.map(r => ({ ...r, durationSec: s }))
+        emit('update:setDetails', next)
+    }
+
+    function applyStretchDurationFromFirst() {
+        if (!hasExerciseSelected.value) { requireExercise('stretch-quick'); return }
+        const first = setDetailsProxy.value[0]?.durationSec
+        const s = Math.max(5, Math.min(600, Number(first ?? 30)))
+        const next = setDetailsProxy.value.map((r, i) => i === 0 ? r : ({ ...r, durationSec: s }))
         emit('update:setDetails', next)
     }
 </script>
@@ -1485,7 +1600,12 @@
             }
     }
 
-
+    .set-quick-actions {
+        margin-top: .25rem;
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+    }
     /* Mobile bleibt 1-spaltig */
     @media (max-width: 520px) {
         .grid-cardio {

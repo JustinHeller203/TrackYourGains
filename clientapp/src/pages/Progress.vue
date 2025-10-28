@@ -501,7 +501,7 @@
 
         <ProgressEntryModal ref="progressEntryModalRef"
                             v-model:show="showProgressPopup"
-                            :isEditing="Boolean(editingEntry)" 
+                            :isEditing="Boolean(editingEntry)"
                             @delete="() => {
     if (currentPlanId && editingEntry) {
       deleteProgressEntry(currentPlanId, editingEntry.date)
@@ -585,46 +585,62 @@
                                 </button>
                             </div>
                         </div>
-
-                        <!-- Details -->
-                        <div v-if="expandedDays.has(c.day)" class="day-details">
-                            <div v-for="g in groupsForDay(c.day)" :key="g.exercise" class="exercise-block">
-                                <div class="exercise-header">{{ g.exercise }}</div>
-
-                                <div class="set-table" :style="{ '--grid-cols': gridCols(maxDropsets(g.entries)) }">
-                                    <!-- Kopf -->
-                                    <div class="set-row set-row--head">
-                                        <div class="cell cell--set">Satz</div>
-                                        <div class="cell cell--weight">Gewicht</div>
-                                        <div class="cell cell--reps">Wdh.</div>
-
-                                        <template v-if="maxDropsets(g.entries) > 0">
-                                            <template v-for="j in maxDropsets(g.entries)" :key="'h-w'+j">
-                                                <div class="cell cell--ds">DS{{ j }} Gewicht</div>
-                                                <div class="cell cell--ds">DS{{ j }} Wdh.</div>
-                                            </template>
-                                        </template>
-                                    </div>
-
-                                    <!-- Zeilen -->
-                                    <div v-for="(e, i) in g.entries" :key="e.date + '|' + i" class="set-row">
-                                        <div class="cell cell--set">Satz {{ i + 1 }}</div>
-                                        <div class="cell cell--weight">{{ formatWeight(e.weight, 0) }}</div>
-                                        <div class="cell cell--reps">{{ e.reps }}</div>
-
-                                        <template v-if="maxDropsets(g.entries) > 0">
-                                            <template v-for="(ds, j) in padDropsets(e.dropsets, maxDropsets(g.entries))"
-                                                      :key="'ds-'+i+'-'+j">
-                                                <div class="cell cell--ds">{{ ds ? formatWeight(ds.weight, 0) : '–' }}</div>
-                                                <div class="cell cell--ds">{{ ds ? ds.reps : '–' }}</div>
-                                            </template>
-                                        </template>
-                                    </div>
-                                </div>
-
-                                <div v-if="g.note" class="note">— {{ g.note }}</div>
+                        <div class="day-details">
+                            <!-- Cardio (zeit-/distanzbasiert) -->
+                            <div v-if="cardioForDay(c.day).length" class="exercise-block">
+                                <div class="exercise-header">Cardio</div>
+                                <ul class="journal-entries">
+                                    <li v-for="(e, i) in cardioForDay(c.day)" :key="'cardio-'+e.date+'-'+i" class="journal-entry">
+                                        <div class="entry-head">
+                                            <span class="entry-exercise">{{ e.exercise }}</span>
+                                            <span class="type-chip" data-type="ausdauer">Cardio</span>
+                                            <span class="entry-summary">
+                                                <template v-if="e.durationMin != null">
+                                                    {{ e.durationMin }} Min
+                                                </template>
+                                                <template v-if="e.sets && e.reps">
+                                                    <span v-if="e.durationMin != null"> · </span>
+                                                    {{ e.sets }}×{{ e.reps }}
+                                                </template>
+                                            </span>
+                                        </div>
+                                        <div class="chips">
+                                            <span v-if="e.avgHr != null" class="chip">Ø Puls {{ e.avgHr }}</span>
+                                            <span v-if="e.calories != null" class="chip">{{ e.calories }} kcal</span>
+                                            <span v-if="e.pace" class="chip">{{ e.pace }}/km</span>
+                                            <span v-if="e.hrZone != null" class="chip">Zone {{ e.hrZone }}</span>
+                                            <span v-if="e.borg != null" class="chip">Borg {{ e.borg }}</span>
+                                        </div>
+                                        <div v-if="e.note" class="note">— {{ e.note }}</div>
+                                    </li>
+                                </ul>
                             </div>
-                        </div>
+
+                            <!-- Dehnung (zeit-/satzbasiert) -->
+                            <div v-if="stretchForDay(c.day).length" class="exercise-block">
+                                <div class="exercise-header">Dehnung</div>
+                                <ul class="journal-entries">
+                                    <li v-for="(e, i) in stretchForDay(c.day)" :key="'flex-'+e.date+'-'+i" class="journal-entry">
+                                        <div class="entry-head">
+                                            <span class="entry-exercise">{{ e.exercise }}</span>
+                                            <span class="type-chip" data-type="dehnung">Dehnung</span>
+                                            <span class="entry-summary">
+                                                {{ e.durationMin }} Min
+                                                <span v-if="e.sets && e.reps"> · {{ e.sets }}×{{ e.reps }}</span>
+                                            </span>
+                                        </div>
+                                        <div class="chips">
+                                            <span v-if="e.side" class="chip">{{ e.side }}</span>
+                                            <span v-if="e.painFree != null" class="chip">Schmerzfrei {{ e.painFree }}/10</span>
+                                            <span v-if="e.movementQuality != null" class="chip">Qualität {{ e.movementQuality }}/10</span>
+                                            <span v-if="e.equipment" class="chip">{{ e.equipment }}</span>
+                                            <span v-if="e.equipmentCustom" class="chip">{{ e.equipmentCustom }}</span>
+                                        </div>
+                                        <div v-if="e.note" class="note">— {{ e.note }}</div>
+                                    </li>
+                                </ul>
+                            </div>
+                            </div>
                     </article>
 
                     <div v-if="dayCards.length > visibleDays" class="load-more">
@@ -923,13 +939,14 @@
         // absteigend nach Datum
         return new Map([...map.entries()].sort((a, b) => b[0].localeCompare(a[0])))
     })
-    function gridCols(n: number) {
-        // 3 Basis-Spalten (Satz, Gewicht, Wdh.) + je Dropsatz 2 Spalten
+    function gridCols(n: number, extras?: { tempo: boolean; rest: boolean }) {
         const base = ['0.7fr', '1fr', '0.9fr']
         const ds = Array.from({ length: n }, () => ['1fr', '0.9fr']).flat()
-        return [...base, ...ds].join(' ')
+        const extraCols: string[] = []
+        if (extras?.tempo) extraCols.push('minmax(100px, 0.9fr)')
+        if (extras?.rest) extraCols.push('minmax(90px, 0.7fr)')
+        return [...base, ...ds, ...extraCols].join(' ')
     }
-
     // ---- Kategorie-Zusammenfassung für die Cards ----
     const summarizeCategories = (items: Workout[]): string => {
         const types = new Set<WorkoutType>(items.map(w => (w.type ?? 'kraft') as WorkoutType))
@@ -1005,6 +1022,11 @@
     }
     // Nur den Editor schließen; ggf. Fortschritt-Modal wieder öffnen
     const cancelProgressEdit = () => {
+        // immer Edit-Mode und Fehler zurücksetzen
+        editingEntry.value = null
+        validationErrorMessages.value = []
+        showProgressExtras.value = false
+
         const planIdForReopen = reopenPlanProgressAfterSave.value ? currentPlanId.value : null
         closeProgressPopup() // räumt den Editor-State auf
 
@@ -1063,6 +1085,16 @@
     const groupsForDay = (day: string) => {
         const items = entriesByDay.value.get(day) ?? []
         return aggregateDay(items)
+    }
+
+    const cardioForDay = (day: string) => {
+        const items = entriesByDay.value.get(day) ?? []
+        return items.filter(w => (w.type ?? 'kraft') === 'ausdauer')
+    }
+
+    const stretchForDay = (day: string) => {
+        const items = entriesByDay.value.get(day) ?? []
+        return items.filter(w => (w.type ?? 'kraft') === 'dehnung')
     }
     /** baut das gesamte Journal (nach Tag absteigend) inkl. Suche/Filter */
 
@@ -1123,7 +1155,6 @@
         equipmentCustom?: string | null
         side?: '' | 'links' | 'rechts' | 'beidseitig' | null
     }
-
 
     // … bei den Refs zu den Fortschritt-Inputs:
     const newProgressDuration = ref<number | null>(null)   // ▼ neu
@@ -1244,6 +1275,13 @@
         showToast({ message: 'Eintrag gelöscht!', type: 'success', emoji: '🗑️' });
     };
 
+
+    function strengthExtrasFlags(entries: Workout[]): { tempo: boolean; rest: boolean } {
+        const tempo = entries.some(e => (e.tempo || '').trim().length > 0)
+        const rest = entries.some(e => e.restSeconds != null && Number.isFinite(e.restSeconds as number))
+        return { tempo, rest }
+    }
+
     const calculateProgress = (planId: string) => {
         const today = new Date().toISOString().split('T')[0];
         const progressEntries = getProgressForPlan(planId).filter(entry => entry.date.startsWith(today));
@@ -1277,8 +1315,11 @@
             return `${last.exercise} – ${last.durationMin} Min${dist}`
         }
         if (last.type === 'dehnung') {
-            const sr = last.sets ? ` · ${last.sets}×${last.reps}` : ''
-            return `${last.exercise} – ${last.durationMin} Min${sr}`
+            const bits: string[] = []
+            if (last.durationMin != null && Number.isFinite(last.durationMin)) bits.push(`${last.durationMin} Min`)
+            if (last.sets && last.reps) bits.push(`${last.sets}×${last.reps}`)
+            const tail = bits.length ? ` – ${bits.join(' · ')}` : ''
+            return `${last.exercise}${tail}`
         }
         return `${last.exercise} – ${formatWeight(last.weight, 0)} × ${last.reps}`
     })
@@ -1458,12 +1499,21 @@
 
         // Dehnung
         if (detectedInputType.value === 'dehnung') {
-            if (newProgressDuration.value == null || isNaN(newProgressDuration.value) || newProgressDuration.value <= 0)
-                errors.push('Dauer (Min) muss größer als 0 sein')
-            if (newProgressSets.value == null || isNaN(newProgressSets.value) || newProgressSets.value <= 0)
+            // Pflicht: nur Sätze > 0
+            if (newProgressSets.value == null || isNaN(newProgressSets.value) || Number(newProgressSets.value) <= 0)
                 errors.push('Sätze müssen größer als 0 sein')
-            if (newProgressReps.value == null || isNaN(newProgressReps.value) || newProgressReps.value <= 0)
-                errors.push('Wiederholungen müssen größer als 0 sein')
+
+            // Dauer optional – wenn angegeben, muss sie > 0 sein
+            if (newProgressDuration.value != null && String(newProgressDuration.value).trim() !== '') {
+                const d = Number(newProgressDuration.value)
+                if (!Number.isFinite(d) || d <= 0) errors.push('Dauer (Min) muss > 0 sein, wenn angegeben')
+            }
+
+            // Wdh. optional – wenn angegeben, muss sie > 0 sein
+            if (newProgressReps.value != null && String(newProgressReps.value).trim() !== '') {
+                const r = Number(newProgressReps.value)
+                if (!Number.isFinite(r) || r <= 0) errors.push('Wiederholungen müssen > 0 sein, wenn angegeben')
+            }
             return errors
         }
 
@@ -1998,8 +2048,13 @@
     };
 
     const openProgressPopup = (planId: string) => {
+        // sicherstellen: NEUER Eintrag, keine alten Fehler/Extras mitschleppen
+        editingEntry.value = null
+        validationErrorMessages.value = []
+        showProgressExtras.value = false
+
         currentPlanId.value = planId
-        currentExercise.value = ''          // <— wichtig: Placeholder aktiv
+        currentExercise.value = ''          // Placeholder
         newProgressSets.value = null
         newProgressWeight.value = latestRecordedWeightDisplay.value
         newProgressReps.value = null
@@ -2104,18 +2159,22 @@
                 borg: borgN ?? undefined,
             }
         } else if (detectedInputType.value === 'dehnung') {
+            const repsOpt = (newProgressReps.value != null && String(newProgressReps.value).trim() !== '')
+                ? Number(newProgressReps.value) : undefined
+            const durOpt = (newProgressDuration.value != null && String(newProgressDuration.value).trim() !== '')
+                ? Number(newProgressDuration.value) : undefined
+
             payload = {
                 planId: currentPlanId.value ?? undefined,
                 exercise: currentExercise.value,
                 sets: Number(newProgressSets.value) || 0,
                 weight: 0,
-                reps: Number(newProgressReps.value) || 0,
+                reps: repsOpt,
                 note: newProgressNote.value?.trim() || undefined,
                 date: editingEntry.value?.date ?? new Date().toISOString(),
                 type: 'dehnung',
-                durationMin: Number(newProgressDuration.value),
+                durationMin: durOpt,
 
-                // Extras (Dehnung) – numerisch gesäubert
                 painFree: toNum(newProgressPainFree.value) ?? undefined,
                 movementQuality: toNum(newProgressMovementQuality.value) ?? undefined,
                 equipment: newProgressEquipment.value || undefined,
@@ -2234,17 +2293,23 @@
     }
 
     const closeProgressPopup = () => {
-        showProgressPopup.value = false;
-        currentPlanId.value = null;
-        currentExercise.value = '';
-        newProgressSets.value = null;
-        newProgressWeight.value = null;
-        newProgressReps.value = null;
-        newProgressNote.value = '';
-        newProgressSetDetails.value = []    // NEU
+        showProgressPopup.value = false
 
-    };
+        // hart resetten, damit beim nächsten Öffnen nichts „klebt“
+        editingEntry.value = null
+        validationErrorMessages.value = []
+        showProgressExtras.value = false
 
+        currentPlanId.value = null
+        currentExercise.value = ''
+        newProgressSets.value = null
+        newProgressWeight.value = null
+        newProgressReps.value = null
+        newProgressNote.value = ''
+        newProgressSetDetails.value = []
+        newProgressDuration.value = null
+        newProgressDistance.value = null
+    }
 
     // clean version
     const openDownloadPopup = (calculator: string, planId?: string) => {
@@ -3657,11 +3722,18 @@ Notiz: ${e.note ?? '-'}\n`
         }
 
 
-    .card-info {
-        font-size: 1.5rem;
+    .dashboard-grid .card-info {
+        font-size: 1.25rem;
         font-weight: 700;
         color: var(--accent-primary);
     }
+
+        /* Kompakt-Variante greift jetzt zuverlässig im Stats-Tab auf Mobile */
+        .dashboard-grid .card-info.is-compact {
+            font-size: 1rem;
+            line-height: 1.1;
+            font-weight: 700;
+        }
 
     .progress-charts {
         display: grid;
@@ -3830,6 +3902,30 @@ Notiz: ${e.note ?? '-'}\n`
     }
 
     /* ===================== BERECHNEN BUTTON ===================== */
+    .set-table-wrapper {
+        overflow-x: auto;
+        max-width: 100%;
+        padding-bottom: .25rem; /* Platz für die Scrollbar */
+        scrollbar-gutter: stable both-edges;
+        scrollbar-width: thin;
+    }
+
+        .set-table-wrapper::-webkit-scrollbar {
+            height: 10px; /* horizontale Scrollbar */
+        }
+
+        .set-table-wrapper::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 8px;
+        }
+
+    .cell--tempo {
+        min-width: 100px;
+    }
+
+    .cell--rest {
+        min-width: 90px;
+    }
 
     .downloaddistance {
         margin-bottom: 0.5rem;
