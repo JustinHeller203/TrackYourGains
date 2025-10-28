@@ -1042,21 +1042,31 @@
         border: 1px solid var(--border-color);
         border-radius: 12px;
         box-shadow: var(--shadow);
-        /* Innenraum + Platz fürs Sticky-Action-Bar-Ende */
         padding: 1rem 1rem 0.75rem;
         scroll-padding-bottom: 6rem;
-        /* Höhenlimit + Scrollen */
-        max-height: min(88vh, 100dvh - 24px);
+        /* Scroll greift früher */
+        max-height: 78vh; /* Fallback */
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
-        /* Custom-Scrollbar (Firefox) */
         scrollbar-width: thin;
         scrollbar-color: color-mix(in oklab, var(--accent-primary) 70%, transparent) color-mix(in oklab, var(--bg-secondary) 92%, transparent);
-        /* Konsistenter Layout-Shift bei sichtbarer Leiste */
         scrollbar-gutter: stable both-edges;
-        /* Größe für WebKit */
         --sb-size: 12px;
+    }
+
+    /* Bevorzuge dynamische/small viewport heights -> noch früher scollen */
+    @supports (height: 100dvh) {
+        .modal {
+            max-height: min(76dvh, 86svh);
+        }
+    }
+
+    /* Kleine Breiten: noch strenger limitieren */
+    @media (max-width: 560px) {
+        .modal {
+            max-height: 72svh; /* Scroll setzt schneller ein */
+        }
     }
         .modal::-webkit-scrollbar {
             width: var(--sb-size);
