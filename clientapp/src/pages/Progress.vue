@@ -2171,7 +2171,7 @@
                 exercise: currentExercise.value,
                 sets: Number(newProgressSets.value) || 0,
                 weight: 0,
-                reps: repsOpt,   // ✅ jetzt gültig
+                reps: repsOpt,   
                 note: newProgressNote.value?.trim() || undefined,
                 date: editingEntry.value?.date ?? new Date().toISOString(),
                 type: 'dehnung',
@@ -2717,20 +2717,15 @@ Notiz: ${e.note ?? '-'}\n`
         if (planId && exercise && typeof weightKg === 'number' && typeof reps === 'number') {
             const progressEntries = getProgressForPlan(planId);
             const lastEntry = progressEntries
-                .filter(e => e.exercise === exercise)
+                .filter(e => e.exercise === exercise && (e.type === 'kraft' || e.type === 'calisthenics'))
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
             if (lastEntry) {
                 const improved =
                     weightKg > lastEntry.weight ||
-                    (weightKg === lastEntry.weight && reps > lastEntry.reps);
-
+                    (weightKg === lastEntry.weight && (reps ?? -Infinity) > (lastEntry.reps ?? -Infinity));
                 if (improved) {
-                    showToast({
-                        message: `Meilenstein erreicht! ${exercise}: ${formatWeight(weightKg, 0)} × ${reps} Wdh. 🎉`,
-                        type: 'success',
-                        emoji: '🎉',
-                    });
+                    showToast({ message: `Meilenstein erreicht! ${exercise}: ${formatWeight(weightKg, 0)} × ${reps} Wdh. 🎉`, type: 'success', emoji: '🎉' });
                     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                 }
             }
