@@ -1197,7 +1197,8 @@
 
     let mq: MediaQueryList | null = null
     const onMedia = (e: MediaQueryListEvent | MediaQueryList) => {
-        // @ts-expect-error: unify types
+        // @ts-ignore - legacy: unify types
+
         isMobile.value = !!e.matches
     }
 
