@@ -263,12 +263,28 @@
             <Draggable v-if="favoritePlanItems.length"
                        v-model="favoritePlanItems"
                        item-key="id"
-                       handle=".plan-drag-handle"
-                       :ghost-class="'drag-ghost'"
-                       :animation="150"
+                       :handle="isMobile ? undefined : '.plan-drag-handle'"
+                       ghost-class="drag-ghost"
+                       chosen-class="drag-chosen"
+                       drag-class="dragging"
+                       :force-fallback="true"
+                       :animation="0"
+                       direction="vertical"
+                       easing="cubic-bezier(0.16,1,0.3,1)"
                        :disabled="planSearch.trim().length > 0"
+                       :delay="dragDelay"
+                       :delay-on-touch-only="true"
+                       :touch-start-threshold="8"
+                       :fallback-tolerance="3"
+                       :fallback-on-body="true"
+                       :scroll="true"
+                       :scroll-sensitivity="40"
+                       :scroll-speed="12"
+                       :swap-threshold="0.3"
+                       :filter="isMobile ? dragFilter : undefined"
                        tag="div"
                        class="plan-drag-stack">
+
                 <template #item="{ element: plan }">
                     <div v-if="planMatchesSearch(plan)"
                          class="list-item plan-item"
@@ -278,9 +294,11 @@
                             <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
 
                             <span class="plan-title"
+                                  :title="plan.name"
                                   @click="loadPlan(plan.id)"
                                   @dblclick="openEditPopup('planName', plan.id)">
-                                {{ plan.name }} <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
+                                <span class="plan-name-scroll">{{ plan.name }}</span>
+                                <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
                             </span>
 
                             <div class="plan-right">
@@ -327,12 +345,28 @@
             <!-- Nicht-Favoriten sortieren -->
             <Draggable v-model="otherPlanItems"
                        item-key="id"
-                       handle=".plan-drag-handle"
-                       :ghost-class="'drag-ghost'"
-                       :animation="150"
+                       :handle="isMobile ? undefined : '.plan-drag-handle'"
+                       ghost-class="drag-ghost"
+                       chosen-class="drag-chosen"
+                       drag-class="dragging"
+                       :force-fallback="true"
+                       :animation="0"
+                       direction="vertical"
+                       easing="cubic-bezier(0.16,1,0.3,1)"
                        :disabled="planSearch.trim().length > 0"
+                       :delay="dragDelay"
+                       :delay-on-touch-only="true"
+                       :touch-start-threshold="8"
+                       :fallback-tolerance="3"
+                       :fallback-on-body="true"
+                       :scroll="true"
+                       :scroll-sensitivity="40"
+                       :scroll-speed="12"
+                       :swap-threshold="0.3"
+                       :filter="isMobile ? dragFilter : undefined"
                        tag="div"
                        class="plan-drag-stack">
+
                 <template #item="{ element: plan }">
                     <div v-if="planMatchesSearch(plan)"
                          class="list-item plan-item"
@@ -342,9 +376,11 @@
                             <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
 
                             <span class="plan-title"
+                                  :title="plan.name"
                                   @click="loadPlan(plan.id)"
                                   @dblclick="openEditPopup('planName', plan.id)">
-                                {{ plan.name }} <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
+                                <span class="plan-name-scroll">{{ plan.name }}</span>
+                                <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
                             </span>
 
                             <div class="plan-right">
@@ -533,12 +569,28 @@
 
             <Draggable :modelValue="props.timers"
                        item-key="id"
-                       handle=".timer-drag-handle"
-                       :ghost-class="'drag-ghost'"
-                       :animation="150"
+                       :handle="isMobile ? undefined : '.timer-drag-handle'"
+                       ghost-class="drag-ghost"
+                       chosen-class="drag-chosen"
+                       drag-class="dragging"
+                       :force-fallback="true"
+                       :animation="0"
+                       direction="vertical"
+                       easing="cubic-bezier(0.16,1,0.3,1)"
+                       :delay="dragDelay"
+                       :delay-on-touch-only="true"
+                       :touch-start-threshold="8"
+                       :fallback-tolerance="3"
+                       :fallback-on-body="true"
+                       :scroll="true"
+                       :scroll-sensitivity="40"
+                       :scroll-speed="12"
+                       :swap-threshold="0.3"
+                       :filter="isMobile ? dragFilter : undefined"
                        tag="div"
                        class="drag-stack"
                        @update:modelValue="onReorderTimers">
+
                 <template #item="{ element: timer }">
                     <div class="timer-card" :key="timer.id" :data-timer-id="timer.id" data-type="timer">
                         <div class="timer-header">
@@ -605,12 +657,28 @@
 
             <Draggable :modelValue="props.stopwatches"
                        item-key="id"
-                       handle=".stopwatch-drag-handle"
-                       :ghost-class="'drag-ghost'"
-                       :animation="150"
+                       :handle="isMobile ? undefined : '.stopwatch-drag-handle'"
+                       ghost-class="drag-ghost"
+                       chosen-class="drag-chosen"
+                       drag-class="dragging"
+                       :force-fallback="true"
+                       :animation="0"
+                       direction="vertical"
+                       easing="cubic-bezier(0.16,1,0.3,1)"
+                       :delay="dragDelay"
+                       :delay-on-touch-only="true"
+                       :touch-start-threshold="8"
+                       :fallback-tolerance="3"
+                       :fallback-on-body="true"
+                       :scroll="true"
+                       :scroll-sensitivity="40"
+                       :scroll-speed="12"
+                       :swap-threshold="0.3"
+                       :filter="isMobile ? dragFilter : undefined"
                        tag="div"
                        class="drag-stack"
                        @update:modelValue="onReorderStopwatches">
+
                 <template #item="{ element: stopwatch }">
                     <div class="timer-card" :key="stopwatch.id" :data-stopwatch-id="stopwatch.id" data-type="stopwatch">
                         <div class="timer-header">
@@ -1067,6 +1135,14 @@
     };
 
     // Funktionen (weitgehend unverändert, nur relevante Änderungen)
+    // zeigt Anfang + Ende, mittig „…“ (breitenunabhängig, super simpel)
+    function middleEllipsis(str: string, max = 36) {
+        const s = (str || '').trim()
+        if (s.length <= max) return s
+        const head = Math.ceil((max - 1) / 2)
+        const tail = Math.floor((max - 1) / 2)
+        return s.slice(0, head) + '…' + s.slice(-tail)
+    }
 
     const sendNotification = (title: string, body: string) => {
         if ('Notification' in window && Notification.permission === 'granted') {
@@ -1113,6 +1189,31 @@
             });
         }
     };
+    const isMobile = ref(false)
+    const dragDelay = computed(() => (isMobile.value ? 180 : 0))
+    const dragFilter =
+        '.inline-actions, .inline-actions *, .kebab-wrap, .kebab-wrap *, .timer-actions, .timer-actions *, button, select, input, textarea, a'
+
+
+    let mq: MediaQueryList | null = null
+    const onMedia = (e: MediaQueryListEvent | MediaQueryList) => {
+        // @ts-expect-error: unify types
+        isMobile.value = !!e.matches
+    }
+
+    onMounted(() => {
+        if (typeof window !== 'undefined') {
+            mq = window.matchMedia('(max-width: 560px)')
+            onMedia(mq)
+            try { mq.addEventListener('change', onMedia as any) } catch { mq.addListener(onMedia as any) }
+        }
+    })
+
+    onUnmounted(() => {
+        if (mq) {
+            try { mq.removeEventListener('change', onMedia as any) } catch { mq.removeListener(onMedia as any) }
+        }
+    })
 
     const favoritePlanItems = computed<TrainingPlan[]>({
         get() {
@@ -3481,6 +3582,33 @@
         color: var(--text-secondary);
         border-radius: 10px;
     }
+    /* Stelle sicher: mittlere Spalte darf schrumpfen */
+    .plan-item > .plan-row1 {
+        display: grid !important;
+        grid-template-columns: auto minmax(0,1fr) auto; /* <- minmax(0,1fr) ist key */
+        align-items: center;
+        gap: .5rem;
+    }
+
+    /* Titel darf nie wachsen, sondern ellipsen */
+    .plan-title {
+        display: block; /* stabil */
+        min-width: 0; /* !!! ohne das bricht ellipsis oft */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        /* dezenter Fade statt hartem Schnitt (modern, unkritisch) */
+        -webkit-mask-image: linear-gradient(to right, #000 80%, transparent);
+        mask-image: linear-gradient(to right, #000 80%, transparent);
+    }
+
+    /* Buttons rechts dürfen nie umbrechen */
+    .plan-right {
+        display: inline-flex;
+        gap: .5rem;
+        align-items: center;
+        white-space: nowrap; /* kein Umbruch in den Actions */
+    }
 
     .form-card.builder-grid {
         display: grid;
@@ -3732,6 +3860,38 @@
     :root {
         --clip-margin: 8px;
     }
+    /* === Planname: nur der Name horizontal scrollbar, Rest bleibt fix === */
+    .plan-title {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        min-width: 0;
+        max-width: 100%;
+        /* alte Effekte sicher neutralisieren */
+        -webkit-mask-image: none;
+        mask-image: none;
+        text-overflow: clip;
+    }
+
+        .plan-title .plan-name-scroll {
+            display: block;
+            flex: 1 1 auto;
+            min-width: 0;
+            white-space: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox: keine Scrollbar */
+        }
+
+            .plan-title .plan-name-scroll::-webkit-scrollbar {
+                display: none; /* WebKit: keine Scrollbar */
+            }
+
+        .plan-title .plan-count {
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
 
     .custom-exercises-table,
     .exercise-table.full-width {
@@ -3893,6 +4053,13 @@
 
     .form-card button[type="submit"] {
         width: 100%;
+    }
+    @media (max-width: 560px) {
+        .plan-drag-handle,
+        .timer-drag-handle,
+        .stopwatch-drag-handle {
+            display: none;
+        }
     }
 
     .extras-button-group {
@@ -4497,7 +4664,60 @@
         align-items: center;
         padding: 4px 0;
     }
+    @media (max-width:560px) {
+        /* Plan-Card Layout auf Reihe statt Grid zwingen */
+        .plan-item {
+            display: flex !important;
+        }
 
+        .plan-row1 {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: .5rem;
+            width: 100%;
+        }
+
+        /* Titel: ellipsize + Platz geben */
+        .plan-title {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Actions rechts: kompakt inline */
+        .plan-right {
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            flex-wrap: nowrap;
+        }
+
+        /* Icons sichtbar halten, Kebab auf schmal weg */
+        .inline-actions {
+            display: inline-flex !important;
+            gap: .25rem;
+        }
+
+        .kebab-wrap {
+            display: none !important;
+        }
+
+        /* Open-Button bleibt rechts in der Reihe */
+        .desktop-open {
+            display: inline-flex !important;
+        }
+
+        .mobile-open, .plan-row2 {
+            display: none !important;
+        }
+
+        /* Menü-Overlay sicherheitshalber oberhalb halten */
+        .plan-menu {
+            z-index: 1000;
+        }
+    }
     .timer-actions {
         display: flex;
         gap: 0.5rem;
@@ -5838,6 +6058,13 @@
             font-size: .9rem;
             line-height: 1.28;
         }
+
+        .plan-drag-stack > .plan-item,
+        .drag-stack > .timer-card {
+            touch-action: pan-y; /* Scroll weiter möglich, Drag wird sauber erkannt */
+            -webkit-user-select: none;
+            user-select: none;
+        }
     }
     /* Griff für *alle* THs (nicht nur .resizable), inkl. ganz rechts */
     .exercise-table.full-width thead th > .resizer,
@@ -5852,4 +6079,57 @@
         background: transparent;
         touch-action: none;
     }
+
+    /* Smoother Touch-Drag auf Mobile */
+    .plan-drag-stack .plan-item,
+    .drag-stack .timer-card {
+        touch-action: pan-y;
+        -webkit-tap-highlight-color: transparent;
+        will-change: transform;
+    }
+
+    /* Weniger Text-Selection/Jank beim Drag */
+    .sortable-chosen {
+        user-select: none;
+    }
+
+    /* Ghost optisch stabil + minimaler Scale für „Grip“-Feeling */
+    .sortable-ghost,
+    .drag-ghost {
+        opacity: .85;
+        transform: scale(.98);
+    }
+    /* Drag Performance: folgt der Maus, keine Lags */
+    .drag-chosen,
+    .dragging,
+    .sortable-chosen,
+    .sortable-drag,
+    .sortable-ghost {
+        transition: none !important;
+    }
+
+    .sortable-drag {
+        opacity: 0.98;
+        cursor: grabbing;
+        pointer-events: none;
+    }
+
+    .drag-ghost,
+    .sortable-ghost {
+        opacity: .4 !important;
+    }
+
+    .plan-drag-stack > *,
+    .drag-stack > *,
+    .list-item.plan-item,
+    .timer-card {
+        will-change: transform;
+    }
+
+    /* während Drag keine Hover-Animationen stören */
+    .dragging .list-item.plan-item,
+    .dragging .timer-card {
+        transform: none !important;
+    }
+
 </style>
