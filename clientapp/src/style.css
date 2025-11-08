@@ -51,7 +51,14 @@ body {
 }
 
 html {
-    scrollbar-gutter: stable;
+    /* Scrollbar immer da -> kein Layout-Shift, und nur rechts (ohne both-edges) */
+    overflow-y: scroll;
+}
+
+/* INSERT – globale Breiten-Kompensation: 100vw ohne Scrollbarbreite */
+body {
+    /* verhindert, dass Layout bei sichtbarer Scrollbar „schmaler“ erscheint */
+    width: calc(100vw - var(--sbw));
 }
 
 /* Fallback für Browser ohne Support */

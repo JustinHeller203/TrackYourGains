@@ -215,21 +215,28 @@
             <div class="card">
                 <h3 class="card-title"><i class="fas fa-bullseye"></i> Ziele</h3>
                 <!-- REPLACE innerhalb der Ziele-Card (.goals + goal-controls) -->
-                <div class="goals">
-                    <div class="goal" v-for="(key, idx) in goalOrder" :key="key">
-                        <div class="goal-top">
-                            <span>{{ goalLabels[key] }}</span>
-                            <span class="goal-value">{{ progress[key] }}%</span>
+                <Draggable v-model="goalOrder"
+                           item-key="key"
+                           handle=".goal-handle"
+                           ghost-class="goal-ghost"
+                           drag-class="goal-drag"
+                           animation="160"
+                           aria-label="Ziele per Drag and Drop sortieren">
+                    <template #item="{ element: key, index: idx }">
+                        <div class="goal" :data-key="key">
+                            <div class="goal-top">
+                                <span class="goal-handle" title="Ziehen zum Sortieren" aria-label="Ziehen zum Sortieren" tabindex="0">≡</span>
+                                <span class="goal-name">{{ goalLabels[key] }}</span>
+                                <span class="goal-value">{{ progress[key] }}%</span>
+                            </div>
+                            <div class="bar"><div :style="{ width: progress[key] + '%' }"></div></div>
+                            <div class="mini-controls">
+                                <EditInput :ghost="true" title="+5%" :ariaLabel="`+5% ${goalLabels[key]}`" @click="nudgeProgress(key, 5)">+5%</EditInput>
+                                <EditInput :ghost="true" title="-5%" :ariaLabel="`-5% ${goalLabels[key]}`" @click="nudgeProgress(key, -5)">-5%</EditInput>
+                            </div>
                         </div>
-                        <div class="bar"><div :style="{ width: progress[key] + '%' }"></div></div>
-                        <div class="mini-controls">
-                            <EditInput :ghost="true" title="+5%" :ariaLabel="`+5% ${goalLabels[key]}`" @click="nudgeProgress(key, 5)">+5%</EditInput>
-                            <EditInput :ghost="true" title="-5%" :ariaLabel="`-5% ${goalLabels[key]}`" @click="nudgeProgress(key, -5)">-5%</EditInput>
-                            <EditInput :ghost="true" :disabled="idx===0" title="Nach oben" ariaLabel="Nach oben" @click="moveGoal(idx, -1)">↑</EditInput>
-                            <EditInput :ghost="true" :disabled="idx===goalOrder.length-1" title="Nach unten" ariaLabel="Nach unten" @click="moveGoal(idx, 1)">↓</EditInput>
-                        </div>
-                    </div>
-                </div>
+                    </template>
+                </Draggable>
                 <div class="goal-controls">
                     <EditInput @click="resetProgress" title="Ziele Reset" ariaLabel="Ziele Reset">Reset</EditInput>
                 </div>
@@ -238,17 +245,44 @@
         </section>
 
         <!-- Motto (inline editierbar, localStorage) -->
-        <section class="card">
-            <h3 class="card-title"><i class="fas fa-quote-left"></i> Dein Motto</h3>
+        <section class="card motto-card">
+            <h3 class="card-title"><i class="fas fa-quote-left"></i> Motto</h3>
+
             <div class="motto-row">
-                <input v-if="editingMotto" v-model.trim="motto" class="input motto-input" @keyup.enter="saveMotto" />
-                <p v-else class="motto">{{ motto }}</p>
-                <EditInput :ghost="!editingMotto"
-                           @click="toggleMotto"
-                           :title="editingMotto ? 'Motto speichern' : 'Motto bearbeiten'"
-                           :ariaLabel="editingMotto ? 'Motto speichern' : 'Motto bearbeiten'">
-                    {{ editingMotto ? 'Speichern' : 'Bearbeiten' }}
-                </EditInput>
+                <input v-if="editingMotto"
+                       v-model.trim="motto"
+                       class="input motto-input"
+                       placeholder="Dein Motto…"
+                       @keyup.enter="saveMotto" />
+                <p v-else class="motto" lang="de">
+                    {{ mottoView || 'Kein Motto gesetzt' }}
+                </p>
+
+                <div class="motto-actions">
+                    <EditInput v-show="editingMotto || motto"
+                               :ghost="!editingMotto"
+                               @click="toggleMotto"
+                               :title="editingMotto ? 'Motto speichern' : 'Motto bearbeiten'"
+                               :ariaLabel="editingMotto ? 'Motto speichern' : 'Motto bearbeiten'">
+                        {{ editingMotto ? 'Speichern' : 'Bearbeiten' }}
+                    </EditInput>
+
+                    <EditInput v-show="!editingMotto && !motto"
+                               :ghost="true"
+                               title="Motto hinzufügen"
+                               ariaLabel="Motto hinzufügen"
+                               @click="startAddMotto">
+                        Motto hinzufügen
+                    </EditInput>
+
+                    <EditInput v-show="!editingMotto && motto"
+                               :ghost="true"
+                               title="Motto löschen"
+                               ariaLabel="Motto löschen"
+                               @click="clearMotto">
+                        Löschen
+                    </EditInput>
+                </div>
             </div>
         </section>
 
@@ -366,6 +400,7 @@
             </div>
 
         </div>
+
         <!-- Toasts -->
         <Toast v-if="toast"
                :toast="toast"
@@ -390,6 +425,7 @@
     import SavePopup from '@/components/ui/popups/SavePopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import EditInput from '@/components/ui/buttons/EditInput.vue'
+    import Draggable from 'vuedraggable'
 
     // --- Stores / Router ---
     const auth = useAuthStore()
@@ -434,7 +470,13 @@
         arr.splice(j, 0, item);
         goalOrder.value = arr;
     }
-
+    function startAddMotto() {
+        editingMotto.value = true;
+        nextTick(() => {
+            const el = document.querySelector<HTMLInputElement>('.motto-input');
+            el?.focus();
+        });
+    }
     function clampScale(v: number) { return Math.min(5, Math.max(0.25, v)); }
 
     function onAvatarClick(_e: MouseEvent) {
@@ -482,6 +524,17 @@
         // Fallback-MIME wenn leer
         return blob.type ? blob : new Blob([await blob.arrayBuffer()], { type: 'image/png' });
     }
+    function clearMotto() {
+        const prev = motto.value || ''
+        if (!prev) return
+        motto.value = ''
+        localStorage.setItem(LS_KEYS.motto, '')
+        showUndo('Motto gelöscht', () => {
+            motto.value = prev
+            localStorage.setItem(LS_KEYS.motto, prev)
+        }, 5000)
+    }
+
     function onViewerKeydown(e: KeyboardEvent) {
         // Seite nicht scrollen lassen, wenn der Viewer aktiv ist
         const preventKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', ' '];
@@ -594,6 +647,12 @@
         }
         viewerScale.value = next;
     }
+    function softHyphenate(str: string): string {
+        // Füge Soft-Hyphens in SEHR langen, untrennbaren Wortblöcken ein
+        // trennt alle 10 Zeichen, aber nur innerhalb von Sequenzen ohne Leer-/Bindestriche
+        return str.replace(/([^\s-]{10})(?=[^\s-])/g, '$1\u00AD');
+    }
+    const mottoView = computed(() => softHyphenate(motto.value || ''));
     // --- LocalStorage Keys ---
     const LS_KEYS = {
         activity: 'profile_activity',          // number[]
@@ -607,8 +666,48 @@
     const AVATAR_KEY = 'profile_avatar'
     function openDeleteAvatarPopup() {
         closeAvatarMenu()
-        showDeleteAvatarPopup.value = true
+        softDeleteAvatar()
     }
+    type UndoEntry = { id: number; label: string; rollback: () => void; timer: number | null }
+    const undoEntry = ref<UndoEntry | null>(null)
+
+    function showUndo(label: string, rollback: () => void, ms = 5000) {
+        // Ein einziger Toast mit eingebauter Action
+        addToast(label, 'delete', ms, {
+            label: 'Rückgängig',
+            handler: () => {
+                // Rollback ausführen – kein weiterer Toast
+                rollback()
+            }
+        })
+    }
+
+    function performUndo() {
+        if (!undoEntry.value) return
+        const entry = undoEntry.value
+        undoEntry.value = null
+        if (entry.timer) clearTimeout(entry.timer)
+        entry.rollback()
+        addToast('Rückgängig gemacht', 'add')
+    }
+
+    function cancelUndoWindow() {
+        if (undoEntry.value?.timer) clearTimeout(undoEntry.value.timer)
+        undoEntry.value = null
+    }
+
+    function softDeleteAvatar() {
+        const prev = avatarUrl.value
+        if (!prev) return
+        // sofort löschen
+        avatarUrl.value = null
+        localStorage.removeItem(AVATAR_KEY)
+        showUndo('Profilbild entfernt', () => {
+            avatarUrl.value = prev
+            localStorage.setItem(AVATAR_KEY, prev)
+        }, 5000)
+    }
+
     async function onAvatarDrop(e: DragEvent) {
         try {
             const file = e.dataTransfer?.files?.[0];
@@ -1197,21 +1296,23 @@
     function addToast(
         message: string,
         kind: 'add' | 'delete' | 'save' | 'default' = 'default',
-        durationMs = 2800
+        durationMs = 2800,
+        action?: { label: string; handler: () => void }
     ) {
-        if (timeoutHandle) { clearTimeout(timeoutHandle); timeoutHandle = null } // sicherheitshalber aufräumen
+        if (timeoutHandle) { clearTimeout(timeoutHandle); timeoutHandle = null }
         const emojis = { add: '✅', delete: '🗑️', save: '💾', default: '📋' } as const
         const classes = { add: 'toast-add', delete: 'toast-delete', save: 'toast-save', default: 'toast-default' } as const
-        // WICHTIG: KEIN parent setTimeout mehr — Dauer ans Child geben
         toast.value = {
             id: toastId++,
             message,
             emoji: emojis[kind],
             type: classes[kind],
             exiting: false,
-            durationMs // <-- wird in Toast.vue als progressMs verwendet
+            durationMs,
+            action // <-- Button + Handler für Toast.vue
         } as any
     }
+
 
     // --- Helpers ---
     function sumLastDays(arr: number[], days: number) {
@@ -1256,6 +1357,7 @@
         display: flex;
         gap: .35rem;
         margin-top: .4rem;
+        margin-bottom: 1rem; /* mehr Abstand zum nächsten Ziel */
         flex-wrap: wrap;
     }
 
@@ -1601,6 +1703,43 @@
         line-height: 36px;
         cursor: pointer
     }
+
+    .goal-top {
+        align-items: center;
+        gap: .5rem;
+    }
+
+    .goal-name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .goal-handle {
+        cursor: grab;
+        user-select: none;
+        font-weight: 800;
+        line-height: 1;
+        padding: 0 .4rem;
+        opacity: .8;
+    }
+
+        .goal-handle:active {
+            cursor: grabbing;
+            opacity: 1;
+        }
+
+    .goal-ghost {
+        opacity: .6;
+        transform: scale(.995);
+    }
+
+    .goal-drag {
+        filter: drop-shadow(0 4px 10px rgba(0,0,0,.15));
+    }
+
     .viewer-controls {
         position: fixed;
         right: 14px;
@@ -1699,18 +1838,28 @@
     .motto-row {
         display: flex;
         gap: .6rem;
-        align-items: center
+        align-items: center;
+        flex-wrap: nowrap;
     }
 
     .motto {
+        flex: 1;
         font-style: italic;
         color: var(--text-secondary);
         font-size: 1rem;
-        margin: 0
+        margin: 0;
+        hyphens: auto;
+        -webkit-hyphens: auto;
+        overflow-wrap: anywhere;
+        word-break: normal;
+        min-width: 0; /* Fix gegen Card-Stretching */
     }
 
     .motto-input {
-        flex: 1
+        flex: 1;
+        min-width: 0; /* verhindert Breitenänderung */
+        max-width: 100%; /* bleibt innerhalb der Card */
+        box-sizing: border-box;
     }
 
     .avatar img {
@@ -1762,6 +1911,23 @@
         justify-content: space-between;
         margin-bottom: .5rem;
         font-weight: 700;
+    }
+    .motto-card .motto-row {
+        margin-top: .25rem;
+        gap: .6rem;
+    }
+
+    .motto-card .motto {
+        flex: 1;
+        margin: 0;
+        font-style: italic;
+        color: var(--text-secondary);
+    }
+
+    .motto-hint {
+        margin: .6rem 0 0;
+        font-size: .85rem;
+        color: var(--text-secondary);
     }
 
     .sc-x {
@@ -1827,6 +1993,8 @@
         .avatar-menu .danger {
             color: #ef4444;
         }
+
+
     /* Zeilen vertikal mittig halten */
     .list li {
         align-items: center;
@@ -1844,10 +2012,9 @@
         text-align: right; /* Text/Buttons rechtsbündig */
     }
 
-    /* Input bekommt feste, responsive Breite und verhindert Umbruch */
     .name-input {
         max-width: 240px;
-        width: clamp(160px, 40vw, 240px);
+        width: clamp(160px, 60%, 240px);
         white-space: nowrap;
     }
 
@@ -1879,6 +2046,54 @@
     .image-viewer-overlay {
         overscroll-behavior: contain;
     }
+    .motto-card {
+        overflow: hidden;
+        contain: inline-size;
+    }
+
+    .motto-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        column-gap: .6rem;
+        min-width: 0;
+    }
+
+        .motto-row > * {
+            min-width: 0;
+        }
+
+    .motto {
+        min-width: 0;
+        max-width: 100%;
+        font-style: italic;
+        color: var(--text-secondary);
+        font-size: 1rem;
+        margin: 0;
+        hyphens: auto;
+        -webkit-hyphens: auto;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+
+    .motto-input {
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .motto-actions {
+        display: inline-flex;
+        gap: .4rem;
+        align-items: center;
+        justify-content: flex-end;
+        white-space: nowrap;
+        flex: 0 0 auto;
+        min-width: 0;
+    }
 
     .image-viewer-stage {
         touch-action: none; /* verhindert Scroll/Rubberband, ohne die Seiten-Scrollbar zu verstecken */
@@ -1888,3 +2103,4 @@
         margin-top: 1.0rem;
     }
 </style>
+

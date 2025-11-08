@@ -18,7 +18,15 @@
 
             <span class="toast-emoji">{{ toast.emoji }}</span>
             <span class="toast-message">{{ toast.message }}</span>
-
+            <button v-if="(toast as any)?.action"
+                    class="toast-action"
+                    type="button"
+                    :title="(toast as any).action.label + ' (⌘Z / Ctrl+Z)'"
+                    @pointerdown.stop
+                    @click="onActionClick">
+                <i class="fas fa-rotate-left" aria-hidden="true"></i>
+                <span class="label">{{ (toast as any).action.label }}</span>
+            </button>
             <button v-if="dismissible"
                     class="toast-close"
                     type="button"
@@ -81,7 +89,15 @@
     }>()
 
     const emit = defineEmits<{ (e: 'dismiss', id: number): void }>()
-
+    function onActionClick(e: MouseEvent) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (!props.toast) return
+        try { (props.toast as any)?.action?.handler?.() } catch { /* noop */ }
+        // Toast sofort schließen wie beim Dismiss
+        localVisible.value = false
+        emit('dismiss', props.toast.id)
+    }
     type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
     const PREF_KEY = 'tyg_toast_prefs'
@@ -625,6 +641,18 @@
     onBeforeUnmount(() => {
         stopRaf()
     })
+    onMounted(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (!localVisible.value || !props.toast || !(props.toast as any)?.action) return
+            const isUndo = (e.key.toLowerCase?.() === 'z') && (e.metaKey || e.ctrlKey)
+            if (isUndo) {
+                e.preventDefault()
+                onActionClick(new MouseEvent('click'))
+            }
+        }
+        window.addEventListener('keydown', onKey, { passive: false })
+        onBeforeUnmount(() => window.removeEventListener('keydown', onKey as any))
+    })
 
 </script>
 
@@ -827,6 +855,28 @@
             .toast-menu button:hover {
                 background: rgba(0,0,0,.06);
             }
+    .toast-action {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        padding: .1rem .2rem;
+        border-radius: 6px;
+        font-weight: 700;
+        cursor: pointer;
+        color: var(--accent-primary, #4B6CB7);
+        text-decoration: none;
+        text-underline-offset: 2px;
+        transition: background .15s, text-decoration-color .15s, color .15s;
+    }
+
+        .toast-action:hover {
+            text-decoration: underline;
+            background: rgba(0,0,0,.06);
+        }
+
+    html.dark-mode .toast-action:hover {
+        background: rgba(255,255,255,.06);
+    }
 
     html.dark-mode .toast-menu button:hover {
         background: rgba(255,255,255,.06);
