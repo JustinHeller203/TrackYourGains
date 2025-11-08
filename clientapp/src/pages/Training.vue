@@ -784,13 +784,14 @@
         <audio id="audio-dong" preload="auto"></audio>
         <audio id="audio-decide" preload="auto"></audio>
         <!-- Toast-Benachrichtigungen -->
-        <Toast :toast="toast"
-               dismissible
-               @dismiss="dismissToast"
-               position="bottom-right" />
+        <Toast v-if="toast"
+               :toast="toast"
+               :dismissible="true"
+               :autoDismiss="true"
+               :position="toastPosition"
+               @dismiss="onToastDismiss" />
     </div>
 </template>
-
 
 <script setup lang="ts">
     import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
@@ -841,12 +842,14 @@
         | 'toast-timer'
         | 'toast-reset'
 
-    interface Toast {
+    interface AppToast {
         id: number
         message: string
         emoji: string
         type: ToastType
         exiting: boolean
+        createdAtMs: number
+        durationMs?: number
     }
 
 
@@ -905,13 +908,22 @@
         (e: 'reorder-timers', list: TimerInstance[]): void;
         (e: 'reorder-stopwatches', list: StopwatchInstance[]): void;
     }>();
+    const dismissToast = (immediate = false) => {
+        if (!toast.value) return;
+        clearToastTimer();
 
-    const dismissToast = () => {
-        if (!toast.value) return
-        toast.value.exiting = true
-        setTimeout(() => { toast.value = null }, 300) // passt zur .toast-exit Animation
-    }
+        if (immediate) {
+            toast.value = null;
+            autoDismissRemainingMs = 0;
+            return;
+        }
 
+        toast.value.exiting = true;
+        setTimeout(() => {
+            toast.value = null;
+            autoDismissRemainingMs = 0;
+        }, 300);
+    };
     const favoriteTimerItems = computed<TimerInstance[]>({
         get() {
             return props.timers.filter(t => t.isFavorite);
@@ -921,6 +933,7 @@
             emit('reorder-timers', [...newFavs, ...others]);
         }
     });
+    const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
 
     const otherTimerItems = computed<TimerInstance[]>({
         get() {
@@ -931,7 +944,11 @@
             emit('reorder-timers', [...favs, ...newOthers]);
         }
     });
-
+    function onToastDismiss(id: number) {
+        if (toast.value?.id === id) {
+            toast.value = null
+        }
+    }
     const favoriteStopwatchItems = computed<StopwatchInstance[]>({
         get() {
             return props.stopwatches.filter(s => s.isFavorite);
@@ -1073,11 +1090,17 @@
         planMenuOpenId.value = null;
     };
 
-    // Klick außerhalb schließt Menü (Buttons/Menü selbst stoppen Bubbling via @click.stop)
     const onDocClick = (e: MouseEvent) => {
         const el = e.target as HTMLElement | null;
         if (!el) return;
+
+        // Menü & Kebab weiterhin offen lassen
         if (el.closest('.plan-menu') || el.closest('.kebab-wrap')) return;
+
+        // NEU: Klicks innerhalb des Toasts sollen das Menü NICHT schließen
+        // Passe die Selektoren ggf. auf deine Toast-Root-Klasse/Attr an.
+        if (el.closest('.toast') || el.closest('.toast-container') || el.closest('[data-toast-root]')) return;
+
         closePlanMenu();
     };
 
@@ -1116,9 +1139,12 @@
     const exerciseEditIndex = ref<number | null>(null);
     const exerciseEditField = ref<'name' | 'muscle' | null>(null);
     const customExercises = ref<Array<{ name: string; muscle: string; type: CustomExerciseType }>>([]);
-    const toast = ref<Toast | null>(null);
+    const toast = ref<AppToast | null>(null);
     let toastId = 0;
+
     let toastTimeout: ReturnType<typeof setTimeout> | null = null;
+    let autoDismissRemainingMs = 0;
+    let autoDismissStartedAt = 0;
     const isTimerSticky = ref(false); // Hinzugefügt für Sticky-Logik
     const isStopwatchSticky = ref(false); // Hinzugefügt für Sticky-Logik
     const resizeTable = ref<HTMLTableElement | null>(null);
@@ -1143,6 +1169,12 @@
         const tail = Math.floor((max - 1) / 2)
         return s.slice(0, head) + '…' + s.slice(-tail)
     }
+    const clearToastTimer = () => {
+        if (toastTimeout) {
+            window.clearTimeout(toastTimeout as any);
+            toastTimeout = null;
+        }
+    };
 
     const sendNotification = (title: string, body: string) => {
         if ('Notification' in window && Notification.permission === 'granted') {
@@ -2108,9 +2140,8 @@
         openDeletePopup(async () => {
             console.log('Löschaktion ausführen für Timer ID:', id);
             const timer = props.timers.find(t => t.id === id);
-            if (timer && timer.isRunning) {
-                props.stopTimer(timer);
-            }
+            nextTick(() => closeTimerPopup()); // direkt auto-schließen, kein OK-Klick nötig
+
             emit('remove-timer', id);
 
             addToast('Timer gelöscht', 'delete');
@@ -2191,7 +2222,7 @@
         });
     };
 
-
+    const TOAST_DURATION = 3200; // ms
 
     const toggleFavoriteStopwatch = (id: string) => {
         const sw = props.stopwatches.find(x => x.id === id);
@@ -2261,43 +2292,45 @@
         if (deleteAction.value) deleteAction.value();
         closeDeletePopup();
     };
+    function startToastTimer() {
+        if (!toast.value) return;
+        if (toastTimeout) return; // schon aktiv
+        autoDismissStartedAt = performance.now();
+        // id übergeben war falsch → sofortiger Dismiss, weil truthy. Korrekt: explicit immediate.
+        toastTimeout = window.setTimeout(() => dismissToast(true), Math.max(0, autoDismissRemainingMs));
+    }
 
+    function stopToastTimer() {
+        if (!toast.value) return;
+        if (!toastTimeout) return; // nichts zu stoppen
+        // Restzeit berechnen
+        autoDismissRemainingMs = Math.max(
+            0,
+            autoDismissRemainingMs - (performance.now() - autoDismissStartedAt)
+        );
+        clearToastTimer();
+    }
+    // REPLACE Training.vue (Funktion addToast)
     const addToast = (message: string, type: 'delete' | 'add' | 'save' | 'timer' | 'load' = 'load') => {
-        if (toastTimeout) {
-            clearTimeout(toastTimeout);
-            toast.value = null;
-        }
         const id = toastId++;
-        const emojis = {
-            delete: '🗑️',
-            add: '✅',
-            save: '💾',
-            timer: '⏰',
-            load: '📋'
-        } as const;
-        const types = {
-            delete: 'toast-delete',
-            add: 'toast-add',
-            save: 'toast-save',
-            timer: 'toast-timer',
-            load: 'toast-default'
-        } as const;
+        const emojis = { delete: '🗑️', add: '✅', save: '💾', timer: '⏰', load: '📋' } as const;
+        const types = { delete: 'toast-delete', add: 'toast-add', save: 'toast-save', timer: 'toast-timer', load: 'toast-default' } as const;
+
+        // Parent darf KEINEN eigenen Auto-Dismiss mehr verwalten
+        clearToastTimer();
+
         toast.value = {
             id,
             message,
             emoji: emojis[type],
-            type: types[type], // passt jetzt zu ToastType
-            exiting: false
+            type: types[type],
+            exiting: false,
+            createdAtMs: performance.now(),
+            durationMs: TOAST_DURATION
         };
-        toastTimeout = setTimeout(() => {
-            if (toast.value) {
-                toast.value.exiting = true;
-                setTimeout(() => {
-                    toast.value = null;
-                    toastTimeout = null;
-                }, 300);
-            }
-        }, 3000);
+
+        // Auto-Dismiss ausschließlich von <Toast/> steuern lassen
+        autoDismissRemainingMs = 0;
     };
 
     const openEditPopup = (
@@ -2630,6 +2663,10 @@
 
         closeEditPopup();
     };
+    // Menü offen? → Toast-Timer hart pausieren/resumieren (zusätzlich zum Sammel-Watch)
+    watch(planMenuOpenId, () => {
+        // Kein Parent-Timer mehr → nichts zu tun
+    });
 
     // unter deinen anderen imports/refs:
     const onTrainingFocus = (e: Event) => {
@@ -2646,6 +2683,8 @@
 
     onUnmounted(() => {
         window.removeEventListener('training:focus', onTrainingFocus as EventListener)
+        if (toastTimeout) { window.clearTimeout(toastTimeout as any); toastTimeout = null; }
+
     })
 
     const updatePlanInStorage = () => {
@@ -2927,7 +2966,6 @@
         });
     };
 
-
     const normalizeToTotal = (arr: number[], total = 100, pinIndex = 0) => {
         const out = arr.map(v => Math.max(0, Number.parseFloat((+v).toFixed(4))));
         const sum = out.reduce((a, b) => a + b, 0);
@@ -3021,8 +3059,6 @@
         });
 
     };
-
-
 
     const initAudioElements = () => {
         Object.entries(audioPaths).forEach(([key, path]) => {
@@ -3168,15 +3204,15 @@
                 // Wechsel von >0 auf <=0 → Timer fertig
                 if (prev > 0 && time <= 0 && !finishedOnce.has(id)) {
                     finishedOnce.add(id);
-                    showTimerPopup.value = true; // Popup zeigen
+                    showTimerPopup.value = true;
                     playTimerSound(sound || 'standard');
                     sendNotification('Timer fertig', 'Deine Satzpause ist vorbei 💪');
+                    dismissToast(true);
 
                     const timer = props.timers.find(t => t.id === id);
                     if (timer && timer.isRunning) {
-                        props.stopTimer(timer); // Parent regelt Interval + State
+                        props.stopTimer(timer);
                     }
-
                 }
 
                 // Reset, wenn wieder >0
@@ -6118,7 +6154,7 @@
     .drag-ghost,
     .sortable-ghost {
         opacity: .4 !important;
-    }
+    } 
 
     .plan-drag-stack > *,
     .drag-stack > *,

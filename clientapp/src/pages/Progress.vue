@@ -640,7 +640,7 @@
                                     </li>
                                 </ul>
                             </div>
-                            </div>
+                        </div>
                     </article>
 
                     <div v-if="dayCards.length > visibleDays" class="load-more">
@@ -667,11 +667,12 @@
                      @cancel="closeDownloadPopup" />
 
         <!-- Toast -->
-        <Toast :toast="toast"
-               position="bottom-right"
+        <Toast v-if="toast"
+               :toast="toast"
                :dismissible="true"
-               @dismiss="startToastExit" />
-
+               :autoDismiss="true"
+               :position="toastPosition"
+               @dismiss="onToastDismiss" />
     </div>
 </template>
 
@@ -728,9 +729,107 @@
     }
     // oben bei den Refs:
     const newProgressSetDetails = ref<Array<{ weight: number | null; reps: number | null }>>([])
+    const toastHeld = ref(false);
+    const toastHovering = ref(false); // ⟵ neu
+    const toastWrap = ref<HTMLElement | null>(null)
+    const toastOffset = ref<{ x: number; y: number } | null>(null)
+    const TOAST_OFFSET_KEY = 'ui_toast_offset_v2'
 
+    function parseTranslate(el: HTMLElement | null): { x: number; y: number } {
+        if (!el) return { x: 0, y: 0 }
+        const style = getComputedStyle(el)
+        const tr = style.transform
+        if (!tr || tr === 'none') return { x: 0, y: 0 }
+        // matrix(a,b,c,d,tx,ty) oder matrix3d(...)
+        if (tr.startsWith('matrix3d(')) {
+            const m = tr.slice(9, -1).split(',').map(Number)
+            return { x: m[12] || 0, y: m[13] || 0 }
+        } else if (tr.startsWith('matrix(')) {
+            const m = tr.slice(7, -1).split(',').map(Number)
+            return { x: m[4] || 0, y: m[5] || 0 }
+        }
+        return { x: 0, y: 0 }
+    }
+
+    function applyTranslate(el: HTMLElement | null, x: number, y: number) {
+        if (!el) return
+        // Bewahre evtl. bestehende scale/rotate nicht auf – Toast nutzt hier nur translate.
+        el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
+    }
+
+    function loadToastOffset() {
+        try {
+            const raw = localStorage.getItem(TOAST_OFFSET_KEY)
+            if (!raw) return
+            const { x, y } = JSON.parse(raw)
+            if (Number.isFinite(x) && Number.isFinite(y)) {
+                toastOffset.value = { x, y }
+                // Anwenden auf Wrapper (der nextTick sichtbar ist)
+                requestAnimationFrame(() => applyTranslate(toastWrap.value as HTMLElement, x, y))
+            }
+        } catch { /* ignore */ }
+    }
+
+    function saveToastOffsetFromDom() {
+        const el = toastWrap.value as HTMLElement | null
+        if (!el) return
+        const { x, y } = parseTranslate(el)
+        toastOffset.value = { x, y }
+        localStorage.setItem(TOAST_OFFSET_KEY, JSON.stringify({ x, y }))
+    }
+    function clearToastTimer() {
+        if (toastTimeout) {
+            clearTimeout(toastTimeout);
+            toastTimeout = null;
+        }
+    }
+
+    function scheduleToastTimer() {
+        clearToastTimer();
+        if (!toast.value) return;
+        if (overlayOpen.value || toastHeld.value || toastHovering.value) return;
+        toastTimeout = setTimeout(() => {
+            if (!overlayOpen.value && !toastHeld.value && !toastHovering.value) startToastExit();
+        }, TOAST_DURATION_MS);
+    }
+
+    function onToastHover(hover: boolean) {
+        toastHovering.value = hover;
+        if (hover) {
+            // Hover = pausieren, auch ohne gedrückt zu halten
+            clearToastTimer();
+            toastHeld.value = true;
+        } else {
+            // Hover verlassen = ggf. Timer wieder an
+            toastHeld.value = false;
+            scheduleToastTimer();
+        }
+    }
+    function onToastPointerDown(e: PointerEvent) {
+        if (!toast.value) return;
+        toastHeld.value = true;
+        clearToastTimer();
+    }
+    function onToastPointerUp() {
+        if (!toast.value) return;
+        // Nach Loslassen: wenn weiterhin Hover, bleibt pausiert; sonst Timer fortsetzen
+        toastHeld.value = toastHovering.value;
+        // Position 1 Frame NACH dem Release einlesen (damit das Dragging final ist)
+        requestAnimationFrame(() => saveToastOffsetFromDom());
+        if (!toastHovering.value) scheduleToastTimer();
+    }
+
+    const TOAST_DURATION_MS = 3000;
+
+    function onToastContextOpen() {
+        if (!toast.value) return;
+        toastHeld.value = true;
+        clearToastTimer();
+    }
     // Refs
     const showProgressExtras = ref(false)
+    const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
+
     const { unit, kgToDisplay, displayToKg, formatWeight } = useUnits()
     const trainingPlans = ref<TrainingPlan[]>([]);
     const weightHistory = ref<WeightEntry[]>([]);
@@ -767,6 +866,60 @@
             : isCardioName(currentExercise.value) ? 'ausdauer'
                 : 'kraft'
     )
+    const externalOverlayOpen = ref(false)
+    const bodyBlocked = ref(false)
+
+    const overlayOpen = computed(() =>
+        showProgressPopup.value
+        || showWeightPopup.value
+        || showGoalPopup.value
+        || showDownloadPopup.value
+        || showPlanProgressPopup.value
+        || validationErrorMessages.value.length > 0
+        || externalOverlayOpen.value
+        || bodyBlocked.value
+    )
+
+    let _globalOverlayDepth = 0
+    function onGlobalOverlayOpen() {
+        _globalOverlayDepth++
+        if (!externalOverlayOpen.value) externalOverlayOpen.value = true
+        clearToastTimer()
+    }
+    function onGlobalOverlayClose() {
+        _globalOverlayDepth = Math.max(0, _globalOverlayDepth - 1)
+        if (_globalOverlayDepth === 0) {
+            externalOverlayOpen.value = false
+            scheduleToastTimer()
+        }
+    }
+    // Tabwechsel: Timer pausieren/wieder aufnehmen
+    function onVisibility() {
+        if (document.hidden) clearToastTimer()
+        else scheduleToastTimer()
+    }
+
+    onMounted(() => {
+        window.addEventListener('ui:overlay-open', onGlobalOverlayOpen as any)
+        window.addEventListener('ui:overlay-close', onGlobalOverlayClose as any)
+        document.addEventListener('visibilitychange', onVisibility)
+    })
+
+    onUnmounted(() => {
+        window.removeEventListener('ui:overlay-open', onGlobalOverlayOpen as any)
+        window.removeEventListener('ui:overlay-close', onGlobalOverlayClose as any)
+        document.removeEventListener('visibilitychange', onVisibility)
+    })
+    onMounted(() => {
+        document.addEventListener('pointerdown', onToastPointerDown, { capture: true })
+        document.addEventListener('pointerup', onToastPointerUp, { capture: true })
+        document.addEventListener('contextmenu', onToastContextOpen, { capture: true })
+    })
+    function onToastDismiss(id: number) {
+        if (toast.value?.id === id) {
+            toast.value = null
+        }
+    }
 
     const glFood = ref<string>('')
     const glServing = ref<number | null>(null)
@@ -881,7 +1034,7 @@
     const ffmiBodyFat = ref<number | null>(null);
     const ffmiResult = ref<{ value: number; category: string } | null>(null);
 
-    const suppressToasts = ref(true)
+    const suppressToasts = ref(false)
     let toastReleaseTimer: ReturnType<typeof setTimeout> | null = null
     // -------- Journal-View + Tages-Cards (sauber) --------
 
@@ -923,7 +1076,24 @@
         next.has(day) ? next.delete(day) : next.add(day)
         expandedDays.value = next
     }
+    function onToastMenuOpen() {
+        if (!toast.value) return;
+        toastHeld.value = true;     // Menü offen => Toast bleibt
+        clearToastTimer();
+    }
+    function onToastMenuClose() {
+        toastHeld.value = false;    // Menü zu => wieder normaler Autoclose
+        scheduleToastTimer();
+    }
 
+    function onToastTimerEnd() {
+        if (!toast.value) return
+        // falls das Overlay offen ist, der Nutzer hält/hovert: NICHT schließen
+        if (overlayOpen.value || toastHeld.value || toastHovering.value) return
+        // internes Timeout sicher beenden und sofort den Exit fahren
+        clearToastTimer()
+        startToastExit()
+    }
     const clearValidation = () => {
         validationErrorMessages.value = []
     }
@@ -1207,6 +1377,26 @@
         onUnmounted(() => mq.removeEventListener?.('change', handler as any))
     })
 
+    function setupProgressIO() {
+        const root = progressModalEl.value
+        if (!root) return
+        const endEl = root.querySelector('.scroll-sentinel-end')
+        if (!endEl) return
+        // falls bereits vorhanden: aufräumen
+        if (endIO) { endIO.disconnect(); endIO = null }
+
+        endIO = new IntersectionObserver(
+            ([entry]) => {
+                root.classList.toggle('at-bottom', entry.isIntersecting)
+            },
+            { root, threshold: 1.0 }
+        )
+        endIO.observe(endEl)
+    }
+
+    function cleanupProgressIO() {
+        if (endIO) { endIO.disconnect(); endIO = null }
+    }
     // nur im Statistiken-Tab kompakt schalten
     const compactCards = computed(() => activeTab.value === 'stats' && isMobile.value)
 
@@ -1559,9 +1749,10 @@
     };
 
     function startToastExit() {
-        if (!toast.value) return
-        toast.value.exiting = true
-        setTimeout(() => { toast.value = null }, 300)
+        if (!toast.value) return;
+        if (toast.value.exiting) return;            // idempotent, kein Doppel-Exit
+        toast.value.exiting = true;
+        setTimeout(() => { toast.value = null; }, 300);
     }
 
     const resetWeightStats = () => {
@@ -2978,12 +3169,9 @@ Notiz: ${e.note ?? '-'}\n`
         type: 'delete' | 'add' | 'save' | 'timer' | 'load' | 'reset' | 'default' = 'load'
     ) => {
         if (!toastsEnabled.value) return
-        if (suppressToasts.value) return  // 🔒 während Restore/Auto-Calc: keine Toasts
+        if (suppressToasts.value) return
 
-        if (toastTimeout) {
-            clearTimeout(toastTimeout)
-            toast.value = null
-        }
+        clearToastTimer()
         const id = toastId++
         const emojis = {
             delete: '🗑️',
@@ -2994,7 +3182,6 @@ Notiz: ${e.note ?? '-'}\n`
             reset: '♻️',
             default: '📋',
         } as const
-
         const types = {
             delete: 'toast-delete',
             add: 'toast-add',
@@ -3004,19 +3191,11 @@ Notiz: ${e.note ?? '-'}\n`
             reset: 'toast-reset',
             default: 'toast-default',
         } as const
-
         const mapped = types[type]
-        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false }
+        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, durationMs: TOAST_DURATION_MS }
 
-        toastTimeout = setTimeout(() => {
-            if (toast.value) {
-                toast.value.exiting = true
-                setTimeout(() => {
-                    toast.value = null
-                    toastTimeout = null
-                }, 300)
-            }
-        }, 3000)
+        // Autoclose nur, wenn weder Overlay noch Hold aktiv
+        scheduleToastTimer()
     }
 
     const handleKeydown = (event: KeyboardEvent) => {
@@ -3337,7 +3516,12 @@ Notiz: ${e.note ?? '-'}\n`
         saveFavoriteCalculators()
     }
     let endIO: IntersectionObserver | null = null
-
+    watch(showPlanProgressPopup, (open) => {
+        nextTick(() => {
+            if (open) setupProgressIO();
+            else cleanupProgressIO();
+        });
+    })
     onMounted(() => {
         const root = progressModalEl.value
         if (!root) return
@@ -3497,18 +3681,39 @@ Notiz: ${e.note ?? '-'}\n`
         // …oder automatisch nach kurzer Ruhephase (falls nur Viewing)
         toastReleaseTimer = setTimeout(() => releaseToasts(), 1500)
     })
+    watch(() => overlayOpen.value, (open) => {
+        if (open) clearToastTimer();
+        else scheduleToastTimer();
+    }, { immediate: true });
 
+    watch(() => toastHeld.value, (held) => {
+        if (held) clearToastTimer();
+        else scheduleToastTimer();
+    }, { immediate: true });
     onUnmounted(() => {
         window.removeEventListener('keydown', handleKeydown);
         window.removeEventListener('toasts-enabled-changed', handleToastsSetting);
         window.removeEventListener('pointerdown', releaseToasts);
         window.removeEventListener('keydown', releaseToasts);
         window.removeEventListener('touchstart', releaseToasts as any);
+
+        // ⬇️ Toast-Hold-Listener korrekt abbauen (wurden mit { capture: true } registriert)
+        document.removeEventListener('pointerdown', onToastPointerDown, true);
+        document.removeEventListener('pointerup', onToastPointerUp, true);
+        document.removeEventListener('contextmenu', onToastContextOpen, true);
+
+        // ⬇️ IO sauber entsorgen (falls offen)
+        cleanupProgressIO();
+
         if (weightChart) weightChart.destroy();
         if (workoutChart) workoutChart.destroy();
         if (macroChart) macroChart.destroy();
+    })
+    watch(toast, (t) => {
+        if (!t) { clearToastTimer(); return; }
+        // neues Toast gesetzt → Autoclose nach Dauer starten (sofern nichts blockiert)
+        scheduleToastTimer();
     });
-
 </script>
 
 <style scoped>
@@ -4772,6 +4977,7 @@ Notiz: ${e.note ?? '-'}\n`
     .modal--progress > .card-header + .day-card-list {
         margin-top: 1rem; /* taste dich bei Bedarf ran: .75rem – 1.25rem */
     }
+
 </style>
 <style>
     body:has(.modal-overlay) {

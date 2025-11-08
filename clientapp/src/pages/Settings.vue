@@ -1,3 +1,5 @@
+<!--Settings.vue--> 
+
 <template>
     <div class="settings">
         <div class="settings-header">
@@ -70,16 +72,18 @@
                                 @click="saveSettings" />
         </div>
 
-        <Toast v-if="toast && toastsEnabled"
+        <Toast v-if="toast"
                :toast="toast"
                :dismissible="true"
-               @dismiss="startToastExit" />
+               :autoDismiss="true"
+               :position="toastPosition"
+               @dismiss="onToastDismiss" />
 
     </div>
 </template>
 
 <script setup lang="ts">
-    import { ref, onMounted, watch } from 'vue'
+    import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
     import { isDark, initTheme, setTheme, previewTheme } from '@/composables/useTheme'
     import { onBeforeRouteLeave } from 'vue-router'
     import Toast from '@/components/ui/Toast.vue'
@@ -100,8 +104,13 @@
         emoji: string
         type: ToastType
         exiting: boolean
+        durationMs?: number
     }
-
+    function onToastDismiss(id: number) {
+        if (toast.value?.id === id) {
+            toast.value = null
+        }
+    }
     const preferredUnit = ref<'kg' | 'lbs'>('kg')
     const autoCalcEnabled = ref(false)
     const allowedUnits = ['kg', 'lbs'] as const
@@ -111,13 +120,20 @@
 
     // Zentraler Toast-State für diese Seite
     const toast = ref<ToastModel | null>(null)
+    const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
 
     // Draft-State für das UI
     const isDarkDraft = ref(false)
     const persistedTheme = ref<'dark' | 'light'>('light')
     const saved = ref(false)
 
-
+    const onToastsEnabledChanged = (e: CustomEvent<boolean>) => {
+        toastsEnabled.value = !!e.detail
+    }
+    window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+    onBeforeUnmount(() => {
+        window.removeEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+    })
     onMounted(() => {
         // Persistierten Zustand initialisieren
         initTheme()
@@ -142,7 +158,8 @@
     const startToastExit = () => {
         if (!toast.value) return
         toast.value.exiting = true
-        setTimeout(() => { toast.value = null }, 300) // matcht deine .toast-exit Dauer
+        // Exit ist in Toast.vue per Inline-Style bereits auf 0ms gesetzt → sofort entfernen
+        setTimeout(() => { toast.value = null }, 0)
     }
     function saveSettings() {
         // Theme persistieren
@@ -170,17 +187,9 @@
                 message: 'Einstellungen gespeichert! 🎉',
                 emoji: '💾',
                 type: 'toast-save',
-                exiting: false
+                exiting: false,
+                durationMs: 2500
             }
-            // sanft ausblenden wie in Toast.vue erwartet
-            setTimeout(() => {
-                if (toast.value?.id === id) {
-                    toast.value.exiting = true
-                    setTimeout(() => {
-                        if (toast.value?.id === id) toast.value = null
-                    }, 300)
-                }
-            }, 2500)
         }
     }
 
