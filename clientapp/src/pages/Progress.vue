@@ -3192,7 +3192,7 @@ Notiz: ${e.note ?? '-'}\n`
             default: 'toast-default',
         } as const
         const mapped = types[type]
-        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, durationMs: TOAST_DURATION_MS }
+        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false }
 
         // Autoclose nur, wenn weder Overlay noch Hold aktiv
         scheduleToastTimer()

@@ -15,14 +15,19 @@
 <script setup lang="ts">
     import BaseButton from '@/components/ui/buttons/BaseButton.vue'
 
-    defineProps<{
+    const props = withDefaults(defineProps<{
         ghost?: boolean
         block?: boolean
         disabled?: boolean
         type?: 'button' | 'submit' | 'reset'
         title?: string
         ariaLabel?: string
-    }>()
+    }>(), {
+        ghost: false,
+        block: false,
+        disabled: false,
+        type: 'button'
+    })
 
     defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 </script>

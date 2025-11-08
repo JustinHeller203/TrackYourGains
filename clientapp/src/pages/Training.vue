@@ -1142,7 +1142,7 @@
     const toast = ref<AppToast | null>(null);
     let toastId = 0;
 
-    let toastTimeout: ReturnType<typeof setTimeout> | null = null;
+    let toastTimeout: number | null = null;
     let autoDismissRemainingMs = 0;
     let autoDismissStartedAt = 0;
     const isTimerSticky = ref(false); // Hinzugefügt für Sticky-Logik

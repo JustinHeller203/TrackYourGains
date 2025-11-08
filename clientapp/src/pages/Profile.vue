@@ -226,13 +226,13 @@
                         <div class="goal" :data-key="key">
                             <div class="goal-top">
                                 <span class="goal-handle" title="Ziehen zum Sortieren" aria-label="Ziehen zum Sortieren" tabindex="0">≡</span>
-                                <span class="goal-name">{{ goalLabels[key] }}</span>
-                                <span class="goal-value">{{ progress[key] }}%</span>
+                                <span class="goal-name">{{ goalLabels[key as GoalKey] }}</span>
+                                <span class="goal-value">{{ progress[key as GoalKey] }}%</span>
                             </div>
-                            <div class="bar"><div :style="{ width: progress[key] + '%' }"></div></div>
+                            <div class="bar"><div :style="{ width: progress[key as GoalKey] + '%' }"></div></div>
                             <div class="mini-controls">
-                                <EditInput :ghost="true" title="+5%" :ariaLabel="`+5% ${goalLabels[key]}`" @click="nudgeProgress(key, 5)">+5%</EditInput>
-                                <EditInput :ghost="true" title="-5%" :ariaLabel="`-5% ${goalLabels[key]}`" @click="nudgeProgress(key, -5)">-5%</EditInput>
+                                <EditInput :ghost="true" title="+5%" :ariaLabel="`+5% ${goalLabels[key as GoalKey]}`" @click="nudgeProgress(key as GoalKey, 5)">+5%</EditInput>
+                                <EditInput :ghost="true" title="-5%" :ariaLabel="`-5% ${goalLabels[key as GoalKey]}`" @click="nudgeProgress(key as GoalKey, -5)">-5%</EditInput>
                             </div>
                         </div>
                     </template>
@@ -655,15 +655,15 @@
     const mottoView = computed(() => softHyphenate(motto.value || ''));
     // --- LocalStorage Keys ---
     const LS_KEYS = {
-        activity: 'profile_activity',          // number[]
-        progress: 'profile_progress',          // {muscle,weight,nutrition}
-        favorites: 'profile_fav_timers',       // number
-        motto: 'profile_motto',                // string
-        memberSince: 'profile_member_since',   // string
-        email: 'auth_email',                   // aus deinem Auth-Store
+        activity: 'profile_activity',
+        progress: 'profile_progress',
+        favorites: 'profile_fav_timers',
+        motto: 'profile_motto',
+        memberSince: 'profile_member_since',
+        email: 'auth_email',
+        avatar: 'profile_avatar'
     } as const
-    LS_KEYS['avatar' as const] = 'profile_avatar' as any
-    const AVATAR_KEY = 'profile_avatar'
+    const AVATAR_KEY = LS_KEYS.avatar
     function openDeleteAvatarPopup() {
         closeAvatarMenu()
         softDeleteAvatar()
@@ -1060,7 +1060,8 @@
     }
     // --- State init (mit Fallbacks) ---
     const activity = ref<number[]>(loadJSON(LS_KEYS.activity, [1, 0, 2, 1, 3, 2, 2, 1, 0, 2]))
-    const progress = ref<{ muscle: number; weight: number; nutrition: number }>(
+    type Progress = Record<GoalKey, number>
+    const progress = ref<Progress>(
         loadJSON(LS_KEYS.progress, { muscle: 40, weight: 60, nutrition: 55 })
     )
     const favoriteTimers = ref<number>(Number(localStorage.getItem(LS_KEYS.favorites) ?? 2))
