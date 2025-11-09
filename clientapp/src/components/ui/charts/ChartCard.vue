@@ -11,8 +11,8 @@
         </div>
 
         <div class="card-footer">
-            <ExportButton v-if="exportable" @click="$emit('export')" />
-            <ResetButton @click="$emit('reset')" />
+            <ExportButton class="footer-btn" v-if="exportable" @click="$emit('export')" />
+            <ResetButton class="footer-btn" @click="$emit('reset')" />
         </div>
     </div>
 </template>
@@ -55,7 +55,39 @@
         height: 300px;
         margin-top: 1rem;
     }
+    .footer-btn {
+        flex: 1 1 0; /* zwei gleich breite Spalten */
+        min-width: 0; /* verhindert min-content Overflow */
+        display: inline-flex; /* sichere Zentrierung */
+        justify-content: center;
+        align-items: center;
+        white-space: nowrap; /* kein Zeilenumbruch */
+        overflow: hidden; /* Überlauf kappen */
+        text-overflow: ellipsis;
+        line-height: 1.1;
+        padding-inline: .75rem; /* Basis-Padding */
+        font-size: clamp(.9rem, 3.5vw, 1rem); /* responsive, aber nicht lächerlich klein */
+    }
 
+    /* Engere Settings nur für Phones */
+    @media (max-width: 380px) {
+        .footer-btn {
+            padding-inline: .55rem;
+            font-size: clamp(.85rem, 3.8vw, .95rem);
+        }
+    }
+
+    /* Ultra-kleine Geräte */
+    @media (max-width: 340px) {
+        .card-footer {
+            gap: .35rem;
+        }
+
+        .footer-btn {
+            padding-inline: .45rem;
+            font-size: clamp(.8rem, 4vw, .9rem);
+        }
+    }
     .card-footer {
         border-top: 1px solid var(--border-color);
         padding: 0.75rem 0.75rem 0;
