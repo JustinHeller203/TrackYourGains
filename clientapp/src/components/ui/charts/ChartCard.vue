@@ -58,9 +58,18 @@
 
     .card-footer {
         border-top: 1px solid var(--border-color);
-        padding: 0.75rem 1rem 0;
+        padding: 0.75rem 0.75rem 0; /* etwas schmaler für Mobile */
         display: flex;
-        justify-content: flex-end;
+        justify-content: center; /* zentriert statt rechts */
+        align-items: center;
         gap: 0.75rem;
+        flex-wrap: wrap; /* erlaubt Zeilenumbruch */
+    }
+
+    /* Mobile: kleineres Gap, mehr Platz fürs Chart */
+    @media (max-width: 420px) {
+        .card-footer {
+            gap: 0.5rem;
+        }
     }
 </style>
