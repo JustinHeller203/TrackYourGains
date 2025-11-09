@@ -56,19 +56,37 @@
         margin-top: 1rem;
     }
     .footer-btn {
-        flex: 1 1 0; /* zwei gleich breite Spalten */
-        min-width: 0; /* verhindert min-content Overflow */
-        display: inline-flex; /* sichere Zentrierung */
+        display: inline-flex;
         justify-content: center;
         align-items: center;
-        white-space: nowrap; /* kein Zeilenumbruch */
-        overflow: hidden; /* Überlauf kappen */
-        text-overflow: ellipsis;
-        line-height: 1.1;
-        padding-inline: .75rem; /* Basis-Padding */
-        font-size: clamp(.9rem, 3.5vw, 1rem); /* responsive, aber nicht lächerlich klein */
+        width: 100%; /* füllt die Grid-Spalte */
+        min-height: 40px; /* angenehme Zielhöhe */
+        padding: .55rem .85rem;
+        line-height: 1.2;
+        white-space: normal; /* ⟵ darf auf 2 Zeilen umbrechen */
+        text-align: center;
+        text-wrap: balance; /* schöner Zeilenumbruch (supported modern) */
+        word-break: keep-all; /* keine hässlichen Worttrennungen */
+        font-size: 0.95rem;
+    }
+    @media (max-width: 420px) {
+        .card-footer {
+            gap: 0.5rem;
+        }
+
+        .footer-btn {
+            min-height: 38px;
+            font-size: 0.9rem; /* minimal kleiner auf Phones */
+            padding: .5rem .75rem;
+        }
     }
 
+    @media (max-width: 360px) {
+        .footer-btn {
+            font-size: 0.875rem; /* XS-Phones */
+            padding: .45rem .65rem;
+        }
+    }
     /* Engere Settings nur für Phones */
     @media (max-width: 380px) {
         .footer-btn {
@@ -91,11 +109,11 @@
     .card-footer {
         border-top: 1px solid var(--border-color);
         padding: 0.75rem 0.75rem 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: nowrap; /* ⟵ niemals umbrechen */
+        display: grid; /* ⟵ 2-Spalten-Grid für saubere Aufteilung */
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem; /* etwas Luft zwischen den Buttons */
+        align-items: stretch; /* Buttons gleiche Höhe */
+        justify-items: stretch;
     }
         .card-footer > * {
             flex: 1 1 0; /* ⟵ zwei gleich breite Spalten */
