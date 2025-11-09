@@ -303,6 +303,9 @@
     const ignoreNextAnim = ref(false)
 
     function onToastPointerDown(ev: PointerEvent) {
+        // verhindert Textauswahl / Touch-Callout auf Mobile
+        ev.preventDefault();
+
         const target = ev.target as HTMLElement
         if (target.closest('.reposition-controls')) return
         if (showMenu.value) return
@@ -311,10 +314,8 @@
         isHolding.value = true
         pauseToasts()
 
-        // WICHTIG: Während des Holds NICHT resume() triggern
         clearHold()
         pauseDismissTimer()
-
             ; (ev.currentTarget as HTMLElement).setPointerCapture?.(ev.pointerId)
 
         if (repositionMode.value) {
@@ -324,7 +325,6 @@
             dragPos.value = { x: r.left, y: r.top }
             return
         }
-
         pressTimer = window.setTimeout(() => openMenuAt(ev), 550) as unknown as number
     }
 
@@ -740,7 +740,19 @@
     .toast-delete {
         border-left: 4px solid #ef4444;
     }
-
+    @media (hover: none) and (pointer: coarse), (max-width: 1024px) {
+        .toast {
+            /* keine Browser-Long-Press-Aktionen, kein Double-Tap-Zoom-Highlight */
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+            /* Text-Selektion & iOS Touch-Callout deaktivieren */
+            .toast, .toast * {
+                user-select: none;
+                -webkit-user-select: none;
+                -webkit-touch-callout: none;
+            }
+    }
     .toast-save {
         border-left: 4px solid #F59E0B;
     }
