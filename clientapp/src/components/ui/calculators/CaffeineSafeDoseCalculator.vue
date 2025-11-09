@@ -62,8 +62,16 @@
     <div class="card-footer">
       <div class="footer-spacer"></div>
       <div class="footer-actions">
-        <ExportButton @click="$emit('export')" />
-        <ResetButton @click="$emit('reset')" />
+          <ExportButton class="calc-footer-btn"
+                        title="Exportieren"
+                        aria-label="Exportieren"
+                        data-short="Export"
+                        @click="$emit('export')" />
+          <ResetButton class="calc-footer-btn"
+                       title="Zurücksetzen"
+                       aria-label="Zurücksetzen"
+                       data-short="Reset"
+                       @click="$emit('reset')" />
       </div>
     </div>
   </div>
@@ -163,7 +171,19 @@ function onStatusChange(e: Event) {
   gap: .5rem;
   color: var(--text-primary);
 }
+    @media (max-width: 600px) {
+        .footer-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* zwei gleich breite Buttons */
+            gap: .5rem;
+            width: 100%;
+        }
 
+        .calc-footer-btn {
+            min-height: 44px; /* gutes Touch-Target */
+            padding: .5rem .6rem;
+        }
+    }
 /* Inputs */
 .input-group { margin-bottom: 1rem; }
 .input-group label {

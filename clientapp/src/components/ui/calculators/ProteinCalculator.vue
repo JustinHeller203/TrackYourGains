@@ -80,8 +80,18 @@
         <div class="card-footer">
             <div class="footer-spacer"></div>
             <div class="footer-actions">
-                <ExportButton @click="$emit('export')" />
-                <ResetButton @click="$emit('reset')" />
+                <div class="footer-actions">
+                    <ExportButton class="calc-footer-btn"
+                                  title="Exportieren"
+                                  aria-label="Exportieren"
+                                  data-short="Export"
+                                  @click="$emit('export')" />
+                    <ResetButton class="calc-footer-btn"
+                                 title="Zurücksetzen"
+                                 aria-label="Zurücksetzen"
+                                 data-short="Reset"
+                                 @click="$emit('reset')" />
+                </div>
             </div>
         </div>
     </div>
@@ -320,7 +330,19 @@
         font-size: .95rem;
         color: var(--text-secondary);
     }
+    @media (max-width: 600px) {
+        .footer-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* zwei gleich breite Buttons */
+            gap: .5rem;
+            width: 100%;
+        }
 
+        .calc-footer-btn {
+            min-height: 44px; /* gutes Touch-Target */
+            padding: .5rem .6rem;
+        }
+    }
     .card-footer {
         border-top: 1px solid var(--border-color);
         padding: .75rem 1rem 0;
