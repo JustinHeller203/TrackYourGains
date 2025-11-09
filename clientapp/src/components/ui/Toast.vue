@@ -13,8 +13,8 @@
              @pointerup="onToastPointerUp"
              @pointermove="onToastPointerMove"
              @pointercancel="cancelPress"
-             @mousedown.right.prevent="openMenuAt($event as any)"
-             @contextmenu.prevent>
+             @mousedown.right.prevent.stop="openMenuAt($event as any)"
+             @contextmenu.prevent.stop="openMenuAt($event as any)">
 
             <span class="toast-emoji">{{ toast.emoji }}</span>
             <span class="toast-message">{{ toast.message }}</span>
@@ -46,6 +46,7 @@
             <div v-if="showMenu"
                  class="toast-menu"
                  ref="menuEl"
+                 :style="menuStyle"
                  @pointerdown.stop
                  @click.stop
                  v-auto-flip="{ margin: 8, align: 'start', strategy: 'fixed' }">
@@ -222,7 +223,22 @@
         prefs.value.enabled = !!e.detail
         savePrefs(prefs.value)
     }
+    const menuStyle = ref<Record<string, string>>({})
 
+    watch(showMenu, async (open) => {
+        if (open) {
+            await nextTick()
+            const w = toastEl.value?.getBoundingClientRect().width ?? 0
+            // Menü exakt so breit wie Toast, aber niemals größer als der Viewport
+            menuStyle.value = {
+                width: Math.max(0, w) + 'px',
+                maxWidth: '100vw',
+                boxSizing: 'border-box'
+            }
+        } else {
+            menuStyle.value = {}
+        }
+    })
     onMounted(() => {
         window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
         // Kein JS-Countdown mehr: CSS-Animation + @animationend ist die Wahrheit
@@ -303,8 +319,15 @@
     const ignoreNextAnim = ref(false)
 
     function onToastPointerDown(ev: PointerEvent) {
-        // verhindert Textauswahl / Touch-Callout auf Mobile
-        ev.preventDefault();
+        // Nur auf Touch/Pen native Selektion & Callout killen – Maus in Ruhe lassen
+        if (ev.pointerType === 'touch' || ev.pointerType === 'pen') {
+            ev.preventDefault()
+        }
+
+        // Rechts-/Mittelklick der Maus NICHT blocken (Right-Click öffnet Menü separat)
+        if (ev.pointerType === 'mouse' && (ev.button === 1 || ev.button === 2)) {
+            return
+        }
 
         const target = ev.target as HTMLElement
         if (target.closest('.reposition-controls')) return
@@ -844,15 +867,28 @@
 
     .toast-menu {
         position: absolute;
-        min-width: 180px;
+        /* Breite kommt jetzt dynamisch via :style – keine Mindestbreite mehr erzwingen */
+        min-width: 0;
         background: var(--bg-card, #fff);
         border: 1px solid rgba(0,0,0,.12);
         border-radius: 8px;
         box-shadow: 0 6px 18px rgba(0,0,0,.18);
         padding: .25rem;
         z-index: 10000;
+        /* Folge dem Toast-Content sauber */
+        left: 0;
+        right: 0;
     }
+    @media (max-width: 480px) {
+        .toast-menu {
+            /* leicht kleinere Innenabstände, damit nichts „fetter“ wirkt als der Toast */
+            padding: .2rem;
+        }
 
+            .toast-menu button {
+                padding: .45rem .55rem;
+            }
+    }
         .toast-menu button {
             width: 100%;
             text-align: left;
