@@ -1,7 +1,7 @@
 ﻿<template>
     <button class="btn-danger-ghost" type="button" @click="$emit('click')">
         <span class="btn-icon">🔄</span>
-        <slot>Zurücksetzen</slot>
+        <span class="btn-label"><slot>Zurücksetzen</slot></span>
     </button>
 </template>
 
@@ -20,7 +20,19 @@ defineEmits<{ (e: 'click'): void }>()
         font-size: .9rem;
         transition: border-color .2s, color .2s, transform .1s;
     }
+    @media (max-width: 600px) {
+        .btn-label {
+            display: none;
+        }
+        /* Handy: nur Emoji zeigen */
+        .btn-icon {
+            margin-right: 0;
+        }
 
+        .btn-danger-ghost {
+            padding: .5rem;
+        }
+    }
         .btn-danger-ghost:hover {
             border-color: #b91c1c;
             color: #7f1d1d;

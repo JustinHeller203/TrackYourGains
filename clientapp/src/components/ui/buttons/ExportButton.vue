@@ -1,7 +1,7 @@
 ﻿<template>
     <button class="btn-ghost" type="button" @click="$emit('click')">
         <span class="btn-icon">⬇️</span>
-        <slot>Exportieren</slot>
+        <span class="btn-label"><slot>Exportieren</slot></span>
     </button>
 </template>
 
@@ -20,7 +20,20 @@ defineEmits<{ (e: 'click'): void }>()
         font-size: .9rem;
         transition: border-color .2s, color .2s, transform .1s;
     }
-
+    @media (max-width: 600px) {
+        .btn-label {
+            display: none;
+        }
+        /* Handy: nur Emoji zeigen */
+        .btn-icon {
+            margin-right: 0;
+        }
+        /* zentriertes Icon */
+        .btn-ghost {
+            padding: .5rem;
+        }
+        /* kompakter ohne Text */
+    }
         .btn-ghost:hover {
             border-color: var(--accent-primary);
             color: var(--accent-primary);

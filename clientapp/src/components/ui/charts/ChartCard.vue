@@ -11,8 +11,15 @@
         </div>
 
         <div class="card-footer">
-            <ExportButton class="footer-btn" v-if="exportable" @click="$emit('export')" />
-            <ResetButton class="footer-btn" @click="$emit('reset')" />
+            <ExportButton class="footer-btn"
+                          v-if="exportable"
+                          title="Exportieren"
+                          aria-label="Exportieren"
+                          @click="$emit('export')" />
+            <ResetButton class="footer-btn"
+                         title="Zurücksetzen"
+                         aria-label="Zurücksetzen"
+                         @click="$emit('reset')" />
         </div>
     </div>
 </template>
@@ -142,5 +149,17 @@
         .card-footer {
             gap: 0.5rem;
         }
+    }
+
+    @media (max-width: 600px) {
+        .card-footer {
+            gap: .5rem;
+        }
+
+        .footer-btn {
+            min-height: 44px;
+            padding: .5rem;
+        }
+        /* komfortabler Touch-Target */
     }
 </style>
