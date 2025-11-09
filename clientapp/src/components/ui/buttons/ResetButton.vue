@@ -24,13 +24,20 @@ defineEmits<{ (e: 'click'): void }>()
         .btn-label {
             display: none;
         }
-        /* Handy: nur Emoji zeigen */
-        .btn-icon {
-            margin-right: 0;
-        }
 
         .btn-danger-ghost {
-            padding: .5rem;
+            padding: .5rem .6rem;
+        }
+
+            .btn-danger-ghost::after {
+                content: attr(data-short);
+                margin-left: .35rem;
+                font-size: .9rem;
+                line-height: 1;
+            }
+
+        .btn-icon {
+            margin-right: 0;
         }
     }
         .btn-danger-ghost:hover {

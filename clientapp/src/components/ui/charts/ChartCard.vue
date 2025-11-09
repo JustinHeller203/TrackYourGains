@@ -15,10 +15,12 @@
                           v-if="exportable"
                           title="Exportieren"
                           aria-label="Exportieren"
+                          data-short="Export"
                           @click="$emit('export')" />
             <ResetButton class="footer-btn"
                          title="Zurücksetzen"
                          aria-label="Zurücksetzen"
+                         data-short="Reset"
                          @click="$emit('reset')" />
         </div>
     </div>
@@ -149,17 +151,5 @@
         .card-footer {
             gap: 0.5rem;
         }
-    }
-
-    @media (max-width: 600px) {
-        .card-footer {
-            gap: .5rem;
-        }
-
-        .footer-btn {
-            min-height: 44px;
-            padding: .5rem;
-        }
-        /* komfortabler Touch-Target */
     }
 </style>

@@ -24,15 +24,22 @@ defineEmits<{ (e: 'click'): void }>()
         .btn-label {
             display: none;
         }
-        /* Handy: nur Emoji zeigen */
+        /* langen Text auf Handy ausblenden */
+        .btn-ghost {
+            padding: .5rem .6rem;
+        }
+            /* kompakter */
+            .btn-ghost::after {
+                content: attr(data-short); /* kurzes Label aus Attribut */
+                margin-left: .35rem;
+                font-size: .9rem;
+                line-height: 1;
+            }
+
         .btn-icon {
             margin-right: 0;
         }
-        /* zentriertes Icon */
-        .btn-ghost {
-            padding: .5rem;
-        }
-        /* kompakter ohne Text */
+        /* Icon zentriert neben Kurzlabel */
     }
         .btn-ghost:hover {
             border-color: var(--accent-primary);
