@@ -1,4 +1,4 @@
-<!--ChartCard.vue-->
+﻿<!--ChartCard.vue-->
 <template>
     <div class="chart-card">
         <h3 class="card-title">{{ title }}</h3>
@@ -58,15 +58,36 @@
 
     .card-footer {
         border-top: 1px solid var(--border-color);
-        padding: 0.75rem 0.75rem 0; /* etwas schmaler f�r Mobile */
+        padding: 0.75rem 0.75rem 0;
         display: flex;
-        justify-content: center; /* zentriert statt rechts */
+        justify-content: center;
         align-items: center;
-        gap: 0.75rem;
-        flex-wrap: wrap; /* erlaubt Zeilenumbruch */
+        gap: 0.5rem;
+        flex-wrap: nowrap; /* ⟵ niemals umbrechen */
+    }
+        .card-footer > * {
+            flex: 1 1 0; /* ⟵ zwei gleich breite Spalten */
+            min-width: 0; /* ⟵ verhindert Overflow durch Mindestbreiten */
+        }
+
+    @media (max-width: 380px) {
+        .card-footer {
+            gap: 0.4rem;
+        }
+        /* ⟵ engeres Gap auf Mini-Phones */
     }
 
-    /* Mobile: kleineres Gap, mehr Platz f�rs Chart */
+    @media (max-width: 340px) {
+        .card-footer > * {
+            flex: 1 1 0;
+        }
+        /* Falls die Button-Komponenten selbst Innenabstände haben, hilft schmalere Typo: */
+        .card-footer :where(button) {
+            padding-inline: .6rem;
+            font-size: .9rem;
+        }
+    }
+    /* Mobile: kleineres Gap, mehr Platz fürs Chart */
     @media (max-width: 420px) {
         .card-footer {
             gap: 0.5rem;
