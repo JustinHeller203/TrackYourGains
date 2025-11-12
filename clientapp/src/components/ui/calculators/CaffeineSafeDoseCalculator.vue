@@ -1,80 +1,75 @@
 <!-- src/components/ui/calculators/CaffeineSafeDoseCalculator.vue -->
 <template>
-  <div class="calculator-card">
-    <div class="card-header">
-      <h3 class="card-title">
-        {{ title || 'Koffein – sichere Dosis' }}
-        <InfoHover :text="infoText" />
-      </h3>
+    <div class="calculator-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                {{ title || 'Koffein – sichere Dosis' }}
+                <InfoHover :text="infoText" />
+            </h3>
 
-      <FavoriteButton
-        :active="isFavorite"
-        :titleActive="'Aus Favoriten entfernen'"
-        :titleInactive="'Zu Favoriten hinzufügen'"
-        @toggle="$emit('toggleFavorite')"
-      />
-    </div>
-
-    <div class="input-group">
-      <label>Gewicht ({{ unit === 'kg' ? 'kg' : 'lbs' }})</label>
-      <input
-        :value="weight ?? ''"
-        @input="onWeightInput"
-        type="number"
-        :placeholder="unit === 'kg' ? 'z.B. 75' : 'z.B. 165'"
-        class="edit-input"
-      />
-    </div>
-
-    <div class="input-group">
-      <label>Empfindlichkeit</label>
-      <select :value="sensitivity" @change="onSensitivityChange" class="edit-input">
-        <option value="low">Empfindlich (≈ 3 mg/kg)</option>
-        <option value="normal">Normal (≈ 4 mg/kg)</option>
-        <option value="high">Tolerant (≈ 6 mg/kg)</option>
-      </select>
-    </div>
-
-    <div class="input-group">
-      <label>Besonderheit</label>
-      <select :value="status" @change="onStatusChange" class="edit-input">
-        <option value="none">Keine</option>
-        <option value="pregnant">Schwanger/Stillend (≤ 200 mg/Tag)</option>
-      </select>
-    </div>
-
-    <CalculateButton v-if="!autoCalcEnabled" @click="$emit('calculate')" />
-
-    <div v-if="cafResult" class="result">
-      <div class="result-header">
-        <div>
-          <p><strong>Empfehlung (Einzeldosis):</strong> {{ cafResult.perDose.toFixed(0) }} mg</p>
-          <p><strong>Max. pro Tag:</strong> {{ cafResult.perDay.toFixed(0) }} mg</p>
+            <FavoriteButton :active="isFavorite"
+                            :titleActive="'Aus Favoriten entfernen'"
+                            :titleInactive="'Zu Favoriten hinzufügen'"
+                            @toggle="$emit('toggleFavorite')" />
         </div>
-        <CopyButton @click="$emit('copy')" />
-      </div>
-      <small class="hint">
-        Beispiel: Hat ein Drink 80&nbsp;mg pro Portion, kannst du so schnell überschlagen,
-        wie viele Portionen sinnvoll sind.
-      </small>
-    </div>
 
-    <div class="card-footer">
-      <div class="footer-spacer"></div>
-      <div class="footer-actions">
-          <ExportButton class="calc-footer-btn"
-                        title="Exportieren"
-                        aria-label="Exportieren"
-                        data-short="Export"
-                        @click="$emit('export')" />
-          <ResetButton class="calc-footer-btn"
-                       title="Zurücksetzen"
-                       aria-label="Zurücksetzen"
-                       data-short="Reset"
-                       @click="$emit('reset')" />
-      </div>
+        <div class="input-group">
+            <label>Gewicht ({{ unit === 'kg' ? 'kg' : 'lbs' }})</label>
+            <input :value="weight ?? ''"
+                   @input="onWeightInput"
+                   type="number"
+                   :placeholder="unit === 'kg' ? 'z.B. 75' : 'z.B. 165'"
+                   class="edit-input" />
+        </div>
+
+        <div class="input-group">
+            <label>Empfindlichkeit</label>
+            <select :value="sensitivity" @change="onSensitivityChange" class="edit-input">
+                <option value="low">Empfindlich (≈ 3 mg/kg)</option>
+                <option value="normal">Normal (≈ 4 mg/kg)</option>
+                <option value="high">Tolerant (≈ 6 mg/kg)</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Besonderheit</label>
+            <select :value="status" @change="onStatusChange" class="edit-input">
+                <option value="none">Keine</option>
+                <option value="pregnant">Schwanger/Stillend (≤ 200 mg/Tag)</option>
+            </select>
+        </div>
+
+        <CalculateButton v-if="!autoCalcEnabled" @click="$emit('calculate')" />
+
+        <div v-if="cafResult" class="result">
+            <div class="result-header">
+                <div>
+                    <p><strong>Empfehlung (Einzeldosis):</strong> {{ cafResult.perDose.toFixed(0) }} mg</p>
+                    <p><strong>Max. pro Tag:</strong> {{ cafResult.perDay.toFixed(0) }} mg</p>
+                </div>
+                <CopyButton @click="$emit('copy')" />
+            </div>
+            <small class="hint">
+                Beispiel: Hat ein Drink 80&nbsp;mg pro Portion, kannst du so schnell überschlagen,
+                wie viele Portionen sinnvoll sind.
+            </small>
+        </div>
+
+        <div class="card-footer">
+            <div class="footer-actions">
+                <ExportButton class="calc-footer-btn"
+                              title="Exportieren"
+                              aria-label="Exportieren"
+                              data-short="Export"
+                              @click="$emit('export')" />
+                <ResetButton class="calc-footer-btn"
+                             title="Zurücksetzen"
+                             aria-label="Zurücksetzen"
+                             data-short="Reset"
+                             @click="$emit('reset')" />
+            </div>
+        </div>
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">

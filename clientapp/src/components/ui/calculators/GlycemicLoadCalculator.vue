@@ -1,105 +1,94 @@
 <!-- src/components/ui/calculators/GlycemicLoadCalculator.vue -->
 <template>
-  <div class="calculator-card">
-    <div class="card-header">
-      <h3 class="card-title">
-        {{ title || 'Glykämische Last (GL) Rechner' }}
-        <InfoHover :text="infoText" />
-      </h3>
+    <div class="calculator-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                {{ title || 'Glykämische Last (GL) Rechner' }}
+                <InfoHover :text="infoText" />
+            </h3>
 
-      <FavoriteButton
-        :active="isFavorite"
-        :titleActive="'Aus Favoriten entfernen'"
-        :titleInactive="'Zu Favoriten hinzufügen'"
-        @toggle="$emit('toggleFavorite')"
-      />
+            <FavoriteButton :active="isFavorite"
+                            :titleActive="'Aus Favoriten entfernen'"
+                            :titleInactive="'Zu Favoriten hinzufügen'"
+                            @toggle="$emit('toggleFavorite')" />
+        </div>
+
+        <div class="input-group">
+            <label>Lebensmittel</label>
+            <input :value="food"
+                   @input="onFood"
+                   type="text"
+                   placeholder="z. B. Reis, Banane …"
+                   class="edit-input" />
+        </div>
+
+        <div class="input-group">
+            <label>Portionsgröße (g)</label>
+            <input :value="serving ?? ''"
+                   @input="onServing"
+                   type="number"
+                   min="0"
+                   step="any"
+                   placeholder="z. B. 150"
+                   class="edit-input" />
+        </div>
+
+        <div class="input-group">
+            <label>Kohlenhydrate pro 100 g (g)</label>
+            <input :value="carbs100 ?? ''"
+                   @input="onCarbs100"
+                   type="number"
+                   min="0"
+                   step="any"
+                   placeholder="z. B. 28"
+                   class="edit-input" />
+            <small class="hint">Falls bekannt: Ballaststoffe von den Gesamt-KH abziehen.</small>
+        </div>
+
+        <div class="input-group">
+            <label>Glykämischer Index (0–110)</label>
+            <input :value="gi ?? ''"
+                   @input="onGi"
+                   type="number"
+                   min="0"
+                   max="110"
+                   step="any"
+                   placeholder="z. B. 55"
+                   class="edit-input" />
+        </div>
+
+        <div class="input-group" v-if="carbs !== null">
+            <label>Verfügbare KH pro Portion (berechnet)</label>
+            <input :value="carbs!.toFixed(1) + ' g'" class="edit-input" disabled />
+        </div>
+
+        <CalculateButton v-if="!autoCalcEnabled" @click="$emit('calculate')" />
+
+        <div v-if="glResult !== null" class="result">
+            <div class="result-header">
+                <p>
+                    <strong>GL pro Portion:</strong> {{ glResult!.toFixed(1) }}
+                    <span v-if="glCategory">— Kategorie: {{ glCategory }}</span>
+                </p>
+                <CopyButton @click="$emit('copy')" />
+            </div>
+        </div>
+
+        <div class="card-footer">
+            <div class="footer-actions">
+                <ExportButton class="calc-footer-btn"
+                              title="Exportieren"
+                              aria-label="Exportieren"
+                              data-short="Export"
+                              @click="$emit('export')" />
+                <ResetButton class="calc-footer-btn"
+                             title="Zurücksetzen"
+                             aria-label="Zurücksetzen"
+                             data-short="Reset"
+                             @click="$emit('reset')" />
+            </div>
+        </div>
     </div>
-
-    <div class="input-group">
-      <label>Lebensmittel</label>
-      <input
-        :value="food"
-        @input="onFood"
-        type="text"
-        placeholder="z. B. Reis, Banane …"
-        class="edit-input"
-      />
-    </div>
-
-    <div class="input-group">
-      <label>Portionsgröße (g)</label>
-      <input
-        :value="serving ?? ''"
-        @input="onServing"
-        type="number"
-        min="0"
-        step="any"
-        placeholder="z. B. 150"
-        class="edit-input"
-      />
-    </div>
-
-    <div class="input-group">
-      <label>Kohlenhydrate pro 100 g (g)</label>
-      <input
-        :value="carbs100 ?? ''"
-        @input="onCarbs100"
-        type="number"
-        min="0"
-        step="any"
-        placeholder="z. B. 28"
-        class="edit-input"
-      />
-      <small class="hint">Falls bekannt: Ballaststoffe von den Gesamt-KH abziehen.</small>
-    </div>
-
-    <div class="input-group">
-      <label>Glykämischer Index (0–110)</label>
-      <input
-        :value="gi ?? ''"
-        @input="onGi"
-        type="number"
-        min="0"
-        max="110"
-        step="any"
-        placeholder="z. B. 55"
-        class="edit-input"
-      />
-    </div>
-
-    <div class="input-group" v-if="carbs !== null">
-      <label>Verfügbare KH pro Portion (berechnet)</label>
-      <input :value="carbs!.toFixed(1) + ' g'" class="edit-input" disabled />
-    </div>
-
-    <CalculateButton v-if="!autoCalcEnabled" @click="$emit('calculate')" />
-
-    <div v-if="glResult !== null" class="result">
-      <div class="result-header">
-        <p>
-          <strong>GL pro Portion:</strong> {{ glResult!.toFixed(1) }}
-          <span v-if="glCategory">— Kategorie: {{ glCategory }}</span>
-        </p>
-        <CopyButton @click="$emit('copy')" />
-      </div>
-    </div>
-
-    <div class="card-footer">
-      <div class="footer-spacer"></div>
-      <div class="footer-actions">
-          <ExportButton class="calc-footer-btn"
-                        title="Exportieren"
-                        aria-label="Exportieren"
-                        data-short="Export"
-                        @click="$emit('export')" />
-          <ResetButton class="calc-footer-btn"
-                       title="Zurücksetzen"
-                       aria-label="Zurücksetzen"
-                       data-short="Reset"
-                       @click="$emit('reset')" />
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">

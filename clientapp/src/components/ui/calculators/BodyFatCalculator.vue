@@ -68,7 +68,6 @@
         </div>
 
         <div class="card-footer">
-            <div class="footer-spacer"></div>
             <div class="footer-actions">
                 <ExportButton class="calc-footer-btn"
                               title="Exportieren"
@@ -158,7 +157,7 @@
 </script>
 
 <style scoped>
-    /* Basis-Styles; Tooltip-/Fav-Button-Styles kommen aus InfoHover/FavoriteButton */
+    /* Basis-Styles, Tooltip-/Fav-Button-Styles entfernt (kommen aus InfoHover/FavoriteButton) */
     .calculator-card {
         background: var(--bg-card);
         padding: 1.5rem;
@@ -194,20 +193,28 @@
         margin-bottom: 1rem;
     }
 
+        .input-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
     .edit-input {
         width: 100%;
-        padding: .75rem;
+        padding: 0.75rem;
         border: 1px solid var(--border-color);
         border-radius: 8px;
         background: var(--bg-secondary);
         color: var(--text-color);
-        font-size: .9rem;
+        font-size: 0.9rem;
         transition: border-color .3s, box-shadow .3s;
     }
 
         .edit-input:focus {
             border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99,102,241,.5);
+            box-shadow: 0 0 5px rgba(99, 102, 241, 0.5);
             outline: none;
         }
 
@@ -226,6 +233,28 @@
         margin-bottom: .35rem;
     }
 
+    .card-footer {
+        border-top: 1px solid var(--border-color);
+        padding: 0.75rem 1rem 0;
+        display: flex;
+        justify-content: center; /* zentriert den Button-Block */
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+    }
+
+    .footer-spacer {
+        flex: 1;
+    }
+
+    .footer-actions {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+        justify-content: center; /* Buttons innerhalb mittig */
+        margin: 0 auto; /* Block selbst mittig (falls irgendwas schiebt) */
+        width: auto; /* nicht volle Breite erzwingen */
+    }
+
     @media (max-width: 600px) {
         .footer-actions {
             display: grid;
@@ -239,29 +268,14 @@
             padding: .5rem .6rem;
         }
     }
-    .hint {
-        display: block;
-        margin-top: .25rem;
-        font-size: .8rem;
-        color: var(--text-secondary);
-    }
-
-    .card-footer {
-        border-top: 1px solid var(--border-color);
-        padding: .75rem 1rem 0;
-        display: flex;
-        justify-content: flex-end;
-        gap: .75rem;
-        margin-top: .75rem;
-    }
-
-    .footer-spacer {
-        flex: 1;
-    }
-
-    .footer-actions {
-        display: flex;
-        gap: .5rem;
-        flex-wrap: wrap;
+    @media (max-width: 600px) {
+        .footer-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .5rem;
+            width: 100%;
+            justify-items: center; /* Grid-Zellen-Inhalt mittig */
+        }
     }
 </style>
+

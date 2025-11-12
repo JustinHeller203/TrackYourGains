@@ -225,6 +225,14 @@
     }
     const menuStyle = ref<Record<string, string>>({})
 
+    const onGlobalFreeze = (e: CustomEvent<boolean>) => {
+        if (e.detail) {
+            pauseDismissTimer()
+        } else {
+            // nur fortsetzen, wenn dieser Toast nicht selbst „eingefroren“ ist
+            if (!isActuallyPaused.value) resumeDismissTimer()
+        }
+    }
     watch(showMenu, async (open) => {
         if (open) {
             await nextTick()
@@ -273,10 +281,9 @@
 
         showMenu.value = true
         pauseToasts()
+        window.dispatchEvent(new CustomEvent('toast-global-freeze', { detail: true }))
 
-        await nextTick()
-            ; (menuEl.value as any)?.__autoFlip?.update()
-
+        await nextTick(); (menuEl.value as any)?.__autoFlip?.update()
         requestAnimationFrame(() => { ignoreNextAnim.value = false })
     }
 
@@ -587,23 +594,32 @@
             localVisible.value = true
             autoClosing.value = false
             pauseToasts()
-            // Timer exakt einfrieren – NICHT neu auf volle Dauer setzen
-            pauseDismissTimer()
+            pauseDismissTimer()               // lokal
+            window.dispatchEvent(new CustomEvent('toast-global-freeze', { detail: true }))  // global
             window.addEventListener('pointerdown', onOutsidePointer, true)
             return
         }
-        // Menü ist zu
         window.removeEventListener('pointerdown', onOutsidePointer, true)
         isHolding.value = false
         if (!repositionMode.value) resumeToasts()
-        // Wenn die Zeit während des Freezes ablief → jetzt sofort schließen
+        window.dispatchEvent(new CustomEvent('toast-global-freeze', { detail: false }))   // global
         if (!isFrozen.value && !toastPaused.value && finishedWhileFrozen.value) {
             finishedWhileFrozen.value = false
             tryDismissAfterProgress()
         } else {
-            // sonst normal weiterlaufen lassen
             resumeDismissTimer()
         }
+    })
+
+    onMounted(() => {
+        window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+        window.addEventListener('toast-global-freeze', onGlobalFreeze as EventListener)
+    })
+
+    onBeforeUnmount(() => {
+        window.removeEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+        window.removeEventListener('toast-global-freeze', onGlobalFreeze as EventListener)
+        clearFallbackTimer()
     })
     watch(toastPaused, (paused) => {
         if (!paused && finishedWhileFrozen.value && !isFrozen.value) {

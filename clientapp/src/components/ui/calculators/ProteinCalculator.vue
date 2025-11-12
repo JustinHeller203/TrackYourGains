@@ -78,20 +78,17 @@
         </div>
 
         <div class="card-footer">
-            <div class="footer-spacer"></div>
             <div class="footer-actions">
-                <div class="footer-actions">
-                    <ExportButton class="calc-footer-btn"
-                                  title="Exportieren"
-                                  aria-label="Exportieren"
-                                  data-short="Export"
-                                  @click="$emit('export')" />
-                    <ResetButton class="calc-footer-btn"
-                                 title="Zurücksetzen"
-                                 aria-label="Zurücksetzen"
-                                 data-short="Reset"
-                                 @click="$emit('reset')" />
-                </div>
+                <ExportButton class="calc-footer-btn"
+                              title="Exportieren"
+                              aria-label="Exportieren"
+                              data-short="Export"
+                              @click="$emit('export')" />
+                <ResetButton class="calc-footer-btn"
+                             title="Zurücksetzen"
+                             aria-label="Zurücksetzen"
+                             data-short="Reset"
+                             @click="$emit('reset')" />
             </div>
         </div>
     </div>

@@ -87,6 +87,13 @@
         overflow: hidden;
     }
 
+    @media (max-width: 810px) {
+        .card {
+            flex: 0 1 calc(50% - var(--cards-gap, 1rem));
+            margin-bottom: var(--cards-row-gap, 0.2rem); /* weniger vertikaler Abstand */
+        }
+    }
+
     /* Top-Stripe mit animierter Gradient-Bewegung */
     .card--crazy .accent {
         position: absolute;

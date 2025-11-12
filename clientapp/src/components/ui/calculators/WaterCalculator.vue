@@ -60,7 +60,6 @@
         </div>
 
         <div class="card-footer">
-            <div class="footer-spacer"></div>
             <div class="footer-actions">
                 <ExportButton class="calc-footer-btn"
                               title="Exportieren"

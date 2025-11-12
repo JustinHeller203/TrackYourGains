@@ -1037,7 +1037,8 @@
     const suppressToasts = ref(false)
     let toastReleaseTimer: ReturnType<typeof setTimeout> | null = null
     // -------- Journal-View + Tages-Cards (sauber) --------
-
+    const prevWeightHistory = ref<WeightEntry[] | null>(null)
+    const prevWorkoutsSnapshot = ref<Workout[] | null>(null)
     const journalSearch = ref<string>('')
     const journalType = ref<'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'>('alle')
 
@@ -1760,7 +1761,11 @@
 
         if (weightChart) weightChart.destroy()
         updateWeightChart()
-        addToast('Gewichtsverlauf zurückgesetzt', 'default')
+
+        // Toasts ggf. noch unterdrückt? Sofort freigeben.
+        releaseToasts()
+        // Erfolgs-Toast
+        addToast('Gewichtsverlauf zurückgesetzt', 'add')
     }
 
     const resetWorkoutStats = () => {
@@ -1768,7 +1773,12 @@
         localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
         if (workoutChart) workoutChart.destroy()
         updateWorkoutChart()
-        addToast('Trainingsstatistik zurückgesetzt', 'default')
+
+        // Toasts ggf. noch unterdrückt? Sofort freigeben.
+        releaseToasts()
+
+        // Erfolgs-Toast
+        addToast('Trainingsstatistik zurückgesetzt', 'add')
     }
     const validateCalories = (): string[] => {
         const errors: string[] = [];
@@ -3166,7 +3176,8 @@ Notiz: ${e.note ?? '-'}\n`
 
     const addToast = (
         message: string,
-        type: 'delete' | 'add' | 'save' | 'timer' | 'load' | 'reset' | 'default' = 'load'
+        type: 'delete' | 'add' | 'save' | 'timer' | 'load' | 'reset' | 'default' = 'load',
+        action?: { label: string; handler: () => void }
     ) => {
         if (!toastsEnabled.value) return
         if (suppressToasts.value) return
@@ -3191,10 +3202,11 @@ Notiz: ${e.note ?? '-'}\n`
             reset: 'toast-reset',
             default: 'toast-default',
         } as const
-        const mapped = types[type]
-        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false }
 
-        // Autoclose nur, wenn weder Overlay noch Hold aktiv
+        const mapped = types[type]
+        // ➕ Action an das Toast anhängen (Toast.vue zeigt Button, wenn vorhanden)
+        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, action }
+
         scheduleToastTimer()
     }
 
