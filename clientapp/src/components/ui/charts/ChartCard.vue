@@ -6,34 +6,69 @@
         <!-- optionaler Subtext -->
         <slot name="subtitle" />
 
-        <div class="chart-container">
+        <div v-if="!isEmpty" class="chart-container">
             <slot />
         </div>
 
-        <div class="card-footer">
-            <ExportButton class="footer-btn"
-                          v-if="exportable"
-                          title="Exportieren"
-                          aria-label="Exportieren"
+        <div v-if="!isEmpty" class="card-footer">
+            <ExportButton v-if="exportable"
+                          class="footer-btn"
+                          :title="useShortLabels ? 'Export' : 'Exportieren'"
+                          :aria-label="useShortLabels ? 'Export' : 'Exportieren'"
                           data-short="Export"
-                          @click="$emit('export')" />
+                          @click="$emit('export')">
+                {{ useShortLabels ? 'Export' : 'Exportieren' }}
+            </ExportButton>
+
             <ResetButton class="footer-btn"
-                         title="Zurücksetzen"
-                         aria-label="Zurücksetzen"
+                         :title="useShortLabels ? 'Reset' : 'Zurücksetzen'"
+                         :aria-label="useShortLabels ? 'Reset' : 'Zurücksetzen'"
                          data-short="Reset"
-                         @click="$emit('reset')" />
+                         @click="$emit('reset')">
+                {{ useShortLabels ? 'Reset' : 'Zurücksetzen' }}
+            </ResetButton>
+        </div>
+
+        <div v-else class="empty-state">
+            Hier werden deine Statistiken angezeigt.
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+    import { ref, computed, onMounted, onUnmounted } from 'vue'
     import ResetButton from '@/components/ui/buttons/ResetButton.vue'
     import ExportButton from '@/components/ui/buttons/ExportButton.vue'
 
+    const props = defineProps<{
+        title: string
+        exportable?: boolean
+        hasData?: boolean
+    }>()
 
-    defineProps<{ title: string; exportable?: boolean }>()
     defineEmits<{ (e: 'export'): void; (e: 'reset'): void }>()
+
+    const useShortLabels = ref(false)
+
+    const updateLabelMode = () => {
+        if (typeof window === 'undefined') return
+        const w = window.innerWidth
+        useShortLabels.value = w <= 810 && w >= 687
+    }
+
+    const isEmpty = computed(() => props.hasData === false)
+
+    onMounted(() => {
+        updateLabelMode()
+        window.addEventListener('resize', updateLabelMode)
+    })
+
+    onUnmounted(() => {
+        window.removeEventListener('resize', updateLabelMode)
+    })
 </script>
+
+
 
 <style scoped>
     .chart-card {
@@ -64,6 +99,7 @@
         height: 300px;
         margin-top: 1rem;
     }
+
     .footer-btn {
         display: inline-flex;
         justify-content: center;
@@ -78,6 +114,7 @@
         word-break: keep-all; /* keine hässlichen Worttrennungen */
         font-size: 0.95rem;
     }
+
     @media (max-width: 420px) {
         .card-footer {
             gap: 0.5rem;
@@ -115,6 +152,7 @@
             font-size: clamp(.8rem, 4vw, .9rem);
         }
     }
+
     .card-footer {
         border-top: 1px solid var(--border-color);
         padding: 0.75rem 0.75rem 0;
@@ -124,6 +162,7 @@
         align-items: stretch; /* Buttons gleiche Höhe */
         justify-items: stretch;
     }
+
         .card-footer > * {
             flex: 1 1 0; /* ⟵ zwei gleich breite Spalten */
             min-width: 0; /* ⟵ verhindert Overflow durch Mindestbreiten */
@@ -152,4 +191,17 @@
             gap: 0.5rem;
         }
     }
+
+    .empty-state {
+        height: 300px;
+        margin-top: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        padding: 0 1rem;
+    }
+
 </style>

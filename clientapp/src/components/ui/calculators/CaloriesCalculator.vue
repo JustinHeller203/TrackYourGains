@@ -86,7 +86,7 @@
         </div>
 
         <!-- bleibt für dein updateMacroChart() -->
-        <div class="chart-container">
+        <div v-if="result" class="chart-container">
             <canvas id="macroChart"></canvas>
         </div>
 
