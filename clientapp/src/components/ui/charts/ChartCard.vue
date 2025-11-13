@@ -15,17 +15,17 @@
                           class="footer-btn"
                           :title="useShortLabels ? 'Export' : 'Exportieren'"
                           :aria-label="useShortLabels ? 'Export' : 'Exportieren'"
-                          data-short="Export"
+                          :data-short="iconOnly ? '' : 'Export'"
                           @click="$emit('export')">
-                {{ useShortLabels ? 'Export' : 'Exportieren' }}
+                {{ iconOnly ? '' : (useShortLabels ? 'Export' : 'Exportieren') }}
             </ExportButton>
 
             <ResetButton class="footer-btn"
                          :title="useShortLabels ? 'Reset' : 'Zurücksetzen'"
                          :aria-label="useShortLabels ? 'Reset' : 'Zurücksetzen'"
-                         data-short="Reset"
+                         :data-short="iconOnly ? '' : 'Reset'"
                          @click="$emit('reset')">
-                {{ useShortLabels ? 'Reset' : 'Zurücksetzen' }}
+                {{ iconOnly ? '' : (useShortLabels ? 'Reset' : 'Zurücksetzen') }}
             </ResetButton>
         </div>
 
@@ -49,11 +49,13 @@
     defineEmits<{ (e: 'export'): void; (e: 'reset'): void }>()
 
     const useShortLabels = ref(false)
+    const iconOnly = ref(false)
 
     const updateLabelMode = () => {
         if (typeof window === 'undefined') return
         const w = window.innerWidth
         useShortLabels.value = w <= 810 && w >= 687
+        iconOnly.value = w <= 350
     }
 
     const isEmpty = computed(() => props.hasData === false)
@@ -67,8 +69,6 @@
         window.removeEventListener('resize', updateLabelMode)
     })
 </script>
-
-
 
 <style scoped>
     .chart-card {
@@ -203,5 +203,4 @@
         font-size: 0.95rem;
         padding: 0 1rem;
     }
-
 </style>

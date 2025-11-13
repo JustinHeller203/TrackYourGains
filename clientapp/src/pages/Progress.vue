@@ -44,6 +44,7 @@
             <!-- ===================== STATISTIKEN TAB ===================== -->
             <div v-show="activeTab === 'stats'" class="progress-charts">
                 <ChartCard title="Gewichtsverlauf"
+                           :hasData="hasWeightStats"
                            exportable
                            @export="openDownloadPopup('weightStats')"
                            @reset="resetWeightStats">
@@ -51,6 +52,7 @@
                 </ChartCard>
 
                 <ChartCard title="Trainingsstatistik"
+                           :hasData="hasWorkoutStats"
                            exportable
                            @export="openDownloadPopup('workoutStats')"
                            @reset="resetWorkoutStats">
@@ -60,7 +62,6 @@
                     <canvas id="workoutChart" class="chart-canvas"></canvas>
                 </ChartCard>
             </div>
-
             <!-- ======= FILTER-LEISTE (nur für Rechner) ======= -->
             <div v-show="activeTab === 'calculators'" class="calc-filterbar">
                 <label class="calc-filterlabel">Kategorie</label>
