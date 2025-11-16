@@ -13,4 +13,9 @@ export interface Toast {
     emoji: string;
     type: ToastType;
     exiting: boolean;
+    action?: ToastAction;
+}
+export interface ToastAction {
+    label: string;
+    handler: () => void;
 }

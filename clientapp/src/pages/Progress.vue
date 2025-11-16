@@ -62,6 +62,7 @@
                     <canvas id="workoutChart" class="chart-canvas"></canvas>
                 </ChartCard>
             </div>
+
             <!-- ======= FILTER-LEISTE (nur für Rechner) ======= -->
             <div v-show="activeTab === 'calculators'" class="calc-filterbar">
                 <label class="calc-filterlabel">Kategorie</label>
@@ -667,6 +668,10 @@
                      @confirm="confirmDownload"
                      @cancel="closeDownloadPopup" />
 
+        <!-- Validation Popup-->
+        <ValidationPopup :show="validationErrorMessages.length > 0"
+                         :errors="validationErrorMessages"
+                         @close="clearValidation" />
         <!-- Toast -->
         <Toast v-if="toast"
                :toast="toast"
@@ -705,6 +710,7 @@
     import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
     import ProgressEntryModal from '@/components/ui/popups/ProgressEntryModal.vue'
     import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
+    import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
 
     // Interfaces
     interface PlanExercise {
@@ -728,775 +734,288 @@
         name: string;
         calories: number;
     }
-    // oben bei den Refs:
-    const newProgressSetDetails = ref<Array<{ weight: number | null; reps: number | null }>>([])
-    const toastHeld = ref(false);
-    const toastHovering = ref(false); // ⟵ neu
-    const toastWrap = ref<HTMLElement | null>(null)
-    const toastOffset = ref<{ x: number; y: number } | null>(null)
-    const TOAST_OFFSET_KEY = 'ui_toast_offset_v2'
 
-    function parseTranslate(el: HTMLElement | null): { x: number; y: number } {
-        if (!el) return { x: 0, y: 0 }
-        const style = getComputedStyle(el)
-        const tr = style.transform
-        if (!tr || tr === 'none') return { x: 0, y: 0 }
-        // matrix(a,b,c,d,tx,ty) oder matrix3d(...)
-        if (tr.startsWith('matrix3d(')) {
-            const m = tr.slice(9, -1).split(',').map(Number)
-            return { x: m[12] || 0, y: m[13] || 0 }
-        } else if (tr.startsWith('matrix(')) {
-            const m = tr.slice(7, -1).split(',').map(Number)
-            return { x: m[4] || 0, y: m[5] || 0 }
-        }
-        return { x: 0, y: 0 }
+    interface DropSetEntry {
+        weight: number;
+        reps: number
     }
-
-    function applyTranslate(el: HTMLElement | null, x: number, y: number) {
-        if (!el) return
-        // Bewahre evtl. bestehende scale/rotate nicht auf – Toast nutzt hier nur translate.
-        el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
-    }
-
-    function loadToastOffset() {
-        try {
-            const raw = localStorage.getItem(TOAST_OFFSET_KEY)
-            if (!raw) return
-            const { x, y } = JSON.parse(raw)
-            if (Number.isFinite(x) && Number.isFinite(y)) {
-                toastOffset.value = { x, y }
-                // Anwenden auf Wrapper (der nextTick sichtbar ist)
-                requestAnimationFrame(() => applyTranslate(toastWrap.value as HTMLElement, x, y))
-            }
-        } catch { /* ignore */ }
-    }
-
-    function saveToastOffsetFromDom() {
-        const el = toastWrap.value as HTMLElement | null
-        if (!el) return
-        const { x, y } = parseTranslate(el)
-        toastOffset.value = { x, y }
-        localStorage.setItem(TOAST_OFFSET_KEY, JSON.stringify({ x, y }))
-    }
-    function clearToastTimer() {
-        if (toastTimeout) {
-            clearTimeout(toastTimeout);
-            toastTimeout = null;
-        }
-    }
-
-    function scheduleToastTimer() {
-        clearToastTimer();
-        if (!toast.value) return;
-        if (overlayOpen.value || toastHeld.value || toastHovering.value) return;
-        toastTimeout = setTimeout(() => {
-            if (!overlayOpen.value && !toastHeld.value && !toastHovering.value) startToastExit();
-        }, TOAST_DURATION_MS);
-    }
-
-    function onToastHover(hover: boolean) {
-        toastHovering.value = hover;
-        if (hover) {
-            // Hover = pausieren, auch ohne gedrückt zu halten
-            clearToastTimer();
-            toastHeld.value = true;
-        } else {
-            // Hover verlassen = ggf. Timer wieder an
-            toastHeld.value = false;
-            scheduleToastTimer();
-        }
-    }
-    function onToastPointerDown(e: PointerEvent) {
-        if (!toast.value) return;
-        toastHeld.value = true;
-        clearToastTimer();
-    }
-    function onToastPointerUp() {
-        if (!toast.value) return;
-        // Nach Loslassen: wenn weiterhin Hover, bleibt pausiert; sonst Timer fortsetzen
-        toastHeld.value = toastHovering.value;
-        // Position 1 Frame NACH dem Release einlesen (damit das Dragging final ist)
-        requestAnimationFrame(() => saveToastOffsetFromDom());
-        if (!toastHovering.value) scheduleToastTimer();
-    }
-
-    const TOAST_DURATION_MS = 3000;
-
-    function onToastContextOpen() {
-        if (!toast.value) return;
-        toastHeld.value = true;
-        clearToastTimer();
-    }
-    // Refs
-    const showProgressExtras = ref(false)
-    const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
-
-    const { unit, kgToDisplay, displayToKg, formatWeight } = useUnits()
-    const trainingPlans = ref<TrainingPlan[]>([]);
-    const weightHistory = ref<WeightEntry[]>([]);
-    const workouts = ref<Workout[]>([]);
-    const meals = ref<Meal[]>([]);
-    // ▼ Erkennung nur über den Namen der gewählten Übung
-    type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
-    const isCardioName = (name: string) => {
-        const n = (name || '').toLowerCase()
-        const kw = [
-            'lauf', 'jogg', 'run', 'treadmill',
-            'rad', 'fahrrad', 'bike', 'spinning', 'cycling',
-            'row', 'rudern', 'ergometer',
-            'crosstrainer', 'ellip',
-            'seilspring', 'rope',
-            'treppen', 'stairs',
-            'schwimm', 'walk', 'hike'
-        ]
-        return kw.some(k => n.includes(k))
-    }
-    // ▼ neu
-    const isStretchName = (name: string) => {
-        const n = (name || '').toLowerCase()
-        const kw = [
-            'dehn', 'stretch', 'mobil', 'mobility', 'beweglich',
-            'yoga', 'faszien', 'smr', 'roll', 'piriformis',
-            'hamstring', 'calf stretch', 'hip opener'
-        ]
-        return kw.some(k => n.includes(k))
-    }
-
-    const detectedInputType = computed<ExerciseType>(() =>
-        isStretchName(currentExercise.value) ? 'dehnung'
-            : isCardioName(currentExercise.value) ? 'ausdauer'
-                : 'kraft'
-    )
-    const externalOverlayOpen = ref(false)
-    const bodyBlocked = ref(false)
-
-    const overlayOpen = computed(() =>
-        showProgressPopup.value
-        || showWeightPopup.value
-        || showGoalPopup.value
-        || showDownloadPopup.value
-        || showPlanProgressPopup.value
-        || validationErrorMessages.value.length > 0
-        || externalOverlayOpen.value
-        || bodyBlocked.value
-    )
-
-    let _globalOverlayDepth = 0
-    function onGlobalOverlayOpen() {
-        _globalOverlayDepth++
-        if (!externalOverlayOpen.value) externalOverlayOpen.value = true
-        clearToastTimer()
-    }
-    function onGlobalOverlayClose() {
-        _globalOverlayDepth = Math.max(0, _globalOverlayDepth - 1)
-        if (_globalOverlayDepth === 0) {
-            externalOverlayOpen.value = false
-            scheduleToastTimer()
-        }
-    }
-    // Tabwechsel: Timer pausieren/wieder aufnehmen
-    function onVisibility() {
-        if (document.hidden) clearToastTimer()
-        else scheduleToastTimer()
-    }
-
-    onMounted(() => {
-        window.addEventListener('ui:overlay-open', onGlobalOverlayOpen as any)
-        window.addEventListener('ui:overlay-close', onGlobalOverlayClose as any)
-        document.addEventListener('visibilitychange', onVisibility)
-    })
-
-    onUnmounted(() => {
-        window.removeEventListener('ui:overlay-open', onGlobalOverlayOpen as any)
-        window.removeEventListener('ui:overlay-close', onGlobalOverlayClose as any)
-        document.removeEventListener('visibilitychange', onVisibility)
-    })
-    onMounted(() => {
-        document.addEventListener('pointerdown', onToastPointerDown, { capture: true })
-        document.addEventListener('pointerup', onToastPointerUp, { capture: true })
-        document.addEventListener('contextmenu', onToastContextOpen, { capture: true })
-    })
-    function onToastDismiss(id: number) {
-        if (toast.value?.id === id) {
-            toast.value = null
-        }
-    }
-
-    const glFood = ref<string>('')
-    const glServing = ref<number | null>(null)
-    const glCarbs100 = ref<number | null>(null)
-    const glGi = ref<number | null>(null)
-    const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
-
-    const glCarbs = computed<number | null>(() => {
-        if (glServing.value == null || glCarbs100.value == null) return null
-        return (Number(glCarbs100.value) * Number(glServing.value)) / 100
-    })
-
-    const glResult = ref<number | null>(null)
-    const glCategory = computed<string>(() => {
-        if (glResult.value == null) return ''
-        if (glResult.value < 10) return 'niedrig'
-        if (glResult.value < 20) return 'mittel'
-        return 'hoch'
-    })
-    const progressModalEl = ref<HTMLElement | null>(null)
-    // Kraft/Calisthenics
-    const newProgressTempo = ref<string>('')
-    const newProgressRestSeconds = ref<number | null>(null)
-
-    // Ausdauer
-    const newProgressAvgHr = ref<number | null>(null)
-    const newProgressCalories = ref<number | null>(null)
-    const newProgressPace = ref<string>('')
-    const newProgressHrZone = ref<number | null>(null)
-    const newProgressBorg = ref<number | null>(null)
-
-    // Dehnung
-    const newProgressPainFree = ref<number | null>(null)
-    const newProgressMovementQuality = ref<number | null>(null)
-    const newProgressEquipment = ref<string>('')
-    const newProgressEquipmentCustom = ref<string>('')
-    const newProgressSide = ref<'' | 'links' | 'rechts' | 'beidseitig'>('')
-
-    const newWeight = ref<number | null>(null);
-    const goal = ref<number | null>(null);
-    const newGoal = ref<number | null>(null);
-    const showWeightPopup = ref(false);
-    const showGoalPopup = ref(false);
-    const showProgressPopup = ref(false);
-    const showDownloadPopup = ref(false);
-    const validationErrorMessages = ref<string[]>([]);
-    const toast = ref<ToastModel | null>(null);
-    const weightInput = ref<HTMLInputElement | null>(null);
-    const goalInput = ref<HTMLInputElement | null>(null);
-    const downloadFormat = ref<'html' | 'csv' | 'json' | 'pdf' | 'txt'>('html');
-    const downloadCalculator = ref<string | null>(null);
-    const downloadPlanId = ref<string | null>(null);
-    const searchQuery = ref<string>('');
-    const currentPlanId = ref<string | null>(null);
-    const currentExercise = ref<string>('');
-    const newProgressWeight = ref<number | null>(null);
-    const newProgressReps = ref<number | null>(null);
-    const newProgressSets = ref<number | null>(null);
-    const newProgressNote = ref<string>('');
-    let toastId = 0;
-    let toastTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    const activeTab = ref<'stats' | 'calculators' | 'plans'>('stats');
-
-    // Calculator Data
-    const bmiGender = ref<'male' | 'female'>('male');
-    const bmiWeight = ref<number | null>(null);
-    const bmiHeight = ref<number | null>(null);
-    const bmiResult = ref<{ value: number; category: string } | null>(null);
-    const proteinActivity = ref<'low' | 'moderate' | 'high'>('low')
-    const proteinMeals = ref<number | null>(null)
-
-    const calorieAge = ref<number | null>(null);
-    const calorieGender = ref<'male' | 'female'>('male');
-    const calorieWeight = ref<number | null>(null);
-    const calorieHeight = ref<number | null>(null);
-    const calorieActivity = ref<string>('1.2');
-    const calorieGoal = ref<number>(0);
-    const calorieResult = ref<{
-        total: number;
-        macros: { carbs: number; protein: number; fat: number };
-    } | null>(null);
-    const proteinWeight = ref<number | null>(null)
-    const proteinGoal = ref<'maintain' | 'bulk' | 'cut'>('maintain')
-    const proteinResult = ref<{ recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null>(null)
-
-    // Abgeleitete Liste für das Template-Header-Check
-    const favoriteCalcs = computed(() => Array.from(favoriteCalculators.value));
-    const cafWeight = ref<number | null>(null)
-    const cafSensitivity = ref<'low' | 'normal' | 'high'>('normal')
-    const cafStatus = ref<'none' | 'pregnant'>('none')
-    const cafResult = ref<{ perDose: number; perDay: number } | null>(null)
-
-    const isFavorite = (id: string) => isFavCalculator(id);
-    const toggleFavorite = (id: string) => toggleFavCalculator(id);
-
-    const oneRmExercise = ref<string>('');
-    const oneRmWeight = ref<number | null>(null);
-    const oneRmReps = ref<number | null>(null);
-    const oneRmResult = ref<number | null>(null);
-
-    const bodyFatGender = ref<'male' | 'female'>('male');
-    const bodyFatWaist = ref<number | null>(null);
-    const bodyFatNeck = ref<number | null>(null);
-    const bodyFatHip = ref<number | null>(null);
-    const bodyFatHeight = ref<number | null>(null);
-    const bodyFatResult = ref<number | null>(null);
-    const toastsEnabled = ref(true);
-
-    const ffmiWeight = ref<number | null>(null);
-    const ffmiHeight = ref<number | null>(null);
-    const ffmiBodyFat = ref<number | null>(null);
-    const ffmiResult = ref<{ value: number; category: string } | null>(null);
-
-    const suppressToasts = ref(false)
-    let toastReleaseTimer: ReturnType<typeof setTimeout> | null = null
-    // -------- Journal-View + Tages-Cards (sauber) --------
-    const prevWeightHistory = ref<WeightEntry[] | null>(null)
-    const prevWorkoutsSnapshot = ref<Workout[] | null>(null)
-    const journalSearch = ref<string>('')
-    const journalType = ref<'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'>('alle')
-
-    // Ein sichtbares Limit für beide Ansichten (Journal + Cards)
-    const visibleDays = ref(7)
-    const expandedDays = ref<Set<string>>(new Set())
-
-
-    const TYPE_LABEL: Record<WorkoutType, string> = {
-        kraft: 'Kraft',
-        calisthenics: 'Calisthenics',
-        dehnung: 'Dehnung',
-        ausdauer: 'Cardio',
-    }
-
-    const formatDayLong = (yyyyMMdd: string) => {
-        const [y, m, d] = yyyyMMdd.split('-').map(Number)
-        return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString('de-DE', {
-            weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric'
-        })
-    }
-    const maxDropsets = (entries: Workout[]) =>
-        Math.max(0, ...entries.map(e => e.dropsets?.length ?? 0))
-
-    const padDropsets = (
-        drops: Array<{ weight: number; reps: number }> | undefined,
-        n: number
-    ) => {
-        const arr = drops ? [...drops] : []
-        while (arr.length < n) arr.push(undefined as any)
-        return arr
-    }
-
-    function toggleDay(day: string) {
-        const next = new Set(expandedDays.value)
-        next.has(day) ? next.delete(day) : next.add(day)
-        expandedDays.value = next
-    }
-    function onToastMenuOpen() {
-        if (!toast.value) return;
-        toastHeld.value = true;     // Menü offen => Toast bleibt
-        clearToastTimer();
-    }
-    function onToastMenuClose() {
-        toastHeld.value = false;    // Menü zu => wieder normaler Autoclose
-        scheduleToastTimer();
-    }
-
-    function onToastTimerEnd() {
-        if (!toast.value) return
-        // falls das Overlay offen ist, der Nutzer hält/hovert: NICHT schließen
-        if (overlayOpen.value || toastHeld.value || toastHovering.value) return
-        // internes Timeout sicher beenden und sofort den Exit fahren
-        clearToastTimer()
-        startToastExit()
-    }
-    const clearValidation = () => {
-        validationErrorMessages.value = []
-    }
-    // ---- Map: Tag -> Einträge (nur aktueller Plan) ----
-    const entriesByDay = computed(() => {
-        const map = new Map<string, Workout[]>()
-        if (!currentPlanId.value) return map
-        for (const w of getProgressForPlan(currentPlanId.value)) {
-            const day = (w.date || '').slice(0, 10)
-            if (!map.has(day)) map.set(day, [])
-            map.get(day)!.push(w)
-        }
-        // absteigend nach Datum
-        return new Map([...map.entries()].sort((a, b) => b[0].localeCompare(a[0])))
-    })
-    function gridCols(n: number, extras?: { tempo: boolean; rest: boolean }) {
-        const base = ['0.7fr', '1fr', '0.9fr']
-        const ds = Array.from({ length: n }, () => ['1fr', '0.9fr']).flat()
-        const extraCols: string[] = []
-        if (extras?.tempo) extraCols.push('minmax(100px, 0.9fr)')
-        if (extras?.rest) extraCols.push('minmax(90px, 0.7fr)')
-        return [...base, ...ds, ...extraCols].join(' ')
-    }
-    // ---- Kategorie-Zusammenfassung für die Cards ----
-    const summarizeCategories = (items: Workout[]): string => {
-        const types = new Set<WorkoutType>(items.map(w => (w.type ?? 'kraft') as WorkoutType))
-        const labels = [...types].map(t => TYPE_LABEL[t])
-        if (labels.length === 1) return labels[0]
-        if (labels.length > 3) return 'Gemischt'
-        return labels.join(' + ')
-    }
-
-    type DayCard = { day: string; uniqueExercises: number }
-
-    const dayCards = computed<DayCard[]>(() => {
-        return [...entriesByDay.value.entries()].map(([day, items]) => {
-            const uniqueExercises = new Set(items.map(i => i.exercise)).size
-            return { day, uniqueExercises }
-        })
-    })
-
-
-    const visibleDayCards = computed(() => dayCards.value.slice(0, visibleDays.value))
-
-    // ⬇️ direkt oberhalb/bei aggregateDay einfügen
-    type JournalGroup = {
-        exercise: string
-        entries: Workout[]      // bereits auf "Sätze" expandiert
-        note: string | null
-    }
-    // Robust in Zahl umwandeln (komma erlaubt). Ungültig => null
-    const toNum = (v: unknown): number | null => {
-        if (v == null) return null
-        const n = Number(String(v).replace(',', '.').trim())
-        return Number.isFinite(n) ? n : null
-    }
-
-    // Gruppiert einen Tag nach Übung und expandiert die Sätze zu einzelnen Zeilen
-    function aggregateDay(items: Workout[]): JournalGroup[] {
-        // Für die Tabelle zeigen wir nur Kraft/Calisthenics an (kein Cardio/Dehnung in der Set-Tabelle)
-        const strength = items.filter(it => (it.type ?? 'kraft') === 'kraft' || it.type === 'calisthenics')
-
-        const byExercise = new Map<string, {
-            entries: Workout[]; notes: string[]
-        }>()
-        for (const it of strength) {
-            const key = it.exercise || 'Unbenannte Übung'
-            if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
-
-            // Sätze in einzelne Zeilen aufdröseln
-            const setCount = Math.max(1, Number(it.sets ?? 1))
-            for (let s = 0; s < setCount; s++) {
-                const detail = it.setDetails?.[s]
-                byExercise.get(key)!.entries.push({
-                    ...it,
-                    sets: 1,
-                    weight: detail ? detail.weight : it.weight,
-                    reps: detail ? detail.reps : it.reps,
-                })
-            }
-
-            if (it.note) byExercise.get(key)!.notes.push(it.note)
-        }
-
-        const groups: JournalGroup[] = []
-        for (const [exercise, { entries, notes }] of byExercise.entries()) {
-            groups.push({
-                exercise,
-                entries,
-                note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
-            })
-        }
-
-        // alphabetisch nach Übungsnamen
-        return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
-    }
-    // Nur den Editor schließen; ggf. Fortschritt-Modal wieder öffnen
-    const cancelProgressEdit = () => {
-        // immer Edit-Mode und Fehler zurücksetzen
-        editingEntry.value = null
-        validationErrorMessages.value = []
-        showProgressExtras.value = false
-
-        const planIdForReopen = reopenPlanProgressAfterSave.value ? currentPlanId.value : null
-        closeProgressPopup() // räumt den Editor-State auf
-
-        if (planIdForReopen) {
-            currentPlanId.value = planIdForReopen
-            showPlanProgressPopup.value = true
-            reopenPlanProgressAfterSave.value = false
-        }
-    }
-
-    const editLatestEntryForDay = (day: string) => {
-        if (!currentPlanId.value) return
-        const items = getProgressForPlan(currentPlanId.value)
-            .filter(w => (w.date || '').slice(0, 10) === day)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-        if (!items.length) {
-            showToast({ message: 'Kein Eintrag für diesen Tag', type: 'default' })
-            return
-        }
-        editProgressEntry(currentPlanId.value, items[0])
-    }
-
-    // (Optional) komplettes Journal (nach Tag, mit Suche/Filter)
-    type JournalDay = { day: string; groups: JournalGroup[] }
-
-    const journalDays = computed<JournalDay[]>(() => {
-        if (!currentPlanId.value) return []
-        const all = getProgressForPlan(currentPlanId.value)
-
-        const filtered = all.filter(w => {
-            const t = (w.type ?? 'kraft') as WorkoutType
-            const typeOk = journalType.value === 'alle' || t === journalType.value
-            if (!typeOk) return false
-            const q = journalSearch.value.trim().toLowerCase()
-            if (!q) return true
-            const inExercise = (w.exercise || '').toLowerCase().includes(q)
-            const inNote = (w.note || '').toLowerCase().includes(q)
-            return inExercise || inNote
-        })
-
-        const byDay = new Map<string, Workout[]>()
-        for (const w of filtered) {
-            const day = (w.date || '').slice(0, 10)
-            if (!byDay.has(day)) byDay.set(day, [])
-            byDay.get(day)!.push(w)
-        }
-
-        return Array.from(byDay.entries())
-            .sort((a, b) => b[0].localeCompare(a[0]))
-            .map(([day, items]) => ({ day, groups: aggregateDay(items) }))
-    })
-
-    const visibleJournalDays = computed(() => journalDays.value.slice(0, visibleDays.value))
-
-    const groupsForDay = (day: string) => {
-        const items = entriesByDay.value.get(day) ?? []
-        return aggregateDay(items)
-    }
-
-    const cardioForDay = (day: string) => {
-        const items = entriesByDay.value.get(day) ?? []
-        return items.filter(w => (w.type ?? 'kraft') === 'ausdauer')
-    }
-
-    const stretchForDay = (day: string) => {
-        const items = entriesByDay.value.get(day) ?? []
-        return items.filter(w => (w.type ?? 'kraft') === 'dehnung')
-    }
-    /** baut das gesamte Journal (nach Tag absteigend) inkl. Suche/Filter */
-
-    const waterWeight = ref<number | null>(null);
-    const waterActivity = ref<'low' | 'moderate' | 'high'>('low');
-    const waterClimate = ref<'temperate' | 'hot' | 'very_hot'>('temperate');
-    const waterResult = ref<number | null>(null);
-
-    const planSearchQuery = ref<string>('');
-    const maxEntries = ref(3);
-    const editingEntry = ref<Workout | null>(null);
-    // Zustand für "Mehr anzeigen"
-    const showMore = ref<{ [key: string]: boolean }>({});
-    const autoCalcEnabled = ref(false)
-    const newProgressIsDropset = ref(false)
-    const newProgressDropsets = ref<Array<{ weight: number | null; reps: number | null }>>([])
-
-    // --- Fortschritt ansehen Modal ---
-    const showPlanProgressPopup = ref(false)
-    const reopenPlanProgressAfterSave = ref(false)
-    // ▼ neu: WorkoutType & optionale Cardio-Felder
-    type WorkoutType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
-    interface DropSetEntry { weight: number; reps: number }
 
     interface Workout {
         exercise: string
         sets: number
         weight: number
-        reps?: number            // ✅ optional (für Dehnung/Cardio)
+        reps?: number
         note?: string
         date: string
         planId?: string
-
         type?: WorkoutType
         durationMin?: number
         distanceKm?: number
-
-        // bleibt streng, weil nur für Kraft/Calisthenics genutzt:
         setDetails?: Array<{ weight: number; reps: number }>
-        // Dropsets bleiben auch strikt:
         isDropset?: boolean
         dropsets?: Array<{ weight: number; reps: number }>
-
         tempo?: string
         restSeconds?: number | null
-
-        // Ausdauer-Extras
         avgHr?: number | null
         calories?: number | null
         pace?: string | null
         hrZone?: number | null
         borg?: number | null
-
-        // Dehnungs-Extras
         painFree?: number | null
         movementQuality?: number | null
         equipment?: string | null
         equipmentCustom?: string | null
         side?: '' | 'links' | 'rechts' | 'beidseitig' | null
     }
+    type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
 
-    // … bei den Refs zu den Fortschritt-Inputs:
-    const newProgressDuration = ref<number | null>(null)   // ▼ neu
-    const newProgressDistance = ref<number | null>(null)   // ▼ neu
+    type WorkoutType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
 
-    const currentPlanName = computed(() =>
-        trainingPlans.value.find(p => p.id === currentPlanId.value)?.name ?? ''
-    )
-
-    const sortedPlanEntries = computed<Workout[]>(() => {
-        if (!currentPlanId.value) return []
-        return [...getProgressForPlan(currentPlanId.value)]
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    })
-
-    const openPlanProgress = (planId: string) => {
-        currentPlanId.value = planId
-        showPlanProgressPopup.value = true
+    type DayCard = {
+        day: string;
+        uniqueExercises: number
     }
 
-    const closePlanProgressPopup = () => {
-        showPlanProgressPopup.value = false
+    type JournalDay = {
+        day: string;
+        groups: JournalGroup[]
     }
 
-    const addEntryFromPlanView = () => {
-        if (!currentPlanId.value) return
-        reopenPlanProgressAfterSave.value = true
-        showPlanProgressPopup.value = false
-        openProgressPopup(currentPlanId.value)
+    type JournalGroup = {
+        exercise: string
+        entries: Workout[]
+        note: string | null
     }
 
-    function debounce<F extends (...args: any[]) => void>(fn: F, wait = 300) {
-        let t: number | undefined
-        return (...args: Parameters<F>) => {
-            if (t) clearTimeout(t)
-            t = window.setTimeout(() => fn(...args), wait)
+    type CalcCategory = 'alle' | 'gesundheit' | 'kraft' | 'ernaehrung' | 'alltag'
+
+    type ProgressEntryModalExposed = { submit: () => void }
+
+    // ====== CHARTS UND COPY >>>>>>>>>>
+
+    //INSTANZEN
+
+    let weightChart: Chart | null = null;
+    let workoutChart: Chart | null = null;
+    let macroChart: Chart | null = null;
+
+    //Funktionen
+
+    const updateWeightChart = () => {
+        const canvas = document.getElementById('weightChart') as HTMLCanvasElement;
+        if (!canvas || activeTab.value !== 'stats') return;
+
+        if (weightChart) weightChart.destroy();
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        weightChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: weightHistory.value.map((entry) => formatDate(entry.date)).reverse(),
+                datasets: [
+                    {
+                        label: `Gewicht (${unit.value})`,
+                        data: weightHistory.value.map((entry) => kgToDisplay(entry.weight)).reverse(),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        fill: true,
+                        tension: 0.4,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: { backgroundColor: '#ffffff', titleColor: '#1f2937', bodyColor: '#6b7280' },
+                    legend: { labels: { color: '#1f2937' } },
+                },
+                scales: {
+                    x: { ticks: { color: '#6b7280' } },
+                    y: { beginAtZero: false, ticks: { color: '#6b7280' } },
+                },
+            },
+        });
+
+        if (document.documentElement.classList.contains('dark-mode') && weightChart) {
+            weightChart.options.plugins!.tooltip!.backgroundColor = '#1f2937';
+            weightChart.options.plugins!.tooltip!.titleColor = '#e5e7eb';
+            weightChart.options.plugins!.tooltip!.bodyColor = '#9ca3af';
+            weightChart.options.plugins!.legend!.labels!.color = '#e5e7eb';
+            weightChart.options.scales!.x!.ticks!.color = '#9ca3af';
+            weightChart.options.scales!.y!.ticks!.color = '#9ca3af';
+            weightChart.data.datasets[0].borderColor = '#818cf8';
+            weightChart.data.datasets[0].backgroundColor = 'rgba(129, 140, 248, 0.2)';
+            weightChart.update();
+        }
+    };
+
+    const updateWorkoutChart = () => {
+        const canvas = document.getElementById('workoutChart') as HTMLCanvasElement;
+        if (!canvas || activeTab.value !== 'stats') return;
+
+        if (workoutChart) workoutChart.destroy();
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        workoutChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: workouts.value.map((w) => w.exercise),
+                datasets: [
+                    {
+                        label: `Gewicht (${unit.value})`,
+                        data: workouts.value.map((w) => kgToDisplay(w.weight)),
+                        backgroundColor: '#6366f1',
+                        borderColor: '#4338ca',
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: { backgroundColor: '#ffffff', titleColor: '#1f2937', bodyColor: '#6b7280' },
+                    legend: { labels: { color: '#1f2937' } },
+                },
+                scales: {
+                    x: { ticks: { color: '#6b7280' } },
+                    y: { beginAtZero: true, ticks: { color: '#6b7280' } },
+                },
+            },
+        });
+
+        if (document.documentElement.classList.contains('dark-mode') && workoutChart) {
+            workoutChart.options.plugins!.tooltip!.backgroundColor = '#1f2937';
+            workoutChart.options.plugins!.tooltip!.titleColor = '#e5e7eb';
+            workoutChart.options.plugins!.tooltip!.bodyColor = '#9ca3af';
+            workoutChart.options.plugins!.legend!.labels!.color = '#e5e7eb';
+            workoutChart.options.scales!.x!.ticks!.color = '#9ca3af';
+            workoutChart.options.scales!.y!.ticks!.color = '#9ca3af';
+            workoutChart.data.datasets[0].backgroundColor = '#818cf8';
+            workoutChart.data.datasets[0].borderColor = '#4b5563';
+            workoutChart.update();
+        }
+    };
+
+    const updateMacroChart = () => {
+        const canvas = document.getElementById('macroChart') as HTMLCanvasElement;
+        if (!canvas || activeTab.value !== 'calculators' || !calorieResult.value) return;
+        if (macroChart) macroChart.destroy();
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        macroChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Kohlenhydrate', 'Eiweiß', 'Fett'],
+                datasets: [{
+                    data: [
+                        calorieResult.value.macros.carbs,
+                        calorieResult.value.macros.protein,
+                        calorieResult.value.macros.fat,
+                    ],
+                    backgroundColor: ['#6366f1', '#10b981', '#f59e0b'],
+                    borderWidth: 1,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#1f2937' } },
+                    tooltip: { backgroundColor: '#ffffff', titleColor: '#1f2937', bodyColor: '#6b7280' },
+                },
+            },
+        });
+        if (document.documentElement.classList.contains('dark-mode') && macroChart) {
+            macroChart.options.plugins!.legend!.labels!.color = '#e5e7eb';
+            macroChart.options.plugins!.tooltip!.backgroundColor = '#1f2937';
+            macroChart.options.plugins!.tooltip!.titleColor = '#e5e7eb';
+            macroChart.options.plugins!.tooltip!.bodyColor = '#9ca3af';
+            macroChart.update();
+        }
+    };
+
+    const copyText = async (text: string) => {
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text)
+            } else {
+                const ta = document.createElement('textarea')
+                ta.value = text
+                ta.style.position = 'fixed'
+                ta.style.left = '-9999px'
+                document.body.appendChild(ta)
+                ta.focus()
+                ta.select()
+                document.execCommand('copy')
+                document.body.removeChild(ta)
+            }
+            addToast('In Zwischenablage kopiert', 'save')
+        } catch (e) {
+            console.error(e)
+            addToast('Kopieren fehlgeschlagen', 'default')
         }
     }
-    // ganz oben bei deinen Refs/Computed einfügen
-    const isMobile = ref<boolean>(window.matchMedia('(max-width: 600px)').matches)
+    // ===== Dashboard: Responsive-Flag für kompakte Cards =====
+
+    // Units (oben bei den Composables)
+
+    const { unit, kgToDisplay, displayToKg, formatWeight } = useUnits()
+
+    // Basis-State für die Werte, die in den Cards angezeigt werden
+
+    const weightHistory = ref < WeightEntry[] > ([]);
+    const workouts = ref < Workout[] > ([]);
+    const meals = ref < Meal[] > ([]);
+    const goal = ref < number | null > (null);
+
+    // State für die Popups der DashboardCards
+
+    const newWeight = ref < number | null > (null);
+    const newGoal = ref < number | null > (null);
+    const showWeightPopup = ref(false);
+    const showGoalPopup = ref(false);
+    const weightInput = ref < HTMLInputElement | null > (null);
+    const goalInput = ref < HTMLInputElement | null > (null);
+
+    // Tabs + Responsive-Handling für :compact in DashboardCard
+
+    const mq = window.matchMedia('(max-width: 600px)')
+    const isMobile = ref < boolean > (mq.matches)
+
+    const handleMqChange = (e: MediaQueryListEvent | MediaQueryList) => {
+        isMobile.value = 'matches' in e ? e.matches : (e as MediaQueryList).matches
+    }
 
     onMounted(() => {
-        const mq = window.matchMedia('(max-width: 600px)')
-        const handler = (e: MediaQueryListEvent | MediaQueryList) =>
-            isMobile.value = 'matches' in e ? e.matches : (e as MediaQueryList).matches
-        // initial + listener
-        handler(mq)
-        mq.addEventListener?.('change', handler as any)
-        // sauber aufräumen
-        onUnmounted(() => mq.removeEventListener?.('change', handler as any))
+        handleMqChange(mq)
+        mq.addEventListener?.('change', handleMqChange as any)
     })
 
-    function setupProgressIO() {
-        const root = progressModalEl.value
-        if (!root) return
-        const endEl = root.querySelector('.scroll-sentinel-end')
-        if (!endEl) return
-        // falls bereits vorhanden: aufräumen
-        if (endIO) { endIO.disconnect(); endIO = null }
+    onUnmounted(() => {
+        mq.removeEventListener?.('change', handleMqChange as any)
+    })
 
-        endIO = new IntersectionObserver(
-            ([entry]) => {
-                root.classList.toggle('at-bottom', entry.isIntersecting)
-            },
-            { root, threshold: 1.0 }
-        )
-        endIO.observe(endEl)
-    }
+    // 👉 wird in allen 4 DashboardCards als :compact benutzt
 
-    function cleanupProgressIO() {
-        if (endIO) { endIO.disconnect(); endIO = null }
-    }
-    // nur im Statistiken-Tab kompakt schalten
     const compactCards = computed(() => activeTab.value === 'stats' && isMobile.value)
 
-    // Führt fn aus, während Toasts stummgeschaltet sind (für Auto-Calc/Restore)
-    function withSilentToasts(fn: () => void) {
-        const prev = suppressToasts.value
-        suppressToasts.value = true
-        try { fn() } finally { suppressToasts.value = prev }
-    }
-
-    // ✅ Ganze Funktion: editProgressEntry
-    const editProgressEntry = (planId: string, entry: Workout) => {
-        // Plan & Übung setzen
-        currentPlanId.value = planId
-        currentExercise.value = entry.exercise || ''
-
-        // Basis-Satzdaten
-        newProgressSets.value = entry.sets ?? 1
-        newProgressWeight.value = latestRecordedWeightDisplay.value
-        newProgressReps.value = entry.reps ?? null
-        newProgressNote.value = entry.note ?? ''
-        editingEntry.value = entry
-
-        // Zeit-/Distanz-Felder (Cardio/Dehnung)
-        newProgressDuration.value = entry.durationMin ?? null
-        newProgressDistance.value = entry.distanceKm ?? null
-
-        // 🔹 Einzelsätze in Anzeige-Einheit übernehmen
-        if (entry.setDetails && entry.setDetails.length) {
-            newProgressSetDetails.value = entry.setDetails.map(s => ({
-                weight: s.weight != null ? kgToDisplay(s.weight) : null,
-                reps: s.reps ?? null,
-            }))
-            newProgressSets.value = entry.setDetails.length
-        } else {
-            newProgressSetDetails.value = []
-        }
-
-        // (Optional) Dropsätze in den Editor-State übernehmen
-        newProgressIsDropset.value = Boolean(entry.isDropset && (entry.dropsets?.length ?? 0) > 0)
-        newProgressDropsets.value = (entry.dropsets ?? []).map(ds => ({
-            weight: ds.weight != null ? kgToDisplay(ds.weight) : null,
-            reps: ds.reps ?? null,
-        }))
-
-        // Wenn wir aus der Fortschritt-Ansicht kommen: nach Speichern wieder öffnen
-        if (showPlanProgressPopup.value) {
-            reopenPlanProgressAfterSave.value = true
-            showPlanProgressPopup.value = false
-        } else {
-            reopenPlanProgressAfterSave.value = false
-        }
-
-        showProgressPopup.value = true
-    }
-
-
-    const matchesPlanSearch = (name: string) => {
-        if (!planSearchQuery.value) return true;
-        return name.toLowerCase().includes(planSearchQuery.value.toLowerCase());
-    };
-
-    const deleteProgressEntry = (planId: string, date: string) => {
-        workouts.value = workouts.value.filter(w => !(w.planId === planId && w.date === date));
-        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value));
-        showToast({ message: 'Eintrag gelöscht!', type: 'success', emoji: '🗑️' });
-    };
-
-
-    function strengthExtrasFlags(entries: Workout[]): { tempo: boolean; rest: boolean } {
-        const tempo = entries.some(e => (e.tempo || '').trim().length > 0)
-        const rest = entries.some(e => e.restSeconds != null && Number.isFinite(e.restSeconds as number))
-        return { tempo, rest }
-    }
-
-    const calculateProgress = (planId: string) => {
-        const today = new Date().toISOString().split('T')[0];
-        const progressEntries = getProgressForPlan(planId).filter(entry => entry.date.startsWith(today));
-        const totalExercises = trainingPlans.value.find(p => p.id === planId)?.exercises.length || 1;
-        return Math.min((progressEntries.length / totalExercises) * 100, 100);
-    };
+    // Werte für die einzelnen DashboardCards
 
     const currentWeightDisplay = computed(() =>
-        weightHistory.value.length ? formatWeight(weightHistory.value[0].weight, 1) : 'Kein Gewicht erfasst'
+        weightHistory.value.length
+            ? formatWeight(weightHistory.value[0].weight, 1)
+            : 'Kein Gewicht erfasst'
+    )
+
+    const totalCalories = computed(() =>
+        meals.value.reduce((sum, meal) => sum + meal.calories, 0)
+
     );
 
-    // Begrenzt die angezeigten Einträge
-    const displayedEntries = (planId: string) => {
-        const entries = getProgressForPlan(planId);
-        if (showMore.value[planId]) {
-            return entries;
-        }
-        return entries.slice(0, maxEntries.value);
-    };
-    const toggleShowMore = (planId: string) => {
-        showMore.value[planId] = !showMore.value[planId];
-    };
-    // Computed Properties
     const lastWorkout = computed(() => {
         if (!workouts.value.length) return null
         const last = workouts.value.reduce((a, b) =>
@@ -1516,138 +1035,9 @@
         return `${last.exercise} – ${formatWeight(last.weight, 0)} × ${last.reps}`
     })
 
-    const router = useRouter()
-    const favoritePlansIds = ref<string[]>([])
+    //  Validierung für Gewicht & Zielgewicht
+    const validationErrorMessages = ref < string[] > ([]);
 
-    onMounted(() => {
-        try {
-            // Primär: gemeinsamer Speicher von Training.vue
-            const raw = localStorage.getItem('trainingData')
-            if (raw) {
-                const parsed = JSON.parse(raw)
-                trainingPlans.value = Array.isArray(parsed?.plans) ? parsed.plans : []
-                favoritePlansIds.value = Array.isArray(parsed?.favoritePlans) ? parsed.favoritePlans : []
-            } else {
-                // Fallback: alter Key, den Training.vue evtl. zusätzlich schreibt
-                const legacy = localStorage.getItem('trainingPlans')
-                trainingPlans.value = legacy ? JSON.parse(legacy) : []
-                favoritePlansIds.value = []
-            }
-        } catch {
-            trainingPlans.value = []
-            favoritePlansIds.value = []
-        }
-    })
-
-    const favoritePlans = computed(() =>
-        trainingPlans.value.filter(p => favoritePlansIds.value.includes(p.id))
-    )
-    const otherPlans = computed(() =>
-        trainingPlans.value.filter(p => !favoritePlansIds.value.includes(p.id))
-    )
-
-    const openInTraining = (planId: string) => {
-        localStorage.setItem('openPlanId', planId) // Bridge für Training.vue
-        router.push({ name: 'Training' })         // ggf. an deinen Routennamen anpassen
-    }
-    const totalCalories = computed(() => meals.value.reduce((sum, meal) => sum + meal.calories, 0));
-
-    const currentWeight = computed(() =>
-        weightHistory.value.length ? weightHistory.value[0].weight.toString() : 'N/A'
-    );
-
-    const initialWeight = computed(() =>
-        weightHistory.value.length ? weightHistory.value[weightHistory.value.length - 1].weight : null
-    );
-
-    const matchesSearch = (calculatorName: string) => {
-        if (!searchQuery.value) return true;
-        return calculatorName.toLowerCase().includes(searchQuery.value.toLowerCase());
-    };
-
-    const validateProtein = (): string[] => {
-        const errors: string[] = []
-        const w = Number(proteinWeight.value)
-        if (!Number.isFinite(w) || w <= 0) errors.push('Gewicht muss größer als 0 sein')
-        if (!proteinGoal.value) errors.push('Ziel muss ausgewählt sein')
-        return errors
-    }
-
-
-    const calculateProtein = () => {
-        const errors = validateProtein()
-        if (errors.length) { openValidationPopupError(errors); return }
-
-        const weightKg = unit.value === 'kg'
-            ? Number(proteinWeight.value)
-            : Number(proteinWeight.value) * KG_PER_LB
-
-        // Basisfaktoren je Ziel
-        let baseFactor = 1.6, baseMin = 1.4, baseMax = 1.8
-        if (proteinGoal.value === 'bulk') {
-            baseFactor = 2.0; baseMin = 1.8; baseMax = 2.2
-        } else if (proteinGoal.value === 'cut') {
-            baseFactor = 2.2; baseMin = 2.0; baseMax = 2.6
-        }
-
-        // Aktivitäts-Delta
-        const delta = proteinActivity.value === 'low' ? -0.2
-            : proteinActivity.value === 'high' ? 0.3
-                : 0.0
-
-        const factor = clamp(baseFactor + delta, 1.2, 2.7)
-        const minF = clamp(baseMin + delta, 1.2, 2.7)
-        const maxF = clamp(baseMax + delta, 1.2, 2.7)
-
-        const recommend = factor * weightKg
-        const range = { min: minF * weightKg, max: maxF * weightKg }
-
-        proteinResult.value = {
-            recommend,
-            min: range.min,
-            max: range.max,
-            factor,
-            weightDisplay: `${proteinWeight.value} ${unit.value}`
-        }
-
-        addToast('Proteinbedarf berechnet', 'default')
-        saveToLocalStorage('protein', {
-            weight: proteinWeight.value,
-            goal: proteinGoal.value,
-            activity: proteinActivity.value,     // <-- jetzt mitspeichern
-            result: proteinResult.value
-        })
-    }
-
-
-    const copyProtein = () => {
-        if (!proteinResult.value) return
-        const r = proteinResult.value
-        const rangeLine = (r.min && r.max) ? `\n- Range: ${r.min.toFixed(0)}–${r.max.toFixed(0)} g/Tag` : ''
-        const txt = `Proteinbedarf
-- Empfehlung: ${r.recommend.toFixed(0)} g/Tag${rangeLine}
-- Faktor: ${r.factor.toFixed(2)} g/kg
-- Gewicht: ${r.weightDisplay}
-- Ziel: ${proteinGoal.value}`
-        copyText(txt)
-    }
-
-    const getProgressForPlan = (planId: string) => {
-        return workouts.value.filter((workout) => workout.planId === planId);
-    };
-
-    const getExercisesForPlan = (planId: string | null) => {
-        if (!planId) return [];
-        const plan = trainingPlans.value.find((p) => p.id === planId);
-        return plan ? plan.exercises : [];
-    };
-
-    const formatDate = (isoString: string) => {
-        const date = new Date(isoString);
-        return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    };
-
-    // Validation Functions
     const validateWeight = (weight: number | null): string | null => {
         if (weight === null || isNaN(weight)) return 'Gewicht muss eine Zahl sein';
         if (weight <= 0) return 'Gewicht muss größer als 0 sein';
@@ -1665,103 +1055,108 @@
         return null;
     };
 
-    // ✅ Ganze Funktion: validateProgress
-    const validateProgress = (): string[] => {
-        const errors: string[] = []
+    // ================== Popup-Logik: Card "Aktuelles Gewicht" ==================
 
-        if (!currentExercise.value) errors.push('Eine Übung muss ausgewählt sein')
-        //Cardio
-        if (detectedInputType.value === 'ausdauer') {
-            if (newProgressDuration.value == null || isNaN(newProgressDuration.value) || newProgressDuration.value <= 0)
-                errors.push('Dauer (Min) muss größer als 0 sein')
-            if (newProgressDistance.value != null && (isNaN(newProgressDistance.value) || newProgressDistance.value < 0))
-                errors.push('Distanz (km) muss ≥ 0 sein')
+    const latestRecordedWeightDisplay = computed < number | null > (() =>
+        weightHistory.value.length ? kgToDisplay(weightHistory.value[0].weight) : null
+    )
 
-            const borgN = toNum(newProgressBorg.value)
-            if (borgN != null) {
-                if (borgN < 6 || borgN > 20) errors.push('Borg-Skala muss zwischen 6 und 20 liegen')
-            }
-            else if (newProgressBorg.value != null && String(newProgressBorg.value).trim() !== '') {
-                // etwas Eingetragenes, aber keine gültige Zahl
-                errors.push('Borg-Skala muss eine Zahl sein')
-            }
-
-            return errors
-        }
-
-        // Dehnung
-        if (detectedInputType.value === 'dehnung') {
-            // Pflicht: nur Sätze > 0
-            if (newProgressSets.value == null || isNaN(newProgressSets.value) || Number(newProgressSets.value) <= 0)
-                errors.push('Sätze müssen größer als 0 sein')
-
-            // Dauer optional – wenn angegeben, muss sie > 0 sein
-            if (newProgressDuration.value != null && String(newProgressDuration.value).trim() !== '') {
-                const d = Number(newProgressDuration.value)
-                if (!Number.isFinite(d) || d <= 0) errors.push('Dauer (Min) muss > 0 sein, wenn angegeben')
-            }
-
-            // Wdh. optional – wenn angegeben, muss sie > 0 sein
-            if (newProgressReps.value != null && String(newProgressReps.value).trim() !== '') {
-                const r = Number(newProgressReps.value)
-                if (!Number.isFinite(r) || r <= 0) errors.push('Wiederholungen müssen > 0 sein, wenn angegeben')
-            }
-            return errors
-        }
-
-        // Kraft / Calisthenics
-        const perSet = (newProgressSetDetails.value ?? []).filter(r => r !== undefined)
-
-        if (perSet.length > 0) {
-            perSet.forEach((r, i) => {
-                const w = Number(r.weight)
-                const reps = Number(r.reps)
-                if (!Number.isFinite(w) || w < 0) errors.push(`Satz ${i + 1}: Gewicht muss ≥ 0 sein`)
-                if (!Number.isFinite(reps) || reps <= 0) errors.push(`Satz ${i + 1}: Wdh. müssen > 0 sein`)
-            })
-        } else {
-            if (newProgressSets.value == null || isNaN(newProgressSets.value) || newProgressSets.value <= 0)
-                errors.push('Sätze müssen größer als 0 sein')
-            // ⚠️ kein Pflichtfeld „Gewicht“ mehr – Körpergewicht ist separat!
-            if (newProgressReps.value == null || isNaN(newProgressReps.value) || newProgressReps.value <= 0)
-                errors.push('Wiederholungen müssen größer als 0 sein')
-        }
-
-        // (Optional) Dropsatz-Validierung
-        if (newProgressIsDropset.value && (newProgressDropsets.value?.length ?? 0) > 0) {
-            newProgressDropsets.value.forEach((ds, j) => {
-                const any = ds.weight != null || ds.reps != null
-                if (!any) return
-                if (ds.weight == null || isNaN(ds.weight) || ds.weight <= 0) errors.push(`Dropsatz ${j + 1}: Gewicht muss > 0 sein`)
-                if (ds.reps == null || isNaN(ds.reps) || ds.reps <= 0) errors.push(`Dropsatz ${j + 1}: Wdh. müssen > 0 sein`)
-            })
-        }
-
-        return errors
+    const openWeightPopup = () => {
+        newWeight.value = newProgressWeight.value ?? latestRecordedWeightDisplay.value ?? null
+        showWeightPopup.value = true
+        nextTick(() => { if (weightInput.value) weightInput.value.focus() })
     }
 
-    const validateBMI = (): string[] => {
-        const errors: string[] = [];
-        if (!bmiGender.value) errors.push('Geschlecht muss ausgewählt sein');
-        if (bmiWeight.value === null || isNaN(bmiWeight.value) || bmiWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (bmiHeight.value === null || isNaN(bmiHeight.value) || bmiHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        return errors;
+    const saveWeight = () => {
+        const error = validateWeight(newWeight.value);
+        if (error) {
+            openValidationPopupError([error]);
+            return;
+        }
+        const today = new Date().toISOString().split('T')[0];
+        const weightKg = displayToKg(Number(newWeight.value));
+        weightHistory.value.unshift({ date: today, weight: weightKg });
+
+        // Persistieren
+        localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value));
+
+        // 👉 Körpergewicht oben im Fortschritt-Editor direkt mitziehen
+        newProgressWeight.value = kgToDisplay(weightKg)
+
+        newWeight.value = null;
+
+        // Chart erst updaten, wenn das Canvas nach dem v-if gerendert ist
+        nextTick(() => {
+            updateWeightChart();
+        });
+
+        addToast('Gewicht gespeichert', 'save');
+        checkMilestones();
+        closeWeightPopup();
     };
 
-    function startToastExit() {
-        if (!toast.value) return;
-        if (toast.value.exiting) return;            // idempotent, kein Doppel-Exit
-        toast.value.exiting = true;
-        setTimeout(() => { toast.value = null; }, 300);
-    }
+    const closeWeightPopup = () => {
+        showWeightPopup.value = false;
+        newWeight.value = null;
+    };
+
+    // ================== Popup-Logik: Card "Zielgewicht" ==================
+
+    const saveToLocalStorage = (key: string, data: any) => {
+        try {
+            localStorage.setItem(`progress_${key}`, JSON.stringify(data));
+        } catch (err) {
+            console.error(`Error saving ${key} to localStorage:`, err);
+        }
+    };
+
+    const openGoalPopup = () => {
+        newGoal.value = null;
+        showGoalPopup.value = true;
+        nextTick(() => {
+            if (goalInput.value) goalInput.value.focus();
+        });
+    };
+
+    const saveGoal = () => {
+        const error = validateGoal(newGoal.value);
+        if (error) {
+            openValidationPopupError([error]);
+            return;
+        }
+        goal.value = displayToKg(Number(newGoal.value));
+        saveToLocalStorage('goal', { goal: goal.value });
+        addToast('Zielgewicht gespeichert', 'default');
+        closeGoalPopup();
+    };
+
+    const closeGoalPopup = () => {
+        showGoalPopup.value = false;
+        newGoal.value = null;
+    };
+
+    // ===== TabsBar: Aktiver Tab + Suchfelder =====
+
+    // Suche
+
+    const searchQuery = ref < string > ('');
+    const planSearchQuery = ref < string > ('');
+
+    const activeTab = ref < 'stats' | 'calculators' | 'plans' > ('stats');
+
+    // ===== Stats-Tab: ChartCard Gewichtsverlauf & Trainingsstatistik =====
+
+    const hasWeightStats = computed(() => weightHistory.value.length > 0)
+    const hasWorkoutStats = computed(() => workouts.value.length > 0)
 
     const resetWeightStats = () => {
         weightHistory.value = []
+        localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
 
-        if (weightChart) weightChart.destroy()
-        updateWeightChart()
+        if (weightChart) {
+            weightChart.destroy()
+            weightChart = null
+        }
 
         // Toasts ggf. noch unterdrückt? Sofort freigeben.
         releaseToasts()
@@ -1781,185 +1176,10 @@
         // Erfolgs-Toast
         addToast('Trainingsstatistik zurückgesetzt', 'add')
     }
-    const validateCalories = (): string[] => {
-        const errors: string[] = [];
-        if (calorieAge.value === null || isNaN(calorieAge.value) || calorieAge.value <= 0)
-            errors.push('Alter muss größer als 0 sein');
-        if (calorieWeight.value === null || isNaN(calorieWeight.value) || calorieWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (calorieHeight.value === null || isNaN(calorieHeight.value) || calorieHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        return errors;
-    };
 
-    const validateOneRm = (): string[] => {
-        const errors: string[] = [];
-        if (oneRmWeight.value === null || isNaN(oneRmWeight.value) || oneRmWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (oneRmReps.value === null || isNaN(oneRmReps.value) || oneRmReps.value <= 0)
-            errors.push('Wiederholungen müssen größer als 0 sein');
-        return errors;
-    };
+    // ===== Filterleiste =====
 
-    const validateBodyFat = (): string[] => {
-        const errors: string[] = [];
-        if (bodyFatWaist.value === null || isNaN(bodyFatWaist.value) || bodyFatWaist.value <= 0)
-            errors.push('Bauchumfang muss größer als 0 sein');
-        if (bodyFatNeck.value === null || isNaN(bodyFatNeck.value) || bodyFatNeck.value <= 0)
-            errors.push('Halsumfang muss größer als 0 sein');
-        if (bodyFatHeight.value === null || isNaN(bodyFatHeight.value) || bodyFatHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        if (bodyFatGender.value === 'female' && (bodyFatHip.value === null || isNaN(bodyFatHip.value) || bodyFatHip.value <= 0))
-            errors.push('Hüftumfang muss größer als 0 sein');
-        return errors;
-    };
-
-    const validateFFMI = (): string[] => {
-        const errors: string[] = [];
-        if (ffmiWeight.value === null || isNaN(ffmiWeight.value) || ffmiWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (ffmiHeight.value === null || isNaN(ffmiHeight.value) || ffmiHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        if (ffmiBodyFat.value === null || isNaN(ffmiBodyFat.value) || ffmiBodyFat.value < 0 || ffmiBodyFat.value > 100)
-            errors.push('Körperfettanteil muss zwischen 0 und 100% liegen');
-        return errors;
-    };
-
-    const validateWater = (): string[] => {
-        const errors: string[] = [];
-        if (waterWeight.value === null || isNaN(waterWeight.value) || waterWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        return errors;
-    };
-
-    // Calculator Logic
-    const calculateBMI = () => {
-        const errors = validateBMI();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
-        const weightKg = unit.value === 'kg' ? Number(bmiWeight.value) : Number(bmiWeight.value) * KG_PER_LB
-        const heightM = Number(bmiHeight.value) / 100
-        const bmi = weightKg / (heightM * heightM)
-
-        let category = '';
-        if (bmiGender.value === 'male') {
-            if (bmi < 18.5) category = 'Untergewicht';
-            else if (bmi < 25) category = 'Normalgewicht';
-            else if (bmi < 30) category = 'Übergewicht';
-            else category = 'Adipositas';
-        } else {
-            if (bmi < 19) category = 'Untergewicht';
-            else if (bmi < 26) category = 'Normalgewicht';
-            else if (bmi < 31) category = 'Übergewicht';
-            else category = 'Adipositas';
-        }
-        bmiResult.value = { value: bmi, category };
-        addToast('BMI berechnet', 'default');
-        saveToLocalStorage('bmi', {
-            gender: bmiGender.value,
-            weight: bmiWeight.value,
-            height: bmiHeight.value,
-            result: bmiResult.value,
-        });
-    };
-
-    const calculateCalories = () => {
-        const errors = validateCalories();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
-        let bmr = 0;
-        const weightKg = unit.value === 'kg' ? Number(calorieWeight.value) : Number(calorieWeight.value) * KG_PER_LB;
-        const height = Number(calorieHeight.value);
-        const age = Number(calorieAge.value);
-        if (calorieGender.value === 'male') {
-            bmr = 88.362 + 13.397 * weightKg + 4.799 * height - 5.677 * age;
-        } else {
-            bmr = 447.593 + 9.247 * weightKg + 3.098 * height - 4.330 * age;
-        }
-        const activityFactor = Number(calorieActivity.value);
-        const maintenance = bmr * activityFactor;
-        const total = maintenance + Number(calorieGoal.value);
-        const macros = {
-            carbs: (total * 0.5) / 4,
-            protein: (total * 0.3) / 4,
-            fat: (total * 0.2) / 9,
-        };
-        calorieResult.value = { total, macros };
-        updateMacroChart();
-        addToast('Kalorienbedarf berechnet', 'default');
-        saveToLocalStorage('calories', {
-            age,
-            gender: calorieGender.value,
-            weight: calorieWeight.value,
-            height: calorieHeight.value,
-            activity: calorieActivity.value,
-            goal: calorieGoal.value,
-            result: calorieResult.value,
-        });
-
-    };
-
-    const calculators = ref([
-        { key: 'BMI', name: 'BMI-Rechner', isFavorite: false },
-        { key: 'Kalorienbedarf', name: 'Kalorienbedarfsrechner', isFavorite: false },
-        { key: '1RM', name: '1RM-Rechner', isFavorite: false },
-        { key: 'Körperfett', name: 'Körperfett-Rechner', isFavorite: false },
-        { key: 'FFMI', name: 'FFMI-Rechner', isFavorite: false },
-        { key: 'Wasserbedarf', name: 'Wasserbedarfsrechner', isFavorite: false },
-        { key: 'Proteinbedarf', name: 'Proteinbedarfsrechner', isFavorite: false },
-        { key: 'Glykämische Last', name: 'GL-Rechner', isFavorite: false },
-        { key: 'Koffein', name: 'Koffein – sichere Dosis', isFavorite: false },
-    ])
-
-
-    const sortedCalculators = computed(() => {
-        return calculators.value
-            .filter(c => matchesSearch(c.key))
-            .sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite))
-    })
-    const latestRecordedWeightDisplay = computed<number | null>(() =>
-        weightHistory.value.length ? kgToDisplay(weightHistory.value[0].weight) : null
-    )
-    const getCalculatorComponent = (key: string) => {
-        switch (key) {
-            case 'BMI': return 'BmiCalculator'
-            case 'Kalorienbedarf': return 'CaloriesCalculator'
-            case '1RM': return 'OneRmCalculator'
-            case 'Körperfett': return 'BodyFatCalculator'
-            case 'FFMI': return 'FfmiCalculator'
-            case 'Wasserbedarf': return 'WaterCalculator'
-            default: return 'div'
-        }
-    }
-
-    const calculateOneRm = () => {
-        const errors = validateOneRm();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
-        const weightKg = unit.value === 'kg' ? Number(oneRmWeight.value) : Number(oneRmWeight.value) * KG_PER_LB;
-        const reps = Number(oneRmReps.value);
-        const oneRmKg = weightKg * (1 + reps / 30);
-        oneRmResult.value = oneRmKg;
-
-        addToast('1RM berechnet', 'default');
-        saveToLocalStorage('oneRm', {
-            exercise: oneRmExercise.value,
-            weight: oneRmWeight.value,
-            reps,
-            result: oneRmResult.value,
-        });
-    };
-
-    // ---- Kategorien-Filter ----
-    type CalcCategory = 'alle' | 'gesundheit' | 'kraft' | 'ernaehrung' | 'alltag'
-
-    const calcCategory = ref<CalcCategory>('alle')
+    const calcCategory = ref < CalcCategory > ('alle')
 
     const CALC_CATEGORY: Record<string, CalcCategory> = {
         'BMI': 'gesundheit',
@@ -1974,108 +1194,6 @@
 
     }
 
-    const validateCaffeine = (): string[] => {
-        const errors: string[] = []
-        if (cafWeight.value === null || isNaN(cafWeight.value) || cafWeight.value <= 0) {
-            errors.push('Gewicht muss größer als 0 sein')
-        }
-        return errors
-    }
-
-    const validateGlyLoad = (): string[] => {
-        const errors: string[] = []
-        if (!glFood.value.trim()) errors.push('Lebensmittel muss angegeben werden')
-        if (glServing.value === null || isNaN(glServing.value) || glServing.value <= 0)
-            errors.push('Portionsgröße muss größer als 0 g sein')
-        if (glCarbs100.value === null || isNaN(glCarbs100.value) || glCarbs100.value < 0)
-            errors.push('Kohlenhydrate pro 100 g müssen ≥ 0 g sein')
-        if (glGi.value === null || isNaN(glGi.value) || glGi.value < 0 || glGi.value > 110)
-            errors.push('Glykämischer Index muss zwischen 0 und 110 liegen')
-        return errors
-    }
-    // Typ der exposed API des Modals
-    type ProgressEntryModalExposed = { submit: () => void }
-    // Ref auf das Fortschritt-Modal
-    const progressEntryModalRef = ref<ProgressEntryModalExposed | null>(null)
-
-    const calculateGlyLoad = () => {
-        const errors = validateGlyLoad()
-        if (errors.length) { openValidationPopupError(errors); return }
-
-        const serving = Number(glServing.value)
-        const carbs100 = Number(glCarbs100.value)
-        const gi = Number(glGi.value)
-
-        const carbsPerServing = (carbs100 * serving) / 100
-        const gl = (gi / 100) * carbsPerServing
-
-        glResult.value = gl
-        addToast('Glykämische Last berechnet', 'default')
-
-        // Speichere numerisches Ergebnis + Kategorie separat (passt zu neuem Typ)
-        saveToLocalStorage('glyload', {
-            food: glFood.value,
-            serving,
-            carbs100,
-            gi,
-            result: glResult.value,
-            category: glCategory.value,
-        })
-    }
-
-    const copyGlyLoad = () => {
-        if (glResult.value == null) return
-        const txt = `Glykämische Last
-- Lebensmittel: ${glFood.value || '-'}
-- Portion: ${glServing.value ?? '-'} g
-- KH (pro 100 g): ${glCarbs100.value ?? '-'} g
-- GI: ${glGi.value ?? '-'}
-- GL (Portion): ${glResult.value.toFixed(1)} (${glCategory.value})`
-        copyText(txt)
-    }
-
-
-    const calculateCaffeine = () => {
-        const errors = validateCaffeine()
-        if (errors.length) { openValidationPopupError(errors); return }
-
-        const kg = unit.value === 'kg'
-            ? Number(cafWeight.value)
-            : Number(cafWeight.value) * KG_PER_LB
-
-        let mgPerKg = 4
-        if (cafSensitivity.value === 'low') mgPerKg = 3
-        if (cafSensitivity.value === 'high') mgPerKg = 6
-
-        let dayCap = 400
-        if (cafStatus.value === 'pregnant') dayCap = 200
-
-        const perDay = Math.min(Math.round(mgPerKg * kg), dayCap)
-        const perDose = Math.min(Math.round(perDay / 2), 200)
-
-        cafResult.value = { perDose, perDay }
-        addToast('Koffein-Empfehlung berechnet', 'default')
-
-        saveToLocalStorage('caffeine', {
-            weight: cafWeight.value,
-            sensitivity: cafSensitivity.value,
-            status: cafStatus.value,
-            result: cafResult.value,
-        })
-    }
-
-    const copyCaffeine = () => {
-        if (!cafResult.value) return
-        const r = cafResult.value
-        const txt = `Koffein – sichere Dosis
-- Max. pro Tag: ${r.perDay} mg
-- Empfehlung je Einzeldosis: ${r.perDose} mg
-- Gewicht: ${cafWeight.value ?? '-'} ${unit.value}
-- Empfindlichkeit: ${cafSensitivity.value}
-- Status: ${cafStatus.value}`
-        copyText(txt)
-    }
-
     const matchesCalc = (key: string) => {
         const searchOk = matchesSearch(key)
         const category = CALC_CATEGORY[key] ?? 'alle'
@@ -2083,83 +1201,97 @@
         return searchOk && categoryOk
     }
 
-    const calculateBodyFat = () => {
-        const errors = validateBodyFat();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
+    const sortedCalculators = computed(() => {
+        return calculators.value
+            .filter(c => matchesCalc(c.key))
+            .sort((a, b) => {
+                const aFav = favoriteCalculators.value.has(a.key) ? 1 : 0
+                const bFav = favoriteCalculators.value.has(b.key) ? 1 : 0
+                if (bFav !== aFav) return bFav - aFav   // Favoriten nach oben
+                return a.name.localeCompare(b.name, 'de') // danach alphabetisch
+            })
+    })
+
+    //===== Favorit Calculators =====
+
+    const favoriteCalculators = ref < Set < string >> (new Set())
+    const FAVORITES_KEY = 'progress_favorite_calculators'
+    const favoriteCalcs = computed(() => Array.from(favoriteCalculators.value));
+
+    const isFavorite = (id: string) => isFavCalculator(id);
+
+    const toggleFavorite = (id: string) => toggleFavCalculator(id);
+
+    const loadFavoriteCalculators = () => {
+        try {
+            const raw = localStorage.getItem(FAVORITES_KEY)
+            if (!raw) return
+            const arr: string[] = JSON.parse(raw)
+            favoriteCalculators.value = new Set(arr)
+        } catch (e) {
+            console.error('Fehler beim Laden der Lieblings-Rechner:', e)
         }
-        const waist = Number(bodyFatWaist.value);
-        const neck = Number(bodyFatNeck.value);
-        const height = Number(bodyFatHeight.value);
-        let bodyFat = 0;
-        if (bodyFatGender.value === 'male') {
-            bodyFat = 86.010 * Math.log10(waist - neck) - 70.041 * Math.log10(height) + 36.76;
+    }
+
+    const saveFavoriteCalculators = () => {
+        try {
+            localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favoriteCalculators.value]))
+        } catch (e) {
+            console.error('Fehler beim Speichern der Lieblings-Rechner:', e)
+        }
+    }
+
+    const toggleFavCalculator = (id: string) => {
+        if (favoriteCalculators.value.has(id)) {
+            favoriteCalculators.value.delete(id)
+            addToast('Favorit entfernt', 'default')
         } else {
-            const hip = Number(bodyFatHip.value);
-            bodyFat = 163.205 * Math.log10(waist + hip - neck) - 97.684 * Math.log10(height) - 78.387;
+            favoriteCalculators.value.add(id)
+            addToast('Als Favorit markiert', 'default')
         }
-        bodyFatResult.value = Math.max(0, bodyFat);
-        addToast('Körperfett berechnet', 'default');
-        saveToLocalStorage('bodyFat', {
-            gender: bodyFatGender.value,
-            waist,
-            neck,
-            hip: bodyFatHip.value,
-            height,
-            result: bodyFatResult.value,
-        });
-    };
+        saveFavoriteCalculators()
+    }
 
-    const calculateFFMI = () => {
-        const errors = validateFFMI();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
+    const isFavCalculator = (id: string) => favoriteCalculators.value.has(id)
+
+    onMounted(() => {
+        const flag = localStorage.getItem('autoCalcEnabled')
+        autoCalcEnabled.value = flag === 'true'
+        loadFavoriteCalculators()
+
+        const stored = localStorage.getItem('toastsEnabled')
+        toastsEnabled.value = stored === null ? true : stored === 'true'
+
+        window.addEventListener('toasts-enabled-changed', handleToastsSetting)
+    })
+
+
+    // ===== Allgemein zu den Calculators =====
+    const autoCalcEnabled = ref(false)
+
+    const getCalculatorComponent = (key: string) => {
+        switch (key) {
+            case 'BMI': return 'BmiCalculator'
+            case 'Kalorienbedarf': return 'CaloriesCalculator'
+            case '1RM': return 'OneRmCalculator'
+            case 'Körperfett': return 'BodyFatCalculator'
+            case 'FFMI': return 'FfmiCalculator'
+            case 'Wasserbedarf': return 'WaterCalculator'
+            default: return 'div'
         }
-        const weightKg = unit.value === 'kg' ? Number(ffmiWeight.value) : Number(ffmiWeight.value) * KG_PER_LB;
-        const heightM = Number(ffmiHeight.value) / 100;
-        const bodyFat = Number(ffmiBodyFat.value) / 100;
-        const leanMass = weightKg * (1 - bodyFat);
-        const ffmi = leanMass / (heightM * heightM) + 6.1 * (1.8 - heightM);
-        let category = '';
-        if (ffmi < 18) category = 'Unterdurchschnittlich';
-        else if (ffmi < 20) category = 'Durchschnittlich';
-        else if (ffmi < 22) category = 'Überdurchschnittlich';
-        else if (ffmi < 25) category = 'Sehr muskulös';
-        else category = 'Extrem muskulös';
-        ffmiResult.value = { value: ffmi, category };
-        addToast('FFMI berechnet', 'default');
-        saveToLocalStorage('ffmi', {
-            weight: ffmiWeight.value,
-            height: ffmiHeight.value,
-            bodyFat: ffmiBodyFat.value,
-            result: ffmiResult.value,
-        });
-    };
+    }
 
-    const calculateWater = () => {
-        const errors = validateWater();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
-        const weightKg = unit.value === 'kg' ? Number(waterWeight.value) : Number(waterWeight.value) * KG_PER_LB;
-        let baseWater = weightKg * 0.035;
-        if (waterActivity.value === 'moderate') baseWater += 0.5;
-        else if (waterActivity.value === 'high') baseWater += 1.0;
-        if (waterClimate.value === 'hot') baseWater += 0.5;
-        if (waterClimate.value === 'very_hot') baseWater += 1.0;
-        waterResult.value = Math.max(1.5, baseWater);
-        addToast('Wasserbedarf berechnet', 'default');
-        saveToLocalStorage('water', {
-            weight: waterWeight.value,
-            activity: waterActivity.value,
-            climate: waterClimate.value,
-            result: waterResult.value,
-        });
-
-    };
+    const calculators = ref([
+        { key: 'BMI', name: 'BMI-Rechner', isFavorite: false },
+        { key: 'Kalorienbedarf', name: 'Kalorienbedarfsrechner', isFavorite: false },
+        { key: '1RM', name: '1RM-Rechner', isFavorite: false },
+        { key: 'Körperfett', name: 'Körperfett-Rechner', isFavorite: false },
+        { key: 'FFMI', name: 'FFMI-Rechner', isFavorite: false },
+        { key: 'Wasserbedarf', name: 'Wasserbedarfsrechner', isFavorite: false },
+        { key: 'Proteinbedarf', name: 'Proteinbedarfsrechner', isFavorite: false },
+        { key: 'Glykämische Last', name: 'GL-Rechner', isFavorite: false },
+        { key: 'Koffein', name: 'Koffein – sichere Dosis', isFavorite: false },
+    ])
 
     const resetCalculator = (calculator: string) => {
         switch (calculator) {
@@ -2249,14 +1381,846 @@
         }
     };
 
+    //=============== BMI Calculator ==========
+
+    const bmiGender = ref < 'male' | 'female' > ('male');
+    const bmiWeight = ref < number | null > (null);
+    const bmiHeight = ref < number | null > (null);
+    const bmiResult = ref < { value: number; category: string } | null > (null);
+
+    const validateBMI = (): string[] => {
+        const errors: string[] = [];
+        if (!bmiGender.value) errors.push('Geschlecht muss ausgewählt sein');
+        if (bmiWeight.value === null || isNaN(bmiWeight.value) || bmiWeight.value <= 0)
+            errors.push('Gewicht muss größer als 0 sein');
+        if (bmiHeight.value === null || isNaN(bmiHeight.value) || bmiHeight.value <= 0)
+            errors.push('Größe muss größer als 0 sein');
+        return errors;
+    };
+
+    const calculateBMI = () => {
+        const errors = validateBMI();
+        if (errors.length) {
+            openValidationPopupError(errors);
+            return;
+        }
+        const weightKg = unit.value === 'kg' ? Number(bmiWeight.value) : Number(bmiWeight.value) * KG_PER_LB
+        const heightM = Number(bmiHeight.value) / 100
+        const bmi = weightKg / (heightM * heightM)
+
+        let category = '';
+        if (bmiGender.value === 'male') {
+            if (bmi < 18.5) category = 'Untergewicht';
+            else if (bmi < 25) category = 'Normalgewicht';
+            else if (bmi < 30) category = 'Übergewicht';
+            else category = 'Adipositas';
+        } else {
+            if (bmi < 19) category = 'Untergewicht';
+            else if (bmi < 26) category = 'Normalgewicht';
+            else if (bmi < 31) category = 'Übergewicht';
+            else category = 'Adipositas';
+        }
+        bmiResult.value = { value: bmi, category };
+        addToast('BMI berechnet', 'default');
+        saveToLocalStorage('bmi', {
+            gender: bmiGender.value,
+            weight: bmiWeight.value,
+            height: bmiHeight.value,
+            result: bmiResult.value,
+        });
+    };
+
+    const copyBMI = () => {
+        if (!bmiResult.value) return
+        const txt = `BMI-Ergebnis
+- BMI: ${bmiResult.value.value.toFixed(1)}
+- Kategorie: ${bmiResult.value.category}
+- Gewicht: ${bmiWeight.value ?? '-'} ${unit.value}
+- Größe: ${bmiHeight.value ?? '-'} cm`
+        copyText(txt)
+    }
+
+    const debouncedCalcBMI = debounce(() => {
+        if (!validateBMI().length) withSilentToasts(calculateBMI)
+    })
+
+    watch([bmiGender, bmiWeight, bmiHeight], () => {
+        if (autoCalcEnabled.value) debouncedCalcBMI()
+    })
+
+    //========== Calories Calculator ==========
+
+    const calorieAge = ref < number | null > (null);
+    const calorieGender = ref < 'male' | 'female' > ('male');
+    const calorieWeight = ref < number | null > (null);
+    const calorieHeight = ref < number | null > (null);
+    const calorieActivity = ref < string > ('1.2');
+    const calorieGoal = ref < number > (0);
+    const calorieResult = ref < {
+        total: number;
+        macros: { carbs: number; protein: number; fat: number };
+    } | null > (null);
+
+    const validateCalories = (): string[] => {
+        const errors: string[] = [];
+        if (calorieAge.value === null || isNaN(calorieAge.value) || calorieAge.value <= 0)
+            errors.push('Alter muss größer als 0 sein');
+        if (calorieWeight.value === null || isNaN(calorieWeight.value) || calorieWeight.value <= 0)
+            errors.push('Gewicht muss größer als 0 sein');
+        if (calorieHeight.value === null || isNaN(calorieHeight.value) || calorieHeight.value <= 0)
+            errors.push('Größe muss größer als 0 sein');
+        return errors;
+    };
+
+    const calculateCalories = () => {
+        const errors = validateCalories();
+        if (errors.length) {
+            openValidationPopupError(errors);
+            return;
+        }
+        let bmr = 0;
+        const weightKg = unit.value === 'kg' ? Number(calorieWeight.value) : Number(calorieWeight.value) * KG_PER_LB;
+        const height = Number(calorieHeight.value);
+        const age = Number(calorieAge.value);
+        if (calorieGender.value === 'male') {
+            bmr = 88.362 + 13.397 * weightKg + 4.799 * height - 5.677 * age;
+        } else {
+            bmr = 447.593 + 9.247 * weightKg + 3.098 * height - 4.330 * age;
+        }
+        const activityFactor = Number(calorieActivity.value);
+        const maintenance = bmr * activityFactor;
+        const total = maintenance + Number(calorieGoal.value);
+        const macros = {
+            carbs: (total * 0.5) / 4,
+            protein: (total * 0.3) / 4,
+            fat: (total * 0.2) / 9,
+        };
+        calorieResult.value = { total, macros };
+        updateMacroChart();
+        addToast('Kalorienbedarf berechnet', 'default');
+        saveToLocalStorage('calories', {
+            age,
+            gender: calorieGender.value,
+            weight: calorieWeight.value,
+            height: calorieHeight.value,
+            activity: calorieActivity.value,
+            goal: calorieGoal.value,
+            result: calorieResult.value,
+        });
+
+    };
+
+    const copyCalories = () => {
+        if (!calorieResult.value) return
+        const r = calorieResult.value
+        const txt = `Kalorienbedarf
+- Gesamt: ${r.total.toFixed(0)} kcal
+- Makros: KH ${r.macros.carbs.toFixed(0)}g, Protein ${r.macros.protein.toFixed(0)}g, Fett ${r.macros.fat.toFixed(0)}g
+- Alter: ${calorieAge.value ?? '-'} J, Geschlecht: ${calorieGender.value}
+- Gewicht: ${calorieWeight.value ?? '-'} ${unit.value}, Größe: ${calorieHeight.value ?? '-'} cm
+- Aktivität: ${calorieActivity.value}, Ziel: ${calorieGoal.value > 0 ? '+' : ''}${calorieGoal.value} kcal`
+        copyText(txt)
+    }
+
+    const debouncedCalcCalories = debounce(() => {
+        if (!validateCalories().length) withSilentToasts(calculateCalories)
+    })
+
+    watch([calorieAge, calorieGender, calorieWeight, calorieHeight, calorieActivity, calorieGoal], () => {
+        if (autoCalcEnabled.value) debouncedCalcCalories()
+    })
+    //========== Protein Calculator ==========
+
+    const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
+
+    const proteinWeight = ref < number | null > (null)
+    const proteinGoal = ref < 'maintain' | 'bulk' | 'cut' > ('maintain')
+    const proteinResult = ref < { recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null > (null)
+    const proteinActivity = ref < 'low' | 'moderate' | 'high' > ('low')
+    const proteinMeals = ref < number | null > (null)
+
+    const validateProtein = (): string[] => {
+        const errors: string[] = []
+        const w = Number(proteinWeight.value)
+        if (!Number.isFinite(w) || w <= 0) errors.push('Gewicht muss größer als 0 sein')
+        if (!proteinGoal.value) errors.push('Ziel muss ausgewählt sein')
+        return errors
+    }
+
+    const calculateProtein = () => {
+        const errors = validateProtein()
+        if (errors.length) { openValidationPopupError(errors); return }
+
+        const weightKg = unit.value === 'kg'
+            ? Number(proteinWeight.value)
+            : Number(proteinWeight.value) * KG_PER_LB
+
+        let baseFactor = 1.6, baseMin = 1.4, baseMax = 1.8
+        if (proteinGoal.value === 'bulk') {
+            baseFactor = 2.0; baseMin = 1.8; baseMax = 2.2
+        } else if (proteinGoal.value === 'cut') {
+            baseFactor = 2.2; baseMin = 2.0; baseMax = 2.6
+        }
+
+        const delta = proteinActivity.value === 'low' ? -0.2
+            : proteinActivity.value === 'high' ? 0.3
+                : 0.0
+
+        const factor = clamp(baseFactor + delta, 1.2, 2.7)
+        const minF = clamp(baseMin + delta, 1.2, 2.7)
+        const maxF = clamp(baseMax + delta, 1.2, 2.7)
+
+        const recommend = factor * weightKg
+        const range = { min: minF * weightKg, max: maxF * weightKg }
+
+        proteinResult.value = {
+            recommend,
+            min: range.min,
+            max: range.max,
+            factor,
+            weightDisplay: `${proteinWeight.value} ${unit.value}`
+        }
+
+        addToast('Proteinbedarf berechnet', 'default')
+        saveToLocalStorage('protein', {
+            weight: proteinWeight.value,
+            goal: proteinGoal.value,
+            activity: proteinActivity.value,
+            result: proteinResult.value
+        })
+    }
+
+    const copyProtein = () => {
+        if (!proteinResult.value) return
+        const r = proteinResult.value
+        const rangeLine = (r.min && r.max) ? `\n- Range: ${r.min.toFixed(0)}–${r.max.toFixed(0)} g/Tag` : ''
+        const txt = `Proteinbedarf
+- Empfehlung: ${r.recommend.toFixed(0)} g/Tag${rangeLine}
+- Faktor: ${r.factor.toFixed(2)} g/kg
+- Gewicht: ${r.weightDisplay}
+- Ziel: ${proteinGoal.value}`
+        copyText(txt)
+    }
+
+    const debouncedCalcProtein = debounce(() => {
+        if (!validateProtein().length) withSilentToasts(calculateProtein)
+    }, 300)
+
+    watch([proteinWeight, proteinGoal, proteinActivity, unit], () => {
+        if (autoCalcEnabled.value) debouncedCalcProtein()
+    }, { flush: 'post' })
+
+    watch(autoCalcEnabled, (on) => {
+        if (on) debouncedCalcProtein()
+    })
+
+    //========== 1RM ==========
+
+    const oneRmExercise = ref < string > ('');
+    const oneRmWeight = ref < number | null > (null);
+    const oneRmReps = ref < number | null > (null);
+    const oneRmResult = ref < number | null > (null);
+
+    const validateOneRm = (): string[] => {
+        const errors: string[] = [];
+        if (oneRmWeight.value === null || isNaN(oneRmWeight.value) || oneRmWeight.value <= 0)
+            errors.push('Gewicht muss größer als 0 sein');
+        if (oneRmReps.value === null || isNaN(oneRmReps.value) || oneRmReps.value <= 0)
+            errors.push('Wiederholungen müssen größer als 0 sein');
+        return errors;
+    };
+
+    const calculateOneRm = () => {
+        const errors = validateOneRm();
+        if (errors.length) {
+            openValidationPopupError(errors);
+            return;
+        }
+        const weightKg = unit.value === 'kg' ? Number(oneRmWeight.value) : Number(oneRmWeight.value) * KG_PER_LB;
+        const reps = Number(oneRmReps.value);
+        const oneRmKg = weightKg * (1 + reps / 30);
+        oneRmResult.value = oneRmKg;
+
+        addToast('1RM berechnet', 'default');
+        saveToLocalStorage('oneRm', {
+            exercise: oneRmExercise.value,
+            weight: oneRmWeight.value,
+            reps,
+            result: oneRmResult.value,
+        });
+    };
+
+    const copyOneRm = () => {
+        if (!oneRmResult.value) return
+        const txt = `1RM-Schätzung
+- Übung: ${oneRmExercise.value || '-'}
+- 1RM: ${formatWeight(oneRmResult.value, 1)}
+- Eingabe: ${oneRmWeight.value ?? '-'} ${unit.value} x ${oneRmReps.value ?? '-'}`
+        copyText(txt)
+    }
+
+    const debouncedCalc1RM = debounce(() => {
+        if (!validateOneRm().length) withSilentToasts(calculateOneRm)
+    })
+
+    watch([oneRmWeight, oneRmReps, oneRmExercise], () => {
+        if (autoCalcEnabled.value) debouncedCalc1RM()
+    })
+
+    // ===== Koffein Calculator ==========
+
+    const cafWeight = ref < number | null > (null)
+    const cafSensitivity = ref < 'low' | 'normal' | 'high' > ('normal')
+    const cafStatus = ref < 'none' | 'pregnant' > ('none')
+    const cafResult = ref < { perDose: number; perDay: number } | null > (null)
+
+    const validateCaffeine = (): string[] => {
+        const errors: string[] = []
+        if (cafWeight.value === null || isNaN(cafWeight.value) || cafWeight.value <= 0) {
+            errors.push('Gewicht muss größer als 0 sein')
+        }
+        return errors
+    }
+
+    const calculateCaffeine = () => {
+        const errors = validateCaffeine()
+        if (errors.length) { openValidationPopupError(errors); return }
+
+        const kg = unit.value === 'kg'
+            ? Number(cafWeight.value)
+            : Number(cafWeight.value) * KG_PER_LB
+
+        let mgPerKg = 4
+        if (cafSensitivity.value === 'low') mgPerKg = 3
+        if (cafSensitivity.value === 'high') mgPerKg = 6
+
+        let dayCap = 400
+        if (cafStatus.value === 'pregnant') dayCap = 200
+
+        const perDay = Math.min(Math.round(mgPerKg * kg), dayCap)
+        const perDose = Math.min(Math.round(perDay / 2), 200)
+
+        cafResult.value = { perDose, perDay }
+        addToast('Koffein-Empfehlung berechnet', 'default')
+
+        saveToLocalStorage('caffeine', {
+            weight: cafWeight.value,
+            sensitivity: cafSensitivity.value,
+            status: cafStatus.value,
+            result: cafResult.value,
+        })
+    }
+
+    const copyCaffeine = () => {
+        if (!cafResult.value) return
+        const r = cafResult.value
+        const txt = `Koffein – sichere Dosis
+- Max. pro Tag: ${r.perDay} mg
+- Empfehlung je Einzeldosis: ${r.perDose} mg
+- Gewicht: ${cafWeight.value ?? '-'} ${unit.value}
+- Empfindlichkeit: ${cafSensitivity.value}
+- Status: ${cafStatus.value}`
+        copyText(txt)
+    }
+
+    const caffeineData = localStorage.getItem('progress_caffeine')
+    if (caffeineData) {
+        const parsed = JSON.parse(caffeineData)
+        cafWeight.value = parsed.weight
+        cafSensitivity.value = parsed.sensitivity
+        cafStatus.value = parsed.status
+        cafResult.value = parsed.result
+    }
+
+    const debouncedCalcCaffeine = debounce(() => {
+        if (!validateCaffeine().length) withSilentToasts(calculateCaffeine)
+    })
+
+    watch([cafWeight, cafSensitivity, cafStatus], () => {
+        if (autoCalcEnabled.value) debouncedCalcCaffeine()
+    })
+    watch(autoCalcEnabled, (on) => {
+        if (!on) return
+        debouncedCalcCaffeine()
+    })
+    // ========== BodyFat Calculator ==========
+
+    const bodyFatGender = ref < 'male' | 'female' > ('male');
+    const bodyFatWaist = ref < number | null > (null);
+    const bodyFatNeck = ref < number | null > (null);
+    const bodyFatHip = ref < number | null > (null);
+    const bodyFatHeight = ref < number | null > (null);
+    const bodyFatResult = ref < number | null > (null);
+
+    const validateBodyFat = (): string[] => {
+        const errors: string[] = [];
+        if (bodyFatWaist.value === null || isNaN(bodyFatWaist.value) || bodyFatWaist.value <= 0)
+            errors.push('Bauchumfang muss größer als 0 sein');
+        if (bodyFatNeck.value === null || isNaN(bodyFatNeck.value) || bodyFatNeck.value <= 0)
+            errors.push('Halsumfang muss größer als 0 sein');
+        if (bodyFatHeight.value === null || isNaN(bodyFatHeight.value) || bodyFatHeight.value <= 0)
+            errors.push('Größe muss größer als 0 sein');
+        if (bodyFatGender.value === 'female' && (bodyFatHip.value === null || isNaN(bodyFatHip.value) || bodyFatHip.value <= 0))
+            errors.push('Hüftumfang muss größer als 0 sein');
+        return errors;
+    };
+
+    const calculateBodyFat = () => {
+        const errors = validateBodyFat();
+        if (errors.length) {
+            openValidationPopupError(errors);
+            return;
+        }
+        const waist = Number(bodyFatWaist.value);
+        const neck = Number(bodyFatNeck.value);
+        const height = Number(bodyFatHeight.value);
+        let bodyFat = 0;
+        if (bodyFatGender.value === 'male') {
+            bodyFat = 86.010 * Math.log10(waist - neck) - 70.041 * Math.log10(height) + 36.76;
+        } else {
+            const hip = Number(bodyFatHip.value);
+            bodyFat = 163.205 * Math.log10(waist + hip - neck) - 97.684 * Math.log10(height) - 78.387;
+        }
+        bodyFatResult.value = Math.max(0, bodyFat);
+        addToast('Körperfett berechnet', 'default');
+        saveToLocalStorage('bodyFat', {
+            gender: bodyFatGender.value,
+            waist,
+            neck,
+            hip: bodyFatHip.value,
+            height,
+            result: bodyFatResult.value,
+        });
+    };
+
+    const copyBodyFat = () => {
+        if (!bodyFatResult.value) return
+        const txt = `Körperfett (US Navy)
+- Körperfett: ${bodyFatResult.value.toFixed(1)}%
+- Geschlecht: ${bodyFatGender.value}
+- Maße: Bauch ${bodyFatWaist.value ?? '-'} cm, Hals ${bodyFatNeck.value ?? '-'} cm${bodyFatGender.value === 'female' ? `, Hüfte ${bodyFatHip.value ?? '-'} cm` : ''}
+- Größe: ${bodyFatHeight.value ?? '-'} cm`
+        copyText(txt)
+    }
+
+    const debouncedCalcBodyFat = debounce(() => {
+        if (!validateBodyFat().length) withSilentToasts(calculateBodyFat)
+    })
+
+    watch([bodyFatGender, bodyFatWaist, bodyFatNeck, bodyFatHip, bodyFatHeight], () => {
+        if (autoCalcEnabled.value) debouncedCalcBodyFat()
+    })
+
+    // ========== FFMI Calculator ==========
+
+    const ffmiWeight = ref < number | null > (null);
+    const ffmiHeight = ref < number | null > (null);
+    const ffmiBodyFat = ref < number | null > (null);
+    const ffmiResult = ref < { value: number; category: string } | null > (null);
+
+    const validateFFMI = (): string[] => {
+        const errors: string[] = [];
+        if (ffmiWeight.value === null || isNaN(ffmiWeight.value) || ffmiWeight.value <= 0)
+            errors.push('Gewicht muss größer als 0 sein');
+        if (ffmiHeight.value === null || isNaN(ffmiHeight.value) || ffmiHeight.value <= 0)
+            errors.push('Größe muss größer als 0 sein');
+        if (ffmiBodyFat.value === null || isNaN(ffmiBodyFat.value) || ffmiBodyFat.value < 0 || ffmiBodyFat.value > 100)
+            errors.push('Körperfettanteil muss zwischen 0 und 100% liegen');
+        return errors;
+    };
+
+    const calculateFFMI = () => {
+        const errors = validateFFMI();
+        if (errors.length) {
+            openValidationPopupError(errors);
+            return;
+        }
+        const weightKg = unit.value === 'kg' ? Number(ffmiWeight.value) : Number(ffmiWeight.value) * KG_PER_LB;
+        const heightM = Number(ffmiHeight.value) / 100;
+        const bodyFat = Number(ffmiBodyFat.value) / 100;
+        const leanMass = weightKg * (1 - bodyFat);
+        const ffmi = leanMass / (heightM * heightM) + 6.1 * (1.8 - heightM);
+        let category = '';
+        if (ffmi < 18) category = 'Unterdurchschnittlich';
+        else if (ffmi < 20) category = 'Durchschnittlich';
+        else if (ffmi < 22) category = 'Überdurchschnittlich';
+        else if (ffmi < 25) category = 'Sehr muskulös';
+        else category = 'Extrem muskulös';
+        ffmiResult.value = { value: ffmi, category };
+        addToast('FFMI berechnet', 'default');
+        saveToLocalStorage('ffmi', {
+            weight: ffmiWeight.value,
+            height: ffmiHeight.value,
+            bodyFat: ffmiBodyFat.value,
+            result: ffmiResult.value,
+        });
+    };
+
+    const copyFFMI = () => {
+        if (!ffmiResult.value) return
+        const txt = `FFMI
+- FFMI: ${ffmiResult.value.value.toFixed(1)} (${ffmiResult.value.category})
+- Gewicht: ${ffmiWeight.value ?? '-'} ${unit.value}
+- Größe: ${ffmiHeight.value ?? '-'} cm
+- KFA: ${ffmiBodyFat.value ?? '-'}%`
+        copyText(txt)
+    }
+
+    const debouncedCalcFFMI = debounce(() => {
+        if (!validateFFMI().length) withSilentToasts(calculateFFMI)
+    })
+
+    watch([ffmiWeight, ffmiHeight, ffmiBodyFat], () => {
+        if (autoCalcEnabled.value) debouncedCalcFFMI()
+    })
+
+    // ========== GlycemicLoadCalculator ==========
+
+    const glFood = ref < string > ('')
+    const glServing = ref < number | null > (null)
+    const glCarbs100 = ref < number | null > (null)
+    const glGi = ref < number | null > (null)
+    const glCarbs = computed < number | null > (() => {
+        if (glServing.value == null || glCarbs100.value == null) return null
+        return (Number(glCarbs100.value) * Number(glServing.value)) / 100
+    })
+
+    const glResult = ref < number | null > (null)
+    const glCategory = computed < string > (() => {
+        if (glResult.value == null) return ''
+        if (glResult.value < 10) return 'niedrig'
+        if (glResult.value < 20) return 'mittel'
+        return 'hoch'
+    })
+
+    const validateGlyLoad = (): string[] => {
+        const errors: string[] = []
+        if (!glFood.value.trim()) errors.push('Lebensmittel muss angegeben werden')
+        if (glServing.value === null || isNaN(glServing.value) || glServing.value <= 0)
+            errors.push('Portionsgröße muss größer als 0 g sein')
+        if (glCarbs100.value === null || isNaN(glCarbs100.value) || glCarbs100.value < 0)
+            errors.push('Kohlenhydrate pro 100 g müssen ≥ 0 g sein')
+        if (glGi.value === null || isNaN(glGi.value) || glGi.value < 0 || glGi.value > 110)
+            errors.push('Glykämischer Index muss zwischen 0 und 110 liegen')
+        return errors
+    }
+
+    const calculateGlyLoad = () => {
+        const errors = validateGlyLoad()
+        if (errors.length) { openValidationPopupError(errors); return }
+
+        const serving = Number(glServing.value)
+        const carbs100 = Number(glCarbs100.value)
+        const gi = Number(glGi.value)
+
+        const carbsPerServing = (carbs100 * serving) / 100
+        const gl = (gi / 100) * carbsPerServing
+
+        glResult.value = gl
+        addToast('Glykämische Last berechnet', 'default')
+
+        saveToLocalStorage('glyload', {
+            food: glFood.value,
+            serving,
+            carbs100,
+            gi,
+            result: glResult.value,
+            category: glCategory.value,
+        })
+    }
+
+    const copyGlyLoad = () => {
+        if (glResult.value == null) return
+        const txt = `Glykämische Last
+- Lebensmittel: ${glFood.value || '-'}
+- Portion: ${glServing.value ?? '-'} g
+- KH (pro 100 g): ${glCarbs100.value ?? '-'} g
+- GI: ${glGi.value ?? '-'}
+- GL (Portion): ${glResult.value.toFixed(1)} (${glCategory.value})`
+        copyText(txt)
+    }
+
+    const glyloadData = localStorage.getItem('progress_glyload')
+    if (glyloadData) {
+        const parsed = JSON.parse(glyloadData)
+        glFood.value = parsed.food
+        glServing.value = parsed.serving
+        glCarbs100.value = parsed.carbs100
+        glGi.value = parsed.gi
+
+        if (parsed.result && typeof parsed.result === 'object' && 'gl' in parsed.result) {
+            glResult.value = Number(parsed.result.gl)
+        } else {
+            glResult.value = parsed.result ?? null
+        }
+    }
+
+    const debouncedCalcGlyLoad = debounce(() => {
+        if (!validateGlyLoad().length) withSilentToasts(calculateGlyLoad)
+    })
+
+    watch([glFood, glServing, glCarbs100, glGi], () => {
+        if (autoCalcEnabled.value) debouncedCalcGlyLoad()
+    })
+    watch(autoCalcEnabled, (on) => {
+        if (!on) return
+        debouncedCalcGlyLoad()
+    })
+    // ========== Water Calculator ==========
+
+    const waterWeight = ref < number | null > (null);
+    const waterActivity = ref < 'low' | 'moderate' | 'high' > ('low');
+    const waterClimate = ref < 'temperate' | 'hot' | 'very_hot' > ('temperate');
+    const waterResult = ref < number | null > (null);
+
+    const validateWater = (): string[] => {
+        const errors: string[] = [];
+        if (waterWeight.value === null || isNaN(waterWeight.value) || waterWeight.value <= 0)
+            errors.push('Gewicht muss größer als 0 sein');
+        return errors;
+    };
+
+    const calculateWater = () => {
+        const errors = validateWater();
+        if (errors.length) {
+            openValidationPopupError(errors);
+            return;
+        }
+        const weightKg = unit.value === 'kg' ? Number(waterWeight.value) : Number(waterWeight.value) * KG_PER_LB;
+        let baseWater = weightKg * 0.035;
+        if (waterActivity.value === 'moderate') baseWater += 0.5;
+        else if (waterActivity.value === 'high') baseWater += 1.0;
+        if (waterClimate.value === 'hot') baseWater += 0.5;
+        if (waterClimate.value === 'very_hot') baseWater += 1.0;
+        waterResult.value = Math.max(1.5, baseWater);
+        addToast('Wasserbedarf berechnet', 'default');
+        saveToLocalStorage('water', {
+            weight: waterWeight.value,
+            activity: waterActivity.value,
+            climate: waterClimate.value,
+            result: waterResult.value,
+        });
+
+    };
+
+    const copyWater = () => {
+        if (!waterResult.value) return
+        const txt = `Wasserbedarf
+- Empfehlung: ${waterResult.value.toFixed(1)} Liter/Tag
+- Gewicht: ${waterWeight.value ?? '-'} ${unit.value}
+- Aktivität: ${waterActivity.value}
+- Klima: ${waterClimate.value}`
+        copyText(txt)
+    }
+
+    const debouncedCalcWater = debounce(() => {
+        if (!validateWater().length) withSilentToasts(calculateWater)
+    })
+
+    watch([waterWeight, waterActivity, waterClimate], () => {
+        if (autoCalcEnabled.value) debouncedCalcWater()
+    })
+
+    // ======== Pläne-Tab: State =======
+
+    const trainingPlans = ref < TrainingPlan[] > ([]);
+    const favoritePlansIds = ref < string[] > ([])
+
+
+
+    // === Pläne-Tab: abgeleitete Listen ===
+    const favoritePlans = computed(() =>
+        trainingPlans.value.filter(p => favoritePlansIds.value.includes(p.id))
+    )
+    const otherPlans = computed(() =>
+        trainingPlans.value.filter(p => !favoritePlansIds.value.includes(p.id))
+    )
+
+    // ======= Pläne-Tab: Aktionen =======
+
+    const openPlanProgress = (planId: string) => {
+        currentPlanId.value = planId
+        showPlanProgressPopup.value = true
+    }
+
+    const matchesPlanSearch = (name: string) => {
+        if (!planSearchQuery.value) return true;
+        return name.toLowerCase().includes(planSearchQuery.value.toLowerCase());
+    };
+
+    // === Pläne-Tab: Initiales Laden aus localStorage ===
+
+    onMounted(() => {
+        try {
+            const raw = localStorage.getItem('trainingData')
+            if (raw) {
+                const parsed = JSON.parse(raw)
+                trainingPlans.value = Array.isArray(parsed?.plans) ? parsed.plans : []
+                favoritePlansIds.value = Array.isArray(parsed?.favoritePlans) ? parsed.favoritePlans : []
+            } else {
+                const legacy = localStorage.getItem('trainingPlans')
+                trainingPlans.value = legacy ? JSON.parse(legacy) : []
+                favoritePlansIds.value = []
+            }
+        } catch {
+            trainingPlans.value = []
+            favoritePlansIds.value = []
+        }
+    })
+
+    //ProgressEntryModal
+
+    const showProgressPopup = ref(false);
+    const showProgressExtras = ref(false);
+
+    const currentExercise = ref < string > ('');
+
+    const newProgressReps = ref < number | null > (null);
+    const newProgressSets = ref < number | null > (null);
+    const newProgressNote = ref < string > ('');
+    const newProgressDuration = ref < number | null > (null)
+
+    const newProgressDistance = ref < number | null > (null)
+    const newProgressTempo = ref < string > ('')
+    const newProgressRestSeconds = ref < number | null > (null)
+    const newProgressAvgHr = ref < number | null > (null)
+    const newProgressCalories = ref < number | null > (null)
+    const newProgressPace = ref < string > ('')
+    const newProgressHrZone = ref < number | null > (null)
+    const newProgressBorg = ref < number | null > (null)
+
+    const newProgressPainFree = ref < number | null > (null)
+    const newProgressMovementQuality = ref < number | null > (null)
+    const newProgressEquipment = ref < string > ('')
+    const newProgressEquipmentCustom = ref < string > ('')
+    const newProgressSide = ref < '' | 'links' | 'rechts' | 'beidseitig' > ('')
+
+    const newProgressSetDetails = ref < Array < { weight: number | null; reps: number | null } >> ([])
+
+    const newProgressIsDropset = ref(false)
+    const newProgressDropsets = ref < Array < { weight: number | null; reps: number | null } >> ([])
+
+    const editingEntry = ref < Workout | null > (null);
+
+    const reopenPlanProgressAfterSave = ref(false)
+
+    const progressEntryModalRef = ref < ProgressEntryModalExposed | null > (null)
+
+    const newProgressWeight = ref < number | null > (null)
+
+    // --- Helper: Übungs-Namen → Typ erkennen ---
+
+    const isCardioName = (name: string) => {
+        const n = (name || '').toLowerCase()
+        const kw = [
+            'lauf', 'jogg', 'run', 'treadmill',
+            'rad', 'fahrrad', 'bike', 'spinning', 'cycling',
+            'row', 'rudern', 'ergometer',
+            'crosstrainer', 'ellip',
+            'seilspring', 'rope',
+            'treppen', 'stairs',
+            'schwimm', 'walk', 'hike'
+        ]
+        return kw.some(k => n.includes(k))
+    }
+
+    const isStretchName = (name: string) => {
+        const n = (name || '').toLowerCase()
+        const kw = [
+            'dehn', 'stretch', 'mobil', 'mobility', 'beweglich',
+            'yoga', 'faszien', 'smr', 'roll', 'piriformis',
+            'hamstring', 'calf stretch', 'hip opener'
+        ]
+        return kw.some(k => n.includes(k))
+    }
+
+
+    const detectedInputType = computed < ExerciseType > (() =>
+        isStretchName(currentExercise.value) ? 'dehnung'
+            : isCardioName(currentExercise.value) ? 'ausdauer'
+                : 'kraft'
+    )
+
+    //Validation ProgressModalEntry
+
+    const clearValidation = () => {
+        validationErrorMessages.value = []
+    }
+
+    const validateProgress = (): string[] => {
+        const errors: string[] = []
+
+        if (!currentExercise.value) errors.push('Eine Übung muss ausgewählt sein')
+        if (detectedInputType.value === 'ausdauer') {
+            if (newProgressDuration.value == null || isNaN(newProgressDuration.value) || newProgressDuration.value <= 0)
+                errors.push('Dauer (Min) muss größer als 0 sein')
+            if (newProgressDistance.value != null && (isNaN(newProgressDistance.value) || newProgressDistance.value < 0))
+                errors.push('Distanz (km) muss ≥ 0 sein')
+
+            const borgN = toNum(newProgressBorg.value)
+            if (borgN != null) {
+                if (borgN < 6 || borgN > 20) errors.push('Borg-Skala muss zwischen 6 und 20 liegen')
+            }
+            else if (newProgressBorg.value != null && String(newProgressBorg.value).trim() !== '') {
+                errors.push('Borg-Skala muss eine Zahl sein')
+            }
+
+            return errors
+        }
+
+        if (detectedInputType.value === 'dehnung') {
+            if (newProgressSets.value == null || isNaN(newProgressSets.value) || Number(newProgressSets.value) <= 0)
+                errors.push('Sätze müssen größer als 0 sein')
+
+            if (newProgressDuration.value != null && String(newProgressDuration.value).trim() !== '') {
+                const d = Number(newProgressDuration.value)
+                if (!Number.isFinite(d) || d <= 0) errors.push('Dauer (Min) muss > 0 sein, wenn angegeben')
+            }
+
+            if (newProgressReps.value != null && String(newProgressReps.value).trim() !== '') {
+                const r = Number(newProgressReps.value)
+                if (!Number.isFinite(r) || r <= 0) errors.push('Wiederholungen müssen > 0 sein, wenn angegeben')
+            }
+            return errors
+        }
+
+        const perSet = (newProgressSetDetails.value ?? []).filter(r => r !== undefined)
+
+        if (perSet.length > 0) {
+            perSet.forEach((r, i) => {
+                const w = Number(r.weight)
+                const reps = Number(r.reps)
+                if (!Number.isFinite(w) || w < 0) errors.push(`Satz ${i + 1}: Gewicht muss ≥ 0 sein`)
+                if (!Number.isFinite(reps) || reps <= 0) errors.push(`Satz ${i + 1}: Wdh. müssen > 0 sein`)
+            })
+        } else {
+            if (newProgressSets.value == null || isNaN(newProgressSets.value) || newProgressSets.value <= 0)
+                errors.push('Sätze müssen größer als 0 sein')
+            if (newProgressReps.value == null || isNaN(newProgressReps.value) || newProgressReps.value <= 0)
+                errors.push('Wiederholungen müssen größer als 0 sein')
+        }
+
+        if (newProgressIsDropset.value && (newProgressDropsets.value?.length ?? 0) > 0) {
+            newProgressDropsets.value.forEach((ds, j) => {
+                const any = ds.weight != null || ds.reps != null
+                if (!any) return
+                if (ds.weight == null || isNaN(ds.weight) || ds.weight <= 0) errors.push(`Dropsatz ${j + 1}: Gewicht muss > 0 sein`)
+                if (ds.reps == null || isNaN(ds.reps) || ds.reps <= 0) errors.push(`Dropsatz ${j + 1}: Wdh. müssen > 0 sein`)
+            })
+        }
+
+        return errors
+    }
+
+    //Core-Flow fürs Modal
+
     const openProgressPopup = (planId: string) => {
-        // sicherstellen: NEUER Eintrag, keine alten Fehler/Extras mitschleppen
         editingEntry.value = null
         validationErrorMessages.value = []
         showProgressExtras.value = false
 
         currentPlanId.value = planId
-        currentExercise.value = ''          // Placeholder
+        currentExercise.value = ''
         newProgressSets.value = null
         newProgressWeight.value = latestRecordedWeightDisplay.value
         newProgressReps.value = null
@@ -2268,8 +2232,79 @@
         showProgressPopup.value = true
     }
 
+    const cancelProgressEdit = () => {
+        editingEntry.value = null
+        validationErrorMessages.value = []
+        showProgressExtras.value = false
+
+        const planIdForReopen = reopenPlanProgressAfterSave.value ? currentPlanId.value : null
+        closeProgressPopup()
+
+        if (planIdForReopen) {
+            currentPlanId.value = planIdForReopen
+            showPlanProgressPopup.value = true
+            reopenPlanProgressAfterSave.value = false
+        }
+    }
+
+    const closeProgressPopup = () => {
+        showProgressPopup.value = false
+
+        editingEntry.value = null
+        validationErrorMessages.value = []
+        showProgressExtras.value = false
+
+        currentPlanId.value = null
+        currentExercise.value = ''
+        newProgressSets.value = null
+        newProgressWeight.value = null
+        newProgressReps.value = null
+        newProgressNote.value = ''
+        newProgressSetDetails.value = []
+        newProgressDuration.value = null
+        newProgressDistance.value = null
+    }
+
+    const editProgressEntry = (planId: string, entry: Workout) => {
+        currentPlanId.value = planId
+        currentExercise.value = entry.exercise || ''
+
+        newProgressSets.value = entry.sets ?? 1
+        newProgressWeight.value = latestRecordedWeightDisplay.value
+        newProgressReps.value = entry.reps ?? null
+        newProgressNote.value = entry.note ?? ''
+        editingEntry.value = entry
+
+        newProgressDuration.value = entry.durationMin ?? null
+        newProgressDistance.value = entry.distanceKm ?? null
+
+        if (entry.setDetails && entry.setDetails.length) {
+            newProgressSetDetails.value = entry.setDetails.map(s => ({
+                weight: s.weight != null ? kgToDisplay(s.weight) : null,
+                reps: s.reps ?? null,
+            }))
+            newProgressSets.value = entry.setDetails.length
+        } else {
+            newProgressSetDetails.value = []
+        }
+
+        newProgressIsDropset.value = Boolean(entry.isDropset && (entry.dropsets?.length ?? 0) > 0)
+        newProgressDropsets.value = (entry.dropsets ?? []).map(ds => ({
+            weight: ds.weight != null ? kgToDisplay(ds.weight) : null,
+            reps: ds.reps ?? null,
+        }))
+
+        if (showPlanProgressPopup.value) {
+            reopenPlanProgressAfterSave.value = true
+            showPlanProgressPopup.value = false
+        } else {
+            reopenPlanProgressAfterSave.value = false
+        }
+
+        showProgressPopup.value = true
+    }
+
     const saveProgress = () => {
-        // kleine lokale Helper: robuste Zahl (Komma erlaubt) & Trim-Check
         const toNum = (v: unknown): number | null => {
             if (v == null) return null
             const n = Number(String(v).replace(',', '.').trim())
@@ -2277,7 +2312,6 @@
         }
         const hasText = (v: unknown) => String(v ?? '').trim() !== ''
 
-        // === Nur Körpergewicht geändert? (ohne Übung/sonstige Felder) ===
         const hasExercise = Boolean((currentExercise.value || '').trim())
 
         const displayWeight = newProgressWeight.value
@@ -2308,7 +2342,6 @@
             weightHistory.value.unshift({ date: today, weight: enteredKg })
             localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
 
-            // UI synchron halten
             newProgressWeight.value = kgToDisplay(enteredKg)
             updateWeightChart()
 
@@ -2317,10 +2350,8 @@
             return
         }
 
-        // === Validierung (Basis) ===
         const errors = validateProgress()
 
-        // ➕ Zusätzliche, robuste Borg-Prüfung (damit allein diese Funktion dicht ist)
         if (detectedInputType.value === 'ausdauer') {
             const borgRaw = newProgressBorg.value
             const borgN = toNum(borgRaw)
@@ -2337,7 +2368,6 @@
             return
         }
 
-        // === Payload bauen ===
         let payload: Workout
 
         if (detectedInputType.value === 'ausdauer') {
@@ -2353,7 +2383,6 @@
                 durationMin: Number(newProgressDuration.value),
                 distanceKm: newProgressDistance.value != null ? Number(newProgressDistance.value) : undefined,
 
-                // Extras (Cardio) – numerisch gesäubert
                 avgHr: toNum(newProgressAvgHr.value) ?? undefined,
                 calories: toNum(newProgressCalories.value) ?? undefined,
                 pace: newProgressPace.value?.trim() || undefined,
@@ -2373,7 +2402,7 @@
                 exercise: currentExercise.value,
                 sets: Number(newProgressSets.value) || 0,
                 weight: 0,
-                reps: repsOpt,   
+                reps: repsOpt,
                 note: newProgressNote.value?.trim() || undefined,
                 date: editingEntry.value?.date ?? new Date().toISOString(),
                 type: 'dehnung',
@@ -2386,13 +2415,12 @@
                 side: newProgressSide.value || undefined,
             }
         } else {
-            // Kraft / Calisthenics
             const hasPerSet = (newProgressSetDetails.value?.length ?? 0) > 0
             const perSet = hasPerSet
                 ? newProgressSetDetails.value
                     .filter(r => r.weight != null && r.reps != null)
                     .map(r => ({
-                        weight: displayToKg(Number(r.weight)), // in kg persistieren
+                        weight: displayToKg(Number(r.weight)),
                         reps: Number(r.reps),
                     }))
                 : []
@@ -2409,11 +2437,9 @@
                 date: editingEntry.value?.date ?? new Date().toISOString(),
                 type: 'kraft',
 
-                // Extras (Kraft)
                 tempo: newProgressTempo.value?.trim() || undefined,
                 restSeconds: toNum(newProgressRestSeconds.value) ?? undefined,
 
-                // Optional: Dropsätze
                 isDropset: newProgressIsDropset.value || undefined,
                 dropsets: newProgressIsDropset.value
                     ? (newProgressDropsets.value ?? [])
@@ -2424,12 +2450,10 @@
                         }))
                     : undefined,
 
-                // Einzelsatz-Details
                 setDetails: hasPerSet ? perSet : undefined,
             }
         }
 
-        // === Körpergewicht ggf. zusätzlich persistieren ===
         {
             const displayWeight2 = newProgressWeight.value
             const enteredKg2 = (displayWeight2 != null && !isNaN(displayWeight2) && Number(displayWeight2) > 0)
@@ -2445,7 +2469,6 @@
             }
         }
 
-        // === Speichern / Aktualisieren ===
         if (editingEntry.value) {
             const idx = workouts.value.findIndex(
                 w => w.planId === payload.planId && w.date === editingEntry.value!.date
@@ -2466,7 +2489,6 @@
         localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
         closeProgressPopup()
 
-        // ggf. „Fortschritt ansehen“-Modal wieder öffnen
         if (reopenPlanProgressAfterSave.value) {
             const planIdForReopen = payload.planId
             if (planIdForReopen) {
@@ -2477,45 +2499,288 @@
         }
     }
 
+    // ===== Journal & Plan-Progress: State & Helper =====
 
-    function releaseToasts() {
-        if (!suppressToasts.value) return
-        suppressToasts.value = false
-        // Listener sauber entfernen
-        window.removeEventListener('pointerdown', releaseToasts)
-        window.removeEventListener('keydown', releaseToasts)
-        window.removeEventListener('touchstart', releaseToasts as any)
-        if (toastReleaseTimer) {
-            clearTimeout(toastReleaseTimer)
-            toastReleaseTimer = null
+    const maxEntries = ref(3);
+    const showMore = ref < { [key: string]: boolean } > ({});
+
+    const prevWeightHistory = ref < WeightEntry[] | null > (null)
+    const prevWorkoutsSnapshot = ref < Workout[] | null > (null)
+    const journalSearch = ref < string > ('')
+    const journalType = ref < 'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer' > ('alle')
+
+    const router = useRouter()
+    const TYPE_LABEL: Record<WorkoutType, string> = {
+        kraft: 'Kraft',
+        calisthenics: 'Calisthenics',
+        dehnung: 'Dehnung',
+        ausdauer: 'Cardio',
+    }
+
+    const maxDropsets = (entries: Workout[]) =>
+        Math.max(0, ...entries.map(e => e.dropsets?.length ?? 0))
+
+    const padDropsets = (
+        drops: Array<{ weight: number; reps: number }> | undefined,
+        n: number
+    ) => {
+        const arr = drops ? [...drops] : []
+        while (arr.length < n) arr.push(undefined as any)
+        return arr
+    }
+
+    function gridCols(n: number, extras?: { tempo: boolean; rest: boolean }) {
+        const base = ['0.7fr', '1fr', '0.9fr']
+        const ds = Array.from({ length: n }, () => ['1fr', '0.9fr']).flat()
+        const extraCols: string[] = []
+        if (extras?.tempo) extraCols.push('minmax(100px, 0.9fr)')
+        if (extras?.rest) extraCols.push('minmax(90px, 0.7fr)')
+        return [...base, ...ds, ...extraCols].join(' ')
+    }
+    const summarizeCategories = (items: Workout[]): string => {
+        const types = new Set < WorkoutType > (items.map(w => (w.type ?? 'kraft') as WorkoutType))
+        const labels = [...types].map(t => TYPE_LABEL[t])
+        if (labels.length === 1) return labels[0]
+        if (labels.length > 3) return 'Gemischt'
+        return labels.join(' + ')
+    }
+
+    function aggregateDay(items: Workout[]): JournalGroup[] {
+        const strength = items.filter(it => (it.type ?? 'kraft') === 'kraft' || it.type === 'calisthenics')
+
+        const byExercise = new Map < string, { entries: Workout[]; notes: string[]
+    }> ()
+    for (const it of strength) {
+        const key = it.exercise || 'Unbenannte Übung'
+        if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
+
+        const setCount = Math.max(1, Number(it.sets ?? 1))
+        for (let s = 0; s < setCount; s++) {
+            const detail = it.setDetails?.[s]
+            byExercise.get(key)!.entries.push({
+                ...it,
+                sets: 1,
+                weight: detail ? detail.weight : it.weight,
+                reps: detail ? detail.reps : it.reps,
+            })
         }
+
+        if (it.note) byExercise.get(key)!.notes.push(it.note)
     }
 
-    function showToast(opts: { message: string; type?: 'default' | 'add' | 'delete' | 'save' | 'timer' | 'reset' | 'success'; emoji?: string }) {
-        const mapped = opts.type === 'success' ? 'add' : (opts.type ?? 'default');
-        addToast(opts.message, mapped);
+    const groups: JournalGroup[] = []
+    for (const [exercise, { entries, notes }] of byExercise.entries()) {
+        groups.push({
+            exercise,
+            entries,
+            note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
+        })
     }
 
-    const closeProgressPopup = () => {
-        showProgressPopup.value = false
+    return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
+}
 
-        // hart resetten, damit beim nächsten Öffnen nichts „klebt“
-        editingEntry.value = null
-        validationErrorMessages.value = []
-        showProgressExtras.value = false
+    const journalDays = computed < JournalDay[] > (() => {
+        if (!currentPlanId.value) return []
+        const all = getProgressForPlan(currentPlanId.value)
 
-        currentPlanId.value = null
-        currentExercise.value = ''
-        newProgressSets.value = null
-        newProgressWeight.value = null
-        newProgressReps.value = null
-        newProgressNote.value = ''
-        newProgressSetDetails.value = []
-        newProgressDuration.value = null
-        newProgressDistance.value = null
+        const filtered = all.filter(w => {
+            const t = (w.type ?? 'kraft') as WorkoutType
+            const typeOk = journalType.value === 'alle' || t === journalType.value
+            if (!typeOk) return false
+            const q = journalSearch.value.trim().toLowerCase()
+            if (!q) return true
+            const inExercise = (w.exercise || '').toLowerCase().includes(q)
+            const inNote = (w.note || '').toLowerCase().includes(q)
+            return inExercise || inNote
+        })
+
+        const byDay = new Map < string, Workout[]> ()
+        for (const w of filtered) {
+            const day = (w.date || '').slice(0, 10)
+            if (!byDay.has(day)) byDay.set(day, [])
+            byDay.get(day)!.push(w)
+        }
+
+        return Array.from(byDay.entries())
+            .sort((a, b) => b[0].localeCompare(a[0]))
+            .map(([day, items]) => ({ day, groups: aggregateDay(items) }))
+    })
+
+    const visibleJournalDays = computed(() => journalDays.value.slice(0, visibleDays.value))
+
+    const groupsForDay = (day: string) => {
+        const items = entriesByDay.value.get(day) ?? []
+        return aggregateDay(items)
     }
 
-    // clean version
+    const sortedPlanEntries = computed < Workout[] > (() => {
+        if (!currentPlanId.value) return []
+        return [...getProgressForPlan(currentPlanId.value)]
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    })
+
+    const deleteProgressEntry = (planId: string, date: string) => {
+        workouts.value = workouts.value.filter(w => !(w.planId === planId && w.date === date));
+        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value));
+        showToast({ message: 'Eintrag gelöscht!', type: 'success', emoji: '🗑️' });
+    };
+
+    function strengthExtrasFlags(entries: Workout[]): { tempo: boolean; rest: boolean } {
+        const tempo = entries.some(e => (e.tempo || '').trim().length > 0)
+        const rest = entries.some(e => e.restSeconds != null && Number.isFinite(e.restSeconds as number))
+        return { tempo, rest }
+    }
+
+    const calculateProgress = (planId: string) => {
+        const today = new Date().toISOString().split('T')[0];
+        const progressEntries = getProgressForPlan(planId).filter(entry => entry.date.startsWith(today));
+        const totalExercises = trainingPlans.value.find(p => p.id === planId)?.exercises.length || 1;
+        return Math.min((progressEntries.length / totalExercises) * 100, 100);
+    };
+
+    const displayedEntries = (planId: string) => {
+        const entries = getProgressForPlan(planId);
+        if (showMore.value[planId]) {
+            return entries;
+        }
+        return entries.slice(0, maxEntries.value);
+    };
+    const toggleShowMore = (planId: string) => {
+        showMore.value[planId] = !showMore.value[planId];
+    };
+
+    const openInTraining = (planId: string) => {
+        localStorage.setItem('openPlanId', planId)
+        router.push({ name: 'Training' })
+    }
+
+    //Show Progress
+
+    const showPlanProgressPopup = ref(false)
+    const currentPlanId = ref < string | null > (null);
+    const progressModalEl = ref < HTMLElement | null > (null)
+    const visibleDays = ref(7)
+    const expandedDays = ref < Set < string >> (new Set())
+
+    let endIO: IntersectionObserver | null = null
+
+    function setupProgressIO() {
+        const root = progressModalEl.value
+        if (!root) return
+        const endEl = root.querySelector('.scroll-sentinel-end')
+        if (!endEl) return
+        if (endIO) { endIO.disconnect(); endIO = null }
+
+        endIO = new IntersectionObserver(
+            ([entry]) => {
+                root.classList.toggle('at-bottom', entry.isIntersecting)
+            },
+            { root, threshold: 1.0 }
+        )
+        endIO.observe(endEl)
+    }
+
+    function cleanupProgressIO() {
+        if (endIO) { endIO.disconnect(); endIO = null }
+    }
+
+    const closePlanProgressPopup = () => {
+        showPlanProgressPopup.value = false
+    }
+
+    const currentPlanName = computed(() =>
+        trainingPlans.value.find(p => p.id === currentPlanId.value)?.name ?? ''
+    )
+
+    const formatDayLong = (yyyyMMdd: string) => {
+        const [y, m, d] = yyyyMMdd.split('-').map(Number)
+        return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString('de-DE', {
+            weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric'
+        })
+    }
+
+    const getProgressForPlan = (planId: string) => {
+        return workouts.value.filter((workout) => workout.planId === planId);
+    };
+
+    const entriesByDay = computed(() => {
+        const map = new Map < string, Workout[]> ()
+        if (!currentPlanId.value) return map
+        for (const w of getProgressForPlan(currentPlanId.value)) {
+            const day = (w.date || '').slice(0, 10)
+            if (!map.has(day)) map.set(day, [])
+            map.get(day)!.push(w)
+        }
+        // Neueste Tage zuerst
+        return new Map([...map.entries()].sort((a, b) => b[0].localeCompare(a[0])))
+    })
+
+    const dayCards = computed < DayCard[] > (() => {
+        return [...entriesByDay.value.entries()].map(([day, items]) => {
+            const uniqueExercises = new Set(items.map(i => i.exercise)).size
+            return { day, uniqueExercises }
+        })
+    })
+
+    const visibleDayCards = computed(() =>
+        dayCards.value.slice(0, visibleDays.value)
+    )
+
+    const editLatestEntryForDay = (day: string) => {
+        if (!currentPlanId.value) return
+        const items = getProgressForPlan(currentPlanId.value)
+            .filter(w => (w.date || '').slice(0, 10) === day)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+        if (!items.length) {
+            showToast({ message: 'Kein Eintrag für diesen Tag', type: 'default' })
+            return
+        }
+        editProgressEntry(currentPlanId.value, items[0])
+    }
+
+    function toggleDay(day: string) {
+        const next = new Set(expandedDays.value)
+        next.has(day) ? next.delete(day) : next.add(day)
+        expandedDays.value = next
+    }
+
+    const cardioForDay = (day: string) => {
+        const items = entriesByDay.value.get(day) ?? []
+        return items.filter(w => (w.type ?? 'kraft') === 'ausdauer')
+    }
+
+    const stretchForDay = (day: string) => {
+        const items = entriesByDay.value.get(day) ?? []
+        return items.filter(w => (w.type ?? 'kraft') === 'dehnung')
+    }
+
+    const addEntryFromPlanView = () => {
+        if (!currentPlanId.value) return
+        reopenPlanProgressAfterSave.value = true
+        showPlanProgressPopup.value = false
+        openProgressPopup(currentPlanId.value)
+    }
+
+    watch(showPlanProgressPopup, (open) => {
+        nextTick(() => {
+            if (open) setupProgressIO();
+            else cleanupProgressIO();
+        });
+    })
+
+    watch(showPlanProgressPopup, v => {
+        document.body.style.overflow = v ? 'hidden' : ''
+    })
+
+    //======== Export Popup ========
+
+    const showDownloadPopup = ref(false);
+    const downloadFormat = ref < 'html' | 'csv' | 'json' | 'pdf' | 'txt' > ('html');
+    const downloadCalculator = ref < string | null > (null);
+    const downloadPlanId = ref < string | null > (null);
+
     const openDownloadPopup = (calculator: string, planId?: string) => {
         downloadCalculator.value = calculator;
         downloadPlanId.value = planId || null;
@@ -2658,15 +2923,12 @@
                         type: e.type ?? 'kraft',
                         exercise: e.exercise,
                         date: formatDate(e.date),
-                        // zeit-/streckenbasiert
                         duration_min: (e.type === 'ausdauer' || e.type === 'dehnung') ? (e.durationMin ?? null) : null,
                         distance_km: (e.type === 'ausdauer') ? (e.distanceKm ?? null) : null,
-                        // satz-/wiederholungsbasiert
                         sets: e.sets ?? null,
                         reps: e.reps ?? null,
                         weight_raw_kg: (e.type === 'kraft' || e.type === 'calisthenics') ? e.weight : null,
                         weight_display: (e.type === 'kraft' || e.type === 'calisthenics') ? formatWeight(e.weight, 1) : null,
-                        // Notiz immer mitnehmen
                         note: e.note ?? null,
                     })),
                 }
@@ -2738,7 +3000,6 @@
                 return;
         }
 
-        // 2) PDF direkt mit jsPDF
         if (downloadFormat.value === 'pdf') {
             const doc = new jsPDF();
             doc.setFontSize(16);
@@ -2896,18 +3157,357 @@ Notiz: ${e.note ?? '-'}\n`
         closeDownloadPopup();
     };
 
+    const downloadResult = (fmt: 'pdf' | 'html' | 'csv' | 'json' | 'txt') => {
+        downloadFormat.value = fmt as any;
+        confirmDownload();
+    };
+
+    // --- Toast: State / Config
+
+    const toast = ref < ToastModel | null > (null);
+    let toastId = 0;
+    let toastTimeout: ReturnType<typeof setTimeout> | null = null;
+    const TOAST_DURATION_MS = 3000;
+    const toastHeld = ref(false);
+    const toastHovering = ref(false); // ⟵ neu
+    const toastWrap = ref < HTMLElement | null > (null)
+    const toastOffset = ref < { x: number; y: number } | null > (null)
+    const TOAST_OFFSET_KEY = 'ui_toast_offset_v2'
+
+    const toastsEnabled = ref(true);
+
+    const suppressToasts = ref(false)
+    let toastReleaseTimer: ReturnType<typeof setTimeout> | null = null
+
+    const toastPosition = ref < 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' > ('bottom-right')
+
+    //Toast Helper Für Drag / Pos. aus Dom lesen / Speichern
+
+    function parseTranslate(el: HTMLElement | null): { x: number; y: number } {
+        if (!el) return { x: 0, y: 0 }
+        const style = getComputedStyle(el)
+        const tr = style.transform
+        if (!tr || tr === 'none') return { x: 0, y: 0 }
+        // matrix(a,b,c,d,tx,ty) oder matrix3d(...)
+        if (tr.startsWith('matrix3d(')) {
+            const m = tr.slice(9, -1).split(',').map(Number)
+            return { x: m[12] || 0, y: m[13] || 0 }
+        } else if (tr.startsWith('matrix(')) {
+            const m = tr.slice(7, -1).split(',').map(Number)
+            return { x: m[4] || 0, y: m[5] || 0 }
+        }
+        return { x: 0, y: 0 }
+    }
+
+    function applyTranslate(el: HTMLElement | null, x: number, y: number) {
+        if (!el) return
+        el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
+    }
+
+    function loadToastOffset() {
+        try {
+            const raw = localStorage.getItem(TOAST_OFFSET_KEY)
+            if (!raw) return
+            const { x, y } = JSON.parse(raw)
+            if (Number.isFinite(x) && Number.isFinite(y)) {
+                toastOffset.value = { x, y }
+                requestAnimationFrame(() => applyTranslate(toastWrap.value as HTMLElement, x, y))
+            }
+        } catch { /* ignore */ }
+    }
+
+    function saveToastOffsetFromDom() {
+        const el = toastWrap.value as HTMLElement | null
+        if (!el) return
+        const { x, y } = parseTranslate(el)
+        toastOffset.value = { x, y }
+        localStorage.setItem(TOAST_OFFSET_KEY, JSON.stringify({ x, y }))
+    }
+
+    // --- Toast: Timer-Handling (Auto-Dismiss) ---
+
+    function clearToastTimer() {
+        if (toastTimeout) {
+            clearTimeout(toastTimeout);
+            toastTimeout = null;
+        }
+    }
+
+    function scheduleToastTimer() {
+        clearToastTimer();
+        if (!toast.value) return;
+        if (overlayOpen.value || toastHeld.value || toastHovering.value) return;
+        toastTimeout = setTimeout(() => {
+            if (!overlayOpen.value && !toastHeld.value && !toastHovering.value) startToastExit();
+        }, TOAST_DURATION_MS);
+    }
+
+    function onToastTimerEnd() {
+        if (!toast.value) return
+
+        if (overlayOpen.value || toastHeld.value || toastHovering.value) return
+        clearToastTimer()
+        startToastExit()
+    }
+
+    // --- Toast: Hover / Pointer / Context-Menü ---
+
+    function onToastHover(hover: boolean) {
+        toastHovering.value = hover;
+        if (hover) {
+            clearToastTimer();
+            toastHeld.value = true;
+        } else {
+            toastHeld.value = false;
+            scheduleToastTimer();
+        }
+    }
+
+    function onToastPointerDown(e: PointerEvent) {
+        if (!toast.value) return;
+        toastHeld.value = true;
+        clearToastTimer();
+    }
+    function onToastPointerUp() {
+        if (!toast.value) return;
+        toastHeld.value = toastHovering.value;
+        requestAnimationFrame(() => saveToastOffsetFromDom());
+        if (!toastHovering.value) scheduleToastTimer();
+    }
+
+    function onToastContextOpen() {
+        if (!toast.value) return;
+        toastHeld.value = true;
+        clearToastTimer();
+    }
+
+    onMounted(() => {
+        document.addEventListener('pointerdown', onToastPointerDown, { capture: true })
+        document.addEventListener('pointerup', onToastPointerUp, { capture: true })
+        document.addEventListener('contextmenu', onToastContextOpen, { capture: true })
+    })
+
+    onUnmounted(() => {
+        document.removeEventListener('pointerdown', onToastPointerDown, true)
+        document.removeEventListener('pointerup', onToastPointerUp, true)
+        document.removeEventListener('contextmenu', onToastContextOpen, true)
+    })
+
+    // --- Toast: Menü-Aktionen (z.B. Kontextmenü im Toast-Component) ---
+
+    function onToastMenuOpen() {
+        if (!toast.value) return;
+        toastHeld.value = true;
+        clearToastTimer();
+    }
+    function onToastMenuClose() {
+        toastHeld.value = false;
+        scheduleToastTimer();
+    }
+
+    // --- Toast: Dismiss & Exit-Animation ---
+
+    function startToastExit() {
+        if (!toast.value) return;
+        if (toast.value.exiting) return;
+        toast.value.exiting = true;
+        setTimeout(() => { toast.value = null; }, 300);
+    }
+
+    function onToastDismiss(id: number) {
+        if (toast.value?.id === id) {
+            toast.value = null
+        }
+    }
+
+    // --- Toast: Globale Unterdrückung/Freigabe (suppressToasts) ---
+
+    function releaseToasts() {
+        if (!suppressToasts.value) return
+        suppressToasts.value = false
+        window.removeEventListener('pointerdown', releaseToasts)
+        window.removeEventListener('keydown', releaseToasts)
+        window.removeEventListener('touchstart', releaseToasts as any)
+        if (toastReleaseTimer) {
+            clearTimeout(toastReleaseTimer)
+            toastReleaseTimer = null
+        }
+    }
+
+    function withSilentToasts(fn: () => void) {
+        const prev = suppressToasts.value
+        suppressToasts.value = true
+        try { fn() } finally { suppressToasts.value = prev }
+    }
+
+    // --- Toast: Settings (externes Event "toasts-enabled-changed") ---
+
+    function handleToastsSetting(e: Event) {
+        const enabled = Boolean((e as CustomEvent).detail)
+        toastsEnabled.value = enabled
+        if (!enabled && toast.value) {
+            toast.value = null
+            if (toastTimeout) {
+                clearTimeout(toastTimeout)
+                toastTimeout = null
+            }
+        }
+    }
+
+    // --- Toast: API nach außen (showToast / addToast) ---
+
+    function showToast(opts: { message: string; type?: 'default' | 'add' | 'delete' | 'save' | 'timer' | 'reset' | 'success'; emoji?: string }) {
+        const mapped = opts.type === 'success' ? 'add' : (opts.type ?? 'default');
+        addToast(opts.message, mapped);
+    }
+
+    const addToast = (
+        message: string,
+        type: 'delete' | 'add' | 'save' | 'timer' | 'load' | 'reset' | 'default' = 'load',
+        action?: { label: string; handler: () => void }
+    ) => {
+        if (!toastsEnabled.value) return
+        if (suppressToasts.value) return
+
+        clearToastTimer()
+        const id = toastId++
+        const emojis = {
+            delete: '🗑️',
+            add: '✅',
+            save: '💾',
+            timer: '⏰',
+            load: '📋',
+            reset: '♻️',
+            default: '📋',
+        } as const
+        const types = {
+            delete: 'toast-delete',
+            add: 'toast-add',
+            save: 'toast-save',
+            timer: 'toast-timer',
+            load: 'toast-default',
+            reset: 'toast-reset',
+            default: 'toast-default',
+        } as const
+
+        const mapped = types[type]
+        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, action }
+
+        scheduleToastTimer()
+    }
+
+   
+    // --- Toast: Integration mit Overlays & Sichtbarkeit ---
+
+    const externalOverlayOpen = ref(false)
+    const bodyBlocked = ref(false)
+    let _globalOverlayDepth = 0
+
+    const overlayOpen = computed(() =>
+        showProgressPopup.value
+        || showWeightPopup.value
+        || showGoalPopup.value
+        || showDownloadPopup.value
+        || showPlanProgressPopup.value
+        || validationErrorMessages.value.length > 0
+        || externalOverlayOpen.value
+        || bodyBlocked.value
+    )
+
+    function onGlobalOverlayOpen() {
+        _globalOverlayDepth += 1
+        externalOverlayOpen.value = true
+        clearToastTimer()
+    }
+
+    function onGlobalOverlayClose() {
+        _globalOverlayDepth = Math.max(0, _globalOverlayDepth - 1)
+        if (_globalOverlayDepth === 0) {
+            externalOverlayOpen.value = false
+            scheduleToastTimer()
+        }
+    }
+    function onVisibility() {
+        if (document.hidden) clearToastTimer()
+        else scheduleToastTimer()
+    }
+
+    // --- Toast: Lifecycle-Hooks & Watcher ---
+
+    onMounted(() => {
+        window.addEventListener('ui:overlay-open', onGlobalOverlayOpen as any)
+        window.addEventListener('ui:overlay-close', onGlobalOverlayClose as any)
+        document.addEventListener('visibilitychange', onVisibility)
+    })
+
+    onUnmounted(() => {
+        window.removeEventListener('ui:overlay-open', onGlobalOverlayOpen as any)
+        window.removeEventListener('ui:overlay-close', onGlobalOverlayClose as any)
+        document.removeEventListener('visibilitychange', onVisibility)
+    })
+
+    
+    // ===== Utility: Zahlen, Debounce, Format, Charts, Global-Events =====
+
+    const toNum = (v: unknown): number | null => {
+        if (v == null) return null
+        const n = Number(String(v).replace(',', '.').trim())
+        return Number.isFinite(n) ? n : null
+    }
+
+    function debounce<F extends (...args: any[]) => void>(fn: F, wait = 300) {
+        let t: number | undefined
+        return (...args: Parameters<F>) => {
+            if (t) clearTimeout(t)
+            t = window.setTimeout(() => fn(...args), wait)
+        }
+    }
+
+    const currentWeight = computed(() =>
+        weightHistory.value.length ? weightHistory.value[0].weight.toString() : 'N/A'
+    );
+
+    const initialWeight = computed(() =>
+        weightHistory.value.length ? weightHistory.value[weightHistory.value.length - 1].weight : null
+    );
+
+    const matchesSearch = (calculatorName: string) => {
+        if (!searchQuery.value) return true;
+        return calculatorName.toLowerCase().includes(searchQuery.value.toLowerCase());
+    };
+
+    const getExercisesForPlan = (planId: string | null) => {
+        if (!planId) return [];
+        const plan = trainingPlans.value.find((p) => p.id === planId);
+        return plan ? plan.exercises : [];
+    };
+
+    const formatDate = (isoString: string) => {
+        const date = new Date(isoString);
+        return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
+
+    //Validation Error Popup
+
+    const openValidationPopupError = (errors: string[]) => {
+        validationErrorMessages.value = errors
+        errors.forEach(e => addToast(e, 'default'))
+    }
+
+    // ======= Milestones + loadFromLocalStorage ======= 
+
     const checkMilestones = (
         planId?: string,
         exercise?: string,
         weightKg?: number,
         reps?: number
     ) => {
-        // 1) Generisches Workout-Milestone
         if (workouts.value.length >= 10) {
             celebrateMilestone('Meilenstein: 10 Workouts erreicht! 🎉');
         }
 
-        // 2) Gewichts-Meilenstein
+
         if (initialWeight.value && typeof currentWeight.value === 'string') {
             const weightChange = Math.abs(Number(currentWeight.value) - initialWeight.value);
             if (weightChange >= 5) {
@@ -2915,7 +3515,6 @@ Notiz: ${e.note ?? '-'}\n`
             }
         }
 
-        // 3) Übungsspezifischer Meilenstein (Vergleich in kg)
         if (planId && exercise && typeof weightKg === 'number' && typeof reps === 'number') {
             const progressEntries = getProgressForPlan(planId);
             const lastEntry = progressEntries
@@ -2934,71 +3533,13 @@ Notiz: ${e.note ?? '-'}\n`
         }
     };
 
-    const debouncedCalcGlyLoad = debounce(() => {
-        if (!validateGlyLoad().length) withSilentToasts(calculateGlyLoad)
-    })
-
-    watch([glFood, glServing, glCarbs100, glGi], () => {
-        if (autoCalcEnabled.value) debouncedCalcGlyLoad()
-    })
-    watch(autoCalcEnabled, (on) => {
-        if (!on) return
-        debouncedCalcGlyLoad()
-    })
-
-    const glyloadData = localStorage.getItem('progress_glyload')
-    if (glyloadData) {
-        const parsed = JSON.parse(glyloadData)
-        glFood.value = parsed.food
-        glServing.value = parsed.serving
-        glCarbs100.value = parsed.carbs100
-        glGi.value = parsed.gi
-
-        if (parsed.result && typeof parsed.result === 'object' && 'gl' in parsed.result) {
-            glResult.value = Number(parsed.result.gl)
-        } else {
-            glResult.value = parsed.result ?? null
-        }
-    }
-
-
-    const caffeineData = localStorage.getItem('progress_caffeine')
-    if (caffeineData) {
-        const parsed = JSON.parse(caffeineData)
-        cafWeight.value = parsed.weight
-        cafSensitivity.value = parsed.sensitivity
-        cafStatus.value = parsed.status
-        cafResult.value = parsed.result
-    }
-
     const celebrateMilestone = (message: string) => {
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         addToast(message, 'default');
     };
 
-    const debouncedCalcCaffeine = debounce(() => {
-        if (!validateCaffeine().length) withSilentToasts(calculateCaffeine)
-    })
-
-    watch([cafWeight, cafSensitivity, cafStatus], () => {
-        if (autoCalcEnabled.value) debouncedCalcCaffeine()
-    })
-    watch(autoCalcEnabled, (on) => {
-        if (!on) return
-        debouncedCalcCaffeine()
-    })
-
-    const saveToLocalStorage = (key: string, data: any) => {
-        try {
-            localStorage.setItem(`progress_${key}`, JSON.stringify(data));
-        } catch (err) {
-            console.error(`Error saving ${key} to localStorage:`, err);
-        }
-    };
-
     const loadFromLocalStorage = () => {
         try {
-            // Load Progress data
             const weightsData = localStorage.getItem('progress_weights');
             if (weightsData) {
                 const parsed = JSON.parse(weightsData);
@@ -3081,7 +3622,6 @@ Notiz: ${e.note ?? '-'}\n`
                 }
             }
 
-            // Load Training Plans
             const trainingData = localStorage.getItem('trainingData');
             if (trainingData) {
                 try {
@@ -3107,109 +3647,6 @@ Notiz: ${e.note ?? '-'}\n`
         }
     };
 
-    const openWeightPopup = () => {
-        newWeight.value = newProgressWeight.value ?? latestRecordedWeightDisplay.value ?? null
-        showWeightPopup.value = true
-        nextTick(() => { if (weightInput.value) weightInput.value.focus() })
-    }
-
-    const saveWeight = () => {
-        const error = validateWeight(newWeight.value);
-        if (error) {
-            openValidationPopupError([error]);
-            return;
-        }
-        const today = new Date().toISOString().split('T')[0];
-        const weightKg = displayToKg(Number(newWeight.value));
-        weightHistory.value.unshift({ date: today, weight: weightKg });
-        // Persistieren
-        localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value));
-
-        // 👉 Körpergewicht oben im Fortschritt-Editor direkt mitziehen
-        newProgressWeight.value = kgToDisplay(weightKg)
-
-        newWeight.value = null;
-        updateWeightChart();
-        addToast('Gewicht gespeichert', 'save');
-        checkMilestones();
-        closeWeightPopup();
-    };
-
-    const downloadResult = (fmt: 'pdf' | 'html' | 'csv' | 'json' | 'txt') => {
-        downloadFormat.value = fmt as any;
-        confirmDownload();
-    };
-
-    const closeWeightPopup = () => {
-        showWeightPopup.value = false;
-        newWeight.value = null;
-    };
-
-    const openGoalPopup = () => {
-        newGoal.value = null;
-        showGoalPopup.value = true;
-        nextTick(() => {
-            if (goalInput.value) goalInput.value.focus();
-        });
-    };
-
-    const saveGoal = () => {
-        const error = validateGoal(newGoal.value);
-        if (error) {
-            openValidationPopupError([error]);
-            return;
-        }
-        goal.value = displayToKg(Number(newGoal.value));
-        saveToLocalStorage('goal', { goal: goal.value });
-        addToast('Zielgewicht gespeichert', 'default');
-        closeGoalPopup();
-    };
-
-    const closeGoalPopup = () => {
-        showGoalPopup.value = false;
-        newGoal.value = null;
-    };
-
-    const openValidationPopupError = (errors: string[]) => {
-        validationErrorMessages.value = errors   // ⬅️ wichtig: füllt das Array fürs Popup
-        errors.forEach(e => addToast(e, 'default')) // optional: Toasts
-    }
-
-    const addToast = (
-        message: string,
-        type: 'delete' | 'add' | 'save' | 'timer' | 'load' | 'reset' | 'default' = 'load',
-        action?: { label: string; handler: () => void }
-    ) => {
-        if (!toastsEnabled.value) return
-        if (suppressToasts.value) return
-
-        clearToastTimer()
-        const id = toastId++
-        const emojis = {
-            delete: '🗑️',
-            add: '✅',
-            save: '💾',
-            timer: '⏰',
-            load: '📋',
-            reset: '♻️',
-            default: '📋',
-        } as const
-        const types = {
-            delete: 'toast-delete',
-            add: 'toast-add',
-            save: 'toast-save',
-            timer: 'toast-timer',
-            load: 'toast-default',
-            reset: 'toast-reset',
-            default: 'toast-default',
-        } as const
-
-        const mapped = types[type]
-        // ➕ Action an das Toast anhängen (Toast.vue zeigt Button, wenn vorhanden)
-        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, action }
-
-        scheduleToastTimer()
-    }
 
     const handleKeydown = (event: KeyboardEvent) => {
         if (validationErrorMessages.value.length) {
@@ -3234,391 +3671,16 @@ Notiz: ${e.note ?? '-'}\n`
             else if (showGoalPopup.value) { event.preventDefault(); saveGoal() }
             else if (showProgressPopup.value) {
                 event.preventDefault()
-                // 🔽 Statt Parent-save: Child-Submit (inkl. Borg-Validation im Modal)
                 progressEntryModalRef.value?.submit?.()
             }
             else if (showDownloadPopup.value) { event.preventDefault(); confirmDownload() }
         }
     }
 
-
-    let weightChart: Chart | null = null;
-    let workoutChart: Chart | null = null;
-    let macroChart: Chart | null = null;
-
-    const updateWeightChart = () => {
-        const canvas = document.getElementById('weightChart') as HTMLCanvasElement;
-        if (!canvas || activeTab.value !== 'stats') return;
-
-        if (weightChart) weightChart.destroy();
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        weightChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: weightHistory.value.map((entry) => formatDate(entry.date)).reverse(),
-                datasets: [
-                    {
-                        label: `Gewicht (${unit.value})`,
-                        data: weightHistory.value.map((entry) => kgToDisplay(entry.weight)).reverse(),
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                        fill: true,
-                        tension: 0.4,
-                    },
-                ],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    tooltip: { backgroundColor: '#ffffff', titleColor: '#1f2937', bodyColor: '#6b7280' },
-                    legend: { labels: { color: '#1f2937' } },
-                },
-                scales: {
-                    x: { ticks: { color: '#6b7280' } },
-                    y: { beginAtZero: false, ticks: { color: '#6b7280' } },
-                },
-            },
-        });
-
-        // Dark-Mode-Anpassungen
-        if (document.documentElement.classList.contains('dark-mode') && weightChart) {
-            weightChart.options.plugins!.tooltip!.backgroundColor = '#1f2937';
-            weightChart.options.plugins!.tooltip!.titleColor = '#e5e7eb';
-            weightChart.options.plugins!.tooltip!.bodyColor = '#9ca3af';
-            weightChart.options.plugins!.legend!.labels!.color = '#e5e7eb';
-            weightChart.options.scales!.x!.ticks!.color = '#9ca3af';
-            weightChart.options.scales!.y!.ticks!.color = '#9ca3af';
-            weightChart.data.datasets[0].borderColor = '#818cf8';
-            weightChart.data.datasets[0].backgroundColor = 'rgba(129, 140, 248, 0.2)';
-            weightChart.update();
-        }
-    };
-
-    const copyText = async (text: string) => {
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(text)
-            } else {
-                const ta = document.createElement('textarea')
-                ta.value = text
-                ta.style.position = 'fixed'
-                ta.style.left = '-9999px'
-                document.body.appendChild(ta)
-                ta.focus()
-                ta.select()
-                document.execCommand('copy')
-                document.body.removeChild(ta)
-            }
-            addToast('In Zwischenablage kopiert', 'save')
-        } catch (e) {
-            console.error(e)
-            addToast('Kopieren fehlgeschlagen', 'default')
-        }
-    }
-
-    const copyBMI = () => {
-        if (!bmiResult.value) return
-        const txt = `BMI-Ergebnis
-- BMI: ${bmiResult.value.value.toFixed(1)}
-- Kategorie: ${bmiResult.value.category}
-- Gewicht: ${bmiWeight.value ?? '-'} ${unit.value}
-- Größe: ${bmiHeight.value ?? '-'} cm`
-        copyText(txt)
-    }
-
-    const copyCalories = () => {
-        if (!calorieResult.value) return
-        const r = calorieResult.value
-        const txt = `Kalorienbedarf
-- Gesamt: ${r.total.toFixed(0)} kcal
-- Makros: KH ${r.macros.carbs.toFixed(0)}g, Protein ${r.macros.protein.toFixed(0)}g, Fett ${r.macros.fat.toFixed(0)}g
-- Alter: ${calorieAge.value ?? '-'} J, Geschlecht: ${calorieGender.value}
-- Gewicht: ${calorieWeight.value ?? '-'} ${unit.value}, Größe: ${calorieHeight.value ?? '-'} cm
-- Aktivität: ${calorieActivity.value}, Ziel: ${calorieGoal.value > 0 ? '+' : ''}${calorieGoal.value} kcal`
-        copyText(txt)
-    }
-
-    const copyOneRm = () => {
-        if (!oneRmResult.value) return
-        const txt = `1RM-Schätzung
-- Übung: ${oneRmExercise.value || '-'}
-- 1RM: ${formatWeight(oneRmResult.value, 1)}
-- Eingabe: ${oneRmWeight.value ?? '-'} ${unit.value} x ${oneRmReps.value ?? '-'}`
-        copyText(txt)
-    }
-
-    const copyBodyFat = () => {
-        if (!bodyFatResult.value) return
-        const txt = `Körperfett (US Navy)
-- Körperfett: ${bodyFatResult.value.toFixed(1)}%
-- Geschlecht: ${bodyFatGender.value}
-- Maße: Bauch ${bodyFatWaist.value ?? '-'} cm, Hals ${bodyFatNeck.value ?? '-'} cm${bodyFatGender.value === 'female' ? `, Hüfte ${bodyFatHip.value ?? '-'} cm` : ''}
-- Größe: ${bodyFatHeight.value ?? '-'} cm`
-        copyText(txt)
-    }
-
-    const copyFFMI = () => {
-        if (!ffmiResult.value) return
-        const txt = `FFMI
-- FFMI: ${ffmiResult.value.value.toFixed(1)} (${ffmiResult.value.category})
-- Gewicht: ${ffmiWeight.value ?? '-'} ${unit.value}
-- Größe: ${ffmiHeight.value ?? '-'} cm
-- KFA: ${ffmiBodyFat.value ?? '-'}%`
-        copyText(txt)
-    }
-
-    const copyWater = () => {
-        if (!waterResult.value) return
-        const txt = `Wasserbedarf
-- Empfehlung: ${waterResult.value.toFixed(1)} Liter/Tag
-- Gewicht: ${waterWeight.value ?? '-'} ${unit.value}
-- Aktivität: ${waterActivity.value}
-- Klima: ${waterClimate.value}`
-        copyText(txt)
-    }
-
-
-    const updateWorkoutChart = () => {
-        const canvas = document.getElementById('workoutChart') as HTMLCanvasElement;
-        if (!canvas || activeTab.value !== 'stats') return;
-
-        if (workoutChart) workoutChart.destroy();
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        workoutChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: workouts.value.map((w) => w.exercise),
-                datasets: [
-                    {
-                        label: `Gewicht (${unit.value})`,
-                        data: workouts.value.map((w) => kgToDisplay(w.weight)),
-                        backgroundColor: '#6366f1',
-                        borderColor: '#4338ca',
-                        borderWidth: 1,
-                    },
-                ],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    tooltip: { backgroundColor: '#ffffff', titleColor: '#1f2937', bodyColor: '#6b7280' },
-                    legend: { labels: { color: '#1f2937' } },
-                },
-                scales: {
-                    x: { ticks: { color: '#6b7280' } },
-                    y: { beginAtZero: true, ticks: { color: '#6b7280' } },
-                },
-            },
-        });
-
-        // Dark-Mode-Anpassungen
-        if (document.documentElement.classList.contains('dark-mode') && workoutChart) {
-            workoutChart.options.plugins!.tooltip!.backgroundColor = '#1f2937';
-            workoutChart.options.plugins!.tooltip!.titleColor = '#e5e7eb';
-            workoutChart.options.plugins!.tooltip!.bodyColor = '#9ca3af';
-            workoutChart.options.plugins!.legend!.labels!.color = '#e5e7eb';
-            workoutChart.options.scales!.x!.ticks!.color = '#9ca3af';
-            workoutChart.options.scales!.y!.ticks!.color = '#9ca3af';
-            workoutChart.data.datasets[0].backgroundColor = '#818cf8';
-            workoutChart.data.datasets[0].borderColor = '#4b5563';
-            workoutChart.update();
-        }
-    };
-
-
-    const updateMacroChart = () => {
-        const canvas = document.getElementById('macroChart') as HTMLCanvasElement;
-        if (!canvas || activeTab.value !== 'calculators' || !calorieResult.value) return;
-        if (macroChart) macroChart.destroy();
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        macroChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Kohlenhydrate', 'Eiweiß', 'Fett'],
-                datasets: [{
-                    data: [
-                        calorieResult.value.macros.carbs,
-                        calorieResult.value.macros.protein,
-                        calorieResult.value.macros.fat,
-                    ],
-                    backgroundColor: ['#6366f1', '#10b981', '#f59e0b'],
-                    borderWidth: 1,
-                }],
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#1f2937' } },
-                    tooltip: { backgroundColor: '#ffffff', titleColor: '#1f2937', bodyColor: '#6b7280' },
-                },
-            },
-        });
-        if (document.documentElement.classList.contains('dark-mode') && macroChart) {
-            macroChart.options.plugins!.legend!.labels!.color = '#e5e7eb';
-            macroChart.options.plugins!.tooltip!.backgroundColor = '#1f2937';
-            macroChart.options.plugins!.tooltip!.titleColor = '#e5e7eb';
-            macroChart.options.plugins!.tooltip!.bodyColor = '#9ca3af';
-            macroChart.update();
-        }
-    };
-
-    onMounted(() => {
-        const flag = localStorage.getItem('autoCalcEnabled')
-        autoCalcEnabled.value = flag === 'true'
-        loadFavoriteCalculators()
-
-        const stored = localStorage.getItem('toastsEnabled')
-        toastsEnabled.value = stored === null ? true : stored === 'true'
-
-        // Live-Updates aus Settings.vue
-        window.addEventListener('toasts-enabled-changed', handleToastsSetting)
-    })
-
-    function handleToastsSetting(e: Event) {
-        const enabled = Boolean((e as CustomEvent).detail)
-        toastsEnabled.value = enabled
-        if (!enabled && toast.value) {
-            toast.value = null
-            if (toastTimeout) {
-                clearTimeout(toastTimeout)
-                toastTimeout = null
-            }
-        }
-    }
-
-    // ===== Favoriten-Rechner =====
-    const favoriteCalculators = ref<Set<string>>(new Set())
-
-    const FAVORITES_KEY = 'progress_favorite_calculators'
-
-    const loadFavoriteCalculators = () => {
-        try {
-            const raw = localStorage.getItem(FAVORITES_KEY)
-            if (!raw) return
-            const arr: string[] = JSON.parse(raw)
-            favoriteCalculators.value = new Set(arr)
-        } catch (e) {
-            console.error('Fehler beim Laden der Lieblings-Rechner:', e)
-        }
-    }
-
-    const saveFavoriteCalculators = () => {
-        try {
-            localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favoriteCalculators.value]))
-        } catch (e) {
-            console.error('Fehler beim Speichern der Lieblings-Rechner:', e)
-        }
-    }
-
-    const toggleFavCalculator = (id: string) => {
-        if (favoriteCalculators.value.has(id)) {
-            favoriteCalculators.value.delete(id)
-            addToast('Favorit entfernt', 'default')
-        } else {
-            favoriteCalculators.value.add(id)
-            addToast('Als Favorit markiert', 'default')
-        }
-        saveFavoriteCalculators()
-    }
-    let endIO: IntersectionObserver | null = null
-    watch(showPlanProgressPopup, (open) => {
-        nextTick(() => {
-            if (open) setupProgressIO();
-            else cleanupProgressIO();
-        });
-    })
-    onMounted(() => {
-        const root = progressModalEl.value
-        if (!root) return
-        const endEl = root.querySelector('.scroll-sentinel-end')
-        if (!endEl) return
-
-        endIO = new IntersectionObserver(
-            ([entry]) => {
-                // ist der untere Sentinel im Sichtbereich der Modal-Scrollfläche?
-                root.classList.toggle('at-bottom', entry.isIntersecting)
-            },
-            { root, threshold: 1.0 }
-        )
-        endIO.observe(endEl)
-    })
-
-    onUnmounted(() => {
-        endIO?.disconnect()
-        endIO = null
-    })
-
-    const isFavCalculator = (id: string) => favoriteCalculators.value.has(id)
-
-    // ===== Auto-BMI =====
-    const debouncedCalcBMI = debounce(() => {
-        if (!validateBMI().length) withSilentToasts(calculateBMI)
-    })
-
-    watch([bmiGender, bmiWeight, bmiHeight], () => {
-        if (autoCalcEnabled.value) debouncedCalcBMI()
-    })
-
-    // ===== Auto-Kalorien =====
-    const debouncedCalcCalories = debounce(() => {
-        if (!validateCalories().length) withSilentToasts(calculateCalories)
-    })
-
-    watch([calorieAge, calorieGender, calorieWeight, calorieHeight, calorieActivity, calorieGoal], () => {
-        if (autoCalcEnabled.value) debouncedCalcCalories()
-    })
-
-    // ===== Auto-1RM =====
-    const debouncedCalc1RM = debounce(() => {
-        if (!validateOneRm().length) withSilentToasts(calculateOneRm)
-    })
-
-    watch([oneRmWeight, oneRmReps, oneRmExercise], () => {
-        if (autoCalcEnabled.value) debouncedCalc1RM()
-    })
-
-    // ===== Auto-Körperfett =====
-    const debouncedCalcBodyFat = debounce(() => {
-        if (!validateBodyFat().length) withSilentToasts(calculateBodyFat)
-    })
-    watch(showPlanProgressPopup, v => {
-        document.body.style.overflow = v ? 'hidden' : ''
-    })
     onUnmounted(() => { document.body.style.overflow = '' })
-
-    watch([bodyFatGender, bodyFatWaist, bodyFatNeck, bodyFatHip, bodyFatHeight], () => {
-        if (autoCalcEnabled.value) debouncedCalcBodyFat()
-    })
-
-    // ===== Auto-FFMI =====
-    const debouncedCalcFFMI = debounce(() => {
-        if (!validateFFMI().length) withSilentToasts(calculateFFMI)
-    })
-
-    watch([ffmiWeight, ffmiHeight, ffmiBodyFat], () => {
-        if (autoCalcEnabled.value) debouncedCalcFFMI()
-    })
-
-    // ===== Auto-Wasser =====
-    const debouncedCalcWater = debounce(() => {
-        if (!validateWater().length) withSilentToasts(calculateWater)
-    })
-
-    watch([waterWeight, waterActivity, waterClimate], () => {
-        if (autoCalcEnabled.value) debouncedCalcWater()
-    })
 
     watch(newProgressWeight, (v) => {
         if (detectedInputType.value === 'kraft' || detectedInputType.value === 'calisthenics') {
-            // wenn User oben im Editor sein Körpergewicht ändert, übernimmt das Popup den Wert
             newWeight.value = v ?? newWeight.value
         }
     })
@@ -3632,23 +3694,6 @@ Notiz: ${e.note ?? '-'}\n`
         debouncedCalcFFMI()
         debouncedCalcWater()
     })
-
-    const debouncedCalcProtein = debounce(() => {
-        if (!validateProtein().length) withSilentToasts(calculateProtein)
-    }, 300)
-
-
-    watch([proteinWeight, proteinGoal, proteinActivity, unit], () => {
-        if (autoCalcEnabled.value) debouncedCalcProtein()
-    }, { flush: 'post' })
-
-    watch(autoCalcEnabled, (on) => {
-        if (on) debouncedCalcProtein()
-    })
-
-    watch([proteinWeight, proteinGoal, proteinActivity], () => {
-        if (autoCalcEnabled.value && !validateProtein().length) withSilentToasts(calculateProtein)
-    }, { immediate: true, flush: 'post' })
 
     watch(activeTab, (newValue) => {
         nextTick(() => {
@@ -3684,14 +3729,18 @@ Notiz: ${e.note ?? '-'}\n`
     onMounted(() => {
         withSilentToasts(loadFromLocalStorage)
         checkMilestones()
+
+        // --- Toast: Settings (externes Event) ---
+        window.addEventListener('toasts-enabled-changed', handleToastsSetting)
+
+        // --- Keyboard / Global-Shortcuts ---
         window.addEventListener('keydown', handleKeydown)
 
-        // Neu: Toasts erst nach User-Interaktion freigeben…
+        // --- Toast: Suppression-Release ---
         window.addEventListener('pointerdown', releaseToasts)
         window.addEventListener('keydown', releaseToasts)
         window.addEventListener('touchstart', releaseToasts as any)
 
-        // …oder automatisch nach kurzer Ruhephase (falls nur Viewing)
         toastReleaseTimer = setTimeout(() => releaseToasts(), 1500)
     })
     watch(() => overlayOpen.value, (open) => {
@@ -3704,27 +3753,25 @@ Notiz: ${e.note ?? '-'}\n`
         else scheduleToastTimer();
     }, { immediate: true });
     onUnmounted(() => {
-        window.removeEventListener('keydown', handleKeydown);
+        // --- Toast: Settings & Suppression ---
         window.removeEventListener('toasts-enabled-changed', handleToastsSetting);
         window.removeEventListener('pointerdown', releaseToasts);
         window.removeEventListener('keydown', releaseToasts);
         window.removeEventListener('touchstart', releaseToasts as any);
 
-        // ⬇️ Toast-Hold-Listener korrekt abbauen (wurden mit { capture: true } registriert)
-        document.removeEventListener('pointerdown', onToastPointerDown, true);
-        document.removeEventListener('pointerup', onToastPointerUp, true);
-        document.removeEventListener('contextmenu', onToastContextOpen, true);
+        // --- Keyboard / Global Shortcuts ---
+        window.removeEventListener('keydown', handleKeydown);
 
-        // ⬇️ IO sauber entsorgen (falls offen)
+        // --- Progress / IntersectionObserver ---
         cleanupProgressIO();
 
+        // --- Charts Cleanup ---
         if (weightChart) weightChart.destroy();
         if (workoutChart) workoutChart.destroy();
         if (macroChart) macroChart.destroy();
     })
     watch(toast, (t) => {
         if (!t) { clearToastTimer(); return; }
-        // neues Toast gesetzt → Autoclose nach Dauer starten (sofern nichts blockiert)
         scheduleToastTimer();
     });
 </script>

@@ -3,7 +3,7 @@
         <transition name="fade">
             <div v-if="show"
                  class="popup-overlay"
-                 :class="overlayClass"
+                 :class="[overlayClass, variant]"
                  role="dialog"
                  aria-modal="true"
                  @mousedown.self="$emit('cancel')">
@@ -35,6 +35,7 @@
         show: boolean
         title?: string
         overlayClass?: string | string[] | Record<string, boolean>
+        variant?: string
         showActions?: boolean
         cancelText?: string
         saveText?: string
