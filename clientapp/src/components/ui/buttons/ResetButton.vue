@@ -49,4 +49,29 @@ defineEmits<{ (e: 'click'): void }>()
     .btn-icon {
         margin-right: .4rem;
     }
+
+    @media (max-width: 350px) {
+        .btn-danger-ghost {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+            .btn-danger-ghost::after {
+                content: none;
+                display: none;
+                margin-left: 0;
+            }
+
+        .btn-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            line-height: 1;
+            font-size: 1.1rem;
+        }
+    }
+
 </style>

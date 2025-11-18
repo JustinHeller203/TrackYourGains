@@ -43,17 +43,18 @@
             </div>
 
             <!-- Kontextmenü bei Long-Press -->
-            <div v-if="showMenu"
-                 class="toast-menu"
-                 ref="menuEl"
-                 :style="menuStyle"
-                 @pointerdown.stop
-                 @click.stop
-                 v-auto-flip="{ margin: 8, align: 'start', strategy: 'fixed' }">
-                <button type="button" @click="disableAllToasts">Toast Nachrichten deaktivieren</button>
-                <button type="button" @click="disableThisType">Diese Art deaktivieren</button>
-                <button type="button" @click="startReposition">Verschieben</button>
-            </div>
+            <HoldMenu v-if="showMenu"
+                      :menu-style="menuStyle">
+                <button type="button" @click="disableAllToasts">
+                    Toast Nachrichten deaktivieren
+                </button>
+                <button type="button" @click="disableThisType">
+                    Diese Art deaktivieren
+                </button>
+                <button type="button" @click="startReposition">
+                    Verschieben
+                </button>
+            </HoldMenu>
 
             <!-- Controls beim Verschieben -->
             <div v-if="repositionMode" class="reposition-controls">
@@ -78,6 +79,7 @@
     import type { Toast as ToastModel } from '@/types/toast'
     import { useToastPaused, pauseToasts, resumeToasts } from '@/utils/toastBus'
     import vAutoFlip from '@/directives/autoFlip';
+    import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
 
     const toastPaused = useToastPaused()
     const finishedWhileFrozen = ref(false)
@@ -119,7 +121,6 @@
 
     const showMenu = ref(false)
     const toastEl = ref<HTMLElement | null>(null)
-    const menuEl = ref<HTMLElement | null>(null)
     let pressTimer: number | null = null
 
     const repositionMode = ref(false)
@@ -283,7 +284,7 @@
         pauseToasts()
         window.dispatchEvent(new CustomEvent('toast-global-freeze', { detail: true }))
 
-        await nextTick(); (menuEl.value as any)?.__autoFlip?.update()
+        await nextTick()
         requestAnimationFrame(() => { ignoreNextAnim.value = false })
     }
 
@@ -575,9 +576,10 @@
     }
     function onOutsidePointer(e: PointerEvent) {
         const toast = toastEl.value
-        const menu = menuEl.value
-        const target = e.target as Node
-        if (menu && menu.contains(target)) return
+        const target = e.target as HTMLElement
+
+        // Klicks direkt im Menü ignorieren
+        if (target.closest('.toast-menu')) return
         if (toast && toast.contains(target)) return
 
         // Menü schließen, aber jegliche weitere Handler blocken,
@@ -881,44 +883,7 @@
         opacity: .9;
     }
 
-    .toast-menu {
-        position: absolute;
-        /* Breite kommt jetzt dynamisch via :style – keine Mindestbreite mehr erzwingen */
-        min-width: 0;
-        background: var(--bg-card, #fff);
-        border: 1px solid rgba(0,0,0,.12);
-        border-radius: 8px;
-        box-shadow: 0 6px 18px rgba(0,0,0,.18);
-        padding: .25rem;
-        z-index: 10000;
-        /* Folge dem Toast-Content sauber */
-        left: 0;
-        right: 0;
-    }
-    @media (max-width: 480px) {
-        .toast-menu {
-            /* leicht kleinere Innenabstände, damit nichts „fetter“ wirkt als der Toast */
-            padding: .2rem;
-        }
-
-            .toast-menu button {
-                padding: .45rem .55rem;
-            }
-    }
-        .toast-menu button {
-            width: 100%;
-            text-align: left;
-            background: transparent;
-            border: 0;
-            padding: .5rem .6rem;
-            cursor: pointer;
-            font-size: .85rem;
-            border-radius: 6px;
-        }
-
-            .toast-menu button:hover {
-                background: rgba(0,0,0,.06);
-            }
+    
     .toast-action {
         appearance: none;
         border: 0;
@@ -942,9 +907,6 @@
         background: rgba(255,255,255,.06);
     }
 
-    html.dark-mode .toast-menu button:hover {
-        background: rgba(255,255,255,.06);
-    }
 
     .is-reposition {
         outline: 2px dashed var(--toast-accent, #4B6CB7);
@@ -968,13 +930,6 @@
             cursor: pointer;
         }
 
-    .toast-menu.menu--bottom {
-        transform-origin: top;
-    }
-
-    .toast-menu.menu--top {
-        transform-origin: bottom;
-    }
 
     .pe-auto {
         pointer-events: auto;

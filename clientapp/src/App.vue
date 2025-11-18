@@ -51,54 +51,31 @@
         <div v-if="menuOpen" class="nav-overlay" @click="closeMenu"></div>
 
         <!-- ✅ Sticky Timer -->
-        <div v-for="timer in timers.filter(t => t.shouldStaySticky)"
-             :key="'timer-' + timer.id"
-             class="sticky-timer-card"
-             :style="{ left: timer.left + 'px', top: timer.top + 'px' }"
-             @mousedown="startDrag($event, timer)">
-            <span class="name-link"
-                  @click="focusInTraining('timer', timer.id)"
-                  @mousedown.stop>
-                {{ timer.name || 'Timer' }}
-            </span>            <span class="time">{{ formatTimer(timer.time) }}</span>
-            <button @click="startTimer(timer)" :disabled="timer.isRunning">Start</button>
-            <button @click="stopTimer(timer)" :disabled="!timer.isRunning">Stop</button>
-            <button @click="resetTimer(timer)">Reset</button>
-        </div>
+        <StickyTimerCard v-for="timer in timers.filter(t => t.shouldStaySticky)"
+                         :key="'timer-' + timer.id"
+                         :timer="timer"
+                         :format-timer="formatTimer"
+                         :start-timer="startTimer"
+                         :stop-timer="stopTimer"
+                         :reset-timer="resetTimer"
+                         :start-drag="startDrag"
+                         :focus-in-training="focusInTraining" />
 
         <!-- ✅ Sticky Stopwatch -->
-        <div v-for="sw in stopwatches.filter(sw => sw.shouldStaySticky)"
-             :key="'sw-' + sw.id"
-             class="sticky-stopwatch-card"
-             :style="{ left: sw.left + 'px', top: sw.top + 'px' }"
-             @mousedown="startDrag($event, sw)">
-            <span class="name-link"
-                  @click="focusInTraining('stopwatch', sw.id)"
-                  @mousedown.stop>
-                {{ sw.name || 'Stoppuhr' }}
-            </span>            <span class="time">{{ formatStopwatch(sw.time) }}</span>
-            <button @click="toggleStopwatch(sw)">{{ sw.isRunning ? 'Pause' : 'Start' }}</button>
-            <button @click="resetStopwatch(sw)">Reset</button>
-            <button @click="addLap(sw)" :disabled="!sw.isRunning">Runde</button>
-        </div>
+        <StickyStopwatchCard v-for="sw in stopwatches.filter(sw => sw.shouldStaySticky)"
+                             :key="'sw-' + sw.id"
+                             :stopwatch="sw"
+                             :format-stopwatch="formatStopwatch"
+                             :toggle-stopwatch="toggleStopwatch"
+                             :reset-stopwatch="resetStopwatch"
+                             :add-lap="addLap"
+                             :start-drag="startDrag"
+                             :focus-in-training="focusInTraining" />
 
         <!-- ✅ Validation-Popup -->
-        <div v-if="showValidationPopup" class="popup-overlay" @mousedown="handleOverlayClick">
-            <div class="popup edit-popup"
-                 tabindex="0"
-                 @keydown="handleValidationKeydown"
-                 ref="validationPopup">
-                <h3 class="popup-title">Eingabefehler</h3>
-                <ul class="validation-error-list">
-                    <li v-for="(error, index) in validationErrorMessages" :key="index">{{ error }}</li>
-                </ul>
-                <div class="popup-actions">
-                    <button class="popup-btn save-btn" @click="closeValidationPopup" ref="validationOkButton">
-                        OK
-                    </button>
-                </div>
-            </div>
-        </div>
+        <ValidationPopup :show="showValidationPopup"
+                         :errors="validationErrorMessages"
+                         @close="closeValidationPopup" />
 
         <!-- ✅ Seiten-Inhalt -->
         <main class="main-content">
@@ -126,6 +103,9 @@
     import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { useAuthStore } from '@/store/authStore'
+    import StickyTimerCard from '@/components/ui/global/StickyTimerCard.vue'
+    import StickyStopwatchCard from '@/components/ui/global/StickyStopwatchCard.vue'
+    import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
 
     const auth = useAuthStore()
 
@@ -169,10 +149,8 @@
     }
 
     // Reaktive Zustände
-    const validationOkButton = ref<HTMLButtonElement | null>(null)
     const validationErrorMessages = ref<string[]>([])
     const showValidationPopup = ref(false)
-    const validationPopup = ref<HTMLDivElement | null>(null)
     const menuOpen = ref(false)
     const dragging = ref(false)
     const dragTarget = ref<any>(null)
@@ -275,21 +253,10 @@
         saveAll()
     }
     // Validation-Popup
+
     function openValidationPopup(errors: string[]) {
         validationErrorMessages.value = errors
         showValidationPopup.value = true
-        nextTick(() => validationPopup.value?.focus())
-    }
-
-    function handleValidationKeydown(e: KeyboardEvent) {
-        if (e.key === 'Escape' || e.key === 'Enter') {
-            e.preventDefault()
-            closeValidationPopup()
-        }
-    }
-
-    function handleOverlayClick(e: MouseEvent) {
-        if (e.target === e.currentTarget) closeValidationPopup()
     }
 
     function closeValidationPopup() {
@@ -513,18 +480,9 @@
 
     // Keydown
     const handleKeydown = (event: KeyboardEvent) => {
-        if (event.key === 'Escape') {
-            if (menuOpen.value) {
-                event.preventDefault()
-                closeMenu()
-                return
-            }
-        }
-        if (event.key === 'Escape' || event.key === 'Enter') {
-            if (showValidationPopup.value) {
-                event.preventDefault()
-                closeValidationPopup()
-            }
+        if (event.key === 'Escape' && menuOpen.value) {
+            event.preventDefault()
+            closeMenu()
         }
     }
 
@@ -672,16 +630,6 @@
         position: relative;
     }
 
-    .name-link {
-        cursor: pointer;
-        text-underline-offset: 2px;
-        font-weight: 600;
-    }
-
-        .name-link:hover {
-            text-decoration-thickness: 3px;
-        }
-
     .logo {
         height: 56px;
         object-fit: contain;
@@ -727,73 +675,7 @@
     }
 
     /* Popup usw. – unverändert (deine Styles bleiben) */
-    .popup-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 2000;
-    }
-
-    .popup {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-        max-width: 400px;
-        width: 90%;
-        text-align: center;
-    }
-
-    html.dark-mode .popup {
-        background: #1c2526;
-        color: #c9d1d9;
-    }
-
-    .popup-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-    }
-
-    .validation-error-text {
-        margin-bottom: 1rem;
-    }
-
-    .validation-error-list {
-        list-style: disc inside;
-        margin-bottom: 1.5rem;
-    }
-
-    .popup-actions {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-    }
-
-    .popup-btn {
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: background 0.2s, transform 0.1s;
-    }
-
-    .save-btn {
-        background: #10b981;
-        color: #fff;
-    }
-
-        .save-btn:hover {
-            background: #064e3b;
-            transform: scale(1.05);
-        }
+    
 
     .nav-link::after {
         content: '';
@@ -926,76 +808,4 @@
         background: #161b22;
     }
 
-    /* === Sticky Timer & Stoppuhr === */
-    .sticky-timer-card,
-    .sticky-stopwatch-card {
-        position: fixed;
-        background: var(--bg-secondary);
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.85rem;
-        cursor: grab;
-        z-index: 2000;
-        border: 1px solid var(--border-color); /* <— neu für Light-Mode */
-    }
-
-        .sticky-timer-card:active,
-        .sticky-stopwatch-card:active {
-            cursor: grabbing;
-        }
-
-        .sticky-timer-card span:first-child,
-        .sticky-stopwatch-card span:first-child {
-            font-weight: 600;
-        }
-
-        .sticky-timer-card .time,
-        .sticky-stopwatch-card .time {
-            font-family: monospace;
-            font-weight: 700;
-            font-size: 1rem;
-            color: var(--accent-primary);
-        }
-
-        .sticky-timer-card button,
-        .sticky-stopwatch-card button {
-            background: var(--accent-primary);
-            border: none;
-            color: #fff;
-            font-size: 0.75rem;
-            padding: 0.3rem 0.6rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
-
-            .sticky-timer-card button:hover,
-            .sticky-stopwatch-card button:hover {
-                background: var(--accent-hover);
-            }
-
-            .sticky-timer-card button:disabled,
-            .sticky-stopwatch-card button:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
-            }
-
-    html.dark-mode .sticky-timer-card,
-    html.dark-mode .sticky-stopwatch-card {
-        background: #0d1117;
-        border: 1px solid #30363d;
-    }
-
-        html.dark-mode .sticky-timer-card button,
-        html.dark-mode .sticky-stopwatch-card button {
-            background: #4B6CB7;
-        }
-
-            html.dark-mode .sticky-timer-card button:hover,
-            html.dark-mode .sticky-stopwatch-card button:hover {
-                background: #5a7bc4;
-            }
 </style>

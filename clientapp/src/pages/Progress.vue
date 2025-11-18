@@ -828,12 +828,33 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    tooltip: { backgroundColor: '#ffffff', titleColor: '#1f2937', bodyColor: '#6b7280' },
-                    legend: { labels: { color: '#1f2937' } },
+                    tooltip: {
+                        backgroundColor: '#ffffff',
+                        titleColor: '#1f2937',
+                        bodyColor: '#6b7280',
+                    },
+                    legend: {
+                        // auf sehr schmalen Screens ausblenden, damit es nicht gequetscht wirkt
+                        display: window.innerWidth > 420,
+                        labels: {
+                            color: '#1f2937',
+                            boxWidth: 14,
+                            boxHeight: 8,
+                            padding: 6,
+                            font: {
+                                size: 10,
+                            },
+                        },
+                    },
                 },
                 scales: {
-                    x: { ticks: { color: '#6b7280' } },
-                    y: { beginAtZero: false, ticks: { color: '#6b7280' } },
+                    x: {
+                        ticks: { color: '#6b7280' },
+                    },
+                    y: {
+                        beginAtZero: false,
+                        ticks: { color: '#6b7280' },
+                    },
                 },
             },
         });
@@ -1150,6 +1171,16 @@
     const hasWorkoutStats = computed(() => workouts.value.length > 0)
 
     const resetWeightStats = () => {
+        if (!weightHistory.value.length) return
+
+        // alten Zustand für Undo merken
+        const snapshot = [...weightHistory.value]
+        lastResetAction.value = {
+            kind: 'weight',
+            data: snapshot,
+        }
+
+        // wirklich zurücksetzen
         weightHistory.value = []
         localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
 
@@ -1160,22 +1191,78 @@
 
         // Toasts ggf. noch unterdrückt? Sofort freigeben.
         releaseToasts()
-        // Erfolgs-Toast
-        addToast('Gewichtsverlauf zurückgesetzt', 'add')
+
+        // Reset-Toast mit Undo-Action
+        addToast(
+            'Gewichtsverlauf zurückgesetzt',
+            'add',
+            {
+                label: 'Rückgängig',
+                handler: () => {
+                    if (!lastResetAction.value || lastResetAction.value.kind !== 'weight') return
+
+                    // Daten zurückholen
+                    weightHistory.value = [...lastResetAction.value.data]
+                    localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
+
+                    // Canvas wird durch v-if erst im nächsten Tick wieder gerendert
+                    nextTick(() => {
+                        updateWeightChart()
+                    })
+
+                    addToast('Gewichtsverlauf wiederhergestellt', 'add')
+                    lastResetAction.value = null
+                },
+            },
+        )
     }
 
+
     const resetWorkoutStats = () => {
+        if (!workouts.value.length) return
+
+        // alten Zustand für Undo merken
+        const snapshot = [...workouts.value]
+        lastResetAction.value = {
+            kind: 'workout',
+            data: snapshot,
+        }
+
+        // wirklich zurücksetzen
         workouts.value = []
         localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
+
         if (workoutChart) workoutChart.destroy()
         updateWorkoutChart()
 
         // Toasts ggf. noch unterdrückt? Sofort freigeben.
         releaseToasts()
 
-        // Erfolgs-Toast
-        addToast('Trainingsstatistik zurückgesetzt', 'add')
+        // Reset-Toast mit Undo-Action
+        addToast(
+            'Trainingsstatistik zurückgesetzt',
+            'add',
+            {
+                label: 'Rückgängig',
+                handler: () => {
+                    if (!lastResetAction.value || lastResetAction.value.kind !== 'workout') return
+
+                    // Daten zurückholen
+                    workouts.value = [...lastResetAction.value.data]
+                    localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
+
+                    // Canvas kommt per v-if erst im nächsten Tick zurück
+                    nextTick(() => {
+                        updateWorkoutChart()
+                    })
+
+                    addToast('Trainingsstatistik wiederhergestellt', 'add')
+                    lastResetAction.value = null
+                },
+            },
+        )
     }
+
 
     // ===== Filterleiste =====
 
@@ -1294,92 +1381,353 @@
     ])
 
     const resetCalculator = (calculator: string) => {
+        releaseToasts()
+
         switch (calculator) {
-            case 'bmi':
-                bmiGender.value = 'male';
-                bmiWeight.value = null;
-                bmiHeight.value = null;
-                bmiResult.value = null;
-                localStorage.removeItem('progress_bmi');
-                addToast('BMI-Rechner zurückgesetzt', 'reset');
-                break;
+            case 'bmi': {
+                lastCalculatorReset.value = {
+                    id: 'bmi',
+                    data: {
+                        gender: bmiGender.value,
+                        weight: bmiWeight.value,
+                        height: bmiHeight.value,
+                        result: bmiResult.value,
+                    }
+                }
 
-            case 'calories':
-                calorieAge.value = null;
-                calorieGender.value = 'male';
-                calorieWeight.value = null;
-                calorieHeight.value = null;
-                calorieActivity.value = '1.2';
-                calorieGoal.value = 0;
-                calorieResult.value = null;
-                localStorage.removeItem('progress_calories');
-                addToast('Kalorienbedarfsrechner zurückgesetzt', 'reset');
-                break;
+                bmiGender.value = 'male'
+                bmiWeight.value = null
+                bmiHeight.value = null
+                bmiResult.value = null
+                localStorage.removeItem('progress_bmi')
 
-            case 'oneRm':
-                oneRmExercise.value = '';
-                oneRmWeight.value = null;
-                oneRmReps.value = null;
-                oneRmResult.value = null;
-                localStorage.removeItem('progress_oneRm');
-                addToast('1RM-Rechner zurückgesetzt', 'reset');
-                break;
+                addToast('BMI-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'bmi') return
+                        const prev = lastCalculatorReset.value.data
+                        bmiGender.value = prev.gender
+                        bmiWeight.value = prev.weight
+                        bmiHeight.value = prev.height
+                        bmiResult.value = prev.result
+                        saveToLocalStorage('bmi', prev)
+                        lastCalculatorReset.value = null
+                        addToast('BMI-Rechner wiederhergestellt', 'add')
+                    }
+                })
+                break
+            }
 
-            case 'bodyFat':
-                bodyFatGender.value = 'male';
-                bodyFatWaist.value = null;
-                bodyFatNeck.value = null;
-                bodyFatHip.value = null;
-                bodyFatHeight.value = null;
-                bodyFatResult.value = null;
-                localStorage.removeItem('progress_bodyFat');
-                addToast('Körperfett-Rechner zurückgesetzt', 'reset');
-                break;
+            case 'calories': {
+                lastCalculatorReset.value = {
+                    id: 'calories',
+                    data: {
+                        age: calorieAge.value,
+                        gender: calorieGender.value,
+                        weight: calorieWeight.value,
+                        height: calorieHeight.value,
+                        activity: calorieActivity.value,
+                        goal: calorieGoal.value,
+                        result: calorieResult.value,
+                    }
+                }
 
-            case 'ffmi':
-                ffmiWeight.value = null;
-                ffmiHeight.value = null;
-                ffmiBodyFat.value = null;
-                ffmiResult.value = null;
-                localStorage.removeItem('progress_ffmi');
-                addToast('FFMI-Rechner zurückgesetzt', 'reset');
-                break;
+                calorieAge.value = null
+                calorieGender.value = 'male'
+                calorieWeight.value = null
+                calorieHeight.value = null
+                calorieActivity.value = '1.2'
+                calorieGoal.value = 0
+                calorieResult.value = null
+                localStorage.removeItem('progress_calories')
 
-            case 'water':
-                waterWeight.value = null;
-                waterActivity.value = 'low';
-                waterClimate.value = 'temperate';
-                waterResult.value = null;
-                localStorage.removeItem('progress_water');
-                addToast('Wasserbedarfsrechner zurückgesetzt', 'reset');
-                break;
-            case 'protein':
+                addToast('Kalorienbedarfsrechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'calories') return
+                        const prev = lastCalculatorReset.value.data
+                        calorieAge.value = prev.age
+                        calorieGender.value = prev.gender
+                        calorieWeight.value = prev.weight
+                        calorieHeight.value = prev.height
+                        calorieActivity.value = prev.activity
+                        calorieGoal.value = prev.goal
+                        calorieResult.value = prev.result
+                        saveToLocalStorage('calories', prev)
+                        if (calorieResult.value && activeTab.value === 'calculators') {
+                            updateMacroChart()
+                        }
+                        lastCalculatorReset.value = null
+                        addToast('Kalorienbedarfsrechner wiederhergestellt', 'add')
+                    }
+                })
+                break
+            }
+
+            case 'oneRm': {
+                lastCalculatorReset.value = {
+                    id: 'oneRm',
+                    data: {
+                        exercise: oneRmExercise.value,
+                        weight: oneRmWeight.value,
+                        reps: oneRmReps.value,
+                        result: oneRmResult.value,
+                    }
+                }
+
+                oneRmExercise.value = ''
+                oneRmWeight.value = null
+                oneRmReps.value = null
+                oneRmResult.value = null
+                localStorage.removeItem('progress_oneRm')
+
+                addToast('1RM-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'oneRm') return
+                        const prev = lastCalculatorReset.value.data
+                        oneRmExercise.value = prev.exercise
+                        oneRmWeight.value = prev.weight
+                        oneRmReps.value = prev.reps
+                        oneRmResult.value = prev.result
+                        saveToLocalStorage('oneRm', prev)
+                        lastCalculatorReset.value = null
+                        addToast('1RM-Rechner wiederhergestellt', 'add')
+                    }
+                })
+                break
+            }
+
+            case 'bodyFat': {
+                lastCalculatorReset.value = {
+                    id: 'bodyFat',
+                    data: {
+                        gender: bodyFatGender.value,
+                        waist: bodyFatWaist.value,
+                        neck: bodyFatNeck.value,
+                        hip: bodyFatHip.value,
+                        height: bodyFatHeight.value,
+                        result: bodyFatResult.value,
+                    }
+                }
+
+                bodyFatGender.value = 'male'
+                bodyFatWaist.value = null
+                bodyFatNeck.value = null
+                bodyFatHip.value = null
+                bodyFatHeight.value = null
+                bodyFatResult.value = null
+                localStorage.removeItem('progress_bodyFat')
+
+                addToast('Körperfett-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'bodyFat') return
+                        const prev = lastCalculatorReset.value.data
+                        bodyFatGender.value = prev.gender
+                        bodyFatWaist.value = prev.waist
+                        bodyFatNeck.value = prev.neck
+                        bodyFatHip.value = prev.hip
+                        bodyFatHeight.value = prev.height
+                        bodyFatResult.value = prev.result
+                        saveToLocalStorage('bodyFat', prev)
+                        lastCalculatorReset.value = null
+                        addToast('Körperfett-Rechner wiederhergestellt', 'add')
+                    }
+                })
+                break
+            }
+
+            case 'ffmi': {
+                lastCalculatorReset.value = {
+                    id: 'ffmi',
+                    data: {
+                        weight: ffmiWeight.value,
+                        height: ffmiHeight.value,
+                        bodyFat: ffmiBodyFat.value,
+                        result: ffmiResult.value,
+                    }
+                }
+
+                ffmiWeight.value = null
+                ffmiHeight.value = null
+                ffmiBodyFat.value = null
+                ffmiResult.value = null
+                localStorage.removeItem('progress_ffmi')
+
+                addToast('FFMI-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'ffmi') return
+                        const prev = lastCalculatorReset.value.data
+                        ffmiWeight.value = prev.weight
+                        ffmiHeight.value = prev.height
+                        ffmiBodyFat.value = prev.bodyFat
+                        ffmiResult.value = prev.result
+                        saveToLocalStorage('ffmi', prev)
+                        lastCalculatorReset.value = null
+                        addToast('FFMI-Rechner wiederhergestellt', 'add')
+                    }
+                })
+                break
+            }
+
+            case 'water': {
+                lastCalculatorReset.value = {
+                    id: 'water',
+                    data: {
+                        weight: waterWeight.value,
+                        activity: waterActivity.value,
+                        climate: waterClimate.value,
+                        result: waterResult.value,
+                    }
+                }
+
+                waterWeight.value = null
+                waterActivity.value = 'low'
+                waterClimate.value = 'temperate'
+                waterResult.value = null
+                localStorage.removeItem('progress_water')
+
+                addToast('Wasserbedarfsrechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'water') return
+                        const prev = lastCalculatorReset.value.data
+                        waterWeight.value = prev.weight
+                        waterActivity.value = prev.activity
+                        waterClimate.value = prev.climate
+                        waterResult.value = prev.result
+                        saveToLocalStorage('water', prev)
+                        lastCalculatorReset.value = null
+                        addToast('Wasserbedarfsrechner wiederhergestellt', 'add')
+                    }
+                })
+                break
+            }
+
+            case 'protein': {
+                lastCalculatorReset.value = {
+                    id: 'protein',
+                    data: {
+                        weight: proteinWeight.value,
+                        goal: proteinGoal.value,
+                        activity: proteinActivity.value,
+                        meals: proteinMeals.value,
+                        result: proteinResult.value,
+                    }
+                }
+
                 proteinWeight.value = null
                 proteinGoal.value = 'maintain'
+                proteinActivity.value = 'low'
+                proteinMeals.value = null
                 proteinResult.value = null
                 localStorage.removeItem('progress_protein')
-                addToast('Proteinbedarf-Rechner zurückgesetzt', 'reset')
-                break;
-            case 'caffeine':
+
+                addToast('Proteinbedarf-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'protein') return
+                        const prev = lastCalculatorReset.value.data
+                        proteinWeight.value = prev.weight
+                        proteinGoal.value = prev.goal
+                        proteinActivity.value = prev.activity
+                        proteinMeals.value = prev.meals
+                        proteinResult.value = prev.result
+                        saveToLocalStorage('protein', {
+                            weight: prev.weight,
+                            goal: prev.goal,
+                            activity: prev.activity,
+                            result: prev.result,
+                        })
+                        lastCalculatorReset.value = null
+                        addToast('Proteinbedarf-Rechner wiederhergestellt', 'add')
+                    }
+                })
+                break
+            }
+
+            case 'caffeine': {
+                lastCalculatorReset.value = {
+                    id: 'caffeine',
+                    data: {
+                        weight: cafWeight.value,
+                        sensitivity: cafSensitivity.value,
+                        status: cafStatus.value,
+                        result: cafResult.value,
+                    }
+                }
+
                 cafWeight.value = null
                 cafSensitivity.value = 'normal'
                 cafStatus.value = 'none'
                 cafResult.value = null
                 localStorage.removeItem('progress_caffeine')
-                addToast('Koffein-Rechner zurückgesetzt', 'reset')
+
+                addToast('Koffein-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'caffeine') return
+                        const prev = lastCalculatorReset.value.data
+                        cafWeight.value = prev.weight
+                        cafSensitivity.value = prev.sensitivity
+                        cafStatus.value = prev.status
+                        cafResult.value = prev.result
+                        saveToLocalStorage('caffeine', prev)
+                        lastCalculatorReset.value = null
+                        addToast('Koffein-Rechner wiederhergestellt', 'add')
+                    }
+                })
                 break
-            case 'glyload':
+            }
+
+            case 'glyload': {
+                lastCalculatorReset.value = {
+                    id: 'glyload',
+                    data: {
+                        food: glFood.value,
+                        serving: glServing.value,
+                        carbs100: glCarbs100.value,
+                        gi: glGi.value,
+                        result: glResult.value,
+                    }
+                }
+
                 glFood.value = ''
                 glServing.value = null
                 glCarbs100.value = null
                 glGi.value = null
                 glResult.value = null
                 localStorage.removeItem('progress_glyload')
-                addToast('GL-Rechner zurückgesetzt', 'reset')
-                break
 
+                addToast('GL-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'glyload') return
+                        const prev = lastCalculatorReset.value.data
+                        glFood.value = prev.food
+                        glServing.value = prev.serving
+                        glCarbs100.value = prev.carbs100
+                        glGi.value = prev.gi
+                        glResult.value = prev.result
+                        saveToLocalStorage('glyload', {
+                            food: prev.food,
+                            serving: prev.serving,
+                            carbs100: prev.carbs100,
+                            gi: prev.gi,
+                            result: prev.result,
+                            category: glCategory.value,
+                        })
+                        lastCalculatorReset.value = null
+                        addToast('GL-Rechner wiederhergestellt', 'add')
+                    }
+                })
+                break
+            }
         }
-    };
+    }
+
 
     //=============== BMI Calculator ==========
 
@@ -3164,160 +3512,34 @@ Notiz: ${e.note ?? '-'}\n`
 
     // --- Toast: State / Config
 
-    const toast = ref < ToastModel | null > (null);
-    let toastId = 0;
-    let toastTimeout: ReturnType<typeof setTimeout> | null = null;
-    const TOAST_DURATION_MS = 3000;
-    const toastHeld = ref(false);
-    const toastHovering = ref(false); // ⟵ neu
-    const toastWrap = ref < HTMLElement | null > (null)
-    const toastOffset = ref < { x: number; y: number } | null > (null)
-    const TOAST_OFFSET_KEY = 'ui_toast_offset_v2'
+    const toast = ref<ToastModel | null>(null)
+    let toastId = 0
 
-    const toastsEnabled = ref(true);
+    const toastsEnabled = ref(true)
 
     const suppressToasts = ref(false)
     let toastReleaseTimer: ReturnType<typeof setTimeout> | null = null
 
-    const toastPosition = ref < 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' > ('bottom-right')
-
-    //Toast Helper Für Drag / Pos. aus Dom lesen / Speichern
-
-    function parseTranslate(el: HTMLElement | null): { x: number; y: number } {
-        if (!el) return { x: 0, y: 0 }
-        const style = getComputedStyle(el)
-        const tr = style.transform
-        if (!tr || tr === 'none') return { x: 0, y: 0 }
-        // matrix(a,b,c,d,tx,ty) oder matrix3d(...)
-        if (tr.startsWith('matrix3d(')) {
-            const m = tr.slice(9, -1).split(',').map(Number)
-            return { x: m[12] || 0, y: m[13] || 0 }
-        } else if (tr.startsWith('matrix(')) {
-            const m = tr.slice(7, -1).split(',').map(Number)
-            return { x: m[4] || 0, y: m[5] || 0 }
-        }
-        return { x: 0, y: 0 }
-    }
-
-    function applyTranslate(el: HTMLElement | null, x: number, y: number) {
-        if (!el) return
-        el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
-    }
-
-    function loadToastOffset() {
-        try {
-            const raw = localStorage.getItem(TOAST_OFFSET_KEY)
-            if (!raw) return
-            const { x, y } = JSON.parse(raw)
-            if (Number.isFinite(x) && Number.isFinite(y)) {
-                toastOffset.value = { x, y }
-                requestAnimationFrame(() => applyTranslate(toastWrap.value as HTMLElement, x, y))
-            }
-        } catch { /* ignore */ }
-    }
-
-    function saveToastOffsetFromDom() {
-        const el = toastWrap.value as HTMLElement | null
-        if (!el) return
-        const { x, y } = parseTranslate(el)
-        toastOffset.value = { x, y }
-        localStorage.setItem(TOAST_OFFSET_KEY, JSON.stringify({ x, y }))
-    }
-
-    // --- Toast: Timer-Handling (Auto-Dismiss) ---
-
-    function clearToastTimer() {
-        if (toastTimeout) {
-            clearTimeout(toastTimeout);
-            toastTimeout = null;
-        }
-    }
-
-    function scheduleToastTimer() {
-        clearToastTimer();
-        if (!toast.value) return;
-        if (overlayOpen.value || toastHeld.value || toastHovering.value) return;
-        toastTimeout = setTimeout(() => {
-            if (!overlayOpen.value && !toastHeld.value && !toastHovering.value) startToastExit();
-        }, TOAST_DURATION_MS);
-    }
-
-    function onToastTimerEnd() {
-        if (!toast.value) return
-
-        if (overlayOpen.value || toastHeld.value || toastHovering.value) return
-        clearToastTimer()
-        startToastExit()
-    }
-
-    // --- Toast: Hover / Pointer / Context-Menü ---
-
-    function onToastHover(hover: boolean) {
-        toastHovering.value = hover;
-        if (hover) {
-            clearToastTimer();
-            toastHeld.value = true;
-        } else {
-            toastHeld.value = false;
-            scheduleToastTimer();
-        }
-    }
-
-    function onToastPointerDown(e: PointerEvent) {
-        if (!toast.value) return;
-        toastHeld.value = true;
-        clearToastTimer();
-    }
-    function onToastPointerUp() {
-        if (!toast.value) return;
-        toastHeld.value = toastHovering.value;
-        requestAnimationFrame(() => saveToastOffsetFromDom());
-        if (!toastHovering.value) scheduleToastTimer();
-    }
-
-    function onToastContextOpen() {
-        if (!toast.value) return;
-        toastHeld.value = true;
-        clearToastTimer();
-    }
-
-    onMounted(() => {
-        document.addEventListener('pointerdown', onToastPointerDown, { capture: true })
-        document.addEventListener('pointerup', onToastPointerUp, { capture: true })
-        document.addEventListener('contextmenu', onToastContextOpen, { capture: true })
-    })
-
-    onUnmounted(() => {
-        document.removeEventListener('pointerdown', onToastPointerDown, true)
-        document.removeEventListener('pointerup', onToastPointerUp, true)
-        document.removeEventListener('contextmenu', onToastContextOpen, true)
-    })
-
-    // --- Toast: Menü-Aktionen (z.B. Kontextmenü im Toast-Component) ---
-
-    function onToastMenuOpen() {
-        if (!toast.value) return;
-        toastHeld.value = true;
-        clearToastTimer();
-    }
-    function onToastMenuClose() {
-        toastHeld.value = false;
-        scheduleToastTimer();
-    }
-
+    const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
+    const lastResetAction = ref<{ kind: 'weight' | 'workout'; data: any } | null>(null)
+    const lastCalculatorReset = ref<{
+        id: 'bmi' | 'calories' | 'oneRm' | 'bodyFat' | 'ffmi' | 'water' | 'protein' | 'caffeine' | 'glyload';
+        data: any;
+    } | null>(null)
     // --- Toast: Dismiss & Exit-Animation ---
 
-    function startToastExit() {
-        if (!toast.value) return;
-        if (toast.value.exiting) return;
-        toast.value.exiting = true;
-        setTimeout(() => { toast.value = null; }, 300);
-    }
-
     function onToastDismiss(id: number) {
-        if (toast.value?.id === id) {
-            toast.value = null
-        }
+        if (!toast.value || toast.value.id !== id) return
+
+        // erst Exit-Animation aktivieren …
+        toast.value.exiting = true
+
+        // … dann nach kurzer Zeit wirklich aus dem State werfen
+        setTimeout(() => {
+            if (toast.value?.id === id) {
+                toast.value = null
+            }
+        }, 220) // ~0.2s, passend zur CSS-Animation
     }
 
     // --- Toast: Globale Unterdrückung/Freigabe (suppressToasts) ---
@@ -3345,12 +3567,10 @@ Notiz: ${e.note ?? '-'}\n`
     function handleToastsSetting(e: Event) {
         const enabled = Boolean((e as CustomEvent).detail)
         toastsEnabled.value = enabled
+
+        // wenn global deaktiviert → aktuellen Toast schließen
         if (!enabled && toast.value) {
             toast.value = null
-            if (toastTimeout) {
-                clearTimeout(toastTimeout)
-                toastTimeout = null
-            }
         }
     }
 
@@ -3369,7 +3589,6 @@ Notiz: ${e.note ?? '-'}\n`
         if (!toastsEnabled.value) return
         if (suppressToasts.value) return
 
-        clearToastTimer()
         const id = toastId++
         const emojis = {
             delete: '🗑️',
@@ -3392,10 +3611,7 @@ Notiz: ${e.note ?? '-'}\n`
 
         const mapped = types[type]
         toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, action }
-
-        scheduleToastTimer()
     }
-
    
     // --- Toast: Integration mit Overlays & Sichtbarkeit ---
 
@@ -3413,38 +3629,6 @@ Notiz: ${e.note ?? '-'}\n`
         || externalOverlayOpen.value
         || bodyBlocked.value
     )
-
-    function onGlobalOverlayOpen() {
-        _globalOverlayDepth += 1
-        externalOverlayOpen.value = true
-        clearToastTimer()
-    }
-
-    function onGlobalOverlayClose() {
-        _globalOverlayDepth = Math.max(0, _globalOverlayDepth - 1)
-        if (_globalOverlayDepth === 0) {
-            externalOverlayOpen.value = false
-            scheduleToastTimer()
-        }
-    }
-    function onVisibility() {
-        if (document.hidden) clearToastTimer()
-        else scheduleToastTimer()
-    }
-
-    // --- Toast: Lifecycle-Hooks & Watcher ---
-
-    onMounted(() => {
-        window.addEventListener('ui:overlay-open', onGlobalOverlayOpen as any)
-        window.addEventListener('ui:overlay-close', onGlobalOverlayClose as any)
-        document.addEventListener('visibilitychange', onVisibility)
-    })
-
-    onUnmounted(() => {
-        window.removeEventListener('ui:overlay-open', onGlobalOverlayOpen as any)
-        window.removeEventListener('ui:overlay-close', onGlobalOverlayClose as any)
-        document.removeEventListener('visibilitychange', onVisibility)
-    })
 
     
     // ===== Utility: Zahlen, Debounce, Format, Charts, Global-Events =====
@@ -3743,15 +3927,7 @@ Notiz: ${e.note ?? '-'}\n`
 
         toastReleaseTimer = setTimeout(() => releaseToasts(), 1500)
     })
-    watch(() => overlayOpen.value, (open) => {
-        if (open) clearToastTimer();
-        else scheduleToastTimer();
-    }, { immediate: true });
 
-    watch(() => toastHeld.value, (held) => {
-        if (held) clearToastTimer();
-        else scheduleToastTimer();
-    }, { immediate: true });
     onUnmounted(() => {
         // --- Toast: Settings & Suppression ---
         window.removeEventListener('toasts-enabled-changed', handleToastsSetting);
@@ -3770,10 +3946,6 @@ Notiz: ${e.note ?? '-'}\n`
         if (workoutChart) workoutChart.destroy();
         if (macroChart) macroChart.destroy();
     })
-    watch(toast, (t) => {
-        if (!t) { clearToastTimer(); return; }
-        scheduleToastTimer();
-    });
 </script>
 
 <style scoped>

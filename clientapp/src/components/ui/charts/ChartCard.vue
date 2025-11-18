@@ -93,6 +93,8 @@
         font-weight: 600;
         color: var(--text-primary);
         margin-bottom: 0.5rem;
+        word-break: break-word; /* lange Wörter umbrechen */
+        hyphens: auto; /* Browser darf trennen (mit passender Spracheinstellung) */
     }
 
     .chart-container {
@@ -122,15 +124,24 @@
 
         .footer-btn {
             min-height: 38px;
-            font-size: 0.9rem; /* minimal kleiner auf Phones */
+            font-size: 0.9rem;
             padding: .5rem .75rem;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            line-height: 1.25;
         }
     }
 
     @media (max-width: 360px) {
         .footer-btn {
-            font-size: 0.875rem; /* XS-Phones */
+            font-size: 0.875rem;
             padding: .45rem .65rem;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
         }
     }
     /* Engere Settings nur für Phones */
