@@ -127,6 +127,8 @@
         sound: string
         isVisible: boolean
         shouldStaySticky: boolean
+        width?: number
+        height?: number
         left?: number
         top?: number
         endAt?: number | null
@@ -142,6 +144,8 @@
         isFavorite: boolean
         isVisible: boolean
         shouldStaySticky: boolean
+        width?: number
+        height?: number
         left?: number
         top?: number
         startedAt?: number | null

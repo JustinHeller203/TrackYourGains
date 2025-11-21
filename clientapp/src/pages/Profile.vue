@@ -22,21 +22,36 @@
                     <i v-else class="fas fa-user"></i>
 
                     <!-- Kontextmenü -->
-                    <div v-if="showAvatarMenu"
-                         class="avatar-menu"
-                         ref="avatarMenuEl"
-                         @pointerdown.stop
-                         @click.stop
-                         v-auto-flip="{ margin: 8, align: 'start', strategy: 'fixed' }">
-                        <button type="button" @click="openAvatarFull">Bild öffnen</button>
+                    <HoldMenu v-if="showAvatarMenu"
+                              :menuStyle="avatarMenuStyle">
+                        <button type="button"
+                                @click="openAvatarFull"
+                                title="Profilbild in groß anzeigen"
+                                aria-label="Profilbild in groß anzeigen">
+                            Bild öffnen
+                        </button>
                         <button type="button"
                                 :disabled="!avatarUrl || !canClipboardImages"
                                 @click="copyAvatar"
                                 :title="!canClipboardImages ? 'Dein Browser unterstützt Bild-Kopieren nicht' : 'Bild in Zwischenablage kopieren'">
                             Bild kopieren
-                        </button>                        <button type="button" @click="uploadNewAvatar">Neues Bild hochladen…</button>
-                        <button v-if="avatarUrl" type="button" class="danger" @click="openDeleteAvatarPopup">Bild entfernen</button>
-                    </div>
+                        </button>
+                        <button type="button"
+                                @click="uploadNewAvatar"
+                                title="Neues Profilbild hochladen"
+                                aria-label="Neues Profilbild hochladen">
+                            Neues Bild hochladen…
+                        </button>
+                        <button v-if="avatarUrl"
+                                type="button"
+                                class="danger"
+                                @click="openDeleteAvatarPopup"
+                                title="Profilbild entfernen"
+                                aria-label="Profilbild entfernen">
+                            Bild entfernen
+                        </button>
+                    </HoldMenu>
+
                 </div>
 
                 <button class="avatar-plus"
@@ -426,6 +441,7 @@
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import EditInput from '@/components/ui/buttons/EditInput.vue'
     import Draggable from 'vuedraggable'
+    import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
 
     // --- Stores / Router ---
     const auth = useAuthStore()
@@ -439,6 +455,11 @@
     const viewerTy = ref(0);
     const viewerPanning = ref(false);
     let viewerLast = { x: 0, y: 0 };
+    const avatarMenuStyle = computed<Record<string, string>>(() => ({
+        width: '220px',
+        maxWidth: '220px',
+    }))
+
     function resetViewerTransform() {
         viewerScale.value = 1;
         viewerTx.value = 0;
@@ -866,8 +887,14 @@
     function openAvatarMenuAt(_ev?: PointerEvent | MouseEvent) {
         showAvatarMenu.value = true
         suppressNextClick.value = true // verhindert den „nachlaufenden“ Click vom Long-Press
-        nextTick(() => (avatarMenuEl.value as any)?.__autoFlip?.update?.())
+
+        nextTick(() => {
+            const el = document.querySelector<HTMLElement>('.hold-menu')
+            avatarMenuEl.value = el || null
+                ; (el as any)?.__autoFlip?.update?.()
+        })
     }
+
     function closeAvatarMenu() { showAvatarMenu.value = false }
 
     function onAvatarPointerDown(ev: PointerEvent) {
@@ -1965,36 +1992,6 @@
         pointer-events: none;
     }
 
-    .avatar-menu {
-        position: absolute;
-        min-width: 180px;
-        background: var(--bg-card, #fff);
-        border: 1px solid rgba(0,0,0,.12);
-        border-radius: 8px;
-        box-shadow: 0 6px 18px rgba(0,0,0,.18);
-        padding: .25rem;
-        z-index: 1000;
-    }
-
-        .avatar-menu button {
-            width: 100%;
-            text-align: left;
-            background: transparent;
-            border: 0;
-            padding: .5rem .6rem;
-            cursor: pointer;
-            font-size: .85rem;
-            border-radius: 6px;
-        }
-
-            .avatar-menu button:hover {
-                background: rgba(0,0,0,.06);
-            }
-
-        .avatar-menu .danger {
-            color: #ef4444;
-        }
-
 
     /* Zeilen vertikal mittig halten */
     .list li {
@@ -2040,9 +2037,6 @@
         }
     }
 
-    html.dark-mode .avatar-menu button:hover {
-        background: rgba(255,255,255,.06);
-    }
 
     .image-viewer-overlay {
         overscroll-behavior: contain;

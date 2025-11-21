@@ -22,7 +22,7 @@
 <style scoped>
     .hold-menu {
         position: absolute;
-        /* Breite kommt dynamisch via :style – keine Mindestbreite mehr erzwingen */
+        /* Breite kommt dynamisch via :style â€“ keine Mindestbreite mehr erzwingen */
         min-width: 0;
         background: var(--bg-card, #fff);
         border: 1px solid rgba(0,0,0,.12);
@@ -31,8 +31,9 @@
         padding: .25rem;
         z-index: 10000;
         /* Folge dem Trigger-Content sauber */
-        left: 0;
-        right: 0;
+        left: auto;
+        right: auto;
+        width: max-content;
     }
 
     @media (max-width: 480px) {
@@ -63,4 +64,9 @@
     html.dark-mode .hold-menu :where(button:hover) {
         background: rgba(255,255,255,.06);
     }
+
+    .hold-menu :where(.danger) {
+        color: #ef4444;
+    }
+
 </style>
