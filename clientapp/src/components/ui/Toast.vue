@@ -21,7 +21,7 @@
             <button v-if="(toast as any)?.action"
                     class="toast-action"
                     type="button"
-                    :title="(toast as any).action.label + ' (⌘Z / Ctrl+Z)'"
+                    :title="(toast as any).action.label + ' (âŒ˜Z / Ctrl+Z)'"
                     @pointerdown.stop
                     @click="onActionClick">
                 <i class="fas fa-rotate-left" aria-hidden="true"></i>
@@ -30,9 +30,9 @@
             <button v-if="dismissible"
                     class="toast-close"
                     type="button"
-                    aria-label="Toast schließen"
+                    aria-label="Toast schlieÃŸen"
                     @click="$emit('dismiss', toast!.id)">
-                ✕
+                âœ•
             </button>
 
             <div class="toast-progress"
@@ -42,7 +42,7 @@
                  @animationend="onProgressEnd">
             </div>
 
-            <!-- Kontextmenü bei Long-Press -->
+            <!-- KontextmenÃ¼ bei Long-Press -->
             <HoldMenu v-if="showMenu"
                       :menu-style="menuStyle">
                 <button type="button" @click="disableAllToasts">
@@ -97,7 +97,7 @@
         e.stopPropagation()
         if (!props.toast) return
         try { (props.toast as any)?.action?.handler?.() } catch { /* noop */ }
-        // Toast sofort schließen wie beim Dismiss
+        // Toast sofort schlieÃŸen wie beim Dismiss
         localVisible.value = false
         emit('dismiss', props.toast.id)
     }
@@ -149,7 +149,7 @@
     }
 
     const containerDragStyle = computed(() => {
-        // Während Reposition: live-drag Position
+        // WÃ¤hrend Reposition: live-drag Position
         if (repositionMode.value && dragPos.value) {
             return {
                 top: `${dragPos.value.y}px`,
@@ -158,7 +158,7 @@
                 right: 'unset'
             } as Record<string, string>
         }
-        // Persistierte Position: auch außerhalb vom Reposition-Mode anwenden
+        // Persistierte Position: auch auÃŸerhalb vom Reposition-Mode anwenden
         if (savedPos.value) {
             return {
                 top: `${savedPos.value.y}px`,
@@ -167,7 +167,7 @@
                 right: 'unset'
             } as Record<string, string>
         }
-        // Kein Custom-Pos → Klassen (Ecken) wirken
+        // Kein Custom-Pos â†’ Klassen (Ecken) wirken
         return {}
     })
 
@@ -195,7 +195,7 @@
         if (dismissTimerId.value == null) return
         const elapsed = Date.now() - startedAt.value
         const newRemaining = Math.max(0, remainingMs.value - elapsed)
-        // Wenn während des Freezes die Restzeit auf 0 fällt, merken wir das
+        // Wenn wÃ¤hrend des Freezes die Restzeit auf 0 fÃ¤llt, merken wir das
         if (newRemaining === 0) {
             finishedWhileFrozen.value = true
         }
@@ -204,7 +204,7 @@
     }
 
     function resumeDismissTimer() {
-        // Falls Timer bereits fertig ist: nach Unfreeze direkt schließen
+        // Falls Timer bereits fertig ist: nach Unfreeze direkt schlieÃŸen
         if (dismissTimerId.value == null && remainingMs.value <= 0) {
             if (!isActuallyPaused.value) {
                 tryDismissAfterProgress()
@@ -230,7 +230,7 @@
         if (e.detail) {
             pauseDismissTimer()
         } else {
-            // nur fortsetzen, wenn dieser Toast nicht selbst „eingefroren“ ist
+            // nur fortsetzen, wenn dieser Toast nicht selbst â€žeingefrorenâ€œ ist
             if (!isActuallyPaused.value) resumeDismissTimer()
         }
     }
@@ -238,7 +238,7 @@
         if (open) {
             await nextTick()
             const w = toastEl.value?.getBoundingClientRect().width ?? 0
-            // Menü exakt so breit wie Toast, aber niemals größer als der Viewport
+            // MenÃ¼ exakt so breit wie Toast, aber niemals grÃ¶ÃŸer als der Viewport
             menuStyle.value = {
                 width: Math.max(0, w) + 'px',
                 maxWidth: '100vw',
@@ -261,7 +261,7 @@
     function doDismiss() {
         if (!props.toast || props.autoDismiss === false) return
         if (isActuallyPaused.value) {
-            // Während Pause NICHT die Restzeit resetten – nur kurz pollen.
+            // WÃ¤hrend Pause NICHT die Restzeit resetten â€“ nur kurz pollen.
             clearDismissTimer()
             dismissTimerId.value = window.setTimeout(doDismiss, 50) as unknown as number
             return
@@ -297,7 +297,7 @@
         localStorage.setItem('toastsEnabled', 'false')
         window.dispatchEvent(new CustomEvent('toasts-enabled-changed', { detail: false }))
 
-        // 3) Menü schließen und aktuellen Toast sofort ausblenden
+        // 3) MenÃ¼ schlieÃŸen und aktuellen Toast sofort ausblenden
         showMenu.value = false
         if (props.toast) {
             localVisible.value = false
@@ -315,7 +315,7 @@
         const wasHolding = isHolding.value
         isHolding.value = false
 
-        // Wenn wir per PointerDown global pausiert haben (kurzer Tap, kein Menü),
+        // Wenn wir per PointerDown global pausiert haben (kurzer Tap, kein MenÃ¼),
         // Pause global wieder aufheben und lokalen Timer sauber fortsetzen.
         if (!repositionMode.value) {
             resumeToasts()
@@ -327,12 +327,12 @@
     const ignoreNextAnim = ref(false)
 
     function onToastPointerDown(ev: PointerEvent) {
-        // Nur auf Touch/Pen native Selektion & Callout killen – Maus in Ruhe lassen
+        // Nur auf Touch/Pen native Selektion & Callout killen â€“ Maus in Ruhe lassen
         if (ev.pointerType === 'touch' || ev.pointerType === 'pen') {
             ev.preventDefault()
         }
 
-        // Rechts-/Mittelklick der Maus NICHT blocken (Right-Click öffnet Menü separat)
+        // Rechts-/Mittelklick der Maus NICHT blocken (Right-Click Ã¶ffnet MenÃ¼ separat)
         if (ev.pointerType === 'mouse' && (ev.button === 1 || ev.button === 2)) {
             return
         }
@@ -373,7 +373,7 @@
         cancelPress()
         if (!showMenu.value) {
             isHolding.value = false
-            // kein globales resume hier – Parent kontrolliert die Pause
+            // kein globales resume hier â€“ Parent kontrolliert die Pause
         }
         dragOffset.value = null
     }
@@ -426,7 +426,7 @@
         prefs.value.position = userPosition.value
         savePrefs(prefs.value)
 
-        // 3) UI-State aufräumen
+        // 3) UI-State aufrÃ¤umen
         repositionMode.value = false
         dragPos.value = null
 
@@ -447,7 +447,7 @@
 
 
     function cancelReposition() {
-        // Reposition abbrechen und direkt schließen
+        // Reposition abbrechen und direkt schlieÃŸen
         repositionMode.value = false
         dragPos.value = null
 
@@ -540,7 +540,7 @@
     function onProgressEnd(_e: AnimationEvent) {
         if (!props.toast || closedOnce.value || props.autoDismiss === false) return
         if (ignoreNextAnim.value) return
-        // Wenn während Menü/Hold/Reposition oder globaler Pause fertig → merken, nicht schließen
+        // Wenn wÃ¤hrend MenÃ¼/Hold/Reposition oder globaler Pause fertig â†’ merken, nicht schlieÃŸen
         if (isFrozen.value || toastPaused.value) {
             finishedWhileFrozen.value = true
             return
@@ -549,10 +549,10 @@
     }
 
     watch([showMenu, isHolding, repositionMode, toastPaused], () => {
-        // Falls gerade irgendein Freeze aktiv ist, nie automatisch schließen.
+        // Falls gerade irgendein Freeze aktiv ist, nie automatisch schlieÃŸen.
         if (isFrozen.value || toastPaused.value) return
-        // Wenn die Progress-Animation bereits während Freeze fertig wurde,
-        // jetzt sofort sauber schließen.
+        // Wenn die Progress-Animation bereits wÃ¤hrend Freeze fertig wurde,
+        // jetzt sofort sauber schlieÃŸen.
         if (finishedWhileFrozen.value) {
             finishedWhileFrozen.value = false
             tryDismissAfterProgress()
@@ -567,7 +567,7 @@
     }
     function tryDismissAfterProgress() {
         if (!props.toast || closedOnce.value || props.autoDismiss === false) return
-        if (isFrozen.value) return // während Menü/Hold/Reposition nicht schließen
+        if (isFrozen.value) return // wÃ¤hrend MenÃ¼/Hold/Reposition nicht schlieÃŸen
         clearDismissTimer()
         autoClosing.value = true
         closedOnce.value = true
@@ -578,12 +578,12 @@
         const toast = toastEl.value
         const target = e.target as HTMLElement
 
-        // Klicks direkt im Menü ignorieren
+        // Klicks direkt im MenÃ¼ ignorieren
         if (target.closest('.toast-menu')) return
         if (toast && toast.contains(target)) return
 
-        // Menü schließen, aber jegliche weitere Handler blocken,
-        // damit kein globaler Click-Away den Toast schließt.
+        // MenÃ¼ schlieÃŸen, aber jegliche weitere Handler blocken,
+        // damit kein globaler Click-Away den Toast schlieÃŸt.
         showMenu.value = false
         if (typeof (e as any).stopImmediatePropagation === 'function') {
             (e as any).stopImmediatePropagation()
@@ -662,7 +662,7 @@
 
         if (t && props.autoDismiss !== false) {
             // JS-Fallback-Timer synchron zur Progress-Linie starten
-            // (pausiert/fortgesetzt über pause/resumeDismissTimer)
+            // (pausiert/fortgesetzt Ã¼ber pause/resumeDismissTimer)
             startDismissTimer(progressMs.value)
         }
     }, { immediate: true })
@@ -673,7 +673,7 @@
         }
         // Unpaused:
         if (remainingMs.value <= 0) {
-            // Progress-Linie war schon fertig → sofort schließen
+            // Progress-Linie war schon fertig â†’ sofort schlieÃŸen
             tryDismissAfterProgress()
         } else {
             resumeDismissTimer()

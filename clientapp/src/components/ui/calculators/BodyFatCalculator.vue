@@ -1,4 +1,4 @@
-﻿<!-- src/components/ui/calculators/BodyFatCalculator.vue -->
+<!-- src/components/ui/calculators/BodyFatCalculator.vue -->
 <template>
     <div class="calculator-card">
         <div class="card-header">

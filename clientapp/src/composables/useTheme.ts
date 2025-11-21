@@ -1,4 +1,4 @@
-﻿// src/composables/useTheme.ts
+// src/composables/useTheme.ts
 import { ref } from 'vue'
 
 const THEME_KEY = 'theme'

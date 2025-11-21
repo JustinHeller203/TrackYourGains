@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <button class="btn-ghost" type="button" @click="$emit('click')">
         <span class="btn-icon">⬇️</span>
         <span class="btn-label"><slot>Exportieren</slot></span>

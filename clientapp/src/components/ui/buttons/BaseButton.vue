@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <button class="action-btn"
             :class="extraClass"
             :type="type"

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="calculator-card">
         <div class="card-header">
             <h3 class="card-title">

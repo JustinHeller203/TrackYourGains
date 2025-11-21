@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <button class="btn-danger-ghost" type="button" @click="$emit('click')">
         <span class="btn-icon">🔄</span>
         <span class="btn-label"><slot>Zurücksetzen</slot></span>

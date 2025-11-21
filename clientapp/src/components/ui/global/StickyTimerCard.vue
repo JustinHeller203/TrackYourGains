@@ -1,22 +1,27 @@
 <template>
     <div class="sticky-timer-card"
          ref="cardEl"
-         :class="[{ resizing: resizeMode }, sizePreset]"
+         :class="[{ resizing: resizeMode, movable: moveMode }, sizePreset]"
          :style="{
   left: timer.left + 'px',
   top: timer.top + 'px',
   width: timer.width ? timer.width + 'px' : undefined,
   height: cardHeight,
   zIndex: timer.zIndex ?? 2000,
-  '--ui-scale': uiScale
+  background: timer.bgColor ?? undefined,
+  '--ui-scale': uiScale,
+  '--btn-bg': timer.btnColor ?? undefined,
+  '--time-color': timer.timeColor ?? undefined
 }"
+
          @mousedown="onMouseDown($event)"
          @mousedown.right.prevent="openMenu($event as any)"
          @contextmenu.prevent="openMenu($event as any)"
-         @pointerdown="onPointerDown"
-         @pointermove="onPointerMove"
-         @pointerup="onPointerUp"
-         @pointercancel="onPointerCancel">
+         @pointerdown.capture="onPointerDown"
+         @pointermove.capture="onPointerMove"
+         @pointerup.capture="onPointerUp"
+         @pointercancel.capture="onPointerCancel">
+
         <span class="name-link"
               @click="focusInTraining('timer', timer.id)"
               @mousedown.stop>
@@ -26,20 +31,103 @@
         <button @click="startTimer(timer)" :disabled="timer.isRunning">Start</button>
         <button @click="stopTimer(timer)" :disabled="!timer.isRunning">Stop</button>
         <button @click="resetTimer(timer)">Reset</button>
-        
+
+        <!-- StickyTimerCard.vue | REPLACE HoldMenu block -->
         <HoldMenu v-if="showMenu"
                   class="sticky-menu"
                   :menuStyle="menuStyle">
-            <button type="button" @click="handleOpen">
+            <button type="button" class="menu-item" @click="handleOpen">
                 &#214;ffnen
             </button>
-            <button type="button" @click="handleCrop">
+            <button type="button" class="menu-item" @click="handleMove">
+                Verschieben
+            </button>
+            <button type="button" class="menu-item" @click="handleCrop">
                 Zuschneiden
             </button>
-            <button type="button" class="danger" @click="handleClose">
+
+            <div class="color-row" @mousedown.stop>
+                <span class="color-label">Farbe</span>
+                <button type="button" class="color-dot default"
+                        title="Default"
+                        @click="setColor(null)">
+                </button>
+                <button type="button" class="color-dot transparent"
+                        title="Transparent"
+                        @click="setColor('transparent')">
+                </button>
+                <button type="button" class="color-dot blue"
+                        title="Blau"
+                        @click="setColor('#1e3a8a')">
+                </button>
+                <button type="button" class="color-dot green"
+                        title="GrÃ¼n"
+                        @click="setColor('#166534')">
+                </button>
+                <button type="button" class="color-dot amber"
+                        title="Orange"
+                        @click="setColor('#92400e')">
+                </button>
+
+                <input class="color-picker" type="color"
+                       :value="timer.bgColor || '#0d1117'"
+                       @input="setColor(($event.target as HTMLInputElement).value, false)" />
+            </div>
+
+            <div class="color-row" @mousedown.stop>
+                <span class="color-label">Buttons</span>
+                <button type="button" class="color-dot default"
+                        title="Default"
+                        @click="setBtnColor(null, false)">
+                </button>
+                <button type="button" class="color-dot blue"
+                        title="Blau"
+                        @click="setBtnColor('#1e3a8a', false)">
+                </button>
+                <button type="button" class="color-dot green"
+                        title="GrÃ¼n"
+                        @click="setBtnColor('#166534', false)">
+                </button>
+                <button type="button" class="color-dot amber"
+                        title="Orange"
+                        @click="setBtnColor('#92400e', false)">
+                </button>
+
+                <input class="color-picker" type="color"
+                       :value="timer.btnColor || '#4B6CB7'"
+                       @input="setBtnColor(($event.target as HTMLInputElement).value, false)" />
+            </div>
+
+            <div class="color-row" @mousedown.stop>
+                <span class="color-label">Zeit</span>
+                <button type="button" class="color-dot default"
+                        title="Default"
+                        @click="setTimeColor(null, false)">
+                </button>
+                <button type="button" class="color-dot blue"
+                        title="Blau"
+                        @click="setTimeColor('#1e3a8a', false)">
+                </button>
+                <button type="button" class="color-dot green"
+                        title="GrÃ¼n"
+                        @click="setTimeColor('#166534', false)">
+                </button>
+                <button type="button" class="color-dot amber"
+                        title="Orange"
+                        @click="setTimeColor('#92400e', false)">
+                </button>
+
+                <input class="color-picker" type="color"
+                       :value="timer.timeColor || '#4B6CB7'"
+                       @input="setTimeColor(($event.target as HTMLInputElement).value, false)" />
+            </div>
+
+            <button type="button" class="menu-item danger" @click="handleClose">
                 Schlie&#223;en
             </button>
+
         </HoldMenu>
+
 
         <template v-if="resizeMode">
             <div class="resize-handle nw" @pointerdown.stop.prevent="startResize($event,'nw')"></div>
@@ -68,6 +156,7 @@
         target.zIndex = w[Z_KEY]
     }
     function onMouseDown(ev: MouseEvent) {
+        if (!moveMode.value) return
         bumpZ(timer)
         startDrag(ev, timer)
     }
@@ -104,7 +193,54 @@
         closeMenu()
     }
     const resizeMode = ref(false)
+    const moveMode = ref(false)
+
+    function finishMove() {
+        if (!moveMode.value) return
+        moveMode.value = false
+        // speichern passiert automatisch durch Parent-Deepwatch
+    }
+
+    function onMoveKey(e: KeyboardEvent) {
+        if (!moveMode.value) return
+
+        if (e.key === 'Enter') {
+            e.preventDefault()
+            finishMove()
+            return
+        }
+
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault()
+            finishMove()
+        }
+    }
+
+    function onMoveOutside(e: PointerEvent) {
+        if (!moveMode.value) return
+        const root = cardEl.value
+        const t = e.target as Node
+        if (root && root.contains(t)) return
+        finishMove()
+    }
+
+    watch(moveMode, (on) => {
+        if (on) {
+            window.addEventListener('keydown', onMoveKey, true)
+            window.addEventListener('pointerdown', onMoveOutside, true)
+        } else {
+            window.removeEventListener('keydown', onMoveKey, true)
+            window.removeEventListener('pointerdown', onMoveOutside, true)
+        }
+    })
+
+    function handleMove() {
+        moveMode.value = true
+        closeMenu()
+    }
+
     type Corner = 'nw' | 'ne' | 'sw' | 'se' | 'w' | 'e' | 'n' | 's'
+
     let resizingCorner: Corner | null = null
     const activeCorner = ref<Corner | null>(null)
 
@@ -211,6 +347,21 @@
         closeMenu()
     }
 
+    function setColor(color: string | null, close = true) {
+        timer.bgColor = color
+        if (close) closeMenu()
+    }
+
+    function setBtnColor(color: string | null, close = true) {
+        timer.btnColor = color
+        if (close) closeMenu()
+    }
+
+    function setTimeColor(color: string | null, close = true) {
+        timer.timeColor = color
+        if (close) closeMenu()
+    }
+
     function handleClose() {
         // Timer sauber stoppen + unsticky machen
         stopTimer(timer)
@@ -218,7 +369,7 @@
         timer.isVisible = false
 
         emit('close', timer.id)
-        // kein closeMenu() nötig, Parent schmeißt die Card raus
+        // kein closeMenu() n tig, Parent schmei t die Card raus
         closeMenu()
 
     }
@@ -333,11 +484,11 @@
         const T_ENTER = 105
         const T_EXIT = 95
 
-        // früher narrow rein, etwas später wieder raus
+        // fr her narrow rein, etwas sp ter wieder raus
         const N_ENTER = 260
         const N_EXIT = 270
 
-        // large erst später rein, damit narrow nicht zu spät kommt
+        // large erst sp ter rein, damit narrow nicht zu sp t kommt
         const L_ENTER = 300
         const L_EXIT = 285
 
@@ -393,7 +544,7 @@
         // normaler Betrieb -> gespeichertes Preset
         if (!resizeMode.value) return currentPreset.value
 
-        // Crop-Modus -> Live-Preview anhand aktueller Maße
+        // Crop-Modus -> Live-Preview anhand aktueller Ma e
         const w = timer.width ?? cardEl.value?.offsetWidth ?? 220
         const h = timer.height ?? cardEl.value?.offsetHeight ?? 80
         return calcPreset(w, h)
@@ -445,14 +596,15 @@
             window.removeEventListener('pointerdown', onCropOutside, true)
         }
     })
-
     onBeforeUnmount(() => {
         resizeObs?.disconnect()
         resizeObs = null
         window.removeEventListener('keydown', onCropKey, true)
         window.removeEventListener('pointerdown', onCropOutside, true)
-    })
 
+        window.removeEventListener('keydown', onMoveKey, true)
+        window.removeEventListener('pointerdown', onMoveOutside, true)
+    })
 
     function clearHold() {
         if (holdTimer != null) {
@@ -470,7 +622,20 @@
     function onPointerDown(ev: PointerEvent) {
         bumpZ(timer)
 
-        if (ev.pointerType !== 'touch') return
+        // bei Mouse nur Linksklick longpressen (Rightclick macht eigenes Men )
+        if (ev.pointerType === 'mouse' && ev.button !== 0) return
+
+        if (moveMode.value) {
+            if (ev.pointerType !== 'mouse') {
+                clearHold()
+                isHolding.value = false
+                pressStartPos = null
+                startDrag(ev as any, timer)
+            }
+            return
+        }
+
+        // normal: Long-Press  ffnet Men    egal welches Child gedr ckt wird
         isHolding.value = true
         pressStartPos = { x: ev.clientX, y: ev.clientY }
         clearHold()
@@ -481,6 +646,7 @@
 
 
     function onPointerMove(ev: PointerEvent) {
+        if (moveMode.value) return
         if (!isHolding.value || !pressStartPos) return
         const dx = ev.clientX - pressStartPos.x
         const dy = ev.clientY - pressStartPos.y
@@ -520,6 +686,7 @@
         () => nextTick(() => ensureContentFitsHard('settle')),
         { flush: 'post' }
     )
+
     interface TimerInstance {
         id: string
         name: string
@@ -532,14 +699,17 @@
         sound: string
         isVisible: boolean
         shouldStaySticky: boolean
+        bgColor?: string | null
+        btnColor?: string | null
+        timeColor?: string | null
         width?: number
         height?: number
         left?: number
         top?: number
         endAt?: number | null
         zIndex?: number
-
     }
+
 
     const {
         timer,
@@ -584,11 +754,22 @@
         align-items: center;
         gap: 0.5rem;
         font-size: 0.85rem;
-        cursor: grab;
+        cursor: default;
         z-index: 2000;
         border: 1px solid var(--border-color);
         box-sizing: border-box;
     }
+
+        .sticky-timer-card.movable,
+        .sticky-stopwatch-card.movable {
+            cursor: grab;
+        }
+
+            .sticky-timer-card.movable:active,
+            .sticky-stopwatch-card.movable:active {
+                cursor: grabbing;
+            }
+
         .sticky-timer-card:not(.resizing),
         .sticky-stopwatch-card:not(.resizing) {
             overflow: hidden;
@@ -597,10 +778,6 @@
         .sticky-timer-card.resizing,
         .sticky-stopwatch-card.resizing {
             overflow: visible;
-        }
-        .sticky-timer-card:active,
-        .sticky-stopwatch-card:active {
-            cursor: grabbing;
         }
 
         .sticky-timer-card span:first-child,
@@ -613,10 +790,8 @@
             font-family: monospace;
             font-weight: 700;
             font-size: 1rem;
-            color: var(--accent-primary);
+            color: var(--time-color, var(--accent-primary));
         }
-
-
 
         .sticky-timer-card .sticky-menu {
             position: absolute; /* bleibt innerhalb der Card */
@@ -628,20 +803,6 @@
             z-index: 10000;
         }
 
-            /* Menü-Buttons dürfen NICHT wie Sticky-Buttons aussehen */
-            .sticky-timer-card .sticky-menu button {
-                background: transparent !important;
-                border: 0 !important;
-                padding: .5rem .6rem !important;
-                font-size: .85rem !important;
-                font-weight: 600;
-                border-radius: 6px !important;
-                display: block;
-                width: 100%;
-                text-align: left;
-                cursor: pointer;
-                line-height: 1.2;
-            }
 
                 .sticky-timer-card .sticky-menu button:hover {
                     background: rgba(0,0,0,.06) !important;
@@ -667,34 +828,14 @@
     html.dark-mode .sticky-timer-card .sticky-menu button:hover {
         background: rgba(255,255,255,.06) !important;
     }
-    /* Kontextmenü nur für Sticky-Timer */
+    /* Kontextmen  nur f r Sticky-Timer */
     .sticky-timer-card .hold-menu {
         left: auto;
         right: auto;
         min-width: 150px;
         max-width: 180px;
     }
-        /* Reset der Button-Styles, damit sie nicht wie die Sticky-Buttons aussehen */
-        .sticky-timer-card .hold-menu button {
-            /* kein all: unset -> sonst killt es .danger */
-            box-sizing: border-box;
-            display: block;
-            width: 100%;
-            padding: .5rem .6rem;
-            cursor: pointer;
-            font-size: .85rem;
-            border-radius: 6px;
-            text-align: left;
-            background: transparent;
-            border: 0;
-            color: inherit;
-            font: inherit;
-            line-height: 1.2;
-        }
 
-            .sticky-timer-card .hold-menu button.danger {
-                color: #ef4444;
-            }
 
             .sticky-timer-card .hold-menu button:hover {
                 background: rgba(0,0,0,.06);
@@ -712,19 +853,19 @@
 
     .sticky-timer-card > button,
     .sticky-stopwatch-card > button {
-        background: var(--accent-primary);
+        background: var(--btn-bg, var(--accent-primary));
         border: none;
         color: #fff;
         font-size: 0.75rem;
         padding: 0.3rem 0.6rem;
         border-radius: 6px;
         cursor: pointer;
-        transition: background 0.2s ease;
+        transition: filter 0.2s ease, background 0.2s ease;
     }
 
         .sticky-timer-card > button:hover,
         .sticky-stopwatch-card > button:hover {
-            background: var(--accent-hover);
+            filter: brightness(0.95);
         }
 
         .sticky-timer-card > button:disabled,
@@ -735,12 +876,12 @@
 
     html.dark-mode .sticky-timer-card > button,
     html.dark-mode .sticky-stopwatch-card > button {
-        background: #4B6CB7;
+        background: var(--btn-bg, #4B6CB7);
     }
 
         html.dark-mode .sticky-timer-card > button:hover,
         html.dark-mode .sticky-stopwatch-card > button:hover {
-            background: #5a7bc4;
+            filter: brightness(0.95);
         }
 
     .sticky-timer-card.resizing {
@@ -873,6 +1014,7 @@
         padding: calc(.45rem * var(--ui-scale)) calc(.9rem * var(--ui-scale));
         border-radius: 999px;
     }
+
     .sticky-timer-card .resize-handle {
         touch-action: none;
     }
@@ -896,6 +1038,7 @@
             height: 24px;
             border-radius: 6px;
         }
+
         .sticky-timer-card .resize-handle.n {
             top: -7px;
             left: 50%;
@@ -938,7 +1081,7 @@
             white-space: nowrap;
         }
 
-        /* Zeit bekommt eigene Zeile, mega präsent */
+        /* Zeit bekommt eigene Zeile, mega pr sent */
         .sticky-timer-card.tall .time {
             order: 2;
             flex-basis: 100%;
@@ -1002,6 +1145,98 @@
         font-size: calc(.8rem * var(--ui-scale));
         padding: calc(.32rem * var(--ui-scale)) calc(.7rem * var(--ui-scale));
         border-radius: 9px;
+    }
+
+    .color-row {
+        display: flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .35rem .2rem .5rem;
+        border-top: 1px solid var(--border-color);
+        margin-top: .25rem;
+        flex-wrap: wrap;
+    }
+
+    .color-label {
+        font-size: .75rem;
+        opacity: .8;
+        margin-right: .25rem;
+    }
+    /* StickyTimerCard.vue | REPLACE menu button selectors */
+    .sticky-timer-card .hold-menu .menu-item {
+        /* kein all: unset -> sonst killt es .danger */
+        box-sizing: border-box;
+        display: block;
+        width: 100%;
+        padding: .5rem .6rem;
+        cursor: pointer;
+        font-size: .85rem;
+        border-radius: 6px;
+        text-align: left;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        font: inherit;
+        line-height: 1.2;
+    }
+
+        .sticky-timer-card .hold-menu .menu-item.danger {
+            color: #ef4444;
+        }
+
+    .sticky-timer-card .sticky-menu .menu-item {
+        background: transparent !important;
+        border: 0 !important;
+        padding: .5rem .6rem !important;
+        font-size: .85rem !important;
+        font-weight: 400 !important; /* same as stopwatch */
+        border-radius: 6px !important;
+        display: block;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        line-height: 1.2;
+    }
+
+    /* StickyTimerCard.vue | ADD stronger dot specificity */
+    .sticky-timer-card .color-dot {
+        width: 18px !important;
+        height: 18px !important;
+        padding: 0 !important;
+        display: inline-block !important;
+        border-radius: 999px !important;
+        text-align: center !important;
+        background-clip: padding-box;
+    }
+
+
+        .color-dot.default {
+            background: var(--bg-secondary);
+        }
+
+        .color-dot.transparent {
+            background: repeating-linear-gradient( 45deg, rgba(255,255,255,.2), rgba(255,255,255,.2) 4px, rgba(0,0,0,.2) 4px, rgba(0,0,0,.2) 8px );
+        }
+
+        .color-dot.blue {
+            background: #1e3a8a;
+        }
+
+        .color-dot.green {
+            background: #166534;
+        }
+
+        .color-dot.amber {
+            background: #92400e;
+        }
+
+    .color-picker {
+        width: 26px;
+        height: 20px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
     }
 
 </style>

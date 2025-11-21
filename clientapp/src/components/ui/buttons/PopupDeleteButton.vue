@@ -3,7 +3,7 @@
             type="button"
             :disabled="disabled"
             @click="$emit('click')">
-        <slot>Löschen</slot>
+        <slot>LÃ¶schen</slot>
     </button>
 </template>
 

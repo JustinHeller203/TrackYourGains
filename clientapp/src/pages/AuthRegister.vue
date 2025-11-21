@@ -15,7 +15,7 @@
                    required />
             <input v-model.trim="confirmPwd"
                    type="password"
-                   placeholder="Passwort bestätigen"
+                   placeholder="Passwort bestÃ¤tigen"
                    autocomplete="new-password"
                    required />
             <button :disabled="busy" type="submit">
@@ -36,7 +36,7 @@
 
     const email = ref('')
     const password = ref('')
-    const confirmPwd = ref('')          // <— eigenes Confirm-Feld
+    const confirmPwd = ref('')          // <â€” eigenes Confirm-Feld
     const busy = ref(false)
     const err = ref('')
     const msg = ref('')
@@ -53,7 +53,7 @@
             return
         }
         if (password.value !== confirmPwd.value) {
-            err.value = 'Passwörter stimmen nicht überein.'
+            err.value = 'PasswÃ¶rter stimmen nicht Ã¼berein.'
             return
         }
 
@@ -61,7 +61,7 @@
         try {
             // dein Store erwartet (email, password, confirm)
             await auth.signUp(email.value, password.value, confirmPwd.value)
-            msg.value = 'Bestätigungs-Mail gesendet. Bitte E-Mail prüfen.'
+            msg.value = 'BestÃ¤tigungs-Mail gesendet. Bitte E-Mail prÃ¼fen.'
         } catch (e: any) {
             err.value = e?.message || 'Registrierung fehlgeschlagen.'
         } finally {

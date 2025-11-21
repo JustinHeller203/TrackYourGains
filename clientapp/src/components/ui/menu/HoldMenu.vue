@@ -22,7 +22,7 @@
 <style scoped>
     .hold-menu {
         position: absolute;
-        /* Breite kommt dynamisch via :style – keine Mindestbreite mehr erzwingen */
+        /* Breite kommt dynamisch via :style â€“ keine Mindestbreite mehr erzwingen */
         min-width: 0;
         background: var(--bg-card, #fff);
         border: 1px solid rgba(0,0,0,.12);

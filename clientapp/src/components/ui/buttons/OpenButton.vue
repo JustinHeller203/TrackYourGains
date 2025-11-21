@@ -5,7 +5,7 @@
                     :aria-label="ariaLabel || title"
                     :disabled="disabled"
                     @click="$emit('click', $event)">
-            Öffnen
+            Ã–ffnen
         </BaseButton>
     </div>
 </template>
@@ -33,7 +33,7 @@
         border-radius: 8px;
         transition: color 0.2s, text-shadow 0.2s, transform 0.1s;
         color: #10b981;
-        /* Zentrierung im Button selbst (zusätzlich zum Container) */
+        /* Zentrierung im Button selbst (zusÃ¤tzlich zum Container) */
         display: inline-flex;
         align-items: center;
         justify-content: center;

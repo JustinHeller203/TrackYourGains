@@ -1,4 +1,4 @@
-﻿<!-- ExtrasToggleButton.vue -->
+<!-- ExtrasToggleButton.vue -->
 <template>
     <BaseButton v-bind="$attrs"                     
     :type="type"

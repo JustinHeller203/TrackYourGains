@@ -1,4 +1,4 @@
-﻿<!-- src/components/ui/calculators/WaterCalculator.vue -->
+<!-- src/components/ui/calculators/WaterCalculator.vue -->
 <template>
     <div class="calculator-card">
         <div class="card-header">

@@ -1,4 +1,4 @@
-﻿import type { Directive, DirectiveBinding } from 'vue';
+import type { Directive, DirectiveBinding } from 'vue';
 
 type Options = {
     trigger?: HTMLElement | null;                 // Anker-Element (Button etc.)

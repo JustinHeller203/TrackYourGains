@@ -1,6 +1,6 @@
 <template>
     <div class="nutrition" :class="{ 'cs-locked': comingSoon }">
-        <h2 class="page-title">🍽️ Ernährung</h2>
+        <h2 class="page-title">ðŸ½ï¸ ErnÃ¤hrung</h2>
         <p class="page-subtext">Tracke deine Mahlzeiten, Makros & Ziele</p>
 
         <!-- === Dashboard-Cards mit Balken === -->
@@ -24,7 +24,7 @@
         <!-- === Aktionen === -->
         <div class="actions" :inert="comingSoon || undefined">
             <button class="btn-ghost" @click="openMealPopup">+ Neue Mahlzeit</button>
-            <button class="btn-ghost" @click="openExportPopup">⬇️ Exportieren</button>
+            <button class="btn-ghost" @click="openExportPopup">â¬‡ï¸ Exportieren</button>
             <select v-model="filter" class="filter-select">
                 <option value="">Alle</option>
                 <option value="protein">Proteinbomben (>30g)</option>
@@ -42,8 +42,8 @@
                 </div>
                 <div class="meal-kcal">{{ m.calories }} kcal</div>
                 <div class="entry-actions">
-                    <button class="edit-btn" @click="editMeal(index)">✏️</button>
-                    <button class="delete-btn" @click="deleteMeal(index)">🗑️</button>
+                    <button class="edit-btn" @click="editMeal(index)">âœï¸</button>
+                    <button class="delete-btn" @click="deleteMeal(index)">ðŸ—‘ï¸</button>
                 </div>
             </div>
         </div>
@@ -69,14 +69,14 @@
         <!-- Toasts -->
         <Toast v-if="toast" :toast="toast" />
 
-        <!-- === COMING SOON OVERLAY (nur über dieser Seite, Navbar bleibt sichtbar) === -->
+        <!-- === COMING SOON OVERLAY (nur Ã¼ber dieser Seite, Navbar bleibt sichtbar) === -->
         <div v-if="comingSoon"
              class="coming-soon-overlay"
              role="dialog"
              aria-modal="true"
              aria-label="Coming Soon Hinweis">
             <div class="coming-soon-card" @click.stop>
-                <div class="cs-badge">Bald verfügbar</div>
+                <div class="cs-badge">Bald verfÃ¼gbar</div>
                 <h1 class="cs-title">COMING&nbsp;SOON!</h1>
                 <p class="cs-sub">Dieser Bereich ist noch in Arbeit. Nutze die Navigation, um woanders hinzugehen.</p>
             </div>
@@ -124,7 +124,7 @@
     ]
     function quickAdd(q: Meal) {
         meals.value.unshift({ ...q })
-        addToast(`${q.name} hinzugefügt`, 'add')
+        addToast(`${q.name} hinzugefÃ¼gt`, 'add')
         updateChart()
     }
 
@@ -178,7 +178,7 @@
             addToast('Mahlzeit aktualisiert', 'add')
         } else {
             meals.value.unshift({ ...meal.value })
-            addToast('Mahlzeit hinzugefügt', 'add')
+            addToast('Mahlzeit hinzugefÃ¼gt', 'add')
         }
         resetMeal()
         showMealPopup.value = false
@@ -191,7 +191,7 @@
     }
     function deleteMeal(i: number) {
         meals.value.splice(i, 1)
-        addToast('Mahlzeit gelöscht', 'delete')
+        addToast('Mahlzeit gelÃ¶scht', 'delete')
         updateChart()
     }
     function resetMeal() {
@@ -240,7 +240,7 @@
     function addToast(msg: string, kind: 'add' | 'delete' | 'save' | 'default' = 'default') {
         if (timeoutHandle) clearTimeout(timeoutHandle)
 
-        const emojis = { add: '✅', delete: '🗑️', save: '💾', default: '📋' } as const
+        const emojis = { add: 'âœ…', delete: 'ðŸ—‘ï¸', save: 'ðŸ’¾', default: 'ðŸ“‹' } as const
         const classes = {
             add: 'toast-add',
             delete: 'toast-delete',
@@ -259,7 +259,7 @@
         timeoutHandle = setTimeout(() => (toast.value = null), 3000)
     }
 
-    // === Coming Soon Overlay State (nicht schließbar) ===
+    // === Coming Soon Overlay State (nicht schlieÃŸbar) ===
     const comingSoon = ref(true)
 </script>
 

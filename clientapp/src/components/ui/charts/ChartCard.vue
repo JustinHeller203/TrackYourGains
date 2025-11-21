@@ -1,4 +1,4 @@
-﻿<!--ChartCard.vue-->
+<!--ChartCard.vue-->
 <template>
     <div class="chart-card">
         <h3 class="card-title">{{ title }}</h3>

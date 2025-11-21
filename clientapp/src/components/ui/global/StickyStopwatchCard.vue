@@ -1,22 +1,26 @@
 <template>
     <div class="sticky-stopwatch-card"
          ref="cardEl"
-         :class="[{ resizing: resizeMode }, sizePreset]"
+         :class="[{ resizing: resizeMode, movable: moveMode }, sizePreset]"
          :style="{
   left: stopwatch.left + 'px',
   top: stopwatch.top + 'px',
   width: stopwatch.width ? stopwatch.width + 'px' : undefined,
   height: cardHeight,
   zIndex: stopwatch.zIndex ?? 2000,
-  '--ui-scale': uiScale
+  background: stopwatch.bgColor ?? undefined,
+  '--ui-scale': uiScale,
+  '--btn-bg': stopwatch.btnColor ?? undefined,
+  '--time-color': stopwatch.timeColor ?? undefined
 }"
          @mousedown="onMouseDown($event)"
          @mousedown.right.prevent="openMenu($event as any)"
          @contextmenu.prevent="openMenu($event as any)"
-         @pointerdown="onPointerDown"
-         @pointermove="onPointerMove"
-         @pointerup="onPointerUp"
-         @pointercancel="onPointerCancel">
+         @pointerdown.capture="onPointerDown"
+         @pointermove.capture="onPointerMove"
+         @pointerup.capture="onPointerUp"
+         @pointercancel.capture="onPointerCancel">
+
 
         <span class="name-link"
               @click="focusInTraining('stopwatch', stopwatch.id)"
@@ -32,19 +36,102 @@
             Runde
         </button>
 
+        <!-- StickyStopwatchCard.vue | REPLACE HoldMenu block -->
         <HoldMenu v-if="showMenu"
                   class="sticky-menu"
                   :menuStyle="menuStyle">
-            <button type="button" @click="handleOpen">
+            <button type="button" class="menu-item" @click="handleOpen">
                 &#214;ffnen
             </button>
-            <button type="button" @click="handleCrop">
+            <button type="button" class="menu-item" @click="handleMove">
+                Verschieben
+            </button>
+            <button type="button" class="menu-item" @click="handleCrop">
                 Zuschneiden
             </button>
-            <button type="button" class="danger" @click="handleClose">
+
+            <div class="color-row" @mousedown.stop>
+                <span class="color-label">Farbe</span>
+                <button type="button" class="color-dot default"
+                        title="Default"
+                        @click="setColor(null)">
+                </button>
+                <button type="button" class="color-dot transparent"
+                        title="Transparent"
+                        @click="setColor('transparent')">
+                </button>
+                <button type="button" class="color-dot blue"
+                        title="Blau"
+                        @click="setColor('#1e3a8a')">
+                </button>
+                <button type="button" class="color-dot green"
+                        title="GrÃ¼n"
+                        @click="setColor('#166534')">
+                </button>
+                <button type="button" class="color-dot amber"
+                        title="Orange"
+                        @click="setColor('#92400e')">
+                </button>
+
+                <input class="color-picker" type="color"
+                       :value="stopwatch.bgColor || '#0d1117'"
+                       @input="setColor(($event.target as HTMLInputElement).value, false)" />
+            </div>
+
+            <div class="color-row" @mousedown.stop>
+                <span class="color-label">Buttons</span>
+                <button type="button" class="color-dot default"
+                        title="Default"
+                        @click="setBtnColor(null, false)">
+                </button>
+                <button type="button" class="color-dot blue"
+                        title="Blau"
+                        @click="setBtnColor('#1e3a8a', false)">
+                </button>
+                <button type="button" class="color-dot green"
+                        title="GrÃ¼n"
+                        @click="setBtnColor('#166534', false)">
+                </button>
+                <button type="button" class="color-dot amber"
+                        title="Orange"
+                        @click="setBtnColor('#92400e', false)">
+                </button>
+
+                <input class="color-picker" type="color"
+                       :value="stopwatch.btnColor || '#4B6CB7'"
+                       @input="setBtnColor(($event.target as HTMLInputElement).value, false)" />
+            </div>
+
+            <div class="color-row" @mousedown.stop>
+                <span class="color-label">Zeit</span>
+                <button type="button" class="color-dot default"
+                        title="Default"
+                        @click="setTimeColor(null, false)">
+                </button>
+                <button type="button" class="color-dot blue"
+                        title="Blau"
+                        @click="setTimeColor('#1e3a8a', false)">
+                </button>
+                <button type="button" class="color-dot green"
+                        title="GrÃ¼n"
+                        @click="setTimeColor('#166534', false)">
+                </button>
+                <button type="button" class="color-dot amber"
+                        title="Orange"
+                        @click="setTimeColor('#92400e', false)">
+                </button>
+
+                <input class="color-picker" type="color"
+                       :value="stopwatch.timeColor || '#4B6CB7'"
+                       @input="setTimeColor(($event.target as HTMLInputElement).value, false)" />
+            </div>
+
+            <button type="button" class="menu-item danger" @click="handleClose">
                 Schlie&#223;en
             </button>
+
         </HoldMenu>
+
 
         <template v-if="resizeMode">
             <div class="resize-handle nw" @pointerdown.stop.prevent="startResize($event,'nw')"></div>
@@ -72,6 +159,7 @@
         target.zIndex = w[Z_KEY]
     }
     function onMouseDown(ev: MouseEvent) {
+        if (!moveMode.value) return
         bumpZ(stopwatch)
         startDrag(ev, stopwatch)
     }
@@ -86,6 +174,9 @@
         isFavorite: boolean
         isVisible: boolean
         shouldStaySticky: boolean
+        bgColor?: string | null
+        btnColor?: string | null
+        timeColor?: string | null
         width?: number
         height?: number
         left?: number
@@ -155,6 +246,51 @@
     }
 
     const resizeMode = ref(false)
+    const moveMode = ref(false)
+
+    function finishMove() {
+        if (!moveMode.value) return
+        moveMode.value = false
+        // speichern passiert automatisch durch Parent-Deepwatch auf left/top/width/height
+    }
+
+    function onMoveKey(e: KeyboardEvent) {
+        if (!moveMode.value) return
+
+        if (e.key === 'Enter') {
+            e.preventDefault()
+            finishMove()
+            return
+        }
+
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault() // Browser-Save blocken
+            finishMove()
+        }
+    }
+
+    function onMoveOutside(e: PointerEvent) {
+        if (!moveMode.value) return
+        const root = cardEl.value
+        const t = e.target as Node
+        if (root && root.contains(t)) return
+        finishMove()
+    }
+
+    watch(moveMode, (on) => {
+        if (on) {
+            window.addEventListener('keydown', onMoveKey, true)
+            window.addEventListener('pointerdown', onMoveOutside, true)
+        } else {
+            window.removeEventListener('keydown', onMoveKey, true)
+            window.removeEventListener('pointerdown', onMoveOutside, true)
+        }
+    })
+
+    function handleMove() {
+        moveMode.value = true
+        closeMenu()
+    }
 
     function handleCrop() {
         resizeMode.value = !resizeMode.value
@@ -261,7 +397,7 @@
 
 
     function handleClose() {
-        // wenn sie läuft: stoppen, sonst toggle würde starten
+        // wenn sie l uft: stoppen, sonst toggle w rde starten
         if (stopwatch.isRunning) {
             toggleStopwatch(stopwatch)
         }
@@ -282,8 +418,8 @@
     // Preset mit Hysterese, damit XL nicht sofort wegflippt
     const currentPreset = ref<'compact' | 'large' | 'tall' | 'narrow' | 'xl'>('compact')
 
-    // refs für Guard
-    // refs für Guard (bleiben, auch wenn wir primär overflow checken)
+    // refs f r Guard
+    // refs f r Guard (bleiben, auch wenn wir prim r overflow checken)
     const resetBtnEl = ref<HTMLButtonElement | null>(null)
     const lapBtnEl = ref<HTMLButtonElement | null>(null)
 
@@ -343,6 +479,21 @@
             isForcingPreset = false
         }
     }
+    function setColor(color: string | null, close = true) {
+        stopwatch.bgColor = color
+        if (close) closeMenu()
+    }
+
+    function setBtnColor(color: string | null, close = true) {
+        stopwatch.btnColor = color
+        if (close) closeMenu()
+    }
+
+    function setTimeColor(color: string | null, close = true) {
+        stopwatch.timeColor = color
+        if (close) closeMenu()
+    }
+
 
     function syncPreset(w: number, h: number, force = false) {
         const X_ENTER = 160
@@ -494,7 +645,11 @@
         resizeObs = null
         window.removeEventListener('keydown', onCropKey, true)
         window.removeEventListener('pointerdown', onCropOutside, true)
+
+        window.removeEventListener('keydown', onMoveKey, true)
+        window.removeEventListener('pointerdown', onMoveOutside, true)
     })
+
 
     function clearHold() {
         if (holdTimer != null) {
@@ -512,7 +667,19 @@
     function onPointerDown(ev: PointerEvent) {
         bumpZ(stopwatch)
 
-        if (ev.pointerType !== 'touch') return
+        if (ev.pointerType === 'mouse' && ev.button !== 0) return
+
+        if (moveMode.value) {
+            // Mouse-Drag l uft  ber @mousedown, sonst doppelt -> "klebt"
+            if (ev.pointerType !== 'mouse') {
+                clearHold()
+                isHolding.value = false
+                pressStartPos = null
+                startDrag(ev as any, stopwatch)
+            }
+            return
+        }
+
         isHolding.value = true
         pressStartPos = { x: ev.clientX, y: ev.clientY }
         clearHold()
@@ -522,6 +689,7 @@
     }
 
     function onPointerMove(ev: PointerEvent) {
+        if (moveMode.value) return
         if (!isHolding.value || !pressStartPos) return
         const dx = ev.clientX - pressStartPos.x
         const dy = ev.clientY - pressStartPos.y
@@ -582,11 +750,22 @@
         align-items: center;
         gap: 0.5rem;
         font-size: 0.85rem;
-        cursor: grab;
+        cursor: default;
         z-index: 2000;
         border: 1px solid var(--border-color);
         box-sizing: border-box;
     }
+
+        .sticky-timer-card.movable,
+        .sticky-stopwatch-card.movable {
+            cursor: grab;
+        }
+
+            .sticky-timer-card.movable:active,
+            .sticky-stopwatch-card.movable:active {
+                cursor: grabbing;
+            }
+
         .sticky-timer-card:not(.resizing),
         .sticky-stopwatch-card:not(.resizing) {
             overflow: hidden;
@@ -597,10 +776,6 @@
             overflow: visible;
         }
 
-        .sticky-timer-card:active,
-        .sticky-stopwatch-card:active {
-            cursor: grabbing;
-        }
 
         .sticky-timer-card span:first-child,
         .sticky-stopwatch-card span:first-child {
@@ -612,31 +787,15 @@
             font-family: monospace;
             font-weight: 700;
             font-size: 1rem;
-            color: var(--accent-primary);
+            color: var(--time-color, var(--accent-primary));
         }
-
 
     html.dark-mode .sticky-timer-card,
     html.dark-mode .sticky-stopwatch-card {
         background: #0d1117;
         border: 1px solid #30363d;
     }
-    .sticky-stopwatch-card .hold-menu button {
-        box-sizing: border-box;
-        display: block;
-        width: 100%;
-        padding: .5rem .6rem;
-        cursor: pointer;
-        font-size: .85rem;
-        border-radius: 6px;
-        text-align: left;
-        background: transparent;
-        border: 0;
-        color: inherit;
-        font: inherit;
-        font-weight: 400;
-        line-height: 1.2;
-    }
+
 
     .sticky-stopwatch-card .hold-menu {
         left: auto;
@@ -646,9 +805,6 @@
         width: max-content;
     }
 
-            .sticky-stopwatch-card .hold-menu button.danger {
-                color: #ef4444;
-            }
 
         .sticky-stopwatch-card .hold-menu button:hover {
             background: rgba(255,255,255,.06);
@@ -657,6 +813,7 @@
     html.dark-mode .sticky-stopwatch-card .hold-menu button:hover {
         background: rgba(255,255,255,.06);
     }
+
     .sticky-stopwatch-card .sticky-menu {
         position: absolute; /* bleibt innerhalb der Card */
         top: calc(100% + 6px); /* unter der Card */
@@ -666,20 +823,6 @@
         max-width: 180px;
         z-index: 10000;
     }
-        /* Buttons im Menü scaling + nicere touch targets */
-        .sticky-stopwatch-card .sticky-menu button {
-            background: transparent !important;
-            border: 0 !important;
-            padding: .5rem .6rem !important;
-            font-size: .85rem !important;
-            font-weight: 400 !important;
-            border-radius: 6px !important;
-            display: block;
-            width: 100%;
-            text-align: left;
-            cursor: pointer;
-            line-height: 1.2;
-        }
 
             .sticky-stopwatch-card .sticky-menu button:hover {
                 background: rgba(0,0,0,.06) !important;
@@ -800,29 +943,29 @@
         border-radius: 8px;
     }
 
-        .sticky-stopwatch-card.xl {
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: calc(.6rem * var(--ui-scale));
-            border-radius: 18px;
-            padding: calc(1rem * var(--ui-scale)) calc(1.4rem * var(--ui-scale));
-            box-shadow: 0 14px 40px rgba(0,0,0,.25);
+    .sticky-stopwatch-card.xl {
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: calc(.6rem * var(--ui-scale));
+        border-radius: 18px;
+        padding: calc(1rem * var(--ui-scale)) calc(1.4rem * var(--ui-scale));
+        box-shadow: 0 14px 40px rgba(0,0,0,.25);
+    }
+
+        .sticky-stopwatch-card.xl .name-link {
+            font-size: calc(1rem * var(--ui-scale));
+            opacity: .9;
         }
 
-            .sticky-stopwatch-card.xl .name-link {
-                font-size: calc(1rem * var(--ui-scale));
-                opacity: .9;
-            }
-
-            .sticky-stopwatch-card.xl .time {
-                font-size: calc(2.6rem * var(--ui-scale));
-                font-weight: 900;
-                letter-spacing: 1.8px;
-                padding: .3rem 1rem;
-                border-radius: 12px;
-                background: rgba(0,0,0,.06);
-            }
+        .sticky-stopwatch-card.xl .time {
+            font-size: calc(2.6rem * var(--ui-scale));
+            font-weight: 900;
+            letter-spacing: 1.8px;
+            padding: .3rem 1rem;
+            border-radius: 12px;
+            background: rgba(0,0,0,.06);
+        }
 
     html.dark-mode .sticky-stopwatch-card.xl .time {
         background: rgba(255,255,255,.06);
@@ -833,6 +976,7 @@
         padding: calc(.5rem * var(--ui-scale)) calc(1rem * var(--ui-scale));
         border-radius: 10px;
     }
+
     .sticky-stopwatch-card .resize-handle {
         touch-action: none;
     }
@@ -924,6 +1068,7 @@
         padding: calc(.34rem * var(--ui-scale)) calc(.75rem * var(--ui-scale));
         border-radius: 9px;
     }
+
     .sticky-stopwatch-card.narrow {
         flex-direction: column;
         align-items: center;
@@ -961,4 +1106,105 @@
         padding: calc(.32rem * var(--ui-scale)) calc(.7rem * var(--ui-scale));
         border-radius: 9px;
     }
+
+    .color-row {
+        display: flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .35rem .2rem .5rem;
+        border-top: 1px solid var(--border-color);
+        margin-top: .25rem;
+        flex-wrap: wrap;
+    }
+
+    .color-label {
+        font-size: .75rem;
+        opacity: .8;
+        margin-right: .25rem;
+    }
+
+    /* StickyStopwatchCard.vue | REPLACE menu button selectors */
+    .sticky-stopwatch-card .hold-menu .menu-item {
+        box-sizing: border-box;
+        display: block;
+        width: 100%;
+        padding: .5rem .6rem;
+        cursor: pointer;
+        font-size: .85rem;
+        border-radius: 6px;
+        text-align: left;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        font: inherit;
+        font-weight: 400;
+        line-height: 1.2;
+    }
+
+        .sticky-stopwatch-card .hold-menu .menu-item.danger {
+            color: #ef4444;
+        }
+
+    .sticky-stopwatch-card .sticky-menu .menu-item {
+        background: transparent !important;
+        border: 0 !important;
+        padding: .5rem .6rem !important;
+        font-size: .85rem !important;
+        font-weight: 400 !important;
+        border-radius: 6px !important;
+        display: block;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        line-height: 1.2;
+    }
+
+    /* StickyStopwatchCard.vue | ADD stronger dot specificity */
+    .sticky-stopwatch-card .color-dot {
+        width: 18px !important;
+        height: 18px !important;
+        padding: 0 !important;
+        display: inline-block !important;
+        border-radius: 999px !important;
+        text-align: center !important;
+        background-clip: padding-box;
+    }
+
+        .color-dot.default {
+            background: var(--bg-secondary);
+        }
+
+        .color-dot.transparent {
+            background: repeating-linear-gradient( 45deg, rgba(255,255,255,.2), rgba(255,255,255,.2) 4px, rgba(0,0,0,.2) 4px, rgba(0,0,0,.2) 8px );
+        }
+
+        .color-dot.blue {
+            background: #1e3a8a;
+        }
+
+        .color-dot.green {
+            background: #166534;
+        }
+
+        .color-dot.amber {
+            background: #92400e;
+        }
+
+    .color-picker {
+        width: 26px;
+        height: 20px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+    }
+    html.dark-mode .sticky-timer-card > button,
+    html.dark-mode .sticky-stopwatch-card > button {
+        background: var(--btn-bg, #4B6CB7);
+    }
+
+        html.dark-mode .sticky-timer-card > button:hover,
+        html.dark-mode .sticky-stopwatch-card > button:hover {
+            filter: brightness(0.95);
+        }
 </style>

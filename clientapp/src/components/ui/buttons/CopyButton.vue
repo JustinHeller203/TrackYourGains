@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <button class="btn-ghost mini" type="button" @click="$emit('click')">
         📋 <slot>Kopieren</slot>
     </button>

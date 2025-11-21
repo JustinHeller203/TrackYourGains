@@ -5,7 +5,7 @@
                 :disabled="disabled"
                 :extraClass="mergedClass"
                 @click="$emit('click', $event)">
-        <slot>Übung hinzufügen</slot>
+        <slot>Ãœbung hinzufÃ¼gen</slot>
     </BaseButton>
 </template>
 
@@ -25,7 +25,7 @@
         extraClass?: ClassProp
     }>(), {
         type: 'button',
-        title: 'Übung hinzufügen',
+        title: 'Ãœbung hinzufÃ¼gen',
         disabled: false,
     })
 

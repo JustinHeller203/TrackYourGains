@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <button class="favorite-btn"
             type="button"
             :aria-pressed="active"

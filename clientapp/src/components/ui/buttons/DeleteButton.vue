@@ -1,11 +1,11 @@
 <template>
-    <BaseButton :title="title || 'Plan löschen'"
-                :aria-label="ariaLabel || title || 'Plan löschen'"
+    <BaseButton :title="title || 'Plan lÃ¶schen'"
+                :aria-label="ariaLabel || title || 'Plan lÃ¶schen'"
                 :disabled="disabled"
                 :type="type"
                 extraClass="delete-btn"
                 @click="$emit('click', $event)">
-        <slot>🗑️</slot>
+        <slot>ðŸ—‘ï¸</slot>
     </BaseButton>
 </template>
 

@@ -1,7 +1,7 @@
  <!-- Training.vue -->
 <template>
     <div class="training">
-        <h2 class="page-title">💪 Training</h2>
+        <h2 class="page-title">ðŸ’ª Training</h2>
         <!-- Trainingsplan Formular -->
         <div class="workout-list builder-section" ref="builderSection">
             <h3 class="section-title">Trainingsplan erstellen/bearbeiten</h3>
@@ -11,7 +11,7 @@
                 <div class="builder-left">
                     <!-- Kopf: Planname + Typ (Segmented) + Extras rechts -->
                     <div class="builder-head">
-                        <!-- NEU: Planname mit Überschrift -->
+                        <!-- NEU: Planname mit Ãœberschrift -->
                         <div class="plan-block">
                             <label for="plan-name" class="field-label">Planname</label>
                             <input id="plan-name"
@@ -21,7 +21,7 @@
                                    required />
                         </div>
 
-                        <!-- Trainingstyp (Desktop: Segmented + Überschrift) -->
+                        <!-- Trainingstyp (Desktop: Segmented + Ãœberschrift) -->
                         <div class="type-block desktop-only">
                             <span class="type-heading field-label">Trainingstyp</span>
                             <div class="segmented seg-type">
@@ -32,14 +32,14 @@
                             </div>
                         </div>
 
-                        <!-- Trainingstyp (Mobile ≤560px: Label + Dropdown) -->
+                        <!-- Trainingstyp (Mobile â‰¤560px: Label + Dropdown) -->
                         <div class="type-block mobile-only">
                             <label class="type-heading field-label" for="training-type">Trainingstyp</label>
                             <select v-model="trainingType"
                                     id="training-type"
                                     class="seg-type-select"
-                                    aria-label="Trainingstyp wählen">
-                                <option value="" disabled>Trainingstyp wählen</option>
+                                    aria-label="Trainingstyp wÃ¤hlen">
+                                <option value="" disabled>Trainingstyp wÃ¤hlen</option>
                                 <option value="kraft">Kraft</option>
                                 <option value="calisthenics">Calisthenics</option>
                                 <option value="ausdauer">Ausdauer</option>
@@ -47,7 +47,7 @@
                             </select>
                         </div>
 
-                        <!-- Extras-Button rechtsbündig (unverändert) -->
+                        <!-- Extras-Button rechtsbÃ¼ndig (unverÃ¤ndert) -->
                         <ExtrasToggleButton :extraClass="['action-btn','extras-cta']"
                                             :toggled="showExtras"
                                             :title="showExtras ? 'Extras ausblenden' : 'Extras einblenden'"
@@ -57,7 +57,7 @@
 
 
 
-                    <!-- NEU: kein reservierter Platz, drückt nur bei Aktivierung -->
+                    <!-- NEU: kein reservierter Platz, drÃ¼ckt nur bei Aktivierung -->
                     <div v-show="showExtras" class="goal-row">
                         <label class="field-label">Trainingsziel</label>
                         <div class="field-row">
@@ -74,22 +74,22 @@
                         <div class="field-row">
                             <input class="filter-input"
                                    v-model="exerciseFilter"
-                                   placeholder="z. B. Brust, Oberkörper, Push" />
+                                   placeholder="z. B. Brust, OberkÃ¶rper, Push" />
                         </div>
                     </div>
 
-                    <!-- Übungsauswahl -->
+                    <!-- Ãœbungsauswahl -->
                     <div class="field-block" v-if="trainingType !== 'ausdauer'">
-                        <label class="field-label">Übung</label>
+                        <label class="field-label">Ãœbung</label>
                         <div class="field-row">
                             <select v-model="newExercise">
-                                <option value="" disabled>Übung wählen</option>
+                                <option value="" disabled>Ãœbung wÃ¤hlen</option>
                                 <option v-for="ex in filteredExercises" :key="ex" :value="ex">{{ ex }}</option>
-                                <option value="custom">Eigene Übung hinzufügen…</option>
+                                <option value="custom">Eigene Ãœbung hinzufÃ¼genâ€¦</option>
                             </select>
                             <input v-show="newExercise === 'custom'"
                                    v-model="customPlanExercise"
-                                   placeholder="Eigene Übung eingeben" />
+                                   placeholder="Eigene Ãœbung eingeben" />
                         </div>
                     </div>
 
@@ -107,12 +107,12 @@
                     <!-- Parameter -->
                     <div class="field-grid" v-if="trainingType === 'kraft' || trainingType === 'calisthenics'">
                         <div class="field">
-                            <label>Sätze</label>
+                            <label>SÃ¤tze</label>
                             <input v-model.number="newSets" type="number" min="1" placeholder="z. B. 4" />
                         </div>
                         <div class="field">
                             <label>Wiederholungen</label>
-                            <input v-model.number="newReps" type="number" min="1" placeholder="z. B. 8–12" />
+                            <input v-model.number="newReps" type="number" min="1" placeholder="z. B. 8â€“12" />
                         </div>
                     </div>
 
@@ -143,7 +143,7 @@
                         <div class="button-group">
                             <div class="btn-cell">
                                 <AddExerciseButton class="action-btn add-exercise-btn block"
-                                                   title="Übung hinzufügen"
+                                                   title="Ãœbung hinzufÃ¼gen"
                                                    @click="addExerciseToPlan" />
                             </div>
                         </div>
@@ -162,7 +162,7 @@
                         <div class="preview-head">
                             <h4>Live-Preview</h4>
                             <span v-if="selectedPlanExercises.length" class="muted">
-                                {{ selectedPlanExercises.length }} Übung{{ selectedPlanExercises.length===1?'':'en' }}
+                                {{ selectedPlanExercises.length }} Ãœbung{{ selectedPlanExercises.length===1?'':'en' }}
                             </span>
                         </div>
 
@@ -173,11 +173,11 @@
                                         <tr>
                                             <!-- 3 resizable Spalten -->
                                             <th class="resizable" :style="{ width: previewColWidths[0] + '%' }">
-                                                <span class="th-text">Übung</span>
+                                                <span class="th-text">Ãœbung</span>
                                             </th>
                                             <th class="resizable" :style="{ width: previewColWidths[1] + '%' }">
                                                 <span class="th-text">
-                                                    {{ selectedPlanExercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                                                    {{ selectedPlanExercises.some(ex => ex.type === 'ausdauer') ? 'SÃ¤tze / Min' : 'SÃ¤tze' }}
                                                 </span>
                                             </th>
                                             <th class="resizable th-wdh" :style="{ width: previewColWidths[2] + '%' }">
@@ -232,7 +232,7 @@
                                             </td>
                                             <td class="action-cell">
                                                 <DeleteButton class="table-delete-btn"
-                                                              title="Übung entfernen"
+                                                              title="Ãœbung entfernen"
                                                               @click="removeExerciseFromPlan(index)" />
                                             </td>
                                         </tr>
@@ -242,7 +242,7 @@
                         </div>
 
                         <div v-else class="empty-preview">
-                            <span>Noch keine Übung hinzugefügt.</span>
+                            <span>Noch keine Ãœbung hinzugefÃ¼gt.</span>
                         </div>
                     </div>
                 </div>
@@ -253,7 +253,7 @@
 
 
         <div v-if="plans.length" class="workout-list">
-            <h3 class="section-title">Deine Trainingspläne</h3>
+            <h3 class="section-title">Deine TrainingsplÃ¤ne</h3>
 
             <div class="search-container">
                 <input v-model="planSearch" placeholder="Nach Planname oder Trainingsziel suchen" class="plan-search-input" />
@@ -291,51 +291,51 @@
                          :class="{ 'menu-open': planMenuOpenId === plan.id }"
                          :key="plan.id">
                         <div class="plan-row1">
-                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
+                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">â ¿</span>
 
                             <span class="plan-title"
                                   :title="plan.name"
                                   @click="loadPlan(plan.id)"
                                   @dblclick="openEditPopup('planName', plan.id)">
                                 <span class="plan-name-scroll">{{ plan.name }}</span>
-                                <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
+                                <span class="plan-count">({{ plan.exercises.length }} Ãœbungen)</span>
                             </span>
 
                             <div class="plan-right">
                                 <FavoriteButton :active="favoritePlans.includes(plan.id)"
                                                 :titleActive="'Aus Favoriten entfernen'"
-                                                :titleInactive="'Zu Favoriten hinzufügen'"
+                                                :titleInactive="'Zu Favoriten hinzufÃ¼gen'"
                                                 @toggle="toggleFavoritePlan(plan.id)" />
 
                                 <div class="inline-actions">
                                     <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
-                                    <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
+                                    <DeleteButton title="Plan lÃ¶schen" @click="openDeletePopup(() => deletePlan(plan.id))" />
                                     <ActionIconButton title="Download"
                                                       aria-label="Trainingsplan herunterladen"
-                                                      @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
+                                                      @click="openDownloadPopup(plan)">â¬‡ï¸</ActionIconButton>
                                 </div>
 
                                 <span class="kebab-wrap">
                                     <ActionIconButton title="Mehr"
                                                       aria-label="Weitere Aktionen"
-                                                      @click.stop="togglePlanMenu(plan.id)">⋯</ActionIconButton>
+                                                      @click.stop="togglePlanMenu(plan.id)">â‹¯</ActionIconButton>
                                 </span>
-                                <OpenButton class="primary-open desktop-open" title="Öffnen" @click="loadPlan(plan.id)" />
+                                <OpenButton class="primary-open desktop-open" title="Ã–ffnen" @click="loadPlan(plan.id)" />
                             </div>
 
                             <div v-if="planMenuOpenId === plan.id" class="plan-menu" @click.stop>
                                 <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
-                                <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
+                                <DeleteButton title="Plan lÃ¶schen" @click="openDeletePopup(() => deletePlan(plan.id))" />
                                 <ActionIconButton title="Download"
                                                   aria-label="Trainingsplan herunterladen"
-                                                  @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
+                                                  @click="openDownloadPopup(plan)">â¬‡ï¸</ActionIconButton>
                             </div>
                         </div>
 
 
                         <!-- Open-Button bleibt im schmalen Layout sichtbar (eigene Zeile) -->
                         <div class="plan-row2">
-                            <OpenButton class="primary-open mobile-open" title="Öffnen" @click="loadPlan(plan.id)" />
+                            <OpenButton class="primary-open mobile-open" title="Ã–ffnen" @click="loadPlan(plan.id)" />
                         </div>
                     </div>
 
@@ -373,52 +373,52 @@
                          :class="{ 'menu-open': planMenuOpenId === plan.id }"
                          :key="plan.id">
                         <div class="plan-row1">
-                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
+                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">â ¿</span>
 
                             <span class="plan-title"
                                   :title="plan.name"
                                   @click="loadPlan(plan.id)"
                                   @dblclick="openEditPopup('planName', plan.id)">
                                 <span class="plan-name-scroll">{{ plan.name }}</span>
-                                <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
+                                <span class="plan-count">({{ plan.exercises.length }} Ãœbungen)</span>
                             </span>
 
                             <div class="plan-right">
                                 <FavoriteButton :active="favoritePlans.includes(plan.id)"
                                                 :titleActive="'Aus Favoriten entfernen'"
-                                                :titleInactive="'Zu Favoriten hinzufügen'"
+                                                :titleInactive="'Zu Favoriten hinzufÃ¼gen'"
                                                 @toggle="toggleFavoritePlan(plan.id)" />
 
                                 <div class="inline-actions">
                                     <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
-                                    <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
+                                    <DeleteButton title="Plan lÃ¶schen" @click="openDeletePopup(() => deletePlan(plan.id))" />
                                     <ActionIconButton title="Download"
                                                       aria-label="Trainingsplan herunterladen"
-                                                      @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
+                                                      @click="openDownloadPopup(plan)">â¬‡ï¸</ActionIconButton>
                                 </div>
 
                                 <span class="kebab-wrap">
                                     <ActionIconButton title="Mehr"
                                                       aria-label="Weitere Aktionen"
-                                                      @click.stop="togglePlanMenu(plan.id)">⋯</ActionIconButton>
+                                                      @click.stop="togglePlanMenu(plan.id)">â‹¯</ActionIconButton>
                                 </span>
 
-                                <OpenButton class="primary-open desktop-open" title="Öffnen" @click="loadPlan(plan.id)" />
+                                <OpenButton class="primary-open desktop-open" title="Ã–ffnen" @click="loadPlan(plan.id)" />
                             </div>
 
                             <div v-if="planMenuOpenId === plan.id" class="plan-menu" @click.stop>
                                 <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
-                                <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
+                                <DeleteButton title="Plan lÃ¶schen" @click="openDeletePopup(() => deletePlan(plan.id))" />
                                 <ActionIconButton title="Download"
                                                   aria-label="Trainingsplan herunterladen"
-                                                  @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
+                                                  @click="openDownloadPopup(plan)">â¬‡ï¸</ActionIconButton>
                             </div>
                         </div>
 
 
                         <!-- Open-Button bleibt im schmalen Layout sichtbar (eigene Zeile) -->
                         <div class="plan-row2">
-                            <OpenButton class="primary-open mobile-open" title="Öffnen" @click="loadPlan(plan.id)" />
+                            <OpenButton class="primary-open mobile-open" title="Ã–ffnen" @click="loadPlan(plan.id)" />
                         </div>
                     </div>
 
@@ -426,13 +426,13 @@
             </Draggable>
         </div>
 
-        <!-- Ausgewählter Trainingsplan -->
+        <!-- AusgewÃ¤hlter Trainingsplan -->
         <div v-if="selectedPlan" class="workout-list">
             <div class="plan-header">
                 <h3 class="section-title" @dblclick="openEditPopup('selectedPlanName', selectedPlan.id)">
                     Trainingsplan: {{ selectedPlan.name }}
                 </h3>
-                <CloseButton title="Plan schließen" @click="closePlan" />
+                <CloseButton title="Plan schlieÃŸen" @click="closePlan" />
             </div>
             <div class="exercise-table full-width narrow">
                 <div class="table-scroll">
@@ -440,11 +440,11 @@
                         <thead>
                             <tr>
                                 <th class="resizable" :style="{ width: columnWidths[0] + '%' }">
-                                    <span class="th-text">Übung</span>
+                                    <span class="th-text">Ãœbung</span>
                                 </th>
                                 <th class="resizable" :style="{ width: columnWidths[1] + '%' }">
                                     <span class="th-text">
-                                        {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                                        {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? 'SÃ¤tze / Min' : 'SÃ¤tze' }}
                                     </span>
                                 </th>
                                 <th class="resizable th-wdh" :style="{ width: columnWidths[2] + '%' }">
@@ -479,7 +479,7 @@
                             <tr v-for="(ex, index) in selectedPlan.exercises" :key="index" class="resizable-row" :style="{ height: rowHeights[index] + 'px' }" @dblclick="openEditPopup('selectedPlan', index, $event)">
                                 <td :style="{ width: columnWidths[0] + '%' }">{{ ex.exercise }}</td>
 
-                                <!-- Sätze/Min -->
+                                <!-- SÃ¤tze/Min -->
                                 <td :style="{ width: columnWidths[1] + '%' }">
                                     {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
                                 </td>
@@ -503,10 +503,10 @@
             </div>
 
             <button @click="toggleCustomExercises" class="custom-toggle-btn" v-if="customExercises.length > 0">
-                {{ showCustomExercises ? ' Benutzerdefinierte Übungen ausblenden' : ' Benutzerdefinierte Übungen anzeigen' }}
+                {{ showCustomExercises ? ' Benutzerdefinierte Ãœbungen ausblenden' : ' Benutzerdefinierte Ãœbungen anzeigen' }}
             </button>
             <div v-if="showCustomExercises">
-                <h3 class="section-title">Eigene Übungen</h3>
+                <h3 class="section-title">Eigene Ãœbungen</h3>
                 <div class="exercise-table full-width narrow">
                     <div class="table-scroll">
                         <table ref="customResizeTable" data-cols="4">
@@ -549,7 +549,7 @@
 
                                     <td class="action-cell">
                                         <DeleteButton class="table-delete-btn"
-                                                      title="Benutzerdefinierte Übung entfernen"
+                                                      title="Benutzerdefinierte Ãœbung entfernen"
                                                       @click="removeCustomExercise(i)" />
                                     </td>
                                 </tr>
@@ -557,14 +557,14 @@
                         </table>
                     </div>
                 </div>
-                <!-- /Benutzerdefinierte Übungen -->
+                <!-- /Benutzerdefinierte Ãœbungen -->
             </div>
         </div>
         <!-- Satzpausen-Timer -->
         <div class="workout-list timer-container">
             <div class="plan-header">
                 <h3 class="section-title">Satzpausen-Timer</h3>
-                <AddButton title="Neuen Timer hinzufügen" @click="openAddTimerPopup" />
+                <AddButton title="Neuen Timer hinzufÃ¼gen" @click="openAddTimerPopup" />
             </div>
 
             <Draggable :modelValue="props.timers"
@@ -594,16 +594,16 @@
                 <template #item="{ element: timer }">
                     <div class="timer-card" :key="timer.id" :data-timer-id="timer.id" data-type="timer">
                         <div class="timer-header">
-                            <span class="timer-drag-handle" title="Ziehen zum Verschieben">⠿</span>
+                            <span class="timer-drag-handle" title="Ziehen zum Verschieben">â ¿</span>
                             <span class="timer-name" @click="openEditPopup('timerName', timer.id)">
                                 {{ timer.name || 'Timer' }}
                             </span>
                             <div class="timer-actions">
                                 <FavoriteButton :active="timer.isFavorite"
                                                 :titleActive="'Aus Favoriten entfernen'"
-                                                :titleInactive="'Zu Favoriten hinzufügen'"
+                                                :titleInactive="'Zu Favoriten hinzufÃ¼gen'"
                                                 @toggle="toggleFavoriteTimer(timer.id)" />
-                                <CloseButton title="Timer löschen" variant="timer" @click="openDeleteTimerPopup(timer.id)" />
+                                <CloseButton title="Timer lÃ¶schen" variant="timer" @click="openDeleteTimerPopup(timer.id)" />
 
                             </div>
                         </div>
@@ -612,7 +612,7 @@
                             <span class="timer-display">{{ formatTimerDisplay(timer.time) }}</span>
                             <div class="timer-input-group">
                                 <select v-model="timer.seconds" class="timer-select" @change="resetCustomSeconds(timer)">
-                                    <option value="" disabled>Satzpause wählen</option>
+                                    <option value="" disabled>Satzpause wÃ¤hlen</option>
                                     <option value="60">60 Sekunden</option>
                                     <option value="90">90 Sekunden</option>
                                     <option value="120">120 Sekunden</option>
@@ -626,7 +626,7 @@
                                        min="1"
                                        class="timer-input" />
                                 <select v-model="timer.sound" class="timer-select">
-                                    <option value="" disabled>Sound wählen</option>
+                                    <option value="" disabled>Sound wÃ¤hlen</option>
                                     <option value="nothing">Keine</option>
                                     <option value="standard">Standard</option>
                                     <option value="alarm">Alarm</option>
@@ -648,11 +648,11 @@
 
         </div>
 
-        <!-- Übungs-Stoppuhr -->
+        <!-- Ãœbungs-Stoppuhr -->
         <div class="workout-list stopwatch-top">
             <div class="plan-header">
-                <h3 class="section-title">Übungs-Stoppuhr</h3>
-                <AddButton title="Neue Stoppuhr hinzufügen" @click="openAddStopwatchPopup" />
+                <h3 class="section-title">Ãœbungs-Stoppuhr</h3>
+                <AddButton title="Neue Stoppuhr hinzufÃ¼gen" @click="openAddStopwatchPopup" />
             </div>
 
             <Draggable :modelValue="props.stopwatches"
@@ -682,7 +682,7 @@
                 <template #item="{ element: stopwatch }">
                     <div class="timer-card" :key="stopwatch.id" :data-stopwatch-id="stopwatch.id" data-type="stopwatch">
                         <div class="timer-header">
-                            <span class="stopwatch-drag-handle" title="Ziehen zum Verschieben">⠿</span>
+                            <span class="stopwatch-drag-handle" title="Ziehen zum Verschieben">â ¿</span>
                             <span class="timer-name" @click.stop="openEditPopup('stopwatchName', stopwatch.id)">
                                 {{ stopwatch.name || 'Stoppuhr' }}
                             </span>
@@ -690,9 +690,9 @@
                             <div class="timer-actions">
                                 <FavoriteButton :active="stopwatch.isFavorite"
                                                 :titleActive="'Aus Favoriten entfernen'"
-                                                :titleInactive="'Zu Favoriten hinzufügen'"
+                                                :titleInactive="'Zu Favoriten hinzufÃ¼gen'"
                                                 @toggle="toggleFavoriteStopwatch(stopwatch.id)" />
-                                <CloseButton title="Stoppuhr löschen" variant="stopwatch" @click="openDeleteStopwatchPopup(stopwatch.id)" />
+                                <CloseButton title="Stoppuhr lÃ¶schen" variant="stopwatch" @click="openDeleteStopwatchPopup(stopwatch.id)" />
                             </div>
                         </div>
 
@@ -724,7 +724,7 @@
             </Draggable>
         </div>
 
-        <!-- Pop-up für Bearbeitung -->
+        <!-- Pop-up fÃ¼r Bearbeitung -->
         <EditPopup v-model="showEditPopup"
                    :key="`${editType}-${editIndex}-${editCellIndex}`"
                    :title="editPopupTitle"
@@ -734,50 +734,50 @@
                    :options="editOptions"
                    @save="onEditPopupSave" />
 
-        <!-- Pop-up für Löschbestätigung -->
+        <!-- Pop-up fÃ¼r LÃ¶schbestÃ¤tigung -->
         <DeleteConfirmPopup :show="showDeletePopup"
                             @confirm="confirmDeleteAction"
                             @cancel="closeDeletePopup" />
 
-        <!-- Pop-up für Timer -->
+        <!-- Pop-up fÃ¼r Timer -->
         <InfoPopup :show="showTimerPopup"
                    title="Satzpause beendet!"
-                   message="Deine Pause ist vorbei. Bereit für den nächsten Satz? 💪"
+                   message="Deine Pause ist vorbei. Bereit fÃ¼r den nÃ¤chsten Satz? ðŸ’ª"
                    overlayClass="timer-popup"
                    okText="OK"
                    @ok="closeTimerPopup"
                    @cancel="closeTimerPopup" />
 
-        <!-- Pop-up für neuen Timer -->
+        <!-- Pop-up fÃ¼r neuen Timer -->
         <NamePromptPopup :show="showAddTimerPopup"
                          v-model="newTimerName"
-                         title="Neuen Timer hinzufügen"
+                         title="Neuen Timer hinzufÃ¼gen"
                          placeholder="Timer Name (optional)"
                          overlayClass="timer-popup"
                          @save="addTimer"
                          @cancel="closeAddTimerPopup" />
 
-        <!-- Pop-up für neue Stoppuhr -->
+        <!-- Pop-up fÃ¼r neue Stoppuhr -->
         <NamePromptPopup :show="showAddStopwatchPopup"
                          v-model="newStopwatchName"
-                         title="Neue Stoppuhr hinzufügen"
+                         title="Neue Stoppuhr hinzufÃ¼gen"
                          placeholder="Stoppuhr Name (optional)"
                          overlayClass="stopwatch-popup"
                          @save="addStopwatch"
                          @cancel="closeAddStopwatchPopup" />
 
-        <!-- Pop-up für Download -->
+        <!-- Pop-up fÃ¼r Download -->
         <ExportPopup :show="showDownloadPopup"
                      v-model="downloadFormat"
                      @confirm="confirmDownload"
                      @cancel="closeDownloadPopup" />
 
-        <!-- Pop-up für Validierungsfehler -->
+        <!-- Pop-up fÃ¼r Validierungsfehler -->
         <ValidationPopup :show="showValidationPopup"
                          :errors="validationErrorMessages"
                          @close="closeValidationPopup" />
 
-        <!-- Audio-Elemente für Timer-Sounds -->
+        <!-- Audio-Elemente fÃ¼r Timer-Sounds -->
         <audio id="audio-standard" preload="auto"></audio>
         <audio id="audio-alarm" preload="auto"></audio>
         <audio id="audio-beep" preload="auto"></audio>
@@ -819,7 +819,7 @@
     import InfoPopup from '@/components/ui/popups/InfoPopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
 
-    // Typ-Definitionen (bleiben unverändert)
+    // Typ-Definitionen (bleiben unverÃ¤ndert)
     interface PlanExercise {
         exercise: string;
         sets: number;
@@ -971,11 +971,11 @@
     const onReorderTimers = (list: TimerInstance[]) => emit('reorder-timers', list);
     const onReorderStopwatches = (list: StopwatchInstance[]) => emit('reorder-stopwatches', list);
 
-    // NEU: gemeinsamer Typ für Übungskategorien
+    // NEU: gemeinsamer Typ fÃ¼r Ãœbungskategorien
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer';
     type CustomExerciseType = Exclude<ExerciseType, 'ausdauer'>;
 
-    // Refs (bleiben größtenteils unverändert)
+    // Refs (bleiben grÃ¶ÃŸtenteils unverÃ¤ndert)
     const plans = ref<TrainingPlan[]>([]);
     const favoritePlans = ref<string[]>([]);
     const planName = ref('');
@@ -990,7 +990,7 @@
     const cardioExercise = ref('')
     const newDuration = ref<number | null>(null)
     const newDistance = ref<number | null>(null)
-    const previewColWidths = ref([50, 25, 19, 6]); // Summe 100% (Übung | Sätze | Wdh | Aktion)
+    const previewColWidths = ref([50, 25, 19, 6]); // Summe 100% (Ãœbung | SÃ¤tze | Wdh | Aktion)
     const previewTable = ref<HTMLTableElement | null>(null);
     const editingPlanId = ref<string | null>(null);
     const selectedPlanExercises = ref<PlanExercise[]>([]);
@@ -1010,56 +1010,56 @@
     const customColWidths = ref([40, 30, 15, 15]); // Start: Name|Muskel|Typ|Aktion
     const customResizeTable = ref<HTMLTableElement | null>(null);
     const deleteAction = ref<(() => void) | null>(null);
-    // Alias → Kanonische Gruppen
+    // Alias â†’ Kanonische Gruppen
     const muscleGroupAliases: Record<string, string[]> = {
         // deutsch
         'brust': ['Brust'],
-        'rücken': ['Rücken'], 'ruecken': ['Rücken'],
+        'rÃ¼cken': ['RÃ¼cken'], 'ruecken': ['RÃ¼cken'],
         'schulter': ['Schultern'], 'schultern': ['Schultern'],
         'arme': ['Arme'], 'arm': ['Arme'],
-        'beine': ['Beine'], 'bein': ['Beine'], 'unterkörper': ['Beine', 'Bauch'], 'unterkoerper': ['Beine', 'Bauch'],
+        'beine': ['Beine'], 'bein': ['Beine'], 'unterkÃ¶rper': ['Beine', 'Bauch'], 'unterkoerper': ['Beine', 'Bauch'],
         'bauch': ['Bauch'], 'core': ['Bauch'],
-        'oberkörper': ['Brust', 'Rücken', 'Schultern', 'Arme'], 'oberkoerper': ['Brust', 'Rücken', 'Schultern', 'Arme'],
-        'po': ['Beine'], 'gesäß': ['Beine'], 'gluteus': ['Beine'],
+        'oberkÃ¶rper': ['Brust', 'RÃ¼cken', 'Schultern', 'Arme'], 'oberkoerper': ['Brust', 'RÃ¼cken', 'Schultern', 'Arme'],
+        'po': ['Beine'], 'gesÃ¤ÃŸ': ['Beine'], 'gluteus': ['Beine'],
         // Bewegungsmuster (Push/Pull) + Synonyme
         'push': ['Brust', 'Schultern', 'Arme'],
-        'pull': ['Rücken', 'Arme'],
-        'drücken': ['Brust', 'Schultern', 'Arme'],
-        'ziehen': ['Rücken', 'Arme'],
+        'pull': ['RÃ¼cken', 'Arme'],
+        'drÃ¼cken': ['Brust', 'Schultern', 'Arme'],
+        'ziehen': ['RÃ¼cken', 'Arme'],
         'push day': ['Brust', 'Schultern', 'Arme'],
-        'pull day': ['Rücken', 'Arme'],
+        'pull day': ['RÃ¼cken', 'Arme'],
         'pushday': ['Brust', 'Schultern', 'Arme'],
-        'pullday': ['Rücken', 'Arme'],
+        'pullday': ['RÃ¼cken', 'Arme'],
 
-        // ein paar Untergruppen → Obergruppe (hilft auch Custom)
+        // ein paar Untergruppen â†’ Obergruppe (hilft auch Custom)
         'trizeps': ['Arme'],
         'bizeps': ['Arme'],
-        'lat': ['Rücken'], 'lats': ['Rücken'], 'latissimus': ['Rücken'],
+        'lat': ['RÃ¼cken'], 'lats': ['RÃ¼cken'], 'latissimus': ['RÃ¼cken'],
 
         // englische Synonyme, falls mal genutzt
         'chest': ['Brust'],
-        'back': ['Rücken'],
+        'back': ['RÃ¼cken'],
         'shoulder': ['Schultern'], 'shoulders': ['Schultern'],
         'arms': ['Arme'], 'biceps': ['Arme'], 'triceps': ['Arme'],
         'legs': ['Beine'], 'lower body': ['Beine', 'Bauch'],
         'abs': ['Bauch'], 'core ': ['Bauch'], // core mit Space, um "core " Matches robust zu machen
-        'upper body': ['Brust', 'Rücken', 'Schultern', 'Arme'],
+        'upper body': ['Brust', 'RÃ¼cken', 'Schultern', 'Arme'],
     };
 
     // Calisthenics nach Muskelgruppen
     const calisthenicsByGroup: Record<string, string[]> = {
-        Brust: ['Liegestütze', 'Archer Push-up', 'Dips'],
-        Rücken: ['Klimmzüge', 'Australian Pull-up', 'Archer Pull-up'],
+        Brust: ['LiegestÃ¼tze', 'Archer Push-up', 'Dips'],
+        RÃ¼cken: ['KlimmzÃ¼ge', 'Australian Pull-up', 'Archer Pull-up'],
         Schultern: ['Handstand Push-up', 'Archer Push-up'],
-        Arme: ['Dips', 'Klimmzüge', 'Archer Pull-up'],
+        Arme: ['Dips', 'KlimmzÃ¼ge', 'Archer Pull-up'],
         Bauch: ['L-Sit', 'Dragon Flag', 'Hollow Hold', 'Toes to Bar'],
         Beine: ['Pistol Squat'],
     };
 
-    // Dehnübungen nach Muskelgruppen
+    // DehnÃ¼bungen nach Muskelgruppen
     const stretchingByGroup: Record<string, string[]> = {
         Brust: ['Brust-Dehnung'],
-        Rücken: ['Rücken-Dehnung'],
+        RÃ¼cken: ['RÃ¼cken-Dehnung'],
         Schultern: ['Schulter-Dehnung', 'Trizeps-Dehnung'],
         Arme: ['Trizeps-Dehnung'],
         Bauch: [],
@@ -1073,13 +1073,13 @@
     };
     const uniq = <T,>(arr: T[]) => Array.from(new Set(arr));
 
-    // Nur Calisthenics-Übungen
+    // Nur Calisthenics-Ãœbungen
     const calisthenicsExercises = ref([
-        'Klimmzüge', 'Liegestütze', 'Dips', 'Muscle-Up', 'Handstand Push-up',
+        'KlimmzÃ¼ge', 'LiegestÃ¼tze', 'Dips', 'Muscle-Up', 'Handstand Push-up',
         'L-Sit', 'Dragon Flag', 'Pistol Squat', 'Hollow Hold', 'Superman Hold',
         'Archer Pull-up', 'Archer Push-up', 'Australian Pull-up', 'Toes to Bar',
     ])
-    // Menü-Status (Kebab)
+    // MenÃ¼-Status (Kebab)
     const planMenuOpenId = ref<string | null>(null);
 
     const togglePlanMenu = (id: string) => {
@@ -1094,34 +1094,34 @@
         const el = e.target as HTMLElement | null;
         if (!el) return;
 
-        // Menü & Kebab weiterhin offen lassen
+        // MenÃ¼ & Kebab weiterhin offen lassen
         if (el.closest('.plan-menu') || el.closest('.kebab-wrap')) return;
 
-        // NEU: Klicks innerhalb des Toasts sollen das Menü NICHT schließen
+        // NEU: Klicks innerhalb des Toasts sollen das MenÃ¼ NICHT schlieÃŸen
         // Passe die Selektoren ggf. auf deine Toast-Root-Klasse/Attr an.
         if (el.closest('.toast') || el.closest('.toast-container') || el.closest('[data-toast-root]')) return;
 
         closePlanMenu();
     };
 
-    // Basis-Dehnübungen (kannst du erweitern)
+    // Basis-DehnÃ¼bungen (kannst du erweitern)
     const stretchingExercises = ref([
-        'Brust-Dehnung', 'Hüftbeuger-Dehnung', 'Hamstring-Dehnung',
+        'Brust-Dehnung', 'HÃ¼ftbeuger-Dehnung', 'Hamstring-Dehnung',
         'Waden-Dehnung', 'Schulter-Dehnung', 'Trizeps-Dehnung',
-        'Rücken-Dehnung', 'Quadrizeps-Dehnung', 'Adduktoren-Dehnung',
+        'RÃ¼cken-Dehnung', 'Quadrizeps-Dehnung', 'Adduktoren-Dehnung',
     ])
 
     const predefinedExercises = ref([
-        'Bankdrücken', 'Kniebeugen', 'Kreuzheben', 'Schulterdrücken', 'Liegestütze', 'Klimmzüge', 'Latzug', 'Rudern',
-        'Bizepscurls', 'Trizepsdrücken', 'Beinpresse', 'Ausfallschritte', 'Butterfly', 'Seitheben', 'Wadenheben',
-        'Bauchpresse', 'Rückenstrecker', 'Beinstrecker', 'Beinbeuger', 'Brustpresse', 'Dips'
+        'BankdrÃ¼cken', 'Kniebeugen', 'Kreuzheben', 'SchulterdrÃ¼cken', 'LiegestÃ¼tze', 'KlimmzÃ¼ge', 'Latzug', 'Rudern',
+        'Bizepscurls', 'TrizepsdrÃ¼cken', 'Beinpresse', 'Ausfallschritte', 'Butterfly', 'Seitheben', 'Wadenheben',
+        'Bauchpresse', 'RÃ¼ckenstrecker', 'Beinstrecker', 'Beinbeuger', 'Brustpresse', 'Dips'
     ]);
     const muscleGroups = ref({
-        Brust: ['Bankdrücken', 'Liegestütze', 'Butterfly', 'Brustpresse'],
-        Rücken: ['Klimmzüge', 'Latzug', 'Rudern', 'Rückenstrecker'],
+        Brust: ['BankdrÃ¼cken', 'LiegestÃ¼tze', 'Butterfly', 'Brustpresse'],
+        RÃ¼cken: ['KlimmzÃ¼ge', 'Latzug', 'Rudern', 'RÃ¼ckenstrecker'],
         Beine: ['Kniebeugen', 'Kreuzheben', 'Beinpresse', 'Ausfallschritte', 'Wadenheben'],
-        Schultern: ['Schulterdrücken', 'Seitheben'],
-        Arme: ['Bizepscurls', 'Trizepsdrücken', 'Dips'],
+        Schultern: ['SchulterdrÃ¼cken', 'Seitheben'],
+        Arme: ['Bizepscurls', 'TrizepsdrÃ¼cken', 'Dips'],
         Bauch: ['Bauchpresse']
     });
     const exerciseFilter = ref('');
@@ -1145,8 +1145,8 @@
     let toastTimeout: number | null = null;
     let autoDismissRemainingMs = 0;
     let autoDismissStartedAt = 0;
-    const isTimerSticky = ref(false); // Hinzugefügt für Sticky-Logik
-    const isStopwatchSticky = ref(false); // Hinzugefügt für Sticky-Logik
+    const isTimerSticky = ref(false); // HinzugefÃ¼gt fÃ¼r Sticky-Logik
+    const isStopwatchSticky = ref(false); // HinzugefÃ¼gt fÃ¼r Sticky-Logik
     const resizeTable = ref<HTMLTableElement | null>(null);
     const prevTimes = new Map<string, number>();
     const finishedOnce = new Set<string>();
@@ -1160,14 +1160,14 @@
         decide: '/sounds/decide.mp3'
     };
 
-    // Funktionen (weitgehend unverändert, nur relevante Änderungen)
-    // zeigt Anfang + Ende, mittig „…“ (breitenunabhängig, super simpel)
+    // Funktionen (weitgehend unverÃ¤ndert, nur relevante Ã„nderungen)
+    // zeigt Anfang + Ende, mittig â€žâ€¦â€œ (breitenunabhÃ¤ngig, super simpel)
     function middleEllipsis(str: string, max = 36) {
         const s = (str || '').trim()
         if (s.length <= max) return s
         const head = Math.ceil((max - 1) / 2)
         const tail = Math.floor((max - 1) / 2)
-        return s.slice(0, head) + '…' + s.slice(-tail)
+        return s.slice(0, head) + 'â€¦' + s.slice(-tail)
     }
     const clearToastTimer = () => {
         if (toastTimeout) {
@@ -1203,7 +1203,7 @@
                 localStorage.removeItem('trainingFocusType')
                 localStorage.removeItem('trainingFocusId')
             } else if (attempts < 20) {
-                // UI ist noch nicht gemountet → kurz retry
+                // UI ist noch nicht gemountet â†’ kurz retry
                 requestAnimationFrame(() => focusIt(attempts + 1))
             }
         }
@@ -1216,7 +1216,7 @@
         if ('Notification' in window && Notification.permission !== 'granted') {
             Notification.requestPermission().then((permission) => {
                 if (permission === 'granted') {
-                    console.log('🔔 Benachrichtigungen aktiviert!');
+                    console.log('ðŸ”” Benachrichtigungen aktiviert!');
                 }
             });
         }
@@ -1285,7 +1285,7 @@
         );
     });
 
-    // Computed properties (unverändert)
+    // Computed properties (unverÃ¤ndert)
     const filteredPlans = computed(() => {
         const searchTerm = planSearch.value.toLowerCase();
         return sortedPlans.value.filter(plan => {
@@ -1298,7 +1298,7 @@
     const filteredExercises = computed(() => {
         const filter = exerciseFilter.value.trim().toLowerCase();
         const groups = resolveGroups(filter);
-        const isPush = ['push', 'drücken', 'push day', 'pushday'].includes(filter);
+        const isPush = ['push', 'drÃ¼cken', 'push day', 'pushday'].includes(filter);
         const isPull = ['pull', 'ziehen', 'pull day', 'pullday'].includes(filter);
 
         // Ausdauer
@@ -1329,12 +1329,12 @@
 
             let list = uniq([...nameMatches, ...groupMatches, ...custom]);
 
-            // 👉 Push/Pull-Feinfilter (nur sinnvolle Bewegungen anzeigen)
+            // ðŸ‘‰ Push/Pull-Feinfilter (nur sinnvolle Bewegungen anzeigen)
             if (isPush) {
-                const allow = new Set(['Liegestütze', 'Archer Push-up', 'Dips', 'Handstand Push-up']);
+                const allow = new Set(['LiegestÃ¼tze', 'Archer Push-up', 'Dips', 'Handstand Push-up']);
                 list = list.filter(x => allow.has(x));
             } else if (isPull) {
-                const allow = new Set(['Klimmzüge', 'Australian Pull-up', 'Archer Pull-up']);
+                const allow = new Set(['KlimmzÃ¼ge', 'Australian Pull-up', 'Archer Pull-up']);
                 list = list.filter(x => allow.has(x));
             }
 
@@ -1343,12 +1343,12 @@
 
         // Dehnung
         if (trainingType.value === 'dehnung') {
-            // ❗ Push/Pull (und Synonyme) sollen NICHT greifen
+            // â— Push/Pull (und Synonyme) sollen NICHT greifen
             const isPushPull = [
-                'push', 'pull', 'drücken', 'ziehen', 'push day', 'pushday', 'pull day', 'pullday'
+                'push', 'pull', 'drÃ¼cken', 'ziehen', 'push day', 'pushday', 'pull day', 'pullday'
             ].includes(filter)
 
-            // Gruppen nur auflösen, wenn NICHT Push/Pull
+            // Gruppen nur auflÃ¶sen, wenn NICHT Push/Pull
             const groups = isPushPull ? [] : resolveGroups(filter)
 
             // 1) Namens-Treffer in der Basisliste
@@ -1356,7 +1356,7 @@
                 !filter || x.toLowerCase().includes(filter)
             )
 
-            // 2) Gruppen-Treffer über Mapping (z.B. Oberkörper/Unterkörper)
+            // 2) Gruppen-Treffer Ã¼ber Mapping (z.B. OberkÃ¶rper/UnterkÃ¶rper)
             const groupMatches = groups.length
                 ? groups.flatMap(g => stretchingByGroup[g] || [])
                 : []
@@ -1372,7 +1372,7 @@
                 )
                 .map(ex => ex.name)
 
-            // 4) Einzigartige Liste zurückgeben
+            // 4) Einzigartige Liste zurÃ¼ckgeben
             return Array.from(new Set([...nameMatches, ...groupMatches, ...custom]))
         }
 
@@ -1405,16 +1405,16 @@
 
         let result = uniq([...grouped, ...custom]);
 
-        // 👉 Push/Pull-Feinfilter
+        // ðŸ‘‰ Push/Pull-Feinfilter
         if (isPush) {
             const allow = new Set([
-                'Bankdrücken', 'Schulterdrücken', 'Liegestütze', 'Butterfly',
-                'Brustpresse', 'Dips', 'Seitheben', 'Trizepsdrücken'
+                'BankdrÃ¼cken', 'SchulterdrÃ¼cken', 'LiegestÃ¼tze', 'Butterfly',
+                'Brustpresse', 'Dips', 'Seitheben', 'TrizepsdrÃ¼cken'
             ]);
             result = result.filter(x => allow.has(x));
         } else if (isPull) {
             const allow = new Set([
-                'Klimmzüge', 'Latzug', 'Rudern', 'Bizepscurls', 'Rückenstrecker'
+                'KlimmzÃ¼ge', 'Latzug', 'Rudern', 'Bizepscurls', 'RÃ¼ckenstrecker'
             ]);
             result = result.filter(x => allow.has(x));
         }
@@ -1439,14 +1439,14 @@
     };
 
     const editPopupTitle = computed(() => {
-        if (editType.value === 'customExerciseType') return 'Übungstyp bearbeiten';
+        if (editType.value === 'customExerciseType') return 'Ãœbungstyp bearbeiten';
         if (editType.value === 'planName' || editType.value === 'selectedPlanName') return 'Planname bearbeiten';
         if (editType.value === 'timerName') return 'Timername bearbeiten';
         if (editType.value === 'stopwatchName') return 'Stoppuhrname bearbeiten';
-        if (editType.value === 'customExerciseName') return 'Übungsname bearbeiten';
+        if (editType.value === 'customExerciseName') return 'Ãœbungsname bearbeiten';
         if (editType.value === 'customExerciseMuscle') return 'Muskelgruppe bearbeiten';
-        if (editCellIndex.value === 0) return 'Übung bearbeiten';
-        if (editCellIndex.value === 1) return 'Sätze / Minuten bearbeiten';
+        if (editCellIndex.value === 0) return 'Ãœbung bearbeiten';
+        if (editCellIndex.value === 1) return 'SÃ¤tze / Minuten bearbeiten';
         if (editCellIndex.value === 2) return 'Wiederholungen / Kilometer bearbeiten';
         return 'Bearbeiten';
     });
@@ -1481,10 +1481,10 @@
         if (editType.value === 'planName' || editType.value === 'selectedPlanName') return 'Neuer Planname (3-20 Zeichen)';
         if (editType.value === 'timerName') return 'Neuer Timername';
         if (editType.value === 'stopwatchName') return 'Neuer Stoppuhrname (max. 30 Zeichen)';
-        if (editType.value === 'customExerciseName') return 'Neuer Übungsname (max. 50 Zeichen)';
+        if (editType.value === 'customExerciseName') return 'Neuer Ãœbungsname (max. 50 Zeichen)';
         if (editType.value === 'customExerciseMuscle') return 'Neue Muskelgruppe (max. 50 Zeichen)';
-        if (editCellIndex.value === 0) return 'Neue Übung';
-        if (editCellIndex.value === 1) return 'Neue Sätze (1-20)';
+        if (editCellIndex.value === 0) return 'Neue Ãœbung';
+        if (editCellIndex.value === 1) return 'Neue SÃ¤tze (1-20)';
         if (editCellIndex.value === 2) return 'Neue Wiederholungen (1-50)';
         return 'Neuer Wert';
     });
@@ -1541,11 +1541,11 @@
             if (data) {
                 const parsed = JSON.parse(data) ?? {};
 
-                // Pläne & Favoriten wie gehabt
+                // PlÃ¤ne & Favoriten wie gehabt
                 plans.value = Array.isArray(parsed.plans) ? parsed.plans : [];
                 favoritePlans.value = Array.isArray(parsed.favoritePlans) ? parsed.favoritePlans : [];
 
-                // Custom-Übungen: robust validieren & auf 'kraft' fallen, wenn Typ fehlt/ungültig
+                // Custom-Ãœbungen: robust validieren & auf 'kraft' fallen, wenn Typ fehlt/ungÃ¼ltig
                 customExercises.value = Array.isArray(parsed.customExercises)
                     ? parsed.customExercises
                         .filter(
@@ -1557,7 +1557,7 @@
                         )
                         .map((ex: any) => {
                             const t0 = normalizeTypeInput(ex.type) ?? 'kraft';
-                            const t: ExerciseType = (t0 === 'ausdauer') ? 'kraft' : t0; // Cardio bei Custom-Übungen verhindern
+                            const t: ExerciseType = (t0 === 'ausdauer') ? 'kraft' : t0; // Cardio bei Custom-Ãœbungen verhindern
                             return { name: ex.name, muscle: ex.muscle, type: t };
                         })
 
@@ -1601,18 +1601,18 @@
     };
 
     const validateReps = (reps: number | null | undefined) => {
-        if (reps == null || isNaN(reps)) return 'Wiederholungen/Sekunden müssen eine Zahl sein';
-        if (!Number.isFinite(reps)) return 'Ungültige Zahl';
-        if (!Number.isInteger(reps)) return 'Wiederholungen/Sekunden müssen eine Ganzzahl sein';
-        // großzügiger, damit Dehnung (Sekunden) und hohe Wiederholungen funktionieren
-        if (reps < 1 || reps > 1000) return 'Wiederholungen/Sekunden müssen zwischen 1 und 1000 liegen';
+        if (reps == null || isNaN(reps)) return 'Wiederholungen/Sekunden mÃ¼ssen eine Zahl sein';
+        if (!Number.isFinite(reps)) return 'UngÃ¼ltige Zahl';
+        if (!Number.isInteger(reps)) return 'Wiederholungen/Sekunden mÃ¼ssen eine Ganzzahl sein';
+        // groÃŸzÃ¼giger, damit Dehnung (Sekunden) und hohe Wiederholungen funktionieren
+        if (reps < 1 || reps > 1000) return 'Wiederholungen/Sekunden mÃ¼ssen zwischen 1 und 1000 liegen';
         return null;
     };
 
     const validateSets = (sets: number | null | undefined) => {
-        if (sets == null || isNaN(sets)) return 'Sätze müssen eine Zahl sein';
-        if (sets < 1 || sets > 20) return 'Sätze müssen zwischen 1 und 20 liegen';
-        if (!Number.isInteger(sets)) return 'Sätze müssen eine Ganzzahl sein';
+        if (sets == null || isNaN(sets)) return 'SÃ¤tze mÃ¼ssen eine Zahl sein';
+        if (sets < 1 || sets > 20) return 'SÃ¤tze mÃ¼ssen zwischen 1 und 20 liegen';
+        if (!Number.isInteger(sets)) return 'SÃ¤tze mÃ¼ssen eine Ganzzahl sein';
         return null;
     };
 
@@ -1625,14 +1625,14 @@
         const trimmedName = (name ?? '').trim();
         const trimmedMuscle = (muscle ?? '').trim();
 
-        if (!trimmedName) return 'Übungsname ist erforderlich';
+        if (!trimmedName) return 'Ãœbungsname ist erforderlich';
         if (!trimmedMuscle) return 'Muskelgruppe ist erforderlich';
-        if (trimmedName.length > 50) return 'Übungsname darf maximal 50 Zeichen lang sein';
+        if (trimmedName.length > 50) return 'Ãœbungsname darf maximal 50 Zeichen lang sein';
         if (trimmedMuscle.length > 50) return 'Muskelgruppe darf maximal 50 Zeichen lang sein';
 
         const normalized = normalizeTypeInput(typeRaw);
-        if (!normalized) return 'Ungültiger Typ. Erlaubt sind: kraft, calisthenics, dehnung';
-        if (normalized === 'ausdauer') return '"Ausdauer" ist für benutzerdefinierte Übungen nicht erlaubt';
+        if (!normalized) return 'UngÃ¼ltiger Typ. Erlaubt sind: kraft, calisthenics, dehnung';
+        if (normalized === 'ausdauer') return '"Ausdauer" ist fÃ¼r benutzerdefinierte Ãœbungen nicht erlaubt';
 
         const type = normalized as CustomExerciseType;
 
@@ -1641,14 +1641,14 @@
             ex.type === type &&
             ex.name.trim().toLowerCase() === trimmedName.toLowerCase()
         );
-        if (exists) return 'Übungsname existiert in diesem Typ bereits';
+        if (exists) return 'Ãœbungsname existiert in diesem Typ bereits';
 
         return { name: trimmedName, muscle: trimmedMuscle, type };
     };
 
     const onEditPopupSave = (val: string) => {
         editValue.value = val;
-        saveEdit();        // nutzt jetzt den tatsächlich im Popup editierten Wert
+        saveEdit();        // nutzt jetzt den tatsÃ¤chlich im Popup editierten Wert
     };
 
 
@@ -1681,7 +1681,7 @@
         const errors: string[] = []
 
         if (trainingType.value === 'ausdauer') {
-            if (!cardioExercise.value) errors.push('Cardio-Art wählen')
+            if (!cardioExercise.value) errors.push('Cardio-Art wÃ¤hlen')
             const dErr = validateDurationMin(newDuration.value); if (dErr) errors.push(dErr)
             const kErr = validateDistanceKm(newDistance.value); if (kErr) errors.push(kErr)
             return errors
@@ -1689,9 +1689,9 @@
 
         // Kraft / Calisthenics / Dehnung
         const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value
-        if (!exerciseToAdd) errors.push('Übung auswählen oder benutzerdefinierte Übung eingeben')
+        if (!exerciseToAdd) errors.push('Ãœbung auswÃ¤hlen oder benutzerdefinierte Ãœbung eingeben')
         else if (selectedPlanExercises.value.some(ex => ex.exercise.toLowerCase() === exerciseToAdd.toLowerCase())) {
-            errors.push('Übung bereits im Plan vorhanden')
+            errors.push('Ãœbung bereits im Plan vorhanden')
         }
 
         // Dehnung nutzt deine vorhandenen Felder: newSets = Holds, newReps = Sekunden/Hold
@@ -1703,7 +1703,7 @@
             const validated = validateCustomExercise(
                 customPlanExercise.value,
                 muscleGroup,
-                trainingType.value, // 👈 wichtig: 'kraft' | 'calisthenics' | 'dehnung'
+                trainingType.value, // ðŸ‘ˆ wichtig: 'kraft' | 'calisthenics' | 'dehnung'
             )
             if (typeof validated === 'string') errors.push(validated)
         }
@@ -1732,7 +1732,7 @@
         } else {
             // Neueste Favoriten zuerst
             favoritePlans.value = [planId, ...favoritePlans.value.filter(id => id !== planId)];
-            addToast('Plan zu Favoriten hinzugefügt', 'add');
+            addToast('Plan zu Favoriten hinzugefÃ¼gt', 'add');
         }
         saveToStorage();
     };
@@ -1747,7 +1747,7 @@
                 selectedPlan.value = null;
             }
             saveToStorage();
-            addToast('Trainingsplan gelöscht, da keine Übungen vorhanden', 'delete');
+            addToast('Trainingsplan gelÃ¶scht, da keine Ãœbungen vorhanden', 'delete');
             planName.value = '';
             newExercise.value = '';
             customPlanExercise.value = '';
@@ -1770,7 +1770,7 @@
                 );
             }
             if (!selectedPlanExercises.value.length) {
-                errors.push('Mindestens eine Übung ist erforderlich');
+                errors.push('Mindestens eine Ãœbung ist erforderlich');
             }
             openValidationPopup(errors);
             return;
@@ -1820,7 +1820,7 @@
                 type: 'ausdauer'
             })
             rowHeights.value.push(40)
-            addToast('Cardio hinzugefügt', 'add')
+            addToast('Cardio hinzugefÃ¼gt', 'add')
             cardioExercise.value = ''
             newDuration.value = null
             newDistance.value = null
@@ -1836,7 +1836,7 @@
             if (typeof validated !== 'string') {
                 customExercises.value.push({ name: validated.name, muscle: validated.muscle, type: validated.type })
                 saveToStorage()
-                addToast('Benutzerdefinierte Übung gespeichert', 'add')
+                addToast('Benutzerdefinierte Ãœbung gespeichert', 'add')
             } else {
                 openValidationPopup([validated])
                 return
@@ -1850,7 +1850,7 @@
             type: trainingType.value // 'kraft' | 'calisthenics' | 'dehnung'
         })
         rowHeights.value.push(40)
-        addToast('Übung hinzugefügt', 'add')
+        addToast('Ãœbung hinzugefÃ¼gt', 'add')
 
         newExercise.value = ''
         customPlanExercise.value = ''
@@ -1862,7 +1862,7 @@
 
     const removeExerciseFromPlan = (index: number) => {
         if (index < 0 || index >= selectedPlanExercises.value.length) {
-            addToast('Ungültiger Übungsindex', 'delete');
+            addToast('UngÃ¼ltiger Ãœbungsindex', 'delete');
             return;
         }
         openDeletePopup(() => {
@@ -1875,7 +1875,7 @@
                     saveToStorage();
                 }
             }
-            addToast('Übung gelöscht', 'delete');
+            addToast('Ãœbung gelÃ¶scht', 'delete');
         });
     };
 
@@ -1901,7 +1901,7 @@
         favoritePlans.value = favoritePlans.value.filter(id => id !== planId);
         if (selectedPlan.value?.id === planId) selectedPlan.value = null;
         saveToStorage();
-        addToast('Trainingsplan gelöscht', 'delete');
+        addToast('Trainingsplan gelÃ¶scht', 'delete');
     };
 
     const loadPlan = (planId: string) => {
@@ -1924,7 +1924,7 @@
         const el = builderSection.value;
         if (!el) return;
 
-        const offset = 8; // ggf. an fixe Headerhöhe anpassen
+        const offset = 8; // ggf. an fixe HeaderhÃ¶he anpassen
         const top = el.getBoundingClientRect().top + window.scrollY - offset;
 
         const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1969,7 +1969,7 @@
         const anyCardio = plan.exercises.some(ex => ex.type === 'ausdauer');
         const anyStretch = plan.exercises.some(ex => ex.type === 'dehnung');
 
-        const setsHeader = anyCardio ? 'Sätze / Min' : 'Sätze';
+        const setsHeader = anyCardio ? 'SÃ¤tze / Min' : 'SÃ¤tze';
         const repsHeader = (anyCardio || anyStretch) ? 'Wdh. / km / s' : 'Wiederholungen';
 
         // Zellen-Formatter mit Einheiten
@@ -2007,7 +2007,7 @@
     <h1>${title}${uniqueGoal ? ` <span class="muted">(${uniqueGoal})</span>` : ''}</h1>
     <table>
       <tr>
-        <th>Übung</th>
+        <th>Ãœbung</th>
         <th>${setsHeader}</th>
         <th>${repsHeader}</th>
       </tr>
@@ -2035,7 +2035,7 @@
             doc.text(title + (uniqueGoal ? ` (${uniqueGoal})` : ''), 20, 20);
             doc.setFontSize(12);
             let y = 40;
-            doc.text(['Übung', setsHeader, repsHeader].join(' | '), 20, y);
+            doc.text(['Ãœbung', setsHeader, repsHeader].join(' | '), 20, y);
             y += 10;
             plan.exercises.forEach(ex => {
                 doc.text([ex.exercise, fmtSets(ex), fmtReps(ex)].join(' | '), 20, y);
@@ -2044,7 +2044,7 @@
             doc.save(`${fileName}_Trainingsplan.pdf`);
 
         } else if (downloadFormat.value === 'csv') {
-            const header = ['Übung', setsHeader, repsHeader];
+            const header = ['Ãœbung', setsHeader, repsHeader];
             const rows = plan.exercises.map(ex => [
                 ex.exercise,
                 fmtSets(ex),
@@ -2079,7 +2079,7 @@
             const lines = [
                 `Trainingsplan: ${title}${uniqueGoal ? ` (${uniqueGoal})` : ''}`,
                 '',
-                `Übung\t${setsHeader}\t${repsHeader}`,
+                `Ãœbung\t${setsHeader}\t${repsHeader}`,
                 ...plan.exercises.map(ex => `${ex.exercise}\t${fmtSets(ex)}\t${fmtReps(ex)}`)
             ].join('\n');
             const blob = new Blob([lines], { type: 'text/plain;charset=utf-8' });
@@ -2125,7 +2125,7 @@
             shouldStaySticky: false
         };
         emit('add-timer', newTimer);
-        addToast('Timer hinzugefügt', 'add');
+        addToast('Timer hinzugefÃ¼gt', 'add');
         closeAddTimerPopup();
         await nextTick();
         console.log('Nach addTimer, aktuelle timers:', props.timers);
@@ -2134,17 +2134,17 @@
     const openDeleteTimerPopup = (id: string) => {
         console.log('openDeleteTimerPopup aufgerufen mit ID:', id);
         if (props.timers.length <= 1) {
-            openValidationPopup(['Mindestens ein Timer muss geöffnet bleiben']);
+            openValidationPopup(['Mindestens ein Timer muss geÃ¶ffnet bleiben']);
             return;
         }
         openDeletePopup(async () => {
-            console.log('Löschaktion ausführen für Timer ID:', id);
+            console.log('LÃ¶schaktion ausfÃ¼hren fÃ¼r Timer ID:', id);
             const timer = props.timers.find(t => t.id === id);
-            nextTick(() => closeTimerPopup()); // direkt auto-schließen, kein OK-Klick nötig
+            nextTick(() => closeTimerPopup()); // direkt auto-schlieÃŸen, kein OK-Klick nÃ¶tig
 
             emit('remove-timer', id);
 
-            addToast('Timer gelöscht', 'delete');
+            addToast('Timer gelÃ¶scht', 'delete');
             await nextTick();
             console.log('Nach removeTimer, aktuelle timers:', props.timers);
         });
@@ -2159,11 +2159,11 @@
         const favs = props.timers.filter(t => t.isFavorite && t.id !== id);
 
         const ordered = timer.isFavorite
-            ? [timer, ...favs, ...others]   // neu favorisiert → ganz nach oben
-            : [...favs, timer, ...others];  // entfavorisiert → direkt hinter Fav-Bereich
+            ? [timer, ...favs, ...others]   // neu favorisiert â†’ ganz nach oben
+            : [...favs, timer, ...others];  // entfavorisiert â†’ direkt hinter Fav-Bereich
 
         emit('reorder-timers', ordered);
-        addToast(timer.isFavorite ? 'Timer zu Favoriten hinzugefügt' : 'Timer aus Favoriten entfernt', timer.isFavorite ? 'add' : 'delete');
+        addToast(timer.isFavorite ? 'Timer zu Favoriten hinzugefÃ¼gt' : 'Timer aus Favoriten entfernt', timer.isFavorite ? 'add' : 'delete');
     };
 
     const openAddStopwatchPopup = () => {
@@ -2196,7 +2196,7 @@
         };
 
         emit('add-stopwatch', newStopwatch);
-        addToast('Stoppuhr hinzugefügt', 'add');
+        addToast('Stoppuhr hinzugefÃ¼gt', 'add');
         closeAddStopwatchPopup();
         await nextTick();
         console.log('Nach addStopwatch, aktuelle stopwatches:', props.stopwatches);
@@ -2204,7 +2204,7 @@
 
     const openDeleteStopwatchPopup = (id: string) => {
         if (props.stopwatches.length <= 1) {
-            openValidationPopup(['Mindestens eine Stoppuhr muss geöffnet bleiben']);
+            openValidationPopup(['Mindestens eine Stoppuhr muss geÃ¶ffnet bleiben']);
             return;
         }
         openDeletePopup(async () => {
@@ -2212,12 +2212,12 @@
             if (sw) {
                 sw.shouldStaySticky = false; // optional; rein UI-Flag
                 if (sw.isRunning) {
-                    // ⏸ Parent pausiert/stoppt – keine lokale Interval-Logik hier
+                    // â¸ Parent pausiert/stoppt â€“ keine lokale Interval-Logik hier
                     props.toggleStopwatch(sw);
                 }
             }
             emit('remove-stopwatch', id);
-            addToast('Stoppuhr gelöscht', 'delete');
+            addToast('Stoppuhr gelÃ¶scht', 'delete');
             await nextTick();
         });
     };
@@ -2237,7 +2237,7 @@
             : [...favs, sw, ...others];
 
         emit('reorder-stopwatches', ordered);
-        addToast(sw.isFavorite ? 'Stoppuhr zu Favoriten hinzugefügt' : 'Stoppuhr aus Favoriten entfernt', sw.isFavorite ? 'add' : 'delete');
+        addToast(sw.isFavorite ? 'Stoppuhr zu Favoriten hinzugefÃ¼gt' : 'Stoppuhr aus Favoriten entfernt', sw.isFavorite ? 'add' : 'delete');
     };
 
 
@@ -2296,7 +2296,7 @@
         if (!toast.value) return;
         if (toastTimeout) return; // schon aktiv
         autoDismissStartedAt = performance.now();
-        // id übergeben war falsch → sofortiger Dismiss, weil truthy. Korrekt: explicit immediate.
+        // id Ã¼bergeben war falsch â†’ sofortiger Dismiss, weil truthy. Korrekt: explicit immediate.
         toastTimeout = window.setTimeout(() => dismissToast(true), Math.max(0, autoDismissRemainingMs));
     }
 
@@ -2313,7 +2313,7 @@
     // REPLACE Training.vue (Funktion addToast)
     const addToast = (message: string, type: 'delete' | 'add' | 'save' | 'timer' | 'load' = 'load') => {
         const id = toastId++;
-        const emojis = { delete: '🗑️', add: '✅', save: '💾', timer: '⏰', load: '📋' } as const;
+        const emojis = { delete: 'ðŸ—‘ï¸', add: 'âœ…', save: 'ðŸ’¾', timer: 'â°', load: 'ðŸ“‹' } as const;
         const types = { delete: 'toast-delete', add: 'toast-add', save: 'toast-save', timer: 'toast-timer', load: 'toast-default' } as const;
 
         // Parent darf KEINEN eigenen Auto-Dismiss mehr verwalten
@@ -2329,7 +2329,7 @@
             durationMs: TOAST_DURATION
         };
 
-        // Auto-Dismiss ausschließlich von <Toast/> steuern lassen
+        // Auto-Dismiss ausschlieÃŸlich von <Toast/> steuern lassen
         autoDismissRemainingMs = 0;
     };
 
@@ -2354,7 +2354,7 @@
 
         if (type === 'table' || type === 'selectedPlan') {
             if (!event) {
-                console.error('Kein Event für table/selectedPlan übergeben');
+                console.error('Kein Event fÃ¼r table/selectedPlan Ã¼bergeben');
                 openValidationPopup(['Bearbeitungsfehler: Kein Event vorhanden']);
                 return;
             }
@@ -2369,8 +2369,8 @@
                 : selectedPlan.value?.exercises[index as number]);
 
             if (!exercise) {
-                console.error('Übung nicht gefunden für Index:', index);
-                openValidationPopup(['Übung nicht gefunden']);
+                console.error('Ãœbung nicht gefunden fÃ¼r Index:', index);
+                openValidationPopup(['Ãœbung nicht gefunden']);
                 return;
             }
 
@@ -2382,7 +2382,7 @@
             if (!plan) { openValidationPopup(['Plan nicht gefunden']); return; }
             editValue.value = plan.name;
         } else if (type === 'selectedPlanName') {
-            if (!selectedPlan.value) { openValidationPopup(['Kein ausgewählter Plan']); return; }
+            if (!selectedPlan.value) { openValidationPopup(['Kein ausgewÃ¤hlter Plan']); return; }
             editValue.value = selectedPlan.value.name;
         } else if (type === 'timerName') {
             const timer = props.timers.find(t => t.id === index);
@@ -2394,7 +2394,7 @@
             editValue.value = stopwatch.name || '';
         } else if (type === 'customExerciseName') {
             const exercise = customExercises.value[index as number];
-            if (!exercise) { openValidationPopup(['Übung nicht gefunden']); return; }
+            if (!exercise) { openValidationPopup(['Ãœbung nicht gefunden']); return; }
             editValue.value = exercise.name;
         } else if (type === 'customExerciseMuscle') {
             const exercise = customExercises.value[index as number];
@@ -2404,7 +2404,7 @@
         // NEU
         else if (type === 'customExerciseType') {
             const exercise = customExercises.value[index as number];
-            if (!exercise) { openValidationPopup(['Übung nicht gefunden']); return; }
+            if (!exercise) { openValidationPopup(['Ãœbung nicht gefunden']); return; }
             editValue.value = exercise.type;
         }
 
@@ -2423,7 +2423,7 @@
             // dehnung
             dehnung: 'dehnung', stretch: 'dehnung', stretching: 'dehnung',
 
-            // ausdauer (nur fürs Normalisieren/Bestandsdaten; Auswahl ist gesperrt)
+            // ausdauer (nur fÃ¼rs Normalisieren/Bestandsdaten; Auswahl ist gesperrt)
             ausdauer: 'ausdauer', cardio: 'ausdauer', endurance: 'ausdauer',
         };
         return (map[t] ?? (['kraft', 'calisthenics', 'dehnung', 'ausdauer'].includes(t) ? (t as ExerciseType) : null));
@@ -2441,11 +2441,11 @@
             if (editCellIndex.value === 0 && editValue.value) {
                 const newName = editValue.value.trim();
                 if (selectedPlanExercises.value.some(ex => ex.exercise.toLowerCase() === newName.toLowerCase() && ex !== exercise)) {
-                    openValidationPopup(['Übung existiert bereits im Plan']);
+                    openValidationPopup(['Ãœbung existiert bereits im Plan']);
                     return;
                 }
                 exercise.exercise = newName;
-                addToast('Übung aktualisiert', 'save');
+                addToast('Ãœbung aktualisiert', 'save');
                 closeEditPopup();
                 return;
             }
@@ -2474,7 +2474,7 @@
                 const setsError = validateSets(sets);
                 if (setsError) { openValidationPopup([setsError]); return; }
                 exercise.sets = sets;
-                addToast('Sätze aktualisiert', 'save');
+                addToast('SÃ¤tze aktualisiert', 'save');
             } else if (editCellIndex.value === 2) {
                 const reps = Number(editValue.value);
                 const repsError = validateReps(reps);
@@ -2487,7 +2487,7 @@
             return;
         }
 
-        // === 2) Tabelle im geöffneten Plan (selectedPlan) ==========================
+        // === 2) Tabelle im geÃ¶ffneten Plan (selectedPlan) ==========================
         if (editType.value === 'selectedPlan' && typeof editIndex.value === 'number' && selectedPlan.value) {
             const exercise = selectedPlan.value.exercises[editIndex.value];
             if (!exercise) return;
@@ -2495,12 +2495,12 @@
             if (editCellIndex.value === 0 && editValue.value) {
                 const newName = editValue.value.trim();
                 if (selectedPlan.value.exercises.some(ex => ex.exercise.toLowerCase() === newName.toLowerCase() && ex !== exercise)) {
-                    openValidationPopup(['Übung existiert bereits im Plan']);
+                    openValidationPopup(['Ãœbung existiert bereits im Plan']);
                     return;
                 }
                 exercise.exercise = newName;
                 updatePlanInStorage();
-                addToast('Übung aktualisiert', 'save');
+                addToast('Ãœbung aktualisiert', 'save');
                 closeEditPopup();
                 return;
             }
@@ -2532,7 +2532,7 @@
                 if (setsError) { openValidationPopup([setsError]); return; }
                 exercise.sets = sets;
                 updatePlanInStorage();
-                addToast('Sätze aktualisiert', 'save');
+                addToast('SÃ¤tze aktualisiert', 'save');
             } else if (editCellIndex.value === 2) {
                 const reps = Number(editValue.value);
                 const repsError = validateReps(reps);
@@ -2546,7 +2546,7 @@
             return;
         }
 
-        // === 3) Restliche Edit-Fälle ===============================================
+        // === 3) Restliche Edit-FÃ¤lle ===============================================
         else if (editType.value === 'planName' && typeof editIndex.value === 'string') {
             const validatedName = validatePlanName(editValue.value);
             if (validatedName === false) {
@@ -2597,18 +2597,18 @@
             }
         }
 
-        // === NEU: Typ einer benutzerdefinierten Übung ==============================
+        // === NEU: Typ einer benutzerdefinierten Ãœbung ==============================
         else if (editType.value === 'customExerciseType' && typeof editIndex.value === 'number') {
             const ex = customExercises.value[editIndex.value];
             if (!ex) return;
 
             const normalized = normalizeTypeInput(editValue.value);
             if (!normalized) {
-                openValidationPopup(['Ungültiger Typ. Erlaubt sind: kraft, calisthenics, dehnung']);
+                openValidationPopup(['UngÃ¼ltiger Typ. Erlaubt sind: kraft, calisthenics, dehnung']);
                 return;
             }
             if (normalized === 'ausdauer') {
-                openValidationPopup(['"Ausdauer" ist für benutzerdefinierte Übungen nicht erlaubt']);
+                openValidationPopup(['"Ausdauer" ist fÃ¼r benutzerdefinierte Ãœbungen nicht erlaubt']);
                 return;
             }
 
@@ -2618,13 +2618,13 @@
                 c.type === normalized
             );
             if (duplicate) {
-                openValidationPopup(['Diese Übung existiert mit diesem Typ bereits']);
+                openValidationPopup(['Diese Ãœbung existiert mit diesem Typ bereits']);
                 return;
             }
 
             ex.type = normalized;
             saveToStorage();
-            addToast('Übungstyp aktualisiert', 'save');
+            addToast('Ãœbungstyp aktualisiert', 'save');
             closeEditPopup();
             return;
         }
@@ -2643,7 +2643,7 @@
 
             exercise.name = validated.name;
             saveToStorage();
-            addToast('Übungsname aktualisiert', 'save');
+            addToast('Ãœbungsname aktualisiert', 'save');
         } else if (editType.value === 'customExerciseMuscle' && typeof editIndex.value === 'number') {
             const exercise = customExercises.value[editIndex.value];
             if (!exercise) return;
@@ -2663,9 +2663,9 @@
 
         closeEditPopup();
     };
-    // Menü offen? → Toast-Timer hart pausieren/resumieren (zusätzlich zum Sammel-Watch)
+    // MenÃ¼ offen? â†’ Toast-Timer hart pausieren/resumieren (zusÃ¤tzlich zum Sammel-Watch)
     watch(planMenuOpenId, () => {
-        // Kein Parent-Timer mehr → nichts zu tun
+        // Kein Parent-Timer mehr â†’ nichts zu tun
     });
 
     // unter deinen anderen imports/refs:
@@ -2701,7 +2701,7 @@
         customExercises.value.splice(index, 1);
         if (customExercises.value.length === 0) showCustomExercises.value = false;
         saveToStorage();
-        addToast('Benutzerdefinierte Übung gelöscht', 'delete');
+        addToast('Benutzerdefinierte Ãœbung gelÃ¶scht', 'delete');
     };
 
     const closeEditPopup = () => {
@@ -2736,7 +2736,7 @@
             if (showValidationPopup.value) {
                 closeValidationPopup();
             } else {
-                // NEU: Kebab-Menü schließen
+                // NEU: Kebab-MenÃ¼ schlieÃŸen
                 closePlanMenu();
 
                 closeEditPopup();
@@ -2812,7 +2812,7 @@
     }
 
     function setupHeaderShorteningFallback() {
-        // erst alte Observer lösen
+        // erst alte Observer lÃ¶sen
         headerRO?.disconnect();
         headerRO = new ResizeObserver((entries) => {
             entries.forEach(entry => applyHeaderState(entry.target as HTMLElement));
@@ -2837,7 +2837,7 @@
 
         table.querySelectorAll('.resizer,.row-resizer').forEach(el => el.remove());
 
-        const MIN_PX_BY_COL = [16, 16, 16]; // Übung | Sätze | Wdh.
+        const MIN_PX_BY_COL = [16, 16, 16]; // Ãœbung | SÃ¤tze | Wdh.
         const ths = Array.from(table.querySelectorAll('thead th')) as HTMLElement[]; // <-- alle THs
         const lastIdx = ths.length - 1;
 
@@ -2915,7 +2915,7 @@
             };
 
             if (isLast) {
-                // ➕ zwei Griffe am letzten TH
+                // âž• zwei Griffe am letzten TH
                 makeResizer('left');   // innen
                 makeResizer('right');  // am Tabellenrand
             } else {
@@ -2925,7 +2925,7 @@
 
 
 
-        // Zeilen-Resizer bleibt unverändert …
+        // Zeilen-Resizer bleibt unverÃ¤ndert â€¦
         const rows = Array.from(table.querySelectorAll('tbody tr.resizable-row')) as HTMLElement[];
         rows.forEach((row, rowIndex) => {
             row.style.position = 'relative';
@@ -2976,14 +2976,14 @@
         return out;
     };
 
-    // PREVIEW: Aktion (Index 3) kann jetzt über den Griff an Spalte 2 mitverändert werden
+    // PREVIEW: Aktion (Index 3) kann jetzt Ã¼ber den Griff an Spalte 2 mitverÃ¤ndert werden
     const initPreviewResizeTable = () => {
         const table = previewTable.value;
         if (!table) return;
 
         table.querySelectorAll('.resizer').forEach(el => el.remove());
 
-        const MIN_PX_BY_COL = [16, 16, 16, 44]; // Übung | Sätze | Wdh. | Aktion
+        const MIN_PX_BY_COL = [16, 16, 16, 44]; // Ãœbung | SÃ¤tze | Wdh. | Aktion
         const ths = Array.from(table.querySelectorAll('thead th')) as HTMLElement[]; // <-- alle THs
         const lastIdx = ths.length - 1;
 
@@ -3173,7 +3173,7 @@
     }
 
 
-    // Öffnet ggf. einen von außerhalb gewählten Plan
+    // Ã–ffnet ggf. einen von auÃŸerhalb gewÃ¤hlten Plan
     const tryOpenPlanFromStorage = () => {
         const id = localStorage.getItem('trainingOpenPlanId')
         if (id) {
@@ -3183,7 +3183,7 @@
     }
 
     watch(() => [props.timers, props.stopwatches], () => {
-        console.log('timers oder stopwatches geändert:', { timers: props.timers, stopwatches: props.stopwatches });
+        console.log('timers oder stopwatches geÃ¤ndert:', { timers: props.timers, stopwatches: props.stopwatches });
         nextTick(() => checkScroll());
     }, { deep: true });
 
@@ -3201,12 +3201,12 @@
                     continue;
                 }
 
-                // Wechsel von >0 auf <=0 → Timer fertig
+                // Wechsel von >0 auf <=0 â†’ Timer fertig
                 if (prev > 0 && time <= 0 && !finishedOnce.has(id)) {
                     finishedOnce.add(id);
                     showTimerPopup.value = true;
                     playTimerSound(sound || 'standard');
-                    sendNotification('Timer fertig', 'Deine Satzpause ist vorbei 💪');
+                    sendNotification('Timer fertig', 'Deine Satzpause ist vorbei ðŸ’ª');
                     dismissToast(true);
 
                     const timer = props.timers.find(t => t.id === id);
@@ -3231,7 +3231,7 @@
         const isFs = !!document.fullscreenElement;
         document.documentElement.classList.toggle('is-fullscreen', isFs);
     };
-    // Live-Preview: bei jeder Änderung an den Übungen
+    // Live-Preview: bei jeder Ã„nderung an den Ãœbungen
     watch(selectedPlanExercises, () => {
         nextTick(() => {
             initPreviewResizeTable();
@@ -3239,7 +3239,7 @@
         });
     }, { deep: true });
 
-    // Eigene Übungen: bei Datenänderungen und wenn sichtbar
+    // Eigene Ãœbungen: bei DatenÃ¤nderungen und wenn sichtbar
     watch(customExercises, () => {
         if (showCustomExercises.value) {
             nextTick(() => {
@@ -3253,13 +3253,13 @@
         () => selectedPlan.value?.exercises.map(e => `${e.exercise}|${e.sets}|${e.reps}|${e.type}`).join(';'),
         () => nextTick(() => initResizeTable())
     )
-    // wenn der ausgewählte Plan geladen/geschlossen wird → Tabelle wechselt
+    // wenn der ausgewÃ¤hlte Plan geladen/geschlossen wird â†’ Tabelle wechselt
     watch(selectedPlan, (val) => {
         if (val) nextTick(() => { initResizeTable(); setupHeaderShorteningFallback(); });
         else nextTick(() => setupHeaderShorteningFallback());
     });
 
-    // wenn die Custom-Übungen eingeblendet werden → Tabelle erscheint
+    // wenn die Custom-Ãœbungen eingeblendet werden â†’ Tabelle erscheint
     watch(showCustomExercises, (val) => {
         if (val) nextTick(() => { initCustomResizeTable(); setupHeaderShorteningFallback(); });
     });
@@ -3310,7 +3310,7 @@
         padding: 1rem;
         background: var(--bg-primary);
         width: 100%;
-        max-width: 100%; /* ← FIX: verhindert Overflow */
+        max-width: 100%; /* â† FIX: verhindert Overflow */
         margin: 0 auto;
         display: flex;
         flex-direction: column;
@@ -3318,7 +3318,7 @@
         margin-top: 0;
         min-height: 100dvh;
         margin-inline: auto;
-        overflow-x: clip; /* ← WICHTIG */
+        overflow-x: clip; /* â† WICHTIG */
         box-sizing: border-box;
     }
 
@@ -3342,9 +3342,9 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        padding: 0 0.5rem; /* ← reduziert von 1rem */
+        padding: 0 0.5rem; /* â† reduziert von 1rem */
         box-sizing: border-box;
-        overflow-x: clip; /* ← NEU */
+        overflow-x: clip; /* â† NEU */
     }
 
     @media (max-width: 1240px) {
@@ -3376,7 +3376,7 @@
 
     @media (min-width: 900px) {
         .form-card.builder-grid {
-            /* rechte Spalte spürbar schmaler */
+            /* rechte Spalte spÃ¼rbar schmaler */
             grid-template-columns: minmax(0, 1fr) clamp(240px, 28vw, 360px);
             align-items: start;
         }
@@ -3480,7 +3480,7 @@
 
     .filter-input {
         border-radius: 999px;
-        padding-left: 2.25rem; /* Platz fürs Icon */
+        padding-left: 2.25rem; /* Platz fÃ¼rs Icon */
         background: var(--bg-secondary);
         position: relative;
     }
@@ -3503,10 +3503,10 @@
     }
 
     .builder-right {
-        min-width: 0; /* wichtig für Tables/Overflow */
+        min-width: 0; /* wichtig fÃ¼r Tables/Overflow */
     }
 
-    /* Feldblöcke */
+    /* FeldblÃ¶cke */
     .field-block {
         display: flex;
         flex-direction: column;
@@ -3525,25 +3525,25 @@
         align-items: stretch;
         flex-wrap: wrap;
     }
-    /* Zelle wird selbst Container → reagiert auf ihre eigene Breite */
+    /* Zelle wird selbst Container â†’ reagiert auf ihre eigene Breite */
     .v-stack {
         container-type: inline-size;
         white-space: normal;
         word-break: break-word;
         hyphens: auto;
     }
-    /* Letzte Spalte (Aktion) – nicht unter 44px */
+    /* Letzte Spalte (Aktion) â€“ nicht unter 44px */
     .custom-exercises-table th:last-child,
     .custom-exercises-table td:last-child,
     .exercise-table.full-width.compact th:last-child,
     .exercise-table.full-width.compact td:last-child {
-        min-width: 44px !important; /* Platz fürs Icon */
+        min-width: 44px !important; /* Platz fÃ¼rs Icon */
         white-space: nowrap;
         overflow: visible;
         text-overflow: clip;
     }
 
-    /* Icon-Größe fix, damit nichts clippt */
+    /* Icon-GrÃ¶ÃŸe fix, damit nichts clippt */
     .table-delete-btn {
         width: 32px;
         height: 32px;
@@ -3575,7 +3575,7 @@
         display: flex;
         flex-direction: column;
         gap: .75rem;
-        align-items: stretch; /* Kinder dürfen volle Breite nutzen */
+        align-items: stretch; /* Kinder dÃ¼rfen volle Breite nutzen */
     }
 
     .preview-card {
@@ -3586,7 +3586,7 @@
         box-shadow: 0 2px 8px rgba(0,0,0,.06);
         position: sticky;
         top: .75rem; /* bleibt beim Scrollen sichtbar */
-        contain: inline-size; /* Inhalt beeinflusst keine äußere Breite */
+        contain: inline-size; /* Inhalt beeinflusst keine Ã¤uÃŸere Breite */
         overflow-x: visible;
     }
 
@@ -3639,7 +3639,7 @@
         mask-image: linear-gradient(to right, #000 80%, transparent);
     }
 
-    /* Buttons rechts dürfen nie umbrechen */
+    /* Buttons rechts dÃ¼rfen nie umbrechen */
     .plan-right {
         display: inline-flex;
         gap: .5rem;
@@ -3789,10 +3789,10 @@
     .custom-exercises-table th:last-child,
     .exercise-table.full-width.compact td:last-child,
     .exercise-table.full-width.compact th:last-child {
-        overflow: visible; /* verhindert "…" */
+        overflow: visible; /* verhindert "â€¦" */
         text-overflow: clip;
         white-space: nowrap;
-        min-width: 44px; /* genug Platz für das 🗑️-Icon */
+        min-width: 44px; /* genug Platz fÃ¼r das ðŸ—‘ï¸-Icon */
     }
 
     .custom-exercises-table table tbody td:last-child .table-delete-btn {
@@ -3802,7 +3802,7 @@
         width: 32px !important;
         height: 32px !important;
         margin: 0 auto !important;
-        line-height: 1; /* keine Typo-Überhänge */
+        line-height: 1; /* keine Typo-ÃœberhÃ¤nge */
     }
     /* Zeilen-inhalt vertikal mittig ausrichten (alle Zellen) */
     .custom-exercises-table td,
@@ -3815,24 +3815,24 @@
             transform: translateY(-0.5px);
         }
 
-    /* Schlanke, aber normal lesbare Tabelle nur für den ausgewählten Plan */
+    /* Schlanke, aber normal lesbare Tabelle nur fÃ¼r den ausgewÃ¤hlten Plan */
     .exercise-table.full-width.narrow {
         position: relative;
         max-inline-size: 100%;
         margin-inline: auto;
-        overflow-x: visible; /* nicht clippen, der Scroll-Container übernimmt */
+        overflow-x: visible; /* nicht clippen, der Scroll-Container Ã¼bernimmt */
         table-layout: fixed; /* stabilisiert Spaltenbreiten */
     }
-    /* ADD: eigener Scroll-Container für Tabellen-Inhalte */
+    /* ADD: eigener Scroll-Container fÃ¼r Tabellen-Inhalte */
     .table-scroll {
-        overflow-x: auto; /* ⇐ Scrollbar bleibt */
+        overflow-x: auto; /* â‡ Scrollbar bleibt */
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-x: contain;
         background: var(--bg-card);
-        border-radius: 8px; /* wirkt wie „innen“ statt „außerhalb“ */
+        border-radius: 8px; /* wirkt wie â€žinnenâ€œ statt â€žauÃŸerhalbâ€œ */
     }
 
-        /* Mindestbreiten, damit rechte Spalten nicht „außerhalb“ wirken */
+        /* Mindestbreiten, damit rechte Spalten nicht â€žauÃŸerhalbâ€œ wirken */
         .table-scroll > table {
             min-width: 640px; /* kannst du anpassen (z.B. 560px) */
         }
@@ -3850,8 +3850,8 @@
         }
     }
 
-    /* Optional: Nur die erste Spalte darf (falls nötig) auf zwei Zeilen umbrechen,
-     damit lange Übungsnamen nicht alles sprengen — ohne Mini-Schrift. */
+    /* Optional: Nur die erste Spalte darf (falls nÃ¶tig) auf zwei Zeilen umbrechen,
+     damit lange Ãœbungsnamen nicht alles sprengen â€” ohne Mini-Schrift. */
     .exercise-table.full-width.narrow td:first-child,
     .exercise-table.full-width.narrow th:first-child {
         white-space: normal;
@@ -3869,7 +3869,7 @@
         height: 32px;
         padding: 0;
         position: relative;
-        z-index: 1; /* falls irgendwas darüberliegt */
+        z-index: 1; /* falls irgendwas darÃ¼berliegt */
     }
 
     html.dark-mode .list-item {
@@ -3884,7 +3884,7 @@
     .plan-item {
         cursor: pointer;
     }
-    /* ganz unten im <style scoped> ergänzen */
+    /* ganz unten im <style scoped> ergÃ¤nzen */
     @supports not (overflow: clip) {
         .training,
         .workout-list,
@@ -4021,11 +4021,11 @@
             transform: none;
         }
 
-    /* Aktion-Spalte: Button sauber zentriert, überschreibt frühere grid-Regeln */
+    /* Aktion-Spalte: Button sauber zentriert, Ã¼berschreibt frÃ¼here grid-Regeln */
     /* gleiche Zellenlogik wie der Rest der Tabelle */
     .exercise-table.full-width td.action-cell,
     .custom-exercises-table td.action-cell {
-        display: table-cell; /* zurück auf echtes Table-Cell-Layout */
+        display: table-cell; /* zurÃ¼ck auf echtes Table-Cell-Layout */
         padding: 1rem; /* identisch zu deinen anderen <td>s */
         text-align: center;
         vertical-align: middle;
@@ -4070,7 +4070,7 @@
     .extras-container.show {
         max-height: 250px;
         opacity: 1;
-        margin-top: 0.75rem; /* 👉 größerer Abstand */
+        margin-top: 0.75rem; /* ðŸ‘‰ grÃ¶ÃŸerer Abstand */
     }
 
 
@@ -4116,16 +4116,16 @@
         .plan-drag-stack > .plan-item {
             width: 100%;
         }
-    /* ===== sichtbare Griffe/Linien für Spalten ===== */
+    /* ===== sichtbare Griffe/Linien fÃ¼r Spalten ===== */
     :root {
-        --resize-hit: 10px; /* Klickfläche */
-        --resize-line: 1px; /* Linienstärke normal */
-        --resize-line-hover: 2px; /* Linienstärke Hover/Active */
+        --resize-hit: 10px; /* KlickflÃ¤che */
+        --resize-line: 1px; /* LinienstÃ¤rke normal */
+        --resize-line-hover: 2px; /* LinienstÃ¤rke Hover/Active */
         --resize-color: #94a3b8; /* Slate-400/500 */
         --resize-color-hover: #60a5fa; /* Accent bei Hover/Active */
     }
 
-    /* Cursor & Selection während Drag */
+    /* Cursor & Selection wÃ¤hrend Drag */
     body.is-resizing-col {
         cursor: col-resize;
         user-select: none;
@@ -4153,13 +4153,13 @@
         table-layout: fixed;
         border-collapse: collapse;
     }
-    /* ganz unten im <style scoped> ergänzen */
+    /* ganz unten im <style scoped> ergÃ¤nzen */
     .custom-exercises-table th:last-child,
     .custom-exercises-table td:last-child {
         min-width: 44px !important;
     }
 
-    /* ===== sichtbarer Griff für Zeilen ===== */
+    /* ===== sichtbarer Griff fÃ¼r Zeilen ===== */
     .exercise-table.full-width tr.resizable-row {
         position: relative;
     }
@@ -4205,7 +4205,7 @@
     .list-item-actions {
         display: flex;
         gap: 0.6rem;
-        align-items: center; /* <— NEU */
+        align-items: center; /* <â€” NEU */
     }
 
         .list-item-actions .action-btn {
@@ -4248,14 +4248,14 @@
         margin: 1rem 0 0.5rem;
         color: #111827;
     }
-    /* Header-THs können auf Breite reagieren */
+    /* Header-THs kÃ¶nnen auf Breite reagieren */
     .exercise-table.full-width th,
     .custom-exercises-table th {
         container-type: inline-size;
     }
 
-    /* Abkürzungs-Logik für Wiederholungen */
-    /* Header-Kürzung: zeigt je nach Klasse genau EINS der Labels */
+    /* AbkÃ¼rzungs-Logik fÃ¼r Wiederholungen */
+    /* Header-KÃ¼rzung: zeigt je nach Klasse genau EINS der Labels */
     .th-label .full,
     .th-label .mid,
     .th-label .short {
@@ -4359,12 +4359,12 @@
             gap: 0.5rem;
         }
     }
-    /* Karte selbst darf über Nachbarn stehen */
+    /* Karte selbst darf Ã¼ber Nachbarn stehen */
     .plan-item {
         position: relative;
     }
 
-        /* Wenn Menü offen ist: Karte nach oben und kein Hover-Shift */
+        /* Wenn MenÃ¼ offen ist: Karte nach oben und kein Hover-Shift */
         .plan-item.menu-open {
             z-index: 999;
         }
@@ -4373,7 +4373,7 @@
                 transform: none !important;
             }
 
-    /* Menü noch darüber */
+    /* MenÃ¼ noch darÃ¼ber */
     .plan-menu {
         z-index: 1000;
     }
@@ -4402,7 +4402,7 @@
         gap: 1rem;
         flex-wrap: wrap;
         width: 100%;
-        align-items: stretch; /* 👉 NEU: gleiche Höhe in der Zeile */
+        align-items: stretch; /* ðŸ‘‰ NEU: gleiche HÃ¶he in der Zeile */
     }
 
     .button-group {
@@ -4493,7 +4493,7 @@
         .exercise-table.full-width tbody td,
         .custom-exercises-table thead th,
         .custom-exercises-table tbody td {
-            background-clip: padding-box; /* verhindert Farbabbruch an den Rändern */
+            background-clip: padding-box; /* verhindert Farbabbruch an den RÃ¤ndern */
             overflow: hidden;
         }
 
@@ -4518,14 +4518,14 @@
         container-type: inline-size;
     }
 
-    /* Wrapper für Header-Text */
+    /* Wrapper fÃ¼r Header-Text */
     .th-text {
         display: inline-block;
         white-space: nowrap;
         line-height: 1;
     }
 
-    /* Body-Zellen bleiben horizontal, hart abkürzen */
+    /* Body-Zellen bleiben horizontal, hart abkÃ¼rzen */
     .exercise-table td,
     .custom-exercises-table td {
         overflow: hidden;
@@ -4535,7 +4535,7 @@
 
     .exercise-table.full-width table {
         width: 100%;
-        table-layout: fixed; /* ← WICHTIG: stabilisiert Spaltenbreiten beim Drag */
+        table-layout: fixed; /* â† WICHTIG: stabilisiert Spaltenbreiten beim Drag */
     }
 
     .exercise-table.full-width th,
@@ -4576,7 +4576,7 @@
         align-items: center;
         justify-content: center;
         width: 100%;
-        height: calc(var(--control-height) - 4px); /* 48px → 44px */
+        height: calc(var(--control-height) - 4px); /* 48px â†’ 44px */
         padding-top: 0;
         padding-bottom: 0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -4750,7 +4750,7 @@
             display: none !important;
         }
 
-        /* Menü-Overlay sicherheitshalber oberhalb halten */
+        /* MenÃ¼-Overlay sicherheitshalber oberhalb halten */
         .plan-menu {
             z-index: 1000;
         }
@@ -4801,12 +4801,12 @@
         white-space: nowrap;
     }
 
-    /* Inline-Action-Buttons (Edit/Löschen/Download) sind standardmäßig sichtbar */
+    /* Inline-Action-Buttons (Edit/LÃ¶schen/Download) sind standardmÃ¤ÃŸig sichtbar */
     .inline-actions {
         display: inline-flex;
         gap: .4rem;
     }
-    /* Kebab standardmäßig verstecken – wird erst ab schmaler Breite angezeigt */
+    /* Kebab standardmÃ¤ÃŸig verstecken â€“ wird erst ab schmaler Breite angezeigt */
 
 
     @media (max-width:1024px) {
@@ -4819,7 +4819,7 @@
         }
     }
 
-    /* ≤560px: weiterhin eine Zeile; mobile Zeile komplett aus */
+    /* â‰¤560px: weiterhin eine Zeile; mobile Zeile komplett aus */
     @media (max-width:560px) {
         .plan-row2 {
             display: none !important;
@@ -5001,7 +5001,7 @@
 
     .builder-head .plan-block .field-label {
         display: block;
-        margin-bottom: .6rem; /* Abstand Titel ↔ Input */
+        margin-bottom: .6rem; /* Abstand Titel â†” Input */
     }
 
     .builder-head .plan-block .plan-name-input {
@@ -5015,7 +5015,7 @@
 
     .goal-row {
         display: grid;
-        gap: .55rem; /* Abstand Titel ↔ Select */
+        gap: .55rem; /* Abstand Titel â†” Select */
     }
 
     .lap-btn {
@@ -5127,12 +5127,12 @@
 
     .builder-head .segmented.seg-type {
         gap: .45rem; /* etwas mehr Luft zwischen Buttons */
-        padding: .26rem .35rem; /* minimal höhere/lebhaftere Fläche */
+        padding: .26rem .35rem; /* minimal hÃ¶here/lebhaftere FlÃ¤che */
         border-radius: 10px;
     }
 
         .builder-head .segmented.seg-type > button {
-            padding: .42rem .72rem; /* + ~2–3px in beide Richtungen */
+            padding: .42rem .72rem; /* + ~2â€“3px in beide Richtungen */
             font-size: .89rem; /* vorher ~.86rem */
             border-radius: 9px;
         }
@@ -5185,7 +5185,7 @@
         }
 
         .builder-head .plan-block {
-            grid-area: plan; /* spannt über "plan plan" = beide Spalten */
+            grid-area: plan; /* spannt Ã¼ber "plan plan" = beide Spalten */
             width: 100%;
             min-width: 0; /* verhindert Einquetschen durch Intrinsic-Width */
         }
@@ -5215,7 +5215,7 @@
             grid-template-areas:
                 "plan plan"
                 "type extras" !important;
-            align-items: start; /* nicht mittig zwischen den Zeilen hängen */
+            align-items: start; /* nicht mittig zwischen den Zeilen hÃ¤ngen */
             row-gap: .6rem;
             column-gap: .75rem;
         }
@@ -5246,7 +5246,7 @@
         .builder-head .extras-cta {
             grid-area: extras;
             justify-self: end !important;
-            align-self: end; /* am unteren Rand der Zeile → Höhe vom Label ignorieren */
+            align-self: end; /* am unteren Rand der Zeile â†’ HÃ¶he vom Label ignorieren */
             inline-size: var(--control-height) !important; /* quadratisch */
             min-inline-size: var(--control-height) !important;
             max-inline-size: var(--control-height) !important;
@@ -5375,18 +5375,18 @@
         -webkit-overflow-scrolling: touch;
     }
 
-        /* Tabelle darf breiter als der Container sein → dann erscheint die Scrollbar */
+        /* Tabelle darf breiter als der Container sein â†’ dann erscheint die Scrollbar */
         .table-scroll > table {
             width: 100%;
-            table-layout: fixed; /* lässt deine Resizer unverändert funktionieren */
+            table-layout: fixed; /* lÃ¤sst deine Resizer unverÃ¤ndert funktionieren */
         }
 
             /* Minimal sinnvolle Breite pro Tabellentyp, damit nichts mikroskopisch wird.
-    → Scrollbar erscheint erst, wenn der Viewport kleiner ist. */
+    â†’ Scrollbar erscheint erst, wenn der Viewport kleiner ist. */
             .table-scroll > table[data-cols="3"] {
                 min-width: 560px;
             }
-            /* Übung | Sätze | Wdh. */
+            /* Ãœbung | SÃ¤tze | Wdh. */
             .table-scroll > table[data-cols="4"] {
                 min-width: 720px;
             }
@@ -5478,9 +5478,9 @@
         }
 
             .builder-head .type-block.desktop-only .segmented.seg-type {
-                height: var(--control-height); /* fixe Zielhöhe, z. B. 48px */
-                padding-block: .25rem; /* etwas schlanker innen, damit’s nicht zu fett wirkt */
-                align-items: stretch; /* Buttons füllen die volle Höhe */
+                height: var(--control-height); /* fixe ZielhÃ¶he, z. B. 48px */
+                padding-block: .25rem; /* etwas schlanker innen, damitâ€™s nicht zu fett wirkt */
+                align-items: stretch; /* Buttons fÃ¼llen die volle HÃ¶he */
             }
 
                 .builder-head .type-block.desktop-only .segmented.seg-type > button {
@@ -5614,7 +5614,7 @@
             .builder-head .extras-cta {
                 inline-size: auto !important;
                 min-inline-size: auto !important;
-                max-inline-size: clamp(180px, 24ch, 320px) !important; /* genug Platz für Label */
+                max-inline-size: clamp(180px, 24ch, 320px) !important; /* genug Platz fÃ¼r Label */
                 padding-inline: var(--control-padding-x) !important;
                 white-space: nowrap; /* Label bleibt einzeilig */
             }
@@ -5639,7 +5639,7 @@
             white-space: nowrap;
             min-width: 0;
             width: auto;
-            max-inline-size: clamp(180px, 26ch, 360px); /* 26ch reicht für „Extras ausblenden“ */
+            max-inline-size: clamp(180px, 26ch, 360px); /* 26ch reicht fÃ¼r â€žExtras ausblendenâ€œ */
             overflow: hidden;
             text-overflow: ellipsis;
         }
@@ -5682,7 +5682,7 @@
         white-space: nowrap;
     }
 
-    /* Öffnen */
+    /* Ã–ffnen */
     .plan-row1 > .inline-actions {
         display: inline-flex;
         gap: .4rem;
@@ -5712,7 +5712,7 @@
             margin-left: auto;
         }
     }
-    /* NEU: gilt für alle Breakpoints */
+    /* NEU: gilt fÃ¼r alle Breakpoints */
     .plan-menu {
         position: absolute;
         right: .5rem;
@@ -5776,7 +5776,7 @@
         }
     }
 
-    /* Mobile: keine zweite Zeile nötig */
+    /* Mobile: keine zweite Zeile nÃ¶tig */
     @media (max-width:560px) {
         .plan-row2, .mobile-open {
             display: none !important;
@@ -5784,7 +5784,7 @@
     }
     /* FIX 1: Plan-Karte ist kein Flex-Container mehr */
     .plan-item {
-        display: block; /* überschreibt .list-item { display:flex } */
+        display: block; /* Ã¼berschreibt .list-item { display:flex } */
     }
 
         /* FIX 2: Eine Reihe: drag | Titel zentriert | rechts Aktionen */
@@ -5811,7 +5811,7 @@
                 gap: .5rem;
             }
 
-    /* FIX 3: Die mobile Zusatzzeile standardmäßig weg */
+    /* FIX 3: Die mobile Zusatzzeile standardmÃ¤ÃŸig weg */
     .plan-row2 {
         display: none;
     }
@@ -5841,7 +5841,7 @@
         display: none;
     }
 
-    /* Ab hier „verschieben“ sich deine Buttons → Inline-Actions aus, Kebab an */
+    /* Ab hier â€žverschiebenâ€œ sich deine Buttons â†’ Inline-Actions aus, Kebab an */
     @media (max-width: 1024px) {
         .inline-actions {
             display: none !important;
@@ -5863,12 +5863,12 @@
         line-height: 1;
     }
 
-    /* Öffneter Plan – Table darf die Seite NICHT verbreitern */
+    /* Ã–ffneter Plan â€“ Table darf die Seite NICHT verbreitern */
     .exercise-table.full-width.narrow {
         display: block; /* wichtig: nicht als Table-Wrapper mit auto-breiten Kindern */
         max-inline-size: 100%;
         overflow-x: clip; /* oder: hidden; (clip ist moderner) */
-        contain: inline-size; /* Kinder beeinflussen die Außenbreite nicht */
+        contain: inline-size; /* Kinder beeinflussen die AuÃŸenbreite nicht */
     }
 
         /* Sicherheitshalber die Tabelle fix einbremsen */
@@ -5878,28 +5878,28 @@
             max-width: 100%;
         }
 
-    /* === Geöffneter Trainingsplan: identischer Rahmen wie alle anderen === */
+    /* === GeÃ¶ffneter Trainingsplan: identischer Rahmen wie alle anderen === */
     .exercise-table.full-width.narrow {
         background: var(--bg-card);
         border: 1px solid var(--border-color);
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,.06);
-        overflow: hidden; /* Ecken sauber, nichts „blankes“ */
+        overflow: hidden; /* Ecken sauber, nichts â€žblankesâ€œ */
     }
 
-        /* Keine künstlichen Rand-Gutters links/rechts */
+        /* Keine kÃ¼nstlichen Rand-Gutters links/rechts */
         .exercise-table.full-width.narrow .table-scroll {
             scrollbar-gutter: auto;
         }
 
-            /* Tabelle selbst bündig ohne Spalt bis an den Rahmen */
+            /* Tabelle selbst bÃ¼ndig ohne Spalt bis an den Rahmen */
             .exercise-table.full-width.narrow .table-scroll > table {
                 width: 100%;
                 table-layout: fixed;
                 border-collapse: collapse; /* entfernt die seitlichen Gaps */
             }
 
-        /* Optional: vertikale Trennlinien wie bei den anderen (falls gewünscht) */
+        /* Optional: vertikale Trennlinien wie bei den anderen (falls gewÃ¼nscht) */
         .exercise-table.full-width.narrow th,
         .exercise-table.full-width.narrow td {
             border-right: 1px solid var(--border-color);
@@ -5909,16 +5909,16 @@
             .exercise-table.full-width.narrow td:last-child {
                 border-right: 0;
             }
-    /* Host im TH: wird Clip-Container für den Resizer */
+    /* Host im TH: wird Clip-Container fÃ¼r den Resizer */
     .exercise-table.full-width th .th-text,
     .custom-exercises-table th .th-text {
         position: relative;
         display: block;
-        overflow: hidden; /* ← Wichtig: hier wird geklippt */
+        overflow: hidden; /* â† Wichtig: hier wird geklippt */
         padding-right: 8px; /* etwas Raum neben dem Text */
     }
 
-    /* NEU: Resizer hängt an .th-text (nicht am TH) */
+    /* NEU: Resizer hÃ¤ngt an .th-text (nicht am TH) */
     th .th-text > .resizer {
         position: absolute;
         top: 0;
@@ -5950,7 +5950,7 @@
             transform: scaleX(2); /* optisch dicker beim Hover/Drag */
         }
 
-    /* Header-Kürzung (Fallback) – zeigt je nach Klassenstatus genau EINS der Labels */
+    /* Header-KÃ¼rzung (Fallback) â€“ zeigt je nach Klassenstatus genau EINS der Labels */
     .th-label .full,
     .th-label .mid,
     .th-label .short {
@@ -5968,7 +5968,7 @@
     .th-label.is-short .short {
         display: inline;
     }
-    /* Sichtbare, schlanke Linie am Spaltenrand + größere Klickfläche */
+    /* Sichtbare, schlanke Linie am Spaltenrand + grÃ¶ÃŸere KlickflÃ¤che */
     .exercise-table.full-width th.resizable > .resizer::after,
     .custom-exercises-table th.resizable > .resizer::after {
         content: "";
@@ -6021,7 +6021,7 @@
         display: none;
     }
 
-    /* Wenn per JS verkürzt wird */
+    /* Wenn per JS verkÃ¼rzt wird */
     .th-label.is-mid .full {
         display: none;
     }
@@ -6039,27 +6039,27 @@
         display: inline;
     }
     /* Live-Preview: kompaktere Zellen */
-    /* Live-Preview: wieder höher + keine abgeschnittenen Diakritika */
+    /* Live-Preview: wieder hÃ¶her + keine abgeschnittenen Diakritika */
     .preview-card .exercise-table.full-width.compact th,
     .preview-card .exercise-table.full-width.compact td {
-        /* mehr Höhe über Padding-Block, horizontal bleibt schlank */
+        /* mehr HÃ¶he Ã¼ber Padding-Block, horizontal bleibt schlank */
         padding: 1.0rem 0.4rem; /* vorher .5rem .6rem */
-        font-size: .9rem; /* minimal größer als .88rem */
-        line-height: 1.25; /* verhindert Ü/Ä/Ö-Clipping */
+        font-size: .9rem; /* minimal grÃ¶ÃŸer als .88rem */
+        line-height: 1.25; /* verhindert Ãœ/Ã„/Ã–-Clipping */
     }
 
-    /* Header-Text in der Live-Preview: überschreibt dein globales .th-text { line-height: 1; } */
+    /* Header-Text in der Live-Preview: Ã¼berschreibt dein globales .th-text { line-height: 1; } */
     .preview-card .exercise-table.full-width.compact .th-text {
         line-height: 1.25;
     }
-    /* Trainingsplan (geöffneter Plan): mehr vertikale Luft + saubere Umlaute */
+    /* Trainingsplan (geÃ¶ffneter Plan): mehr vertikale Luft + saubere Umlaute */
     .exercise-table.full-width.narrow th,
     .exercise-table.full-width.narrow td,
     .custom-exercises-table th,
     .custom-exercises-table td {
-        padding: 1.5rem .5rem; /* vertikal höher, horizontal schlank */
+        padding: 1.5rem .5rem; /* vertikal hÃ¶her, horizontal schlank */
         font-size: .94rem;
-        line-height: 1.3; /* verhindert Ü/Ä/Ö-Clipping */
+        line-height: 1.3; /* verhindert Ãœ/Ã„/Ã–-Clipping */
     }
 
     .exercise-table.full-width.narrow .th-text,
@@ -6067,14 +6067,14 @@
         line-height: 1.3;
     }
 
-    /* Live-Preview: Tabelle nutzt nur so viel Platz wie nötig */
+    /* Live-Preview: Tabelle nutzt nur so viel Platz wie nÃ¶tig */
     .preview-card .table-scroll > table {
         width: max-content;
         max-width: 100%;
-        min-width: 540px; /* leicht erhöht, damit vertikale Luft nicht „zu gedrungen“ wirkt */
+        min-width: 540px; /* leicht erhÃ¶ht, damit vertikale Luft nicht â€žzu gedrungenâ€œ wirkt */
     }
 
-    /* Mobile: ebenfalls etwas höher, aber kompakt */
+    /* Mobile: ebenfalls etwas hÃ¶her, aber kompakt */
     @media (max-width: 560px) {
         .preview-card .exercise-table.full-width.compact th,
         .preview-card .exercise-table.full-width.compact td {
@@ -6084,7 +6084,7 @@
         }
 
         .preview-card .table-scroll > table {
-            min-width: 500px; /* optional: 480–500px nach Gefühl */
+            min-width: 500px; /* optional: 480â€“500px nach GefÃ¼hl */
         }
 
         .exercise-table.full-width.narrow th,
@@ -6098,12 +6098,12 @@
 
         .plan-drag-stack > .plan-item,
         .drag-stack > .timer-card {
-            touch-action: pan-y; /* Scroll weiter möglich, Drag wird sauber erkannt */
+            touch-action: pan-y; /* Scroll weiter mÃ¶glich, Drag wird sauber erkannt */
             -webkit-user-select: none;
             user-select: none;
         }
     }
-    /* Griff für *alle* THs (nicht nur .resizable), inkl. ganz rechts */
+    /* Griff fÃ¼r *alle* THs (nicht nur .resizable), inkl. ganz rechts */
     .exercise-table.full-width thead th > .resizer,
     .custom-exercises-table thead th > .resizer {
         position: absolute;
@@ -6130,7 +6130,7 @@
         user-select: none;
     }
 
-    /* Ghost optisch stabil + minimaler Scale für „Grip“-Feeling */
+    /* Ghost optisch stabil + minimaler Scale fÃ¼r â€žGripâ€œ-Feeling */
     .sortable-ghost,
     .drag-ghost {
         opacity: .85;
@@ -6163,7 +6163,7 @@
         will-change: transform;
     }
 
-    /* während Drag keine Hover-Animationen stören */
+    /* wÃ¤hrend Drag keine Hover-Animationen stÃ¶ren */
     .dragging .list-item.plan-item,
     .dragging .timer-card {
         transform: none !important;

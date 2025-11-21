@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="plans">
         <h2 class="page-title">📋 Trainingspläne</h2>
 

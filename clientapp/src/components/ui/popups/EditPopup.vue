@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <BasePopup :show="modelValue"
                :title="title"
                overlayClass="edit-popup"

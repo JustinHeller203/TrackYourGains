@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <button class="save-button"
             type="button"
             :disabled="disabled"

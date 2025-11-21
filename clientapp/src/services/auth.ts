@@ -1,4 +1,4 @@
-﻿// src/services/auth.ts
+// src/services/auth.ts
 import { api, setToken } from "@/lib/api";
 
 type AuthResponse = { id: string; email: string; token: string };

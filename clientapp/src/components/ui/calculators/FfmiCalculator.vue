@@ -1,4 +1,4 @@
-﻿<!-- src/components/ui/calculators/FfmiCalculator.vue -->
+<!-- src/components/ui/calculators/FfmiCalculator.vue -->
 <template>
     <div class="calculator-card">
         <div class="card-header">

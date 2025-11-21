@@ -15,7 +15,7 @@
                 </div>
 
                 <div v-if="mode === 'register'" class="form-row">
-                    <label for="confirm">Passwort bestätigen</label>
+                    <label for="confirm">Passwort bestÃ¤tigen</label>
                     <input id="confirm" v-model.trim="confirm" type="password" minlength="6" required />
                 </div>
 
@@ -83,7 +83,7 @@
                 await auth.signIn(email.value, password.value)
             } else {
                 if (password.value !== confirm.value) {
-                    error.value = 'Passwörter stimmen nicht überein.'
+                    error.value = 'PasswÃ¶rter stimmen nicht Ã¼berein.'
                     return
                 }
                 await auth.signUp(email.value, password.value, confirm.value)
@@ -108,8 +108,8 @@
 <style scoped>
     /* ===== Deine vorhandenen Styles bleiben erhalten ===== */
 
-    /* Dein alter Block hieß .auth-wrap – den lasse ich drin,
-    ABER ergänze unten passende Selektoren für .auth-wrapper/.auth-card */
+    /* Dein alter Block hieÃŸ .auth-wrap â€“ den lasse ich drin,
+    ABER ergÃ¤nze unten passende Selektoren fÃ¼r .auth-wrapper/.auth-card */
     .auth-wrap {
         max-width: 420px;
         margin: 4rem auto;
@@ -119,7 +119,7 @@
         border-radius: 12px;
     }
 
-    /* ✅ Ergänzung: damit die aktuellen Klassen aus dem Template gestylt werden */
+    /* âœ… ErgÃ¤nzung: damit die aktuellen Klassen aus dem Template gestylt werden */
     .auth-wrapper {
         min-height: calc(100vh - var(--nav-h, 60px));
         display: grid;
@@ -130,7 +130,7 @@
 
     .auth-card {
         width: 100%;
-        max-width: 440px; /* minimal größer als .auth-wrap */
+        max-width: 440px; /* minimal grÃ¶ÃŸer als .auth-wrap */
         background: var(--bg-card);
         border: 1px solid var(--border-color);
         border-radius: 12px;

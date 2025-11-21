@@ -1,4 +1,4 @@
-﻿<!--ValidationPopup.vue-->
+<!--ValidationPopup.vue-->
 <template>
     <BasePopup :show="show"
                :title="title"

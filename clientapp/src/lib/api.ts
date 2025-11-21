@@ -1,4 +1,4 @@
-﻿// src/lib/api.ts
+// src/lib/api.ts
 import axios, { AxiosError, type AxiosRequestConfig } from "axios";
 import type { AxiosRequestHeaders } from "axios";
 

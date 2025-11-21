@@ -1,17 +1,17 @@
 <template>
   <BasePopup
     :show="show"
-    title="Profil löschen"
+    title="Profil lÃ¶schen"
     variant="delete-account-popup"
     @cancel="$emit('cancel')"
   >
     <div class="form-grid">
-      <p class="danger-text">Das löscht <strong>alle</strong> deine Kontodaten unwiderruflich.</p>
+      <p class="danger-text">Das lÃ¶scht <strong>alle</strong> deine Kontodaten unwiderruflich.</p>
 
-      <label class="label">Passwort zur Bestätigung</label>
-      <input ref="pwdRef" v-model="password" type="password" class="edit-input" placeholder="••••••••" />
+      <label class="label">Passwort zur BestÃ¤tigung</label>
+      <input ref="pwdRef" v-model="password" type="password" class="edit-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
 
-      <label class="label">Zum Bestätigen tippe: <code>{{ confirmPhrase }}</code></label>
+      <label class="label">Zum BestÃ¤tigen tippe: <code>{{ confirmPhrase }}</code></label>
       <input v-model.trim="phrase" type="text" class="edit-input" :placeholder="confirmPhrase" />
 
       <p v-if="error" class="form-error">{{ error }}</p>
@@ -19,7 +19,7 @@
 
     <template #actions>
       <PopupCancelButton @click="$emit('cancel')">Abbrechen</PopupCancelButton>
-      <PopupSaveButton class="!bg-red-600" @click="onConfirm">Endgültig löschen</PopupSaveButton>
+      <PopupSaveButton class="!bg-red-600" @click="onConfirm">EndgÃ¼ltig lÃ¶schen</PopupSaveButton>
     </template>
   </BasePopup>
 </template>
@@ -32,7 +32,7 @@ import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
 
 const props = defineProps<{ show: boolean; confirmPhrase?: string }>()
 const emit = defineEmits<{ (e:'cancel'):void; (e:'confirm', p:{ password:string }):void }>()
-const confirmPhrase = props.confirmPhrase ?? 'KONTO LÖSCHEN'
+const confirmPhrase = props.confirmPhrase ?? 'KONTO LÃ–SCHEN'
 
 const password = ref('')
 const phrase = ref('')
@@ -48,7 +48,7 @@ watch(() => props.show, async (open) => {
 
 function onConfirm() {
   if (!password.value) { error.value = 'Bitte Passwort eingeben.'; return }
-  if (phrase.value !== confirmPhrase) { error.value = `Bitte exakt „${confirmPhrase}“ eingeben.`; return }
+  if (phrase.value !== confirmPhrase) { error.value = `Bitte exakt â€ž${confirmPhrase}â€œ eingeben.`; return }
   error.value = ''
   emit('confirm', { password: password.value })
 }

@@ -1,4 +1,4 @@
-﻿<!--ProgressEntryModal.vue-->
+<!--ProgressEntryModal.vue-->
 <template>
     <div v-if="show"
          class="modal-overlay"

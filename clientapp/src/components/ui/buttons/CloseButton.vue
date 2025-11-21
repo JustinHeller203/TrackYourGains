@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <BaseButton :type="type"
                 :title="title"
                 :aria-label="ariaLabel || title"

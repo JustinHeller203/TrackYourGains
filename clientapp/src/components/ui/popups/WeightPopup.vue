@@ -1,4 +1,4 @@
-﻿<!-- src/components/ui/popups/WeightPopup.vue -->
+<!-- src/components/ui/popups/WeightPopup.vue -->
 <template>
     <BasePopup :show="show"
                title="Neues Gewicht eintragen"

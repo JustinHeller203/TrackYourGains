@@ -8,7 +8,7 @@
                      ref="avatarEl"
                      @click="onAvatarClick"
                      @dblclick.prevent="onAvatarDblClick"
-                     title="Profilbild ändern"
+                     title="Profilbild Ã¤ndern"
                      @pointerdown="onAvatarPointerDown"
                      @pointerup="onAvatarPointerUp"
                      @pointermove="onAvatarPointerMove"
@@ -21,26 +21,26 @@
                     <span v-else-if="initials">{{ initials }}</span>
                     <i v-else class="fas fa-user"></i>
 
-                    <!-- Kontextmenü -->
+                    <!-- KontextmenÃ¼ -->
                     <HoldMenu v-if="showAvatarMenu"
                               :menuStyle="avatarMenuStyle">
                         <button type="button"
                                 @click="openAvatarFull"
-                                title="Profilbild in groß anzeigen"
-                                aria-label="Profilbild in groß anzeigen">
-                            Bild öffnen
+                                title="Profilbild in groÃŸ anzeigen"
+                                aria-label="Profilbild in groÃŸ anzeigen">
+                            Bild Ã¶ffnen
                         </button>
                         <button type="button"
                                 :disabled="!avatarUrl || !canClipboardImages"
                                 @click="copyAvatar"
-                                :title="!canClipboardImages ? 'Dein Browser unterstützt Bild-Kopieren nicht' : 'Bild in Zwischenablage kopieren'">
+                                :title="!canClipboardImages ? 'Dein Browser unterstÃ¼tzt Bild-Kopieren nicht' : 'Bild in Zwischenablage kopieren'">
                             Bild kopieren
                         </button>
                         <button type="button"
                                 @click="uploadNewAvatar"
                                 title="Neues Profilbild hochladen"
                                 aria-label="Neues Profilbild hochladen">
-                            Neues Bild hochladen…
+                            Neues Bild hochladenâ€¦
                         </button>
                         <button v-if="avatarUrl"
                                 type="button"
@@ -56,8 +56,8 @@
 
                 <button class="avatar-plus"
                         @click.stop="pickAvatar"
-                        :title="avatarUrl ? 'Profilbild ändern' : 'Profilbild hinzufügen'"
-                        :aria-label="avatarUrl ? 'Profilbild ändern' : 'Profilbild hinzufügen'"></button>
+                        :title="avatarUrl ? 'Profilbild Ã¤ndern' : 'Profilbild hinzufÃ¼gen'"
+                        :aria-label="avatarUrl ? 'Profilbild Ã¤ndern' : 'Profilbild hinzufÃ¼gen'"></button>
             </div>
             <input ref="avatarInput"
                    type="file"
@@ -72,15 +72,15 @@
                 <div class="actions">
                     <button class="btn neutral" @click="openEmailPopup">
                         <i class="fas fa-envelope"></i>
-                        E-Mail ändern
+                        E-Mail Ã¤ndern
                     </button>
                     <button class="btn neutral" @click="openPasswordPopup">
                         <i class="fas fa-key"></i>
-                        Passwort ändern
+                        Passwort Ã¤ndern
                     </button>
                     <button class="btn danger-outline" @click="openDeletePopup">
                         <i class="fas fa-user-slash"></i>
-                        Profil löschen
+                        Profil lÃ¶schen
                     </button>
                     <button class="btn neutral logout" @click="logout">
                         <i class="fas fa-sign-out-alt"></i>
@@ -117,9 +117,9 @@
                 </div>
             </div>
             <div class="goal-controls">
-                <EditInput :ghost="true" title="Ziel −1" ariaLabel="Ziel minus 1" @click="decTarget">−1</EditInput>
+                <EditInput :ghost="true" title="Ziel âˆ’1" ariaLabel="Ziel minus 1" @click="decTarget">âˆ’1</EditInput>
                 <EditInput :ghost="true" title="Ziel +1" ariaLabel="Ziel plus 1" @click="incTarget">+1</EditInput>
-                <EditInput :ghost="true" title="Ziel zurücksetzen" ariaLabel="Ziel zurücksetzen" @click="resetTarget">Reset</EditInput>
+                <EditInput :ghost="true" title="Ziel zurÃ¼cksetzen" ariaLabel="Ziel zurÃ¼cksetzen" @click="resetTarget">Reset</EditInput>
             </div>
         </section>
 
@@ -153,14 +153,14 @@
         <!-- Activity + Achievements -->
         <section class="grid two">
             <div class="card">
-                <h3 class="card-title"><i class="fas fa-heartbeat"></i> Aktivität</h3>
+                <h3 class="card-title"><i class="fas fa-heartbeat"></i> AktivitÃ¤t</h3>
 
                 <div class="sparkline-wrap">
                     <svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none">
                         <polyline :points="sparkPoints" fill="none" stroke="currentColor" stroke-width="2" />
                     </svg>
                     <div class="spark-legend">
-                        Letzte {{ activity.length }} Tage · Ø {{ avgActivity }} Workouts/Tag
+                        Letzte {{ activity.length }} Tage Â· Ã˜ {{ avgActivity }} Workouts/Tag
                     </div>
                 </div>
 
@@ -169,8 +169,8 @@
                     <EditInput :ghost="true" @click="addTodayWorkout" title="+1 Heute" ariaLabel="+1 Heute">
                         +1 Heute
                     </EditInput>
-                    <EditInput :ghost="true" :disabled="todayCount === 0" @click="undoTodayWorkout" title="−1 Heute" ariaLabel="−1 Heute">
-                        −1 Heute
+                    <EditInput :ghost="true" :disabled="todayCount === 0" @click="undoTodayWorkout" title="âˆ’1 Heute" ariaLabel="âˆ’1 Heute">
+                        âˆ’1 Heute
                     </EditInput>
                     <EditInput :ghost="true" @click="extendHistory" title="+7 Tage Historie" ariaLabel="+7 Tage Historie">
                         +7 Tage Historie
@@ -187,7 +187,7 @@
                     <span v-for="b in computedBadges" :key="b.id" class="badge" :title="b.desc">
                         <i :class="b.icon"></i> {{ b.label }}
                     </span>
-                    <span v-if="!computedBadges.length" class="badge muted">Noch keine – leg los! 🚀</span>
+                    <span v-if="!computedBadges.length" class="badge muted">Noch keine â€“ leg los! ðŸš€</span>
                 </div>
             </div>
         </section>
@@ -195,7 +195,7 @@
         <!-- About + Ziele -->
         <section class="grid two">
             <div class="card">
-                <h3 class="card-title"><i class="fas fa-user-circle"></i> Über dich</h3>
+                <h3 class="card-title"><i class="fas fa-user-circle"></i> Ãœber dich</h3>
                 <ul class="list">
                     <li>
                         <span class="key">Name</span>
@@ -209,7 +209,7 @@
                             <template v-else>
                                 <span class="name-text"
                                       @dblclick.prevent="editingName = true"
-                                      title="Doppelklick: Name bearbeiten">{{ displayName || '—' }}</span>
+                                      title="Doppelklick: Name bearbeiten">{{ displayName || 'â€”' }}</span>
                                 <EditInput :ghost="true" title="Name bearbeiten" ariaLabel="Name bearbeiten" @click="editingName = true">
                                     Bearbeiten
                                 </EditInput>
@@ -220,7 +220,7 @@
                         <span class="key">E-Mail</span>
                         <span class="val email-text"
                               @dblclick.prevent="openEmailPopup"
-                              title="Doppelklick: E-Mail ändern">{{ auth.user?.email || '—' }}</span>
+                              title="Doppelklick: E-Mail Ã¤ndern">{{ auth.user?.email || 'â€”' }}</span>
                     </li>
                     <li><span class="key">Mitglied seit</span><span class="val">{{ memberSince }}</span></li>
                     <li><span class="key">Status</span><span class="val badge">Aktiv</span></li>
@@ -240,7 +240,7 @@
                     <template #item="{ element: key, index: idx }">
                         <div class="goal" :data-key="key">
                             <div class="goal-top">
-                                <span class="goal-handle" title="Ziehen zum Sortieren" aria-label="Ziehen zum Sortieren" tabindex="0">≡</span>
+                                <span class="goal-handle" title="Ziehen zum Sortieren" aria-label="Ziehen zum Sortieren" tabindex="0">â‰¡</span>
                                 <span class="goal-name">{{ goalLabels[key as GoalKey] }}</span>
                                 <span class="goal-value">{{ progress[key as GoalKey] }}%</span>
                             </div>
@@ -267,7 +267,7 @@
                 <input v-if="editingMotto"
                        v-model.trim="motto"
                        class="input motto-input"
-                       placeholder="Dein Motto…"
+                       placeholder="Dein Mottoâ€¦"
                        @keyup.enter="saveMotto" />
                 <p v-else class="motto" lang="de">
                     {{ mottoView || 'Kein Motto gesetzt' }}
@@ -284,18 +284,18 @@
 
                     <EditInput v-show="!editingMotto && !motto"
                                :ghost="true"
-                               title="Motto hinzufügen"
-                               ariaLabel="Motto hinzufügen"
+                               title="Motto hinzufÃ¼gen"
+                               ariaLabel="Motto hinzufÃ¼gen"
                                @click="startAddMotto">
-                        Motto hinzufügen
+                        Motto hinzufÃ¼gen
                     </EditInput>
 
                     <EditInput v-show="!editingMotto && motto"
                                :ghost="true"
-                               title="Motto löschen"
-                               ariaLabel="Motto löschen"
+                               title="Motto lÃ¶schen"
+                               ariaLabel="Motto lÃ¶schen"
                                @click="clearMotto">
-                        Löschen
+                        LÃ¶schen
                     </EditInput>
                 </div>
             </div>
@@ -317,7 +317,7 @@
                             @confirm="handleAccountDelete" />
         <ValidationPopup :show="showValidation"
                          :errors="validationErrors"
-                         title="Größe der Datei"
+                         title="GrÃ¶ÃŸe der Datei"
                          @close="showValidation = false" />
 
         <SavePopup :show="showSavePopup"
@@ -347,7 +347,7 @@
                  @pointercancel="onViewerPointerUp"
                  @dblclick="onViewerDblClick">
                 <img :src="avatarUrl || ''"
-                     alt="Profilbild groß"
+                     alt="Profilbild groÃŸ"
                      class="image-viewer-img"
                      :style="{ transform: `translate(${viewerTx}px, ${viewerTy}px) scale(${viewerScale})` }" />
             </div>
@@ -362,15 +362,15 @@
                 <button class="vc-btn"
                         @click="viewerScale = clampScale(viewerScale / 1.1)"
                         aria-label="Zoom out"
-                        :title="isMobile ? 'Zoom out' : 'Zoom out (− / Strg+− / ⌘+−)'">
-                    −
+                        :title="isMobile ? 'Zoom out' : 'Zoom out (âˆ’ / Strg+âˆ’ / âŒ˜+âˆ’)'">
+                    âˆ’
                 </button>
 
                 <button class="vc-btn"
                         @click="resetViewerTransform()"
-                        aria-label="Zurücksetzen"
-                        :title="isMobile ? 'Zurücksetzen' : 'Position/Zoom zurücksetzen (Strg+Z / ⌘+Z)'">
-                    ⟲
+                        aria-label="ZurÃ¼cksetzen"
+                        :title="isMobile ? 'ZurÃ¼cksetzen' : 'Position/Zoom zurÃ¼cksetzen (Strg+Z / âŒ˜+Z)'">
+                    âŸ²
                 </button>
 
                 <button v-if="!isMobile"
@@ -386,7 +386,7 @@
                     @click="onCloseClick"
                     :aria-label="closeLabel"
                     :title="closeTitle">
-                ×
+                Ã—
             </button>
 
             <div v-if="showShortcuts && !isMobile" class="shortcuts-overlay" @click.self="showShortcuts = false">
@@ -397,19 +397,19 @@
                                 @click="showShortcuts = false"
                                 :aria-label="scCloseTitle"
                                 :title="scCloseTitle">
-                            ×
+                            Ã—
                         </button>
                     </div>
                     <ul class="sc-list">
-                        <li><kbd>+</kbd> – Zoom in</li>
-                        <li><kbd>−</kbd> / <kbd>Strg</kbd>+<kbd>−</kbd> / <kbd>⌘</kbd>+<kbd>−</kbd> – Zoom out</li>
-                        <li><kbd>Strg</kbd>+<kbd>Z</kbd> / <kbd>⌘</kbd>+<kbd>Z</kbd> – Reset (Position &amp; Zoom)</li>
-                        <li><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> – Pan (mit <kbd>Alt</kbd> fein, <kbd>Shift</kbd> schnell)</li>
-                        <li><kbd>Doppelklick</kbd> – Zoom in (mit <kbd>Shift</kbd> = Zoom out)</li>
-                        <li><kbd>Mausrad/Trackpad</kbd> – Zoom zum Cursor</li>
-                        <li><kbd>Leertaste</kbd> – sanft nach unten bewegen</li>
-                        <li><kbd>H</kbd> / <kbd>?</kbd> – Shortcuts ein/aus</li>
-                        <li><kbd>Esc</kbd> – Viewer schließen</li>
+                        <li><kbd>+</kbd> â€“ Zoom in</li>
+                        <li><kbd>âˆ’</kbd> / <kbd>Strg</kbd>+<kbd>âˆ’</kbd> / <kbd>âŒ˜</kbd>+<kbd>âˆ’</kbd> â€“ Zoom out</li>
+                        <li><kbd>Strg</kbd>+<kbd>Z</kbd> / <kbd>âŒ˜</kbd>+<kbd>Z</kbd> â€“ Reset (Position &amp; Zoom)</li>
+                        <li><kbd>â†</kbd> <kbd>â†’</kbd> <kbd>â†‘</kbd> <kbd>â†“</kbd> â€“ Pan (mit <kbd>Alt</kbd> fein, <kbd>Shift</kbd> schnell)</li>
+                        <li><kbd>Doppelklick</kbd> â€“ Zoom in (mit <kbd>Shift</kbd> = Zoom out)</li>
+                        <li><kbd>Mausrad/Trackpad</kbd> â€“ Zoom zum Cursor</li>
+                        <li><kbd>Leertaste</kbd> â€“ sanft nach unten bewegen</li>
+                        <li><kbd>H</kbd> / <kbd>?</kbd> â€“ Shortcuts ein/aus</li>
+                        <li><kbd>Esc</kbd> â€“ Viewer schlieÃŸen</li>
                     </ul>
                 </div>
             </div>
@@ -471,7 +471,7 @@
     const goalLabels: Record<GoalKey, string> = {
         muscle: 'Muskeln aufbauen',
         weight: 'Gewicht tracken',
-        nutrition: 'Ernährung loggen'
+        nutrition: 'ErnÃ¤hrung loggen'
     };
 
     // INSERT Order-State
@@ -550,7 +550,7 @@
         if (!prev) return
         motto.value = ''
         localStorage.setItem(LS_KEYS.motto, '')
-        showUndo('Motto gelöscht', () => {
+        showUndo('Motto gelÃ¶scht', () => {
             motto.value = prev
             localStorage.setItem(LS_KEYS.motto, prev)
         }, 5000)
@@ -623,8 +623,8 @@
 
     const closeLabel = computed(() =>
         showShortcuts.value
-            ? (isMobile.value ? 'Alles schließen' : 'Alles schließen (Shortcuts)')
-            : (isMobile.value ? 'Profilbild schließen' : 'Profilbild schließen (Shortcuts)')
+            ? (isMobile.value ? 'Alles schlieÃŸen' : 'Alles schlieÃŸen (Shortcuts)')
+            : (isMobile.value ? 'Profilbild schlieÃŸen' : 'Profilbild schlieÃŸen (Shortcuts)')
     );
     const closeTitle = closeLabel; // gleich halten
     // INSERT refs (bei State init)
@@ -637,7 +637,7 @@
         return Math.min(100, Math.round((weeklyWorkouts.value / tgt) * 100));
     });
     const donutDasharray = computed(() => {
-        // Kreisumfang (r=16) ≈ 2πr = ~100.53 → wir nehmen 100 als Norm
+        // Kreisumfang (r=16) â‰ˆ 2Ï€r = ~100.53 â†’ wir nehmen 100 als Norm
         const filled = (donutPercent.value / 100) * 100;
         const rest = 100 - filled;
         return `${filled} ${rest}`;
@@ -651,7 +651,7 @@
     function resetTarget() { targetWorkoutsPerWeek.value = 5; }
 
     const scCloseTitle = computed(() =>
-        isMobile.value ? 'Shortcuts schließen' : 'Shortcuts schließen (Shortcuts)'
+        isMobile.value ? 'Shortcuts schlieÃŸen' : 'Shortcuts schlieÃŸen (Shortcuts)'
     );
     function onViewerDblClick(e: MouseEvent) {
         const factor = e.shiftKey ? 0.5 : 2; // Shift = raus
@@ -669,7 +669,7 @@
         viewerScale.value = next;
     }
     function softHyphenate(str: string): string {
-        // Füge Soft-Hyphens in SEHR langen, untrennbaren Wortblöcken ein
+        // FÃ¼ge Soft-Hyphens in SEHR langen, untrennbaren WortblÃ¶cken ein
         // trennt alle 10 Zeichen, aber nur innerhalb von Sequenzen ohne Leer-/Bindestriche
         return str.replace(/([^\s-]{10})(?=[^\s-])/g, '$1\u00AD');
     }
@@ -695,9 +695,9 @@
     function showUndo(label: string, rollback: () => void, ms = 5000) {
         // Ein einziger Toast mit eingebauter Action
         addToast(label, 'delete', ms, {
-            label: 'Rückgängig',
+            label: 'RÃ¼ckgÃ¤ngig',
             handler: () => {
-                // Rollback ausführen – kein weiterer Toast
+                // Rollback ausfÃ¼hren â€“ kein weiterer Toast
                 rollback()
             }
         })
@@ -709,7 +709,7 @@
         undoEntry.value = null
         if (entry.timer) clearTimeout(entry.timer)
         entry.rollback()
-        addToast('Rückgängig gemacht', 'add')
+        addToast('RÃ¼ckgÃ¤ngig gemacht', 'add')
     }
 
     function cancelUndoWindow() {
@@ -720,7 +720,7 @@
     function softDeleteAvatar() {
         const prev = avatarUrl.value
         if (!prev) return
-        // sofort löschen
+        // sofort lÃ¶schen
         avatarUrl.value = null
         localStorage.removeItem(AVATAR_KEY)
         showUndo('Profilbild entfernt', () => {
@@ -753,7 +753,7 @@
                 validationErrors.value = [
                     `Deine Datei hat ${(file.size / (1024 * 1024)).toFixed(2)} MB.`,
                     'Maximal erlaubt: 2.00 MB.',
-                    'Komprimiere das Bild oder wähle eine kleinere Datei.',
+                    'Komprimiere das Bild oder wÃ¤hle eine kleinere Datei.',
                 ];
                 showValidation.value = true;
                 return;
@@ -774,7 +774,7 @@
     const SINGLE_CLICK_DELAY_MS = 220
 
     function onAvatarDblClick(_e: MouseEvent) {
-        // Doppelklick → Single-Click abbrechen und Picker öffnen
+        // Doppelklick â†’ Single-Click abbrechen und Picker Ã¶ffnen
         if (singleClickTimer) { clearTimeout(singleClickTimer); singleClickTimer = null }
         if (showAvatarMenu.value) { closeAvatarMenu() }
         pickAvatar()
@@ -835,7 +835,7 @@
     const showAvatarMenu = ref(false)
     function uploadNewAvatar() {
         closeAvatarMenu()
-        // kurz warten, damit der Click vom Menü nicht mit dem Picker kollidiert
+        // kurz warten, damit der Click vom MenÃ¼ nicht mit dem Picker kollidiert
         requestAnimationFrame(() => pickAvatar())
     }
     let avatarPressTimer: number | null = null
@@ -880,13 +880,13 @@
 
     function closeAvatarViewer() {
         showAvatarViewer.value = false;
-        // Fokus an vorheriges Element zurück
+        // Fokus an vorheriges Element zurÃ¼ck
         (prevFocusEl as HTMLElement | null)?.focus?.();
         prevFocusEl = null;
     }
     function openAvatarMenuAt(_ev?: PointerEvent | MouseEvent) {
         showAvatarMenu.value = true
-        suppressNextClick.value = true // verhindert den „nachlaufenden“ Click vom Long-Press
+        suppressNextClick.value = true // verhindert den â€žnachlaufendenâ€œ Click vom Long-Press
 
         nextTick(() => {
             const el = document.querySelector<HTMLElement>('.hold-menu')
@@ -910,7 +910,7 @@
         if (!isAvatarHolding.value || !avatarPressPos) return
         const dx = ev.clientX - avatarPressPos.x
         const dy = ev.clientY - avatarPressPos.y
-        if ((dx * dx + dy * dy) > 36) { // >6px Bewegung → Long-Press abbrechen
+        if ((dx * dx + dy * dy) > 36) { // >6px Bewegung â†’ Long-Press abbrechen
             cancelAvatarPress()
         }
     }
@@ -928,11 +928,11 @@
         try {
             if (!avatarUrl.value) return;
 
-            // 1) Blob erzeugen (data: → direkt; http(s): via fetch; blob: → via fetch)
+            // 1) Blob erzeugen (data: â†’ direkt; http(s): via fetch; blob: â†’ via fetch)
             const blob = await urlToBlob(avatarUrl.value);
             const mime = blob.type || 'image/png';
 
-            // 2) Wenn Clipboard-Image nicht unterstützt → sauberer Download-Fallback
+            // 2) Wenn Clipboard-Image nicht unterstÃ¼tzt â†’ sauberer Download-Fallback
             if (!canClipboardImages.value) {
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
@@ -941,13 +941,13 @@
                 a.click();
                 URL.revokeObjectURL(a.href);
                 a.remove();
-                addToast('Bild gespeichert (Kopieren nicht unterstützt)', 'save');
+                addToast('Bild gespeichert (Kopieren nicht unterstÃ¼tzt)', 'save');
                 closeAvatarMenu();
                 return;
             }
 
-            // 3) Primär: Als Bild + (optional) HTML & Plain-Text schreiben
-            //    Manche Browser mögen mehrere Typen, manche nur einen → Erst Multi, dann degrade.
+            // 3) PrimÃ¤r: Als Bild + (optional) HTML & Plain-Text schreiben
+            //    Manche Browser mÃ¶gen mehrere Typen, manche nur einen â†’ Erst Multi, dann degrade.
             const htmlUrl = URL.createObjectURL(blob);
             const multiItem: any = new (window as any).ClipboardItem({
                 [mime]: blob,
@@ -965,10 +965,10 @@
                 URL.revokeObjectURL(htmlUrl);
             }
 
-            addToast('Bild in Zwischenablage ✅', 'save');
+            addToast('Bild in Zwischenablage âœ…', 'save');
             closeAvatarMenu();
         } catch (err) {
-            // Häufige Ursachen: fehlende User-Geste, unsichere Origin, CORS, iOS/Safari
+            // HÃ¤ufige Ursachen: fehlende User-Geste, unsichere Origin, CORS, iOS/Safari
             addToast('Konnte Bild nicht kopieren.', 'delete');
             console.error('copyAvatar error:', err);
         }
@@ -985,7 +985,7 @@
     }
     let prevFocusEl: Element | null = null;
 
-    // Click-Away: außerhalb schließen
+    // Click-Away: auÃŸerhalb schlieÃŸen
     function onOutsidePointer(e: PointerEvent) {
         const m = avatarMenuEl.value, a = avatarEl.value
         const t = e.target as Node
@@ -1010,7 +1010,7 @@
             validationErrors.value = [
                 `Deine Datei hat ${(file.size / (1024 * 1024)).toFixed(2)} MB.`,
                 'Maximal erlaubt: 2.00 MB.',
-                'Komprimiere das Bild oder wähle eine kleinere Datei.'
+                'Komprimiere das Bild oder wÃ¤hle eine kleinere Datei.'
             ]
             showValidation.value = true
             input.value = ''
@@ -1042,7 +1042,7 @@
                 const normalized = await normalizeAvatar(pendingAvatar.value, 512);
                 avatarUrl.value = normalized;
                 localStorage.setItem(AVATAR_KEY, normalized);
-                addToast('Profilbild gespeichert ✅', 'save');
+                addToast('Profilbild gespeichert âœ…', 'save');
             }
         } catch {
             addToast('Bild konnte nicht verarbeitet werden.', 'delete');
@@ -1117,9 +1117,9 @@
     // Badges dynamisch
     const computedBadges = computed(() => {
         const arr: { id: string; icon: string; label: string; desc: string }[] = []
-        if (streakDays.value >= 7) arr.push({ id: 'streak7', icon: 'fas fa-bolt', label: '7-Tage Streak', desc: '7 Tage am Stück aktiv' })
+        if (streakDays.value >= 7) arr.push({ id: 'streak7', icon: 'fas fa-bolt', label: '7-Tage Streak', desc: '7 Tage am StÃ¼ck aktiv' })
         if (sumLastDays(activity.value, 30) >= 20) arr.push({ id: 'grinder', icon: 'fas fa-dumbbell', label: 'Grinder 20/30', desc: '20 Workouts in 30 Tagen' })
-        if ((activity.value[0] ?? 0) === 0 && (activity.value.at(-1) ?? 0) > 0) arr.push({ id: 'comeback', icon: 'fas fa-rotate-right', label: 'Comeback', desc: 'Zurück im Training' })
+        if ((activity.value[0] ?? 0) === 0 && (activity.value.at(-1) ?? 0) > 0) arr.push({ id: 'comeback', icon: 'fas fa-rotate-right', label: 'Comeback', desc: 'ZurÃ¼ck im Training' })
         if (weeklyWorkouts.value >= 5) arr.push({ id: 'beast', icon: 'fas fa-dragon', label: 'Beast Mode', desc: '5+ Workouts diese Woche' })
         return arr
     })
@@ -1137,7 +1137,7 @@
     const toastPosition = ref<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
 
     function onToastDismiss() {
-        // Child hat entschieden zu schließen (auch nach Pause/Resume korrekt)
+        // Child hat entschieden zu schlieÃŸen (auch nach Pause/Resume korrekt)
         toast.value = null
         if (timeoutHandle) { clearTimeout(timeoutHandle); timeoutHandle = null }
     }
@@ -1152,7 +1152,7 @@
         activity.value[activity.value.length - 1] = Math.max(0, activity.value[activity.value.length - 1] - 1)
     }
     function extendHistory() {
-        // prepend 7 "0"-Tage an den Anfang, um Historie zu verlängern
+        // prepend 7 "0"-Tage an den Anfang, um Historie zu verlÃ¤ngern
         activity.value = Array(7).fill(0).concat(activity.value)
     }
     function resetActivity() {
@@ -1178,33 +1178,33 @@
     async function handleEmailChange({ newEmail, password }: { newEmail: string; password: string }) {
         try {
             await auth.changeEmail(newEmail, password)
-            addToast('E-Mail aktualisiert ✅', 'save')
+            addToast('E-Mail aktualisiert âœ…', 'save')
             closeEmailPopup()
         } catch (e: any) {
-            emailError.value = e?.response?.data?.message || 'E-Mail ändern fehlgeschlagen.'
+            emailError.value = e?.response?.data?.message || 'E-Mail Ã¤ndern fehlgeschlagen.'
         }
     }
 
     async function handleAccountDelete({ password }: { password: string }) {
         try {
-            // Server löschen
+            // Server lÃ¶schen
             await auth.deleteAccount(password)
 
             // lokale Daten wipen (wie bisher)
             Object.values(LS_KEYS).forEach(k => localStorage.removeItem(k))
 
-            addToast('Konto gelöscht. Bye 👋', 'delete')
+            addToast('Konto gelÃ¶scht. Bye ðŸ‘‹', 'delete')
             router.push({ name: 'home' })
         } catch (e: any) {
-            deleteError.value = e?.response?.data?.message || 'Löschen fehlgeschlagen.'
+            deleteError.value = e?.response?.data?.message || 'LÃ¶schen fehlgeschlagen.'
         }
     }
     async function submitEmail() {
         emailError.value = ''
         const { newEmail, password } = emailForm.value
         const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)
-        if (!valid) { emailError.value = 'Bitte eine gültige E-Mail eingeben.'; return }
-        if (!password) { emailError.value = 'Passwort erforderlich (nur Bestätigung, kein Server-Check).'; return }
+        if (!valid) { emailError.value = 'Bitte eine gÃ¼ltige E-Mail eingeben.'; return }
+        if (!password) { emailError.value = 'Passwort erforderlich (nur BestÃ¤tigung, kein Server-Check).'; return }
 
         // Update lokaler Auth-Store + localStorage (kein Backend)
         if (auth.user) auth.user.email = newEmail
@@ -1227,13 +1227,13 @@
     async function handlePasswordChange({ current, next }: { current: string; next: string; repeat: string }) {
         try {
             await auth.changePassword(current, next)
-            addToast('Passwort erfolgreich geändert ✅', 'save')
+            addToast('Passwort erfolgreich geÃ¤ndert âœ…', 'save')
             closePasswordPopup()
         } catch (e: any) {
             const msg =
                 e?.response?.data?.errors?.join?.('\n') ||    // Identity-Fehlerliste
                 e?.response?.data?.message ||                // sonstige Meldung
-                'Fehler beim Ändern.'
+                'Fehler beim Ã„ndern.'
             addToast(msg, 'delete')
         }
     }
@@ -1243,7 +1243,7 @@
         const { current, next, repeat } = pwdForm.value;
 
         if (!current || !next || !repeat) {
-            pwdError.value = 'Bitte alle Felder ausfüllen.';
+            pwdError.value = 'Bitte alle Felder ausfÃ¼llen.';
             return;
         }
         if (next.length < 8) {
@@ -1251,22 +1251,22 @@
             return;
         }
         if (next !== repeat) {
-            pwdError.value = 'Passwörter stimmen nicht überein.';
+            pwdError.value = 'PasswÃ¶rter stimmen nicht Ã¼berein.';
             return;
         }
 
         try {
             await auth.changePassword(current, next);
-            addToast('Passwort erfolgreich geändert ✅', 'save');
+            addToast('Passwort erfolgreich geÃ¤ndert âœ…', 'save');
             closePasswordPopup();
         } catch (e: any) {
-            pwdError.value = e?.response?.data?.message || 'Fehler beim Ändern.';
+            pwdError.value = e?.response?.data?.message || 'Fehler beim Ã„ndern.';
         }
     }
 
 
     const showDeletePopup = ref(false)
-    const deleteConfirmPhrase = 'KONTO LÖSCHEN'
+    const deleteConfirmPhrase = 'KONTO LÃ–SCHEN'
     const deleteConfirmInput = ref('')
     const deleteError = ref('')
 
@@ -1279,12 +1279,12 @@
 
     async function confirmDelete() {
         if (deleteConfirmInput.value !== deleteConfirmPhrase) {
-            deleteError.value = `Bitte exakt „${deleteConfirmPhrase}“ eingeben.`
+            deleteError.value = `Bitte exakt â€ž${deleteConfirmPhrase}â€œ eingeben.`
             return
         }
-        // lokale Daten löschen
+        // lokale Daten lÃ¶schen
         Object.values(LS_KEYS).forEach(k => localStorage.removeItem(k))
-        addToast('Lokale Profildaten gelöscht', 'delete')
+        addToast('Lokale Profildaten gelÃ¶scht', 'delete')
         await auth.signOut()
         router.push({ name: 'home' })
     }
@@ -1319,7 +1319,7 @@
     // --- Toasts ---
     const toast = ref<ToastModel | null>(null)
     let toastId = 0
-    let timeoutHandle: ReturnType<typeof setTimeout> | null = null // bleibt für Abwärtskompatibilität ungenutzt
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null // bleibt fÃ¼r AbwÃ¤rtskompatibilitÃ¤t ungenutzt
 
     function addToast(
         message: string,
@@ -1328,7 +1328,7 @@
         action?: { label: string; handler: () => void }
     ) {
         if (timeoutHandle) { clearTimeout(timeoutHandle); timeoutHandle = null }
-        const emojis = { add: '✅', delete: '🗑️', save: '💾', default: '📋' } as const
+        const emojis = { add: 'âœ…', delete: 'ðŸ—‘ï¸', save: 'ðŸ’¾', default: 'ðŸ“‹' } as const
         const classes = { add: 'toast-add', delete: 'toast-delete', save: 'toast-save', default: 'toast-default' } as const
         toast.value = {
             id: toastId++,
@@ -1337,7 +1337,7 @@
             type: classes[kind],
             exiting: false,
             durationMs,
-            action // <-- Button + Handler für Toast.vue
+            action // <-- Button + Handler fÃ¼r Toast.vue
         } as any
     }
 
@@ -1385,7 +1385,7 @@
         display: flex;
         gap: .35rem;
         margin-top: .4rem;
-        margin-bottom: 1rem; /* mehr Abstand zum nächsten Ziel */
+        margin-bottom: 1rem; /* mehr Abstand zum nÃ¤chsten Ziel */
         flex-wrap: wrap;
     }
 
@@ -1774,7 +1774,7 @@
         bottom: 14px;
         display: grid;
         gap: 8px;
-        z-index: 2100; /* über Stage, unter Close-Button passt auch */
+        z-index: 2100; /* Ã¼ber Stage, unter Close-Button passt auch */
     }
 
     .vc-btn {
@@ -1803,7 +1803,7 @@
         position: absolute;
         right: 2px; /* sitzt sauber am Avatar-Rand */
         bottom: 2px;
-        width: 30px; /* unsichtbare Klickfläche */
+        width: 30px; /* unsichtbare KlickflÃ¤che */
         height: 30px;
         border: none;
         background: transparent;
@@ -1830,7 +1830,7 @@
             background: #60a5fa; /* klares Blau */
             transform: translate(-50%, -50%);
             border-radius: 3px; /* runde Enden */
-            filter: drop-shadow(0 0 1px #fff) /* feine weiße Kontur */
+            filter: drop-shadow(0 0 1px #fff) /* feine weiÃŸe Kontur */
             drop-shadow(0 1px 2px rgba(0,0,0,.35)); /* dezenter Schatten */
             will-change: transform;
         }
@@ -1857,7 +1857,7 @@
             user-drag: none;
             -webkit-touch-callout: none;
             user-select: none;
-            pointer-events: none; /* Bild selbst fängt keine Klicks/Long-Press ab */
+            pointer-events: none; /* Bild selbst fÃ¤ngt keine Klicks/Long-Press ab */
         }
     .avatar-plus:hover {
         transform: translateY(-1px);
@@ -1885,7 +1885,7 @@
 
     .motto-input {
         flex: 1;
-        min-width: 0; /* verhindert Breitenänderung */
+        min-width: 0; /* verhindert BreitenÃ¤nderung */
         max-width: 100%; /* bleibt innerhalb der Card */
         box-sizing: border-box;
     }
@@ -2006,8 +2006,8 @@
         gap: .5rem;
         flex-wrap: nowrap;
         margin-left: auto; /* schiebt den Block ganz nach rechts */
-        flex: 0 1 auto; /* nimmt nur so viel Platz wie nötig */
-        text-align: right; /* Text/Buttons rechtsbündig */
+        flex: 0 1 auto; /* nimmt nur so viel Platz wie nÃ¶tig */
+        text-align: right; /* Text/Buttons rechtsbÃ¼ndig */
     }
 
     .name-input {
@@ -2016,7 +2016,7 @@
         white-space: nowrap;
     }
 
-    /* Name-Text läuft sauber aus ohne Sprünge */
+    /* Name-Text lÃ¤uft sauber aus ohne SprÃ¼nge */
     .name-text {
         overflow: hidden;
         text-overflow: ellipsis;

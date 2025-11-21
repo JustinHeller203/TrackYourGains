@@ -71,7 +71,7 @@
         font-family: var(--popup-font-family, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
     }
 
-    /* Titel – vorher war das 0.25rem (!) */
+    /* Titel â€“ vorher war das 0.25rem (!) */
     .popup-title {
         font-size: var(--popup-title-size, 1.25rem);
         line-height: 1.25;
@@ -80,7 +80,7 @@
         margin-bottom: 1rem;
     }
 
-    /* Body – Grundschriftgröße */
+    /* Body â€“ GrundschriftgrÃ¶ÃŸe */
     .popup-body {
         font-size: var(--popup-body-size, 1rem);
     }
@@ -115,7 +115,7 @@
             outline: none;
         }
 
-    /* Varianten-Abstände (Beispiele) */
+    /* Varianten-AbstÃ¤nde (Beispiele) */
     .popup-overlay.weight-goal-popup :deep(.edit-input) {
         margin-bottom: 1.25rem;
     }

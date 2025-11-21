@@ -1,4 +1,4 @@
-﻿// src/store/authStore.ts
+// src/store/authStore.ts
 import { defineStore } from "pinia";
 import { login, register, logout, changeEmail, changePassword, deleteAccount as svcDeleteAccount } from "@/services/auth";
 import { getToken } from "@/lib/api";

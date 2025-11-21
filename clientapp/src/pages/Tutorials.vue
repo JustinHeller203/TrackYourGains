@@ -1,14 +1,14 @@
 <!--Tutorial.vue-->
 <template>
     <div class="tutorials" :class="{ 'dark-mode': darkMode }">
-        <h2 class="page-title">🎥 Übungstutorials</h2>
+        <h2 class="page-title">ðŸŽ¥ Ãœbungstutorials</h2>
         <div class="search-and-filter">
             <input v-model="searchQuery" placeholder="Tutorial suchen..." class="search-bar" />
             <select v-model="selectedCategory" class="category-filter">
                 <option value="">Alle Kategorien</option>
-                <option value="Oberkörper">Oberkörper</option>
-                <option value="Unterkörper">Unterkörper</option>
-                <option value="Ganzkörper">Ganzkörper</option>
+                <option value="OberkÃ¶rper">OberkÃ¶rper</option>
+                <option value="UnterkÃ¶rper">UnterkÃ¶rper</option>
+                <option value="GanzkÃ¶rper">GanzkÃ¶rper</option>
             </select>
         </div>
         <div v-if="loading" class="loading-indicator">
@@ -30,7 +30,7 @@
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             referrerpolicy="strict-origin-when-cross-origin" />
                     <div v-else class="video-placeholder">
-                        <p>Video wird bald hinzugefügt</p>
+                        <p>Video wird bald hinzugefÃ¼gt</p>
                     </div>
                     <p class="card-info">{{ tutorial.description }}</p>
                     <p class="card-category">{{ tutorial.category }}</p>
@@ -64,73 +64,73 @@
         tutorials.value = [
             {
                 id: 1,
-                title: 'Bankdrücken',
-                description: 'Lerne die korrekte Technik für Bankdrücken.',
+                title: 'BankdrÃ¼cken',
+                description: 'Lerne die korrekte Technik fÃ¼r BankdrÃ¼cken.',
                 videoUrl: 'https://www.youtube.com/embed/vthMCtgVtFw',
-                category: 'Oberkörper'
+                category: 'OberkÃ¶rper'
             },
             {
                 id: 2,
                 title: 'Kniebeugen',
-                description: 'Meistere die Kniebeuge für starke Beine.',
+                description: 'Meistere die Kniebeuge fÃ¼r starke Beine.',
                 videoUrl: 'https://www.youtube.com/embed/ultWZbUMPL8',
-                category: 'Unterkörper'
+                category: 'UnterkÃ¶rper'
             },
             {
                 id: 3,
                 title: 'Kreuzheben',
                 description: 'Perfektioniere deine Kreuzhebe-Technik.',
                 videoUrl: 'https://www.youtube.com/embed/VL5Ab0T07e4',
-                category: 'Ganzkörper'
+                category: 'GanzkÃ¶rper'
             },
             {
                 id: 4,
-                title: 'Schulterdrücken',
-                description: 'Stärke deine Schultern mit dieser Übung.',
+                title: 'SchulterdrÃ¼cken',
+                description: 'StÃ¤rke deine Schultern mit dieser Ãœbung.',
                 videoUrl: 'https://www.youtube.com/embed/2H6FQKVjWrE',
-                category: 'Oberkörper'
+                category: 'OberkÃ¶rper'
             },
             {
                 id: 5,
-                title: 'Klimmzüge',
-                description: 'Bau deinen Rücken mit Klimmzügen auf.',
+                title: 'KlimmzÃ¼ge',
+                description: 'Bau deinen RÃ¼cken mit KlimmzÃ¼gen auf.',
                 videoUrl: 'https://www.youtube.com/embed/eGo4IYlbE5g',
-                category: 'Oberkörper'
+                category: 'OberkÃ¶rper'
             },
             {
                 id: 6,
                 title: 'Ausfallschritte',
                 description: 'Form deine Beine und deinen Po mit Ausfallschritten.',
                 videoUrl: 'https://www.youtube.com/embed/QOVaHwm-Q6U',
-                category: 'Unterkörper'
+                category: 'UnterkÃ¶rper'
             },
             {
                 id: 7,
                 title: 'Plank',
-                description: 'Stärke deine Core-Muskulatur mit dem Plank.',
+                description: 'StÃ¤rke deine Core-Muskulatur mit dem Plank.',
                 videoUrl: 'https://www.youtube.com/embed/pSHjTRCQxIw',
-                category: 'Ganzkörper'
+                category: 'GanzkÃ¶rper'
             },
             {
                 id: 8,
                 title: 'Bizepscurls',
                 description: 'Trainiere deine Arme mit Curls.',
                 videoUrl: 'https://www.youtube.com/embed/ykJmrZ5v0Oo',
-                category: 'Oberkörper'
+                category: 'OberkÃ¶rper'
             },
             {
                 id: 9,
                 title: 'Beinpresse',
-                description: 'Kräftige deine Beine an der Beinpresse.',
+                description: 'KrÃ¤ftige deine Beine an der Beinpresse.',
                 videoUrl: null,
-                category: 'Unterkörper'
+                category: 'UnterkÃ¶rper'
             },
             {
                 id: 10,
                 title: 'Burpees',
-                description: 'Ganzkörper-Killerübung für Ausdauer und Kraft.',
+                description: 'GanzkÃ¶rper-KillerÃ¼bung fÃ¼r Ausdauer und Kraft.',
                 videoUrl: 'https://www.youtube.com/embed/dZgVxmf6jkA',
-                category: 'Ganzkörper'
+                category: 'GanzkÃ¶rper'
             }
         ];
         loading.value = false;
@@ -149,7 +149,7 @@
     .tutorials {
         padding: 2rem;
         background: var(--bg-primary);
-        overflow-x: hidden; /* ⟵ verhindert seitliches Wischen */
+        overflow-x: hidden; /* âŸµ verhindert seitliches Wischen */
         max-width: 100%;
     }
 
@@ -181,7 +181,7 @@
     .search-bar, .category-filter {
         min-width: 0;
     }
-    /* dürfen schrumpfen */
+    /* dÃ¼rfen schrumpfen */
 
     @media (max-width: 600px) {
         .tutorials {
@@ -254,9 +254,9 @@
 
     .video-frame {
         display: block;
-        width: 100% !important; /* überschreibt evtl. Inline-Werte */
+        width: 100% !important; /* Ã¼berschreibt evtl. Inline-Werte */
         max-width: 100%;
-        aspect-ratio: 16 / 9; /* responsive Höhe */
+        aspect-ratio: 16 / 9; /* responsive HÃ¶he */
         height: auto; /* mit aspect-ratio */
         border-radius: 8px;
         box-sizing: border-box;

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <BasePopup :show="show"
                title="Passwort ändern"
                variant="password-change-popup"
