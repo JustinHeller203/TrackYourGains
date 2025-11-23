@@ -63,7 +63,7 @@
 
         .plan-submit-btn:hover:not(:disabled) {
             background: linear-gradient(45deg, #5a7bc4, #2a3b6a);
-            /* keine Vergrößerung mehr */
+            /* keine Vergr��erung mehr */
             box-shadow: 0 4px 12px rgba(0,0,0,0.12);
             filter: brightness(1.02);
         }

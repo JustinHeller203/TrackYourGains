@@ -5,7 +5,7 @@
                @cancel="$emit('cancel')">
         <template #default>
             <div class="input-group">
-                <label class="downloaddistance">Download-Format wÃ¤hlen:</label>
+                <label class="downloaddistance">Download-Format wählen:</label>
                 <select ref="sel"
                         v-model="proxy"
                         class="edit-input">

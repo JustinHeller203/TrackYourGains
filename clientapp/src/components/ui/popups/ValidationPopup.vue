@@ -5,7 +5,7 @@
                overlayClass="validation-popup"
                @cancel="$emit('close')">
         <div class="validation-body">
-            <div class="icon-wrap" aria-hidden="true">⚠️</div>
+            <div class="icon-wrap" aria-hidden="true">??</div>
             <p v-if="lead" class="lead">{{ lead }}</p>
 
             <ul class="error-list" role="list">
@@ -35,7 +35,7 @@
         lead?: string
     }>(), {
         title: 'Eingabefehler',
-        lead: 'Bitte überprüfe die folgenden Punkte:'
+        lead: 'Bitte �berpr�fe die folgenden Punkte:'
     })
 
     defineEmits<{ (e: 'close'): void }>()

@@ -1,9 +1,9 @@
 <template>
     <form @submit.prevent="submit" class="form-card">
-        <input v-model="exercise" placeholder="Ãœbung (z.B. BankdrÃ¼cken)" />
+        <input v-model="exercise" placeholder="Übung (z.B. Bankdrücken)" />
         <input v-model.number="weight" placeholder="Gewicht (kg)" type="number" />
         <input v-model.number="reps" placeholder="Wdh" type="number" />
-        <input v-model.number="sets" placeholder="SÃ¤tze" type="number" />
+        <input v-model.number="sets" placeholder="Sätze" type="number" />
         <button type="submit">Speichern</button>
     </form>
 </template>

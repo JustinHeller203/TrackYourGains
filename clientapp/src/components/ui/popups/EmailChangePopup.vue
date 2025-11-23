@@ -1,14 +1,14 @@
 <template>
     <BasePopup :show="show"
-               title="E-Mail Ã¤ndern"
+               title="E-Mail ändern"
                variant="email-change-popup"
                @cancel="$emit('cancel')">
         <div class="form-grid">
             <label class="label">Neue E-Mail</label>
             <input ref="emailRef" v-model.trim="email" type="email" class="edit-input" placeholder="dein.name@mail.com" />
 
-            <label class="label">Passwort zur BestÃ¤tigung</label>
-            <input v-model="password" type="password" class="edit-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
+            <label class="label">Passwort zur Bestätigung</label>
+            <input v-model="password" type="password" class="edit-input" placeholder="••••••••" />
 
             <p v-if="error" class="form-error">{{ error }}</p>
         </div>
@@ -41,7 +41,7 @@ watch(() => props.show, async (open) => {
 function onSave() {
   if (!email.value) { error.value = 'Bitte eine E-Mail eingeben.'; return }
   const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)
-  if (!valid) { error.value = 'Bitte eine gÃ¼ltige E-Mail eingeben.'; return }
+  if (!valid) { error.value = 'Bitte eine gültige E-Mail eingeben.'; return }
   if (!password.value) { error.value = 'Bitte Passwort eingeben.'; return }
   error.value = ''
   emit('save', { newEmail: email.value, password: password.value })

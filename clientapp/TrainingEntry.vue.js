@@ -44,7 +44,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.form, __VLS_intrinsicElements.
     ...{ class: "form-card" },
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "Ãœbung (z.B. BankdrÃ¼cken)",
+    placeholder: "Übung (z.B. Bankdrücken)",
 });
 (__VLS_ctx.exercise);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
@@ -58,7 +58,7 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
 });
 (__VLS_ctx.reps);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.input)({
-    placeholder: "SÃ¤tze",
+    placeholder: "Sätze",
     type: "number",
 });
 (__VLS_ctx.sets);

@@ -4,7 +4,7 @@
             :disabled="disabled"
             :title="title || 'Einstellungen speichern'"
             @click="$emit('click')">
-        <slot>💾 Einstellungen speichern</slot>
+        <slot>?? Einstellungen speichern</slot>
     </button>
 </template>
 
@@ -22,9 +22,9 @@
 <style scoped>
     .save-button {
         position: relative;
-        overflow: hidden; /* für den Sheen */
+        overflow: hidden; /* f�r den Sheen */
         background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        background-size: 200% 200%; /* für spürbaren Shift */
+        background-size: 200% 200%; /* f�r sp�rbaren Shift */
         background-position: 0% 50%;
         color: #ffffff;
         border: none;
@@ -37,10 +37,10 @@
         transition: background-position .35s ease, filter .25s ease, box-shadow .25s ease, outline-color .25s ease;
     }
 
-        /* Stärkerer, dauerhafter Hover-Eindruck */
+        /* St�rkerer, dauerhafter Hover-Eindruck */
         .save-button:hover {
             background-position: 100% 50%; /* sichtbarer Verlaufsshift */
-            filter: brightness(1.12) saturate(1.12); /* kräftigeres Leuchten */
+            filter: brightness(1.12) saturate(1.12); /* kr�ftigeres Leuchten */
             box-shadow: var(--shadow-hover), 0 8px 22px rgba(0,0,0,.12); /* extra Tiefenwurf */
             outline: 3px solid var(--accent-primary); /* feiner Ring */
             outline-offset: 3px;
@@ -51,7 +51,7 @@
             filter: brightness(1.05) saturate(1.08);
         }
 
-        /* „Sheen“ Lichtreflex – bleibt während Hover sichtbar durch leichte Wiederholung */
+        /* �Sheen� Lichtreflex � bleibt w�hrend Hover sichtbar durch leichte Wiederholung */
         .save-button::after {
             content: '';
             position: absolute;
@@ -73,7 +73,7 @@
         }
     }
 
-    /* Dark Mode Varianten – behalten den kräftigen Effekt */
+    /* Dark Mode Varianten � behalten den kr�ftigen Effekt */
     html.dark-mode .save-button {
         background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
     }

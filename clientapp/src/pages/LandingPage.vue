@@ -5,11 +5,11 @@
             <h1 class="hero-title">
                 <span class="typed-text">{{ typedText }}</span><span class="cursor">|</span>
             </h1>
-            <p class="hero-subtitle">Dein Begleiter fÃ¼r Fitness, ErnÃ¤hrung und Fortschritt. Starte jetzt und erreiche deine Ziele! ðŸ’ª</p>
+            <p class="hero-subtitle">Dein Begleiter für Fitness, Ernährung und Fortschritt. Starte jetzt und erreiche deine Ziele! 💪</p>
             <router-link to="/progress" class="cta-button">Jetzt loslegen</router-link>
         </section>
         <section class="stats">
-            <h2 class="section-title">Deine Erfolge ðŸ†</h2>
+            <h2 class="section-title">Deine Erfolge 🏆</h2>
             <div class="stats-grid">
                 <div class="stat-card">
                     <span class="stat-number">42</span>
@@ -26,28 +26,28 @@
             </div>
         </section>
         <section class="features">
-            <h2 class="section-title">Alles, was du brauchst ðŸŒŸ</h2>
+            <h2 class="section-title">Alles, was du brauchst 🌟</h2>
             <div class="features-grid">
                 <div class="feature-card">
-                    <h3 class="feature-title">ðŸ‹ï¸â€â™‚ï¸ Training</h3>
+                    <h3 class="feature-title">🏋️‍♂️ Training</h3>
                     <p class="feature-text">Plane Workouts, die dich voranbringen.</p>
                 </div>
                 <div class="feature-card">
-                    <h3 class="feature-title">ðŸŽ ErnÃ¤hrung</h3>
-                    <p class="feature-text">Tracke Mahlzeiten fÃ¼r maximale Energie.</p>
+                    <h3 class="feature-title">🍎 Ernährung</h3>
+                    <p class="feature-text">Tracke Mahlzeiten für maximale Energie.</p>
                 </div>
                 <div class="feature-card">
-                    <h3 class="feature-title">ðŸ“ˆ Fortschritt</h3>
+                    <h3 class="feature-title">📈 Fortschritt</h3>
                     <p class="feature-text">Sieh deine Erfolge auf einen Blick.</p>
                 </div>
                 <div class="feature-card">
-                    <h3 class="feature-title">ðŸŽ¥ Tutorials</h3>
+                    <h3 class="feature-title">🎥 Tutorials</h3>
                     <p class="feature-text">Lerne Techniken wie ein Profi.</p>
                 </div>
             </div>
         </section>
         <section class="quick-links">
-            <h2 class="section-title">Schnellstart âš¡</h2>
+            <h2 class="section-title">Schnellstart ⚡</h2>
             <div class="links-grid">
                 <router-link to="/training" class="link-button">Trainingsplan erstellen</router-link>
                 <router-link to="/nutrition" class="link-button">Mahlzeit planen</router-link>
@@ -55,34 +55,34 @@
             </div>
         </section>
         <section class="testimonials">
-            <h2 class="section-title">Was unsere Nutzer sagen ðŸ—£ï¸</h2>
+            <h2 class="section-title">Was unsere Nutzer sagen 🗣️</h2>
             <div class="testimonials-grid">
                 <div class="testimonial-card">
-                    <p class="testimonial-text">"TrackYourGains hat mir geholfen, meine Fitnessziele zu erreichen! ðŸŽ¯"</p>
+                    <p class="testimonial-text">"TrackYourGains hat mir geholfen, meine Fitnessziele zu erreichen! 🎯"</p>
                     <p class="testimonial-author">- Max Mustermann</p>
                 </div>
                 <div class="testimonial-card">
-                    <p class="testimonial-text">"Ich liebe die ErnÃ¤hrungs-Tracking-Funktion. Sie ist so einfach zu bedienen! ðŸ´"</p>
+                    <p class="testimonial-text">"Ich liebe die Ernährungs-Tracking-Funktion. Sie ist so einfach zu bedienen! 🍴"</p>
                     <p class="testimonial-author">- Anna Beispiel</p>
                 </div>
             </div>
         </section>
         <section class="blog">
-            <h2 class="section-title">Aktuelle BlogbeitrÃ¤ge ðŸ“š</h2>
+            <h2 class="section-title">Aktuelle Blogbeiträge 📚</h2>
             <div class="blog-grid">
                 <div class="blog-card">
-                    <h3 class="blog-title">Wie du deine Fitnessziele erreichst ðŸ†</h3>
+                    <h3 class="blog-title">Wie du deine Fitnessziele erreichst 🏆</h3>
                     <p class="blog-text">Erfahre, wie du mit TrackYourGains deine Fitnessziele erreichen kannst.</p>
                 </div>
                 <div class="blog-card">
-                    <h3 class="blog-title">Tipps fÃ¼r bessere ErnÃ¤hrung ðŸŽ</h3>
+                    <h3 class="blog-title">Tipps für bessere Ernährung 🍎</h3>
                     <p class="blog-text">Lerne, wie du deine Mahlzeiten optimierst.</p>
                 </div>
             </div>
         </section>
         <section class="cta">
-            <h2 class="section-title">Bereit fÃ¼r deine Transformation? ðŸŒŸ</h2>
-            <router-link to="/progress" class="cta-button">Los gehtâ€™s! ðŸš€</router-link>
+            <h2 class="section-title">Bereit für deine Transformation? 🌟</h2>
+            <router-link to="/progress" class="cta-button">Los geht’s! 🚀</router-link>
         </section>
     </div>
 </template>
@@ -111,8 +111,8 @@
     .landing {
         font-family: 'Inter', sans-serif;
         background: var(--bg-primary);
-        overflow-x: hidden; /* âŸµ kein seitliches Wischen mehr */
-        scrollbar-gutter: stable; /* âŸµ verhindert â€žLayout-Zuckenâ€œ bei Scrollbar-Wechsel */
+        overflow-x: hidden; /* ⟵ kein seitliches Wischen mehr */
+        scrollbar-gutter: stable; /* ⟵ verhindert „Layout-Zucken“ bei Scrollbar-Wechsel */
         max-width: 100%;
     }
 
@@ -182,7 +182,7 @@
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1.5rem;
         max-width: 100%;
-        overflow-x: clip; /* âŸµ nichts ragt â€žauÃŸerhalbâ€œ */
+        overflow-x: clip; /* ⟵ nichts ragt „außerhalb“ */
     }
 
         .stats-grid > *,
@@ -190,7 +190,7 @@
         .links-grid > *,
         .testimonials-grid > *,
         .blog-grid > * {
-            min-width: 0; /* âŸµ Kinder dÃ¼rfen schrumpfen */
+            min-width: 0; /* ⟵ Kinder dürfen schrumpfen */
         }
 
     /* ===== Cards ===== */
@@ -210,7 +210,7 @@
     .testimonial-card,
     .blog-card {
         will-change: transform;
-        contain: paint; /* âŸµ verhindert Einfluss nach auÃŸen */
+        contain: paint; /* ⟵ verhindert Einfluss nach außen */
     }
 
     /* Hover nur dort, wo Hover existiert (kein Mobile) */
@@ -219,7 +219,7 @@
         .feature-card:hover,
         .testimonial-card:hover,
         .blog-card:hover {
-            transform: translateY(-4px); /* âŸµ keine BreitenÃ¤nderung mehr */
+            transform: translateY(-4px); /* ⟵ keine Breitenänderung mehr */
             box-shadow: var(--shadow-hover);
         }
     }
@@ -292,7 +292,7 @@
             outline-offset: 3px;
         }
 
-        /* Sheen highlight â€“ fully clipped inside the button */
+        /* Sheen highlight – fully clipped inside the button */
         .cta-button::after,
         .link-button::after {
             content: '';

@@ -15,7 +15,7 @@
         <button class="tab"
                 :class="{ active: modelValue === 'plans' }"
                 @click="$emit('update:modelValue', 'plans')">
-            PlÃ¤ne
+            Pläne
         </button>
 
         <div v-if="modelValue === 'calculators'" class="search-container">
@@ -30,7 +30,7 @@
             <input :value="planSearchQuery"
                    @input="$emit('update:planSearchQuery', ($event.target as HTMLInputElement).value)"
                    type="text"
-                   placeholder="PlÃ¤ne suchen..."
+                   placeholder="Pläne suchen..."
                    class="search-input" />
         </div>
     </div>

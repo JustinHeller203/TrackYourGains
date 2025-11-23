@@ -33,8 +33,8 @@
             </label>
             <select :value="activity" @change="onActivityChange" class="edit-input">
                 <option value="low">Niedrig (kein Sport)</option>
-                <option value="moderate">Moderat (1–3x/Woche)</option>
-                <option value="high">Hoch (4–7x/Woche)</option>
+                <option value="moderate">Moderat (1-3x/Woche)</option>
+                <option value="high">Hoch (4-7x/Woche)</option>
             </select>
         </div>
 
@@ -98,7 +98,7 @@
         waterResult: number | null
         isFavorite: boolean
         title?: string
-        /** Optional: überschreibt den Standardtext im Header-InfoHover */
+        /** Optional: �berschreibt den Standardtext im Header-InfoHover */
         info?: string
     }>()
 
@@ -122,16 +122,16 @@
         weight.value === null || Number.isNaN(weight.value) ? '' : String(weight.value)
     )
 
-    /** InfoHover-Texte (Header & Feld-Hilfen) – Header kann via prop.info überschrieben werden */
+    /** InfoHover-Texte (Header & Feld-Hilfen) � Header kann via prop.info �berschrieben werden */
     const headerInfoText = computed(
         () =>
             props.info ??
             'Schätzt den täglichen Wasserbedarf basierend auf Gewicht, Aktivität und Klima. Richtwerte, keine medizinische Beratung.'
     )
     const activityInfoText =
-        'Mehr Aktivität ⇒ höherer Bedarf (Schweißverluste). Wähle dein typisches Wochenpensum.'
+        'Mehr Aktivität ? h�herer Bedarf (Schweißverluste). W�hle dein typisches Wochenpensum.'
     const climateInfoText =
-        'Heiß/Sehr heiß ⇒ mehr trinken (höhere Verdunstung/Schweiß). Gemäßigt für normale Bedingungen.'
+        'Heiß/Sehr heiß ? mehr trinken (höhere Verdunstung/Schweiß). Gemäßigt für normale Bedingungen.'
 
     function maybeAutoCalc() {
         if (props.autoCalcEnabled) emit('calculate')
@@ -154,7 +154,7 @@
 </script>
 
 <style scoped>
-    /* Minimal – gemeinsame Card/Form-Styles kommen global */
+    /* Minimal � gemeinsame Card/Form-Styles kommen global */
     .calculator-card {
         background: var(--bg-card);
         padding: 1.5rem;

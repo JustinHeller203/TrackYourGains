@@ -28,14 +28,14 @@ export function setTheme(theme: 'dark' | 'light') {
     window.dispatchEvent(new CustomEvent('theme-changed', { detail: theme }))
 }
 
-// 👉 NEU: Nur visuell anwenden, nichts speichern, isDark NICHT anfassen.
+// ?? NEU: Nur visuell anwenden, nichts speichern, isDark NICHT anfassen.
 export function previewTheme(theme: 'dark' | 'light') {
     const on = theme === 'dark'
     document.documentElement.classList.toggle('dark-mode', on)
     document.documentElement.style.colorScheme = on ? 'dark' : 'light'
 }
 
-// Sync bei Änderungen in anderen Tabs
+// Sync bei �nderungen in anderen Tabs
 window.addEventListener('storage', (e) => {
     if (e.key === THEME_KEY && (e.newValue === 'dark' || e.newValue === 'light')) {
         apply(e.newValue as 'dark' | 'light')

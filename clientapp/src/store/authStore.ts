@@ -57,7 +57,7 @@ export const useAuthStore = defineStore("auth", {
             return data;
         },
 
-        /** 🗑️ Konto löschen + lokalen State säubern */
+        /** ??? Konto l�schen + lokalen State s�ubern */
         async deleteAccount(password: string) {
             await svcDeleteAccount(password);
             this.user = null;

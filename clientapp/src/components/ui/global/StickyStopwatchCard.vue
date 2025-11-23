@@ -9,10 +9,12 @@
   height: cardHeight,
   zIndex: stopwatch.zIndex ?? 2000,
   background: stopwatch.bgColor ?? undefined,
+  borderRadius: shapeRadius,
   '--ui-scale': uiScale,
   '--btn-bg': stopwatch.btnColor ?? undefined,
   '--time-color': stopwatch.timeColor ?? undefined
 }"
+
          @mousedown="onMouseDown($event)"
          @mousedown.right.prevent="openMenu($event as any)"
          @contextmenu.prevent="openMenu($event as any)"
@@ -41,7 +43,7 @@
                   class="sticky-menu"
                   :menuStyle="menuStyle">
             <button type="button" class="menu-item" @click="handleOpen">
-                &#214;ffnen
+                Öffnen
             </button>
             <button type="button" class="menu-item" @click="handleMove">
                 Verschieben
@@ -50,86 +52,115 @@
                 Zuschneiden
             </button>
 
-            <div class="color-row" @mousedown.stop>
-                <span class="color-label">Farbe</span>
-                <button type="button" class="color-dot default"
-                        title="Default"
-                        @click="setColor(null)">
-                </button>
-                <button type="button" class="color-dot transparent"
-                        title="Transparent"
-                        @click="setColor('transparent')">
-                </button>
-                <button type="button" class="color-dot blue"
-                        title="Blau"
-                        @click="setColor('#1e3a8a')">
-                </button>
-                <button type="button" class="color-dot green"
-                        title="Grün"
-                        @click="setColor('#166534')">
-                </button>
-                <button type="button" class="color-dot amber"
-                        title="Orange"
-                        @click="setColor('#92400e')">
-                </button>
-
-                <input class="color-picker" type="color"
-                       :value="stopwatch.bgColor || '#0d1117'"
-                       @input="setColor(($event.target as HTMLInputElement).value, false)" />
-            </div>
-
-            <div class="color-row" @mousedown.stop>
-                <span class="color-label">Buttons</span>
-                <button type="button" class="color-dot default"
-                        title="Default"
-                        @click="setBtnColor(null, false)">
-                </button>
-                <button type="button" class="color-dot blue"
-                        title="Blau"
-                        @click="setBtnColor('#1e3a8a', false)">
-                </button>
-                <button type="button" class="color-dot green"
-                        title="Grün"
-                        @click="setBtnColor('#166534', false)">
-                </button>
-                <button type="button" class="color-dot amber"
-                        title="Orange"
-                        @click="setBtnColor('#92400e', false)">
-                </button>
-
-                <input class="color-picker" type="color"
-                       :value="stopwatch.btnColor || '#4B6CB7'"
-                       @input="setBtnColor(($event.target as HTMLInputElement).value, false)" />
-            </div>
-
-            <div class="color-row" @mousedown.stop>
-                <span class="color-label">Zeit</span>
-                <button type="button" class="color-dot default"
-                        title="Default"
-                        @click="setTimeColor(null, false)">
-                </button>
-                <button type="button" class="color-dot blue"
-                        title="Blau"
-                        @click="setTimeColor('#1e3a8a', false)">
-                </button>
-                <button type="button" class="color-dot green"
-                        title="Grün"
-                        @click="setTimeColor('#166534', false)">
-                </button>
-                <button type="button" class="color-dot amber"
-                        title="Orange"
-                        @click="setTimeColor('#92400e', false)">
-                </button>
-
-                <input class="color-picker" type="color"
-                       :value="stopwatch.timeColor || '#4B6CB7'"
-                       @input="setTimeColor(($event.target as HTMLInputElement).value, false)" />
-            </div>
-
-            <button type="button" class="menu-item danger" @click="handleClose">
-                Schlie&#223;en
+            <button type="button" class="menu-item" @click="handleEdit" @mousedown.stop>
+                Bearbeiten
             </button>
 
+            <template v-if="showColors">
+                <div class="color-row" @mousedown.stop>
+                    <span class="color-label">Farbe</span>
+                    <button type="button" class="color-dot default"
+                            title="Default"
+                            @click="setColor(null)">
+                    </button>
+                    <button type="button" class="color-dot transparent"
+                            title="Transparent"
+                            @click="setColor('transparent')">
+                    </button>
+                    <button type="button" class="color-dot blue"
+                            title="Blau"
+                            @click="setColor('#1e3a8a')">
+                    </button>
+                    <button type="button" class="color-dot green"
+                            title="Grün"
+                            @click="setColor('#166534')">
+                    </button>
+                    <button type="button" class="color-dot amber"
+                            title="Orange"
+                            @click="setColor('#92400e')">
+                    </button>
+
+                    <input class="color-picker" type="color"
+                           :value="stopwatch.bgColor || '#0d1117'"
+                           @input="setColor(($event.target as HTMLInputElement).value, false)" />
+                </div>
+
+                <div class="color-row" @mousedown.stop>
+                    <span class="color-label">Buttons</span>
+                    <button type="button" class="color-dot default"
+                            title="Default"
+                            @click="setBtnColor(null, false)">
+                    </button>
+                    <button type="button" class="color-dot blue"
+                            title="Blau"
+                            @click="setBtnColor('#1e3a8a', false)">
+                    </button>
+                    <button type="button" class="color-dot green"
+                            title="Grün"
+                            @click="setBtnColor('#166534', false)">
+                    </button>
+                    <button type="button" class="color-dot amber"
+                            title="Orange"
+                            @click="setBtnColor('#92400e', false)">
+                    </button>
+
+                    <input class="color-picker" type="color"
+                           :value="stopwatch.btnColor || '#4B6CB7'"
+                           @input="setBtnColor(($event.target as HTMLInputElement).value, false)" />
+                </div>
+
+                <div class="color-row" @mousedown.stop>
+                    <span class="color-label">Zeit</span>
+                    <button type="button" class="color-dot default"
+                            title="Default"
+                            @click="setTimeColor(null, false)">
+                    </button>
+                    <button type="button" class="color-dot blue"
+                            title="Blau"
+                            @click="setTimeColor('#1e3a8a', false)">
+                    </button>
+                    <button type="button" class="color-dot green"
+                            title="Grün"
+                            @click="setTimeColor('#166534', false)">
+                    </button>
+                    <button type="button" class="color-dot amber"
+                            title="Orange"
+                            @click="setTimeColor('#92400e', false)">
+                    </button>
+
+                    <input class="color-picker" type="color"
+                           :value="stopwatch.timeColor || '#4B6CB7'"
+                           @input="setTimeColor(($event.target as HTMLInputElement).value, false)" />
+                </div>
+                <div class="color-row" @mousedown.stop>
+                    <span class="color-label">Form</span>
+
+                    <button type="button" class="shape-btn" @click="setShape(null)">
+                        Default
+                        <span v-if="stopwatch.shape == null" class="shape-check">✓</span>
+                    </button>
+
+                    <button type="button" class="shape-btn" @click="setShape('square')">
+                        Eckig
+                        <span v-if="stopwatch.shape === 'square'" class="shape-check">✓</span>
+                    </button>
+
+                    <button type="button" class="shape-btn" @click="setShape('rounded')">
+                        Rund
+                        <span v-if="stopwatch.shape === 'rounded'" class="shape-check">✓</span>
+                    </button>
+
+                    <button type="button" class="shape-btn" @click="setShape('oval')">
+                        Oval
+                        <span v-if="stopwatch.shape === 'oval'" class="shape-check">✓</span>
+                    </button>
+                </div>
+
+            </template>
+
+            <button type="button" class="menu-item danger" @click="handleClose">
+                Schließen
+            </button>
         </HoldMenu>
 
 
@@ -177,6 +208,7 @@
         bgColor?: string | null
         btnColor?: string | null
         timeColor?: string | null
+        shape?: 'square' | 'rounded' | 'oval' | null
         width?: number
         height?: number
         left?: number
@@ -185,6 +217,7 @@
         offsetSec?: number
         zIndex?: number
     }
+
 
     const {
         stopwatch,
@@ -212,6 +245,7 @@
 
     const cardEl = ref<HTMLElement | null>(null)
     const showMenu = ref(false)
+    const showColors = ref(false)
 
     const menuStyle = computed(() => {
         const w = stopwatch.width ?? cardEl.value?.offsetWidth ?? 240
@@ -228,13 +262,37 @@
     })
 
     function openMenu(_ev?: MouseEvent | PointerEvent) {
+        bumpZ(stopwatch)
+
         showMenu.value = true
+        showColors.value = false
+
         nextTick(() => {
-            const el = cardEl.value?.querySelector<HTMLElement>('.hold-menu') || null
-                ; (el as any)?.__autoFlip?.update?.()
+            // kein Auto-Flip mehr → Menü bleibt unten
+            bumpZ(stopwatch)
         })
     }
 
+
+    function handleEdit() {
+        showColors.value = !showColors.value
+    }
+
+    const shapeRadius = computed<string | undefined>(() => {
+        switch (stopwatch.shape) {
+            case 'square': return '0px'
+            case 'rounded': return '12px'
+            case 'oval': return '999px'
+            default: return undefined
+        }
+    })
+
+    function setShape(shape: 'square' | 'rounded' | 'oval' | null, close = false) {
+        stopwatch.shape = shape
+        if (close) closeMenu()
+    }
+
+    
     function closeMenu() {
         showMenu.value = false
     }
@@ -815,13 +873,18 @@
     }
 
     .sticky-stopwatch-card .sticky-menu {
-        position: absolute; /* bleibt innerhalb der Card */
-        top: calc(100% + 6px); /* unter der Card */
-        right: 0; /* rechts ausrichten */
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
         left: auto;
         min-width: 150px;
         max-width: 180px;
         z-index: 10000;
+        /* nur wenn kein Platz -> scrollbar im Menü */
+        max-height: calc(100vh - 16px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
     }
 
             .sticky-stopwatch-card .sticky-menu button:hover {
@@ -897,6 +960,35 @@
             /* falls ne feste height gespeichert ist -> trotzdem wachsen */
             height: auto !important;
         }
+    .shape-btn {
+        border: 1px solid var(--border-color);
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: .75rem;
+        padding: .2rem .45rem;
+        border-radius: 6px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+    }
+
+    .shape-check {
+        font-weight: 900;
+        font-size: .9em;
+        line-height: 1;
+        opacity: .9;
+    }
+
+
+        .shape-btn:hover {
+            background: rgba(0,0,0,.06);
+        }
+
+    html.dark-mode .shape-btn:hover {
+        background: rgba(255,255,255,.06);
+    }
 
             .sticky-stopwatch-card.compact .name-link,
             .sticky-stopwatch-card.compact .time {

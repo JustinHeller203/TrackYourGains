@@ -8,7 +8,7 @@
 
             <FavoriteButton :active="isFavorite"
                             :titleActive="'Aus Favoriten entfernen'"
-                            :titleInactive="'Zu Favoriten hinzufügen'"
+                            :titleInactive="'Zu Favoriten hinzuf�gen'"
                             @toggle="$emit('toggleFavorite')" />
         </div>
 
@@ -47,7 +47,7 @@
         <div v-if="oneRmResult !== null || formattedResult" class="result">
             <div class="result-header">
                 <p>
-                    <strong>1RM für {{ exercise || 'Übung' }}:</strong>
+                    <strong>1RM für {{ exercise || '�bung' }}:</strong>
                     {{ displayResult }}
                 </p>
                 <CopyButton @click="$emit('copy')" />
@@ -110,7 +110,7 @@
     const infoText = computed(
         () =>
             props.info ||
-            'Schätzt dein einmaliges Maximalgewicht. Standard: Epley-Formel (1RM = Gewicht × (1 + Wiederholungen/30)).'
+            'Schätzt dein einmaliges Maximalgewicht. Standard: Epley-Formel (1RM = Gewicht - (1 + Wiederholungen/30)).'
     )
 
     /* Bindings */
@@ -118,10 +118,10 @@
     const weight = computed(() => props.oneRmWeight)
     const reps = computed(() => props.oneRmReps)
 
-    /* Anzeige – nutzt bevorzugt formattedResult vom Parent (korrekte Einheit/Format), sonst lokal. */
+    /* Anzeige � nutzt bevorzugt formattedResult vom Parent (korrekte Einheit/Format), sonst lokal. */
     const displayResult = computed(() => {
         if (props.formattedResult) return props.formattedResult
-        if (props.oneRmResult === null || !Number.isFinite(props.oneRmResult)) return '–'
+        if (props.oneRmResult === null || !Number.isFinite(props.oneRmResult)) return '�'
         const u = String(props.unit || '').toLowerCase() === 'lbs' ? 'lbs' : 'kg'
         return `${props.oneRmResult.toFixed(1)} ${u}`
     })

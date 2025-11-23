@@ -1,6 +1,6 @@
 <template>
     <div class="app-container">
-        <!-- âœ… Navbar -->
+        <!-- ✅ Navbar -->
         <nav class="main-nav" ref="navRef">
             <div class="nav-content">
                 <router-link to="/">
@@ -11,7 +11,7 @@
                 <button class="burger-menu"
                         @click="toggleMenu"
                         :class="{ open: menuOpen }"
-                        aria-label="MenÃ¼"
+                        aria-label="Menü"
                         :aria-expanded="menuOpen"
                         aria-controls="mobile-nav-links">
                     <span></span><span></span><span></span>
@@ -21,12 +21,12 @@
                 <ul id="mobile-nav-links" class="nav-links" :class="{ open: menuOpen }">
                     <li><router-link to="/" class="nav-link" @click="closeMenu"><i class="fas fa-home"></i> Home</router-link></li>
                     <li><router-link to="/training" class="nav-link" @click="closeMenu"><i class="fas fa-dumbbell"></i> Training</router-link></li>
-                    <li><router-link to="/nutrition" class="nav-link" @click="closeMenu"><i class="fas fa-utensils"></i> ErnÃ¤hrung</router-link></li>
+                    <li><router-link to="/nutrition" class="nav-link" @click="closeMenu"><i class="fas fa-utensils"></i> Ernährung</router-link></li>
                     <li><router-link to="/progress" class="nav-link" @click="closeMenu"><i class="fas fa-chart-line"></i> Fortschritt</router-link></li>
                     <li><router-link to="/tutorials" class="nav-link" @click="closeMenu"><i class="fas fa-video"></i> Tutorials</router-link></li>
                     <li><router-link to="/settings" class="nav-link" @click="closeMenu"><i class="fas fa-cog"></i> Einstellungen</router-link></li>
 
-                    <!-- ðŸ” Login, wenn kein User -->
+                    <!-- 🔐 Login, wenn kein User -->
                     <template v-if="!auth.isAuthenticated">
                         <li>
                             <router-link to="/login" class="nav-link" @click="closeMenu">
@@ -35,7 +35,7 @@
                         </li>
                     </template>
 
-                    <!-- âœ… Nur Profil, wenn eingeloggt -->
+                    <!-- ✅ Nur Profil, wenn eingeloggt -->
                     <template v-else>
                         <li>
                             <router-link to="/profile" class="nav-link" @click="closeMenu">
@@ -47,10 +47,10 @@
             </div>
         </nav>
 
-        <!-- âœ… Overlay -->
+        <!-- ✅ Overlay -->
         <div v-if="menuOpen" class="nav-overlay" @click="closeMenu"></div>
 
-        <!-- âœ… Sticky Timer -->
+        <!-- ✅ Sticky Timer -->
         <StickyTimerCard v-for="timer in timers.filter(t => t.shouldStaySticky)"
                          :key="'timer-' + timer.id"
                          :timer="timer"
@@ -61,7 +61,7 @@
                          :start-drag="startDrag"
                          :focus-in-training="focusInTraining" />
 
-        <!-- âœ… Sticky Stopwatch -->
+        <!-- ✅ Sticky Stopwatch -->
         <StickyStopwatchCard v-for="sw in stopwatches.filter(sw => sw.shouldStaySticky)"
                              :key="'sw-' + sw.id"
                              :stopwatch="sw"
@@ -72,12 +72,12 @@
                              :start-drag="startDrag"
                              :focus-in-training="focusInTraining" />
 
-        <!-- âœ… Validation-Popup -->
+        <!-- ✅ Validation-Popup -->
         <ValidationPopup :show="showValidationPopup"
                          :errors="validationErrorMessages"
                          @close="closeValidationPopup" />
 
-        <!-- âœ… Seiten-Inhalt -->
+        <!-- ✅ Seiten-Inhalt -->
         <main class="main-content">
             <router-view :timers="timers"
                          :stopwatches="stopwatches"
@@ -129,13 +129,18 @@
         bgColor?: string | null
         btnColor?: string | null
         timeColor?: string | null
+        shape?: 'square' | 'rounded' | 'oval' | null
         width?: number
         height?: number
         left?: number
         top?: number
         endAt?: number | null
+        startedAtMs?: number | null
+        endsAtMs?: number | null
+        pausedRemaining?: number | null
         zIndex?: number
     }
+
 
     interface StopwatchInstance {
         id: string
@@ -160,7 +165,7 @@
     }
 
 
-    // Reaktive ZustÃ¤nde
+    // Reaktive Zustände
     const validationErrorMessages = ref<string[]>([])
     const showValidationPopup = ref(false)
     const menuOpen = ref(false)
@@ -177,14 +182,14 @@
 
     // === neue Refs & Konstanten oben zu den anderen Refs ===
     const dragEl = ref<HTMLElement | null>(null)
-    const EDGE_PAD = 8  // Sicherheitsabstand zu den RÃ¤ndern
+    const EDGE_PAD = 8  // Sicherheitsabstand zu den Rändern
 
     function focusInTraining(type: 'timer' | 'stopwatch', id: string) {
         localStorage.setItem('trainingFocusType', type)
         localStorage.setItem('trainingFocusId', id)
 
         if (router.currentRoute.value.path === '/training') {
-            // Schon dort â†’ fokussieren ohne Route neu zu laden
+            // Schon dort → fokussieren ohne Route neu zu laden
             window.dispatchEvent(new CustomEvent('training:focus', { detail: { type, id } }))
         } else {
             router.push('/training')
@@ -306,7 +311,7 @@
             if (t.interval) { clearInterval(t.interval); t.interval = null }
             timers.value = timers.value.filter(x => x.id !== id)
             await nextTick()
-            saveAll() // â¬…ï¸ hinzufÃ¼gen
+            saveAll() // ⬅️ hinzufügen
         }
     }
 
@@ -319,7 +324,7 @@
             if (sw.interval) { clearInterval(sw.interval); sw.interval = null }
             stopwatches.value = stopwatches.value.filter(s => s.id !== id)
             await nextTick()
-            saveAll() // â¬…ï¸ hinzufÃ¼gen
+            saveAll() // ⬅️ hinzufügen
         }
     }
 
@@ -327,7 +332,7 @@
         // optional: Limit gleichzeitiger Timer
         const running = timers.value.filter(t => t.isRunning)
         if (running.length >= 3) {
-            openValidationPopup(['Maximal 3 Timer dÃ¼rfen gleichzeitig laufen!'])
+            openValidationPopup(['Maximal 3 Timer dürfen gleichzeitig laufen!'])
             return
         }
 
@@ -385,7 +390,7 @@
         if (!sw.isRunning) {
             const running = stopwatches.value.filter(s => s.isRunning)
             if (running.length >= 3) {
-                openValidationPopup(['Maximal 3 Stoppuhren dÃ¼rfen gleichzeitig laufen!'])
+                openValidationPopup(['Maximal 3 Stoppuhren dürfen gleichzeitig laufen!'])
                 return
             }
             sw.isRunning = true
@@ -467,7 +472,7 @@
         clampObjToViewport(t, elW, elH)
     }
 
-    // === stopDrag minimal ergÃ¤nzen ===
+    // === stopDrag minimal ergänzen ===
     function stopDrag() {
         dragging.value = false
         dragTarget.value = null
@@ -576,7 +581,7 @@
 <style scoped>
     @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css');
 
-    /* === (deine Styles unverÃ¤ndert) === */
+    /* === (deine Styles unverändert) === */
 
     .app-container {
         min-height: 100vh;
@@ -686,7 +691,7 @@
         font-size: 1rem;
     }
 
-    /* Popup usw. â€“ unverÃ¤ndert (deine Styles bleiben) */
+    /* Popup usw. – unverändert (deine Styles bleiben) */
     
 
     .nav-link::after {

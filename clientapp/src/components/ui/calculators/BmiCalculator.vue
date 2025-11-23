@@ -9,14 +9,14 @@
 
             <FavoriteButton :active="isFavorite"
                             :titleActive="'Aus Favoriten entfernen'"
-                            :titleInactive="'Zu Favoriten hinzufÃ¼gen'"
+                            :titleInactive="'Zu Favoriten hinzufügen'"
                             @toggle="$emit('toggleFavorite')" />
         </div>
 
         <div class="input-group">
             <label>Geschlecht</label>
             <select :value="gender" @change="onGenderChange" class="edit-input">
-                <option value="male">MÃ¤nnlich</option>
+                <option value="male">Männlich</option>
                 <option value="female">Weiblich</option>
             </select>
         </div>
@@ -31,7 +31,7 @@
         </div>
 
         <div class="input-group">
-            <label>GrÃ¶ÃŸe (cm)</label>
+            <label>Größe (cm)</label>
             <input :value="height ?? ''"
                    @input="onHeightInput"
                    type="number"
@@ -57,8 +57,8 @@
                               data-short="Export"
                               @click="$emit('export')" />
                 <ResetButton class="calc-footer-btn"
-                             title="ZurÃ¼cksetzen"
-                             aria-label="ZurÃ¼cksetzen"
+                             title="Zurücksetzen"
+                             aria-label="Zurücksetzen"
                              data-short="Reset"
                              @click="$emit('reset')" />
             </div>

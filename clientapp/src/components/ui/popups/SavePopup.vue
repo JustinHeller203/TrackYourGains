@@ -59,7 +59,7 @@
         height: 96px;
         border-radius: 50%;
         border: 2px solid var(--border-color);
-        overflow: hidden; /* wichtig fürs runde Clipping */
+        overflow: hidden; /* wichtig f�rs runde Clipping */
         background: var(--bg-secondary);
         box-shadow: 0 4px 12px rgba(0,0,0,.15);
     }
@@ -67,7 +67,7 @@
         .preview img {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* damit nichts „rausläuft“ */
+            object-fit: cover; /* damit nichts �rausl�uft� */
             object-position: center;
             display: block;
         }

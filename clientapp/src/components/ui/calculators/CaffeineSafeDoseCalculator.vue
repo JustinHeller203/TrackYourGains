@@ -3,13 +3,13 @@
     <div class="calculator-card">
         <div class="card-header">
             <h3 class="card-title">
-                {{ title || 'Koffein â€“ sichere Dosis' }}
+                {{ title || 'Koffein – sichere Dosis' }}
                 <InfoHover :text="infoText" />
             </h3>
 
             <FavoriteButton :active="isFavorite"
                             :titleActive="'Aus Favoriten entfernen'"
-                            :titleInactive="'Zu Favoriten hinzufÃ¼gen'"
+                            :titleInactive="'Zu Favoriten hinzufügen'"
                             @toggle="$emit('toggleFavorite')" />
         </div>
 
@@ -25,9 +25,9 @@
         <div class="input-group">
             <label>Empfindlichkeit</label>
             <select :value="sensitivity" @change="onSensitivityChange" class="edit-input">
-                <option value="low">Empfindlich (â‰ˆ 3 mg/kg)</option>
-                <option value="normal">Normal (â‰ˆ 4 mg/kg)</option>
-                <option value="high">Tolerant (â‰ˆ 6 mg/kg)</option>
+                <option value="low">Empfindlich (≈ 3 mg/kg)</option>
+                <option value="normal">Normal (≈ 4 mg/kg)</option>
+                <option value="high">Tolerant (≈ 6 mg/kg)</option>
             </select>
         </div>
 
@@ -35,7 +35,7 @@
             <label>Besonderheit</label>
             <select :value="status" @change="onStatusChange" class="edit-input">
                 <option value="none">Keine</option>
-                <option value="pregnant">Schwanger/Stillend (â‰¤ 200 mg/Tag)</option>
+                <option value="pregnant">Schwanger/Stillend (≤ 200 mg/Tag)</option>
             </select>
         </div>
 
@@ -50,7 +50,7 @@
                 <CopyButton @click="$emit('copy')" />
             </div>
             <small class="hint">
-                Beispiel: Hat ein Drink 80&nbsp;mg pro Portion, kannst du so schnell Ã¼berschlagen,
+                Beispiel: Hat ein Drink 80&nbsp;mg pro Portion, kannst du so schnell überschlagen,
                 wie viele Portionen sinnvoll sind.
             </small>
         </div>
@@ -63,8 +63,8 @@
                               data-short="Export"
                               @click="$emit('export')" />
                 <ResetButton class="calc-footer-btn"
-                             title="ZurÃ¼cksetzen"
-                             aria-label="ZurÃ¼cksetzen"
+                             title="Zurücksetzen"
+                             aria-label="Zurücksetzen"
                              data-short="Reset"
                              @click="$emit('reset')" />
             </div>
@@ -116,7 +116,7 @@ const cafResult = computed(() => props.cafResult)
 const infoText = computed(
   () =>
     props.info ??
-    'Richtwerte (gesunde Erwachsene): ca. 3â€“6 mg/kg KÃ¶rpergewicht. Ãœbliche Tagesobergrenze ~400 mg (Schwangere/Stillende â‰¤ 200 mg). Keine medizinische Beratung.'
+    'Richtwerte (gesunde Erwachsene): ca. 3–6 mg/kg Körpergewicht. Übliche Tagesobergrenze ~400 mg (Schwangere/Stillende ≤ 200 mg). Keine medizinische Beratung.'
 )
 
 function onWeightInput(e: Event) {

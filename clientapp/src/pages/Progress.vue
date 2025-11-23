@@ -2,7 +2,7 @@
 <template>
     <div class="progress">
         <!-- ===================== HEADER / INTRO ===================== -->
-        <h2 class="page-title">ðŸ“Š Dein Fortschritt</h2>
+        <h2 class="page-title">📊 Dein Fortschritt</h2>
         <p class="page-subtext">Alles Wichtige auf einen Blick.</p>
 
         <div class="dashboard-container">
@@ -63,14 +63,14 @@
                 </ChartCard>
             </div>
 
-            <!-- ======= FILTER-LEISTE (nur fÃ¼r Rechner) ======= -->
+            <!-- ======= FILTER-LEISTE (nur für Rechner) ======= -->
             <div v-show="activeTab === 'calculators'" class="calc-filterbar">
                 <label class="calc-filterlabel">Kategorie</label>
                 <select v-model="calcCategory" class="calc-filterselect">
                     <option value="alle">Alle</option>
                     <option value="gesundheit">Gesundheit</option>
                     <option value="kraft">Kraft</option>
-                    <option value="ernaehrung">ErnÃ¤hrung</option>
+                    <option value="ernaehrung">Ernährung</option>
                     <option value="alltag">Alltag</option>
                 </select>
             </div>
@@ -83,7 +83,7 @@
                     <!-- BMI Favorit -->
                     <BmiCalculator v-if="isFavorite('BMI') && matchesCalc('BMI')"
                                    title="BMI-Rechner"
-                                   info="Der BMI (Body-Mass-Index) misst das VerhÃ¤ltnis von Gewicht zu GrÃ¶ÃŸe."
+                                   info="Der BMI (Body-Mass-Index) misst das Verhältnis von Gewicht zu Größe."
                                    :unit="unit"
                                    :autoCalcEnabled="autoCalcEnabled"
                                    :bmiGender="bmiGender"
@@ -162,8 +162,8 @@
                                      @export="openDownloadPopup('oneRm')"
                                      @reset="resetCalculator('oneRm')" />
 
-                    <!-- KÃ¶rperfett Favorit -->
-                    <BodyFatCalculator v-if="isFavorite('KÃ¶rperfett') && matchesCalc('KÃ¶rperfett')"
+                    <!-- Körperfett Favorit -->
+                    <BodyFatCalculator v-if="isFavorite('Körperfett') && matchesCalc('Körperfett')"
                                        :autoCalcEnabled="autoCalcEnabled"
                                        :bodyFatGender="bodyFatGender"
                                        :bodyFatWaist="bodyFatWaist"
@@ -172,7 +172,7 @@
                                        :bodyFatHeight="bodyFatHeight"
                                        :bodyFatResult="bodyFatResult"
                                        :isFavorite="true"
-                                       @toggleFavorite="() => toggleFavorite('KÃ¶rperfett')"
+                                       @toggleFavorite="() => toggleFavorite('Körperfett')"
                                        @update:bodyFatGender="v => bodyFatGender = v"
                                        @update:bodyFatWaist="v => bodyFatWaist = v"
                                        @update:bodyFatNeck="v => bodyFatNeck = v"
@@ -219,7 +219,7 @@
                                     @export="openDownloadPopup('ffmi')"
                                     @reset="resetCalculator('ffmi')" />
                     <!-- GL Favorit -->
-                    <GlycemicLoadCalculator v-if="isFavorite('GlykÃ¤mische Last') && matchesCalc('GlykÃ¤mische Last')"
+                    <GlycemicLoadCalculator v-if="isFavorite('Glykämische Last') && matchesCalc('Glykämische Last')"
                                             :autoCalcEnabled="autoCalcEnabled"
                                             :glFood="glFood"
                                             :glServing="glServing"
@@ -229,7 +229,7 @@
                                             :glResult="glResult"
                                             :glCategory="glCategory"
                                             :isFavorite="true"
-                                            @toggleFavorite="() => toggleFavorite('GlykÃ¤mische Last')"
+                                            @toggleFavorite="() => toggleFavorite('Glykämische Last')"
                                             @update:glGi="v => glGi = v"
                                             @update:glCarbs="v => glCarbs = v"
                                             @calculate="calculateGlyLoad"
@@ -261,7 +261,7 @@
                 <!-- ======= STANDARD-BEREICH (ohne Favoriten-Duplikate) ======= -->
                 <BmiCalculator v-if="!isFavorite('BMI') && matchesCalc('BMI')"
                                title="BMI-Rechner"
-                               info="Der BMI (Body-Mass-Index) misst das VerhÃ¤ltnis von Gewicht zu GrÃ¶ÃŸe."
+                               info="Der BMI (Body-Mass-Index) misst das Verhältnis von Gewicht zu Größe."
                                :unit="unit"
                                :autoCalcEnabled="autoCalcEnabled"
                                :bmiGender="bmiGender"
@@ -357,8 +357,8 @@
                                             @export="openDownloadPopup('caffeine')"
                                             @reset="resetCalculator('caffeine')" />
 
-                <!-- ========== KÃ¶rperfett Rechner ========== -->
-                <BodyFatCalculator v-if="matchesCalc('KÃ¶rperfett') && !isFavorite('KÃ¶rperfett')"
+                <!-- ========== Körperfett Rechner ========== -->
+                <BodyFatCalculator v-if="matchesCalc('Körperfett') && !isFavorite('Körperfett')"
                                    :autoCalcEnabled="autoCalcEnabled"
                                    :bodyFatGender="bodyFatGender"
                                    :bodyFatWaist="bodyFatWaist"
@@ -366,8 +366,8 @@
                                    :bodyFatHip="bodyFatHip"
                                    :bodyFatHeight="bodyFatHeight"
                                    :bodyFatResult="bodyFatResult"
-                                   :isFavorite="isFavorite('KÃ¶rperfett')"
-                                   @toggleFavorite="() => toggleFavorite('KÃ¶rperfett')"
+                                   :isFavorite="isFavorite('Körperfett')"
+                                   @toggleFavorite="() => toggleFavorite('Körperfett')"
                                    @update:bodyFatGender="v => bodyFatGender = v"
                                    @update:bodyFatWaist="v => bodyFatWaist = v"
                                    @update:bodyFatNeck="v => bodyFatNeck = v"
@@ -396,7 +396,7 @@
                                 @export="openDownloadPopup('ffmi')"
                                 @reset="resetCalculator('ffmi')" />
                 <!-- GL Standard -->
-                <GlycemicLoadCalculator v-if="matchesCalc('GlykÃ¤mische Last') && !isFavorite('GlykÃ¤mische Last')"
+                <GlycemicLoadCalculator v-if="matchesCalc('Glykämische Last') && !isFavorite('Glykämische Last')"
                                         :autoCalcEnabled="autoCalcEnabled"
                                         :glFood="glFood"
                                         :glServing="glServing"
@@ -405,8 +405,8 @@
                                         :glCarbs="glCarbs"
                                         :glResult="glResult"
                                         :glCategory="glCategory"
-                                        :isFavorite="isFavorite('GlykÃ¤mische Last')"
-                                        @toggleFavorite="() => toggleFavorite('GlykÃ¤mische Last')"
+                                        :isFavorite="isFavorite('Glykämische Last')"
+                                        @toggleFavorite="() => toggleFavorite('Glykämische Last')"
                                         @update:glGi="v => glGi = v"
                                         @update:glCarbs="v => glCarbs = v"
                                         @calculate="calculateGlyLoad"
@@ -436,33 +436,33 @@
             </div>
 
 
-            <!-- ===================== PLÃ„NE TAB ===================== -->
+            <!-- ===================== PLÄNE TAB ===================== -->
             <div v-show="activeTab === 'plans'" class="plans-section">
-                <!-- Progress.vue â€“ REPLACE in "PlÃ¤ne" -> "TrainingsplÃ¤ne" -->
+                <!-- Progress.vue – REPLACE in "Pläne" -> "Trainingspläne" -->
                 <div class="workout-list">
-                    <h3 class="section-title">Deine TrainingsplÃ¤ne</h3>
+                    <h3 class="section-title">Deine Trainingspläne</h3>
 
                     <div v-if="!trainingPlans.length" class="list-item">
-                        Noch keine TrainingsplÃ¤ne â€“ erstelle welche unter â€žTrainingâ€œ.
+                        Noch keine Trainingspläne – erstelle welche unter „Training“.
                     </div>
 
                     <template v-else>
                         <div v-if="favoritePlans.length">
                             <h4 class="section-title" style="margin-top: .5rem;">Favoriten</h4>
                             <div v-for="plan in favoritePlans" :key="plan.id" class="list-item plan-item">
-                                <span>{{ plan.name }} ({{ plan.exercises.length }} Ãœbungen)</span>
+                                <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
                                 <div class="list-item-actions">
-                                    <button class="open-btn" @click="openPlanProgress(plan.id)">Ã–ffnen</button>
+                                    <button class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
                             </div>
                         </div>
 
                         <div v-if="otherPlans.length">
-                            <h4 class="section-title" style="margin-top: .5rem;">Weitere PlÃ¤ne</h4>
+                            <h4 class="section-title" style="margin-top: .5rem;">Weitere Pläne</h4>
                             <div v-for="plan in otherPlans" :key="plan.id" class="list-item plan-item">
-                                <span>{{ plan.name }} ({{ plan.exercises.length }} Ãœbungen)</span>
+                                <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
                                 <div class="list-item-actions">
-                                    <button class="open-btn" @click="openPlanProgress(plan.id)">Ã–ffnen</button>
+                                    <button class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
                             </div>
                         </div>
@@ -470,18 +470,18 @@
                 </div>
 
 
-                <div class="plan-card" v-if="matchesPlanSearch('ErnÃ¤hrungsplan')">
+                <div class="plan-card" v-if="matchesPlanSearch('Ernährungsplan')">
                     <div class="card-header">
-                        <h3 class="card-title">ðŸ¥— ErnÃ¤hrungsplan</h3>
+                        <h3 class="card-title">🥗 Ernährungsplan</h3>
                         <div class="card-actions">
-                            <ActionIconButton ariaLabel="ErnÃ¤hrungsplan herunterladen"
+                            <ActionIconButton ariaLabel="Ernährungsplan herunterladen"
                                               title="Herunterladen"
                                               @click="openDownloadPopup('nutrition')">
-                                â¬‡ï¸
+                                ⬇️
                             </ActionIconButton>
                         </div>
                     </div>
-                    <p>Dein ErnÃ¤hrungsplan.</p>
+                    <p>Dein Ernährungsplan.</p>
                 </div>
             </div>
         </div>
@@ -544,7 +544,7 @@
                             v-model:equipmentCustom="newProgressEquipmentCustom"
                             v-model:side="newProgressSide"
                             @invalid="openValidationPopupError" />
-        <!-- Fortschritt ansehen (Cards je Tag) â€” OHNE Teleport -->
+        <!-- Fortschritt ansehen (Cards je Tag) — OHNE Teleport -->
         <div v-if="showPlanProgressPopup && currentPlanId"
              class="modal-overlay"
              @click.self="closePlanProgressPopup">
@@ -554,12 +554,12 @@
                  ref="progressModalEl"
                  @click.stop>
                 <div class="card-header">
-                    <h3 class="modal-title">ðŸ“– Fortschritt â€“ {{ currentPlanName }}</h3>
+                    <h3 class="modal-title">📖 Fortschritt – {{ currentPlanName }}</h3>
                     <div class="card-actions" v-if="dayCards.length">
                         <ActionIconButton ariaLabel="Herunterladen"
                                           title="Herunterladen"
                                           @click="openDownloadPopup('progress', currentPlanId!)">
-                            â¬‡ï¸
+                            ⬇️
                         </ActionIconButton>
                     </div>
                 </div>
@@ -577,13 +577,13 @@
                             <div class="day-card-main">
                                 <div class="day-date">{{ formatDayLong(c.day) }}</div>
                                 <div class="day-meta">
-                                    <span class="count">{{ c.uniqueExercises }} Ãœbungen</span>
+                                    <span class="count">{{ c.uniqueExercises }} Übungen</span>
                                 </div>
                             </div>
                             <div class="day-card-actions">
                                 <button class="open-btn" @click="editLatestEntryForDay(c.day)">Bearbeiten</button>
                                 <button class="open-btn" @click="toggleDay(c.day)">
-                                    {{ expandedDays.has(c.day) ? 'SchlieÃŸen' : 'Ã–ffnen' }}
+                                    {{ expandedDays.has(c.day) ? 'Schließen' : 'Öffnen' }}
                                 </button>
                             </div>
                         </div>
@@ -601,19 +601,19 @@
                                                     {{ e.durationMin }} Min
                                                 </template>
                                                 <template v-if="e.sets && e.reps">
-                                                    <span v-if="e.durationMin != null"> Â· </span>
-                                                    {{ e.sets }}Ã—{{ e.reps }}
+                                                    <span v-if="e.durationMin != null"> · </span>
+                                                    {{ e.sets }}×{{ e.reps }}
                                                 </template>
                                             </span>
                                         </div>
                                         <div class="chips">
-                                            <span v-if="e.avgHr != null" class="chip">Ã˜ Puls {{ e.avgHr }}</span>
+                                            <span v-if="e.avgHr != null" class="chip">Ø Puls {{ e.avgHr }}</span>
                                             <span v-if="e.calories != null" class="chip">{{ e.calories }} kcal</span>
                                             <span v-if="e.pace" class="chip">{{ e.pace }}/km</span>
                                             <span v-if="e.hrZone != null" class="chip">Zone {{ e.hrZone }}</span>
                                             <span v-if="e.borg != null" class="chip">Borg {{ e.borg }}</span>
                                         </div>
-                                        <div v-if="e.note" class="note">â€” {{ e.note }}</div>
+                                        <div v-if="e.note" class="note">— {{ e.note }}</div>
                                     </li>
                                 </ul>
                             </div>
@@ -628,17 +628,17 @@
                                             <span class="type-chip" data-type="dehnung">Dehnung</span>
                                             <span class="entry-summary">
                                                 {{ e.durationMin }} Min
-                                                <span v-if="e.sets && e.reps"> Â· {{ e.sets }}Ã—{{ e.reps }}</span>
+                                                <span v-if="e.sets && e.reps"> · {{ e.sets }}×{{ e.reps }}</span>
                                             </span>
                                         </div>
                                         <div class="chips">
                                             <span v-if="e.side" class="chip">{{ e.side }}</span>
                                             <span v-if="e.painFree != null" class="chip">Schmerzfrei {{ e.painFree }}/10</span>
-                                            <span v-if="e.movementQuality != null" class="chip">QualitÃ¤t {{ e.movementQuality }}/10</span>
+                                            <span v-if="e.movementQuality != null" class="chip">Qualität {{ e.movementQuality }}/10</span>
                                             <span v-if="e.equipment" class="chip">{{ e.equipment }}</span>
                                             <span v-if="e.equipmentCustom" class="chip">{{ e.equipmentCustom }}</span>
                                         </div>
-                                        <div v-if="e.note" class="note">â€” {{ e.note }}</div>
+                                        <div v-if="e.note" class="note">— {{ e.note }}</div>
                                     </li>
                                 </ul>
                             </div>
@@ -930,7 +930,7 @@
         macroChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Kohlenhydrate', 'EiweiÃŸ', 'Fett'],
+                labels: ['Kohlenhydrate', 'Eiweiß', 'Fett'],
                 datasets: [{
                     data: [
                         calorieResult.value.macros.carbs,
@@ -980,20 +980,20 @@
             addToast('Kopieren fehlgeschlagen', 'default')
         }
     }
-    // ===== Dashboard: Responsive-Flag fÃ¼r kompakte Cards =====
+    // ===== Dashboard: Responsive-Flag für kompakte Cards =====
 
     // Units (oben bei den Composables)
 
     const { unit, kgToDisplay, displayToKg, formatWeight } = useUnits()
 
-    // Basis-State fÃ¼r die Werte, die in den Cards angezeigt werden
+    // Basis-State für die Werte, die in den Cards angezeigt werden
 
     const weightHistory = ref < WeightEntry[] > ([]);
     const workouts = ref < Workout[] > ([]);
     const meals = ref < Meal[] > ([]);
     const goal = ref < number | null > (null);
 
-    // State fÃ¼r die Popups der DashboardCards
+    // State für die Popups der DashboardCards
 
     const newWeight = ref < number | null > (null);
     const newGoal = ref < number | null > (null);
@@ -1002,7 +1002,7 @@
     const weightInput = ref < HTMLInputElement | null > (null);
     const goalInput = ref < HTMLInputElement | null > (null);
 
-    // Tabs + Responsive-Handling fÃ¼r :compact in DashboardCard
+    // Tabs + Responsive-Handling für :compact in DashboardCard
 
     const mq = window.matchMedia('(max-width: 600px)')
     const isMobile = ref < boolean > (mq.matches)
@@ -1020,11 +1020,11 @@
         mq.removeEventListener?.('change', handleMqChange as any)
     })
 
-    // ðŸ‘‰ wird in allen 4 DashboardCards als :compact benutzt
+    // 👉 wird in allen 4 DashboardCards als :compact benutzt
 
     const compactCards = computed(() => activeTab.value === 'stats' && isMobile.value)
 
-    // Werte fÃ¼r die einzelnen DashboardCards
+    // Werte für die einzelnen DashboardCards
 
     const currentWeightDisplay = computed(() =>
         weightHistory.value.length
@@ -1043,25 +1043,25 @@
             new Date(a.date) > new Date(b.date) ? a : b
         )
         if (last.type === 'ausdauer') {
-            const dist = last.distanceKm != null ? ` Â· ${last.distanceKm} km` : ''
-            return `${last.exercise} â€“ ${last.durationMin} Min${dist}`
+            const dist = last.distanceKm != null ? ` · ${last.distanceKm} km` : ''
+            return `${last.exercise} – ${last.durationMin} Min${dist}`
         }
         if (last.type === 'dehnung') {
             const bits: string[] = []
             if (last.durationMin != null && Number.isFinite(last.durationMin)) bits.push(`${last.durationMin} Min`)
-            if (last.sets && last.reps) bits.push(`${last.sets}Ã—${last.reps}`)
-            const tail = bits.length ? ` â€“ ${bits.join(' Â· ')}` : ''
+            if (last.sets && last.reps) bits.push(`${last.sets}×${last.reps}`)
+            const tail = bits.length ? ` – ${bits.join(' · ')}` : ''
             return `${last.exercise}${tail}`
         }
-        return `${last.exercise} â€“ ${formatWeight(last.weight, 0)} Ã— ${last.reps}`
+        return `${last.exercise} – ${formatWeight(last.weight, 0)} × ${last.reps}`
     })
 
-    //  Validierung fÃ¼r Gewicht & Zielgewicht
+    //  Validierung für Gewicht & Zielgewicht
     const validationErrorMessages = ref < string[] > ([]);
 
     const validateWeight = (weight: number | null): string | null => {
         if (weight === null || isNaN(weight)) return 'Gewicht muss eine Zahl sein';
-        if (weight <= 0) return 'Gewicht muss grÃ¶ÃŸer als 0 sein';
+        if (weight <= 0) return 'Gewicht muss größer als 0 sein';
         const kg = displayToKg(Number(weight));
         if (kg > 200) return 'Gewicht darf maximal 200 kg sein';
 
@@ -1070,7 +1070,7 @@
 
     const validateGoal = (g: number | null): string | null => {
         if (g === null || isNaN(g)) return 'Zielgewicht muss eine Zahl sein';
-        if (g <= 0) return 'Zielgewicht muss grÃ¶ÃŸer als 0 sein';
+        if (g <= 0) return 'Zielgewicht muss größer als 0 sein';
         const kg = displayToKg(Number(g));
         if (kg > 200) return 'Zielgewicht darf maximal 200 kg sein';
         return null;
@@ -1101,7 +1101,7 @@
         // Persistieren
         localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value));
 
-        // ðŸ‘‰ KÃ¶rpergewicht oben im Fortschritt-Editor direkt mitziehen
+        // 👉 Körpergewicht oben im Fortschritt-Editor direkt mitziehen
         newProgressWeight.value = kgToDisplay(weightKg)
 
         newWeight.value = null;
@@ -1173,14 +1173,14 @@
     const resetWeightStats = () => {
         if (!weightHistory.value.length) return
 
-        // alten Zustand fÃ¼r Undo merken
+        // alten Zustand für Undo merken
         const snapshot = [...weightHistory.value]
         lastResetAction.value = {
             kind: 'weight',
             data: snapshot,
         }
 
-        // wirklich zurÃ¼cksetzen
+        // wirklich zurücksetzen
         weightHistory.value = []
         localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
 
@@ -1189,23 +1189,23 @@
             weightChart = null
         }
 
-        // Toasts ggf. noch unterdrÃ¼ckt? Sofort freigeben.
+        // Toasts ggf. noch unterdrückt? Sofort freigeben.
         releaseToasts()
 
         // Reset-Toast mit Undo-Action
         addToast(
-            'Gewichtsverlauf zurÃ¼ckgesetzt',
+            'Gewichtsverlauf zurückgesetzt',
             'add',
             {
-                label: 'RÃ¼ckgÃ¤ngig',
+                label: 'Rückgängig',
                 handler: () => {
                     if (!lastResetAction.value || lastResetAction.value.kind !== 'weight') return
 
-                    // Daten zurÃ¼ckholen
+                    // Daten zurückholen
                     weightHistory.value = [...lastResetAction.value.data]
                     localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
 
-                    // Canvas wird durch v-if erst im nÃ¤chsten Tick wieder gerendert
+                    // Canvas wird durch v-if erst im nächsten Tick wieder gerendert
                     nextTick(() => {
                         updateWeightChart()
                     })
@@ -1221,37 +1221,37 @@
     const resetWorkoutStats = () => {
         if (!workouts.value.length) return
 
-        // alten Zustand fÃ¼r Undo merken
+        // alten Zustand für Undo merken
         const snapshot = [...workouts.value]
         lastResetAction.value = {
             kind: 'workout',
             data: snapshot,
         }
 
-        // wirklich zurÃ¼cksetzen
+        // wirklich zurücksetzen
         workouts.value = []
         localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
 
         if (workoutChart) workoutChart.destroy()
         updateWorkoutChart()
 
-        // Toasts ggf. noch unterdrÃ¼ckt? Sofort freigeben.
+        // Toasts ggf. noch unterdrückt? Sofort freigeben.
         releaseToasts()
 
         // Reset-Toast mit Undo-Action
         addToast(
-            'Trainingsstatistik zurÃ¼ckgesetzt',
+            'Trainingsstatistik zurückgesetzt',
             'add',
             {
-                label: 'RÃ¼ckgÃ¤ngig',
+                label: 'Rückgängig',
                 handler: () => {
                     if (!lastResetAction.value || lastResetAction.value.kind !== 'workout') return
 
-                    // Daten zurÃ¼ckholen
+                    // Daten zurückholen
                     workouts.value = [...lastResetAction.value.data]
                     localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
 
-                    // Canvas kommt per v-if erst im nÃ¤chsten Tick zurÃ¼ck
+                    // Canvas kommt per v-if erst im nächsten Tick zurück
                     nextTick(() => {
                         updateWorkoutChart()
                     })
@@ -1272,12 +1272,12 @@
         'BMI': 'gesundheit',
         'Kalorienbedarf': 'ernaehrung',
         '1RM': 'kraft',
-        'KÃ¶rperfett': 'gesundheit',
+        'Körperfett': 'gesundheit',
         'FFMI': 'gesundheit',
         'Wasserbedarf': 'alltag',
         'Proteinbedarf': 'ernaehrung',
         'Koffein': 'alltag',
-        'GlykÃ¤mische Last': 'ernaehrung',
+        'Glykämische Last': 'ernaehrung',
 
     }
 
@@ -1361,7 +1361,7 @@
             case 'BMI': return 'BmiCalculator'
             case 'Kalorienbedarf': return 'CaloriesCalculator'
             case '1RM': return 'OneRmCalculator'
-            case 'KÃ¶rperfett': return 'BodyFatCalculator'
+            case 'Körperfett': return 'BodyFatCalculator'
             case 'FFMI': return 'FfmiCalculator'
             case 'Wasserbedarf': return 'WaterCalculator'
             default: return 'div'
@@ -1372,12 +1372,12 @@
         { key: 'BMI', name: 'BMI-Rechner', isFavorite: false },
         { key: 'Kalorienbedarf', name: 'Kalorienbedarfsrechner', isFavorite: false },
         { key: '1RM', name: '1RM-Rechner', isFavorite: false },
-        { key: 'KÃ¶rperfett', name: 'KÃ¶rperfett-Rechner', isFavorite: false },
+        { key: 'Körperfett', name: 'Körperfett-Rechner', isFavorite: false },
         { key: 'FFMI', name: 'FFMI-Rechner', isFavorite: false },
         { key: 'Wasserbedarf', name: 'Wasserbedarfsrechner', isFavorite: false },
         { key: 'Proteinbedarf', name: 'Proteinbedarfsrechner', isFavorite: false },
-        { key: 'GlykÃ¤mische Last', name: 'GL-Rechner', isFavorite: false },
-        { key: 'Koffein', name: 'Koffein â€“ sichere Dosis', isFavorite: false },
+        { key: 'Glykämische Last', name: 'GL-Rechner', isFavorite: false },
+        { key: 'Koffein', name: 'Koffein – sichere Dosis', isFavorite: false },
     ])
 
     const resetCalculator = (calculator: string) => {
@@ -1401,8 +1401,8 @@
                 bmiResult.value = null
                 localStorage.removeItem('progress_bmi')
 
-                addToast('BMI-Rechner zurÃ¼ckgesetzt', 'add', {
-                    label: 'RÃ¼ckgÃ¤ngig',
+                addToast('BMI-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
                     handler: () => {
                         if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'bmi') return
                         const prev = lastCalculatorReset.value.data
@@ -1441,8 +1441,8 @@
                 calorieResult.value = null
                 localStorage.removeItem('progress_calories')
 
-                addToast('Kalorienbedarfsrechner zurÃ¼ckgesetzt', 'add', {
-                    label: 'RÃ¼ckgÃ¤ngig',
+                addToast('Kalorienbedarfsrechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
                     handler: () => {
                         if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'calories') return
                         const prev = lastCalculatorReset.value.data
@@ -1481,8 +1481,8 @@
                 oneRmResult.value = null
                 localStorage.removeItem('progress_oneRm')
 
-                addToast('1RM-Rechner zurÃ¼ckgesetzt', 'add', {
-                    label: 'RÃ¼ckgÃ¤ngig',
+                addToast('1RM-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
                     handler: () => {
                         if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'oneRm') return
                         const prev = lastCalculatorReset.value.data
@@ -1519,8 +1519,8 @@
                 bodyFatResult.value = null
                 localStorage.removeItem('progress_bodyFat')
 
-                addToast('KÃ¶rperfett-Rechner zurÃ¼ckgesetzt', 'add', {
-                    label: 'RÃ¼ckgÃ¤ngig',
+                addToast('Körperfett-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
                     handler: () => {
                         if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'bodyFat') return
                         const prev = lastCalculatorReset.value.data
@@ -1532,7 +1532,7 @@
                         bodyFatResult.value = prev.result
                         saveToLocalStorage('bodyFat', prev)
                         lastCalculatorReset.value = null
-                        addToast('KÃ¶rperfett-Rechner wiederhergestellt', 'add')
+                        addToast('Körperfett-Rechner wiederhergestellt', 'add')
                     }
                 })
                 break
@@ -1555,8 +1555,8 @@
                 ffmiResult.value = null
                 localStorage.removeItem('progress_ffmi')
 
-                addToast('FFMI-Rechner zurÃ¼ckgesetzt', 'add', {
-                    label: 'RÃ¼ckgÃ¤ngig',
+                addToast('FFMI-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
                     handler: () => {
                         if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'ffmi') return
                         const prev = lastCalculatorReset.value.data
@@ -1589,8 +1589,8 @@
                 waterResult.value = null
                 localStorage.removeItem('progress_water')
 
-                addToast('Wasserbedarfsrechner zurÃ¼ckgesetzt', 'add', {
-                    label: 'RÃ¼ckgÃ¤ngig',
+                addToast('Wasserbedarfsrechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
                     handler: () => {
                         if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'water') return
                         const prev = lastCalculatorReset.value.data
@@ -1625,8 +1625,8 @@
                 proteinResult.value = null
                 localStorage.removeItem('progress_protein')
 
-                addToast('Proteinbedarf-Rechner zurÃ¼ckgesetzt', 'add', {
-                    label: 'RÃ¼ckgÃ¤ngig',
+                addToast('Proteinbedarf-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
                     handler: () => {
                         if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'protein') return
                         const prev = lastCalculatorReset.value.data
@@ -1665,8 +1665,8 @@
                 cafResult.value = null
                 localStorage.removeItem('progress_caffeine')
 
-                addToast('Koffein-Rechner zurÃ¼ckgesetzt', 'add', {
-                    label: 'RÃ¼ckgÃ¤ngig',
+                addToast('Koffein-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
                     handler: () => {
                         if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'caffeine') return
                         const prev = lastCalculatorReset.value.data
@@ -1701,8 +1701,8 @@
                 glResult.value = null
                 localStorage.removeItem('progress_glyload')
 
-                addToast('GL-Rechner zurÃ¼ckgesetzt', 'add', {
-                    label: 'RÃ¼ckgÃ¤ngig',
+                addToast('GL-Rechner zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
                     handler: () => {
                         if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'glyload') return
                         const prev = lastCalculatorReset.value.data
@@ -1738,11 +1738,11 @@
 
     const validateBMI = (): string[] => {
         const errors: string[] = [];
-        if (!bmiGender.value) errors.push('Geschlecht muss ausgewÃ¤hlt sein');
+        if (!bmiGender.value) errors.push('Geschlecht muss ausgewählt sein');
         if (bmiWeight.value === null || isNaN(bmiWeight.value) || bmiWeight.value <= 0)
-            errors.push('Gewicht muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Gewicht muss größer als 0 sein');
         if (bmiHeight.value === null || isNaN(bmiHeight.value) || bmiHeight.value <= 0)
-            errors.push('GrÃ¶ÃŸe muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Größe muss größer als 0 sein');
         return errors;
     };
 
@@ -1760,12 +1760,12 @@
         if (bmiGender.value === 'male') {
             if (bmi < 18.5) category = 'Untergewicht';
             else if (bmi < 25) category = 'Normalgewicht';
-            else if (bmi < 30) category = 'Ãœbergewicht';
+            else if (bmi < 30) category = 'Übergewicht';
             else category = 'Adipositas';
         } else {
             if (bmi < 19) category = 'Untergewicht';
             else if (bmi < 26) category = 'Normalgewicht';
-            else if (bmi < 31) category = 'Ãœbergewicht';
+            else if (bmi < 31) category = 'Übergewicht';
             else category = 'Adipositas';
         }
         bmiResult.value = { value: bmi, category };
@@ -1784,7 +1784,7 @@
 - BMI: ${bmiResult.value.value.toFixed(1)}
 - Kategorie: ${bmiResult.value.category}
 - Gewicht: ${bmiWeight.value ?? '-'} ${unit.value}
-- GrÃ¶ÃŸe: ${bmiHeight.value ?? '-'} cm`
+- Größe: ${bmiHeight.value ?? '-'} cm`
         copyText(txt)
     }
 
@@ -1812,11 +1812,11 @@
     const validateCalories = (): string[] => {
         const errors: string[] = [];
         if (calorieAge.value === null || isNaN(calorieAge.value) || calorieAge.value <= 0)
-            errors.push('Alter muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Alter muss größer als 0 sein');
         if (calorieWeight.value === null || isNaN(calorieWeight.value) || calorieWeight.value <= 0)
-            errors.push('Gewicht muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Gewicht muss größer als 0 sein');
         if (calorieHeight.value === null || isNaN(calorieHeight.value) || calorieHeight.value <= 0)
-            errors.push('GrÃ¶ÃŸe muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Größe muss größer als 0 sein');
         return errors;
     };
 
@@ -1865,8 +1865,8 @@
 - Gesamt: ${r.total.toFixed(0)} kcal
 - Makros: KH ${r.macros.carbs.toFixed(0)}g, Protein ${r.macros.protein.toFixed(0)}g, Fett ${r.macros.fat.toFixed(0)}g
 - Alter: ${calorieAge.value ?? '-'} J, Geschlecht: ${calorieGender.value}
-- Gewicht: ${calorieWeight.value ?? '-'} ${unit.value}, GrÃ¶ÃŸe: ${calorieHeight.value ?? '-'} cm
-- AktivitÃ¤t: ${calorieActivity.value}, Ziel: ${calorieGoal.value > 0 ? '+' : ''}${calorieGoal.value} kcal`
+- Gewicht: ${calorieWeight.value ?? '-'} ${unit.value}, Größe: ${calorieHeight.value ?? '-'} cm
+- Aktivität: ${calorieActivity.value}, Ziel: ${calorieGoal.value > 0 ? '+' : ''}${calorieGoal.value} kcal`
         copyText(txt)
     }
 
@@ -1890,8 +1890,8 @@
     const validateProtein = (): string[] => {
         const errors: string[] = []
         const w = Number(proteinWeight.value)
-        if (!Number.isFinite(w) || w <= 0) errors.push('Gewicht muss grÃ¶ÃŸer als 0 sein')
-        if (!proteinGoal.value) errors.push('Ziel muss ausgewÃ¤hlt sein')
+        if (!Number.isFinite(w) || w <= 0) errors.push('Gewicht muss größer als 0 sein')
+        if (!proteinGoal.value) errors.push('Ziel muss ausgewählt sein')
         return errors
     }
 
@@ -1941,7 +1941,7 @@
     const copyProtein = () => {
         if (!proteinResult.value) return
         const r = proteinResult.value
-        const rangeLine = (r.min && r.max) ? `\n- Range: ${r.min.toFixed(0)}â€“${r.max.toFixed(0)} g/Tag` : ''
+        const rangeLine = (r.min && r.max) ? `\n- Range: ${r.min.toFixed(0)}–${r.max.toFixed(0)} g/Tag` : ''
         const txt = `Proteinbedarf
 - Empfehlung: ${r.recommend.toFixed(0)} g/Tag${rangeLine}
 - Faktor: ${r.factor.toFixed(2)} g/kg
@@ -1972,9 +1972,9 @@
     const validateOneRm = (): string[] => {
         const errors: string[] = [];
         if (oneRmWeight.value === null || isNaN(oneRmWeight.value) || oneRmWeight.value <= 0)
-            errors.push('Gewicht muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Gewicht muss größer als 0 sein');
         if (oneRmReps.value === null || isNaN(oneRmReps.value) || oneRmReps.value <= 0)
-            errors.push('Wiederholungen mÃ¼ssen grÃ¶ÃŸer als 0 sein');
+            errors.push('Wiederholungen müssen größer als 0 sein');
         return errors;
     };
 
@@ -2000,8 +2000,8 @@
 
     const copyOneRm = () => {
         if (!oneRmResult.value) return
-        const txt = `1RM-SchÃ¤tzung
-- Ãœbung: ${oneRmExercise.value || '-'}
+        const txt = `1RM-Schätzung
+- Übung: ${oneRmExercise.value || '-'}
 - 1RM: ${formatWeight(oneRmResult.value, 1)}
 - Eingabe: ${oneRmWeight.value ?? '-'} ${unit.value} x ${oneRmReps.value ?? '-'}`
         copyText(txt)
@@ -2025,7 +2025,7 @@
     const validateCaffeine = (): string[] => {
         const errors: string[] = []
         if (cafWeight.value === null || isNaN(cafWeight.value) || cafWeight.value <= 0) {
-            errors.push('Gewicht muss grÃ¶ÃŸer als 0 sein')
+            errors.push('Gewicht muss größer als 0 sein')
         }
         return errors
     }
@@ -2062,7 +2062,7 @@
     const copyCaffeine = () => {
         if (!cafResult.value) return
         const r = cafResult.value
-        const txt = `Koffein â€“ sichere Dosis
+        const txt = `Koffein – sichere Dosis
 - Max. pro Tag: ${r.perDay} mg
 - Empfehlung je Einzeldosis: ${r.perDose} mg
 - Gewicht: ${cafWeight.value ?? '-'} ${unit.value}
@@ -2103,13 +2103,13 @@
     const validateBodyFat = (): string[] => {
         const errors: string[] = [];
         if (bodyFatWaist.value === null || isNaN(bodyFatWaist.value) || bodyFatWaist.value <= 0)
-            errors.push('Bauchumfang muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Bauchumfang muss größer als 0 sein');
         if (bodyFatNeck.value === null || isNaN(bodyFatNeck.value) || bodyFatNeck.value <= 0)
-            errors.push('Halsumfang muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Halsumfang muss größer als 0 sein');
         if (bodyFatHeight.value === null || isNaN(bodyFatHeight.value) || bodyFatHeight.value <= 0)
-            errors.push('GrÃ¶ÃŸe muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Größe muss größer als 0 sein');
         if (bodyFatGender.value === 'female' && (bodyFatHip.value === null || isNaN(bodyFatHip.value) || bodyFatHip.value <= 0))
-            errors.push('HÃ¼ftumfang muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Hüftumfang muss größer als 0 sein');
         return errors;
     };
 
@@ -2130,7 +2130,7 @@
             bodyFat = 163.205 * Math.log10(waist + hip - neck) - 97.684 * Math.log10(height) - 78.387;
         }
         bodyFatResult.value = Math.max(0, bodyFat);
-        addToast('KÃ¶rperfett berechnet', 'default');
+        addToast('Körperfett berechnet', 'default');
         saveToLocalStorage('bodyFat', {
             gender: bodyFatGender.value,
             waist,
@@ -2143,11 +2143,11 @@
 
     const copyBodyFat = () => {
         if (!bodyFatResult.value) return
-        const txt = `KÃ¶rperfett (US Navy)
-- KÃ¶rperfett: ${bodyFatResult.value.toFixed(1)}%
+        const txt = `Körperfett (US Navy)
+- Körperfett: ${bodyFatResult.value.toFixed(1)}%
 - Geschlecht: ${bodyFatGender.value}
-- MaÃŸe: Bauch ${bodyFatWaist.value ?? '-'} cm, Hals ${bodyFatNeck.value ?? '-'} cm${bodyFatGender.value === 'female' ? `, HÃ¼fte ${bodyFatHip.value ?? '-'} cm` : ''}
-- GrÃ¶ÃŸe: ${bodyFatHeight.value ?? '-'} cm`
+- Maße: Bauch ${bodyFatWaist.value ?? '-'} cm, Hals ${bodyFatNeck.value ?? '-'} cm${bodyFatGender.value === 'female' ? `, Hüfte ${bodyFatHip.value ?? '-'} cm` : ''}
+- Größe: ${bodyFatHeight.value ?? '-'} cm`
         copyText(txt)
     }
 
@@ -2169,11 +2169,11 @@
     const validateFFMI = (): string[] => {
         const errors: string[] = [];
         if (ffmiWeight.value === null || isNaN(ffmiWeight.value) || ffmiWeight.value <= 0)
-            errors.push('Gewicht muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Gewicht muss größer als 0 sein');
         if (ffmiHeight.value === null || isNaN(ffmiHeight.value) || ffmiHeight.value <= 0)
-            errors.push('GrÃ¶ÃŸe muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Größe muss größer als 0 sein');
         if (ffmiBodyFat.value === null || isNaN(ffmiBodyFat.value) || ffmiBodyFat.value < 0 || ffmiBodyFat.value > 100)
-            errors.push('KÃ¶rperfettanteil muss zwischen 0 und 100% liegen');
+            errors.push('Körperfettanteil muss zwischen 0 und 100% liegen');
         return errors;
     };
 
@@ -2191,9 +2191,9 @@
         let category = '';
         if (ffmi < 18) category = 'Unterdurchschnittlich';
         else if (ffmi < 20) category = 'Durchschnittlich';
-        else if (ffmi < 22) category = 'Ãœberdurchschnittlich';
-        else if (ffmi < 25) category = 'Sehr muskulÃ¶s';
-        else category = 'Extrem muskulÃ¶s';
+        else if (ffmi < 22) category = 'Überdurchschnittlich';
+        else if (ffmi < 25) category = 'Sehr muskulös';
+        else category = 'Extrem muskulös';
         ffmiResult.value = { value: ffmi, category };
         addToast('FFMI berechnet', 'default');
         saveToLocalStorage('ffmi', {
@@ -2209,7 +2209,7 @@
         const txt = `FFMI
 - FFMI: ${ffmiResult.value.value.toFixed(1)} (${ffmiResult.value.category})
 - Gewicht: ${ffmiWeight.value ?? '-'} ${unit.value}
-- GrÃ¶ÃŸe: ${ffmiHeight.value ?? '-'} cm
+- Größe: ${ffmiHeight.value ?? '-'} cm
 - KFA: ${ffmiBodyFat.value ?? '-'}%`
         copyText(txt)
     }
@@ -2245,11 +2245,11 @@
         const errors: string[] = []
         if (!glFood.value.trim()) errors.push('Lebensmittel muss angegeben werden')
         if (glServing.value === null || isNaN(glServing.value) || glServing.value <= 0)
-            errors.push('PortionsgrÃ¶ÃŸe muss grÃ¶ÃŸer als 0 g sein')
+            errors.push('Portionsgröße muss größer als 0 g sein')
         if (glCarbs100.value === null || isNaN(glCarbs100.value) || glCarbs100.value < 0)
-            errors.push('Kohlenhydrate pro 100 g mÃ¼ssen â‰¥ 0 g sein')
+            errors.push('Kohlenhydrate pro 100 g müssen ≥ 0 g sein')
         if (glGi.value === null || isNaN(glGi.value) || glGi.value < 0 || glGi.value > 110)
-            errors.push('GlykÃ¤mischer Index muss zwischen 0 und 110 liegen')
+            errors.push('Glykämischer Index muss zwischen 0 und 110 liegen')
         return errors
     }
 
@@ -2265,7 +2265,7 @@
         const gl = (gi / 100) * carbsPerServing
 
         glResult.value = gl
-        addToast('GlykÃ¤mische Last berechnet', 'default')
+        addToast('Glykämische Last berechnet', 'default')
 
         saveToLocalStorage('glyload', {
             food: glFood.value,
@@ -2279,7 +2279,7 @@
 
     const copyGlyLoad = () => {
         if (glResult.value == null) return
-        const txt = `GlykÃ¤mische Last
+        const txt = `Glykämische Last
 - Lebensmittel: ${glFood.value || '-'}
 - Portion: ${glServing.value ?? '-'} g
 - KH (pro 100 g): ${glCarbs100.value ?? '-'} g
@@ -2324,7 +2324,7 @@
     const validateWater = (): string[] => {
         const errors: string[] = [];
         if (waterWeight.value === null || isNaN(waterWeight.value) || waterWeight.value <= 0)
-            errors.push('Gewicht muss grÃ¶ÃŸer als 0 sein');
+            errors.push('Gewicht muss größer als 0 sein');
         return errors;
     };
 
@@ -2356,7 +2356,7 @@
         const txt = `Wasserbedarf
 - Empfehlung: ${waterResult.value.toFixed(1)} Liter/Tag
 - Gewicht: ${waterWeight.value ?? '-'} ${unit.value}
-- AktivitÃ¤t: ${waterActivity.value}
+- Aktivität: ${waterActivity.value}
 - Klima: ${waterClimate.value}`
         copyText(txt)
     }
@@ -2369,14 +2369,14 @@
         if (autoCalcEnabled.value) debouncedCalcWater()
     })
 
-    // ======== PlÃ¤ne-Tab: State =======
+    // ======== Pläne-Tab: State =======
 
     const trainingPlans = ref < TrainingPlan[] > ([]);
     const favoritePlansIds = ref < string[] > ([])
 
 
 
-    // === PlÃ¤ne-Tab: abgeleitete Listen ===
+    // === Pläne-Tab: abgeleitete Listen ===
     const favoritePlans = computed(() =>
         trainingPlans.value.filter(p => favoritePlansIds.value.includes(p.id))
     )
@@ -2384,7 +2384,7 @@
         trainingPlans.value.filter(p => !favoritePlansIds.value.includes(p.id))
     )
 
-    // ======= PlÃ¤ne-Tab: Aktionen =======
+    // ======= Pläne-Tab: Aktionen =======
 
     const openPlanProgress = (planId: string) => {
         currentPlanId.value = planId
@@ -2396,7 +2396,7 @@
         return name.toLowerCase().includes(planSearchQuery.value.toLowerCase());
     };
 
-    // === PlÃ¤ne-Tab: Initiales Laden aus localStorage ===
+    // === Pläne-Tab: Initiales Laden aus localStorage ===
 
     onMounted(() => {
         try {
@@ -2456,7 +2456,7 @@
 
     const newProgressWeight = ref < number | null > (null)
 
-    // --- Helper: Ãœbungs-Namen â†’ Typ erkennen ---
+    // --- Helper: Übungs-Namen → Typ erkennen ---
 
     const isCardioName = (name: string) => {
         const n = (name || '').toLowerCase()
@@ -2498,12 +2498,12 @@
     const validateProgress = (): string[] => {
         const errors: string[] = []
 
-        if (!currentExercise.value) errors.push('Eine Ãœbung muss ausgewÃ¤hlt sein')
+        if (!currentExercise.value) errors.push('Eine Übung muss ausgewählt sein')
         if (detectedInputType.value === 'ausdauer') {
             if (newProgressDuration.value == null || isNaN(newProgressDuration.value) || newProgressDuration.value <= 0)
-                errors.push('Dauer (Min) muss grÃ¶ÃŸer als 0 sein')
+                errors.push('Dauer (Min) muss größer als 0 sein')
             if (newProgressDistance.value != null && (isNaN(newProgressDistance.value) || newProgressDistance.value < 0))
-                errors.push('Distanz (km) muss â‰¥ 0 sein')
+                errors.push('Distanz (km) muss ≥ 0 sein')
 
             const borgN = toNum(newProgressBorg.value)
             if (borgN != null) {
@@ -2518,7 +2518,7 @@
 
         if (detectedInputType.value === 'dehnung') {
             if (newProgressSets.value == null || isNaN(newProgressSets.value) || Number(newProgressSets.value) <= 0)
-                errors.push('SÃ¤tze mÃ¼ssen grÃ¶ÃŸer als 0 sein')
+                errors.push('Sätze müssen größer als 0 sein')
 
             if (newProgressDuration.value != null && String(newProgressDuration.value).trim() !== '') {
                 const d = Number(newProgressDuration.value)
@@ -2527,7 +2527,7 @@
 
             if (newProgressReps.value != null && String(newProgressReps.value).trim() !== '') {
                 const r = Number(newProgressReps.value)
-                if (!Number.isFinite(r) || r <= 0) errors.push('Wiederholungen mÃ¼ssen > 0 sein, wenn angegeben')
+                if (!Number.isFinite(r) || r <= 0) errors.push('Wiederholungen müssen > 0 sein, wenn angegeben')
             }
             return errors
         }
@@ -2538,14 +2538,14 @@
             perSet.forEach((r, i) => {
                 const w = Number(r.weight)
                 const reps = Number(r.reps)
-                if (!Number.isFinite(w) || w < 0) errors.push(`Satz ${i + 1}: Gewicht muss â‰¥ 0 sein`)
-                if (!Number.isFinite(reps) || reps <= 0) errors.push(`Satz ${i + 1}: Wdh. mÃ¼ssen > 0 sein`)
+                if (!Number.isFinite(w) || w < 0) errors.push(`Satz ${i + 1}: Gewicht muss ≥ 0 sein`)
+                if (!Number.isFinite(reps) || reps <= 0) errors.push(`Satz ${i + 1}: Wdh. müssen > 0 sein`)
             })
         } else {
             if (newProgressSets.value == null || isNaN(newProgressSets.value) || newProgressSets.value <= 0)
-                errors.push('SÃ¤tze mÃ¼ssen grÃ¶ÃŸer als 0 sein')
+                errors.push('Sätze müssen größer als 0 sein')
             if (newProgressReps.value == null || isNaN(newProgressReps.value) || newProgressReps.value <= 0)
-                errors.push('Wiederholungen mÃ¼ssen grÃ¶ÃŸer als 0 sein')
+                errors.push('Wiederholungen müssen größer als 0 sein')
         }
 
         if (newProgressIsDropset.value && (newProgressDropsets.value?.length ?? 0) > 0) {
@@ -2553,14 +2553,14 @@
                 const any = ds.weight != null || ds.reps != null
                 if (!any) return
                 if (ds.weight == null || isNaN(ds.weight) || ds.weight <= 0) errors.push(`Dropsatz ${j + 1}: Gewicht muss > 0 sein`)
-                if (ds.reps == null || isNaN(ds.reps) || ds.reps <= 0) errors.push(`Dropsatz ${j + 1}: Wdh. mÃ¼ssen > 0 sein`)
+                if (ds.reps == null || isNaN(ds.reps) || ds.reps <= 0) errors.push(`Dropsatz ${j + 1}: Wdh. müssen > 0 sein`)
             })
         }
 
         return errors
     }
 
-    //Core-Flow fÃ¼rs Modal
+    //Core-Flow fürs Modal
 
     const openProgressPopup = (planId: string) => {
         editingEntry.value = null
@@ -2823,7 +2823,7 @@
             )
             if (idx !== -1) {
                 workouts.value[idx] = payload
-                showToast({ message: 'Fortschritt aktualisiert!', type: 'success', emoji: 'âœ…' })
+                showToast({ message: 'Fortschritt aktualisiert!', type: 'success', emoji: '✅' })
             }
             editingEntry.value = null
         } else {
@@ -2831,7 +2831,7 @@
             if (payload.type !== 'ausdauer') {
                 checkMilestones(payload.planId, payload.exercise, payload.weight, payload.reps)
             }
-            showToast({ message: 'Fortschritt gespeichert!', type: 'success', emoji: 'âœ…' })
+            showToast({ message: 'Fortschritt gespeichert!', type: 'success', emoji: '✅' })
         }
 
         localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
@@ -2899,7 +2899,7 @@
         const byExercise = new Map < string, { entries: Workout[]; notes: string[]
     }> ()
     for (const it of strength) {
-        const key = it.exercise || 'Unbenannte Ãœbung'
+        const key = it.exercise || 'Unbenannte Übung'
         if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
 
         const setCount = Math.max(1, Number(it.sets ?? 1))
@@ -2971,7 +2971,7 @@
     const deleteProgressEntry = (planId: string, date: string) => {
         workouts.value = workouts.value.filter(w => !(w.planId === planId && w.date === date));
         localStorage.setItem('progress_workouts', JSON.stringify(workouts.value));
-        showToast({ message: 'Eintrag gelÃ¶scht!', type: 'success', emoji: 'ðŸ—‘ï¸' });
+        showToast({ message: 'Eintrag gelöscht!', type: 'success', emoji: '🗑️' });
     };
 
     function strengthExtrasFlags(entries: Workout[]): { tempo: boolean; rest: boolean } {
@@ -3082,7 +3082,7 @@
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
         if (!items.length) {
-            showToast({ message: 'Kein Eintrag fÃ¼r diesen Tag', type: 'default' })
+            showToast({ message: 'Kein Eintrag für diesen Tag', type: 'default' })
             return
         }
         editProgressEntry(currentPlanId.value, items[0])
@@ -3196,7 +3196,7 @@
                 break;
 
             case 'bodyFat':
-                if (!bodyFatResult.value) { addToast('Kein KÃ¶rperfett-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
+                if (!bodyFatResult.value) { addToast('Kein Körperfett-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
                 data = {
                     gender: bodyFatGender.value,
                     waist: bodyFatWaist.value,
@@ -3239,7 +3239,7 @@
                     goal: proteinGoal.value,
                     recommend_g_per_day: proteinResult.value.recommend.toFixed(0),
                     range_g_per_day: proteinResult.value.min && proteinResult.value.max
-                        ? `${proteinResult.value.min.toFixed(0)}â€“${proteinResult.value.max.toFixed(0)}`
+                        ? `${proteinResult.value.min.toFixed(0)}–${proteinResult.value.max.toFixed(0)}`
                         : null,
                     factor_g_per_kg: proteinResult.value.factor.toFixed(2),
                 };
@@ -3260,7 +3260,7 @@
                 break
 
             case 'progress': {
-                if (!downloadPlanId.value) { addToast('Kein Plan ausgewÃ¤hlt', 'default'); closeDownloadPopup(); return; }
+                if (!downloadPlanId.value) { addToast('Kein Plan ausgewählt', 'default'); closeDownloadPopup(); return; }
                 const plan = trainingPlans.value.find(p => p.id === downloadPlanId.value)
                 const progress = getProgressForPlan(downloadPlanId.value)
                 if (!progress.length) { addToast('Kein Fortschritt zum Herunterladen', 'default'); closeDownloadPopup(); return; }
@@ -3337,7 +3337,7 @@
 
             case 'plans':
             case 'nutrition':
-                addToast('Export fÃ¼r diesen Bereich ist noch nicht implementiert', 'default');
+                addToast('Export für diesen Bereich ist noch nicht implementiert', 'default');
                 closeDownloadPopup();
                 return;
 
@@ -3459,11 +3459,11 @@
                     content = `Plan: ${data.planName}\n\n` + data.progress.map((e: any, i: number) =>
                         `#${i + 1}
 Typ: ${e.type}
-Ãœbung: ${e.exercise}
+Übung: ${e.exercise}
 Datum: ${e.date}
 Dauer (Min): ${e.duration_min ?? '-'}
 Distanz (km): ${e.distance_km ?? '-'}
-SÃ¤tze: ${e.sets ?? '-'}
+Sätze: ${e.sets ?? '-'}
 Wdh: ${e.reps ?? '-'}
 Gewicht: ${e.weight_display ?? '-'}
 Notiz: ${e.note ?? '-'}\n`
@@ -3531,10 +3531,10 @@ Notiz: ${e.note ?? '-'}\n`
     function onToastDismiss(id: number) {
         if (!toast.value || toast.value.id !== id) return
 
-        // erst Exit-Animation aktivieren â€¦
+        // erst Exit-Animation aktivieren …
         toast.value.exiting = true
 
-        // â€¦ dann nach kurzer Zeit wirklich aus dem State werfen
+        // … dann nach kurzer Zeit wirklich aus dem State werfen
         setTimeout(() => {
             if (toast.value?.id === id) {
                 toast.value = null
@@ -3542,7 +3542,7 @@ Notiz: ${e.note ?? '-'}\n`
         }, 220) // ~0.2s, passend zur CSS-Animation
     }
 
-    // --- Toast: Globale UnterdrÃ¼ckung/Freigabe (suppressToasts) ---
+    // --- Toast: Globale Unterdrückung/Freigabe (suppressToasts) ---
 
     function releaseToasts() {
         if (!suppressToasts.value) return
@@ -3568,13 +3568,13 @@ Notiz: ${e.note ?? '-'}\n`
         const enabled = Boolean((e as CustomEvent).detail)
         toastsEnabled.value = enabled
 
-        // wenn global deaktiviert â†’ aktuellen Toast schlieÃŸen
+        // wenn global deaktiviert → aktuellen Toast schließen
         if (!enabled && toast.value) {
             toast.value = null
         }
     }
 
-    // --- Toast: API nach auÃŸen (showToast / addToast) ---
+    // --- Toast: API nach außen (showToast / addToast) ---
 
     function showToast(opts: { message: string; type?: 'default' | 'add' | 'delete' | 'save' | 'timer' | 'reset' | 'success'; emoji?: string }) {
         const mapped = opts.type === 'success' ? 'add' : (opts.type ?? 'default');
@@ -3591,13 +3591,13 @@ Notiz: ${e.note ?? '-'}\n`
 
         const id = toastId++
         const emojis = {
-            delete: 'ðŸ—‘ï¸',
-            add: 'âœ…',
-            save: 'ðŸ’¾',
-            timer: 'â°',
-            load: 'ðŸ“‹',
-            reset: 'â™»ï¸',
-            default: 'ðŸ“‹',
+            delete: '🗑️',
+            add: '✅',
+            save: '💾',
+            timer: '⏰',
+            load: '📋',
+            reset: '♻️',
+            default: '📋',
         } as const
         const types = {
             delete: 'toast-delete',
@@ -3688,14 +3688,14 @@ Notiz: ${e.note ?? '-'}\n`
         reps?: number
     ) => {
         if (workouts.value.length >= 10) {
-            celebrateMilestone('Meilenstein: 10 Workouts erreicht! ðŸŽ‰');
+            celebrateMilestone('Meilenstein: 10 Workouts erreicht! 🎉');
         }
 
 
         if (initialWeight.value && typeof currentWeight.value === 'string') {
             const weightChange = Math.abs(Number(currentWeight.value) - initialWeight.value);
             if (weightChange >= 5) {
-                celebrateMilestone('Meilenstein: 5 kg GewichtsverÃ¤nderung! ðŸŽ‰');
+                celebrateMilestone('Meilenstein: 5 kg Gewichtsveränderung! 🎉');
             }
         }
 
@@ -3710,7 +3710,7 @@ Notiz: ${e.note ?? '-'}\n`
                     weightKg > lastEntry.weight ||
                     (weightKg === lastEntry.weight && (reps ?? -Infinity) > (lastEntry.reps ?? -Infinity));
                 if (improved) {
-                    showToast({ message: `Meilenstein erreicht! ${exercise}: ${formatWeight(weightKg, 0)} Ã— ${reps} Wdh. ðŸŽ‰`, type: 'success', emoji: 'ðŸŽ‰' });
+                    showToast({ message: `Meilenstein erreicht! ${exercise}: ${formatWeight(weightKg, 0)} × ${reps} Wdh. 🎉`, type: 'success', emoji: '🎉' });
                     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                 }
             }
@@ -3812,7 +3812,7 @@ Notiz: ${e.note ?? '-'}\n`
                     const parsedTraining = JSON.parse(trainingData);
                     if (parsedTraining && Array.isArray(parsedTraining.plans)) {
                         trainingPlans.value = parsedTraining.plans;
-                        console.log(`Geladene TrainingsplÃ¤ne: ${trainingPlans.value.length}`);
+                        console.log(`Geladene Trainingspläne: ${trainingPlans.value.length}`);
                     } else {
                         console.warn("trainingData gefunden, aber 'plans' ist kein Array oder fehlt.");
                         trainingPlans.value = [];
@@ -3955,18 +3955,18 @@ Notiz: ${e.note ?? '-'}\n`
         min-height: 100vh;
         font-family: 'Inter', sans-serif;
         color: var(--text-primary);
-        overflow-x: hidden; /* âŸµ verhindert seitliches Wischen */
+        overflow-x: hidden; /* ⟵ verhindert seitliches Wischen */
     }
     /* Canvas nie breiter als der Container */
     .chart-canvas {
         display: block;
-        width: 100% !important; /* Ã¼berschreibt Chart.js-Inlinebreite */
+        width: 100% !important; /* überschreibt Chart.js-Inlinebreite */
         max-width: 100%;
-        height: 240px !important; /* fixe, angenehme Mobile-HÃ¶he */
+        height: 240px !important; /* fixe, angenehme Mobile-Höhe */
         box-sizing: border-box;
     }
 
-    /* ===== TrainingsplÃ¤ne-Liste (PlÃ¤ne-Tab) ===== */
+    /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
 
     .workout-list {
         background: var(--bg-card);
@@ -4011,7 +4011,7 @@ Notiz: ${e.note ?? '-'}\n`
         gap: .5rem;
     }
 
-    /* Ã–ffnen-Button in der Liste */
+    /* Öffnen-Button in der Liste */
     .open-btn {
         appearance: none;
         border: none;
@@ -4162,7 +4162,7 @@ Notiz: ${e.note ?? '-'}\n`
         color: var(--accent-primary);
     }
 
-        /* Kompakt-Variante greift jetzt zuverlÃ¤ssig im Stats-Tab auf Mobile */
+        /* Kompakt-Variante greift jetzt zuverlässig im Stats-Tab auf Mobile */
         .dashboard-grid .card-info.is-compact {
             font-size: 1rem;
             line-height: 1.1;
@@ -4339,7 +4339,7 @@ Notiz: ${e.note ?? '-'}\n`
     .set-table-wrapper {
         overflow-x: auto;
         max-width: 100%;
-        padding-bottom: .25rem; /* Platz fÃ¼r die Scrollbar */
+        padding-bottom: .25rem; /* Platz für die Scrollbar */
         scrollbar-gutter: stable both-edges;
         scrollbar-width: thin;
     }
@@ -4467,7 +4467,7 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    /* ===== TrainingsplÃ¤ne-Liste (PlÃ¤ne-Tab) ===== */
+    /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
 
     .list-item {
         display: flex;
@@ -4576,7 +4576,7 @@ Notiz: ${e.note ?? '-'}\n`
     }
 
     .list-item:hover {
-        background: var(--bg-secondary); /* dezente Hover-FlÃ¤che */
+        background: var(--bg-secondary); /* dezente Hover-Fläche */
         border-color: var(--accent-primary);
         transform: translateY(-1px);
     }
@@ -4591,7 +4591,7 @@ Notiz: ${e.note ?? '-'}\n`
         gap: .5rem;
     }
 
-    /* Ã–ffnen-Button: von â€žschwarzâ€œ zu Ghost/Outline */
+    /* Öffnen-Button: von „schwarz“ zu Ghost/Outline */
     .open-btn {
         appearance: none;
         border: 1px solid var(--border-color);
@@ -4631,7 +4631,7 @@ Notiz: ${e.note ?? '-'}\n`
             font-size: .95rem;
         }
     }
-    /* Fortschritt ansehen â€“ Header mit Download-Button rechts */
+    /* Fortschritt ansehen – Header mit Download-Button rechts */
     .modal .card-header {
         display: flex;
         align-items: center;
@@ -4645,7 +4645,7 @@ Notiz: ${e.note ?? '-'}\n`
         gap: .5rem;
     }
 
-    /* Optional: Titel enger machen, damit er optisch auf gleicher HÃ¶he sitzt */
+    /* Optional: Titel enger machen, damit er optisch auf gleicher Höhe sitzt */
     .modal .modal-title {
         margin: .25rem 0 .5rem;
     }
@@ -4800,7 +4800,7 @@ Notiz: ${e.note ?? '-'}\n`
     .day-card-actions {
         display: flex;
         align-items: center;
-        gap: .4rem; /* Abstand zwischen "Bearbeiten" und "Ã–ffnen/SchlieÃŸen" */
+        gap: .4rem; /* Abstand zwischen "Bearbeiten" und "Öffnen/Schließen" */
     }
 
     .day-details {
@@ -4962,9 +4962,9 @@ Notiz: ${e.note ?? '-'}\n`
         color: var(--text-secondary);
     }
 
-    /* Zellen ohne starre Mindestbreite â€“ fÃ¼llen die Grid-Spalten */
+    /* Zellen ohne starre Mindestbreite – füllen die Grid-Spalten */
     .cell {
-        min-width: 0; /* Ã¼berschreibt alte min-width */
+        min-width: 0; /* überschreibt alte min-width */
         padding: .35rem .5rem;
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
@@ -4972,7 +4972,7 @@ Notiz: ${e.note ?? '-'}\n`
         text-align: center;
     }
 
-    /* linke â€žSatzâ€œ-Spalte leicht linksbÃ¼ndig und markanter */
+    /* linke „Satz“-Spalte leicht linksbündig und markanter */
     .cell--set {
         text-align: left;
         font-weight: 600;
@@ -4982,24 +4982,24 @@ Notiz: ${e.note ?? '-'}\n`
     .cell--weight, .cell--reps, .cell--ds {
         min-width: 0;
     }
-    /* Fortschritt-Modal: scrollt erst ab SchwellenhÃ¶he, responsiv */
+    /* Fortschritt-Modal: scrollt erst ab Schwellenhöhe, responsiv */
     .modal--progress {
         display: flex;
         flex-direction: column;
-        /* zeigt die Scrollbar nur, wenn die HÃ¶he Ã¼berschritten wird */
+        /* zeigt die Scrollbar nur, wenn die Höhe überschritten wird */
         overflow: auto;
-        /* Schwelle: nimm die kleinere von 92% der Viewport-HÃ¶he (mobile sicher)
-     und 760px (auf groÃŸen Monitoren nicht unendlich hoch) */
+        /* Schwelle: nimm die kleinere von 92% der Viewport-Höhe (mobile sicher)
+     und 760px (auf großen Monitoren nicht unendlich hoch) */
         max-height: min(92svh, 760px);
         /* Breite angenehm und responsiv clamped */
         width: clamp(320px, 92vw, 720px);
-        /* verhindert â€œHintergrund-Scroll-Mitnahmeâ€ beim starken Scrollen */
+        /* verhindert “Hintergrund-Scroll-Mitnahme” beim starken Scrollen */
         overscroll-behavior: contain;
         /* Layout springt nicht, wenn die Scrollbar auftaucht */
         scrollbar-gutter: stable;
     }
 
-    /* etwas â€œAtemluftâ€, damit das Modal auf Mini-Screens nicht am Rand klebt */
+    /* etwas “Atemluft”, damit das Modal auf Mini-Screens nicht am Rand klebt */
     .modal-overlay {
         padding: 2svh 1rem;
     }
@@ -5011,7 +5011,7 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    /* sehr kleine GerÃ¤te: volle HÃ¶he nutzen, Breite enger */
+    /* sehr kleine Geräte: volle Höhe nutzen, Breite enger */
     @media (max-width: 640px) {
         .modal--progress {
             width: 96vw;
@@ -5020,7 +5020,7 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    /* Fallback fÃ¼r Browser ohne svh-UnterstÃ¼tzung */
+    /* Fallback für Browser ohne svh-Unterstützung */
     @supports not (height: 1svh) {
         .modal--progress {
             max-height: min(92vh, 760px);
@@ -5051,9 +5051,9 @@ Notiz: ${e.note ?? '-'}\n`
             z-index: 2;
             margin: 0 0 .5rem;
             padding: .75rem .75rem .5rem; /* etwas mehr Padding */
-            background: var(--bg-card); /* fÃ¼llt die FlÃ¤che vollstÃ¤ndig */
+            background: var(--bg-card); /* füllt die Fläche vollständig */
             border-bottom: 1px solid var(--border-color);
-            backdrop-filter: none; /* kein â€ždurchscheinenderâ€œ Rand */
+            backdrop-filter: none; /* kein „durchscheinender“ Rand */
         }
 
 
@@ -5069,13 +5069,13 @@ Notiz: ${e.note ?? '-'}\n`
             box-shadow: none;
         }
 
-        /* Nur wenn man GANZ UNTEN ist â†’ wieder normaler Footer-Hintergrund */
+        /* Nur wenn man GANZ UNTEN ist → wieder normaler Footer-Hintergrund */
         .modal--progress.at-bottom > .modal-actions {
             background: var(--bg-card);
             border-top: 1px solid var(--border-color);
         }
 
-    /* 3) Overlay: auf Mini-Screens RÃ¤nder sichern */
+    /* 3) Overlay: auf Mini-Screens Ränder sichern */
     .modal-overlay {
         /* damit oben/unten genug Luft ist und man bis ganz zum Anfang/Ende scrollen kann */
         padding: clamp(8px, 2svh, 20px) 12px;
@@ -5108,7 +5108,7 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    /* Fallback fÃ¼r Browser ohne svh */
+    /* Fallback für Browser ohne svh */
     @supports not (height: 1svh) {
         .modal--progress {
             max-height: min(90vh, 680px);
@@ -5119,7 +5119,7 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    /* sehr kleine GerÃ¤te */
+    /* sehr kleine Geräte */
     @media (max-width: 640px) {
         .modal--progress {
             width: 96vw;
@@ -5128,7 +5128,7 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    /* Fallback fÃ¼r Browser ohne svh */
+    /* Fallback für Browser ohne svh */
     @supports not (height: 1svh) {
         .modal--progress {
             max-height: min(90vh, 680px);
@@ -5153,7 +5153,7 @@ Notiz: ${e.note ?? '-'}\n`
         scrollbar-width: thin;
     }
 
-    /* 4) Compact spacing im Inhalt (macht das Popup "schmaler/dÃ¼nner" wirkend) */
+    /* 4) Compact spacing im Inhalt (macht das Popup "schmaler/dünner" wirkend) */
     .day-card {
         padding: .5rem .6rem;
     }
@@ -5170,7 +5170,7 @@ Notiz: ${e.note ?? '-'}\n`
         gap: .35rem;
     }
 
-    /* --- Fix: LÃ¼cke Ã¼ber dem Fortschritt-Titel + sticky Header --- */
+    /* --- Fix: Lücke über dem Fortschritt-Titel + sticky Header --- */
     .modal--progress {
         /* entfernt das leere Top-Padding der Modal-Box */
         padding-top: 0;
@@ -5185,14 +5185,14 @@ Notiz: ${e.note ?? '-'}\n`
         scrollbar-gutter: stable;
     }
 
-        /* Header fÃ¼llt die komplette FlÃ¤che oben aus */
+        /* Header füllt die komplette Fläche oben aus */
         .modal--progress > .card-header {
             position: sticky;
             top: 0;
             z-index: 2;
-            margin: 0; /* kein zusÃ¤tzlicher Spalt */
+            margin: 0; /* kein zusätzlicher Spalt */
             padding: 1rem 1rem .5rem; /* ersetzt dein .75rem .75rem .5rem */
-            background: var(--bg-card); /* deckt die FlÃ¤che */
+            background: var(--bg-card); /* deckt die Fläche */
             border-bottom: 1px solid var(--border-color);
             backdrop-filter: none;
         }
@@ -5207,7 +5207,7 @@ Notiz: ${e.note ?? '-'}\n`
     /* Abstand zwischen Header-Linie und erstem Inhalt im Fortschritt-Modal */
     .modal--progress > .card-header + .list-item.empty,
     .modal--progress > .card-header + .day-card-list {
-        margin-top: 1rem; /* taste dich bei Bedarf ran: .75rem â€“ 1.25rem */
+        margin-top: 1rem; /* taste dich bei Bedarf ran: .75rem – 1.25rem */
     }
 
 </style>

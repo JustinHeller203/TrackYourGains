@@ -7,7 +7,7 @@
                     class="download-btn"
                     :class="extraClass"
                     @click="$emit('click', $event)">
-            <slot>⬇️</slot>
+            <slot>??</slot>
         </BaseButton>
     </div>
 </template>

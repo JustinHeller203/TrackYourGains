@@ -3,13 +3,13 @@
     <div class="calculator-card">
         <div class="card-header">
             <h3 class="card-title">
-                {{ title || 'GlykÃ¤mische Last (GL) Rechner' }}
+                {{ title || 'Glykämische Last (GL) Rechner' }}
                 <InfoHover :text="infoText" />
             </h3>
 
             <FavoriteButton :active="isFavorite"
                             :titleActive="'Aus Favoriten entfernen'"
-                            :titleInactive="'Zu Favoriten hinzufÃ¼gen'"
+                            :titleInactive="'Zu Favoriten hinzufügen'"
                             @toggle="$emit('toggleFavorite')" />
         </div>
 
@@ -18,12 +18,12 @@
             <input :value="food"
                    @input="onFood"
                    type="text"
-                   placeholder="z. B. Reis, Banane â€¦"
+                   placeholder="z. B. Reis, Banane …"
                    class="edit-input" />
         </div>
 
         <div class="input-group">
-            <label>PortionsgrÃ¶ÃŸe (g)</label>
+            <label>Portionsgröße (g)</label>
             <input :value="serving ?? ''"
                    @input="onServing"
                    type="number"
@@ -46,7 +46,7 @@
         </div>
 
         <div class="input-group">
-            <label>GlykÃ¤mischer Index (0â€“110)</label>
+            <label>Glykämischer Index (0–110)</label>
             <input :value="gi ?? ''"
                    @input="onGi"
                    type="number"
@@ -58,7 +58,7 @@
         </div>
 
         <div class="input-group" v-if="carbs !== null">
-            <label>VerfÃ¼gbare KH pro Portion (berechnet)</label>
+            <label>Verfügbare KH pro Portion (berechnet)</label>
             <input :value="carbs!.toFixed(1) + ' g'" class="edit-input" disabled />
         </div>
 
@@ -68,7 +68,7 @@
             <div class="result-header">
                 <p>
                     <strong>GL pro Portion:</strong> {{ glResult!.toFixed(1) }}
-                    <span v-if="glCategory">â€” Kategorie: {{ glCategory }}</span>
+                    <span v-if="glCategory">— Kategorie: {{ glCategory }}</span>
                 </p>
                 <CopyButton @click="$emit('copy')" />
             </div>
@@ -82,8 +82,8 @@
                               data-short="Export"
                               @click="$emit('export')" />
                 <ResetButton class="calc-footer-btn"
-                             title="ZurÃ¼cksetzen"
-                             aria-label="ZurÃ¼cksetzen"
+                             title="Zurücksetzen"
+                             aria-label="Zurücksetzen"
                              data-short="Reset"
                              @click="$emit('reset')" />
             </div>
@@ -108,7 +108,7 @@ const props = defineProps<{
   glServing: number | null
   glCarbs100: number | null
   glGi: number | null
-  /** optional zur Anzeige â€“ parent rechnet das bereits */
+  /** optional zur Anzeige – parent rechnet das bereits */
   glCarbs?: number | null
   glResult: number | null
   glCategory?: Category
@@ -138,7 +138,7 @@ const carbs = computed(() => props.glCarbs ?? null)
 const infoText = computed(
   () =>
     props.info ??
-    'GL = (GI Ã— verfÃ¼gbare KH pro Portion in g) / 100. Richtwerte: niedrig < 10, mittel 10â€“19, hoch â‰¥ 20.'
+    'GL = (GI × verfügbare KH pro Portion in g) / 100. Richtwerte: niedrig < 10, mittel 10–19, hoch ≥ 20.'
 )
 
 function onFood(e: Event) {

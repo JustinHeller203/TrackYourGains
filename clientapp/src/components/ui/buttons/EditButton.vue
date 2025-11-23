@@ -5,7 +5,7 @@
                 :type="type"
                 extraClass="edit-btn"
                 @click="$emit('click', $event)">
-        <slot>✏️</slot>
+        <slot>??</slot>
     </BaseButton>
 </template>
 

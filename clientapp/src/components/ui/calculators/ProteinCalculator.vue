@@ -9,13 +9,13 @@
 
             <FavoriteButton :active="isFavorite"
                             :titleActive="'Aus Favoriten entfernen'"
-                            :titleInactive="'Zu Favoriten hinzufÃ¼gen'"
+                            :titleInactive="'Zu Favoriten hinzufügen'"
                             @toggle="$emit('toggleFavorite')" />
         </div>
 
-        <!-- KÃ¶rpergewicht -->
+        <!-- Körpergewicht -->
         <div class="input-group">
-            <label>KÃ¶rpergewicht ({{ unitNormalized === 'kg' ? 'kg' : 'lbs' }})</label>
+            <label>Körpergewicht ({{ unitNormalized === 'kg' ? 'kg' : 'lbs' }})</label>
             <input :value="weightInputValue"
                    @input="onWeightInput"
                    type="number"
@@ -35,9 +35,9 @@
             </select>
         </div>
 
-        <!-- AktivitÃ¤t -->
+        <!-- Aktivität -->
         <div class="input-group">
-            <label>AktivitÃ¤t</label>
+            <label>Aktivität</label>
             <select :value="activityEffective" @change="onActivityChange" class="edit-input">
                 <option value="low">Niedrig</option>
                 <option value="moderate">Moderat</option>
@@ -55,7 +55,7 @@
                    class="edit-input"
                    min="1"
                    step="1" />
-            <p class="hint">Wenn gesetzt, zeigen wir zusÃ¤tzlich g pro Mahlzeit.</p>
+            <p class="hint">Wenn gesetzt, zeigen wir zusätzlich g pro Mahlzeit.</p>
         </div>
 
         <!-- Manuelles Berechnen -->
@@ -73,7 +73,7 @@
             </div>
 
             <p v-if="showGramsPerMeal" class="result-sub">
-                â‰ˆ {{ roundedGramsPerMeal }} g pro Mahlzeit (bei {{ meals }} Mahlzeiten/Tag)
+                ≈ {{ roundedGramsPerMeal }} g pro Mahlzeit (bei {{ meals }} Mahlzeiten/Tag)
             </p>
         </div>
 
@@ -85,8 +85,8 @@
                               data-short="Export"
                               @click="$emit('export')" />
                 <ResetButton class="calc-footer-btn"
-                             title="ZurÃ¼cksetzen"
-                             aria-label="ZurÃ¼cksetzen"
+                             title="Zurücksetzen"
+                             aria-label="Zurücksetzen"
                              data-short="Reset"
                              @click="$emit('reset')" />
             </div>
@@ -147,7 +147,7 @@
         return u === 'lb' || u === 'lbs' ? 'lbs' : 'kg'
     })
 
-    /** Fallback: immer gÃ¼ltige AktivitÃ¤t */
+    /** Fallback: immer gültige Aktivität */
     const activityEffective = computed<Activity>(() => {
         const a = (props.proteinActivity as Activity | null) ?? null
         return a === 'low' || a === 'moderate' || a === 'high' ? a : 'moderate'
@@ -180,7 +180,7 @@
         { immediate: true }
     )
 
-    /* Ergebnis-PrioritÃ¤t:
+    /* Ergebnis-Priorität:
        - autoCalcEnabled: nimm lokal (snappier UI)
        - sonst: nimm Parent, fallback lokal
     */
@@ -219,7 +219,7 @@
 
     /* Info-Text */
     const infoToShow = computed(
-        () => props.info ?? 'Berechnet g/Tag auf Basis von Gewicht, Ziel (Cut/Maintain/Bulk) und AktivitÃ¤t. Einheiten (kg/lbs) werden automatisch berÃ¼cksichtigt.'
+        () => props.info ?? 'Berechnet g/Tag auf Basis von Gewicht, Ziel (Cut/Maintain/Bulk) und Aktivität. Einheiten (kg/lbs) werden automatisch berücksichtigt.'
     )
 
     /* ==== Events ==== */

@@ -54,12 +54,12 @@ html {
     scrollbar-gutter: stable;
 }
 
-/* Fallback für Browser ohne Support */
+/* Fallback f�r Browser ohne Support */
 @supports not (scrollbar-gutter: stable) {
     html {
         overflow-y: scroll;
     }
-    /* immer Platz für die Scrollbar */
+    /* immer Platz f�r die Scrollbar */
 }
 
 /* ================== Layout / Container ================== */
@@ -114,7 +114,7 @@ body {
     box-shadow: 0 6px 18px rgba(17,24,39,.06);
     border: 1px solid #e5e7eb;
     background: #fff;
-    position: relative; /* Referenz für Tooltip */
+    position: relative; /* Referenz f�r Tooltip */
 }
 
 html.dark-mode .calculator-card {
@@ -122,7 +122,7 @@ html.dark-mode .calculator-card {
     border-color: #30363d;
 }
 
-/* ================== Card Header – Desktop Basis ================== */
+/* ================== Card Header � Desktop Basis ================== */
 .calculator-card .card-header {
     display: flex;
     align-items: center;
@@ -152,7 +152,7 @@ html.dark-mode .calculator-card {
     justify-content: center;
 }
 
-/* ================== Tooltip – Basis (öffnet nach links) ================== */
+/* ================== Tooltip � Basis (�ffnet nach links) ================== */
 .calculator-card .tooltip {
     position: relative;
     display: inline-block;
@@ -224,9 +224,9 @@ html.dark-mode .calculator-card {
     }
 }
 
-/* ================== Mobile (≤640px) ================== */
+/* ================== Mobile (=640px) ================== */
 @media (max-width:640px) {
-    /* Header: Grid – Titel | Info | Stern */
+    /* Header: Grid � Titel | Info | Stern */
     .calculator-card .card-header {
         display: grid !important;
         grid-template-columns: 1fr auto auto;
@@ -290,7 +290,7 @@ html.dark-mode .calculator-card {
     }
 }
 
-/* ================== Progress-Seite Header-Abstände ================== */
+/* ================== Progress-Seite Header-Abst�nde ================== */
 .progress .page-title {
     margin-top: 1.75rem;
     margin-bottom: .25rem;
@@ -314,7 +314,7 @@ html.dark-mode .calculator-card {
         white-space: normal !important;
     }
 
-    /* Für Tooltips in Card-Headern innerhalb des Grids */
+    /* F�r Tooltips in Card-Headern innerhalb des Grids */
     .calculators-grid .card-header,
     .calculators-grid .card-header .card-title,
     .calculators-grid .card-header > h3 {
@@ -364,7 +364,7 @@ html.dark-mode .calculator-card {
                 visibility: visible;
                 opacity: 1;
             }
-/* Gemeinsamer Look für BaseButton-Buttons */
+/* Gemeinsamer Look f�r BaseButton-Buttons */
 button.action-btn.btn-extras-look {
     background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
     color: #fff;
@@ -429,7 +429,7 @@ button.action-btn.btn-extras-look {
             opacity: 1 !important;
         }
 
-/* Aktionsspalte (🗑️ etc.): nie zu schmal */
+/* Aktionsspalte (??? etc.): nie zu schmal */
 .training table[data-cols="4"] th:last-child,
 .training table[data-cols="4"] td:last-child {
     width: 44px !important;
@@ -459,7 +459,7 @@ button.action-btn.btn-extras-look {
         margin: 0 auto !important;
     }
 
-/* Header-Label-Abkürzungen (Wdh./km/s) – falls scoped-Styles ausfallen */
+/* Header-Label-Abk�rzungen (Wdh./km/s) � falls scoped-Styles ausfallen */
 .training .th-label .mid,
 .training .th-label .short {
     display: none;
@@ -481,7 +481,7 @@ button.action-btn.btn-extras-look {
 .training .th-label.is-short .short {
     display: inline;
 }
-/* ===== Training.vue – globale Fixes (Resizer + Mobile-Layout) ===== */
+/* ===== Training.vue � globale Fixes (Resizer + Mobile-Layout) ===== */
 
 /* Spalten-Resizer sichtbar & klickbar (auch bei scoped-Styles) */
 .training .exercise-table.full-width th.resizable,
@@ -490,12 +490,12 @@ button.action-btn.btn-extras-look {
     overflow: visible !important;
 }
 
-    /* Griff in der TH – komplett innerhalb der Zelle (kein Clipping) */
+    /* Griff in der TH � komplett innerhalb der Zelle (kein Clipping) */
     .training .exercise-table.full-width th.resizable > .resizer,
     .training .custom-exercises-table th.resizable > .resizer {
         position: absolute !important;
         top: -1px !important;
-        right: 0 !important; /* NICHT negativ – sonst clipped es */
+        right: 0 !important; /* NICHT negativ � sonst clipped es */
         width: 10px !important;
         height: calc(100% + 2px) !important;
         cursor: col-resize !important;
@@ -565,7 +565,7 @@ button.action-btn.btn-extras-look {
             opacity: 1 !important;
         }
 
-/* Aktionsspalte (🗑️ etc.): nie zu schmal */
+/* Aktionsspalte (??? etc.): nie zu schmal */
 .training table[data-cols="4"] th:last-child,
 .training table[data-cols="4"] td:last-child {
     width: 44px !important;
@@ -595,7 +595,7 @@ button.action-btn.btn-extras-look {
         margin: 0 auto !important;
     }
 
-/* Header-Label-Abkürzungen (Wdh./km/s) – falls scoped-Styles ausfallen */
+/* Header-Label-Abk�rzungen (Wdh./km/s) � falls scoped-Styles ausfallen */
 .training .th-label .mid,
 .training .th-label .short {
     display: none;
@@ -618,9 +618,9 @@ button.action-btn.btn-extras-look {
     display: inline;
 }
 
-/* ===== Mobile-Fix (≤560px): konsistentes Verhalten der Plan-Karten ===== */
+/* ===== Mobile-Fix (=560px): konsistentes Verhalten der Plan-Karten ===== */
 
-/* ===== Mobile-Fix (≤560px): konsistentes Verhalten der Plan-Karten ===== */
+/* ===== Mobile-Fix (=560px): konsistentes Verhalten der Plan-Karten ===== */
 @media (max-width:560px) {
     .training .plan-item {
         display: grid !important;
@@ -651,7 +651,7 @@ html, body {
     min-height: 100%;
 }
 
-/* ==== Training: keine Deko-Linien für Resizer, Handles bleiben klickbar ==== */
+/* ==== Training: keine Deko-Linien f�r Resizer, Handles bleiben klickbar ==== */
 .training .exercise-table.full-width th.resizable > .resizer::before,
 .training .custom-exercises-table th.resizable > .resizer::before,
 .training .exercise-table.full-width tr.resizable-row > .row-resizer::before {
@@ -670,21 +670,21 @@ html, body {
     width: 100% !important;
 }
 
-/* 2) Aktion-Spalte: nur Mindestbreite – KEIN fixes width/max-width mehr  */
+/* 2) Aktion-Spalte: nur Mindestbreite � KEIN fixes width/max-width mehr  */
 .training table[data-cols="4"] th:last-child,
 .training table[data-cols="4"] td:last-child,
 .training .exercise-table.full-width.compact th:last-child,
 .training .exercise-table.full-width.compact td:last-child,
 .training .custom-exercises-table th:last-child,
 .training .custom-exercises-table td:last-child {
-    width: auto !important; /* überschreibt width:44px */
-    max-width: none !important; /* überschreibt max-width:64px */
-    min-width: 44px !important; /* Platz fürs Icon bleibt garantiert */
+    width: auto !important; /* �berschreibt width:44px */
+    max-width: none !important; /* �berschreibt max-width:64px */
+    min-width: 44px !important; /* Platz f�rs Icon bleibt garantiert */
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
 }
-/* Entfernt die drei Punkte beim Löschbutton (Action-Zelle) */
+/* Entfernt die drei Punkte beim L�schbutton (Action-Zelle) */
 .training table[data-cols="4"] td.action-cell,
 .training .exercise-table.full-width td.action-cell,
 .training .exercise-table.full-width.compact td.action-cell,
@@ -699,7 +699,7 @@ html, body {
     text-overflow: clip !important;
 }
 
-/* 3) Resizer bleibt in der Zelle (kein Überstand an der rechten Kante) */
+/* 3) Resizer bleibt in der Zelle (kein �berstand an der rechten Kante) */
 .training .exercise-table.full-width th.resizable,
 .training .custom-exercises-table th.resizable {
     overflow: hidden !important; /* statt visible */
@@ -713,7 +713,7 @@ html, body {
         width: 10px !important;
     }
 
-/* 4) Horizontaler Scroll-Container – rechte Kante bleibt „innen“ */
+/* 4) Horizontaler Scroll-Container � rechte Kante bleibt �innen� */
 .training .table-scroll {
     overflow-x: auto;
 }

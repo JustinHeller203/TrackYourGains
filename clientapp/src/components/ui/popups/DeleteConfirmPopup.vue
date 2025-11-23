@@ -3,12 +3,12 @@
                overlayClass="delete-popup"
                @cancel="$emit('cancel')">
         <template #default>
-            <h3 class="popup-title">LÃ¶schen bestÃ¤tigen</h3>
-            <p class="popup-message">Willst du das wirklich lÃ¶schen?</p>
+            <h3 class="popup-title">Löschen bestätigen</h3>
+            <p class="popup-message">Willst du das wirklich löschen?</p>
         </template>
 
         <template #actions>
-            <PopupDeleteButton autofocus @click="$emit('confirm')">LÃ¶schen</PopupDeleteButton>
+            <PopupDeleteButton autofocus @click="$emit('confirm')">Löschen</PopupDeleteButton>
             <PopupCancelButton @click="$emit('cancel')">Abbrechen</PopupCancelButton>
         </template>
     </BasePopup>

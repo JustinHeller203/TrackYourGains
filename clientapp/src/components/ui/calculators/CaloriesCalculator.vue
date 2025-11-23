@@ -9,7 +9,7 @@
 
             <FavoriteButton :active="isFavorite"
                             :titleActive="'Aus Favoriten entfernen'"
-                            :titleInactive="'Zu Favoriten hinzufÃ¼gen'"
+                            :titleInactive="'Zu Favoriten hinzufügen'"
                             @toggle="$emit('toggleFavorite')" />
         </div>
 
@@ -25,7 +25,7 @@
         <div class="input-group">
             <label>Geschlecht</label>
             <select :value="gender" @change="onGenderChange" class="edit-input">
-                <option value="male">MÃ¤nnlich</option>
+                <option value="male">Männlich</option>
                 <option value="female">Weiblich</option>
             </select>
         </div>
@@ -40,7 +40,7 @@
         </div>
 
         <div class="input-group">
-            <label>GrÃ¶ÃŸe (cm)</label>
+            <label>Größe (cm)</label>
             <input :value="height ?? ''"
                    @input="onHeightInput"
                    type="number"
@@ -50,7 +50,7 @@
 
         <div class="input-group">
             <label class="label-row">
-                <span>AktivitÃ¤tslevel</span>
+                <span>Aktivitätslevel</span>
                 <InfoHover :text="activityInfoText" />
             </label>
             <select :value="activity" @change="onActivityChange" class="edit-input">
@@ -66,7 +66,7 @@
             <label>Kalorienziel</label>
             <select :value="goal" @change="onGoalChange" class="edit-input">
                 <option :value="0">Erhaltung</option>
-                <option v-for="n in steps" :key="'surplus-'+n" :value="n">+{{ n }} kcal (Ãœberschuss)</option>
+                <option v-for="n in steps" :key="'surplus-'+n" :value="n">+{{ n }} kcal (Überschuss)</option>
                 <option v-for="n in steps" :key="'deficit-'+n" :value="-n">-{{ n }} kcal (Defizit)</option>
             </select>
         </div>
@@ -80,12 +80,12 @@
             </div>
             <ul class="result-list">
                 <li>Kohlenhydrate (50%): {{ result.macros.carbs.toFixed(0) }} g</li>
-                <li>EiweiÃŸ (30%): {{ result.macros.protein.toFixed(0) }} g</li>
+                <li>Eiweiß (30%): {{ result.macros.protein.toFixed(0) }} g</li>
                 <li>Fett (20%): {{ result.macros.fat.toFixed(0) }} g</li>
             </ul>
         </div>
 
-        <!-- bleibt fÃ¼r dein updateMacroChart() -->
+        <!-- bleibt für dein updateMacroChart() -->
         <div v-if="result" class="chart-container">
             <canvas id="macroChart"></canvas>
         </div>
@@ -98,8 +98,8 @@
                               data-short="Export"
                               @click="$emit('export')" />
                 <ResetButton class="calc-footer-btn"
-                             title="ZurÃ¼cksetzen"
-                             aria-label="ZurÃ¼cksetzen"
+                             title="Zurücksetzen"
+                             aria-label="Zurücksetzen"
                              data-short="Reset"
                              @click="$emit('reset')" />
             </div>
@@ -167,9 +167,9 @@
     const steps = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
 
     const infoText = computed(
-        () => props.info ?? 'Berechnet Tagesbedarf aus Alter, Geschlecht, GrÃ¶ÃŸe, Gewicht und AktivitÃ¤tsfaktor; optional plus/minus Kalorienziel.'
+        () => props.info ?? 'Berechnet Tagesbedarf aus Alter, Geschlecht, Größe, Gewicht und Aktivitätsfaktor; optional plus/minus Kalorienziel.'
     )
-    const activityInfoText = 'Sitzend: wenig Bewegung â€¢ Leicht: 1â€“3Ã—/Woche â€¢ Moderat: 3â€“5Ã—/Woche â€¢ Sehr: 6â€“7Ã—/Woche â€¢ Extrem: sehr harte, tÃ¤gliche AktivitÃ¤t'
+    const activityInfoText = 'Sitzend: wenig Bewegung • Leicht: 1–3×/Woche • Moderat: 3–5×/Woche • Sehr: 6–7×/Woche • Extrem: sehr harte, tägliche Aktivität'
 
     /* handlers */
     function onAgeInput(e: Event) {
@@ -196,7 +196,7 @@
 </script>
 
 <style scoped>
-    /* === VollstÃ¤ndige, lokale Styles fÃ¼r Konsistenz === */
+    /* === Vollständige, lokale Styles für Konsistenz === */
 
     /* Card */
     .calculator-card {

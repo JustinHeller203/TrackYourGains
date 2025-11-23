@@ -1,6 +1,6 @@
 <template>
     <BasePopup :show="show"
-               title="Passwort ändern"
+               title="Passwort �ndern"
                variant="password-change-popup"
                @cancel="$emit('cancel')">
         <!-- Body -->
@@ -52,7 +52,7 @@
     const error = ref("");
     const currentRef = ref<HTMLInputElement | null>(null);
 
-    // Autofokus wenn geöffnet
+    // Autofokus wenn ge�ffnet
     watch(
         () => props.show,
         async (open) => {
@@ -66,7 +66,7 @@
     function onSave() {
         const { current, next, repeat } = form.value;
         if (!current || !next || !repeat) {
-            error.value = "Bitte alle Felder ausfüllen.";
+            error.value = "Bitte alle Felder ausf�llen.";
             return;
         }
         if (next.length < 8) {
@@ -74,7 +74,7 @@
             return;
         }
         if (next !== repeat) {
-            error.value = "Passwörter stimmen nicht überein.";
+            error.value = "Passw�rter stimmen nicht �berein.";
             return;
         }
         error.value = "";

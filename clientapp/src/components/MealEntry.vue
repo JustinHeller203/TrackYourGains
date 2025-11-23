@@ -1,6 +1,6 @@
 <template>
     <form @submit.prevent="submit" class="form-card">
-        <input v-model="name" placeholder="Mahlzeit (z.B. HÃ¤hnchen mit Reis)" />
+        <input v-model="name" placeholder="Mahlzeit (z.B. Hähnchen mit Reis)" />
         <input v-model.number="calories" placeholder="Kalorien" type="number" />
         <input v-model.number="protein" placeholder="Protein (g)" type="number" />
         <input v-model.number="carbs" placeholder="Kohlenhydrate (g)" type="number" />

@@ -3,16 +3,16 @@
 <template>
     <div class="settings">
         <div class="settings-header">
-            <h2 class="page-title">âš™ï¸ Einstellungen</h2>
+            <h2 class="page-title">⚙️ Einstellungen</h2>
             <p class="page-subtext">Personalisiere deine Gym-Tracking Experience</p>
         </div>
 
         <div class="settings-grid">
             <div class="setting-card">
-                <div class="setting-icon">ðŸŒ™</div>
+                <div class="setting-icon">🌙</div>
                 <div class="setting-content">
                     <h3 class="setting-title">Dark Mode</h3>
-                    <p class="setting-description">Aktiviere den dunklen Modus fÃ¼r entspannteres Tracking</p>
+                    <p class="setting-description">Aktiviere den dunklen Modus für entspannteres Tracking</p>
                 </div>
                 <div class="setting-control">
                     <input id="darkmode-toggle" type="checkbox" class="toggle-switch" v-model="isDarkDraft" />
@@ -23,10 +23,10 @@
             </div>
 
             <div class="setting-card">
-                <div class="setting-icon">ðŸ“Š</div>
+                <div class="setting-icon">📊</div>
                 <div class="setting-content">
                     <h3 class="setting-title">Einheiten</h3>
-                    <p class="setting-description">WÃ¤hle deine bevorzugten MaÃŸeinheiten</p>
+                    <p class="setting-description">Wähle deine bevorzugten Maßeinheiten</p>
                 </div>
                 <div class="setting-control">
                     <select v-model="preferredUnit" class="unit-select">
@@ -37,7 +37,7 @@
             </div>
 
             <div class="setting-card">
-                <div class="setting-icon">âš¡ï¸</div>
+                <div class="setting-icon">⚡️</div>
                 <div class="setting-content">
                     <h3 class="setting-title">Auto-Berechnung</h3>
                     <p class="setting-description">Rechner automatisch berechnen (Berechnen-Button ausblenden)</p>
@@ -51,7 +51,7 @@
             </div>
 
             <div class="setting-card">
-                <div class="setting-icon">ðŸ””</div>
+                <div class="setting-icon">🔔</div>
                 <div class="setting-content">
                     <h3 class="setting-title">Toast-Nachrichten</h3>
                     <p class="setting-description">Ein-/Ausschalten von Toast-Benachrichtigungen</p>
@@ -118,11 +118,11 @@
     // Globale Toast-Einstellung
     const toastsEnabled = ref(true)
 
-    // Zentraler Toast-State fÃ¼r diese Seite
+    // Zentraler Toast-State für diese Seite
     const toast = ref<ToastModel | null>(null)
     const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
 
-    // Draft-State fÃ¼r das UI
+    // Draft-State für das UI
     const isDarkDraft = ref(false)
     const persistedTheme = ref<'dark' | 'light'>('light')
     const saved = ref(false)
@@ -158,7 +158,7 @@
     const startToastExit = () => {
         if (!toast.value) return
         toast.value.exiting = true
-        // Exit ist in Toast.vue per Inline-Style bereits auf 0ms gesetzt â†’ sofort entfernen
+        // Exit ist in Toast.vue per Inline-Style bereits auf 0ms gesetzt → sofort entfernen
         setTimeout(() => { toast.value = null }, 0)
     }
     function saveSettings() {
@@ -179,13 +179,13 @@
         localStorage.setItem('toastsEnabled', String(toastsEnabled.value))
         window.dispatchEvent(new CustomEvent('toasts-enabled-changed', { detail: toastsEnabled.value }))
 
-        // Zentralen Toast zeigen â€“ nur wenn erlaubt
+        // Zentralen Toast zeigen – nur wenn erlaubt
         if (toastsEnabled.value) {
             const id = Date.now()
             toast.value = {
                 id,
-                message: 'Einstellungen gespeichert! ðŸŽ‰',
-                emoji: 'ðŸ’¾',
+                message: 'Einstellungen gespeichert! 🎉',
+                emoji: '💾',
                 type: 'toast-save',
                 exiting: false,
                 durationMs: 2500
@@ -193,7 +193,7 @@
         }
     }
 
-    // Bei Verlassen ohne Speichern: Preview zurÃ¼cksetzen
+    // Bei Verlassen ohne Speichern: Preview zurücksetzen
     onBeforeRouteLeave((_to, _from, next) => {
         if (!saved.value) {
             previewTheme(persistedTheme.value)
@@ -228,7 +228,7 @@
     }
 
     html.dark-mode .page-title {
-        color: #ffffff !important; /* WeiÃŸ fÃ¼r Lesbarkeit */
+        color: #ffffff !important; /* Weiß für Lesbarkeit */
         background: none !important; /* Entfernt Gradient */
         -webkit-background-clip: initial !important; /* Deaktiviert Clip */
         -webkit-text-fill-color: initial !important; /* Deaktiviert transparent */
@@ -385,11 +385,11 @@
     .toggle-label {
         display: inline-flex;
         align-items: center;
-        line-height: 1; /* verhindert HÃ¶hen-Jump */
+        line-height: 1; /* verhindert Höhen-Jump */
     }
     .toggle-text {
         display: inline-block;
-        width: 3.2ch; /* genug fÃ¼r "AUS" */
+        width: 3.2ch; /* genug für "AUS" */
         text-align: left; /* bleibt an der gleichen Stelle wie vorher */
         text-transform: uppercase;
         letter-spacing: 1px;

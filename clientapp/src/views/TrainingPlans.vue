@@ -1,20 +1,20 @@
 <template>
     <div class="plans">
-        <h2 class="page-title">📋 Trainingspläne</h2>
+        <h2 class="page-title">?? Trainingspl�ne</h2>
 
         <input v-model="q" placeholder="Suche (Name oder Ziel)" class="plan-search-input" />
 
         <div v-if="!filtered.length" class="empty">
-            Noch keine Pläne gespeichert. Erstelle sie unter „Training“.
+            Noch keine Pl�ne gespeichert. Erstelle sie unter �Training�.
         </div>
 
         <div v-else class="plan-list">
             <div v-for="p in filtered" :key="p.id" class="plan-item">
                 <div class="info">
                     <strong>{{ p.name }}</strong>
-                    <small>{{ p.exercises.length }} Übungen</small>
+                    <small>{{ p.exercises.length }} �bungen</small>
                 </div>
-                <button class="open-btn" @click="openInTraining(p.id)">Öffnen</button>
+                <button class="open-btn" @click="openInTraining(p.id)">�ffnen</button>
             </div>
         </div>
     </div>

@@ -37,7 +37,7 @@ const vAutoFlip: Directive<ElEx, Options> = {
             const trigger = getTrigger();
             if (!trigger) return;
 
-            // Element muss sichtbar sein, sonst sind Maße 0
+            // Element muss sichtbar sein, sonst sind Ma�e 0
             const wasHidden = getComputedStyle(el).display === 'none' || el.hidden;
             if (wasHidden) return;
 
@@ -86,11 +86,11 @@ const vAutoFlip: Directive<ElEx, Options> = {
                 el.classList.toggle('menu--top', !placeBottom);
                 el.setAttribute('data-placement', placeBottom ? 'bottom' : 'top');
             } finally {
-                // im nächsten Frame wieder erlauben → verhindert Endlosschleifen
+                // im n�chsten Frame wieder erlauben ? verhindert Endlosschleifen
                 requestAnimationFrame(() => { ignoreMut = false; });
             }
 
-            // restore position fallback (falls nötig)
+            // restore position fallback (falls n�tig)
             if (opts.strategy === 'absolute' && !prevPos) {
                 el.style.removeProperty('position');
             }
@@ -99,7 +99,7 @@ const vAutoFlip: Directive<ElEx, Options> = {
         const onScroll = () => update();
         const onResize = () => update();
 
-        // reagiert auf Größenänderungen des Menüs (auch beim Öffnen)
+        // reagiert auf Gr��en�nderungen des Men�s (auch beim �ffnen)
         const ro = new ResizeObserver(() => update());
         ro.observe(el);
 
@@ -113,7 +113,7 @@ const vAutoFlip: Directive<ElEx, Options> = {
         });
         mo.observe(el, { attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
 
-        // initial versuchen (nächstes Frame)
+        // initial versuchen (n�chstes Frame)
         requestAnimationFrame(update);
 
         el.__autoFlip = {

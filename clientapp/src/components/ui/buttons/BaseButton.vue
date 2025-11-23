@@ -26,7 +26,7 @@
 </script>
 
 <style scoped>
-    /* ✅ Add-Button: exakt wie PlanSubmitButton (inkl. Hover/Focus/Active) */
+    /* ? Add-Button: exakt wie PlanSubmitButton (inkl. Hover/Focus/Active) */
     .action-btn.add-exercise-btn {
         background: linear-gradient(45deg, #4B6CB7, #182848);
         color: #ffffff;
@@ -65,12 +65,12 @@
             cursor: not-allowed;
         }
 
-        /* Optional: gleiche „block“-Variante wie beim Plan-Button */
+        /* Optional: gleiche �block�-Variante wie beim Plan-Button */
         .action-btn.add-exercise-btn.block {
             width: 100%;
         }
 
-    /* 🌿 Chip-Button für „Extras ein-/ausblenden“ (unverändert) */
+    /* ?? Chip-Button f�r �Extras ein-/ausblenden� (unver�ndert) */
     .action-btn.toggle-exercise-btn {
         background: var(--bg-secondary);
         color: var(--text-primary);

@@ -21,11 +21,11 @@
             </ExportButton>
 
             <ResetButton class="footer-btn"
-                         :title="useShortLabels ? 'Reset' : 'Zurücksetzen'"
-                         :aria-label="useShortLabels ? 'Reset' : 'Zurücksetzen'"
+                         :title="useShortLabels ? 'Reset' : 'Zur�cksetzen'"
+                         :aria-label="useShortLabels ? 'Reset' : 'Zur�cksetzen'"
                          :data-short="iconOnly ? '' : 'Reset'"
                          @click="$emit('reset')">
-                {{ iconOnly ? '' : (useShortLabels ? 'Reset' : 'Zurücksetzen') }}
+                {{ iconOnly ? '' : (useShortLabels ? 'Reset' : 'Zur�cksetzen') }}
             </ResetButton>
         </div>
 
@@ -93,7 +93,7 @@
         font-weight: 600;
         color: var(--text-primary);
         margin-bottom: 0.5rem;
-        word-break: break-word; /* lange Wörter umbrechen */
+        word-break: break-word; /* lange W�rter umbrechen */
         hyphens: auto; /* Browser darf trennen (mit passender Spracheinstellung) */
     }
 
@@ -106,14 +106,14 @@
         display: inline-flex;
         justify-content: center;
         align-items: center;
-        width: 100%; /* füllt die Grid-Spalte */
-        min-height: 40px; /* angenehme Zielhöhe */
+        width: 100%; /* f�llt die Grid-Spalte */
+        min-height: 40px; /* angenehme Zielh�he */
         padding: .55rem .85rem;
         line-height: 1.2;
-        white-space: normal; /* ⟵ darf auf 2 Zeilen umbrechen */
+        white-space: normal; /* ? darf auf 2 Zeilen umbrechen */
         text-align: center;
-        text-wrap: balance; /* schöner Zeilenumbruch (supported modern) */
-        word-break: keep-all; /* keine hässlichen Worttrennungen */
+        text-wrap: balance; /* sch�ner Zeilenumbruch (supported modern) */
+        word-break: keep-all; /* keine h�sslichen Worttrennungen */
         font-size: 0.95rem;
     }
 
@@ -144,7 +144,7 @@
             font-size: 0.95rem;
         }
     }
-    /* Engere Settings nur für Phones */
+    /* Engere Settings nur f�r Phones */
     @media (max-width: 380px) {
         .footer-btn {
             padding-inline: .55rem;
@@ -152,7 +152,7 @@
         }
     }
 
-    /* Ultra-kleine Geräte */
+    /* Ultra-kleine Ger�te */
     @media (max-width: 340px) {
         .card-footer {
             gap: .35rem;
@@ -167,36 +167,36 @@
     .card-footer {
         border-top: 1px solid var(--border-color);
         padding: 0.75rem 0.75rem 0;
-        display: grid; /* ⟵ 2-Spalten-Grid für saubere Aufteilung */
+        display: grid; /* ? 2-Spalten-Grid f�r saubere Aufteilung */
         grid-template-columns: 1fr 1fr;
         gap: 0.6rem; /* etwas Luft zwischen den Buttons */
-        align-items: stretch; /* Buttons gleiche Höhe */
+        align-items: stretch; /* Buttons gleiche H�he */
         justify-items: stretch;
     }
 
         .card-footer > * {
-            flex: 1 1 0; /* ⟵ zwei gleich breite Spalten */
-            min-width: 0; /* ⟵ verhindert Overflow durch Mindestbreiten */
+            flex: 1 1 0; /* ? zwei gleich breite Spalten */
+            min-width: 0; /* ? verhindert Overflow durch Mindestbreiten */
         }
 
     @media (max-width: 380px) {
         .card-footer {
             gap: 0.4rem;
         }
-        /* ⟵ engeres Gap auf Mini-Phones */
+        /* ? engeres Gap auf Mini-Phones */
     }
 
     @media (max-width: 340px) {
         .card-footer > * {
             flex: 1 1 0;
         }
-        /* Falls die Button-Komponenten selbst Innenabstände haben, hilft schmalere Typo: */
+        /* Falls die Button-Komponenten selbst Innenabst�nde haben, hilft schmalere Typo: */
         .card-footer :where(button) {
             padding-inline: .6rem;
             font-size: .9rem;
         }
     }
-    /* Mobile: kleineres Gap, mehr Platz fürs Chart */
+    /* Mobile: kleineres Gap, mehr Platz f�rs Chart */
     @media (max-width: 420px) {
         .card-footer {
             gap: 0.5rem;

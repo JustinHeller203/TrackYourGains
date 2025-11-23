@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <span class="tooltip" role="note" aria-label="Info">
         ℹ️
         <span class="tooltip-text"><slot>{{ text }}</slot></span>

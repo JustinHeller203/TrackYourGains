@@ -35,7 +35,7 @@
     defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 </script>
 
-<!-- CloseButton.vue – nur der <style>-Block geändert -->
+<!-- CloseButton.vue � nur der <style>-Block ge�ndert -->
 <style scoped>
     .close-btn {
         display: inline-flex;
@@ -56,7 +56,7 @@
         transform: translateY(2px);
     }
 
-    /* 👉 jetzt ALLE drei Varianten rot */
+    /* ?? jetzt ALLE drei Varianten rot */
     .close-plan-btn,
     .close-timer-btn,
     .close-stopwatch-btn {

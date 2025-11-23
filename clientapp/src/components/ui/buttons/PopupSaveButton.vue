@@ -18,7 +18,7 @@ defineEmits<{
 </script>
 
 <style scoped>
-    /* 1:1 aus BasePopup übernommen, damit Optik identisch bleibt */
+    /* 1:1 aus BasePopup �bernommen, damit Optik identisch bleibt */
     .popup-btn {
         padding: 0.75rem 1.5rem;
         border: none;

@@ -5,14 +5,14 @@
          @pointerdown="onOverlayPointerDown"
          @pointerup="onOverlayPointerUp">
         <div class="modal" role="dialog" aria-modal="true" @click.stop>
-            <h3 class="modal-title">📥 Fortschritt eintragen</h3>
+            <h3 class="modal-title">?? Fortschritt eintragen</h3>
 
-            <label class="field-label" for="progress-exercise">Übung</label>
+            <label class="field-label" for="progress-exercise">�bung</label>
             <select id="progress-exercise"
                     ref="exerciseSelect"
                     v-model="exerciseProxy"
                     class="input select">
-                <option value="" disabled>Übung wählen</option>
+                <option value="" disabled>�bung w�hlen</option>
                 <option v-for="ex in exercises"
                         :key="ex.exercise"
                         :value="ex.exercise">
@@ -37,7 +37,7 @@
                 </div>
 
                 <div>
-                    <label class="field-label" for="progress-weight">Körpergewicht ({{ unit }})</label>
+                    <label class="field-label" for="progress-weight">K�rpergewicht ({{ unit }})</label>
                     <div class="input-with-extras">
                         <input id="progress-weight"
                                ref="weightInput"
@@ -59,7 +59,7 @@
             <!-- Dehnung-Inputs -->
             <div v-else-if="inputType === 'dehnung'" class="modal-grid grid-2">
                 <div>
-                    <label class="field-label" for="stretch-sets">Sätze insgesamt</label>
+                    <label class="field-label" for="stretch-sets">S�tze insgesamt</label>
                     <input id="stretch-sets"
                            type="number" min="1" max="7"
                            v-model.number="setsProxy"
@@ -70,7 +70,7 @@
                 </div>
 
                 <div>
-                    <label class="field-label" for="stretch-weight">Körpergewicht ({{ unit }})</label>
+                    <label class="field-label" for="stretch-weight">K�rpergewicht ({{ unit }})</label>
                     <div class="input-with-extras">
                         <input id="stretch-weight"
                                type="number" min="0" step="0.5"
@@ -88,7 +88,7 @@
             <!-- Kraft/Calisthenics (Standard) -->
             <div v-else class="modal-grid grid-2">
                 <div>
-                    <label class="field-label" for="progress-sets">Sätze insgesamt</label>
+                    <label class="field-label" for="progress-sets">S�tze insgesamt</label>
                     <input id="progress-sets" type="number" min="1" max="7"
                            v-model.number="setsProxy" class="input" placeholder="z. B. 3"
                            :readonly="!hasExerciseSelected"
@@ -96,7 +96,7 @@
                 </div>
 
                 <div>
-                    <label class="field-label" for="progress-weight">Körpergewicht ({{ unit }})</label>
+                    <label class="field-label" for="progress-weight">K�rpergewicht ({{ unit }})</label>
                     <div class="input-with-extras">
                         <input id="progress-weight"
                                ref="weightInput"
@@ -105,7 +105,7 @@
                                class="input"
                                :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'" />
 
-                        <!-- WICHTIG: Klasse für Chip-Optik + rechts ausrichten -->
+                        <!-- WICHTIG: Klasse f�r Chip-Optik + rechts ausrichten -->
                         <ExtrasToggleButton :toggled="!!props.showExtras"
                                             title="Extras einblenden"
                                             aria-label="Extras einblenden"
@@ -115,7 +115,7 @@
                 </div>
             </div>
 
-            <!-- Einzelsätze (erscheint automatisch wenn Sätze > 0) -->
+            <!-- Einzels�tze (erscheint automatisch wenn S�tze > 0) -->
             <div v-if="Number(setsProxy) > 0 && (inputType === 'kraft' || inputType === 'calisthenics' || inputType === 'dehnung')"
                  class="set-rows">
                 <div v-for="(row, i) in setDetailsProxy" :key="i" class="set-row">
@@ -154,13 +154,13 @@
                     </template>
                 </div>
 
-                <!-- Quick-Buttons nur für Dehnung -->
+                <!-- Quick-Buttons nur f�r Dehnung -->
                 <div v-if="inputType==='dehnung'" class="set-quick-actions">
                     <button type="button" class="btn-extras-chip" @click="applyStretchDuration(30)">30s</button>
                     <button type="button" class="btn-extras-chip" @click="applyStretchDuration(45)">45s</button>
                     <button type="button" class="btn-extras-chip" @click="applyStretchDuration(60)">60s</button>
                     <button type="button" class="btn-extras-chip" @click="applyStretchDuration(90)">90s</button>
-                    <button type="button" class="btn-extras-chip" @click="applyStretchDurationFromFirst()">Alle übernehmen</button>
+                    <button type="button" class="btn-extras-chip" @click="applyStretchDurationFromFirst()">Alle �bernehmen</button>
                 </div>
             </div>
 
@@ -209,7 +209,7 @@
                     </div>
 
                     <div>
-                        <label class="field-label" for="extra-pace">Ø Pace (min/km)</label>
+                        <label class="field-label" for="extra-pace">� Pace (min/km)</label>
                         <input id="extra-pace" type="text" v-model="paceProxy"
                                class="input" placeholder="z. B. 5:20"
                                :readonly="!hasExerciseSelected"
@@ -220,17 +220,17 @@
                         <label class="field-label" for="extra-hrZone">Herzfrequenzzone</label>
                         <select id="extra-hrZone" v-model.number="hrZoneProxy" class="input select"
                                 :disabled="!hasExerciseSelected">
-                            <option :value="null" disabled>Herzfrequenzzone auswählen</option>
-                            <option :value="1">Zone 1 – Sehr leicht</option>
-                            <option :value="2">Zone 2 – Leicht</option>
-                            <option :value="3">Zone 3 – Mittel</option>
-                            <option :value="4">Zone 4 – Schwer</option>
-                            <option :value="5">Zone 5 – Maximal</option>
+                            <option :value="null" disabled>Herzfrequenzzone ausw�hlen</option>
+                            <option :value="1">Zone 1 � Sehr leicht</option>
+                            <option :value="2">Zone 2 � Leicht</option>
+                            <option :value="3">Zone 3 � Mittel</option>
+                            <option :value="4">Zone 4 � Schwer</option>
+                            <option :value="5">Zone 5 � Maximal</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="field-label" for="extra-borg">Borg-Skala (6–20)</label>
+                        <label class="field-label" for="extra-borg">Borg-Skala (6�20)</label>
                         <input id="extra-borg" ref="borgInput" type="number" inputmode="numeric"
                                min="6" max="20" step="1" v-model="borgLocal"
                                @focus="onBorgFocus" @blur="onBorgBlur"
@@ -244,13 +244,13 @@
                 <!-- Dehnung -->
                 <template v-else-if="inputType === 'dehnung'">
                     <div>
-                        <label class="field-label" for="extra-painFree">Schmerzfreiheit (1–10)</label>
+                        <label class="field-label" for="extra-painFree">Schmerzfreiheit (1�10)</label>
                         <input id="extra-painFree" type="number" min="1" max="10" step="1" v-model.number="painFreeProxy" class="input" placeholder="z. B. 8"
                                :readonly="!hasExerciseSelected"
                                @focus="!hasExerciseSelected && requireExercise('painFree')" />
                     </div>
                     <div>
-                        <label class="field-label" for="extra-moveQuality">Bewegungsqualität (1–10)</label>
+                        <label class="field-label" for="extra-moveQuality">Bewegungsqualit�t (1�10)</label>
                         <input id="extra-moveQuality" type="number" min="1" max="10" step="1" v-model.number="movementQualityProxy" class="input" placeholder="z. B. 7"
                                :readonly="!hasExerciseSelected"
                                @focus="!hasExerciseSelected && requireExercise('moveQuality')" />
@@ -259,18 +259,18 @@
                         <label class="field-label" for="extra-equipment">Hilfsmittel</label>
                         <select id="extra-equipment" v-model="equipmentProxy" class="input select"
                                 :disabled="!hasExerciseSelected">
-                            <option value="" disabled>Hilfsmittel auswählen</option>
+                            <option value="" disabled>Hilfsmittel ausw�hlen</option>
                             <option value="Band">Band</option>
                             <option value="Rolle">Rolle</option>
                             <option value="Ball">Ball</option>
                             <option value="Stab">Stab</option>
-                            <option value="custom">Benutzerdefiniert …</option>
+                            <option value="custom">Benutzerdefiniert �</option>
                         </select>
                     </div>
                     <div v-if="equipmentProxy === 'custom'">
                         <label class="field-label" for="extra-equipment-custom">Eigenes Hilfsmittel</label>
                         <input v-if="equipmentProxy === 'custom'" id="extra-equipment-custom" type="text"
-                               v-model="equipmentCustomProxy" class="input" placeholder="z. B. Theraband (grün), …"
+                               v-model="equipmentCustomProxy" class="input" placeholder="z. B. Theraband (gr�n), �"
                                :readonly="!hasExerciseSelected"
                                @focus="!hasExerciseSelected && requireExercise('equipmentCustom')" />
                     </div>
@@ -278,7 +278,7 @@
                         <label class="field-label" for="extra-side">Betroffene Seite</label>
                         <select id="extra-side" v-model="sideProxy" class="input select"
                                 :disabled="!hasExerciseSelected">
-                            <option value="" disabled>Seite auswählen</option>
+                            <option value="" disabled>Seite ausw�hlen</option>
                             <option value="links">Links</option>
                             <option value="rechts">Rechts</option>
                             <option value="beidseitig">Beidseitig</option>
@@ -289,14 +289,14 @@
 
             <label class="field-label" for="progress-note">Notiz (optional)</label>
             <input id="progress-note" type="text" v-model="noteProxy" class="input"
-                   placeholder="RPE, Tempo, Feeling …"
+                   placeholder="RPE, Tempo, Feeling �"
                    :readonly="!hasExerciseSelected"
                    @focus="!hasExerciseSelected && requireExercise('note')" />
 
             <div class="modal-actions" :class="{ 'has-delete': localIsEditing }">
                 <PopupDeleteButton v-if="localIsEditing"
                                    class="action-delete"
-                                   @click="onDelete">Löschen</PopupDeleteButton>
+                                   @click="onDelete">L�schen</PopupDeleteButton>
 
                 <PopupCancelButton class="action-cancel"
                                    ariaLabel="Abbrechen"
@@ -314,7 +314,7 @@
 
             <ValidationPopup :show="showBorgError"
                              :errors="borgErrors"
-                             title="Ungültige Borg-Skala"
+                             title="Ung�ltige Borg-Skala"
                              lead="Die Borg-Skala geht von 6 (sehr leicht) bis 20 (maximal)."
                              @close="onCloseBorgError" />
 
@@ -327,8 +327,8 @@
     import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
     import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
-    import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue' // ⬅️ NEU
-    import PopupDeleteButton from '@/components/ui/buttons/PopupDeleteButton.vue' // ⬅️ NEU
+    import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue' // ?? NEU
+    import PopupDeleteButton from '@/components/ui/buttons/PopupDeleteButton.vue' // ?? NEU
 
     const equipmentCustomInput = ref<HTMLInputElement | null>(null)
     const equipmentProxy = computed({
@@ -401,7 +401,7 @@
         goal?: string
     }
     const localIsEditing = ref(false)  // steuert Delete-Button/Actions lokal
-    const wasCanceled = ref(false)     // merkt: zuletzt Abbrechen gedrückt
+    const wasCanceled = ref(false)     // merkt: zuletzt Abbrechen gedr�ckt
 
     type SetDetail = { weight: number | null; reps: number | null; durationSec?: number | null }
 
@@ -432,7 +432,7 @@
         pace?: string
         hrZone?: number | null
         borg?: number | null
-        isEditing?: boolean            // ⬅️ NEU: true = Eintrag wird bearbeitet
+        isEditing?: boolean            // ?? NEU: true = Eintrag wird bearbeitet
 
         // Extras: Dehnung
         painFree?: number | null
@@ -475,7 +475,7 @@
         (e: 'update:equipmentCustom', v: string): void
         (e: 'invalid', errors: string[]): void
 
-        // 🔽 NEU: Parent-Flag explizit kontrollieren können
+        // ?? NEU: Parent-Flag explizit kontrollieren k�nnen
         (e: 'update:isEditing', v: boolean): void
     }>()
 
@@ -484,7 +484,7 @@
     })
     function onDelete() {
         // Optional: confirm() einbauen, wenn du willst
-        // if (!confirm('Eintrag wirklich löschen?')) return
+        // if (!confirm('Eintrag wirklich l�schen?')) return
         emit('delete')
     }
 
@@ -494,7 +494,7 @@
     })
     const keyFor = (ex: string, t: DraftType) => (ex ? `${ex}::${t}` : '')
 
-    /** Proxys für saubere v-model:foo Bindings */
+    /** Proxys f�r saubere v-model:foo Bindings */
     const exerciseProxy = computed({
         get: () => props.exercise,
         set: v => emit('update:exercise', v),
@@ -518,7 +518,7 @@
 
     const exerciseSelect = ref<HTMLSelectElement | null>(null)
     const weightInput = ref<HTMLInputElement | null>(null)
-    const durationInput = ref<HTMLInputElement | null>(null) // ▼ neu
+    const durationInput = ref<HTMLInputElement | null>(null) // ? neu
     function focusFirst() {
         nextTick(() => {
             exerciseSelect.value?.focus()
@@ -535,7 +535,7 @@
         localIsEditing.value = false
         emit('update:isEditing', false)
 
-        // wichtig: alte Übung killen -> kein „Edit klebt“
+        // wichtig: alte �bung killen -> kein �Edit klebt�
         emit('update:exercise', '')
 
         clearCache()
@@ -606,7 +606,7 @@
             if (!requireExercise('save')) return
         }
 
-        // Ausdauer: Borg prüfen (wie gehabt)
+        // Ausdauer: Borg pr�fen (wie gehabt)
         if (props.inputType === 'ausdauer') {
             const n = parseBorg(borgLocal.value)
             if (n != null && (n < 6 || n > 20)) {
@@ -630,7 +630,7 @@
                 return
             }
 
-            // 2) Normalisieren: Gewicht auf 0 (falls Parent generisch auf number prüft),
+            // 2) Normalisieren: Gewicht auf 0 (falls Parent generisch auf number pr�ft),
             //    Wdh. wirklich optional -> null lassen, Werte runden/clampen
             const clean = rows.map(r => {
                 const d = Math.max(5, Math.min(600, Math.round((r as any)?.durationSec ?? 0)))
@@ -639,7 +639,7 @@
             })
             emit('update:setDetails', clean)
 
-            // 3) Globale Felder für Dehnung auf „nicht relevant“
+            // 3) Globale Felder f�r Dehnung auf �nicht relevant�
             emit('update:reps', null)
             emit('update:duration', null)
         }
@@ -663,13 +663,13 @@
         const silent = reason ? silentReasons.has(reason) : false
 
         if (!silent) {
-            emit('invalid', ['Bitte wähle zuerst eine Übung, bevor du Werte eingibst.'])
+            emit('invalid', ['Bitte w�hle zuerst eine �bung, bevor du Werte eingibst.'])
         }
         nextTick(() => exerciseSelect.value?.focus())
         return false
     }
 
-    /* 🔽 Neu: onSave als submit nach außen freigeben */
+    /* ?? Neu: onSave als submit nach au�en freigeben */
     defineExpose({
         submit: onSave
     })
@@ -691,7 +691,7 @@
         const moved = start ? Math.hypot(e.clientX - start.x, e.clientY - start.y) : 0
         const hasSelection = !!(window.getSelection && window.getSelection()?.toString())
 
-        if (moved < 6 && !hasSelection) onCancel()  // ✅ nur „absichtlicher“ Klick
+        if (moved < 6 && !hasSelection) onCancel()  // ? nur �absichtlicher� Klick
         overlayDown.value = false
         overlayStart.value = null
     }
@@ -720,7 +720,7 @@
         painFree?: number | null
         movementQuality?: number | null
         equipment?: string | null
-        equipmentCustom?: string | null   // ⬅︎ hinzufügen
+        equipmentCustom?: string | null   // ?? hinzuf�gen
         side?: '' | 'links' | 'rechts' | 'beidseitig' | null
     }
     const draftCache = ref<Record<string, Draft>>({})
@@ -763,7 +763,7 @@
         emit('update:distance', null)
         emit('update:reps', null)
 
-        // Extras zurücksetzen
+        // Extras zur�cksetzen
         emit('update:tempo', '')
         emit('update:restSeconds', null)
 
@@ -787,7 +787,7 @@
             // kraft/calisthenics
             emit('update:sets', null)
         }
-        nextTick(() => openSyncBorg())   // ⬅️ HINZUFÜGEN
+        nextTick(() => openSyncBorg())   // ?? HINZUF�GEN
 
     }
     function restore(ex: string, t: DraftType) {
@@ -821,7 +821,7 @@
             resetForType(t)
         }
 
-        nextTick(() => openSyncBorg())   // ⬅️ HINZUFÜGEN
+        nextTick(() => openSyncBorg())   // ?? HINZUF�GEN
 
     }
     function snapshotCurrentExercise() {
@@ -916,8 +916,8 @@
 
     watch(exerciseProxy, (nextEx, prevEx) => {
         const t = props.inputType
-        if (prevEx) snapshot(prevEx, t)       // alten Zustand sichern (alte Übung + aktueller Typ)
-        nextTick(() => restore(nextEx || '', t)) // neuen Zustand laden / defaults für diesen Typ
+        if (prevEx) snapshot(prevEx, t)       // alten Zustand sichern (alte �bung + aktueller Typ)
+        nextTick(() => restore(nextEx || '', t)) // neuen Zustand laden / defaults f�r diesen Typ
     })
 
     watch(equipmentProxy, (val, prev) => {
@@ -937,7 +937,7 @@
                 emit('update:isEditing', false)
                 wasCanceled.value = false
             } else {
-                // ECHTES Edit nur, wenn Flag true UND eine Übung vorliegt
+                // ECHTES Edit nur, wenn Flag true UND eine �bung vorliegt
                 localIsEditing.value = !!(props.isEditing && !!props.exercise?.trim())
             }
 
@@ -961,7 +961,7 @@
         let raw = Number(n) || 0
 
         if (raw > 7) {
-            emit('invalid', ['Maximal 7 Sätze erlaubt.'])
+            emit('invalid', ['Maximal 7 S�tze erlaubt.'])
             raw = 7
             emit('update:sets', 7)
         }
@@ -986,7 +986,7 @@
     function onRowChange(i: number, field: 'weight' | 'reps' | 'durationSec', val: number | null) {
         if (!hasExerciseSelected.value) { requireExercise('set-row'); return }
 
-        // NaN -> null, optionales Verhalten für Reps bei Dehnung: 0 => null
+        // NaN -> null, optionales Verhalten f�r Reps bei Dehnung: 0 => null
         let n: number | null
         if (typeof val === 'number' && Number.isFinite(val)) {
             n = val
@@ -1044,7 +1044,7 @@
         box-shadow: var(--shadow);
         padding: 1rem 1rem 0.75rem;
         scroll-padding-bottom: 6rem;
-        /* Scroll greift früher */
+        /* Scroll greift fr�her */
         max-height: 78vh; /* Fallback */
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
@@ -1055,7 +1055,7 @@
         --sb-size: 12px;
     }
 
-    /* Bevorzuge dynamische/small viewport heights -> noch früher scollen */
+    /* Bevorzuge dynamische/small viewport heights -> noch fr�her scollen */
     @supports (height: 100dvh) {
         .modal {
             max-height: min(76dvh, 86svh);
@@ -1067,7 +1067,7 @@
         .modal {
             max-height: 68svh;
         }
-        /* früher Scroll auf kleinen Screens */
+        /* fr�her Scroll auf kleinen Screens */
     }
 
     @media (max-width: 480px) {
@@ -1182,7 +1182,7 @@
                 box-sizing: border-box;
             }
 
-            /* Viele UI-Buttons haben große Default-Paddings – kompakter machen */
+            /* Viele UI-Buttons haben gro�e Default-Paddings � kompakter machen */
             .modal-actions :is(button, a, .btn, .base-button) {
                 padding: .55rem .5rem !important;
                 font-size: .92rem !important;
@@ -1191,7 +1191,7 @@
             }
     }
 
-    /* === Sehr schmale Geräte: Delete oben full width, darunter Cancel/Save === */
+    /* === Sehr schmale Ger�te: Delete oben full width, darunter Cancel/Save === */
     @media (max-width: 360px) {
         .modal-actions {
             grid-template-columns: 1fr 1fr; /* 2 Spalten */
@@ -1205,7 +1205,7 @@
                     "cancel save";
             }
 
-            /* Mapping über deine Klassen aus dem Template */
+            /* Mapping �ber deine Klassen aus dem Template */
             .modal-actions .action-delete {
                 grid-area: delete;
             }
@@ -1225,19 +1225,19 @@
             }
     }
 
-    /* Optional: Buttons unten immer sichtbar halten (bleibt im Scrollbereich „kleben“) */
+    /* Optional: Buttons unten immer sichtbar halten (bleibt im Scrollbereich �kleben�) */
     @media (max-width: 480px) {
         .modal-actions {
             position: sticky;
             bottom: 0;
             background: linear-gradient(to top, var(--bg-card), color-mix(in oklab, var(--bg-card) 80%, transparent));
             padding-bottom: .75rem;
-            /* Falls der Modal innen seitliche Padding hat: nichts überstehen lassen */
+            /* Falls der Modal innen seitliche Padding hat: nichts �berstehen lassen */
         }
     }
 
     @media (max-width: 420px) {
-        /* Grid statt Flex: gleiche Breite, kein Überlaufen */
+        /* Grid statt Flex: gleiche Breite, kein �berlaufen */
         .modal-actions {
             display: grid;
             gap: .5rem;
@@ -1249,13 +1249,13 @@
                 grid-template-columns: repeat(3, 1fr);
             }
 
-            /* Buttons sollen die Zelle vollständig füllen */
+            /* Buttons sollen die Zelle vollst�ndig f�llen */
             .modal-actions > * {
                 width: 100%;
             }
     }
 
-    /* === Sehr schmale Geräte: Delete oben volle Breite, darunter Cancel/Save === */
+    /* === Sehr schmale Ger�te: Delete oben volle Breite, darunter Cancel/Save === */
     @media (max-width: 340px) {
         .modal-actions {
             grid-template-columns: 1fr 1fr; /* 2 Spalten */
@@ -1297,7 +1297,7 @@
             grid-template-columns: 1fr;
         }
     }
-    /* Extras Section – clean & modern */
+    /* Extras Section � clean & modern */
     .extras-section {
         margin-top: .75rem;
         padding-top: .75rem;
@@ -1335,7 +1335,7 @@
 
     .input {
         width: 100%;
-        padding: .7rem 0.9rem; /* größerer Input */
+        padding: .7rem 0.9rem; /* gr��erer Input */
         font-size: 0.9rem; /* besser lesbar */
     }
 
@@ -1376,12 +1376,12 @@
     /* Input + Toggle nebeneinander, stabil */
     .input-with-extras {
         display: grid;
-        grid-template-columns: minmax(0,1fr) auto; /* Input dehnt sich, Button so breit wie nötig */
+        grid-template-columns: minmax(0,1fr) auto; /* Input dehnt sich, Button so breit wie n�tig */
         align-items: center;
         gap: .5rem;
     }
 
-    /* Chip-Optik (überschreibt BaseButton-Defaults: keine volle Breite) */
+    /* Chip-Optik (�berschreibt BaseButton-Defaults: keine volle Breite) */
     .btn-extras-chip {
         display: inline-flex;
         width: auto;
@@ -1424,7 +1424,7 @@
         }
     }
 
-    /* Chip-Optik für den Toggle (wird über :extraClass gesetzt) */
+    /* Chip-Optik f�r den Toggle (wird �ber :extraClass gesetzt) */
     .btn-extras-chip {
         padding: .5rem .6rem;
         border-radius: 8px;
@@ -1460,7 +1460,7 @@
         align-items: center;
     }
 
-    /* BaseButton-Defaults überstimmen: NICHT volle Breite */
+    /* BaseButton-Defaults �berstimmen: NICHT volle Breite */
     .btn-extras-chip {
         display: inline-flex; /* wichtig */
         width: auto; /* wichtig */
@@ -1507,18 +1507,18 @@
             gap: .4rem;
         }
     }
-    /* Zwei-Spalten: gleiche Label-Zeilenhöhe, Inputs bündig */
+    /* Zwei-Spalten: gleiche Label-Zeilenh�he, Inputs b�ndig */
     .modal-grid.grid-2 > div {
         display: grid;
-        grid-template-rows: 1.7rem auto; /* mehr Platz für die Label-Zeile */
+        grid-template-rows: 1.7rem auto; /* mehr Platz f�r die Label-Zeile */
     }
 
-    /* Label in grid-2 etwas höher und mit mehr Abstand zum Input */
+    /* Label in grid-2 etwas h�her und mit mehr Abstand zum Input */
     .modal-grid.grid-2 .field-label {
-        font-size: .95rem; /* etwas größer lesbar */
+        font-size: .95rem; /* etwas gr��er lesbar */
         line-height: 1.6rem; /* passt zur 1.7rem-Row */
         margin: .20rem 0 .15rem; /* extra Abstand zum Input */
-        white-space: nowrap; /* einzeilig -> Spalten bleiben bündig */
+        white-space: nowrap; /* einzeilig -> Spalten bleiben b�ndig */
         overflow: hidden;
         text-overflow: ellipsis;
     }
@@ -1550,8 +1550,8 @@
     }
     /* === FIX: Input bleibt breit, Button wrappt sauber bei langem Label === */
     .input-with-extras > .input {
-        width: auto; /* überschreibt .input { width:100% } im Kombi-Layout */
-        min-width: 0; /* lässt Flex korrekt rechnen */
+        width: auto; /* �berschreibt .input { width:100% } im Kombi-Layout */
+        min-width: 0; /* l�sst Flex korrekt rechnen */
     }
 
     /* --- Cardio-Reihe: immer einzeilig, nichts wrappt --- */
@@ -1577,7 +1577,7 @@
         /* Distanz + Toggle: strikt nebeneinander */
         .grid-cardio .input-with-extras {
             display: grid !important;
-            grid-template-columns: minmax(12rem, 1fr) auto !important; /* Input füllt, Chip nur so breit wie nötig */
+            grid-template-columns: minmax(12rem, 1fr) auto !important; /* Input f�llt, Chip nur so breit wie n�tig */
             align-items: center;
             column-gap: .5rem;
             row-gap: 0;
@@ -1620,7 +1620,7 @@
                     text-overflow: ellipsis;
                 }
 
-                /* WICHTIG: Chip NICHT überlagern -> echte 2-Spalten-Zeile */
+                /* WICHTIG: Chip NICHT �berlagern -> echte 2-Spalten-Zeile */
                 .modal-grid.grid-2 > div .input-with-extras {
                     display: grid !important;
                     grid-template-columns: 1fr auto; /* Input | Chip */
@@ -1628,7 +1628,7 @@
                     align-items: center;
                 }
 
-                    /* Einheitliche Input-Höhe/Breite */
+                    /* Einheitliche Input-H�he/Breite */
                     .modal-grid.grid-2 .input,
                     .modal-grid.grid-2 > div .input-with-extras > .input,
                     .modal-grid.grid-2 > div > .input {

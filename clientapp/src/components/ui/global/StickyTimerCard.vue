@@ -9,6 +9,7 @@
   height: cardHeight,
   zIndex: timer.zIndex ?? 2000,
   background: timer.bgColor ?? undefined,
+  borderRadius: shapeRadius,
   '--ui-scale': uiScale,
   '--btn-bg': timer.btnColor ?? undefined,
   '--time-color': timer.timeColor ?? undefined
@@ -24,10 +25,26 @@
 
         <span class="name-link"
               @click="focusInTraining('timer', timer.id)"
-              @mousedown.stop>
+              @mousedown.stop="onMaybeDrag($event)">
             {{ timer.name || 'Timer' }}
         </span>
-        <span class="time">{{ formatTimer(timer.time) }}</span>
+        <span v-if="!isEditingTime"
+              class="time"
+              @dblclick.stop="beginEditTime"
+              @mousedown.stop="onMaybeDrag($event)">
+            {{ formatTimer(timer.time) }}
+        </span>
+
+        <input v-else
+               ref="timeInputEl"
+               class="time time-input"
+               v-model="timeInput"
+               inputmode="numeric"
+               autocomplete="off"
+               spellcheck="false"
+               @keydown.stop="onTimeInputKey"
+               @blur="commitEditTime"
+               @mousedown.stop />
         <button @click="startTimer(timer)" :disabled="timer.isRunning">Start</button>
         <button @click="stopTimer(timer)" :disabled="!timer.isRunning">Stop</button>
         <button @click="resetTimer(timer)">Reset</button>
@@ -37,7 +54,7 @@
                   class="sticky-menu"
                   :menuStyle="menuStyle">
             <button type="button" class="menu-item" @click="handleOpen">
-                &#214;ffnen
+                Öffnen
             </button>
             <button type="button" class="menu-item" @click="handleMove">
                 Verschieben
@@ -46,87 +63,117 @@
                 Zuschneiden
             </button>
 
-            <div class="color-row" @mousedown.stop>
-                <span class="color-label">Farbe</span>
-                <button type="button" class="color-dot default"
-                        title="Default"
-                        @click="setColor(null)">
-                </button>
-                <button type="button" class="color-dot transparent"
-                        title="Transparent"
-                        @click="setColor('transparent')">
-                </button>
-                <button type="button" class="color-dot blue"
-                        title="Blau"
-                        @click="setColor('#1e3a8a')">
-                </button>
-                <button type="button" class="color-dot green"
-                        title="Grün"
-                        @click="setColor('#166534')">
-                </button>
-                <button type="button" class="color-dot amber"
-                        title="Orange"
-                        @click="setColor('#92400e')">
-                </button>
-
-                <input class="color-picker" type="color"
-                       :value="timer.bgColor || '#0d1117'"
-                       @input="setColor(($event.target as HTMLInputElement).value, false)" />
-            </div>
-
-            <div class="color-row" @mousedown.stop>
-                <span class="color-label">Buttons</span>
-                <button type="button" class="color-dot default"
-                        title="Default"
-                        @click="setBtnColor(null, false)">
-                </button>
-                <button type="button" class="color-dot blue"
-                        title="Blau"
-                        @click="setBtnColor('#1e3a8a', false)">
-                </button>
-                <button type="button" class="color-dot green"
-                        title="Grün"
-                        @click="setBtnColor('#166534', false)">
-                </button>
-                <button type="button" class="color-dot amber"
-                        title="Orange"
-                        @click="setBtnColor('#92400e', false)">
-                </button>
-
-                <input class="color-picker" type="color"
-                       :value="timer.btnColor || '#4B6CB7'"
-                       @input="setBtnColor(($event.target as HTMLInputElement).value, false)" />
-            </div>
-
-            <div class="color-row" @mousedown.stop>
-                <span class="color-label">Zeit</span>
-                <button type="button" class="color-dot default"
-                        title="Default"
-                        @click="setTimeColor(null, false)">
-                </button>
-                <button type="button" class="color-dot blue"
-                        title="Blau"
-                        @click="setTimeColor('#1e3a8a', false)">
-                </button>
-                <button type="button" class="color-dot green"
-                        title="Grün"
-                        @click="setTimeColor('#166534', false)">
-                </button>
-                <button type="button" class="color-dot amber"
-                        title="Orange"
-                        @click="setTimeColor('#92400e', false)">
-                </button>
-
-                <input class="color-picker" type="color"
-                       :value="timer.timeColor || '#4B6CB7'"
-                       @input="setTimeColor(($event.target as HTMLInputElement).value, false)" />
-            </div>
-
-            <button type="button" class="menu-item danger" @click="handleClose">
-                Schlie&#223;en
+            <button type="button" class="menu-item" @click="handleEdit" @mousedown.stop>
+                Bearbeiten
             </button>
 
+            <template v-if="showColors">
+                <div class="color-row" @mousedown.stop>
+                    <span class="color-label">Farbe</span>
+                    <button type="button" class="color-dot default"
+                            title="Default"
+                            @click="setColor(null)">
+                    </button>
+                    <button type="button" class="color-dot transparent"
+                            title="Transparent"
+                            @click="setColor('transparent')">
+                    </button>
+                    <button type="button" class="color-dot blue"
+                            title="Blau"
+                            @click="setColor('#1e3a8a')">
+                    </button>
+                    <button type="button" class="color-dot green"
+                            title="Grün"
+                            @click="setColor('#166534')">
+                    </button>
+                    <button type="button" class="color-dot amber"
+                            title="Orange"
+                            @click="setColor('#92400e')">
+                    </button>
+
+                    <input class="color-picker" type="color"
+                           :value="timer.bgColor || '#0d1117'"
+                           @input="setColor(($event.target as HTMLInputElement).value, false)" />
+                </div>
+
+                <div class="color-row" @mousedown.stop>
+                    <span class="color-label">Buttons</span>
+                    <button type="button" class="color-dot default"
+                            title="Default"
+                            @click="setBtnColor(null, false)">
+                    </button>
+                    <button type="button" class="color-dot blue"
+                            title="Blau"
+                            @click="setBtnColor('#1e3a8a', false)">
+                    </button>
+                    <button type="button" class="color-dot green"
+                            title="Grün"
+                            @click="setBtnColor('#166534', false)">
+                    </button>
+                    <button type="button" class="color-dot amber"
+                            title="Orange"
+                            @click="setBtnColor('#92400e', false)">
+                    </button>
+
+                    <input class="color-picker" type="color"
+                           :value="timer.btnColor || '#4B6CB7'"
+                           @input="setBtnColor(($event.target as HTMLInputElement).value, false)" />
+                </div>
+
+                <div class="color-row" @mousedown.stop>
+                    <span class="color-label">Zeit</span>
+                    <button type="button" class="color-dot default"
+                            title="Default"
+                            @click="setTimeColor(null, false)">
+                    </button>
+                    <button type="button" class="color-dot blue"
+                            title="Blau"
+                            @click="setTimeColor('#1e3a8a', false)">
+                    </button>
+                    <button type="button" class="color-dot green"
+                            title="Grün"
+                            @click="setTimeColor('#166534', false)">
+                    </button>
+                    <button type="button" class="color-dot amber"
+                            title="Orange"
+                            @click="setTimeColor('#92400e', false)">
+                    </button>
+
+                    <input class="color-picker" type="color"
+                           :value="timer.timeColor || '#4B6CB7'"
+                           @input="setTimeColor(($event.target as HTMLInputElement).value, false)" />
+                </div>
+                <div class="color-row" @mousedown.stop>
+                    <span class="color-label">Form</span>
+
+                    <button type="button" class="shape-btn" @click="setShape(null)">
+                        Default
+                        <span v-if="timer.shape == null" class="shape-check">✓</span>
+                    </button>
+
+                    <button type="button" class="shape-btn" @click="setShape('square')">
+                        Eckig
+                        <span v-if="timer.shape === 'square'" class="shape-check">✓</span>
+                    </button>
+
+                    <button type="button" class="shape-btn" @click="setShape('rounded')">
+                        Rund
+                        <span v-if="timer.shape === 'rounded'" class="shape-check">✓</span>
+                    </button>
+
+                    <button type="button" class="shape-btn" @click="setShape('oval')">
+                        Oval
+                        <span v-if="timer.shape === 'oval'" class="shape-check">✓</span>
+                    </button>
+                </div>
+
+            </template>
+
+            <button type="button" class="menu-item danger" @click="handleClose">
+                Schließen
+            </button>
         </HoldMenu>
+
 
 
         <template v-if="resizeMode">
@@ -147,6 +194,91 @@
 
     import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount } from 'vue'
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
+
+    // ADD inline time edit (double click)
+    const isEditingTime = ref(false)
+    const timeInput = ref('')
+    const timeInputEl = ref<HTMLInputElement | null>(null)
+
+    function beginEditTime() {
+        // nicht editieren während Resize/Move-Menü-Action? -> egal, aber Drag blocken wir eh mit .stop
+        isEditingTime.value = true
+        timeInput.value = formatTimer(Math.max(0, Math.floor(timer.time ?? 0)))
+        nextTick(() => {
+            timeInputEl.value?.focus()
+            timeInputEl.value?.select()
+        })
+    }
+
+    function cancelEditTime() {
+        isEditingTime.value = false
+        timeInput.value = ''
+    }
+
+    function parseTimeInput(raw: string): number | null {
+        const t = raw.trim()
+        if (!t) return null
+
+        // akzeptiert "90" oder "1:30" oder "00:45"
+        if (/^\d+$/.test(t)) return Math.max(0, Number(t))
+
+        const m = t.match(/^(\d+)\s*:\s*(\d{1,2})$/)
+        if (m) {
+            const min = Number(m[1])
+            const sec = Number(m[2])
+            if (Number.isFinite(min) && Number.isFinite(sec))
+                return Math.max(0, min * 60 + sec)
+        }
+        return null
+    }
+
+    function commitEditTime() {
+        if (!isEditingTime.value) return
+        const parsed = parseTimeInput(timeInput.value)
+        if (parsed == null) {
+            cancelEditTime()
+            return
+        }
+
+        // Timer-Basis updaten für Reset-Logik
+        timer.seconds = 'custom'
+        timer.customSeconds = parsed
+        timer.time = parsed
+
+        const now = Date.now()
+
+        if (timer.isRunning) {
+            // Parent-Engine braucht diese beiden
+            timer.startedAtMs = now
+            timer.endsAtMs = now + parsed * 1000
+            timer.pausedRemaining = null
+
+            // legacy field safe mitziehen
+            timer.endAt = timer.endsAtMs
+        } else {
+            timer.startedAtMs = null
+            timer.endsAtMs = null
+            timer.pausedRemaining = null
+            timer.endAt = null
+        }
+
+        isEditingTime.value = false
+
+    }
+
+    function onTimeInputKey(e: KeyboardEvent) {
+        if (e.key === 'Enter') {
+            e.preventDefault()
+            commitEditTime()
+            return
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault()
+            cancelEditTime()
+            return
+        }
+    }
+
 
     // ---- z-index focus handling (global across all stickies)
     const Z_KEY = '__stickyZ'
@@ -169,22 +301,40 @@
 
     const cardEl = ref<HTMLElement | null>(null)
     const showMenu = ref(false)
+    const showColors = ref(false)
 
-    const menuStyle = computed(() => ({
-        minWidth: '150px',
-        maxWidth: '180px',
-    }))
+    const menuStyle = computed(() => {
+        const w = timer.width ?? cardEl.value?.offsetWidth ?? 220
+        const raw = w / 220
+        const scale = Math.min(1.6, Math.max(0.9, raw))
+
+        return {
+            minWidth: `${150 * scale}px`,
+            maxWidth: `${180 * scale}px`,
+            width: 'max-content',
+            left: 'auto',
+            right: '0px',
+        }
+    })
 
     function openMenu(_ev?: MouseEvent | PointerEvent) {
+        // Card nach ganz oben holen, sonst kann Menu nie "drüber"
+        bumpZ(timer)
+
         showMenu.value = true
+        showColors.value = false
+
         nextTick(() => {
-            const el = cardEl.value?.querySelector<HTMLElement>('.hold-menu') || null
-                ; (el as any)?.__autoFlip?.update?.()
+            // Auto-Flip NICHT mehr updaten -> Menü bleibt unten
+            bumpZ(timer)
         })
     }
-
+    function handleEdit() {
+        showColors.value = !showColors.value
+    }
     function closeMenu() {
         showMenu.value = false
+        showColors.value = false
     }
 
     function handleOpen() {
@@ -297,7 +447,11 @@
         })
     }
 
-
+    function onMaybeDrag(ev: MouseEvent) {
+        if (!moveMode.value) return
+        bumpZ(timer)
+        startDrag(ev, timer)
+    }
 
     function onResizeMove(ev: PointerEvent) {
         if (!resizingCorner) return
@@ -362,6 +516,19 @@
         if (close) closeMenu()
     }
 
+    const shapeRadius = computed<string | undefined>(() => {
+        switch (timer.shape) {
+            case 'square': return '0px'
+            case 'rounded': return '12px'
+            case 'oval': return '999px'
+            default: return undefined
+        }
+    })
+
+    function setShape(shape: 'square' | 'rounded' | 'oval' | null, close = false) {
+        timer.shape = shape
+        if (close) closeMenu()
+    }
     function handleClose() {
         // Timer sauber stoppen + unsticky machen
         stopTimer(timer)
@@ -622,6 +789,9 @@
     function onPointerDown(ev: PointerEvent) {
         bumpZ(timer)
 
+        const targetEl = ev.target as HTMLElement | null
+        if (targetEl && targetEl.closest('.time-input')) return
+
         // bei Mouse nur Linksklick longpressen (Rightclick macht eigenes Men )
         if (ev.pointerType === 'mouse' && ev.button !== 0) return
 
@@ -702,14 +872,17 @@
         bgColor?: string | null
         btnColor?: string | null
         timeColor?: string | null
+        shape?: 'square' | 'rounded' | 'oval' | null
         width?: number
         height?: number
         left?: number
         top?: number
         endAt?: number | null
+        startedAtMs?: number | null
+        endsAtMs?: number | null
+        pausedRemaining?: number | null
         zIndex?: number
     }
-
 
     const {
         timer,
@@ -794,19 +967,23 @@
         }
 
         .sticky-timer-card .sticky-menu {
-            position: absolute; /* bleibt innerhalb der Card */
-            top: calc(100% + 6px); /* unter der Card */
-            right: 0; /* rechts ausrichten */
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
             left: auto;
             min-width: 150px;
             max-width: 180px;
             z-index: 10000;
+            /* nur wenn kein Platz -> scrollbar im Menü */
+            max-height: calc(100vh - 16px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
         }
 
-
-                .sticky-timer-card .sticky-menu button:hover {
-                    background: rgba(0,0,0,.06) !important;
-                }
+            .sticky-timer-card .sticky-menu button:hover {
+                background: rgba(0,0,0,.06) !important;
+            }
 
     .sticky-timer-card {
         --ui-scale: 1;
@@ -837,9 +1014,9 @@
     }
 
 
-            .sticky-timer-card .hold-menu button:hover {
-                background: rgba(0,0,0,.06);
-            }
+        .sticky-timer-card .hold-menu button:hover {
+            background: rgba(0,0,0,.06);
+        }
 
     html.dark-mode .sticky-timer-card .hold-menu button:hover {
         background: rgba(255,255,255,.06);
@@ -1208,27 +1385,67 @@
         text-align: center !important;
         background-clip: padding-box;
     }
+    .shape-btn {
+        border: 1px solid var(--border-color);
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: .75rem;
+        padding: .2rem .45rem;
+        border-radius: 6px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+    }
+
+    .shape-check {
+        font-weight: 900;
+        font-size: .9em;
+        line-height: 1;
+        opacity: .9;
+    }
 
 
-        .color-dot.default {
-            background: var(--bg-secondary);
+
+        .shape-btn:hover {
+            background: rgba(0,0,0,.06);
         }
 
-        .color-dot.transparent {
-            background: repeating-linear-gradient( 45deg, rgba(255,255,255,.2), rgba(255,255,255,.2) 4px, rgba(0,0,0,.2) 4px, rgba(0,0,0,.2) 8px );
-        }
+    html.dark-mode .shape-btn:hover {
+        background: rgba(255,255,255,.06);
+    }
 
-        .color-dot.blue {
-            background: #1e3a8a;
-        }
 
-        .color-dot.green {
-            background: #166534;
-        }
+    .color-dot.default {
+        background: var(--bg-secondary);
+    }
 
-        .color-dot.amber {
-            background: #92400e;
-        }
+    .color-dot.transparent {
+        background: repeating-linear-gradient( 45deg, rgba(255,255,255,.2), rgba(255,255,255,.2) 4px, rgba(0,0,0,.2) 4px, rgba(0,0,0,.2) 8px );
+    }
+
+    .color-dot.blue {
+        background: #1e3a8a;
+    }
+    /* ADD time input look */
+    .time-input {
+        background: transparent;
+        border: 1px dashed var(--accent-primary);
+        border-radius: 6px;
+        padding: 0 .25rem;
+        width: 5.5ch; /* passt für "mm:ss" */
+        text-align: center;
+        outline: none;
+    }
+
+    .color-dot.green {
+        background: #166534;
+    }
+
+    .color-dot.amber {
+        background: #92400e;
+    }
 
     .color-picker {
         width: 26px;
@@ -1238,5 +1455,4 @@
         background: transparent;
         cursor: pointer;
     }
-
 </style>

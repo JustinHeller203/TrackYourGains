@@ -9,7 +9,7 @@
 
             <FavoriteButton :active="isFavorite"
                             :titleActive="'Aus Favoriten entfernen'"
-                            :titleInactive="'Zu Favoriten hinzufügen'"
+                            :titleInactive="'Zu Favoriten hinzuf�gen'"
                             @toggle="$emit('toggleFavorite')" />
         </div>
 

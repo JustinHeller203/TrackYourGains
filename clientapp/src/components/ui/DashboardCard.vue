@@ -27,7 +27,7 @@
         title: string
         info?: string | number
         clickable?: boolean
-        /** erzwingt den unauffälligen (kleineren) Placeholder-Style */
+        /** erzwingt den unauff�lligen (kleineren) Placeholder-Style */
         muted?: boolean
         /** macht den Wert generell kleiner (auch wenn NICHT muted) */
         compact?: boolean
@@ -43,7 +43,7 @@
         const s = (raw === undefined || raw === null) ? '' : String(raw).trim().toLowerCase()
 
         // generische Platzhalter
-        if (!s || s === '0' || s === '-' || s === '—' || s === 'n/a') return true
+        if (!s || s === '0' || s === '-' || s === '�' || s === 'n/a') return true
         if (s.includes('kein') || s.includes('nicht erfasst') || s.includes('nicht gesetzt')) return true
 
         // kcal: "0/2500 kcal", "0 kcal", "0 / 2500"
@@ -145,7 +145,7 @@
         }
     }
 
-    /* Typo – brutal klare Hierarchie */
+    /* Typo � brutal klare Hierarchie */
     .card-title {
         margin: .25rem 0 0 0;
         font-size: .85rem;
@@ -184,7 +184,7 @@
         filter: saturate(1.03);
     }
 
-        /* Grid/Noise minimal anheben für “alive”-Gefühl */
+        /* Grid/Noise minimal anheben f�r �alive�-Gef�hl */
         .card--crazy:hover::before {
             opacity: .12;
             background: radial-gradient(1200px 300px at -20% -20%, color-mix(in oklab, var(--accent-primary) 14%, transparent), transparent 60%), repeating-linear-gradient(45deg, color-mix(in oklab, var(--accent-primary) 18%, transparent) 0 2px, transparent 2px 12px);

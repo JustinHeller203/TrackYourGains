@@ -33,7 +33,7 @@
 </script>
 
 <style scoped>
-    /* Chip-Look wie bei „Name“ */
+    /* Chip-Look wie bei �Name� */
     .edit-input-btn {
         background: var(--bg-secondary);
         color: var(--text-primary);
