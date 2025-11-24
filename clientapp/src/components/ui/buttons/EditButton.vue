@@ -1,11 +1,11 @@
-<template>
+﻿<template>
     <BaseButton :title="title"
                 :aria-label="ariaLabel || title"
                 :disabled="disabled"
                 :type="type"
                 extraClass="edit-btn"
                 @click="$emit('click', $event)">
-        <slot>??</slot>
+        <slot>✏️</slot>
     </BaseButton>
 </template>
 

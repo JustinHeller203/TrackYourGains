@@ -1,7 +1,7 @@
 <template>
     <BaseButton :type="type"
-                :title="title || 'Hinzuf�gen'"
-                :aria-label="ariaLabel || title || 'Hinzuf�gen'"
+                :title="title || 'Hinzufügen'"
+                :aria-label="ariaLabel || title || 'Hinzufügen'"
                 :disabled="disabled"
                 :extraClass="'add-btn'"
                 @click="$emit('click', $event)">

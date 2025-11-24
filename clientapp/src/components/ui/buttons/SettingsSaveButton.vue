@@ -4,7 +4,7 @@
             :disabled="disabled"
             :title="title || 'Einstellungen speichern'"
             @click="$emit('click')">
-        <slot>?? Einstellungen speichern</slot>
+        <slot>💾 Einstellungen speichern</slot>
     </button>
 </template>
 

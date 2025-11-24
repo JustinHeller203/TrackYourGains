@@ -21,11 +21,11 @@
             </ExportButton>
 
             <ResetButton class="footer-btn"
-                         :title="useShortLabels ? 'Reset' : 'Zur�cksetzen'"
-                         :aria-label="useShortLabels ? 'Reset' : 'Zur�cksetzen'"
+                         :title="useShortLabels ? 'Reset' : 'Zurücksetzen'"
+                         :aria-label="useShortLabels ? 'Reset' : 'Zurücksetzen'"
                          :data-short="iconOnly ? '' : 'Reset'"
                          @click="$emit('reset')">
-                {{ iconOnly ? '' : (useShortLabels ? 'Reset' : 'Zur�cksetzen') }}
+                {{ iconOnly ? '' : (useShortLabels ? 'Reset' : 'Zurücksetzen') }}
             </ResetButton>
         </div>
 
