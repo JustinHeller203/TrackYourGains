@@ -95,9 +95,27 @@
                          @reorder-timers="reorderTimers"
                          @reorder-stopwatches="reorderStopwatches" />
         </main>
+
+        <footer class="app-footer">
+            <div class="app-footer-content">
+                <router-link to="/legal-notice" class="footer-link">
+                    Impressum / Legal Notice
+                </router-link>
+                <router-link to="/terms" class="footer-link">
+                    AGB
+                </router-link>
+                <router-link to="/privacy" class="footer-link">
+                    Datenschutz
+                </router-link>
+                <router-link to="/cookies" class="footer-link">Cookies</router-link>
+                <router-link to="/refund" class="footer-link">Widerruf</router-link>
+                <router-link to="/contact" class="footer-link">Kontakt</router-link>
+                <router-link to="/faq" class="footer-link">FAQ</router-link>
+                <router-link to="/about" class="footer-link">Über uns</router-link>
+            </div>
+        </footer>
     </div>
 </template>
-
 
 <script setup lang="ts">
     import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
@@ -610,6 +628,10 @@
         line-height: var(--nav-h);
     }
 
+    .footer-link {
+        margin: 0 0.75rem;
+    }
+
         .main-nav::after {
             content: "";
             position: fixed;
@@ -823,6 +845,34 @@
 
     html.dark-mode .main-content {
         background: #161b22;
+    }
+
+    .app-footer {
+        margin-top: auto;
+        padding: 1.5rem 1rem 2rem;
+        border-top: 1px solid var(--border-color);
+        font-size: 0.8rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0.85;
+    }
+
+    .app-footer-content {
+        max-width: 1200px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    .footer-link {
+        text-decoration: underline;
+        cursor: pointer;
+        color: var(--text-primary);
+    }
+
+    html.dark-mode .footer-link {
+        color: #ffffff;
     }
 
 </style>

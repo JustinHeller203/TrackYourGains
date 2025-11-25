@@ -7,6 +7,14 @@ import Settings from '@/pages/Settings.vue'
 import Tutorials from '@/pages/Tutorials.vue'
 import AuthLogin from '@/pages/AuthLogin.vue'
 import Profile from '@/pages/Profile.vue'
+import LegalNotice from '@/Footer/LegalNotice.vue'
+import Terms from '@/Footer/Terms.vue'
+import Privacy from '@/Footer/Privacy.vue'
+import Cookies from '@/Footer/Cookies.vue'
+import Refund from '@/Footer/Refund.vue'
+import Contact from '@/Footer/Contact.vue'
+import FAQ from '@/Footer/FAQ.vue'
+import About from '@/Footer/About.vue'
 import { useAuthStore } from '@/store/authStore'
 
 const router = createRouter({
@@ -19,7 +27,14 @@ const router = createRouter({
         { path: '/progress', name: 'progress', component: Progress },
         { path: '/tutorials', name: 'tutorials', component: Tutorials },
         { path: '/settings', name: 'settings', component: Settings },
-
+        { path: '/legal-notice', name: 'legal-notice', component: LegalNotice },
+        { path: '/terms', name: 'terms', component: Terms },
+        { path: '/privacy', name: 'privacy', component: Privacy },
+        { path: '/cookies', name: 'cookies', component: Cookies },
+        { path: '/refund', name: 'refund', component: Refund },
+        { path: '/contact', name: 'contact', component: Contact },
+        { path: '/faq', name: 'faq', component: FAQ },
+        { path: '/about', name: 'about', component: About },
         { path: '/profile', name: 'profile', component: Profile, meta: { requiresAuth: true } },
         { path: '/login', name: 'login', component: AuthLogin, meta: { guestOnly: true } },
         { path: '/register', redirect: { name: 'login', query: { mode: 'register' } } },
