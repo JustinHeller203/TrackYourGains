@@ -99,7 +99,7 @@
         <footer class="app-footer">
             <div class="app-footer-content">
                 <router-link to="/legal-notice" class="footer-link">
-                    Impressum / Legal Notice
+                    Impressum
                 </router-link>
                 <router-link to="/terms" class="footer-link">
                     AGB
@@ -863,16 +863,31 @@
         width: 100%;
         display: flex;
         justify-content: center;
+        flex-wrap: wrap; /* 💡 erlaubt Zeilenumbruch */
+        gap: 0.5rem 1rem; /* Abstand zwischen Links (vertikal/horizontal) */
     }
 
     .footer-link {
         text-decoration: underline;
         cursor: pointer;
         color: var(--text-primary);
+        margin: 0 0.25rem;
+        white-space: nowrap; /* Jeder Link bleibt in sich einzeilig */
     }
 
     html.dark-mode .footer-link {
         color: #ffffff;
+    }
+
+    @media (max-width: 640px) {
+        .app-footer {
+            padding: 1.25rem 0.75rem 1.75rem;
+            font-size: 0.75rem;
+        }
+
+        .app-footer-content {
+            gap: 0.35rem 0.75rem; /* etwas enger auf kleineren Screens */
+        }
     }
 
 </style>

@@ -1,6 +1,6 @@
 <template>
     <div class="legal-page">
-        <h1>Über TrackYourGains</h1>
+        <h1>Ãœber TrackYourGains</h1>
         <p>Coming soon...</p>
     </div>
 </template>
