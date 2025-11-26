@@ -93,6 +93,206 @@
                 </p>
             </details>
         </section>
+        <section class="faq-section">
+            <h2>Ernährung</h2>
+
+            <details>
+                <summary>Warum steht bei „Ernährung“ noch COMING SOON?</summary>
+                <p>
+                    Der Ernährungsbereich ist aktuell noch in Entwicklung. Deshalb liegt ein Overlay über der Seite
+                    und du kannst die Elemente noch nicht benutzen. So bekommst du schon einen ersten Eindruck,
+                    wie die Seite später aussehen wird, ohne dass alles schon fertig sein muss.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wofür ist die Ernährungsseite gedacht?</summary>
+                <p>
+                    Hier kannst du deine Mahlzeiten, Kalorien und Makros (Protein, Carbs, Fett) tracken. Du siehst
+                    auf einen Blick, wie weit du von deinem Tagesziel entfernt bist und welche Nährstoffe du
+                    hauptsächlich isst. Das hilft dir, deine Ernährung bewusst zu steuern.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was bedeuten die Karten für Kalorien, Protein, Carbs und Fett oben?</summary>
+                <p>
+                    Die Karten zeigen dir die Summe deiner eingetragenen Mahlzeiten für den aktuellen Tag:
+                    deine aufgenommenen Kalorien, sowie wie viel Gramm Protein, Carbs und Fett du bereits hast.
+                    Beim Kalorien-Card siehst du zusätzlich dein Tagesziel und einen Fortschrittsbalken.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wie kann ich mein tägliches Kalorienziel ändern?</summary>
+                <p>
+                    Wenn der Bereich freigeschaltet ist, kannst du einfach auf die Kalorien-Karte klicken.
+                    Dann öffnet sich ein Eingabefeld, in dem du dein gewünschtes Tagesziel (z. B. 2500 kcal)
+                    eintragen und speichern kannst. Der Fortschrittsbalken passt sich automatisch an.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was passiert, wenn ich mein Kalorienziel überschreite?</summary>
+                <p>
+                    Der Balken füllt sich bis 100 % und zeigt dir, dass du dein Ziel erreicht oder überschritten hast.
+                    Die Seite ist nicht dazu da, dich zu „bestrafen“, sondern dir transparent zu zeigen, wo du
+                    stehst. So kannst du besser entscheiden, wie du den restlichen Tag gestaltest.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wie trage ich eine neue Mahlzeit ein?</summary>
+                <p>
+                    Im freigeschalteten Zustand kannst du über den Button „+ Neue Mahlzeit“ eine Mahlzeit
+                    hinzufügen. Dort gibst du Name, Kalorien sowie Protein-, Carb- und Fettmenge ein. Nach dem
+                    Speichern erscheint die Mahlzeit in der Liste und wird in die Summen und den Chart übernommen.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich Mahlzeiten später bearbeiten oder löschen?</summary>
+                <p>
+                    Ja. In der Mahlzeitenliste findest du bei jeder Mahlzeit Bearbeiten- und Löschen-Buttons.
+                    Damit kannst du Einträge korrigieren, wenn du dich vertan hast, oder alte Einträge entfernen.
+                    Die Auswertungen (Kalorien, Makros, Chart) aktualisieren sich automatisch.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wie funktionieren Suche und Filter („Proteinbomben“, „High Carb“)?</summary>
+                <p>
+                    Über das Suchfeld kannst du nach dem Namen einer Mahlzeit filtern. Mit den Filtern „Proteinbomben“
+                    und „High Carb“ blendest du nur Mahlzeiten ein, die entweder mindestens 30 g Protein oder
+                    mindestens 50 g Carbs haben. So findest du schnell passende Optionen für dein aktuelles Ziel.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wofür ist der Kreis-Chart auf der Ernährungsseite?</summary>
+                <p>
+                    Der Chart zeigt das Verhältnis von Protein, Carbs und Fett auf Basis deiner eingetragenen
+                    Mahlzeiten. So erkennst du direkt, ob deine Ernährung eher proteinlastig, carb-lastig oder
+                    fettreich ist und kannst bei Bedarf gegensteuern.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich meine Ernährungsdaten exportieren?</summary>
+                <p>
+                    Ja, über den Button „Exportieren“ kannst du deine Daten in verschiedene Formate herunterladen,
+                    zum Beispiel um sie zu sichern, mit einem Coach zu teilen oder in anderen Tools weiterzunutzen.
+                    Die Datei wird lokal auf deinem Gerät gespeichert.
+                </p>
+            </details>
+
+            <details>
+                <summary>Werden meine Einträge schon dauerhaft gespeichert?</summary>
+                <p>
+                    In der aktuellen Version ist der Ernährungsbereich vor allem als Vorschau gedacht. Deine Daten
+                    werden noch nicht dauerhaft gespeichert und können beim Neuladen verloren gehen. Geplant ist,
+                    dass in einer späteren Version deine Einträge zuverlässig gesichert werden.
+                </p>
+            </details>
+        </section>
+        <section class="faq-section">
+            <h2>Training</h2>
+
+            <details>
+                <summary>Wofür ist die Trainingsseite überhaupt gedacht?</summary>
+                <p>
+                    Auf der Trainingsseite planst du deine Workouts, behältst deine Übungen im Blick und kannst
+                    nachvollziehen, was du in welcher Einheit gemacht hast. Ziel: Du musst nicht mehr im Kopf
+                    behalten, was du trainiert hast – alles ist an einem Ort gesammelt.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was ist der Unterschied zwischen Trainingsplan und Workout?</summary>
+                <p>
+                    Ein Trainingsplan ist deine übergeordnete Struktur (z.&nbsp;B. 3er-Split oder Ganzkörperplan).
+                    Ein Workout ist eine einzelne Trainingseinheit aus diesem Plan (z.&nbsp;B. „Push Montag“).
+                    Im Plan legst du fest, was grundsätzlich drin ist, im Workout trägst du ein, was du heute
+                    wirklich gemacht hast.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wie erstelle ich einen neuen Trainingsplan oder ein neues Workout?</summary>
+                <p>
+                    Über die Buttons wie „Trainingsplan erstellen“ oder „+ Neues Workout“ startest du den Prozess.
+                    Du gibst Name, Ziel (z.&nbsp;B. Muskelaufbau) und ggf. Trainingstage an und kannst anschließend
+                    Übungen hinzufügen. Sobald du speicherst, erscheint der Plan in der Übersicht.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wie füge ich neue Übungen zu einem Workout hinzu?</summary>
+                <p>
+                    Innerhalb eines Workouts findest du einen Button wie „+ Übung hinzufügen“. Dort trägst du
+                    Name der Übung, Sätze, Wiederholungen und optional das Gewicht ein. Nach dem Speichern wird
+                    die Übung in der Liste angezeigt und du kannst sie beim Training einfach abhaken oder anpassen.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was bedeuten die Angaben Sätze, Wiederholungen und Gewicht?</summary>
+                <p>
+                    „Sätze“ zeigt dir, wie oft du die Übung hintereinander ausführen sollst (z.&nbsp;B. 3 Sätze),
+                    „Wiederholungen“ beschreibt, wie viele Reps pro Satz geplant sind (z.&nbsp;B. 8–10), und bei
+                    „Gewicht“ trägst du das verwendete Gewicht ein. So kannst du dein Trainingsvolumen klar
+                    nachvollziehen und Progression planen.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wie starte ich ein Workout und markiere Sätze als erledigt?</summary>
+                <p>
+                    Wenn du ein Workout öffnest, kannst du es über einen Start-Button oder direkt in der Liste
+                    der Übungen trainieren. Dort hakst du Sätze ab, passt Wiederholungen und Gewicht an und
+                    speicherst am Ende die Einheit. So weißt du beim nächsten Mal genau, wo du weiter machst.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich Übungen, Workouts oder ganze Pläne später bearbeiten oder löschen?</summary>
+                <p>
+                    Ja. Über Bearbeiten- und Löschen-Icons bei Übungen, Workouts oder Plänen kannst du alles im
+                    Nachhinein anpassen. Das ist praktisch, wenn du deinen Split umstellst, Übungen austauschst oder
+                    fehlerhafte Einträge korrigieren willst.
+                </p>
+            </details>
+
+            <details>
+                <summary>Gibt es Filter oder Kategorien für meine Workouts?</summary>
+                <p>
+                    Du kannst deine Workouts nach Kriterien wie Trainingstag, Muskelfokus oder Plan filtern
+                    (z.&nbsp;B. „Oberkörper“, „Unterkörper“, „Push“, „Pull“). Dadurch findest du schneller die
+                    Einheit, die du heute trainieren willst, ohne dich durch alles durchklicken zu müssen.
+                </p>
+            </details>
+
+            <details>
+                <summary>Sehe ich irgendwo meinen Fortschritt im Training?</summary>
+                <p>
+                    In der Trainingsübersicht kannst du erkennen, welche Workouts du in letzter Zeit gemacht hast
+                    und wie deine Einheiten aufgebaut sind. Je nach späterer Ausbaustufe können hier zusätzliche
+                    Auswertungen dazukommen (z.&nbsp;B. Trainingshäufigkeit pro Woche oder Fortschritt bei
+                    bestimmten Übungen).
+                </p>
+            </details>
+
+            <details>
+                <summary>Werden meine Trainingsdaten schon dauerhaft gespeichert?</summary>
+                <p>
+                    In dieser frühzeitigen Version steht vor allem die Funktionalität und der Ablauf im Vordergrund.
+                    Je nachdem, wie die finale Login- und Speicherlösung aussieht, können Daten aktuell noch beim
+                    Neuladen verloren gehen. Geplant ist, dass deine Trainingshistorie später zuverlässig gesichert
+                    und über Geräte hinweg verfügbar ist.
+                </p>
+            </details>
+        </section>
+
     </div>
 </template>
 
