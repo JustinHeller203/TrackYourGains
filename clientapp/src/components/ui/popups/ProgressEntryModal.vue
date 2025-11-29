@@ -5,14 +5,14 @@
          @pointerdown="onOverlayPointerDown"
          @pointerup="onOverlayPointerUp">
         <div class="modal" role="dialog" aria-modal="true" @click.stop>
-            <h3 class="modal-title">?? Fortschritt eintragen</h3>
+            <h3 class="modal-title"> 📝 Fortschritt eintragen</h3>
 
-            <label class="field-label" for="progress-exercise">�bung</label>
+            <label class="field-label" for="progress-exercise">Übung</label>
             <select id="progress-exercise"
                     ref="exerciseSelect"
                     v-model="exerciseProxy"
                     class="input select">
-                <option value="" disabled>�bung w�hlen</option>
+                <option value="" disabled>Übung wählen</option>
                 <option v-for="ex in exercises"
                         :key="ex.exercise"
                         :value="ex.exercise">
@@ -37,7 +37,7 @@
                 </div>
 
                 <div>
-                    <label class="field-label" for="progress-weight">K�rpergewicht ({{ unit }})</label>
+                    <label class="field-label" for="progress-weight">Körpergewicht ({{ unit }})</label>
                     <div class="input-with-extras">
                         <input id="progress-weight"
                                ref="weightInput"
@@ -59,7 +59,7 @@
             <!-- Dehnung-Inputs -->
             <div v-else-if="inputType === 'dehnung'" class="modal-grid grid-2">
                 <div>
-                    <label class="field-label" for="stretch-sets">S�tze insgesamt</label>
+                    <label class="field-label" for="stretch-sets">Sätze insgesamt</label>
                     <input id="stretch-sets"
                            type="number" min="1" max="7"
                            v-model.number="setsProxy"
@@ -70,7 +70,7 @@
                 </div>
 
                 <div>
-                    <label class="field-label" for="stretch-weight">K�rpergewicht ({{ unit }})</label>
+                    <label class="field-label" for="stretch-weight">Körpergewicht ({{ unit }})</label>
                     <div class="input-with-extras">
                         <input id="stretch-weight"
                                type="number" min="0" step="0.5"
@@ -88,7 +88,7 @@
             <!-- Kraft/Calisthenics (Standard) -->
             <div v-else class="modal-grid grid-2">
                 <div>
-                    <label class="field-label" for="progress-sets">S�tze insgesamt</label>
+                    <label class="field-label" for="progress-sets">Sätze insgesamt</label>
                     <input id="progress-sets" type="number" min="1" max="7"
                            v-model.number="setsProxy" class="input" placeholder="z. B. 3"
                            :readonly="!hasExerciseSelected"
@@ -96,7 +96,7 @@
                 </div>
 
                 <div>
-                    <label class="field-label" for="progress-weight">K�rpergewicht ({{ unit }})</label>
+                    <label class="field-label" for="progress-weight">Körpergewicht ({{ unit }})</label>
                     <div class="input-with-extras">
                         <input id="progress-weight"
                                ref="weightInput"
@@ -105,7 +105,6 @@
                                class="input"
                                :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'" />
 
-                        <!-- WICHTIG: Klasse f�r Chip-Optik + rechts ausrichten -->
                         <ExtrasToggleButton :toggled="!!props.showExtras"
                                             title="Extras einblenden"
                                             aria-label="Extras einblenden"
@@ -115,7 +114,6 @@
                 </div>
             </div>
 
-            <!-- Einzels�tze (erscheint automatisch wenn S�tze > 0) -->
             <div v-if="Number(setsProxy) > 0 && (inputType === 'kraft' || inputType === 'calisthenics' || inputType === 'dehnung')"
                  class="set-rows">
                 <div v-for="(row, i) in setDetailsProxy" :key="i" class="set-row">
@@ -154,13 +152,12 @@
                     </template>
                 </div>
 
-                <!-- Quick-Buttons nur f�r Dehnung -->
                 <div v-if="inputType==='dehnung'" class="set-quick-actions">
                     <button type="button" class="btn-extras-chip" @click="applyStretchDuration(30)">30s</button>
                     <button type="button" class="btn-extras-chip" @click="applyStretchDuration(45)">45s</button>
                     <button type="button" class="btn-extras-chip" @click="applyStretchDuration(60)">60s</button>
                     <button type="button" class="btn-extras-chip" @click="applyStretchDuration(90)">90s</button>
-                    <button type="button" class="btn-extras-chip" @click="applyStretchDurationFromFirst()">Alle �bernehmen</button>
+                    <button type="button" class="btn-extras-chip" @click="applyStretchDurationFromFirst()">Alle übernehmen</button>
                 </div>
             </div>
 
@@ -209,7 +206,7 @@
                     </div>
 
                     <div>
-                        <label class="field-label" for="extra-pace">� Pace (min/km)</label>
+                        <label class="field-label" for="extra-pace">Pace (min/km)</label>
                         <input id="extra-pace" type="text" v-model="paceProxy"
                                class="input" placeholder="z. B. 5:20"
                                :readonly="!hasExerciseSelected"
@@ -220,17 +217,17 @@
                         <label class="field-label" for="extra-hrZone">Herzfrequenzzone</label>
                         <select id="extra-hrZone" v-model.number="hrZoneProxy" class="input select"
                                 :disabled="!hasExerciseSelected">
-                            <option :value="null" disabled>Herzfrequenzzone ausw�hlen</option>
-                            <option :value="1">Zone 1 � Sehr leicht</option>
-                            <option :value="2">Zone 2 � Leicht</option>
-                            <option :value="3">Zone 3 � Mittel</option>
-                            <option :value="4">Zone 4 � Schwer</option>
-                            <option :value="5">Zone 5 � Maximal</option>
+                            <option :value="null" disabled>Herzfrequenzzone auswählen</option>
+                            <option :value="1">Zone 1 : Sehr leicht</option>
+                            <option :value="2">Zone 2 : Leicht</option>
+                            <option :value="3">Zone 3 : Mittel</option>
+                            <option :value="4">Zone 4 : Schwer</option>
+                            <option :value="5">Zone 5 : Maximal</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="field-label" for="extra-borg">Borg-Skala (6�20)</label>
+                        <label class="field-label" for="extra-borg">Borg-Skala (6-20)</label>
                         <input id="extra-borg" ref="borgInput" type="number" inputmode="numeric"
                                min="6" max="20" step="1" v-model="borgLocal"
                                @focus="onBorgFocus" @blur="onBorgBlur"
@@ -244,13 +241,13 @@
                 <!-- Dehnung -->
                 <template v-else-if="inputType === 'dehnung'">
                     <div>
-                        <label class="field-label" for="extra-painFree">Schmerzfreiheit (1�10)</label>
+                        <label class="field-label" for="extra-painFree">Schmerzfreiheit (1-10)</label>
                         <input id="extra-painFree" type="number" min="1" max="10" step="1" v-model.number="painFreeProxy" class="input" placeholder="z. B. 8"
                                :readonly="!hasExerciseSelected"
                                @focus="!hasExerciseSelected && requireExercise('painFree')" />
                     </div>
                     <div>
-                        <label class="field-label" for="extra-moveQuality">Bewegungsqualit�t (1�10)</label>
+                        <label class="field-label" for="extra-moveQuality">Bewegungsqualität (1-10)</label>
                         <input id="extra-moveQuality" type="number" min="1" max="10" step="1" v-model.number="movementQualityProxy" class="input" placeholder="z. B. 7"
                                :readonly="!hasExerciseSelected"
                                @focus="!hasExerciseSelected && requireExercise('moveQuality')" />
@@ -259,18 +256,18 @@
                         <label class="field-label" for="extra-equipment">Hilfsmittel</label>
                         <select id="extra-equipment" v-model="equipmentProxy" class="input select"
                                 :disabled="!hasExerciseSelected">
-                            <option value="" disabled>Hilfsmittel ausw�hlen</option>
+                            <option value="" disabled>Hilfsmittel auswählen</option>
                             <option value="Band">Band</option>
                             <option value="Rolle">Rolle</option>
                             <option value="Ball">Ball</option>
                             <option value="Stab">Stab</option>
-                            <option value="custom">Benutzerdefiniert �</option>
+                            <option value="custom">Benutzerdefiniert...</option>
                         </select>
                     </div>
                     <div v-if="equipmentProxy === 'custom'">
                         <label class="field-label" for="extra-equipment-custom">Eigenes Hilfsmittel</label>
                         <input v-if="equipmentProxy === 'custom'" id="extra-equipment-custom" type="text"
-                               v-model="equipmentCustomProxy" class="input" placeholder="z. B. Theraband (gr�n), �"
+                               v-model="equipmentCustomProxy" class="input" placeholder="z. B. Theraband (grün), usw."
                                :readonly="!hasExerciseSelected"
                                @focus="!hasExerciseSelected && requireExercise('equipmentCustom')" />
                     </div>
@@ -278,7 +275,7 @@
                         <label class="field-label" for="extra-side">Betroffene Seite</label>
                         <select id="extra-side" v-model="sideProxy" class="input select"
                                 :disabled="!hasExerciseSelected">
-                            <option value="" disabled>Seite ausw�hlen</option>
+                            <option value="" disabled>Seite auswählen</option>
                             <option value="links">Links</option>
                             <option value="rechts">Rechts</option>
                             <option value="beidseitig">Beidseitig</option>
@@ -289,14 +286,14 @@
 
             <label class="field-label" for="progress-note">Notiz (optional)</label>
             <input id="progress-note" type="text" v-model="noteProxy" class="input"
-                   placeholder="RPE, Tempo, Feeling �"
+                   placeholder="RPE, Tempo, Feeling..."
                    :readonly="!hasExerciseSelected"
                    @focus="!hasExerciseSelected && requireExercise('note')" />
 
             <div class="modal-actions" :class="{ 'has-delete': localIsEditing }">
                 <PopupDeleteButton v-if="localIsEditing"
                                    class="action-delete"
-                                   @click="onDelete">L�schen</PopupDeleteButton>
+                                   @click="onDelete">Löschen</PopupDeleteButton>
 
                 <PopupCancelButton class="action-cancel"
                                    ariaLabel="Abbrechen"
@@ -314,7 +311,7 @@
 
             <ValidationPopup :show="showBorgError"
                              :errors="borgErrors"
-                             title="Ung�ltige Borg-Skala"
+                             title="Ungültige Borg-Skala"
                              lead="Die Borg-Skala geht von 6 (sehr leicht) bis 20 (maximal)."
                              @close="onCloseBorgError" />
 
@@ -327,8 +324,8 @@
     import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
     import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
-    import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue' // ?? NEU
-    import PopupDeleteButton from '@/components/ui/buttons/PopupDeleteButton.vue' // ?? NEU
+    import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue'
+    import PopupDeleteButton from '@/components/ui/buttons/PopupDeleteButton.vue' 
 
     const equipmentCustomInput = ref<HTMLInputElement | null>(null)
     const equipmentProxy = computed({

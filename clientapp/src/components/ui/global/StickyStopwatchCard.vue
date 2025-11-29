@@ -14,7 +14,6 @@
   '--btn-bg': stopwatch.btnColor ?? undefined,
   '--time-color': stopwatch.timeColor ?? undefined
 }"
-
          @mousedown="onMouseDown($event)"
          @mousedown.right.prevent="openMenu($event as any)"
          @contextmenu.prevent="openMenu($event as any)"
@@ -26,10 +25,14 @@
 
         <span class="name-link"
               @click="focusInTraining('stopwatch', stopwatch.id)"
-              @mousedown.stop>
+              @mousedown.stop="onMaybeDrag($event)">
             {{ stopwatch.name || 'Stoppuhr' }}
         </span>
-        <span class="time">{{ formatStopwatch(stopwatch.time) }}</span>
+        <span class="time"
+              @mousedown.stop="onMaybeDrag($event)">
+            {{ formatStopwatch(stopwatch.time) }}
+        </span>
+
         <button @click="toggleStopwatch(stopwatch)">
             {{ stopwatch.isRunning ? 'Pause' : 'Start' }}
         </button>
@@ -37,7 +40,6 @@
         <button ref="lapBtnEl" @click="addLap(stopwatch)" :disabled="!stopwatch.isRunning">
             Runde
         </button>
-
         <!-- StickyStopwatchCard.vue | REPLACE HoldMenu block -->
         <HoldMenu v-if="showMenu"
                   class="sticky-menu"
@@ -158,6 +160,13 @@
 
             </template>
 
+            <button v-if="hasStyleChanges"
+                    type="button"
+                    class="menu-item"
+                    @click="handleApplyToAll"
+                    @mousedown.stop>
+                Für alle Stoppuhren übernehmen
+            </button>
             <button type="button" class="menu-item danger" @click="handleClose">
                 Schließen
             </button>
@@ -194,7 +203,11 @@
         bumpZ(stopwatch)
         startDrag(ev, stopwatch)
     }
-
+    function onMaybeDrag(ev: MouseEvent) {
+        if (!moveMode.value) return
+        bumpZ(stopwatch)
+        startDrag(ev, stopwatch)
+    }
     interface StopwatchInstance {
         id: string
         name: string
@@ -241,11 +254,34 @@
         (e: 'open', id: string): void
         (e: 'crop', id: string): void
         (e: 'close', id: string): void
+        (e: 'apply-style-all', payload: {
+            kind: 'stopwatch'
+            style: {
+                bgColor: string | null
+                btnColor: string | null
+                timeColor: string | null
+                shape: 'square' | 'rounded' | 'oval' | null
+            }
+        }): void
     }>()
 
+    function handleApplyToAll() {
+        emit('apply-style-all', {
+            kind: 'stopwatch',
+            style: {
+                bgColor: stopwatch.bgColor ?? null,
+                btnColor: stopwatch.btnColor ?? null,
+                timeColor: stopwatch.timeColor ?? null,
+                shape: stopwatch.shape ?? null,
+            },
+        })
+        hasStyleChanges.value = false
+        closeMenu()
+    }
     const cardEl = ref<HTMLElement | null>(null)
     const showMenu = ref(false)
     const showColors = ref(false)
+    const hasStyleChanges = ref(false)
 
     const menuStyle = computed(() => {
         const w = stopwatch.width ?? cardEl.value?.offsetWidth ?? 240
@@ -286,12 +322,6 @@
             default: return undefined
         }
     })
-
-    function setShape(shape: 'square' | 'rounded' | 'oval' | null, close = false) {
-        stopwatch.shape = shape
-        if (close) closeMenu()
-    }
-
     
     function closeMenu() {
         showMenu.value = false
@@ -537,18 +567,28 @@
             isForcingPreset = false
         }
     }
+    // REPLACE – StickyStopwatchCard.vue (setColor / setBtnColor / setTimeColor / setShape)
     function setColor(color: string | null, close = true) {
         stopwatch.bgColor = color
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 
     function setBtnColor(color: string | null, close = true) {
         stopwatch.btnColor = color
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 
     function setTimeColor(color: string | null, close = true) {
         stopwatch.timeColor = color
+        hasStyleChanges.value = true
+        if (close) closeMenu()
+    }
+
+    function setShape(shape: 'square' | 'rounded' | 'oval' | null, close = false) {
+        stopwatch.shape = shape
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 

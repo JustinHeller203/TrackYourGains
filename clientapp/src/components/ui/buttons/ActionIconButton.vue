@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="icon-btn-wrap">
         <BaseButton :type="type"
                     :title="title"

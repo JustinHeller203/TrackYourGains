@@ -59,7 +59,8 @@
                          :stop-timer="stopTimer"
                          :reset-timer="resetTimer"
                          :start-drag="startDrag"
-                         :focus-in-training="focusInTraining" />
+                         :focus-in-training="focusInTraining"
+                         @apply-style-all="onApplyStyleAll" />
 
         <!-- ✅ Sticky Stopwatch -->
         <StickyStopwatchCard v-for="sw in stopwatches.filter(sw => sw.shouldStaySticky)"
@@ -70,7 +71,8 @@
                              :reset-stopwatch="resetStopwatch"
                              :add-lap="addLap"
                              :start-drag="startDrag"
-                             :focus-in-training="focusInTraining" />
+                             :focus-in-training="focusInTraining"
+                             @apply-style-all="onApplyStyleAll" />
 
         <!-- ✅ Validation-Popup -->
         <ValidationPopup :show="showValidationPopup"
@@ -159,7 +161,6 @@
         zIndex?: number
     }
 
-
     interface StopwatchInstance {
         id: string
         name: string
@@ -173,6 +174,7 @@
         bgColor?: string | null
         btnColor?: string | null
         timeColor?: string | null
+        shape?: 'square' | 'rounded' | 'oval' | null
         width?: number
         height?: number
         left?: number
@@ -242,20 +244,80 @@
         localStorage.setItem(STOPWATCH_KEY, JSON.stringify(s))
     }
 
+    function onApplyStyleAll(payload: {
+        kind: 'timer' | 'stopwatch'
+        style: {
+            bgColor: string | null
+            btnColor: string | null
+            timeColor: string | null
+            shape: 'square' | 'rounded' | 'oval' | null
+        }
+    }) {
+        if (payload.kind === 'timer') {
+            timers.value.forEach(t => {
+                t.bgColor = payload.style.bgColor
+                t.btnColor = payload.style.btnColor
+                t.timeColor = payload.style.timeColor
+                t.shape = payload.style.shape
+            })
+            defaultTimerStyle.value = { ...payload.style }
+        } else {
+            stopwatches.value.forEach(sw => {
+                sw.bgColor = payload.style.bgColor
+                sw.btnColor = payload.style.btnColor
+                sw.timeColor = payload.style.timeColor
+                sw.shape = payload.style.shape
+            })
+            defaultStopwatchStyle.value = { ...payload.style }
+        }
+
+        saveAll()
+    }
+
     function loadAll() {
         const oldTimers = localStorage.getItem('myAppTimers')
         const oldStop = localStorage.getItem('myAppStopwatches')
         try {
             const t = JSON.parse(localStorage.getItem(TIMER_KEY) || oldTimers || '[]')
             const s = JSON.parse(localStorage.getItem(STOPWATCH_KEY) || oldStop || '[]')
-            timers.value = Array.isArray(t) ? t.map((x: any) => ({ ...x, interval: null })) : []
-            stopwatches.value = Array.isArray(s) ? s.map((x: any) => ({ ...x, interval: null, laps: x.laps || [] })) : []
+
+            timers.value = Array.isArray(t)
+                ? t.map((x: any) => ({
+                    ...x,
+                    interval: null,
+                    // Falls alt ohne Name gespeichert -> Default setzen
+                    name: (x.name ?? '').trim() || 'Timer',
+                }))
+                : []
+
+            stopwatches.value = Array.isArray(s)
+                ? s.map((x: any) => ({
+                    ...x,
+                    interval: null,
+                    laps: x.laps || [],
+                    // Gleiches Spiel f r Stoppuhren
+                    name: (x.name ?? '').trim() || 'Stoppuhr',
+                }))
+                : []
         } catch {
             timers.value = []
             stopwatches.value = []
         }
     }
 
+    const defaultTimerStyle = ref({
+        bgColor: null as string | null,
+        btnColor: null as string | null,
+        timeColor: null as string | null,
+        shape: null as 'square' | 'rounded' | 'oval' | null,
+    })
+
+    const defaultStopwatchStyle = ref({
+        bgColor: null as string | null,
+        btnColor: null as string | null,
+        timeColor: null as string | null,
+        shape: null as 'square' | 'rounded' | 'oval' | null,
+    })
     function closeMenu() {
         menuOpen.value = false
     }
@@ -309,13 +371,34 @@
         target.src = 'https://via.placeholder.com/56?text=Logo'
     }
 
-    // Timer / Stopwatch
     const addTimer = async (timer: TimerInstance) => {
+        // Name hart normalisieren: niemals leer lassen
+        const rawName = (timer.name ?? '').trim()
+        timer.name = rawName || 'Timer'
+
+        const s = defaultTimerStyle.value
+
+        timer.bgColor = s.bgColor
+        timer.btnColor = s.btnColor
+        timer.timeColor = s.timeColor
+        timer.shape = s.shape
+
         timers.value = [...timers.value, timer]
         await nextTick()
     }
 
     const addStopwatch = async (stopwatch: StopwatchInstance) => {
+        // Name hart normalisieren: niemals leer lassen
+        const rawName = (stopwatch.name ?? '').trim()
+        stopwatch.name = rawName || 'Stoppuhr'
+
+        const s = defaultStopwatchStyle.value
+
+        stopwatch.bgColor = s.bgColor
+        stopwatch.btnColor = s.btnColor
+        stopwatch.timeColor = s.timeColor
+        stopwatch.shape = s.shape
+
         stopwatches.value = [...stopwatches.value, stopwatch]
         await nextTick()
     }
@@ -632,17 +715,17 @@
         margin: 0 0.75rem;
     }
 
-        .main-nav::after {
-            content: "";
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: var(--sbw);
-            height: var(--nav-h);
-            background: inherit;
-            pointer-events: none;
-            z-index: 1000;
-        }
+    .main-nav::after {
+        content: "";
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: var(--sbw);
+        height: var(--nav-h);
+        background: inherit;
+        pointer-events: none;
+        z-index: 1000;
+    }
 
     html.dark-mode .main-nav {
         background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
@@ -714,7 +797,7 @@
     }
 
     /* Popup usw. – unverändert (deine Styles bleiben) */
-    
+
 
     .nav-link::after {
         content: '';
@@ -889,5 +972,4 @@
             gap: 0.35rem 0.75rem; /* etwas enger auf kleineren Screens */
         }
     }
-
 </style>

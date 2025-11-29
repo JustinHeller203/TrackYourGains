@@ -1,6 +1,6 @@
 <template>
     <BasePopup :show="show"
-               title="Passwort �ndern"
+               title="Passwort ändern"
                variant="password-change-popup"
                @cancel="$emit('cancel')">
         <!-- Body -->
@@ -66,7 +66,7 @@
     function onSave() {
         const { current, next, repeat } = form.value;
         if (!current || !next || !repeat) {
-            error.value = "Bitte alle Felder ausf�llen.";
+            error.value = "Bitte alle Felder ausfüllen.";
             return;
         }
         if (next.length < 8) {
@@ -74,7 +74,7 @@
             return;
         }
         if (next !== repeat) {
-            error.value = "Passw�rter stimmen nicht �berein.";
+            error.value = "Passw�rter stimmen nicht überein.";
             return;
         }
         error.value = "";

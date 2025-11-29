@@ -14,7 +14,6 @@
   '--btn-bg': timer.btnColor ?? undefined,
   '--time-color': timer.timeColor ?? undefined
 }"
-
          @mousedown="onMouseDown($event)"
          @mousedown.right.prevent="openMenu($event as any)"
          @contextmenu.prevent="openMenu($event as any)"
@@ -48,7 +47,6 @@
         <button @click="startTimer(timer)" :disabled="timer.isRunning">Start</button>
         <button @click="stopTimer(timer)" :disabled="!timer.isRunning">Stop</button>
         <button @click="resetTimer(timer)">Reset</button>
-
         <!-- StickyTimerCard.vue | REPLACE HoldMenu block -->
         <HoldMenu v-if="showMenu"
                   class="sticky-menu"
@@ -169,6 +167,13 @@
 
             </template>
 
+            <button v-if="hasStyleChanges"
+                    type="button"
+                    class="menu-item"
+                    @click="handleApplyToAll"
+                    @mousedown.stop>
+                Für alle Timer übernehmen
+            </button>
             <button type="button" class="menu-item danger" @click="handleClose">
                 Schließen
             </button>
@@ -297,11 +302,35 @@
         (e: 'open', id: string): void
         (e: 'crop', id: string): void
         (e: 'close', id: string): void
+        (e: 'apply-style-all', payload: {
+            kind: 'timer'
+            style: {
+                bgColor: string | null
+                btnColor: string | null
+                timeColor: string | null
+                shape: 'square' | 'rounded' | 'oval' | null
+            }
+        }): void
     }>()
+
+    function handleApplyToAll() {
+        emit('apply-style-all', {
+            kind: 'timer',
+            style: {
+                bgColor: timer.bgColor ?? null,
+                btnColor: timer.btnColor ?? null,
+                timeColor: timer.timeColor ?? null,
+                shape: timer.shape ?? null,
+            },
+        })
+        hasStyleChanges.value = false
+        closeMenu()
+    }
 
     const cardEl = ref<HTMLElement | null>(null)
     const showMenu = ref(false)
     const showColors = ref(false)
+    const hasStyleChanges = ref(false)
 
     const menuStyle = computed(() => {
         const w = timer.width ?? cardEl.value?.offsetWidth ?? 220
@@ -503,16 +532,25 @@
 
     function setColor(color: string | null, close = true) {
         timer.bgColor = color
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 
     function setBtnColor(color: string | null, close = true) {
         timer.btnColor = color
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 
     function setTimeColor(color: string | null, close = true) {
         timer.timeColor = color
+        hasStyleChanges.value = true
+        if (close) closeMenu()
+    }
+
+    function setShape(shape: 'square' | 'rounded' | 'oval' | null, close = false) {
+        timer.shape = shape
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 
@@ -524,11 +562,6 @@
             default: return undefined
         }
     })
-
-    function setShape(shape: 'square' | 'rounded' | 'oval' | null, close = false) {
-        timer.shape = shape
-        if (close) closeMenu()
-    }
     function handleClose() {
         // Timer sauber stoppen + unsticky machen
         stopTimer(timer)
