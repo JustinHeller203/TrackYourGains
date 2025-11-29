@@ -4,7 +4,7 @@
             :aria-pressed="active"
             :title="active ? titleActive : titleInactive"
             @click="$emit('toggle')">
-        {{ active ? '☆' : '★' }}
+        {{ active ? '★' : '☆' }}
     </button>
 </template>
 

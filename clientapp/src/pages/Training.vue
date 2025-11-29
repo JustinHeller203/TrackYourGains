@@ -35,16 +35,16 @@
                         <!-- Trainingstyp (Mobile ≤560px: Label + Dropdown) -->
                         <div class="type-block mobile-only">
                             <label class="type-heading field-label" for="training-type">Trainingstyp</label>
-                            <select v-model="trainingType"
-                                    id="training-type"
-                                    class="seg-type-select"
-                                    aria-label="Trainingstyp wählen">
-                                <option value="" disabled>Trainingstyp wählen</option>
-                                <option value="kraft">Kraft</option>
-                                <option value="calisthenics">Calisthenics</option>
-                                <option value="ausdauer">Ausdauer</option>
-                                <option value="dehnung">Dehnung</option>
-                            </select>
+                            <UiSelect v-model="trainingType"
+                                      id="training-type"
+                                      aria-label="Trainingstyp wählen"
+                                      placeholder="Trainingstyp wählen"
+                                      :options="[
+          { value: 'kraft', label: 'Kraft' },
+          { value: 'calisthenics', label: 'Calisthenics' },
+          { value: 'ausdauer', label: 'Ausdauer' },
+          { value: 'dehnung', label: 'Dehnung' }
+        ]" />
                         </div>
 
                         <!-- Extras-Button rechtsbündig (unverändert) -->
@@ -55,16 +55,13 @@
                                             @click="toggleExtras" />
                     </div>
 
-
-
-                    <!-- NEU: kein reservierter Platz, drückt nur bei Aktivierung -->
                     <div v-show="showExtras" class="goal-row">
                         <label class="field-label">Trainingsziel</label>
                         <div class="field-row">
-                            <select v-model="selectedGoal" class="goal-select">
-                                <option value="" disabled>Trainingsziel</option>
-                                <option v-for="goal in trainingGoals" :key="goal" :value="goal">{{ goal }}</option>
-                            </select>
+                            <UiSelect v-model="selectedGoal"
+                                      class="goal-select"
+                                      placeholder="Trainingsziel"
+                                      :options="trainingGoals" />
                         </div>
                     </div>
 
@@ -82,11 +79,13 @@
                     <div class="field-block" v-if="trainingType !== 'ausdauer'">
                         <label class="field-label">Übung</label>
                         <div class="field-row">
-                            <select v-model="newExercise">
-                                <option value="" disabled>Übung wählen</option>
-                                <option v-for="ex in filteredExercises" :key="ex" :value="ex">{{ ex }}</option>
-                                <option value="custom">Eigene Übung hinzufügen…</option>
-                            </select>
+                            <UiSelect v-model="newExercise"
+                                      placeholder="Übung wählen"
+                                      :options="[
+              ...filteredExercises,
+              { value: 'custom', label: 'Eigene Übung hinzufügen…', isCustom: true }
+            ]" />
+
                             <input v-show="newExercise === 'custom'"
                                    v-model="customPlanExercise"
                                    placeholder="Eigene Übung eingeben" />
@@ -97,10 +96,9 @@
                     <div class="field-block" v-else>
                         <label class="field-label">Cardio-Art</label>
                         <div class="field-row">
-                            <select v-model="cardioExercise">
-                                <option value="" disabled>Cardio-Art</option>
-                                <option v-for="ex in filteredExercises" :key="ex" :value="ex">{{ ex }}</option>
-                            </select>
+                            <UiSelect v-model="cardioExercise"
+                                      placeholder="Cardio-Art"
+                                      :options="filteredExercises" />
                         </div>
                     </div>
 
@@ -557,7 +555,6 @@
                         </table>
                     </div>
                 </div>
-                <!-- /Benutzerdefinierte Übungen -->
             </div>
         </div>
         <!-- Satzpausen-Timer -->
@@ -569,7 +566,7 @@
 
             <Draggable :modelValue="props.timers"
                        item-key="id"
-                       :handle="isMobile ? undefined : '.timer-drag-handle'"
+                       :handle="'.timer-drag-handle'"
                        ghost-class="drag-ghost"
                        chosen-class="drag-chosen"
                        drag-class="dragging"
@@ -586,7 +583,6 @@
                        :scroll-sensitivity="40"
                        :scroll-speed="12"
                        :swap-threshold="0.3"
-                       :filter="isMobile ? dragFilter : undefined"
                        tag="div"
                        class="drag-stack"
                        @update:modelValue="onReorderTimers">
@@ -657,7 +653,7 @@
 
             <Draggable :modelValue="props.stopwatches"
                        item-key="id"
-                       :handle="isMobile ? undefined : '.stopwatch-drag-handle'"
+                       :handle="'.stopwatch-drag-handle'"
                        ghost-class="drag-ghost"
                        chosen-class="drag-chosen"
                        drag-class="dragging"
@@ -674,7 +670,6 @@
                        :scroll-sensitivity="40"
                        :scroll-speed="12"
                        :swap-threshold="0.3"
-                       :filter="isMobile ? dragFilter : undefined"
                        tag="div"
                        class="drag-stack"
                        @update:modelValue="onReorderStopwatches">
@@ -818,6 +813,7 @@
     import NamePromptPopup from '@/components/ui/popups/NamePromptPopup.vue'
     import InfoPopup from '@/components/ui/popups/InfoPopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
+    import UiSelect from '@/components/ui/UiSelect.vue';
 
     // Typ-Definitionen (bleiben unverändert)
     interface PlanExercise {
@@ -1066,6 +1062,26 @@
         Beine: ['Hamstring-Dehnung', 'Waden-Dehnung', 'Quadrizeps-Dehnung', 'Adduktoren-Dehnung'],
     };
 
+    // ADD in Training.vue (Refs für Custom-Dropdown)
+    const exerciseDropdownOpen = ref(false)
+
+    const newExerciseLabel = computed(() => {
+        if (!newExercise.value) return 'Übung wählen'
+        if (newExercise.value === 'custom') {
+            return customPlanExercise.value || 'Eigene Übung hinzufügen…'
+        }
+        return newExercise.value
+    })
+
+    const selectExercise = (value: string) => {
+        newExercise.value = value
+        if (value !== 'custom') {
+            customPlanExercise.value = ''
+        }
+        exerciseDropdownOpen.value = false
+    }
+
+
     // Hilfsfunktionen
     const resolveGroups = (q: string): string[] => {
         const key = (q || '').trim().toLowerCase();
@@ -1094,12 +1110,15 @@
         const el = e.target as HTMLElement | null;
         if (!el) return;
 
-        // Menü & Kebab weiterhin offen lassen
         if (el.closest('.plan-menu') || el.closest('.kebab-wrap')) return;
 
-        // NEU: Klicks innerhalb des Toasts sollen das Menü NICHT schließen
-        // Passe die Selektoren ggf. auf deine Toast-Root-Klasse/Attr an.
+        // Klicks innerhalb des Toasts sollen das Menü NICHT schließen
         if (el.closest('.toast') || el.closest('.toast-container') || el.closest('[data-toast-root]')) return;
+
+        // Custom-Exercise-Dropdown schließen, wenn außerhalb geklickt wird
+        if (!el.closest('.exercise-select-wrapper')) {
+            exerciseDropdownOpen.value = false;
+        }
 
         closePlanMenu();
     };
@@ -1222,7 +1241,7 @@
         }
     };
     const isMobile = ref(false)
-    const dragDelay = computed(() => (isMobile.value ? 180 : 0))
+    const dragDelay = computed(() => 0)
     const dragFilter =
         '.inline-actions, .inline-actions *, .kebab-wrap, .kebab-wrap *, .timer-actions, .timer-actions *, button, select, input, textarea, a'
 
@@ -1258,6 +1277,13 @@
             saveToStorage();
         }
     });
+
+    const makeId = () => {
+        if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+            return crypto.randomUUID();
+        }
+        return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    };
 
     const otherPlanItems = computed<TrainingPlan[]>({
         get() {
@@ -2109,11 +2135,52 @@
         newTimerName.value = '';
     };
 
+
+    const makeUniqueTimerName = (rawName: string, excludeId?: string): string => {
+        const base = (rawName || '').trim() || 'Timer';
+        const existing = new Set(
+            props.timers
+                .filter(t => !excludeId || t.id !== excludeId)
+                .map(t => (t.name || 'Timer').trim().toLowerCase())
+        );
+
+        if (!existing.has(base.toLowerCase())) return base;
+
+        let i = 2;
+        // Timer, Timer (2), Timer (3) ...
+        while (existing.has(`${base} (${i})`.toLowerCase())) {
+            i++;
+        }
+        return `${base} (${i})`;
+    };
+
+    const makeUniqueStopwatchName = (rawName: string, excludeId?: string): string => {
+        const baseRaw = (rawName || '').trim();
+        const base = baseRaw || 'Stoppuhr';
+
+        const existing = new Set(
+            props.stopwatches
+                .filter(sw => !excludeId || sw.id !== excludeId)
+                .map(sw => (sw.name || 'Stoppuhr').trim().toLowerCase())
+        );
+
+        if (!existing.has(base.toLowerCase())) return base;
+
+        let i = 2;
+        // Stoppuhr, Stoppuhr (2), Stoppuhr (3) ...
+        while (existing.has(`${base} (${i})`.toLowerCase())) {
+            i++;
+        }
+        return `${base} (${i})`;
+    };
+
+
     const addTimer = async () => {
-        console.log('addTimer aufgerufen mit Name:', newTimerName.value);
+        const uniqueName = makeUniqueTimerName(newTimerName.value);
+
         const newTimer: TimerInstance = {
-            id: Date.now().toString(),
-            name: newTimerName.value.trim() || 'Timer',
+            id: makeId(),
+            name: uniqueName,
             seconds: '60',
             customSeconds: null,
             time: 60,
@@ -2124,21 +2191,19 @@
             isVisible: true,
             shouldStaySticky: false
         };
+
         emit('add-timer', newTimer);
         addToast('Timer hinzugefügt', 'add');
         closeAddTimerPopup();
         await nextTick();
-        console.log('Nach addTimer, aktuelle timers:', props.timers);
     };
 
     const openDeleteTimerPopup = (id: string) => {
-        console.log('openDeleteTimerPopup aufgerufen mit ID:', id);
         if (props.timers.length <= 1) {
             openValidationPopup(['Mindestens ein Timer muss geöffnet bleiben']);
             return;
         }
         openDeletePopup(async () => {
-            console.log('Löschaktion ausführen für Timer ID:', id);
             const timer = props.timers.find(t => t.id === id);
             nextTick(() => closeTimerPopup()); // direkt auto-schließen, kein OK-Klick nötig
 
@@ -2146,24 +2211,29 @@
 
             addToast('Timer gelöscht', 'delete');
             await nextTick();
-            console.log('Nach removeTimer, aktuelle timers:', props.timers);
         });
     };
 
     const toggleFavoriteTimer = (id: string) => {
         const timer = props.timers.find(t => t.id === id);
         if (!timer) return;
+
+        // Favorit-Flag umschalten
         timer.isFavorite = !timer.isFavorite;
 
+        // Nach dem neuen Zustand aufteilen
+        const favs = props.timers.filter(t => t.isFavorite);
         const others = props.timers.filter(t => !t.isFavorite);
-        const favs = props.timers.filter(t => t.isFavorite && t.id !== id);
 
-        const ordered = timer.isFavorite
-            ? [timer, ...favs, ...others]   // neu favorisiert → ganz nach oben
-            : [...favs, timer, ...others];  // entfavorisiert → direkt hinter Fav-Bereich
+        // Favoriten immer oben, Reihenfolge sonst beibehalten
+        const ordered = [...favs, ...others];
 
         emit('reorder-timers', ordered);
-        addToast(timer.isFavorite ? 'Timer zu Favoriten hinzugefügt' : 'Timer aus Favoriten entfernt', timer.isFavorite ? 'add' : 'delete');
+
+        addToast(
+            timer.isFavorite ? 'Timer zu Favoriten hinzugefügt' : 'Timer aus Favoriten entfernt',
+            timer.isFavorite ? 'add' : 'delete'
+        );
     };
 
     const openAddStopwatchPopup = () => {
@@ -2183,9 +2253,11 @@
             return;
         }
 
+        const uniqueName = makeUniqueStopwatchName(validatedName);
+
         const newStopwatch: StopwatchInstance = {
-            id: Date.now().toString(),
-            name: validatedName,
+            id: makeId(),
+            name: uniqueName,
             time: 0,
             isRunning: false,
             interval: null,
@@ -2227,19 +2299,23 @@
     const toggleFavoriteStopwatch = (id: string) => {
         const sw = props.stopwatches.find(x => x.id === id);
         if (!sw) return;
+
+        // Favorit-Flag umschalten
         sw.isFavorite = !sw.isFavorite;
 
+        // Liste nach neuem Zustand splitten
+        const favs = props.stopwatches.filter(x => x.isFavorite);
         const others = props.stopwatches.filter(x => !x.isFavorite);
-        const favs = props.stopwatches.filter(x => x.isFavorite && x.id !== id);
 
-        const ordered = sw.isFavorite
-            ? [sw, ...favs, ...others]
-            : [...favs, sw, ...others];
+        const ordered = [...favs, ...others];
 
         emit('reorder-stopwatches', ordered);
-        addToast(sw.isFavorite ? 'Stoppuhr zu Favoriten hinzugefügt' : 'Stoppuhr aus Favoriten entfernt', sw.isFavorite ? 'add' : 'delete');
-    };
 
+        addToast(
+            sw.isFavorite ? 'Stoppuhr zu Favoriten hinzugefügt' : 'Stoppuhr aus Favoriten entfernt',
+            sw.isFavorite ? 'add' : 'delete'
+        );
+    };
 
     const updateCustomSeconds = (timer: TimerInstance) => {
         if (timer.customSeconds != null && !isNaN(timer.customSeconds) && timer.customSeconds > 0) {
@@ -2579,7 +2655,8 @@
         } else if (editType.value === 'timerName' && typeof editIndex.value === 'string') {
             const timer = props.timers.find(t => t.id === editIndex.value);
             if (timer) {
-                timer.name = editValue.value.trim();
+                const uniqueName = makeUniqueTimerName(editValue.value, timer.id);
+                timer.name = uniqueName;
                 saveToStorage();
                 addToast('Timername aktualisiert', 'timer');
             }
@@ -2591,7 +2668,8 @@
             }
             const stopwatch = props.stopwatches.find(s => s.id === editIndex.value);
             if (stopwatch) {
-                stopwatch.name = validatedName;
+                const uniqueName = makeUniqueStopwatchName(validatedName, stopwatch.id);
+                stopwatch.name = uniqueName;
                 saveToStorage();
                 addToast('Stoppuhrname aktualisiert', 'timer');
             }
@@ -2696,6 +2774,14 @@
             }
         }
     };
+    // REPLACE in Training.vue (exerciseSelectSize)
+    const exerciseSelectSize = computed(() => {
+        // Bis 4 Einträge: normales Dropdown (keine Liste, keine Scrollbar)
+        if (total <= 4) return 1;
+
+        // Ab 5+ Einträgen: kompakte Liste mit nur 3 sichtbaren Zeilen → Scrollbar kommt schnell
+        return 3;
+    });
 
     const removeCustomExercise = (index: number) => {
         customExercises.value.splice(index, 1);
@@ -3297,7 +3383,6 @@
 </script>
 
 <style scoped>
-
     .training {
         --section-max: 1200px;
         --control-height: 48px;
@@ -3381,7 +3466,6 @@
             align-items: start;
         }
     }
-
 
     .section-title {
         font-size: 1.5rem;
@@ -3979,7 +4063,8 @@
     }
 
     .form-card input,
-    .form-card select {
+    .form-card select,
+    .form-card .exercise-select-trigger {
         height: var(--control-height);
         font-size: var(--control-font-size);
         padding: 0.75rem;
@@ -3994,14 +4079,16 @@
 
 
     html.dark-mode .form-card input,
-    html.dark-mode .form-card select {
+    html.dark-mode .form-card select,
+    html.dark-mode .form-card .exercise-select-trigger {
         background: #0d1117;
         border-color: #30363d;
         color: #ffffff;
     }
 
     .form-card input:focus,
-    .form-card select:focus {
+    .form-card select:focus,
+    .form-card .exercise-select-trigger:focus-visible {
         border-color: #4B6CB7;
         box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
         outline: none;
@@ -4091,6 +4178,7 @@
     .form-card button[type="submit"] {
         width: 100%;
     }
+
     @media (max-width: 560px) {
         .plan-drag-handle,
         .timer-drag-handle,
@@ -4701,6 +4789,7 @@
         align-items: center;
         padding: 4px 0;
     }
+
     @media (max-width:560px) {
         /* Plan-Card Layout auf Reihe statt Grid zwingen */
         .plan-item {
@@ -4755,6 +4844,7 @@
             z-index: 1000;
         }
     }
+
     .timer-actions {
         display: flex;
         gap: 0.5rem;
@@ -6154,7 +6244,7 @@
     .drag-ghost,
     .sortable-ghost {
         opacity: .4 !important;
-    } 
+    }
 
     .plan-drag-stack > *,
     .drag-stack > *,
@@ -6169,4 +6259,93 @@
         transform: none !important;
     }
 
+    /* ADD in Training.vue <style scoped> */
+
+    .exercise-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .exercise-select-trigger {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        font: inherit;
+        gap: 0.5rem;
+        /* WICHTIG: keine eigenen Abstände/Farben/Borders mehr */
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        color: inherit;
+        box-sizing: border-box;
+        box-shadow: none !important;
+        outline: none !important;
+        background-image: none !important;
+    }
+        /* Browser-Focus-Rand komplett weg */
+        .exercise-select-trigger:focus {
+            outline: none;
+            box-shadow: none;
+        }
+
+        .exercise-select-trigger:focus-visible {
+            outline: 2px solid #5b8cff;
+            outline-offset: 2px;
+        }
+
+    .exercise-select-menu {
+        position: absolute;
+        inset-inline: 0;
+        margin-top: 0px; /* vorher 4px */
+        padding: 2px 0 2px; /* oben weniger Luft */
+        background: #000;
+        border: 1px solid #222;
+        border-radius: 4px;
+        z-index: 20;
+        max-height: 140px;
+        overflow-y: auto;
+    }
+
+    .exercise-option {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+        .exercise-option:hover {
+            background: #2b2d33;
+        }
+
+        .exercise-option.is-placeholder {
+            opacity: 0.7;
+        }
+
+        .exercise-option.is-custom {
+            border-top: 1px solid #333;
+            margin-top: 4px;
+            padding-top: 0.45rem;
+        }
+
+    .exercise-select-arrow {
+        margin-left: 0.5rem;
+        font-size: 0.75rem;
+    }
+    /* nur das, was der Button zusätzlich braucht */
+    .training .field-row .exercise-select-trigger {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        cursor: pointer !important;
+        gap: 0.5rem !important;
+        /* kein extra padding hier – kommt aus der gemeinsamen Regel oben */
+    }
+
+    .training .exercise-select-trigger:focus-visible {
+        outline: 2px solid #5b8cff !important;
+        outline-offset: 2px !important;
+    }
 </style>
