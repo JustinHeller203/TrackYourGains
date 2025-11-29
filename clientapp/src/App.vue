@@ -184,6 +184,19 @@
         zIndex?: number
     }
 
+    // App.vue | ADD helper: eindeutige Namen erzwingen
+    function getUniqueName(base: string, used: string[]): string {
+        const lowerUsed = used.map(n => n.toLowerCase())
+        let name = base.trim() || 'Eintrag'
+        let i = 2
+
+        while (lowerUsed.includes(name.toLowerCase())) {
+            name = `${base} (${i})`
+            i++
+        }
+
+        return name
+    }
 
     // Reaktive Zustände
     const validationErrorMessages = ref<string[]>([])
@@ -274,30 +287,42 @@
         saveAll()
     }
 
+    // App.vue | REPLACE loadAll mit eindeutigen Namen
     function loadAll() {
         const oldTimers = localStorage.getItem('myAppTimers')
         const oldStop = localStorage.getItem('myAppStopwatches')
+
         try {
             const t = JSON.parse(localStorage.getItem(TIMER_KEY) || oldTimers || '[]')
             const s = JSON.parse(localStorage.getItem(STOPWATCH_KEY) || oldStop || '[]')
 
+            const usedTimerNames: string[] = []
             timers.value = Array.isArray(t)
-                ? t.map((x: any) => ({
-                    ...x,
-                    interval: null,
-                    // Falls alt ohne Name gespeichert -> Default setzen
-                    name: (x.name ?? '').trim() || 'Timer',
-                }))
+                ? t.map((x: any) => {
+                    const base = (x.name ?? '').trim() || 'Timer'
+                    const unique = getUniqueName(base, usedTimerNames)
+                    usedTimerNames.push(unique)
+                    return {
+                        ...x,
+                        interval: null,
+                        name: unique,
+                    }
+                })
                 : []
 
+            const usedStopNames: string[] = []
             stopwatches.value = Array.isArray(s)
-                ? s.map((x: any) => ({
-                    ...x,
-                    interval: null,
-                    laps: x.laps || [],
-                    // Gleiches Spiel f r Stoppuhren
-                    name: (x.name ?? '').trim() || 'Stoppuhr',
-                }))
+                ? s.map((x: any) => {
+                    const base = (x.name ?? '').trim() || 'Stoppuhr'
+                    const unique = getUniqueName(base, usedStopNames)
+                    usedStopNames.push(unique)
+                    return {
+                        ...x,
+                        interval: null,
+                        laps: x.laps || [],
+                        name: unique,
+                    }
+                })
                 : []
         } catch {
             timers.value = []
@@ -388,12 +413,11 @@
     }
 
     const addStopwatch = async (stopwatch: StopwatchInstance) => {
-        // Name hart normalisieren: niemals leer lassen
-        const rawName = (stopwatch.name ?? '').trim()
-        stopwatch.name = rawName || 'Stoppuhr'
+        const rawName = (stopwatch.name ?? '').trim() || 'Stoppuhr'
+        const existingNames = stopwatches.value.map(sw => sw.name)
+        stopwatch.name = getUniqueName(rawName, existingNames)
 
         const s = defaultStopwatchStyle.value
-
         stopwatch.bgColor = s.bgColor
         stopwatch.btnColor = s.btnColor
         stopwatch.timeColor = s.timeColor
@@ -487,13 +511,21 @@
         saveAll()
     }
 
+    // App.vue | REPLACE toggleStopwatch
     function toggleStopwatch(sw: StopwatchInstance) {
+        // ❗ Fallback: Niemals namenlose Stoppuhr zulassen
+        const rawName = (sw.name ?? '').trim()
+        if (!rawName) {
+            sw.name = 'Stoppuhr'
+        }
+
         if (!sw.isRunning) {
             const running = stopwatches.value.filter(s => s.isRunning)
             if (running.length >= 3) {
                 openValidationPopup(['Maximal 3 Stoppuhren dürfen gleichzeitig laufen!'])
                 return
             }
+
             sw.isRunning = true
             sw.startedAt = Date.now()
             sw.offsetSec = sw.offsetSec ?? sw.time ?? 0
@@ -519,6 +551,7 @@
             saveAll()
         }
     }
+
 
     function resetStopwatch(sw: StopwatchInstance) {
         if (sw.interval) clearInterval(sw.interval)
