@@ -102,8 +102,43 @@
         }
     }
 
+    const setupScrollReveal = () => {
+        const sections = document.querySelectorAll<HTMLElement>(
+            '.stats, .features, .quick-links, .testimonials, .blog, .cta'
+        )
+
+        if (!('IntersectionObserver' in window)) {
+            sections.forEach((section, idx) => {
+                section.classList.add('section-animate', 'is-visible')
+                section.style.setProperty('--reveal-delay', `${idx * 70}ms`)
+            })
+            return
+        }
+
+        const observer = new IntersectionObserver(
+            (entries, obs) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const el = entry.target as HTMLElement
+                        el.classList.add('is-visible')
+                        obs.unobserve(el)
+                    }
+                })
+            },
+            { threshold: 0.15 }
+        )
+
+        sections.forEach((section, idx) => {
+            const el = section as HTMLElement
+            el.classList.add('section-animate')
+            el.style.setProperty('--reveal-delay', `${idx * 70}ms`)
+            observer.observe(el)
+        })
+    }
+
     onMounted(() => {
         typeText()
+        setupScrollReveal()
     })
 </script>
 
@@ -125,24 +160,131 @@
         justify-content: center;
         text-align: center;
         padding: 2rem 1rem;
+        position: relative;
+        overflow: hidden;
     }
+
+        /* weiche Lichtkegel hinter dem Hero-Content */
+        .hero::before,
+        .hero::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(40px);
+            opacity: 0.6;
+            pointer-events: none;
+            z-index: -1;
+            animation: floatBlob 14s ease-in-out infinite alternate;
+        }
+
+        .hero::before {
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.9), transparent 60%);
+            top: -120px;
+            left: -80px;
+        }
+
+        .hero::after {
+            width: 380px;
+            height: 380px;
+            background: radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.9), transparent 60%);
+            bottom: -140px;
+            right: -60px;
+            animation-delay: 2s;
+        }
+
 
     .hero-title {
         font-size: 4rem;
         font-weight: 800;
         margin-bottom: 1.5rem;
         background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        background-size: 260% 260%;
+        background-position: 0% 50%;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        opacity: 0;
+        transform: translateY(10px);
+        animation: heroFadeUp 0.7s ease-out forwards, heroGradient 10s ease-in-out infinite alternate;
     }
-
     .hero-subtitle {
         font-size: 1.5rem;
         max-width: 600px;
         margin-bottom: 2rem;
         line-height: 1.6;
         color: var(--text-secondary);
+        opacity: 0;
+        transform: translateY(10px);
+        animation: heroFadeUp 0.7s ease-out forwards;
+        animation-delay: 0.25s;
     }
+    @keyframes floatBlob {
+        0% {
+            transform: translate3d(0, 0, 0) scale(1);
+        }
+
+        50% {
+            transform: translate3d(10px, -10px, 0) scale(1.05);
+        }
+
+        100% {
+            transform: translate3d(-12px, 8px, 0) scale(1.02);
+        }
+    }
+
+    /* Hero-Fade-Up */
+    @keyframes heroFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .stat-card,
+    .feature-card,
+    .testimonial-card,
+    .blog-card {
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        backdrop-filter: blur(6px);
+        background: color-mix(in srgb, var(--bg-card) 85%, rgba(255, 255, 255, 0.15));
+    }
+    /* Scroll-Reveal Sections */
+    .section-animate {
+        opacity: 0;
+        transform: translateY(18px);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        transition-delay: var(--reveal-delay, 0ms);
+    }
+
+        .section-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    .hero .cta-button {
+        position: relative;
+        opacity: 0;
+        transform: translateY(10px);
+        animation: heroFadeUp 0.7s ease-out forwards;
+        animation-delay: 0.45s;
+    }
+
+        /* pulsierender Ring um den Hero-CTA */
+        .hero .cta-button::before {
+            content: "";
+            position: absolute;
+            inset: -4px;
+            border-radius: inherit;
+            border: 1px solid rgba(129, 140, 248, 0.7);
+            opacity: 0;
+            transform: scale(0.9);
+            pointer-events: none;
+            animation: ctaPulse 2.2s ease-out infinite;
+        }
 
     /* Blinking cursor for typing effect */
     .cursor {
@@ -167,10 +309,161 @@
     }
 
     .section-title {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         font-size: 2.5rem;
         font-weight: 800;
         color: var(--text-primary);
         margin-bottom: 2rem;
+        padding-bottom: 0.35rem;
+    }
+
+        .section-title::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            width: 110px;
+            height: 3px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            transform: translateX(-50%) scaleX(0.4);
+            opacity: 0;
+            transform-origin: center;
+        }
+
+    /* Underline kickt erst rein, wenn die Section sichtbar ist */
+    .section-animate .section-title::after {
+        opacity: 0;
+    }
+
+    .section-animate.is-visible .section-title::after {
+        animation: sectionUnderline 0.6s ease-out forwards;
+    }
+
+    .quick-links .link-button {
+        opacity: 0;
+        transform: translateY(10px) scale(0.97);
+        animation: quickLinkIn 0.55s ease-out forwards;
+    }
+
+        .quick-links .link-button:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .quick-links .link-button:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .quick-links .link-button:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+    @media (hover: hover) {
+        .quick-links .link-button:hover {
+            transform: translateY(-2px) scale(1.02);
+        }
+    }
+
+    /* Stats: Zahlen springen rein, wenn die Sektion sichtbar wird */
+    .stats.section-animate.is-visible .stat-card:nth-child(1) .stat-number {
+        animation: statPop 0.5s ease-out forwards;
+        animation-delay: 0.05s;
+    }
+
+    .stats.section-animate.is-visible .stat-card:nth-child(2) .stat-number {
+        animation: statPop 0.5s ease-out forwards;
+        animation-delay: 0.15s;
+    }
+
+    .stats.section-animate.is-visible .stat-card:nth-child(3) .stat-number {
+        animation: statPop 0.5s ease-out forwards;
+        animation-delay: 0.25s;
+    }
+
+    @keyframes heroGradient {
+        0%
+
+    {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 50% 100%;
+    }
+
+    100% {
+        background-position: 100% 50%;
+    }
+
+    }
+
+    /* CTA-Pulse-Ring */
+    @keyframes ctaPulse {
+        0% {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        40% {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(1.14);
+        }
+    }
+
+    /* Quick-Link-Reinflug */
+    @keyframes quickLinkIn {
+        from {
+            opacity: 0;
+            transform: translateY(12px) scale(0.94);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Stats-Number-Pop */
+    @keyframes statPop {
+        0% {
+            transform: translateY(6px) scale(0.9);
+            opacity: 0;
+        }
+
+        55% {
+            transform: translateY(-2px) scale(1.08);
+            opacity: 1;
+        }
+
+        100% {
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Section-Title-Underline */
+    @keyframes sectionUnderline {
+        0% {
+            opacity: 0;
+            transform: translateX(-50%) scaleX(0.4);
+        }
+
+        60% {
+            opacity: 1;
+            transform: translateX(-50%) scaleX(1.05);
+        }
+
+        100% {
+            opacity: 1;
+            transform: translateX(-50%) scaleX(1);
+        }
     }
 
     .stats-grid,
@@ -184,9 +477,11 @@
         max-width: 100%;
         overflow-x: clip; /* ⟵ nichts ragt „außerhalb“ */
     }
+
     .links-grid {
         overflow-x: visible; /* Rahmen/Glow der Buttons darf über die Grid-Kante rausgehen */
     }
+
         .stats-grid > *,
         .features-grid > *,
         .links-grid > *,
