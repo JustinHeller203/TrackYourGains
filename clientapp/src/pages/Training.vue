@@ -35,16 +35,16 @@
                         <!-- Trainingstyp (Mobile ≤560px: Label + Dropdown) -->
                         <div class="type-block mobile-only">
                             <label class="type-heading field-label" for="training-type">Trainingstyp</label>
-                            <UiSelect v-model="trainingType"
+                            <UiSelect v-model="trainingTypeSafe"
                                       id="training-type"
                                       aria-label="Trainingstyp wählen"
                                       placeholder="Trainingstyp wählen"
                                       :options="[
-          { value: 'kraft', label: 'Kraft' },
-          { value: 'calisthenics', label: 'Calisthenics' },
-          { value: 'ausdauer', label: 'Ausdauer' },
-          { value: 'dehnung', label: 'Dehnung' }
-        ]" />
+            { value: 'kraft',        label: 'Kraft' },
+            { value: 'calisthenics', label: 'Calisthenics' },
+            { value: 'ausdauer',     label: 'Ausdauer' },
+            { value: 'dehnung',      label: 'Dehnung' }
+          ]" />
                         </div>
 
                         <!-- Extras-Button rechtsbündig (unverändert) -->
@@ -58,7 +58,7 @@
                     <div v-show="showExtras" class="goal-row">
                         <label class="field-label">Trainingsziel</label>
                         <div class="field-row">
-                            <UiSelect v-model="selectedGoal"
+                            <UiSelect v-model="selectedGoalSafe"
                                       class="goal-select"
                                       placeholder="Trainingsziel"
                                       :options="trainingGoals" />
@@ -79,12 +79,12 @@
                     <div class="field-block" v-if="trainingType !== 'ausdauer'">
                         <label class="field-label">Übung</label>
                         <div class="field-row">
-                            <UiSelect v-model="newExercise"
+                            <UiSelect v-model="newExerciseSafe"
                                       placeholder="Übung wählen"
                                       :options="[
-              ...filteredExercises,
-              { value: 'custom', label: 'Eigene Übung hinzufügen…', isCustom: true }
-            ]" />
+    ...filteredExercises,
+    { value: 'custom', label: 'Eigene Übung hinzufügen…', isCustom: true }
+  ]" />
 
                             <input v-show="newExercise === 'custom'"
                                    v-model="customPlanExercise"
@@ -96,7 +96,7 @@
                     <div class="field-block" v-else>
                         <label class="field-label">Cardio-Art</label>
                         <div class="field-row">
-                            <UiSelect v-model="cardioExercise"
+                            <UiSelect v-model="cardioExerciseSafe"
                                       placeholder="Cardio-Art"
                                       :options="filteredExercises" />
                         </div>
@@ -1081,7 +1081,38 @@
         exerciseDropdownOpen.value = false
     }
 
+    const newExerciseSafe = computed({
+        get: () => newExercise.value,
+        set: (val) => {
+            // blockt Placeholder / leere Auswahl
+            if (!val) return
+            newExercise.value = val
+        },
+    })
 
+    const cardioExerciseSafe = computed({
+        get: () => cardioExercise.value,
+        set: (val) => {
+            if (!val) return
+            cardioExercise.value = val
+        },
+    })
+
+    const trainingTypeSafe = computed({
+        get: () => trainingType.value,
+        set: (val) => {
+            if (!val) return              // kein „leerer“ Trainingstyp
+            trainingType.value = val
+        },
+    })
+
+    const selectedGoalSafe = computed({
+        get: () => selectedGoal.value,
+        set: (val) => {
+            if (!val) return              // kein leeres Trainingsziel
+            selectedGoal.value = val
+        },
+    })
     // Hilfsfunktionen
     const resolveGroups = (q: string): string[] => {
         const key = (q || '').trim().toLowerCase();

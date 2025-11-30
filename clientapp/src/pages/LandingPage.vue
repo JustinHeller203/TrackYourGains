@@ -111,8 +111,8 @@
     .landing {
         font-family: 'Inter', sans-serif;
         background: var(--bg-primary);
-        overflow-x: hidden; /* ⟵ kein seitliches Wischen mehr */
-        scrollbar-gutter: stable; /* ⟵ verhindert „Layout-Zucken“ bei Scrollbar-Wechsel */
+        /* overflow-x: hidden;  ← raus, damit Hover-Outline/Shadow nicht abgeschnitten wird */
+        scrollbar-gutter: stable; /* verhindert weiter Scroll-Jumps bei vertikal */
         max-width: 100%;
     }
 
@@ -184,7 +184,9 @@
         max-width: 100%;
         overflow-x: clip; /* ⟵ nichts ragt „außerhalb“ */
     }
-
+    .links-grid {
+        overflow-x: visible; /* Rahmen/Glow der Buttons darf über die Grid-Kante rausgehen */
+    }
         .stats-grid > *,
         .features-grid > *,
         .links-grid > *,
