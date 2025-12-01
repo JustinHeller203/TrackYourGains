@@ -2,25 +2,31 @@
 <template>
     <div class="landing">
         <section class="hero">
+            <div class="hero-badge">Neu · Dein smartes Fitness-Dashboard</div>
+
             <h1 class="hero-title">
                 <span class="typed-text">{{ typedText }}</span><span class="cursor">|</span>
             </h1>
-            <p class="hero-subtitle">Dein Begleiter für Fitness, Ernährung und Fortschritt. Starte jetzt und erreiche deine Ziele! 💪</p>
+
+            <p class="hero-subtitle">
+                Dein Begleiter für Fitness, Ernährung und Fortschritt. Starte jetzt und erreiche deine Ziele! 💪
+            </p>
+
             <router-link to="/progress" class="cta-button">Jetzt loslegen</router-link>
         </section>
         <section class="stats">
             <h2 class="section-title">Deine Erfolge 🏆</h2>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <span class="stat-number">42</span>
+                    <span class="stat-number">{{ workoutsCompleted }}</span>
                     <p class="stat-text">Workouts abgeschlossen</p>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-number">15</span>
+                    <span class="stat-number">{{ mealsPlanned }}</span>
                     <p class="stat-text">Mahlzeiten geplant</p>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-number">3</span>
+                    <span class="stat-number">{{ kgLost }}</span>
                     <p class="stat-text">Kilo abgenommen</p>
                 </div>
             </div>
@@ -49,21 +55,36 @@
         <section class="quick-links">
             <h2 class="section-title">Schnellstart ⚡</h2>
             <div class="links-grid">
-                <router-link to="/training" class="link-button">Trainingsplan erstellen</router-link>
-                <router-link to="/nutrition" class="link-button">Mahlzeit planen</router-link>
-                <router-link to="/progress" class="link-button">Fortschritt ansehen</router-link>
+                <router-link to="/training" class="link-button">
+                    <span>🏋️ Trainingsplan erstellen</span>
+                </router-link>
+                <router-link to="/nutrition" class="link-button">
+                    <span>🍽️ Mahlzeit planen</span>
+                </router-link>
+                <router-link to="/progress" class="link-button link-button--highlight">
+                    <span>📈 Fortschritt ansehen</span>
+                </router-link>
             </div>
         </section>
         <section class="testimonials">
             <h2 class="section-title">Was unsere Nutzer sagen 🗣️</h2>
-            <div class="testimonials-grid">
-                <div class="testimonial-card">
-                    <p class="testimonial-text">"TrackYourGains hat mir geholfen, meine Fitnessziele zu erreichen! 🎯"</p>
-                    <p class="testimonial-author">- Max Mustermann</p>
+            <div class="testimonials-slider">
+                <div v-for="(testimonial, index) in testimonials"
+                     :key="testimonial.id"
+                     class="testimonial-card"
+                     v-show="index === currentTestimonial">
+                    <p class="testimonial-text">{{ testimonial.text }}</p>
+                    <p class="testimonial-author">- {{ testimonial.author }}</p>
                 </div>
-                <div class="testimonial-card">
-                    <p class="testimonial-text">"Ich liebe die Ernährungs-Tracking-Funktion. Sie ist so einfach zu bedienen! 🍴"</p>
-                    <p class="testimonial-author">- Anna Beispiel</p>
+
+                <div class="testimonial-dots" role="tablist">
+                    <button v-for="(testimonial, index) in testimonials"
+                            :key="testimonial.id + '-dot'"
+                            class="testimonial-dot"
+                            :class="{ 'is-active': index === currentTestimonial }"
+                            type="button"
+                            @click="currentTestimonial = index"
+                            :aria-label="`Zeige Testimonial ${index + 1}`"></button>
                 </div>
             </div>
         </section>
@@ -88,11 +109,90 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, onUnmounted } from 'vue'
 
     const typedText = ref('')
     const fullText = 'TrackYourGains'
     let index = 0
+
+    const workoutsCompleted = ref(0)
+    const mealsPlanned = ref(0)
+    const kgLost = ref(0)
+
+    type StoredWeightEntry = { date: string; weight: number }
+    type StoredMeal = { name: string; calories: number }
+
+    const loadStatsFromStorage = () => {
+        if (typeof window === 'undefined') return
+
+        // --- Workouts: aus progress_workouts ---
+        try {
+            const rawWorkouts = window.localStorage.getItem('progress_workouts')
+            const parsed = rawWorkouts ? JSON.parse(rawWorkouts) as unknown[] : []
+            workoutsCompleted.value = Array.isArray(parsed) ? parsed.length : 0
+        } catch {
+            workoutsCompleted.value = 0
+        }
+
+        // --- Mahlzeiten: aus progress_meals ---
+        try {
+            const rawMeals = window.localStorage.getItem('progress_meals')
+            const parsedMeals = rawMeals ? JSON.parse(rawMeals) as StoredMeal[] : []
+            mealsPlanned.value = Array.isArray(parsedMeals) ? parsedMeals.length : 0
+        } catch {
+            mealsPlanned.value = 0
+        }
+
+        // --- Kilo abgenommen: aus progress_weights ---
+        try {
+            const rawWeights = window.localStorage.getItem('progress_weights')
+            const weights = rawWeights ? JSON.parse(rawWeights) as StoredWeightEntry[] : []
+
+            if (Array.isArray(weights) && weights.length >= 2) {
+                // In Progress.vue packst du neue Einträge mit unshift nach vorne
+                const latest = weights[0].weight          // aktuelles Gewicht
+                const first = weights[weights.length - 1].weight // erstes gespeichertes Gewicht
+                const diff = first - latest
+                kgLost.value = diff > 0 ? Math.round(diff * 10) / 10 : 0
+            } else {
+                kgLost.value = 0
+            }
+        } catch {
+            kgLost.value = 0
+        }
+    }
+    // Testimonials Slider
+    const testimonials = ref([
+        {
+            id: 1,
+            text: 'TrackYourGains hat mir geholfen, meine Fitnessziele zu erreichen! 🎯',
+            author: 'Max Mustermann',
+        },
+        {
+            id: 2,
+            text: 'Ich liebe die Ernährungs-Tracking-Funktion. Sie ist so einfach zu bedienen! 🍴',
+            author: 'Anna Beispiel',
+        },
+    ])
+
+    const currentTestimonial = ref(0)
+    let testimonialTimer: number | undefined
+
+    const startTestimonialRotation = () => {
+        if (typeof window === 'undefined' || testimonials.value.length <= 1) return
+
+        testimonialTimer = window.setInterval(() => {
+            currentTestimonial.value =
+                (currentTestimonial.value + 1) % testimonials.value.length
+        }, 7000)
+    }
+
+    const stopTestimonialRotation = () => {
+        if (testimonialTimer !== undefined) {
+            window.clearInterval(testimonialTimer)
+            testimonialTimer = undefined
+        }
+    }
 
     const typeText = () => {
         if (index < fullText.length) {
@@ -139,15 +239,22 @@
     onMounted(() => {
         typeText()
         setupScrollReveal()
+        startTestimonialRotation()
+        loadStatsFromStorage()
+    })
+
+    onUnmounted(() => {
+        stopTestimonialRotation()
     })
 </script>
+
 
 <style scoped>
     .landing {
         font-family: 'Inter', sans-serif;
-        background: var(--bg-primary);
-        /* overflow-x: hidden;  ← raus, damit Hover-Outline/Shadow nicht abgeschnitten wird */
-        scrollbar-gutter: stable; /* verhindert weiter Scroll-Jumps bei vertikal */
+        /* Landing soll den globalen Hintergrund zeigen */
+        background: transparent;
+        scrollbar-gutter: stable;
         max-width: 100%;
     }
 
@@ -158,41 +265,71 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 1.25rem; /* mehr Luft zwischen Badge, Titel, Text, Button */
         text-align: center;
-        padding: 2rem 1rem;
+        padding: 2.5rem 1.5rem;
         position: relative;
-        overflow: hidden;
+        overflow: visible;
     }
 
-        /* weiche Lichtkegel hinter dem Hero-Content */
-        .hero::before,
-        .hero::after {
-            content: "";
-            position: absolute;
-            border-radius: 999px;
-            filter: blur(40px);
-            opacity: 0.6;
-            pointer-events: none;
-            z-index: -1;
-            animation: floatBlob 14s ease-in-out infinite alternate;
+    .hero-badge {
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.4rem 0.9rem;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--accent-primary);
+        border: 1px solid rgba(129, 140, 248, 0.5);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.25);
+        animation: heroBadgeIn 0.6s ease-out forwards;
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    /* kleine Entry-Animation */
+    @keyframes heroBadgeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.96);
         }
 
-        .hero::before {
-            width: 420px;
-            height: 420px;
-            background: radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.9), transparent 60%);
-            top: -120px;
-            left: -80px;
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
         }
+    }
+    /* weiche Lichtkegel hinter dem Hero-Content */
+    .hero::before,
+    .hero::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(40px);
+        opacity: 0.6;
+        pointer-events: none;
+        z-index: -1;
+        animation: floatBlob 14s ease-in-out infinite alternate;
+    }
 
-        .hero::after {
-            width: 380px;
-            height: 380px;
-            background: radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.9), transparent 60%);
-            bottom: -140px;
-            right: -60px;
-            animation-delay: 2s;
-        }
+    .hero::before {
+        width: 420px;
+        height: 420px;
+        background: radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.9), transparent 60%);
+        top: -120px;
+        left: -80px;
+    }
+
+    .hero::after {
+        width: 380px;
+        height: 380px;
+        background: radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.9), transparent 60%);
+        bottom: -140px;
+        right: -60px;
+        animation-delay: 2s;
+    }
 
 
     .hero-title {
@@ -208,6 +345,7 @@
         transform: translateY(10px);
         animation: heroFadeUp 0.7s ease-out forwards, heroGradient 10s ease-in-out infinite alternate;
     }
+
     .hero-subtitle {
         font-size: 1.5rem;
         max-width: 600px;
@@ -219,6 +357,7 @@
         animation: heroFadeUp 0.7s ease-out forwards;
         animation-delay: 0.25s;
     }
+
     @keyframes floatBlob {
         0% {
             transform: translate3d(0, 0, 0) scale(1);
@@ -245,13 +384,24 @@
             transform: translateY(0);
         }
     }
+
     .stat-card,
     .feature-card,
     .testimonial-card,
     .blog-card {
-        border: 1px solid rgba(148, 163, 184, 0.25);
-        backdrop-filter: blur(6px);
-        background: color-mix(in srgb, var(--bg-card) 85%, rgba(255, 255, 255, 0.15));
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        padding: 1.6rem 1.8rem;
+        border-radius: 18px;
+        /* moderner Layered-Look */
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     }
     /* Scroll-Reveal Sections */
     .section-animate {
@@ -265,6 +415,7 @@
             opacity: 1;
             transform: translateY(0);
         }
+
     .hero .cta-button {
         position: relative;
         opacity: 0;
@@ -334,6 +485,16 @@
             transform-origin: center;
         }
 
+    .cta {
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* zentriert Button + Titel horizontal */
+        justify-content: center;
+    }
+
+        .cta .section-title {
+            margin-bottom: 1.5rem; /* Abstand direkt über dem Button, nicht zu groß */
+        }
     /* Underline kickt erst rein, wenn die Section sichtbar ist */
     .section-animate .section-title::after {
         opacity: 0;
@@ -384,20 +545,17 @@
     }
 
     @keyframes heroGradient {
-        0%
+        0% {
+            background-position: 0% 50%;
+        }
 
-    {
-        background-position: 0% 50%;
-    }
+        50% {
+            background-position: 50% 100%;
+        }
 
-    50% {
-        background-position: 50% 100%;
-    }
-
-    100% {
-        background-position: 100% 50%;
-    }
-
+        100% {
+            background-position: 100% 50%;
+        }
     }
 
     /* CTA-Pulse-Ring */
@@ -479,7 +637,11 @@
     }
 
     .links-grid {
-        overflow-x: visible; /* Rahmen/Glow der Buttons darf über die Grid-Kante rausgehen */
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center; /* jede Zeile zentriert */
+        gap: 1.25rem;
+        overflow-x: visible; /* Glow der Buttons bleibt sichtbar */
     }
 
         .stats-grid > *,
@@ -490,18 +652,38 @@
             min-width: 0; /* ⟵ Kinder dürfen schrumpfen */
         }
 
-    /* ===== Cards ===== */
-    .stat-card,
-    .feature-card,
-    .testimonial-card,
-    .blog-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-        transition: transform .3s ease, box-shadow .3s ease;
+    .quick-links .link-button {
+        min-width: 220px;
+    }
+    .testimonials-slider {
+        max-width: 640px;
+        margin: 0 auto;
+        position: relative;
     }
 
+    .testimonial-dots {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .testimonial-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        border: none;
+        background: rgba(148, 163, 184, 0.6);
+        padding: 0;
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease, width 0.2s ease;
+    }
+
+        .testimonial-dot.is-active {
+            width: 18px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            transform: scale(1.05);
+        }
     .stat-card,
     .feature-card,
     .testimonial-card,
@@ -516,33 +698,36 @@
         .feature-card:hover,
         .testimonial-card:hover,
         .blog-card:hover {
-            transform: translateY(-4px); /* ⟵ keine Breitenänderung mehr */
-            box-shadow: var(--shadow-hover);
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.55);
         }
     }
 
     .stat-number {
-        font-size: 2.5rem;
+        font-size: 2.3rem;
         font-weight: 800;
-        color: var(--accent-primary);
         display: block;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.3rem;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
 
-    .stat-text,
+    .stat-text {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: color-mix(in srgb, var(--text-secondary) 82%, #9ca3af 18%);
+    }
+
     .feature-text,
     .testimonial-text,
     .blog-text {
-        font-size: 1rem;
+        font-size: 0.95rem;
         color: var(--text-secondary);
-    }
-
-    .feature-title,
-    .blog-title {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
+        line-height: 1.55;
     }
 
     .testimonial-author {
@@ -624,8 +809,9 @@
     html.dark-mode .feature-card,
     html.dark-mode .testimonial-card,
     html.dark-mode .blog-card {
-        background: #21262d;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
     html.dark-mode .section-title,
@@ -709,6 +895,40 @@
         .blog,
         .cta {
             padding: 2rem 1rem;
+        }
+
+        /* WICHTIG: Buttons im Schnellstart zentrieren, wenn sie umbrechen */
+        .links-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center; /* jede Zeile zentriert */
+        }
+    }
+
+    .link-button--highlight {
+        position: relative;
+        animation: linkPulse 9s ease-in-out infinite;
+    }
+
+    @keyframes linkPulse {
+        0%, 70% {
+            transform: translateY(0) scale(1);
+            box-shadow: var(--shadow);
+        }
+
+        75% {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: var(--shadow-hover), 0 10px 25px rgba(59, 130, 246, 0.35);
+        }
+
+        80% {
+            transform: translateY(0) scale(1);
+            box-shadow: var(--shadow);
+        }
+
+        100% {
+            transform: translateY(0) scale(1);
+            box-shadow: var(--shadow);
         }
     }
 </style>

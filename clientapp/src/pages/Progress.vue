@@ -3950,12 +3950,18 @@ Notiz: ${e.note ?? '-'}\n`
 
 <style scoped>
     .progress {
-        padding: 2rem;
-        background: var(--bg-primary);
+        padding: clamp(1.4rem, 3vw, 2.4rem);
         min-height: 100vh;
         font-family: 'Inter', sans-serif;
         color: var(--text-primary);
-        overflow-x: hidden; /* ⟵ verhindert seitliches Wischen */
+        overflow-x: hidden;
+        /* Premium Dashboard Background – wie Landing/Training */
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 11%, transparent), transparent 56% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 9%, transparent), transparent 60% ), linear-gradient( 135deg, color-mix(in srgb, var(--bg-primary) 88%, #020617 12%), color-mix(in srgb, var(--bg-primary) 74%, #020617 26%) );
+    }
+
+    /* Dark Mode Version – konsistent mit Training/Landing */
+    html.dark-mode .progress {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 22%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 14%, transparent), transparent 62% ), #020617;
     }
     /* Canvas nie breiter als der Container */
     .chart-canvas {
@@ -4105,25 +4111,23 @@ Notiz: ${e.note ?? '-'}\n`
         }
 
     .dashboard-grid {
-        display: flex;
-        gap: 1.5rem;
-        flex-wrap: wrap;
-        margin-bottom: 1.25rem;
-        overflow: visible;
+        --cards-gap-x: 1.1rem;
+        --cards-gap-y: 0.9rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: var(--cards-gap-y) var(--cards-gap-x);
+        align-items: stretch;
+        margin-bottom: 1.4rem;
         width: 100%;
         max-width: 100%;
     }
 
-        .dashboard-grid > * {
-            min-width: 0;
+    /* Feintuning für sehr kleine Screens: 1 Spalte hart erzwingen */
+    @media (max-width: 520px) {
+        .dashboard-grid {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0.85rem;
         }
-    /* Flex-Kinder spreizen nicht */
-
-    @media (max-width: 600px) {
-        .dashboard-grid > * {
-            flex: 1 1 100%;
-        }
-        /* 1-spaltig, sicher */
     }
 
     .btn-ghost.mini {
@@ -4157,13 +4161,24 @@ Notiz: ${e.note ?? '-'}\n`
 
 
     .dashboard-grid .card-info {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--accent-primary);
+        /* wie Landing-Metrics: großer, klarer Wert */
+        font-size: clamp(1.15rem, 1.6vw + .6rem, 1.65rem);
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: var(--text-primary); /* nicht mehr Accent-Violett */
     }
 
-        /* Kompakt-Variante greift jetzt zuverlässig im Stats-Tab auf Mobile */
-        .dashboard-grid .card-info.is-compact {
+        /* Platzhalter / leere Werte → dezent grau wie auf Landing */
+        .dashboard-grid .card-info.is-muted {
+            font-size: clamp(1.0rem, 1.2vw + .55rem, 1.25rem);
+            font-weight: 600;
+            letter-spacing: 0;
+            color: var(--text-secondary);
+            opacity: .9;
+        }
+
+        /* Kompakte Variante (Mobile im Stats-Tab), aber nur für echte Werte */
+        .dashboard-grid .card-info.is-compact:not(.is-muted) {
             font-size: 1rem;
             line-height: 1.1;
             font-weight: 700;

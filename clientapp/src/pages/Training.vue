@@ -3424,9 +3424,9 @@
         --custom-toggle-ch: 38;
         --custom-toggle-w: calc(var(--custom-toggle-ch) * 1ch + 2 * var(--control-padding-x));
         padding: 1rem;
-        background: var(--bg-primary);
+        background: transparent; /* globale Fläche (Landing-Gradient) scheint durch */
         width: 100%;
-        max-width: 100%; /* ← FIX: verhindert Overflow */
+        max-width: 100%; /* verhindert Overflow */
         margin: 0 auto;
         display: flex;
         flex-direction: column;
@@ -3434,12 +3434,12 @@
         margin-top: 0;
         min-height: 100dvh;
         margin-inline: auto;
-        overflow-x: clip; /* ← WICHTIG */
+        overflow-x: visible; /* keine abgeschnittenen Glows/Outlines */
         box-sizing: border-box;
     }
 
     html.dark-mode .training {
-        background: #161b22;
+        background: transparent; /* Dark-Gradient vom Layout bleibt sichtbar */
     }
 
     .page-title {
@@ -3458,9 +3458,9 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        padding: 0 0.5rem; /* ← reduziert von 1rem */
+        padding: 0 0.5rem; /* reduziert von 1rem */
         box-sizing: border-box;
-        overflow-x: clip; /* ← NEU */
+        overflow-x: visible; /* keine abgeschnittenen Schatten/Tables */
     }
 
     @media (max-width: 1240px) {
@@ -3694,16 +3694,35 @@
     }
 
     .preview-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,.06);
         position: sticky;
         top: .75rem; /* bleibt beim Scrollen sichtbar */
         contain: inline-size; /* Inhalt beeinflusst keine äußere Breite */
         overflow-x: visible;
+        /* Landingpage-Card-Feeling */
+        border-radius: 18px;
+        padding: 1.5rem 1.7rem;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     }
+
+    /* Hover wie stat-card / feature-card */
+    @media (hover: hover) {
+        .preview-card:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.55);
+        }
+    }
+
+    /* Dark-Mode-Variante im gleichen Stil wie Landingpage-Karten */
+    html.dark-mode .preview-card {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
 
     .preview-head {
         display: flex;
@@ -3802,7 +3821,7 @@
 
     @media (max-width: 1240px) {
         .training {
-            overflow-x: hidden;
+            overflow-x: visible; /* lässt Inhalt sauber raus, ohne Scrollbars zu blocken */
         }
 
         .workout-list,
@@ -3818,8 +3837,7 @@
         inline-size: 100%;
         max-inline-size: 100%;
         contain: layout inline-size;
-        overflow-x: hidden;
-        overflow-x: clip; /* moderne Browser */
+        overflow-x: visible; /* Tabellen-Schatten/Glows dürfen „atmen“ */
     }
 
         .custom-exercises-table th,
@@ -4004,7 +4022,7 @@
         .training,
         .workout-list,
         .custom-exercises-table {
-            overflow-x: hidden;
+            overflow-x: visible; /* auch in älteren Browsern keine abgeschnittenen Effekte */
         }
     }
 
@@ -4050,15 +4068,53 @@
         overflow-clip-margin: var(--clip-margin);
     }
 
+    /* Training.vue – REPLACE bestehenden visuellen .form-card-Block */
+
     .form-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        position: relative;
+        width: 100%;
         display: flex;
         flex-wrap: wrap;
-        gap: 1rem;
-        width: 100%;
+        gap: 1.1rem;
+        padding: 1.75rem 1.9rem;
+        border-radius: 18px;
+        box-sizing: border-box;
+        /* ⇓ exakt im Stil der Landing-Karten (stat-card/feature-card) ⇓ */
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    /* Hover-Verhalten wie bei .stat-card/.feature-card */
+    @media (hover: hover) {
+        .form-card:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.55);
+        }
+    }
+
+
+        .form-card:hover {
+            box-shadow: 0 24px 60px rgba(15,23,42,0.8), 0 0 0 1px rgba(191,219,254,0.5);
+            border-color: rgba(191,219,254,0.7);
+            transform: translateY(-1px);
+        }
+
+    /* Dark Mode: gleiche Farbwelt, etwas satter und näher am Page-Gradient */
+    html.dark-mode .form-card {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Fallback für alte Browser ohne backdrop-filter / color-mix */
+    @supports not (backdrop-filter: blur(10px)) or not (color-mix(in srgb, black 10%, white 90%)) {
+        .form-card {
+            background: var(--bg-card);
+            box-shadow: 0 12px 32px rgba(15,23,42,0.45);
+        }
     }
 
     .search-container {
@@ -4087,10 +4143,6 @@
         border-color: #4B6CB7;
         box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
         outline: none;
-    }
-
-    html.dark-mode .form-card {
-        background: #1c2526;
     }
 
     .form-card input,
@@ -4776,28 +4828,57 @@
     }
 
     .timer-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        position: relative;
+        padding: 1.6rem 1.8rem;
+        border-radius: 18px;
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
-        align-items: center;
+        gap: 1.4rem;
+        align-items: stretch;
         width: 100%;
         max-width: 1200px;
-        transition: box-shadow 0.2s;
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
     }
 
+    /* Hover wie bei Form-/Preview-Card */
+    @media (hover: hover) {
+        .timer-card:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.55);
+        }
+    }
+
+    /* Dark Mode: gleiche Welt wie die anderen Premium-Karten */
     html.dark-mode .timer-card {
-        background: #1c2526;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60% ), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
-    .timer-card:hover {
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    .timer-card[data-running="true"] {
+        border-color: rgba(96, 165, 250, 0.85);
+        box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.65), 0 20px 46px rgba(15, 23, 42, 0.55);
+        transform: translateY(-1px) scale(1.01);
     }
 
+        .timer-card[data-running="true"] .timer-display {
+            box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(96, 165, 250, 0.7), 0 0 24px rgba(96, 165, 250, 0.45);
+            transform: scale(1.02);
+        }
+
+    /* Dark-Mode: etwas kühleres Blau-Grün beim Active-Glow */
+    html.dark-mode .timer-card[data-running="true"] {
+        border-color: rgba(129, 140, 248, 0.95);
+        box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.85), 0 24px 52px rgba(0, 0, 0, 0.9);
+    }
+
+        html.dark-mode .timer-card[data-running="true"] .timer-display {
+            box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(129, 140, 248, 0.9), 0 0 26px rgba(129, 140, 248, 0.75);
+        }
     .timer-header {
         display: flex;
         justify-content: space-between;
@@ -5574,7 +5655,7 @@
     .exercise-table.full-width,
     .custom-exercises-table {
         max-width: 100%;
-        overflow-x: clip;
+        overflow-x: visible; /* globale Layout-Breite bleibt, aber Schatten werden nicht abgeschnitten */
     }
 
     @media (max-width: 360px) {
@@ -6187,7 +6268,32 @@
     .custom-exercises-table .th-text {
         line-height: 1.3;
     }
+    .list-item.plan-item {
+        position: relative;
+        padding: 1.35rem 1.6rem; /* etwas „cardiger“ als die Default-List-Items */
+        border-radius: 18px;
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        display: block; /* explizit, falls irgendwo noch flex reingrätscht */
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+    }
 
+    /* Hover-Effekt wie bei .form-card/.preview-card */
+    @media (hover: hover) {
+        .list-item.plan-item:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.55);
+        }
+    }
+
+    /* Dark-Mode-Variante analog zu deinen anderen Karten */
+    html.dark-mode .list-item.plan-item {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60% ), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
     /* Live-Preview: Tabelle nutzt nur so viel Platz wie nötig */
     .preview-card .table-scroll > table {
         width: max-content;

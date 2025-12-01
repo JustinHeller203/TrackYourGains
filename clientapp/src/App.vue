@@ -722,12 +722,25 @@
         display: flex;
         flex-direction: column;
         font-family: 'Inter', sans-serif;
-        background: var(--bg-primary);
+        background: transparent; /* Body-Gradient durchlassen */
         transition: all 0.3s ease;
     }
 
+    /* REPLACE in App.vue <style scoped> – Block html.dark-mode .app-container */
     html.dark-mode .app-container {
-        background: #161b22;
+        background: transparent; /* auch im Dark Mode kein Flat-Background */
+    }
+
+    /* REPLACE in App.vue <style scoped> – Block .main-content */
+    .main-content {
+        flex: 1;
+        padding: 60px 1rem 2rem; /* Platz für Navbar + etwas Rand */
+        background: transparent; /* Body-Gradient überall sichtbar */
+    }
+   
+    /* REPLACE in App.vue <style scoped> – Block html.dark-mode .main-content */
+    html.dark-mode .main-content {
+        background: transparent;
     }
 
     .main-nav {
@@ -950,18 +963,6 @@
         }
     }
 
-    /* === Seiten-Content === */
-    .main-content {
-        max-width: 1200px;
-        margin: 60px auto 2rem;
-        padding: 0 1rem;
-        flex: 1;
-        background: var(--bg-primary);
-    }
-
-    html.dark-mode .main-content {
-        background: #161b22;
-    }
 
     .app-footer {
         margin-top: auto;
