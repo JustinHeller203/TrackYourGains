@@ -18,7 +18,6 @@
 
                 <DashboardCard title="Kalorien heute"
                                :info="totalCalories + ' / 2500 kcal'"
-                               :muted="totalCalories === 0"
                                :compact="compactCards" />
 
                 <DashboardCard title="Letztes Training"
@@ -28,7 +27,6 @@
 
                 <DashboardCard title="Zielgewicht"
                                :info="goal ? formatWeight(goal, 1) : 'Kein Ziel gesetzt'"
-                               :muted="true"
                                :compact="compactCards"
                                clickable
                                @click="openGoalPopup" />
@@ -3974,13 +3972,37 @@ Notiz: ${e.note ?? '-'}\n`
 
     /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
 
+    /* Trainingspläne-Box – mehr "Card"-Feeling wie Dashboard/Calculators */
     .workout-list {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1rem 1.25rem;
-        box-shadow: var(--shadow-light);
+        position: relative;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 18px;
+        padding: 1.25rem 1.4rem;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        overflow: hidden;
     }
+
+    /* Liste der Trainingspläne – etwas cleaner & klickig */
+    .list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: .7rem 1rem;
+        margin-bottom: .55rem;
+        background: color-mix(in srgb, var(--bg-card) 88%, var(--bg-secondary) 12%);
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 12px;
+        transition: background .18s ease-out, border-color .18s ease-out, transform .12s ease-out, box-shadow .18s ease-out;
+    }
+
+        .list-item:hover {
+            background: color-mix(in srgb, var(--bg-card) 80%, var(--bg-secondary) 20%);
+            border-color: var(--accent-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.28);
+        }
 
     .section-title {
         font-size: 1.05rem;
@@ -3989,23 +4011,7 @@ Notiz: ${e.note ?? '-'}\n`
         margin: .25rem 0 .75rem;
     }
 
-    .list-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-        padding: .75rem 1rem;
-        margin-bottom: .5rem;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        transition: background .2s ease, border-color .2s ease, transform .12s ease;
-    }
 
-        .list-item:hover {
-            border-color: var(--accent-primary);
-            transform: translateY(-1px);
-        }
 
     .plan-item span {
         color: var(--text-secondary);
@@ -4159,40 +4165,22 @@ Notiz: ${e.note ?? '-'}\n`
             text-shadow: 0 0 8px #F59E0B, 0 0 4px #F59E0B;
         }
 
-
-    .dashboard-grid .card-info {
-        /* wie Landing-Metrics: großer, klarer Wert */
-        font-size: clamp(1.15rem, 1.6vw + .6rem, 1.65rem);
-        font-weight: 800;
-        letter-spacing: -0.01em;
-        color: var(--text-primary); /* nicht mehr Accent-Violett */
-    }
-
-        /* Platzhalter / leere Werte → dezent grau wie auf Landing */
-        .dashboard-grid .card-info.is-muted {
-            font-size: clamp(1.0rem, 1.2vw + .55rem, 1.25rem);
-            font-weight: 600;
-            letter-spacing: 0;
-            color: var(--text-secondary);
-            opacity: .9;
-        }
-
-        /* Kompakte Variante (Mobile im Stats-Tab), aber nur für echte Werte */
-        .dashboard-grid .card-info.is-compact:not(.is-muted) {
-            font-size: 1rem;
-            line-height: 1.1;
-            font-weight: 700;
-        }
-
     .progress-charts {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); /* flexibler */
         gap: 1.5rem;
         margin-bottom: 2rem;
         max-width: 100%;
-        overflow-x: clip; /* nix darf herausragen */
+        /* Hover-Effekte der ChartCards sollen nicht abgeschnitten werden */
+        overflow: visible;
     }
-
+        .progress-charts .card-info {
+            margin: 0;
+            margin-top: 0.2rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
         .progress-charts > * {
             min-width: 0;
         }
@@ -4217,35 +4205,66 @@ Notiz: ${e.note ?? '-'}\n`
         display: contents;
     }
 
-    .plan-card {
-        background: var(--bg-card);
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: var(--shadow-light);
+    /* Trainingspläne-Box – zurück zu clean, aber leicht “Premium” */
+    .workout-list {
+        position: relative;
+        background: color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 16px;
+        padding: 1.1rem 1.3rem;
+        box-shadow: var(--shadow);
+    }
+
+    /* einzelne Plan-Zeilen – wie Settings-/List-Cards, nicht zu bunt */
+    .list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: .7rem 1rem;
+        margin-bottom: .55rem;
+        background: var(--bg-secondary);
         border: 1px solid var(--border-color);
-        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        border-radius: 12px;
+        transition: background .18s ease-out, border-color .18s ease-out, transform .12s ease-out, box-shadow .18s ease-out;
+    }
+
+        .list-item:hover {
+            background: color-mix(in srgb, var(--bg-secondary) 85%, var(--bg-card) 15%);
+            border-color: var(--accent-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
+        }
+
+    /* Ernährungsplan-Card – gleiche Welt wie andere Cards, ohne Farb-Overkill */
+    .plan-card {
         position: relative;
         z-index: 1;
-        cursor: pointer;
+        background: color-mix(in srgb, var(--bg-card) 93%, #020617 7%);
+        padding: 1.5rem 1.6rem;
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        transition: transform 200ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 0.61, 0.36, 1), border-color 180ms ease-out, background 220ms ease-out;
+        cursor: default;
+        overflow: hidden;
     }
 
         .plan-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(255, 255, 255, 0));
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.16), transparent 60%);
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 200ms ease-out;
             pointer-events: none;
         }
 
         .plan-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-3px);
             box-shadow: var(--shadow-hover);
             border-color: var(--accent-primary);
+            background: color-mix(in srgb, var(--bg-card) 88%, #020617 12%);
         }
 
             .plan-card:hover::before {

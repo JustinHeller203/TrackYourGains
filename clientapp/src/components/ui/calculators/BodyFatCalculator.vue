@@ -157,22 +157,50 @@
 </script>
 
 <style scoped>
-    /* Basis-Styles, Tooltip-/Fav-Button-Styles entfernt (kommen aus InfoHover/FavoriteButton) */
     .calculator-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 16px;
-        box-shadow: var(--shadow);
-        border: 1px solid var(--border-color);
-        transition: transform .3s, box-shadow .3s, border-color .3s;
+        position: relative;
+        /* overflow entfernt, damit InfoHover-Tooltip nicht abgeschnitten wird */
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        text-align: left;
+        padding: 1.6rem 1.8rem 1.1rem;
+        border-radius: 18px;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        gap: 0.75rem;
         color: var(--text-primary);
+        transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 260ms cubic-bezier(0.22, 0.61, 0.36, 1), border-color 220ms ease-out, background 260ms ease-out;
+        will-change: transform, box-shadow;
     }
 
+
+    /* Hover nur auf Geräten mit Maus */
+    @media (hover: hover) {
         .calculator-card:hover {
+            /* nur noch verschieben, kein Scale -> Text bleibt scharf */
             transform: translateY(-4px);
-            box-shadow: var(--shadow-hover);
-            border-color: var(--accent-primary);
+            box-shadow: 0 26px 60px rgba(15, 23, 42, 0.4);
+            border-color: rgba(129, 140, 248, 0.7);
+            background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 11%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 90%, #020617 10%);
         }
+    }
+
+    /* Dark-Mode-Variante wie bei den DashboardCards */
+    html.dark-mode .calculator-card {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Kleine Screens: etwas kompakter */
+    @media (max-width: 600px) {
+        .calculator-card {
+            padding: 1.25rem 1.2rem 0.9rem;
+            border-radius: 16px;
+        }
+    }
 
     .card-header {
         display: flex;
@@ -193,28 +221,26 @@
         margin-bottom: 1rem;
     }
 
-        .input-group label {
-            display: block;
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-        }
+    .label-with-info {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
 
     .edit-input {
         width: 100%;
-        padding: 0.75rem;
+        padding: .75rem;
         border: 1px solid var(--border-color);
         border-radius: 8px;
         background: var(--bg-secondary);
         color: var(--text-color);
-        font-size: 0.9rem;
+        font-size: .9rem;
         transition: border-color .3s, box-shadow .3s;
     }
 
         .edit-input:focus {
             border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 5px rgba(99,102,241,.5);
             outline: none;
         }
 
@@ -235,11 +261,11 @@
 
     .card-footer {
         border-top: 1px solid var(--border-color);
-        padding: 0.75rem 1rem 0;
+        padding: .75rem 1rem 0;
         display: flex;
-        justify-content: center; /* zentriert den Button-Block */
-        gap: 0.75rem;
-        margin-top: 0.75rem;
+        justify-content: flex-end;
+        gap: .75rem;
+        margin-top: .75rem;
     }
 
     .footer-spacer {
@@ -250,9 +276,6 @@
         display: flex;
         gap: .5rem;
         flex-wrap: wrap;
-        justify-content: center; /* Buttons innerhalb mittig */
-        margin: 0 auto; /* Block selbst mittig (falls irgendwas schiebt) */
-        width: auto; /* nicht volle Breite erzwingen */
     }
 
     @media (max-width: 600px) {
@@ -266,15 +289,6 @@
         .calc-footer-btn {
             min-height: 44px; /* gutes Touch-Target */
             padding: .5rem .6rem;
-        }
-    }
-    @media (max-width: 600px) {
-        .footer-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: .5rem;
-            width: 100%;
-            justify-items: center; /* Grid-Zellen-Inhalt mittig */
         }
     }
 </style>
