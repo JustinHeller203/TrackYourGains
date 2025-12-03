@@ -2807,6 +2807,8 @@
     };
     // REPLACE in Training.vue (exerciseSelectSize)
     const exerciseSelectSize = computed(() => {
+        const total = filteredExercises.value.length;   // Anzahl der Einträge im Dropdown
+
         // Bis 4 Einträge: normales Dropdown (keine Liste, keine Scrollbar)
         if (total <= 4) return 1;
 

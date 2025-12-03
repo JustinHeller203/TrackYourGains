@@ -3973,88 +3973,110 @@ Notiz: ${e.note ?? '-'}\n`
     /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
 
     /* Trainingspläne-Box – mehr "Card"-Feeling wie Dashboard/Calculators */
+    /* Trainingspläne-Box – gleiches Card-Universum wie Dashboard/Calculators */
     .workout-list {
         position: relative;
-        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 56% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
         border: 1px solid rgba(148, 163, 184, 0.35);
         border-radius: 18px;
-        padding: 1.25rem 1.4rem;
+        padding: 1.3rem 1.4rem 1.2rem;
         box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
         overflow: hidden;
     }
 
-    /* Liste der Trainingspläne – etwas cleaner & klickig */
+    /* Dark-Mode Variante – wie DashboardCard / CalculatorCard */
+    html.dark-mode .workout-list {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62% ), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    .section-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--text-secondary) 78%, #9ca3af 22%);
+        margin: .15rem 0 .85rem;
+    }
+
+    /* Zeilen für einzelne Trainingspläne – clean, aber „klickig“ */
+    /* Progress.vue – REPLACE .list-item + :hover */
+
     .list-item {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: .75rem;
-        padding: .7rem 1rem;
-        margin-bottom: .55rem;
-        background: color-mix(in srgb, var(--bg-card) 88%, var(--bg-secondary) 12%);
-        border: 1px solid rgba(148, 163, 184, 0.4);
+        padding: .75rem 1rem;
+        margin-bottom: .5rem;
+        /* gleiche Welt wie workout-list / plan-card */
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 60% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 62% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.35);
         border-radius: 12px;
-        transition: background .18s ease-out, border-color .18s ease-out, transform .12s ease-out, box-shadow .18s ease-out;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.25);
+        transition: background 180ms ease-out, border-color 180ms ease-out, transform 140ms ease-out, box-shadow 200ms ease-out;
     }
 
         .list-item:hover {
-            background: color-mix(in srgb, var(--bg-card) 80%, var(--bg-secondary) 20%);
-            border-color: var(--accent-primary);
-            transform: translateY(-1px);
-            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.28);
+            background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 11%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 90%, #020617 10%);
+            border-color: rgba(129, 140, 248, 0.7);
+            transform: translateY(-2px);
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.4);
         }
 
-    .section-title {
-        font-size: 1.05rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: .25rem 0 .75rem;
+    /* optional: Dark-Mode explizit angleichen */
+    html.dark-mode .list-item {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62% ), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
     }
 
+    /* REPLACE in Progress.vue – .open-btn Styles */
 
+    /* REPLACE in Progress.vue – .open-btn Styles */
 
-    .plan-item span {
-        color: var(--text-secondary);
-        font-size: .95rem;
-    }
-
-    .list-item-actions {
-        display: flex;
-        gap: .5rem;
-    }
-
-    /* Öffnen-Button in der Liste */
     .open-btn {
         appearance: none;
-        border: none;
-        background: var(--accent-primary);
-        color: #fff;
+        border: 1px solid rgba(148, 163, 184, 0.6); /* wie Cards / list-item */
+        background: color-mix(in srgb, var(--bg-card) 82%, var(--bg-secondary) 18%);
+        color: color-mix(in srgb, var(--accent-primary) 80%, #e5e7eb 20%);
         font-weight: 600;
-        padding: .45rem .8rem;
-        border-radius: 8px;
+        padding: .42rem .9rem;
+        border-radius: 999px;
         cursor: pointer;
-        box-shadow: 0 1px 2px rgba(0,0,0,.06);
-        transition: filter .15s ease, transform .1s ease;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.55), 0 0 0 1px rgba(15, 23, 42, 0.7); /* crisp edge, wie deine anderen Elemente */
+        text-shadow: 0 0 6px rgba(15, 23, 42, 0.9);
+        backdrop-filter: blur(6px);
+        transition: background 160ms ease-out, border-color 160ms ease-out, color 140ms ease-out, transform 100ms ease-out, box-shadow 180ms ease-out;
     }
 
         .open-btn:hover {
-            filter: brightness(1.05);
+            background: color-mix(in srgb, var(--accent-primary) 22%, var(--bg-card) 78%);
+            border-color: color-mix(in srgb, var(--accent-primary) 90%, #a5b4fc 10%);
+            color: #f9fafb;
             transform: translateY(-1px);
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.7), 0 0 14px color-mix(in srgb, var(--accent-primary) 55%, transparent);
         }
 
         .open-btn:active {
             transform: translateY(0);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.55), 0 0 0 1px rgba(15, 23, 42, 0.9);
         }
 
-    /* Leerer Zustand (nimmt die vorhandene .list-item Optik) */
-    .workout-list .list-item.empty,
-    .workout-list .list-item:has(> .empty) {
+
+    /* leerer Zustand übernimmt den gleichen Card-Look */
+    .workout-list .list-item.empty {
         justify-content: center;
         color: var(--text-secondary);
     }
 
     /* Mobile Feinschliff */
     @media (max-width: 600px) {
+        .workout-list {
+            padding: 1.1rem 1.1rem 1rem;
+            border-radius: 16px;
+        }
+
         .list-item {
             padding: .65rem .8rem;
         }
@@ -4068,6 +4090,7 @@ Notiz: ${e.note ?? '-'}\n`
             font-size: .95rem;
         }
     }
+
 
     .page-title {
         font-size: 2.25rem;
@@ -4205,91 +4228,95 @@ Notiz: ${e.note ?? '-'}\n`
         display: contents;
     }
 
-    /* Trainingspläne-Box – zurück zu clean, aber leicht “Premium” */
-    .workout-list {
-        position: relative;
-        background: color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        border-radius: 16px;
-        padding: 1.1rem 1.3rem;
-        box-shadow: var(--shadow);
-    }
-
-    /* einzelne Plan-Zeilen – wie Settings-/List-Cards, nicht zu bunt */
-    .list-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-        padding: .7rem 1rem;
-        margin-bottom: .55rem;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        transition: background .18s ease-out, border-color .18s ease-out, transform .12s ease-out, box-shadow .18s ease-out;
-    }
-
-        .list-item:hover {
-            background: color-mix(in srgb, var(--bg-secondary) 85%, var(--bg-card) 15%);
-            border-color: var(--accent-primary);
-            transform: translateY(-1px);
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
-        }
+    
 
     /* Ernährungsplan-Card – gleiche Welt wie andere Cards, ohne Farb-Overkill */
     .plan-card {
         position: relative;
         z-index: 1;
-        background: color-mix(in srgb, var(--bg-card) 93%, #020617 7%);
-        padding: 1.5rem 1.6rem;
-        border-radius: 16px;
-        box-shadow: var(--shadow);
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 56% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        padding: 1.3rem 1.4rem 1.2rem;
+        border-radius: 18px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
         border: 1px solid rgba(148, 163, 184, 0.35);
-        transition: transform 200ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 0.61, 0.36, 1), border-color 180ms ease-out, background 220ms ease-out;
+        transition: background 180ms ease-out, border-color 180ms ease-out, box-shadow 200ms ease-out, transform 160ms ease-out;
         cursor: default;
         overflow: hidden;
+        width: 100%;
     }
 
+        /* leichter Hover wie bei der Trainingspläne-Box */
         .plan-card::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.16), transparent 60%);
+            background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 60%);
             opacity: 0;
-            transition: opacity 200ms ease-out;
+            transition: opacity 160ms ease-out;
             pointer-events: none;
         }
 
         .plan-card:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-hover);
-            border-color: var(--accent-primary);
-            background: color-mix(in srgb, var(--bg-card) 88%, #020617 12%);
+            transform: translateY(-2px);
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.7);
         }
 
             .plan-card:hover::before {
                 opacity: 1;
             }
 
-        .plan-card h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-            color: var(--text-primary);
+    /* Dark-Mode angleichen zur workout-list */
+    html.dark-mode .plan-card {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62% ), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Header + Titel im gleichen Stil wie andere Card-Header */
+    .plan-card .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.9rem;
+    }
+
+    .plan-card .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--text-secondary) 82%, #9ca3af 18%);
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .plan-card p,
+    .plan-card .plan-description {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    /* Action-Bereich rechts (Download-Icon) */
+    .plan-card .card-actions {
+        display: flex;
+        gap: .5rem;
+        align-items: center;
+    }
+
+    /* Mobile Feinschliff */
+    @media (max-width: 600px) {
+        .plan-card {
+            padding: 1.3rem 1.3rem 1.1rem;
+            border-radius: 16px;
         }
 
-        .plan-card p {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        .plan-card .plan-description {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-            margin-bottom: 1rem;
-        }
+            .plan-card .card-title {
+                font-size: 0.9rem;
+            }
+    }
 
     :root {
         --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -4341,33 +4368,23 @@ Notiz: ${e.note ?? '-'}\n`
         border: 1px solid var(--border-color);
     }
 
-    /* nur Plan-Karten, NICHT die Calculator-Karten */
-    .plan-card .card-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }
-
-    .plan-card .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .plan-card .card-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
+    
 
     /* ===================== EXPORT-POPUP ===================== */
 
     .plans-section {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1.25rem;
+        width: 100%;
     }
+
+        /* Sicherstellen, dass beide Karten nicht nebeneinander floaten o.ä. */
+        .plans-section .workout-list,
+        .plans-section .plan-card {
+            width: 100%;
+            max-width: 100%;
+        }
 
     /* ===================== BERECHNEN BUTTON ===================== */
     .set-table-wrapper {
@@ -4503,19 +4520,6 @@ Notiz: ${e.note ?? '-'}\n`
 
     /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
 
-    .list-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-        padding: .75rem 1rem;
-        margin-bottom: .5rem;
-        background: var(--bg-card); /* vorher: var(--bg-secondary) */
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        transition: background .2s ease, border-color .2s ease, transform .12s ease;
-    }
-
     .modal-overlay {
         position: fixed;
         inset: 0;
@@ -4609,11 +4613,6 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    .list-item:hover {
-        background: var(--bg-secondary); /* dezente Hover-Fläche */
-        border-color: var(--accent-primary);
-        transform: translateY(-1px);
-    }
 
     .plan-item span {
         color: var(--text-secondary);
@@ -4625,46 +4624,7 @@ Notiz: ${e.note ?? '-'}\n`
         gap: .5rem;
     }
 
-    /* Öffnen-Button: von „schwarz“ zu Ghost/Outline */
-    .open-btn {
-        appearance: none;
-        border: 1px solid var(--border-color);
-        background: transparent;
-        color: var(--text-primary);
-        font-weight: 600;
-        padding: .45rem .8rem;
-        border-radius: 8px;
-        cursor: pointer;
-        box-shadow: none;
-        transition: border-color .15s ease, color .15s ease, background .15s ease, transform .1s ease;
-    }
-
-        .open-btn:hover {
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-            background: var(--bg-secondary);
-            transform: translateY(-1px);
-        }
-
-        .open-btn:active {
-            transform: translateY(0);
-        }
-
-    /* Mobile Feinschliff */
-    @media (max-width: 600px) {
-        .list-item {
-            padding: .65rem .8rem;
-        }
-
-        .plan-item span {
-            font-size: .9rem;
-        }
-
-        .open-btn {
-            padding: .4rem .7rem;
-            font-size: .95rem;
-        }
-    }
+  
     /* Fortschritt ansehen – Header mit Download-Button rechts */
     .modal .card-header {
         display: flex;

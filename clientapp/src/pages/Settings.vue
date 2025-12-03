@@ -205,12 +205,12 @@
     .settings {
         max-width: 800px;
         margin: 0 auto;
-        padding: 2rem 0;
-        background: var(--bg-primary) !important;
+        padding: clamp(1.4rem, 3vw, 2.4rem) 0;
+        background: transparent;
     }
 
     html.dark-mode .settings {
-        background: #161b22 !important;
+        background: transparent;
     }
 
     .settings-header {
@@ -250,42 +250,49 @@
         margin-bottom: 3rem;
     }
 
+    /* Settings-Cards im gleichen Premium-Look wie Tutorial-/Plan-Karten */
     .setting-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 2rem;
+        position: relative;
+        z-index: 1;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 56%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 18px;
+        padding: 1.6rem 1.8rem;
         display: grid;
         grid-template-columns: auto 1fr auto;
         gap: 1.5rem;
         align-items: center;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: background 180ms ease-out, border-color 180ms ease-out, box-shadow 200ms ease-out, transform 160ms ease-out;
+        overflow: hidden;
     }
 
+        /* Glow-Overlay statt nur Top-Strich */
+        .setting-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 60%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 160ms ease-out;
+        }
+
+        .setting-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.7);
+        }
+
+            .setting-card:hover::before {
+                opacity: 1;
+            }
+
+    /* Dark-Mode – gleiche Welt wie plan-card / tutorial-card */
     html.dark-mode .setting-card {
-        background: #1c2526;
-        border-color: #30363d;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    .setting-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-hover);
-    }
-
-    .setting-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-    }
-
-    html.dark-mode .setting-card::before {
-        background: linear-gradient(90deg, #6B8DD6, #4B6CB7);
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62%), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
     .setting-icon {

@@ -146,16 +146,25 @@
 </script>
 
 <style scoped>
+    /* Tutorial.vue – REPLACE .tutorials-Block mit App-/Progress-Gradient */
+
+    /* Tutorial.vue – Tutorials-Wrapper soll den globalen App-Gradient durchlassen */
     .tutorials {
-        padding: 2rem;
-        background: var(--bg-primary);
-        overflow-x: hidden; /* ⟵ verhindert seitliches Wischen */
+        padding: clamp(1.4rem, 3vw, 2.4rem);
+        min-height: 100vh;
+        font-family: 'Inter', sans-serif;
+        color: var(--text-primary);
+        overflow-x: hidden;
         max-width: 100%;
+        background: transparent; /* kein eigener Kasten-Gradient mehr */
     }
 
-        .tutorials.dark-mode {
-            background: #0d1117;
-        }
+    /* auch im Dark Mode kein extra Hintergrund */
+    html.dark-mode .tutorials {
+        background: transparent;
+    }
+
+
 
     .page-title {
         font-size: 2.5rem;
@@ -216,30 +225,57 @@
             min-width: 0;
         }
 
+    /* Tutorial.vue – REPLACE alter .tutorial-card-Block */
+
+    /* Premium-Card für YT-Tutorials – optisch wie workout-list / plan-card */
     .tutorial-card {
-        background: var(--bg-card);
-        padding: 1.25rem;
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-        transition: transform 0.3s;
+        position: relative;
+        z-index: 1;
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 56% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        padding: 1.3rem 1.4rem 1.2rem;
+        border-radius: 18px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        transition: background 180ms ease-out, border-color 180ms ease-out, box-shadow 200ms ease-out, transform 160ms ease-out;
         max-width: 100%;
+        overflow: hidden;
     }
 
-    .card-title, .card-info {
+        /* leichter Glow wie bei den anderen Premium-Cards */
+        .tutorial-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 60%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 160ms ease-out;
+        }
+
+        .tutorial-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.7);
+        }
+
+            .tutorial-card:hover::before {
+                opacity: 1;
+            }
+
+    /* Dark-Mode Variante – same vibe wie Progress / plan-card */
+    html.dark-mode .tutorial-card {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62% ), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Typo sauber halten wie bei deinen anderen Cards */
+    .card-title,
+    .card-info {
         overflow-wrap: anywhere;
         word-break: break-word;
     }
 
-
-    .tutorial-card.dark-mode {
-        background: #21262d;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    .tutorial-card:hover {
-        transform: translateY(-6px);
-        box-shadow: var(--shadow-hover);
-    }
 
     .card-title {
         font-size: 1.5rem;
