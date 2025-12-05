@@ -89,7 +89,7 @@
                 </div>
             </div>
         </header>
-        <section class="card">
+        <section class="card card--soft-center">
             <h3 class="card-title"><i class="fas fa-user-check"></i> Profil-Check</h3>
             <div class="goal">
                 <div class="goal-top">
@@ -100,7 +100,7 @@
             </div>
         </section>
         <!-- INSERT direkt unter dem Profil-Check-<section class="card"> -->
-        <section class="card">
+        <section class="card card--soft-center">
             <h3 class="card-title"><i class="fas fa-bullseye"></i> Wochenziel</h3>
             <div class="donut-wrap" role="img" :aria-label="`Wochenziel: ${weeklyWorkouts}/${targetWorkoutsPerWeek} Workouts`">
                 <svg class="donut" viewBox="0 0 36 36" aria-hidden="true">
@@ -124,7 +124,7 @@
         </section>
 
         <!-- Quick Stats (aus Activity berechnet / gespeichert) -->
-        <section class="grid three">
+        <section class="grid three quick-stats">
             <div class="card stat">
                 <div class="stat-icon"><i class="fas fa-fire"></i></div>
                 <div>
@@ -152,7 +152,7 @@
 
         <!-- Activity + Achievements -->
         <section class="grid two">
-            <div class="card">
+            <div class="card card--soft-center">
                 <h3 class="card-title"><i class="fas fa-heartbeat"></i> Aktivität</h3>
 
                 <div class="sparkline-wrap">
@@ -1457,6 +1457,7 @@
 
 
     /* Grids */
+    /* Grids */
     .grid {
         display: grid;
         gap: 1rem;
@@ -1464,32 +1465,86 @@
     }
 
         .grid.two {
-            grid-template-columns: repeat(2, minmax(0,1fr))
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .grid.three {
-            grid-template-columns: repeat(3, minmax(0,1fr))
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
-    @media (max-width:900px) {
-        .grid.two, .grid.three {
-            grid-template-columns: 1fr
+            /* Quick-Stats:
+       - nutzen auto-fit + minmax → bleiben 3 nebeneinander,
+         bis die Cards real nicht mehr hinpassen
+       - danach automatisch 2 oder 1 Spalte */
+            .grid.three.quick-stats {
+                grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+                gap: 1rem;
+            }
+
+    /* Unter ~720px alles einspaltig + Header umbrechen */
+    @media (max-width: 720px) {
+        .grid.two,
+        .grid.three {
+            grid-template-columns: 1fr;
         }
 
         .profile-header {
             flex-direction: column;
-            align-items: flex-start
+            align-items: flex-start;
+        }
+
+        /* Wenn Quick-Stats untereinander stehen → mehr vertical spacing */
+        .grid.three.quick-stats {
+            row-gap: 1.2rem;
         }
     }
 
-    /* Cards */
-    .card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 16px;
-        padding: 1rem;
-        box-shadow: var(--shadow);
+    /* Unter ~720px alles einspaltig + Header umbrechen */
+    @media (max-width: 720px) {
+        .grid.two,
+        .grid.three {
+            grid-template-columns: 1fr;
+        }
+
+        .profile-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
     }
+    .card {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch; /* Inhalte nutzen volle Breite */
+        padding: 1.4rem 1.5rem;
+        border-radius: 18px;
+        text-align: left; /* Standard: sauber links für Text / Listen */
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+    }
+
+    .card--soft-center {
+        align-items: center; /* Inhalt in der Card horizontal zur Mitte ziehen */
+        text-align: center; /* Texte in diesen Cards mittiger, aber nur da */
+    }
+
+    html.dark-mode .card {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    @media (hover: hover) {
+        .card:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.55);
+        }
+    }
+
 
     .card-title {
         margin: 0 0 .6rem;
@@ -1517,33 +1572,53 @@
         transform-origin: center center;
     }
     /* Stats */
-    .stat {
+
+    .card.stat {
         display: flex;
+        flex-direction: row;
         align-items: center;
-        gap: 1rem
+        justify-content: flex-start; /* nicht mehr space-between */
+        gap: .8rem; /* Abstand zwischen Icon und Text */
+        padding: 0.9rem 1.2rem;
+        border-radius: 16px;
     }
 
+    .card.stat > .stat-icon {
+        flex-shrink: 0;
+    }
+
+    .card.stat > div:last-child {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start; /* Text linksbündig */
+        gap: .15rem;
+    }
+
+
     .stat-icon {
-        width: 44px;
-        height: 44px;
+        width: 40px;
+        height: 40px;
         display: grid;
         place-items: center;
-        border-radius: 12px;
-        background: var(--bg-secondary);
+        border-radius: 999px;
+        background: radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--accent-primary) 35%, transparent), transparent 55%), color-mix(in srgb, #020617 90%, var(--bg-card) 10%);
         color: var(--accent-primary);
-        border: 1px solid var(--border-color);
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.45);
     }
 
     .stat-value {
         font-size: 1.45rem;
         font-weight: 800;
-        line-height: 1
+        line-height: 1;
     }
 
     .stat-label {
         color: var(--text-secondary);
-        font-size: .92rem
+        font-size: .9rem;
+        white-space: nowrap;
     }
+
 
     /* Lists */
     .list {
@@ -1575,26 +1650,37 @@
     /* Goals */
     .goals {
         display: grid;
-        gap: .85rem
+        gap: .85rem;
+    }
+
+    /* auch für Profil-Check und Wochenziel */
+    .goal {
+        width: 100%;
     }
 
     .goal-top {
         display: flex;
         justify-content: space-between;
-        font-size: .95rem
+        align-items: center;
+        gap: .5rem;
+        margin-bottom: .4rem;
+        font-size: .95rem;
     }
 
     .goal-value {
-        font-weight: 700
+        font-weight: 700;
+        white-space: nowrap;
     }
 
     .bar {
+        width: 100%;
         height: 10px;
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
         border-radius: 999px;
         overflow: hidden;
     }
+
 
         .bar > div {
             height: 100%;
@@ -2041,6 +2127,7 @@
     .image-viewer-overlay {
         overscroll-behavior: contain;
     }
+
     .motto-card {
         overflow: hidden;
         contain: inline-size;
@@ -2097,5 +2184,25 @@
         /* extra Abstand zwischen Profil-Check (1) und Wochenziel (2) */
         margin-top: 1.0rem;
     }
+
+    @media (max-width: 480px) {
+        .card {
+            padding: 1.1rem 1.1rem;
+        }
+
+        .stat {
+            padding: 0.7rem 0.9rem;
+            gap: 0.7rem;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+        }
+
+        .title {
+            font-size: 1.4rem;
+        }
+    }
+
 </style>
 
