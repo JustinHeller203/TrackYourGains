@@ -3749,6 +3749,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-direction: column; /* Inhalt wird sauber vertikal gestapelt */
+        text-align: center; /* Text bei Zeilenumbruch wirklich mittig */
         min-height: 160px;
         background: var(--bg-secondary);
         border: 1px dashed var(--border-color);
