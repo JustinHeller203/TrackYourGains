@@ -59,17 +59,6 @@
         z-index: 2000;
     }
 
-    .popup {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-        max-width: 420px;
-        width: 90%;
-        text-align: center;
-        /* <-- globale Popup-Schrift */
-        font-family: var(--popup-font-family, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
-    }
 
     /* Titel � vorher war das 0.25rem (!) */
     .popup-title {
@@ -145,4 +134,65 @@
     .fade-enter-from, .fade-leave-to {
         opacity: 0;
     }
+    .popup {
+        position: relative;
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        padding: 1.4rem 1.5rem;
+        border-radius: 18px;
+        /* moderner, leichter Rahmen für alle Popups */
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        max-width: 460px;
+        width: 92%;
+        text-align: left;
+        font-family: var(--popup-font-family, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
+    }
+
+    html.dark-mode .popup-overlay .popup {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60% ), #020617;
+        border: 1px solid rgba(148, 163, 184, 0.7); /* etwas kräftiger im Dark-Mode */
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    .popup-overlay.email-change-popup .popup {
+        padding: 1.4rem 1.5rem 1.1rem;
+    }
+
+    /* Titel an Cards angleichen */
+    .popup-overlay.email-change-popup .popup-title {
+        text-align: left;
+        font-size: 1.3rem;
+        margin-bottom: 1.1rem;
+    }
+
+    /* Body & Actions eher wie Card */
+    .popup-overlay.email-change-popup .popup-body {
+        text-align: left;
+        margin-bottom: 0.8rem;
+    }
+
+    .popup-overlay.email-change-popup .popup-actions {
+        justify-content: flex-end;
+        margin-top: 1.1rem;
+    }
+
+
+    /* Titel an Cards angleichen */
+    .popup-overlay.email-change-popup .popup-title {
+        text-align: left;
+        font-size: 1.3rem;
+        margin-bottom: 1.1rem;
+    }
+
+    /* Body & Actions eher wie Card, nicht „Modal von 2012“ */
+    .popup-overlay.email-change-popup .popup-body {
+        text-align: left;
+        margin-bottom: 0.8rem;
+    }
+
+    .popup-overlay.email-change-popup .popup-actions {
+        justify-content: flex-end;
+        margin-top: 1.1rem;
+    }
+
 </style>

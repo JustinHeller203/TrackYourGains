@@ -1,3 +1,5 @@
+<!-- App.vue -->
+
 <template>
     <div class="app-container">
         <!-- ✅ Navbar -->
@@ -737,7 +739,55 @@
         padding: 60px 1rem 2rem; /* Platz für Navbar + etwas Rand */
         background: transparent; /* Body-Gradient überall sichtbar */
     }
-   
+
+    /* Kompakteres, dezentes Burger-Icon */
+    /* Kompakteres, dezentes Burger-Icon */
+    .burger-menu {
+        display: none; /* wird nur im Mobile-Viewport sichtbar */
+        width: 32px;
+        height: var(--nav-h);
+        background: none;
+        border: none;
+        cursor: pointer;
+        position: relative;
+        z-index: 1100;
+        margin-left: auto;
+        padding: 0;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .burger-menu span {
+            position: relative;
+            display: block;
+            width: 18px;
+            height: 2px;
+            background: rgba(248, 250, 252, 0.92);
+            border-radius: 999px;
+            transition: transform 0.25s ease, opacity 0.2s ease, top 0.25s ease, bottom 0.25s ease;
+        }
+
+            .burger-menu span:not(:last-child) {
+                margin-bottom: 4px;
+            }
+
+    html.dark-mode .burger-menu span {
+        background: rgba(248, 250, 252, 0.96);
+    }
+
+    /* Minimalistische X-Animation */
+    .burger-menu.open span:nth-child(1) {
+        transform: translateY(3px) rotate(45deg);
+    }
+
+    .burger-menu.open span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .burger-menu.open span:nth-child(3) {
+        transform: translateY(-3px) rotate(-45deg);
+    }
+
     /* REPLACE in App.vue <style scoped> – Block html.dark-mode .main-content */
     html.dark-mode .main-content {
         background: transparent;
@@ -774,19 +824,16 @@
     }
 
     html.dark-mode .main-nav {
-        background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
-        border-bottom: 2px solid #30363d;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        background: radial-gradient(circle at top left, color-mix(in srgb, #4C1D95 40%, #020617 60%), #020617 60%) fixed;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.45);
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(14px);
     }
 
-    .main-nav:hover {
-        background: linear-gradient(135deg, var(--accent-hover), var(--accent-secondary));
-    }
-
-    html.dark-mode .main-nav:hover {
-        background: linear-gradient(135deg, #5a7bc4, #4B6CB7);
-    }
-
+        /* REPLACE: html.dark-mode .main-nav:hover */
+        html.dark-mode .main-nav:hover {
+            background: radial-gradient(circle at top left, color-mix(in srgb, #5B21B6 50%, #020617 50%), #020617 65%) fixed;
+        }
     .nav-content {
         max-width: var(--nav-max);
         margin: 0 auto;
@@ -865,88 +912,53 @@
         left: 0;
     }
 
-    .burger-menu {
-        display: none;
-        width: 24px;
-        height: 18px;
-        background: none;
-        border: none;
-        cursor: pointer;
-        position: relative;
-        z-index: 1100;
-        margin-left: auto;
-        margin-right: 12px;
-    }
-
-        .burger-menu span {
-            display: block;
-            width: 100%;
-            height: 2px;
-            background: #fff;
-            border-radius: 1px;
-            transition: transform 0.4s ease, opacity 0.3s ease;
-        }
-
-    html.dark-mode .burger-menu span {
-        background: #fff;
-    }
-
-    .burger-menu span:not(:last-child) {
-        margin-bottom: 4px;
-    }
-
-    .burger-menu.open span:nth-child(1) {
-        transform: translateY(8px) rotate(45deg);
-    }
-
-    .burger-menu.open span:nth-child(2) {
-        opacity: 0;
-    }
-
-    .burger-menu.open span:nth-child(3) {
-        transform: translateY(-8px) rotate(-45deg);
-    }
-
     @media (max-width: 1024px) {
+        /* Kompaktes Dropdown unter der Navbar, rechts beim Burger */
         .nav-links {
             position: absolute;
-            top: calc(100% + var(--nav-dropdown-offset));
-            left: 0;
-            right: 0;
-            background: var(--bg-card);
-            border-top: 1px solid var(--border-color);
-            box-shadow: 0 12px 24px rgba(0,0,0,.12);
+            top: 100%;
+            right: 8px;
+            left: auto;
+            background: color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.7);
             margin: 0;
-            padding: .75rem 0;
-            display: flex;
+            padding: 0.5rem 0.4rem;
+            display: none; /* geschlossen */
             flex-direction: column;
-            transform: translateY(8px);
+            align-items: stretch;
+            gap: 0.1rem;
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            transition: transform .25s ease, opacity .25s ease, visibility 0s .25s;
+            transform: translateY(6px);
+            transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s 0.18s;
             z-index: 999;
         }
 
         html.dark-mode .nav-links {
-            background: #1c2526;
+            background: radial-gradient(circle at top left, color-mix(in srgb, #020617 85%, #4C1D95 15%), #020617 80%);
         }
 
         .nav-links.open {
-            transform: translateY(0);
+            display: flex; /* offen */
             opacity: 1;
             visibility: visible;
             pointer-events: auto;
+            transform: translateY(0);
         }
 
         .nav-link {
-            padding: .9rem 1rem;
-            text-align: center;
+            padding: 0.55rem 0.6rem;
+            width: 100%;
+            text-align: left;
             color: var(--text-primary);
+            justify-content: flex-start;
         }
 
         html.dark-mode .nav-link {
-            color: #fff;
+            color: #f9fafb;
         }
 
         .nav-link::after {
@@ -954,7 +966,7 @@
         }
 
         html.dark-mode .nav-link::after {
-            background: #6B8DD6;
+            background: #a855f7;
         }
 
         .burger-menu {
@@ -962,6 +974,7 @@
             margin-right: 12px;
         }
     }
+
 
 
     .app-footer {

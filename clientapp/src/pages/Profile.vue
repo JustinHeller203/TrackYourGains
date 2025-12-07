@@ -67,8 +67,12 @@
 
             <div class="meta">
                 <h1 class="title">Profil</h1>
-                <p class="muted">Angemeldet als <strong>{{ auth.user?.email }}</strong></p>
-
+                <p class="muted">
+                    Angemeldet als
+                    <strong :title="fullEmail || 'Keine E-Mail hinterlegt'">
+                        {{ shortEmail }}
+                    </strong>
+                </p>
                 <div class="actions">
                     <button class="btn neutral" @click="openEmailPopup">
                         <i class="fas fa-envelope"></i>
@@ -100,28 +104,52 @@
             </div>
         </section>
         <!-- INSERT direkt unter dem Profil-Check-<section class="card"> -->
-        <section class="card card--soft-center">
-            <h3 class="card-title"><i class="fas fa-bullseye"></i> Wochenziel</h3>
-            <div class="donut-wrap" role="img" :aria-label="`Wochenziel: ${weeklyWorkouts}/${targetWorkoutsPerWeek} Workouts`">
-                <svg class="donut" viewBox="0 0 36 36" aria-hidden="true">
-                    <circle class="donut-bg" cx="18" cy="18" r="16"></circle>
-                    <circle class="donut-fg" cx="18" cy="18" r="16"
-                            :stroke-dasharray="donutDasharray"
-                            stroke-linecap="round"></circle>
-                    <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" class="donut-label">
-                        {{ donutPercent }}%
-                    </text>
-                </svg>
-                <div class="donut-legend">
-                    {{ weeklyWorkouts }} / {{ targetWorkoutsPerWeek }} Workouts
+        <section class="card weekly-goal-card">
+            <h3 class="card-title">
+                <i class="fas fa-bullseye"></i> Wochenziel
+            </h3>
+
+            <div class="weekly-goal-inner">
+                <div class="weekly-goal-visual"
+                     role="img"
+                     :aria-label="`Wochenziel: ${weeklyWorkouts}/${targetWorkoutsPerWeek} Workouts`">
+                    <svg class="donut" viewBox="0 0 36 36" aria-hidden="true">
+                        <circle class="donut-bg" cx="18" cy="18" r="16"></circle>
+                        <circle class="donut-fg" cx="18" cy="18" r="16"
+                                :stroke-dasharray="donutDasharray"
+                                stroke-linecap="round"></circle>
+                        <text x="50%" y="50%" text-anchor="middle"
+                              dominant-baseline="central"
+                              class="donut-label">
+                            {{ donutPercent }}%
+                        </text>
+                    </svg>
+                </div>
+
+                <div class="weekly-goal-side">
+                    <div class="weekly-goal-line">
+                        {{ weeklyWorkouts }} / {{ targetWorkoutsPerWeek }} Workouts
+                    </div>
+                    <div class="weekly-goal-status-pill">
+                        {{ weeklyStatusText }}
+                    </div>
+
+                    <p class="weekly-goal-sub" v-if="targetWorkoutsPerWeek">
+                        Noch {{ weeklyRemaining }} Workout<span v-if="weeklyRemaining !== 1">s</span> bis zum Ziel
+                    </p>
+                    <p class="weekly-goal-sub" v-else>
+                        Kein Ziel gesetzt – stell dir unten eins ein.
+                    </p>
                 </div>
             </div>
-            <div class="goal-controls">
-                <EditInput :ghost="true" title="Ziel −1" ariaLabel="Ziel minus 1" @click="decTarget">−1</EditInput>
-                <EditInput :ghost="true" title="Ziel +1" ariaLabel="Ziel plus 1" @click="incTarget">+1</EditInput>
-                <EditInput :ghost="true" title="Ziel zurücksetzen" ariaLabel="Ziel zurücksetzen" @click="resetTarget">Reset</EditInput>
+
+            <div class="weekly-goal-footer">
+                <span class="weekly-goal-auto-hint">
+                    Ziel wird automatisch aus deinen letzten Wochen berechnet.
+                </span>
             </div>
         </section>
+
 
         <!-- Quick Stats (aus Activity berechnet / gespeichert) -->
         <section class="grid three quick-stats">
@@ -163,22 +191,6 @@
                         Letzte {{ activity.length }} Tage · Ø {{ avgActivity }} Workouts/Tag
                     </div>
                 </div>
-
-                <!-- kleine Controls ohne Backend -->
-                <div class="activity-controls">
-                    <EditInput :ghost="true" @click="addTodayWorkout" title="+1 Heute" ariaLabel="+1 Heute">
-                        +1 Heute
-                    </EditInput>
-                    <EditInput :ghost="true" :disabled="todayCount === 0" @click="undoTodayWorkout" title="−1 Heute" ariaLabel="−1 Heute">
-                        −1 Heute
-                    </EditInput>
-                    <EditInput :ghost="true" @click="extendHistory" title="+7 Tage Historie" ariaLabel="+7 Tage Historie">
-                        +7 Tage Historie
-                    </EditInput>
-                    <EditInput @click="resetActivity" title="Reset" ariaLabel="Reset">
-                        Reset
-                    </EditInput>
-                </div>
             </div>
 
             <div class="card">
@@ -197,9 +209,9 @@
             <div class="card">
                 <h3 class="card-title"><i class="fas fa-user-circle"></i> Über dich</h3>
                 <ul class="list">
-                    <li>
+                    <li class="about-name-row">
                         <span class="key">Name</span>
-                        <span class="val name-val">
+                        <span class="val name-val" :class="{ 'is-editing': editingName }">
                             <template v-if="editingName">
                                 <input class="input name-input" v-model.trim="displayName" @keyup.enter="saveDisplayName" />
                                 <EditInput title="Name speichern" ariaLabel="Name speichern" @click="saveDisplayName">
@@ -210,17 +222,29 @@
                                 <span class="name-text"
                                       @dblclick.prevent="editingName = true"
                                       title="Doppelklick: Name bearbeiten">{{ displayName || '—' }}</span>
-                                <EditInput :ghost="true" title="Name bearbeiten" ariaLabel="Name bearbeiten" @click="editingName = true">
-                                    Bearbeiten
-                                </EditInput>
+
+                                <!-- REPLACE im Name-Button-Inhalt -->
+                                <button type="button"
+                                        class="name-edit-btn"
+                                        title="Name bearbeiten"
+                                        aria-label="Name bearbeiten"
+                                        @click="editingName = true">
+                                    <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                                    <span class="name-edit-label">Bearbeiten</span>
+                                </button>
+
                             </template>
+
                         </span>
                     </li>
+
                     <li>
                         <span class="key">E-Mail</span>
                         <span class="val email-text"
                               @dblclick.prevent="openEmailPopup"
-                              title="Doppelklick: E-Mail ändern">{{ auth.user?.email || '—' }}</span>
+                              :title="fullEmail || 'Doppelklick: E-Mail ändern'">
+                            {{ shortEmail }}
+                        </span>
                     </li>
                     <li><span class="key">Mitglied seit</span><span class="val">{{ memberSince }}</span></li>
                     <li><span class="key">Status</span><span class="val badge">Aktiv</span></li>
@@ -244,10 +268,8 @@
                                 <span class="goal-name">{{ goalLabels[key as GoalKey] }}</span>
                                 <span class="goal-value">{{ progress[key as GoalKey] }}%</span>
                             </div>
-                            <div class="bar"><div :style="{ width: progress[key as GoalKey] + '%' }"></div></div>
-                            <div class="mini-controls">
-                                <EditInput :ghost="true" title="+5%" :ariaLabel="`+5% ${goalLabels[key as GoalKey]}`" @click="nudgeProgress(key as GoalKey, 5)">+5%</EditInput>
-                                <EditInput :ghost="true" title="-5%" :ariaLabel="`-5% ${goalLabels[key as GoalKey]}`" @click="nudgeProgress(key as GoalKey, -5)">-5%</EditInput>
+                            <div class="bar">
+                                <div :style="{ width: progress[key as GoalKey] + '%' }"></div>
                             </div>
                         </div>
                     </template>
@@ -287,7 +309,7 @@
                                title="Motto hinzufügen"
                                ariaLabel="Motto hinzufügen"
                                @click="startAddMotto">
-                        Motto hinzufügen
+                        <span class="motto-add-label">Motto hinzufügen</span>
                     </EditInput>
 
                     <EditInput v-show="!editingMotto && motto"
@@ -416,6 +438,41 @@
 
         </div>
 
+        <!-- Achievement-Popup -->
+        <div v-if="showAchievementPopup && latestAchievement"
+             class="achievement-popup-backdrop"
+             @click.self="closeAchievementPopup">
+            <div class="achievement-popup">
+                <div class="achievement-header">
+                    <span class="achievement-pill">Neues Achievement</span>
+                    <button class="achievement-close"
+                            type="button"
+                            aria-label="Achievement schließen"
+                            @click="closeAchievementPopup">
+                        ×
+                    </button>
+                </div>
+
+                <div class="achievement-body">
+                    <div class="achievement-icon">
+                        <img src="/achievements/FirstStepAchievementIcon.png"
+                             alt="Achievement Icon"
+                             class="achievement-icon-img" />
+                    </div>
+                    <div class="achievement-text">
+                        <h4>{{ latestAchievement?.label }}</h4>
+                        <p>{{ latestAchievement?.desc }}</p> 
+                    </div>
+                </div>
+
+                <button class="achievement-cta"
+                        type="button"
+                        @click="closeAchievementPopup">
+                    Weiter machen 💪
+                </button>
+            </div>
+        </div>
+
         <!-- Toasts -->
         <Toast v-if="toast"
                :toast="toast"
@@ -426,8 +483,9 @@
     </section>
 </template>
 
+
 <script setup lang="ts">
-    import { computed, ref, watch, onMounted, nextTick } from 'vue'
+    import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
     import { useRouter } from 'vue-router'
     import { useAuthStore } from '@/store/authStore'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
@@ -442,6 +500,18 @@
     import EditInput from '@/components/ui/buttons/EditInput.vue'
     import Draggable from 'vuedraggable'
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
+    import { useAutoGoals, type AutoGoalResult, type TrainingEntry } from '@/composables/useAutoGoals'
+
+    function loadJSON<T>(key: string, fallback: T): T {
+        try {
+            const raw = localStorage.getItem(key)
+            return raw ? JSON.parse(raw) as T : fallback
+        } catch { return fallback }
+    }
+
+    function saveJSON(key: string, val: unknown) {
+        localStorage.setItem(key, JSON.stringify(val))
+    }
 
     // --- Stores / Router ---
     const auth = useAuthStore()
@@ -626,9 +696,24 @@
             ? (isMobile.value ? 'Alles schließen' : 'Alles schließen (Shortcuts)')
             : (isMobile.value ? 'Profilbild schließen' : 'Profilbild schließen (Shortcuts)')
     );
-    const closeTitle = closeLabel; // gleich halten
-    // INSERT refs (bei State init)
-    const targetWorkoutsPerWeek = ref<number>(Number(localStorage.getItem('profile_target_week')) || 5);
+    const closeTitle = closeLabel;
+    // REPLACE: Ziel automatisch auf Basis der Historie
+    const targetWorkoutsPerWeek = computed(() => {
+        // bis zu 21 Tage (3 Wochen) heranziehen
+        const days = Math.min(21, activity.value.length);
+        if (!days) return 3; // Default, wenn noch keine Daten
+
+        const sum = sumLastDays(activity.value, days);
+
+        // reale Wochenanzahl aus den verfügbaren Tagen
+        const weeks = Math.max(1, Math.round(days / 7));
+        const perWeek = sum / weeks;
+
+        // auf ganze Zahl runden und vernünftig clampen
+        let t = Math.round(perWeek || 3);
+        t = Math.max(3, Math.min(10, t)); // nie <3 und nie >10
+        return t;
+    });
 
     // INSERT computeds
     const donutPercent = computed(() => {
@@ -636,6 +721,7 @@
         if (!tgt) return 0;
         return Math.min(100, Math.round((weeklyWorkouts.value / tgt) * 100));
     });
+
     const donutDasharray = computed(() => {
         // Kreisumfang (r=16) ≈ 2πr = ~100.53 → wir nehmen 100 als Norm
         const filled = (donutPercent.value / 100) * 100;
@@ -643,12 +729,19 @@
         return `${filled} ${rest}`;
     });
 
-    // INSERT watchers & actions
-    watch(targetWorkoutsPerWeek, v => localStorage.setItem('profile_target_week', String(Math.max(0, v || 0))));
+    const weeklyRemaining = computed(() =>
+        Math.max(0, targetWorkoutsPerWeek.value - weeklyWorkouts.value)
+    );
 
-    function incTarget() { targetWorkoutsPerWeek.value = Math.min(21, targetWorkoutsPerWeek.value + 1); }
-    function decTarget() { targetWorkoutsPerWeek.value = Math.max(0, targetWorkoutsPerWeek.value - 1); }
-    function resetTarget() { targetWorkoutsPerWeek.value = 5; }
+    const weeklyStatusText = computed(() => {
+        if (targetWorkoutsPerWeek.value === 0) return 'Kein Ziel gesetzt';
+        const p = donutPercent.value;
+        if (p === 0) return 'Noch nicht gestartet';
+        if (p < 40) return 'Langsam reinkommen';
+        if (p < 80) return 'Du bist gut dabei';
+        if (p < 100) return 'Fast geschafft';
+        return 'Ziel erreicht 🎉';
+    });
 
     const scCloseTitle = computed(() =>
         isMobile.value ? 'Shortcuts schließen' : 'Shortcuts schließen (Shortcuts)'
@@ -682,8 +775,11 @@
         motto: 'profile_motto',
         memberSince: 'profile_member_since',
         email: 'auth_email',
-        avatar: 'profile_avatar'
+        avatar: 'profile_avatar',
+        earnedBadges: 'profile_earned_badges'
     } as const
+    const { calculateGoals } = useAutoGoals()
+
     const AVATAR_KEY = LS_KEYS.avatar
     function openDeleteAvatarPopup() {
         closeAvatarMenu()
@@ -1087,10 +1183,49 @@
     }
     // --- State init (mit Fallbacks) ---
     const activity = ref<number[]>(loadJSON(LS_KEYS.activity, [1, 0, 2, 1, 3, 2, 2, 1, 0, 2]))
+
+    // Typ vor erster Nutzung definieren
+    type Badge = { id: string; icon: string; label: string; desc: string }
+
+    const earnedBadges = ref<string[]>(loadJSON(LS_KEYS.earnedBadges, []))
+
+    const showAchievementPopup = ref(false)
+    const latestAchievement = ref<Badge | null>(null)
+
     type Progress = Record<GoalKey, number>
     const progress = ref<Progress>(
         loadJSON(LS_KEYS.progress, { muscle: 40, weight: 60, nutrition: 55 })
     )
+
+    // Profile.vue – INSERT: AutoGoals-Status + Watch
+    const autoGoalPrevious = ref<AutoGoalResult>({
+        muscle: progress.value.muscle,
+        weightTracking: progress.value.weight,
+        nutrition: progress.value.nutrition
+    })
+
+    // jedes Mal, wenn sich deine Aktivität ändert → AutoGoals neu berechnen
+    watch(
+        () => activity.value.slice(),
+        (days) => {
+            const trainings = buildTrainingsFromActivity(days)
+
+            const result = calculateGoals({
+                trainings,
+                weights: [],        // TODO: später mit echten Weight-Logs füllen
+                nutrition: [],      // TODO: später mit echten Ernährungs-Logs füllen
+                weeklyGoal: targetWorkoutsPerWeek.value,
+                previous: autoGoalPrevious.value
+            })
+
+            autoGoalPrevious.value = result
+            progress.value.muscle = result.muscle
+            progress.value.weight = result.weightTracking
+            progress.value.nutrition = result.nutrition
+        },
+        { immediate: true }
+    )
+
     const favoriteTimers = ref<number>(Number(localStorage.getItem(LS_KEYS.favorites) ?? 2))
     const motto = ref<string>(localStorage.getItem(LS_KEYS.motto) ?? 'No excuses. Just results.')
     const memberSince = computed(() => localStorage.getItem(LS_KEYS.memberSince) ?? '2025')
@@ -1115,13 +1250,181 @@
     });
 
     // Badges dynamisch
-    const computedBadges = computed(() => {
-        const arr: { id: string; icon: string; label: string; desc: string }[] = []
-        if (streakDays.value >= 7) arr.push({ id: 'streak7', icon: 'fas fa-bolt', label: '7-Tage Streak', desc: '7 Tage am Stück aktiv' })
-        if (sumLastDays(activity.value, 30) >= 20) arr.push({ id: 'grinder', icon: 'fas fa-dumbbell', label: 'Grinder 20/30', desc: '20 Workouts in 30 Tagen' })
-        if ((activity.value[0] ?? 0) === 0 && (activity.value.at(-1) ?? 0) > 0) arr.push({ id: 'comeback', icon: 'fas fa-rotate-right', label: 'Comeback', desc: 'Zurück im Training' })
-        if (weeklyWorkouts.value >= 5) arr.push({ id: 'beast', icon: 'fas fa-dragon', label: 'Beast Mode', desc: '5+ Workouts diese Woche' })
+    const computedBadges = computed<Badge[]>(() => {
+        const arr: Badge[] = []
+
+        const totalAll = sumLastDays(activity.value, activity.value.length)
+        const total30 = sumLastDays(activity.value, 30)
+
+        // Einstieg
+        if (totalAll >= 1) {
+            arr.push({
+                id: 'first_workout',
+                icon: 'fas fa-star',
+                label: 'Erster Step',
+                desc: 'Dein erstes Workout ist drin – wichtiger als perfekt ist gestartet.'
+            })
+        }
+
+        // Streaks
+        if (streakDays.value >= 3) {
+            arr.push({
+                id: 'streak3',
+                icon: 'fas fa-fire',
+                label: '3-Tage Streak',
+                desc: 'Drei Tage am Stück aktiv – jetzt bloß nicht abbrechen.'
+            })
+        }
+        if (streakDays.value >= 7) {
+            arr.push({
+                id: 'streak7',
+                icon: 'fas fa-bolt',
+                label: '7-Tage Streak',
+                desc: '7 Tage am Stück aktiv – dein neuer Standard.'
+            })
+        }
+        if (streakDays.value >= 14) {
+            arr.push({
+                id: 'streak14',
+                icon: 'fas fa-mountain',
+                label: '14-Tage Streak',
+                desc: 'Zwei Wochen durchgezogen. Disziplin > Motivation.'
+            })
+        }
+        if (streakDays.value >= 30) {
+            arr.push({
+                id: 'streak30',
+                icon: 'fas fa-crown',
+                label: '30-Tage Streak',
+                desc: 'Ein ganzer Monat ohne Drop – absolut krank.'
+            })
+        }
+
+        // Wochenleistung
+        if (weeklyWorkouts.value >= 3) {
+            arr.push({
+                id: 'weekly3',
+                icon: 'fas fa-running',
+                label: 'Im Flow',
+                desc: '3+ Workouts diese Woche – das ist der Sweet Spot fürs Momentum.'
+            })
+        }
+        if (weeklyWorkouts.value >= 5) {
+            arr.push({
+                id: 'beast',
+                icon: 'fas fa-dragon',
+                label: 'Beast Mode',
+                desc: '5+ Workouts diese Woche – du lässt Ausreden keine Chance.'
+            })
+        }
+        if (weeklyWorkouts.value >= 7) {
+            arr.push({
+                id: 'no_days_off',
+                icon: 'fas fa-fire-alt',
+                label: 'No Days Off',
+                desc: 'Jeden Tag diese Woche aktiv gewesen. Maschine.'
+            })
+        }
+
+        // Volumen (30 Tage & gesamt)
+        if (total30 >= 20) {
+            arr.push({
+                id: 'grinder',
+                icon: 'fas fa-dumbbell',
+                label: 'Grinder 20/30',
+                desc: '20 Workouts in 30 Tagen – du arbeitest, nicht redest.'
+            })
+        }
+
+        if (totalAll >= 50) {
+            arr.push({
+                id: 'volume50',
+                icon: 'fas fa-medal',
+                label: 'Level 50+',
+                desc: '50 Workouts insgesamt – deine Basis ist gebaut.'
+            })
+        }
+
+        if (totalAll >= 100) {
+            arr.push({
+                id: 'volume100',
+                icon: 'fas fa-trophy',
+                label: '100 Workouts',
+                desc: '100 Workouts sind nicht Glück, das ist Identität.'
+            })
+        }
+
+        // Comeback – wenn erstes Element 0 und heute >0
+        if ((activity.value[0] ?? 0) === 0 && (activity.value.at(-1) ?? 0) > 0) {
+            arr.push({
+                id: 'comeback',
+                icon: 'fas fa-redo-alt',
+                label: 'Comeback',
+                desc: 'Du warst raus und bist wieder drin. Genau das zählt.'
+            })
+        }
+
         return arr
+    })
+
+    function closeAchievementPopup() {
+        showAchievementPopup.value = false
+        latestAchievement.value = null
+    }
+
+    // wenn neue Badges dazukommen → einmalig Popup + Toast
+    watch(computedBadges, (current) => {
+        if (!current.length) return
+
+        const known = new Set(earnedBadges.value)
+        const newly = current.find(b => !known.has(b.id))
+
+        if (!newly) return
+
+        earnedBadges.value = Array.from(new Set([...earnedBadges.value, newly.id]))
+        latestAchievement.value = newly
+        showAchievementPopup.value = true
+
+        addToast(`Neues Achievement: ${newly.label}`, 'add')
+    }, { immediate: false })
+
+    // === TEST: Achievements per Leertaste auslösen ===
+    const testBadgeIndex = ref(0)
+
+    function triggerTestAchievement() {
+        const list = computedBadges.value
+        if (!list.length) return
+
+        latestAchievement.value = list[testBadgeIndex.value % list.length]
+        testBadgeIndex.value++
+        showAchievementPopup.value = true
+    }
+
+    function onGlobalKeydown(e: KeyboardEvent) {
+        // nur Space
+        if (e.code !== 'Space' && e.key !== ' ') return
+
+        const target = e.target as HTMLElement | null
+        const tag = target?.tagName
+        const isEditable =
+            target?.isContentEditable ||
+            tag === 'INPUT' ||
+            tag === 'TEXTAREA' ||
+            tag === 'SELECT'
+
+        // nicht triggern, wenn man in einem Input/Textarea tippt
+        if (isEditable) return
+
+        e.preventDefault()
+        triggerTestAchievement()
+    }
+
+    onMounted(() => {
+        window.addEventListener('keydown', onGlobalKeydown)
+    })
+
+    onUnmounted(() => {
+        window.removeEventListener('keydown', onGlobalKeydown)
     })
 
     // --- UI: Motto Edit ---
@@ -1140,23 +1443,6 @@
         // Child hat entschieden zu schließen (auch nach Pause/Resume korrekt)
         toast.value = null
         if (timeoutHandle) { clearTimeout(timeoutHandle); timeoutHandle = null }
-    }
-
-    // --- Activity Controls (ohne Backend) ---
-    function addTodayWorkout() {
-        if (!activity.value.length) activity.value = [0]
-        activity.value[activity.value.length - 1]++
-    }
-    function undoTodayWorkout() {
-        if (!activity.value.length) return
-        activity.value[activity.value.length - 1] = Math.max(0, activity.value[activity.value.length - 1] - 1)
-    }
-    function extendHistory() {
-        // prepend 7 "0"-Tage an den Anfang, um Historie zu verlängern
-        activity.value = Array(7).fill(0).concat(activity.value)
-    }
-    function resetActivity() {
-        activity.value = [0, 0, 0, 0, 0, 0, 0]
     }
 
     // --- Goal Controls (ohne Backend) ---
@@ -1295,6 +1581,38 @@
         router.push({ name: 'home' })
     }
 
+    const fullEmail = computed(() => auth.user?.email || localStorage.getItem(LS_KEYS.email) || '');
+
+    const shortEmail = computed(() => {
+        const email = fullEmail.value;
+        if (!email) return '—';
+
+        const atIndex = email.indexOf('@');
+        if (atIndex === -1) {
+            // Fallback, wenn es keine echte Mail ist → wie vorher
+            return email.length <= 3 ? email : email.slice(0, 3) + '…';
+        }
+
+        const local = email.slice(0, atIndex);
+        const rest = email.slice(atIndex + 1);
+
+        const lastDot = rest.lastIndexOf('.');
+        if (lastDot === -1) {
+            // keine TLD gefunden → nur local kürzen + Rest lassen
+            const shortLocal = local.length <= 3 ? local : local.slice(0, 3) + '…';
+            return `${shortLocal}@${rest}`;
+        }
+
+        const domainName = rest.slice(0, lastDot);   // zwischen @ und letztem Punkt
+        const tld = rest.slice(lastDot);             // inkl. Punkt, z.B. ".com"
+
+        const shortLocal = local.length <= 3 ? local : local.slice(0, 3) + '…';
+        const shortDomain = domainName.length <= 3 ? domainName : domainName.slice(0, 3) + '…';
+
+        return `${shortLocal}@${shortDomain}${tld}`;
+    });
+    // --- Identity / Initials ---
+
     // --- Identity / Initials ---
     const initials = computed(() => {
         const email = auth.user?.email || localStorage.getItem(LS_KEYS.email) || ''
@@ -1309,6 +1627,8 @@
     watch(activity, v => saveJSON(LS_KEYS.activity, v), { deep: true })
     watch(progress, v => saveJSON(LS_KEYS.progress, v), { deep: true })
     watch(favoriteTimers, v => localStorage.setItem(LS_KEYS.favorites, String(v)))
+    watch(earnedBadges, v => saveJSON(LS_KEYS.earnedBadges, v), { deep: true })
+
     onMounted(() => {
         // Falls memberSince noch nicht gesetzt, einmalig setzen
         if (!localStorage.getItem(LS_KEYS.memberSince)) {
@@ -1341,7 +1661,6 @@
         } as any
     }
 
-
     // --- Helpers ---
     function sumLastDays(arr: number[], days: number) {
         const slice = arr.slice(-days)
@@ -1355,14 +1674,23 @@
         }
         return s
     }
-    function loadJSON<T>(key: string, fallback: T): T {
-        try {
-            const raw = localStorage.getItem(key)
-            return raw ? JSON.parse(raw) as T : fallback
-        } catch { return fallback }
-    }
-    function saveJSON(key: string, val: unknown) {
-        localStorage.setItem(key, JSON.stringify(val))
+    function buildTrainingsFromActivity(days: number[]): TrainingEntry[] {
+        const result: TrainingEntry[] = []
+        const today = Date.now()
+        const DAY_MS = 86400000
+
+        // days[-1] = heute, days[-2] = gestern usw.
+        for (let i = 0; i < days.length; i++) {
+            const count = days[days.length - 1 - i] ?? 0
+            if (!count) continue
+
+            const iso = new Date(today - i * DAY_MS).toISOString()
+            for (let j = 0; j < count; j++) {
+                result.push({ date: iso, type: 'mixed' })
+            }
+        }
+
+        return result
     }
 </script>
 
@@ -1403,7 +1731,14 @@
         box-shadow: 0 4px 12px rgba(0,0,0,.15);
         overflow: hidden; /* Bild bleibt im Kreis */
     }
-
+    .achievement-icon-img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        display: block;
+        border-radius: 10px;
+        box-shadow: 0 3px 8px rgba(15, 23, 42, 0.55);
+    }
     .title {
         font-size: 1.7rem;
         margin: 0 0 .2rem;
@@ -1511,6 +1846,7 @@
             align-items: flex-start;
         }
     }
+
     .card {
         position: relative;
         overflow: hidden;
@@ -1537,6 +1873,13 @@
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
+    html.dark-mode .achievement-popup {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60% ), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+
     @media (hover: hover) {
         .card:hover {
             transform: translateY(-3px) scale(1.01);
@@ -1553,6 +1896,7 @@
         align-items: center;
         gap: .5rem;
     }
+
     .image-viewer-stage {
         max-width: 90vw;
         max-height: 90vh;
@@ -1583,16 +1927,16 @@
         border-radius: 16px;
     }
 
-    .card.stat > .stat-icon {
-        flex-shrink: 0;
-    }
+        .card.stat > .stat-icon {
+            flex-shrink: 0;
+        }
 
-    .card.stat > div:last-child {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start; /* Text linksbündig */
-        gap: .15rem;
-    }
+        .card.stat > div:last-child {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* Text linksbündig */
+            gap: .15rem;
+        }
 
 
     .stat-icon {
@@ -1620,33 +1964,6 @@
     }
 
 
-    /* Lists */
-    .list {
-        padding: 0;
-        margin: .25rem 0 0;
-        list-style: none;
-        display: grid;
-        gap: .55rem
-    }
-
-        .list li {
-            display: flex;
-            justify-content: space-between;
-            gap: 1rem
-        }
-
-    .key {
-        color: var(--text-secondary)
-    }
-
-    .val.badge {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        padding: .15rem .6rem;
-        border-radius: 999px;
-        font-weight: 600;
-    }
-
     /* Goals */
     .goals {
         display: grid;
@@ -1656,7 +1973,9 @@
     /* auch für Profil-Check und Wochenziel */
     .goal {
         width: 100%;
+        margin-bottom: 1.1rem; /* Abstand zwischen den einzelnen Ziel-Items */
     }
+
 
     .goal-top {
         display: flex;
@@ -1728,17 +2047,155 @@
         font-size: .9rem;
         color: var(--text-secondary)
     }
-    /* ADD: Donut-Styles */
-    .donut-wrap {
-        display: grid;
-        place-items: center;
-        gap: .35rem;
+
+    .weekly-goal-card {
+        width: 100%;
+        max-width: none;
+        margin-inline: 0;
     }
 
-    .donut {
-        width: 120px;
-        height: 120px;
+    .weekly-goal-inner {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start; /* Cluster links */
+        gap: 1.6rem;
+        width: 100%;
+        margin: .25rem 0 .1rem;
     }
+
+    .weekly-goal-side {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: .3rem;
+        text-align: left;
+    }
+
+    .motto-add-label {
+        display: inline-block;
+    }
+
+    /* Unter 500px: Text ausblenden, stattdessen nur ein Plus anzeigen */
+    @media (max-width: 500px) {
+        .motto-add-label {
+            font-size: 0; /* Text unsichtbar machen */
+        }
+
+            .motto-add-label::before {
+                content: "+"; /* sichtbares Plus */
+                font-size: 1.05rem; /* normale Größe */
+                font-weight: 700;
+                line-height: 1;
+            }
+    }
+
+    .weekly-goal-line {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .weekly-goal-controls {
+        justify-content: flex-start;
+        margin-top: .7rem;
+    }
+
+    @media (max-width: 600px) {
+        .weekly-goal-inner {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .weekly-goal-side {
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .weekly-goal-controls {
+            justify-content: flex-start;
+        }
+    }
+
+    /* ADD: kleine Info unter dem Wochenziel */
+    .weekly-goal-footer {
+        margin-top: .6rem;
+        font-size: .8rem;
+        color: var(--text-secondary);
+    }
+
+    .weekly-goal-auto-hint {
+        opacity: .9;
+    }
+
+    @media (max-width: 600px) {
+        .weekly-goal-inner {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .weekly-goal-side {
+            align-items: center;
+            text-align: center;
+        }
+
+        .weekly-goal-status-pill {
+            white-space: normal;
+            text-align: center;
+        }
+
+        .weekly-goal-controls {
+            justify-content: flex-start;
+        }
+    }
+
+    /* Donut-Styles */
+    .donut {
+        width: 130px;
+        height: 130px;
+    }
+
+    .donut-bg {
+        fill: none;
+        stroke: var(--bg-secondary);
+        stroke-width: 3;
+    }
+
+    .donut-fg {
+        fill: none;
+        stroke: var(--accent-primary);
+        stroke-width: 3.6;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+    }
+
+    .donut-label {
+        font-weight: 800;
+        font-size: 1rem;
+        fill: var(--text-primary);
+    }
+
+
+    .donut-legend {
+        font-size: .9rem;
+        color: var(--text-secondary);
+    }
+
+    .weekly-goal-controls {
+        justify-content: flex-end;
+        margin-top: .7rem;
+    }
+
+    @media (max-width: 720px) {
+        .weekly-goal-body {
+            align-items: flex-start;
+        }
+
+        .weekly-goal-controls {
+            justify-content: flex-start;
+        }
+    }
+
 
     .donut-bg {
         fill: none;
@@ -1784,6 +2241,7 @@
         font-size: .85rem;
         color: var(--text-secondary)
     }
+
     .image-viewer-overlay {
         position: fixed;
         inset: 0;
@@ -1792,10 +2250,12 @@
         background: rgba(0,0,0,.75);
         z-index: 2000
     }
+
     .name-text,
     .email-text {
         cursor: pointer;
     }
+
     .image-viewer-img {
         max-width: 90vw;
         max-height: 90vh;
@@ -1933,6 +2393,7 @@
         position: relative;
         display: inline-block;
     }
+
     .avatar {
         -webkit-touch-callout: none;
         user-select: none;
@@ -1945,6 +2406,8 @@
             user-select: none;
             pointer-events: none; /* Bild selbst fängt keine Klicks/Long-Press ab */
         }
+
+
     .avatar-plus:hover {
         transform: translateY(-1px);
     }
@@ -2000,6 +2463,7 @@
         .avatar.clickable:hover::after {
             background: rgba(0,0,0,.06);
         }
+
     .shortcuts-overlay {
         position: fixed;
         inset: 0;
@@ -2026,6 +2490,7 @@
         margin-bottom: .5rem;
         font-weight: 700;
     }
+
     .motto-card .motto-row {
         margin-top: .25rem;
         gap: .6rem;
@@ -2053,6 +2518,7 @@
         border-radius: 8px;
         cursor: pointer;
     }
+
     .sc-list {
         margin: 0;
         padding-left: 1.1rem;
@@ -2078,11 +2544,96 @@
         pointer-events: none;
     }
 
+    .list {
+        padding: 0;
+        margin: .25rem 0 0;
+        list-style: none;
+        display: grid;
+        gap: .55rem;
+    }
 
-    /* Zeilen vertikal mittig halten */
-    .list li {
-        align-items: center;
-        min-height: 42px; /* stabiler Row-Height */
+        .list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            min-height: 42px; /* stabiler Row-Height */
+        }
+
+    /* Name-Zeile: Label links, Wert + Stift ganz rechts */
+    .about-name-row {
+        justify-content: flex-start; /* nicht mehr global space-between erzwingen */
+    }
+
+        /* Stift-Icon im Name-Edit-Button klar anzeigen */
+        .about-name-row .name-val .fa-pen {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            display: inline-block;
+        }
+
+
+    .key {
+        color: var(--text-secondary);
+    }
+
+    /* Werte-Spalte darf schrumpfen & umbrechen */
+    .val {
+        flex: 1;
+        min-width: 0;
+        text-align: right;
+    }
+
+    @media (max-width: 425px) {
+        /* Name-Zeile: Label + Wert dürfen umbrechen */
+        .about-name-row {
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+            /* Label kann normal links bleiben, muss nicht volle Breite erzwingen */
+            .about-name-row .key {
+                flex: 0 0 auto;
+            }
+
+            /* Nur im Edit-Mode: Input + Button untereinander, volle Breite, links */
+            .about-name-row .name-val.is-editing {
+                flex-direction: column;
+                align-items: stretch;
+                gap: .35rem;
+                margin-left: 0;
+                flex-basis: 100%;
+                justify-content: flex-start;
+            }
+
+            .about-name-row .name-input {
+                width: 100%;
+                max-width: 100%;
+            }
+    }
+
+
+    /* speziell für lange E-Mails: immer umbrechbar */
+    .email-text {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer; /* bleibt klickbar für Popup */
+    }
+
+    .val.badge {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        padding: .15rem .6rem;
+        border-radius: 999px;
+        font-weight: 600;
+        /* wieder wie vorher: kompakter Pill, nicht mit .val mitwachsen */
+        flex: 0 0 auto;
+        min-width: auto;
+        text-align: center;
+        white-space: nowrap;
     }
 
     .name-val {
@@ -2114,15 +2665,20 @@
     @media (max-width: 360px) {
         .name-val {
             flex-wrap: wrap;
-            justify-content: flex-start;
+            justify-content: flex-end; /* Werte rechtsbündig halten */
+            align-items: flex-end;
             gap: .4rem .6rem;
+            text-align: right;
         }
+
+            .name-val > * {
+                text-align: right; /* Text und Button rechts ausrichten */
+            }
 
         .name-text {
             max-width: 100%;
         }
     }
-
 
     .image-viewer-overlay {
         overscroll-behavior: contain;
@@ -2180,6 +2736,7 @@
     .image-viewer-stage {
         touch-action: none; /* verhindert Scroll/Rubberband, ohne die Seiten-Scrollbar zu verstecken */
     }
+
     .profile > section.card:nth-of-type(2) {
         /* extra Abstand zwischen Profil-Check (1) und Wochenziel (2) */
         margin-top: 1.0rem;
@@ -2203,6 +2760,190 @@
             font-size: 1.4rem;
         }
     }
+
+    /* === Achievement Popup (card style) === */
+
+    /* Backdrop: leicht dunkel + Blur, wie ein fokussierter Overlay */
+    .achievement-popup-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2050;
+    }
+
+    /* Popup selbst: im Prinzip eine .card mit gleichen Gradients & Shadow */
+    .achievement-popup {
+        position: relative;
+        width: min(420px, 94vw);
+        padding: 1.4rem 1.5rem;
+        border-radius: 18px;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        animation: achievement-pop-in 0.24s ease-out;
+    }
+
+    /* Header mit Pill + Close-Button */
+    .achievement-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: .8rem;
+    }
+
+    .name-edit-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .25rem;
+        padding: .25rem .6rem;
+        border-radius: 999px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-size: .85rem;
+        font-weight: 600;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    /* ADD: Label für Name-Button */
+    .name-edit-label {
+        margin-left: .25rem;
+    }
+
+    /* Unter 360px: nur noch Stift, kein Text */
+    @media (max-width: 360px) {
+        .name-edit-label {
+            display: none;
+        }
+    }
+
+
+        .name-edit-btn i {
+            font-size: .9rem;
+        }
+
+    /* auf sehr schmalen Screens etwas kompakter */
+    @media (max-width: 360px) {
+        .name-edit-btn {
+            padding: .2rem .45rem;
+        }
+    }
+
+    .achievement-pill {
+        font-size: .75rem;
+        padding: .22rem .65rem;
+        border-radius: 999px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .achievement-close {
+        border: 0;
+        background: transparent;
+        color: var(--text-secondary);
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        font-size: 1.1rem;
+        cursor: pointer;
+    }
+
+        .achievement-close:hover {
+            background: rgba(148, 163, 184, 0.15);
+        }
+
+    /* Body: Icon links, Text rechts – wie deine Quick-Stats Card */
+    .achievement-body {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.1rem;
+    }
+
+    /* Icon-Stil angelehnt an .stat-icon */
+    .achievement-icon {
+        width: 54px;
+        height: 54px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--accent-primary) 35%, transparent), transparent 55%), color-mix(in srgb, #020617 90%, var(--bg-card) 10%);
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.45);
+        color: var(--accent-primary);
+        font-size: 1.6rem;
+    }
+
+    .achievement-text h4 {
+        margin: 0 0 .2rem;
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+
+    .achievement-text p {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.35;
+        font-size: .92rem;
+    }
+
+    /* REPLACE in <style scoped> */
+    .achievement-cta {
+        width: 100%;
+        border: 0;
+        padding: .7rem 1rem;
+        border-radius: 12px;
+        background: linear-gradient( 135deg, color-mix(in srgb, var(--accent-primary) 55%, #020617 45%), color-mix(in srgb, var(--accent-secondary) 55%, #020617 45%) );
+        color: #f9fafb;
+        font-weight: 700;
+        font-size: .98rem;
+        cursor: pointer;
+        box-shadow: 0 14px 32px rgba(15, 23, 42, .7);
+        text-align: center;
+        transition: transform .08s ease, box-shadow .15s ease, filter .15s ease;
+    }
+
+        .achievement-cta:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.06);
+            box-shadow: 0 18px 42px rgba(15, 23, 42, .85);
+        }
+
+    /* Leichter Pop-In, passend zu deinem Card-Hover-Feeling */
+    @keyframes achievement-pop-in {
+        from {
+            transform: translateY(10px) scale(.96);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+        
+    }
+
+    /* Kleines Responsive-Finetuning */
+    @media (max-width: 480px) {
+        .achievement-popup {
+            padding: 1.1rem 1.1rem;
+        }
+
+        .achievement-body {
+            gap: .8rem;
+        }
+    }
+
 
 </style>
 

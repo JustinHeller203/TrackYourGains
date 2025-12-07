@@ -9,23 +9,27 @@
             <input ref="currentRef"
                    v-model="form.current"
                    type="password"
-                   class="edit-input"
-                   @keydown.enter.prevent="$emit('save', form)" />
+                   class="input"
+                   placeholder="••••••••"
+                   @keydown.enter.prevent="onSave" />
 
             <label class="label">Neues Passwort</label>
             <input v-model="form.next"
                    type="password"
-                   class="edit-input"
-                   @keydown.enter.prevent="$emit('save', form)" />
+                   class="input"
+                   placeholder="Mind. 8 Zeichen"
+                   @keydown.enter.prevent="onSave" />
 
             <label class="label">Neues Passwort (wiederholen)</label>
             <input v-model="form.repeat"
                    type="password"
-                   class="edit-input"
-                   @keydown.enter.prevent="$emit('save', form)" />
+                   class="input"
+                   placeholder="Noch einmal eingeben"
+                   @keydown.enter.prevent="onSave" />
 
             <p v-if="error" class="form-error">{{ error }}</p>
         </div>
+
 
         <!-- Footer-Buttons -->
         <template #actions>
@@ -83,9 +87,29 @@
 </script>
 
 <style scoped>
+    .form-grid {
+        display: grid;
+        gap: .6rem;
+    }
+
+    .label {
+        font-size: .9rem;
+        color: var(--text-secondary);
+    }
+
+    /* Input-Style wie bei den Profil-Cards */
+    .input {
+        width: 100%;
+        padding: .6rem .7rem;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
     .form-error {
-        color: rgba(220, 38, 38, 0.95);
-        font-size: 0.9rem;
-        margin-top: 0.5rem;
+        margin-top: .2rem;
+        color: rgba(220, 38, 38, .95);
+        font-size: .9rem;
     }
 </style>

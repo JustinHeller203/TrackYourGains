@@ -3,14 +3,23 @@
                title="E-Mail ändern"
                variant="email-change-popup"
                @cancel="$emit('cancel')">
-        <div class="form-grid">
-            <label class="label">Neue E-Mail</label>
-            <input ref="emailRef" v-model.trim="email" type="email" class="edit-input" placeholder="dein.name@mail.com" />
+        <div class="email-popup-card">
+            <div class="form-grid">
+                <label class="label">Neue E-Mail</label>
+                <input ref="emailRef"
+                       v-model.trim="email"
+                       type="email"
+                       class="input"
+                       placeholder="dein.name@mail.com" />
 
-            <label class="label">Passwort zur Bestätigung</label>
-            <input v-model="password" type="password" class="edit-input" placeholder="••••••••" />
+                <label class="label">Passwort zur Bestätigung</label>
+                <input v-model="password"
+                       type="password"
+                       class="input"
+                       placeholder="••••••••" />
 
-            <p v-if="error" class="form-error">{{ error }}</p>
+                <p v-if="error" class="form-error">{{ error }}</p>
+            </div>
         </div>
 
         <template #actions>
@@ -18,6 +27,7 @@
             <PopupSaveButton @click="onSave">Speichern</PopupSaveButton>
         </template>
     </BasePopup>
+
 </template>
 
 <script setup lang="ts">
@@ -49,8 +59,47 @@ function onSave() {
 </script>
 
 <style scoped>
+    /* Wrapper nur noch für Abstände – kein eigener Card-Rand mehr */
+    .email-popup-card {
+        padding: 0;
+        margin: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        border-radius: 0;
+    }
+
+    /* gleiche Grid-Optik wie bei den anderen Formularen */
+    .form-grid {
+        display: grid;
+        gap: .6rem;
+    }
+
+    .label {
+        font-size: .9rem;
+        color: var(--text-secondary);
+    }
+
+    /* Input-Style wie bei den Profil-Cards */
+    .input {
+        width: 100%;
+        padding: .6rem .7rem;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
     .form-error {
-        color: rgba(220,38,38,.95);
+        margin-top: .2rem;
+        color: rgba(220, 38, 38, .95);
         font-size: .9rem;
     }
+
+    html.dark-mode .email-popup-card {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+    }
+
 </style>

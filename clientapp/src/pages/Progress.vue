@@ -3953,13 +3953,13 @@ Notiz: ${e.note ?? '-'}\n`
         font-family: 'Inter', sans-serif;
         color: var(--text-primary);
         overflow-x: hidden;
-        /* Premium Dashboard Background – wie Landing/Training */
-        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 11%, transparent), transparent 56% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 9%, transparent), transparent 60% ), linear-gradient( 135deg, color-mix(in srgb, var(--bg-primary) 88%, #020617 12%), color-mix(in srgb, var(--bg-primary) 74%, #020617 26%) );
+        /* kein eigener Verlauf hier, damit der Seiten-Background durchgeht */
+        background: transparent;
     }
 
-    /* Dark Mode Version – konsistent mit Training/Landing */
+    /* Dark Mode soll auch keinen eigenen Background setzen */
     html.dark-mode .progress {
-        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 22%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 14%, transparent), transparent 62% ), #020617;
+        background: transparent;
     }
     /* Canvas nie breiter als der Container */
     .chart-canvas {

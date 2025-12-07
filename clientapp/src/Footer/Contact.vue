@@ -114,41 +114,36 @@
         gap: 1.5rem;
         margin-bottom: 2.5rem;
     }
+
     .contact-card {
-        border-radius: 12px;
-        padding: 1.25rem 1.3rem;
-        background: var(--bg-card);
-        box-shadow: var(--shadow);
-        border: 1px solid rgba(148, 163, 184, 0.4);
-        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        padding: 1.6rem 1.8rem;
+        border-radius: 18px;
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     }
 
     @media (hover: hover) {
         .contact-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-hover);
-            border-color: rgba(148, 163, 184, 0.7);
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.55);
         }
     }
 
-        .contact-card::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.18), transparent 55%);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.35s ease;
-        }
-        .contact-card h2 {
-            font-size: 1.1rem;
-            margin-bottom: 0.6rem;
-        }
+    html.dark-mode .contact-card {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60% ), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
 
-        .contact-card p {
-            margin-bottom: 0.5rem;
-        }
     .contact-card h2 {
         font-size: 1.1rem;
         margin-bottom: 0.6rem;
@@ -157,6 +152,7 @@
     .contact-card p {
         margin-bottom: 0.45rem;
     }
+
     .contact-list {
         margin: 0.5rem 0 0.75rem;
         padding-left: 1.2rem;
