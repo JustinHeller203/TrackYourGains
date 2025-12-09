@@ -740,8 +740,6 @@
         background: transparent; /* Body-Gradient überall sichtbar */
     }
 
-    /* Kompakteres, dezentes Burger-Icon */
-    /* Kompakteres, dezentes Burger-Icon */
     .burger-menu {
         display: none; /* wird nur im Mobile-Viewport sichtbar */
         width: 32px;

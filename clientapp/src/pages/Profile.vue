@@ -411,31 +411,39 @@
                 ×
             </button>
 
-            <div v-if="showShortcuts && !isMobile" class="shortcuts-overlay" @click.self="showShortcuts = false">
-                <div class="sc-card" role="dialog" aria-modal="true" aria-label="Bild-Shortcuts">
-                    <div class="sc-head">
-                        <strong>Shortcuts</strong>
-                        <button class="sc-x"
-                                @click="showShortcuts = false"
-                                :aria-label="scCloseTitle"
-                                :title="scCloseTitle">
-                            ×
-                        </button>
-                    </div>
-                    <ul class="sc-list">
-                        <li><kbd>+</kbd> – Zoom in</li>
-                        <li><kbd>−</kbd> / <kbd>Strg</kbd>+<kbd>−</kbd> / <kbd>⌘</kbd>+<kbd>−</kbd> – Zoom out</li>
-                        <li><kbd>Strg</kbd>+<kbd>Z</kbd> / <kbd>⌘</kbd>+<kbd>Z</kbd> – Reset (Position &amp; Zoom)</li>
-                        <li><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> – Pan (mit <kbd>Alt</kbd> fein, <kbd>Shift</kbd> schnell)</li>
-                        <li><kbd>Doppelklick</kbd> – Zoom in (mit <kbd>Shift</kbd> = Zoom out)</li>
-                        <li><kbd>Mausrad/Trackpad</kbd> – Zoom zum Cursor</li>
-                        <li><kbd>Leertaste</kbd> – sanft nach unten bewegen</li>
-                        <li><kbd>H</kbd> / <kbd>?</kbd> – Shortcuts ein/aus</li>
-                        <li><kbd>Esc</kbd> – Viewer schließen</li>
-                    </ul>
+            <!-- REPLACE in Profile.vue (ShortcardPopup-Tag) -->
+            <ShortcardPopup :show="showShortcuts && !isMobile"
+                            :showActions="false"
+                            overlayClass="shortcuts-overlay"
+                            @cancel="showShortcuts = false">
+                <div class="sc-head">
+                    <span>Bild-Shortcuts</span>
+                    <button class="sc-x"
+                            type="button"
+                            :title="scCloseTitle"
+                            :aria-label="scCloseTitle"
+                            @click="showShortcuts = false">
+                        ×
+                    </button>
                 </div>
-            </div>
 
+                <ul class="sc-list">
+                    <li><kbd>+</kbd> – Zoom in</li>
+                    <li><kbd>−</kbd> / <kbd>Strg</kbd>+<kbd>−</kbd> / <kbd>⌘</kbd>+<kbd>−</kbd> – Zoom out</li>
+                    <li><kbd>Strg</kbd>+<kbd>Z</kbd> / <kbd>⌘</kbd>+<kbd>Z</kbd> – Reset (Position &amp; Zoom)</li>
+                    <li>
+                        <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> – Pan
+                        (mit <kbd>Alt</kbd> fein, <kbd>Shift</kbd> schnell)
+                    </li>
+                    <li>
+                        <kbd>Doppelklick</kbd> – Zoom in (mit <kbd>Shift</kbd> = Zoom out)
+                    </li>
+                    <li><kbd>Mausrad/Trackpad</kbd> – Zoom zum Cursor</li>
+                    <li><kbd>Leertaste</kbd> – sanft nach unten bewegen</li>
+                    <li><kbd>H</kbd> / <kbd>?</kbd> – Shortcuts ein/aus</li>
+                    <li><kbd>Esc</kbd> – Viewer schließen</li>
+                </ul>
+            </ShortcardPopup>
         </div>
 
         <!-- Achievement-Popup -->
@@ -461,7 +469,7 @@
                     </div>
                     <div class="achievement-text">
                         <h4>{{ latestAchievement?.label }}</h4>
-                        <p>{{ latestAchievement?.desc }}</p> 
+                        <p>{{ latestAchievement?.desc }}</p>
                     </div>
                 </div>
 
@@ -500,6 +508,7 @@
     import EditInput from '@/components/ui/buttons/EditInput.vue'
     import Draggable from 'vuedraggable'
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
+    import ShortcardPopup from '@/components/ui/popups/ShortcardPopup.vue'
     import { useAutoGoals, type AutoGoalResult, type TrainingEntry } from '@/composables/useAutoGoals'
 
     function loadJSON<T>(key: string, fallback: T): T {
@@ -1708,14 +1717,6 @@
         gap: 1.25rem;
         margin-bottom: 2rem;
     }
-    /* ADD: Mini-Controls pro Goal */
-    .mini-controls {
-        display: flex;
-        gap: .35rem;
-        margin-top: .4rem;
-        margin-bottom: 1rem; /* mehr Abstand zum nächsten Ziel */
-        flex-wrap: wrap;
-    }
 
     .avatar.ring {
         width: 80px;
@@ -1758,7 +1759,7 @@
         flex-wrap: wrap;
         gap: .5rem;
     }
-
+      
     /* Buttons */
     .btn {
         border: 0;
@@ -1963,13 +1964,6 @@
         white-space: nowrap;
     }
 
-
-    /* Goals */
-    .goals {
-        display: grid;
-        gap: .85rem;
-    }
-
     /* auch für Profil-Check und Wochenziel */
     .goal {
         width: 100%;
@@ -2030,23 +2024,6 @@
         color: var(--text-secondary)
     }
 
-    .activity-controls {
-        margin-top: .7rem;
-        display: flex;
-        gap: .4rem;
-        flex-wrap: wrap
-    }
-
-    /* Form / Popups */
-    .form-grid {
-        display: grid;
-        gap: .6rem
-    }
-
-    .label {
-        font-size: .9rem;
-        color: var(--text-secondary)
-    }
 
     .weekly-goal-card {
         width: 100%;
@@ -2096,10 +2073,6 @@
         color: var(--text-primary);
     }
 
-    .weekly-goal-controls {
-        justify-content: flex-start;
-        margin-top: .7rem;
-    }
 
     @media (max-width: 600px) {
         .weekly-goal-inner {
@@ -2110,10 +2083,6 @@
         .weekly-goal-side {
             align-items: flex-start;
             text-align: left;
-        }
-
-        .weekly-goal-controls {
-            justify-content: flex-start;
         }
     }
 
@@ -2323,27 +2292,45 @@
         z-index: 2100; /* über Stage, unter Close-Button passt auch */
     }
 
+    /* Viewer-Control Buttons – angepasst an dein Card/Stat-Design */
     .vc-btn {
-        min-width: 36px;
-        height: 36px;
-        padding: 0 .6rem;
-        border: 1px solid var(--border-color);
-        background: var(--bg-card);
-        color: var(--text-primary);
-        border-radius: 10px;
+        min-width: 38px;
+        height: 38px;
+        padding: 0 .65rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
         font-weight: 700;
+        font-size: 1.05rem;
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 20%, transparent), transparent 55% ), color-mix(in srgb, var(--bg-card) 92%, #020617 8%);
+        color: var(--text-primary);
+        box-shadow: 0 10px 26px rgba(0,0,0,.25);
         cursor: pointer;
-        box-shadow: 0 4px 14px rgba(0,0,0,.2);
-        transition: transform .08s ease, box-shadow .2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform .12s ease, box-shadow .18s ease, filter .2s ease;
     }
 
         .vc-btn:hover {
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            filter: brightness(1.08);
+            box-shadow: 0 14px 36px rgba(0,0,0,.38);
         }
 
         .vc-btn:active {
             transform: translateY(0);
+            filter: brightness(0.94);
+            box-shadow: 0 8px 20px rgba(0,0,0,.22);
         }
+
+    /* Darkmode: matcht deine Cards + Stats */
+    html.dark-mode .vc-btn {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 22%, transparent), transparent 55% ), #0f172a;
+        border-color: rgba(148,163,184,.45);
+        box-shadow: 0 12px 32px rgba(0,0,0,.55);
+        color: #f1f5f9;
+    }
+
 
     .avatar-plus {
         position: absolute;
@@ -2473,16 +2460,6 @@
         background: rgba(0,0,0,.25);
     }
 
-    .sc-card {
-        width: min(520px, 92vw);
-        background: var(--bg-card);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        box-shadow: 0 12px 36px rgba(0,0,0,.45);
-        padding: .9rem 1rem;
-    }
-
     .sc-head {
         display: flex;
         align-items: center;
@@ -2500,12 +2477,6 @@
         flex: 1;
         margin: 0;
         font-style: italic;
-        color: var(--text-secondary);
-    }
-
-    .motto-hint {
-        margin: .6rem 0 0;
-        font-size: .85rem;
         color: var(--text-secondary);
     }
 
@@ -2564,14 +2535,6 @@
     .about-name-row {
         justify-content: flex-start; /* nicht mehr global space-between erzwingen */
     }
-
-        /* Stift-Icon im Name-Edit-Button klar anzeigen */
-        .about-name-row .name-val .fa-pen {
-            font-size: 0.9rem;
-            color: var(--text-primary);
-            display: inline-block;
-        }
-
 
     .key {
         color: var(--text-secondary);
@@ -2943,7 +2906,4 @@
             gap: .8rem;
         }
     }
-
-
 </style>
-
