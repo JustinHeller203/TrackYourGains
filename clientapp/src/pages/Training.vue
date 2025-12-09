@@ -3695,19 +3695,6 @@
         align-items: stretch; /* Kinder dürfen volle Breite nutzen */
     }
 
-    .preview-card {
-        position: sticky;
-        top: .75rem; /* bleibt beim Scrollen sichtbar */
-        contain: inline-size; /* Inhalt beeinflusst keine äußere Breite */
-        overflow-x: visible;
-        /* Landingpage-Card-Feeling */
-        border-radius: 18px;
-        padding: 1.5rem 1.7rem;
-        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
-        border: 1px solid rgba(148, 163, 184, 0.26);
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
-        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-    }
 
     /* Hover wie stat-card / feature-card */
     @media (hover: hover) {
@@ -3725,38 +3712,6 @@
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
-
-    .preview-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: .5rem;
-    }
-
-        .preview-head h4 {
-            margin: 0;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-    .preview-card .muted {
-        color: var(--text-secondary);
-        font-size: .85rem;
-    }
-
-    .empty-preview {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column; /* Inhalt wird sauber vertikal gestapelt */
-        text-align: center; /* Text bei Zeilenumbruch wirklich mittig */
-        min-height: 160px;
-        background: var(--bg-secondary);
-        border: 1px dashed var(--border-color);
-        color: var(--text-secondary);
-        border-radius: 10px;
-    }
     /* Stelle sicher: mittlere Spalte darf schrumpfen */
     .plan-item > .plan-row1 {
         display: grid !important;
@@ -3859,22 +3814,154 @@
             min-width: 100%;
         }
 
-    .exercise-table.full-width.compact table {
-        width: 100%;
+    /* === Live-Preview: Card im Stil von form-card/timer-card === */
+
+    .preview-card {
+        position: sticky;
+        top: .75rem;
+        contain: inline-size;
+        overflow-x: visible;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        border-radius: 20px;
+        padding: 1.35rem 1.55rem;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     }
 
-    .exercise-table.full-width.compact th,
-    .exercise-table.full-width.compact td {
-        padding: .75rem;
-        font-size: .92rem;
+    /* Kopf: dezentes Label + Counter rechts */
+    .preview-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.15rem;
     }
 
-    .exercise-table.full-width.compact thead th {
-        background: #f1f5f9;
+        .preview-head h4 {
+            margin: 0;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+    .preview-card .muted {
+        font-size: 0.78rem;
+        padding: 0.1rem 0.7rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--bg-card) 88%, #0f172a 12%);
+        border: 1px solid rgba(148, 163, 184, 0.5);
     }
 
-    html.dark-mode .exercise-table.full-width.compact thead th {
-        background: #0d1117;
+    .empty-preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        min-height: 150px;
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        /* kein eigener grauer Kasten mehr → zeigt direkt den lila/blauen Preview-Hintergrund */
+        background: transparent;
+        /* Rahmen im Accent-Look statt langweiligem Grau */
+        border: 1px dashed color-mix(in srgb, var(--accent-primary) 55%, rgba(148, 163, 184, 0.5) 45%);
+        box-shadow: none;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    /* === Live-Preview Tabelle – nur innerhalb der Preview-Card === */
+
+    /* Table-Wrapper: wie eigene Mini-Card */
+    .preview-card .exercise-table.full-width.compact .table-scroll {
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        background: radial-gradient( circle at top, color-mix(in srgb, var(--bg-card) 98%, #0f172a 2%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%) );
+        box-shadow: 0 14px 32px rgba(15, 23, 42, 0.35);
+    }
+
+    /* Table selbst: nur so breit wie nötig, aber scrollbar */
+    .preview-card .table-scroll > table {
+        width: max-content;
+        max-width: 100%;
+        min-width: 540px;
+    }
+
+    /* Header: kompakte, „dashboardy“ Labels */
+    .preview-card .exercise-table.full-width.compact thead th {
+        background: color-mix(in srgb, var(--bg-card) 88%, #0f172a 12%);
+        border-bottom-color: rgba(148, 163, 184, 0.45);
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        letter-spacing: 0.13em;
+        font-weight: 600;
+    }
+
+    html.dark-mode .preview-card .exercise-table.full-width.compact thead th {
+        background: rgba(15, 23, 42, 0.96);
+    }
+
+    /* Zellen: schmal, aber mit genug vertikaler Luft */
+    .preview-card .exercise-table.full-width.compact th,
+    .preview-card .exercise-table.full-width.compact td {
+        padding: 0.9rem 0.65rem;
+        font-size: 0.9rem;
+        line-height: 1.28;
+        border-right-color: rgba(148, 163, 184, 0.28);
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    /* Alternierende Zeilen + Hover nur im Preview */
+    .preview-card .exercise-table.full-width.compact tbody tr:nth-child(even) {
+        background: color-mix(in srgb, var(--bg-card) 96%, #0f172a 4%);
+    }
+
+    html.dark-mode .preview-card .exercise-table.full-width.compact tbody tr:nth-child(even) {
+        background: rgba(15, 23, 42, 0.94);
+    }
+
+    .preview-card .exercise-table.full-width.compact tbody tr:hover {
+        background: color-mix(in srgb, var(--bg-card) 88%, var(--accent-primary) 12%);
+    }
+
+    /* Aktion-Spalte etwas breiter + pill Button */
+    .preview-card .exercise-table.full-width.compact td.action-cell {
+        min-width: 56px;
+    }
+
+    .preview-card .table-delete-btn {
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--bg-card) 86%, #020617 14%);
+        border: 1px solid rgba(148, 163, 184, 0.65);
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.55);
+    }
+
+    /* Mobile: kompakter + kleinere min-width */
+    @media (max-width: 560px) {
+        .preview-card {
+            position: static;
+            top: auto;
+            padding: 1.05rem 1.05rem;
+            border-radius: 16px;
+        }
+
+            .preview-card .exercise-table.full-width.compact th,
+            .preview-card .exercise-table.full-width.compact td {
+                padding: 0.8rem 0.55rem;
+                font-size: 0.88rem;
+            }
+
+            .preview-card .table-scroll > table {
+                min-width: 480px;
+            }
     }
 
     .actions-row .button-group .btn-cell > *:not(.add-exercise-btn) {
@@ -4100,11 +4187,11 @@
     }
 
 
-        .form-card:hover {
-            box-shadow: 0 24px 60px rgba(15,23,42,0.8), 0 0 0 1px rgba(191,219,254,0.5);
-            border-color: rgba(191,219,254,0.7);
-            transform: translateY(-1px);
-        }
+    .form-card:hover {
+        box-shadow: 0 24px 60px rgba(15,23,42,0.8), 0 0 0 1px rgba(191,219,254,0.5);
+        border-color: rgba(191,219,254,0.7);
+        transform: translateY(-1px);
+    }
 
     /* Dark Mode: gleiche Farbwelt, etwas satter und näher am Page-Gradient */
     html.dark-mode .form-card {
@@ -4883,6 +4970,7 @@
         html.dark-mode .timer-card[data-running="true"] .timer-display {
             box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(129, 140, 248, 0.9), 0 0 26px rgba(129, 140, 248, 0.75);
         }
+
     .timer-header {
         display: flex;
         justify-content: space-between;
@@ -6272,6 +6360,7 @@
     .custom-exercises-table .th-text {
         line-height: 1.3;
     }
+
     .list-item.plan-item {
         position: relative;
         padding: 1.35rem 1.6rem; /* etwas „cardiger“ als die Default-List-Items */
