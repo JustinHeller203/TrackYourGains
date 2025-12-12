@@ -252,7 +252,6 @@
 <style scoped>
     .landing {
         font-family: 'Inter', sans-serif;
-        /* Landing soll den globalen Hintergrund zeigen */
         background: transparent;
         scrollbar-gutter: stable;
         max-width: 100%;
@@ -319,7 +318,8 @@
         height: 420px;
         background: radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.9), transparent 60%);
         top: -120px;
-        left: -80px;
+        left: 0;
+        transform: translateX(-35%);
     }
 
     .hero::after {
@@ -327,7 +327,8 @@
         height: 380px;
         background: radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.9), transparent 60%);
         bottom: -140px;
-        right: -60px;
+        right: 0;
+        transform: translateX(35%);
         animation-delay: 2s;
     }
 
