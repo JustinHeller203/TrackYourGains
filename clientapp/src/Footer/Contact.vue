@@ -1,4 +1,6 @@
-﻿<template>
+﻿<!--Contact.vue:-->
+
+<template>
     <main class="contact-page">
         <h1>Kontakt</h1>
 

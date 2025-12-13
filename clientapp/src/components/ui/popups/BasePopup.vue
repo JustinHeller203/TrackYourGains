@@ -1,3 +1,5 @@
+<!--BasePopup.vue-->
+
 <template>
     <teleport to="body">
         <transition name="fade">
@@ -52,32 +54,31 @@
     .popup-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.55);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 2000;
+        background: rgba(2, 6, 23, 0.55);
+        display: grid;
+        place-items: center;
+        z-index: 9999;
+        padding: 1rem;
     }
 
-
-    /* Titel � vorher war das 0.25rem (!) */
     .popup-title {
         font-size: var(--popup-title-size, 1.25rem);
         line-height: 1.25;
         font-weight: 700;
         color: var(--text-primary);
-        margin-bottom: 1rem;
+        text-align: center;
+        /* mehr Luft oben */
+        padding: 2rem 1rem;
+        margin: 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
     }
 
-    /* Body � Grundschriftgr��e */
+
     .popup-body {
         font-size: var(--popup-body-size, 1rem);
+        /* wichtig: damit Slot-Content (Inputs etc.) nicht am Rand klebt */
+        padding: 1rem 1.1rem;
     }
-
-        /* === Body (slotted content styling) === */
-        .popup-body :deep(.input-group) {
-            margin-bottom: 1rem;
-        }
 
         .popup-body :deep(label) {
             display: block;
@@ -120,12 +121,14 @@
 
     /* === Actions === */
     .popup-actions {
+        padding: 1rem 1.1rem;
         display: flex;
-        gap: 0.5rem;
-        justify-content: center;
-        margin-top: 1rem;
+        justify-content: flex-end;
+        gap: 0.6rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.18);
+        background: transparent;
+        margin-top: 0; /* kill old spacing */
     }
-
     /* Fade */
     .fade-enter-active, .fade-leave-active {
         transition: opacity .18s ease;
@@ -135,25 +138,21 @@
         opacity: 0;
     }
     .popup {
-        position: relative;
-        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
-        padding: 1.4rem 1.5rem;
+        width: min(620px, 94vw);
         border-radius: 18px;
-        /* moderner, leichter Rahmen für alle Popups */
         border: 1px solid rgba(148, 163, 184, 0.45);
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
-        max-width: 460px;
-        width: 92%;
+        background: color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
         text-align: left;
         font-family: var(--popup-font-family, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
+        padding: 0; /* wichtig: wie modal-card */
     }
-
     html.dark-mode .popup-overlay .popup {
-        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60% ), #020617;
-        border: 1px solid rgba(148, 163, 184, 0.7); /* etwas kräftiger im Dark-Mode */
-        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+        background: #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        box-shadow: 0 34px 90px rgba(0, 0, 0, 0.7);
     }
-
     .popup-overlay.email-change-popup .popup {
         padding: 1.4rem 1.5rem 1.1rem;
     }

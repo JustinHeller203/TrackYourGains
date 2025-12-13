@@ -634,7 +634,8 @@
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1.5rem;
         max-width: 100%;
-        overflow-x: clip; /* ⟵ nichts ragt „außerhalb“ */
+        overflow: visible; /* Hover/Shadow nicht abschneiden */
+        padding: 0.35rem; /* kleiner “Puffer” für Glow am Rand */
     }
 
     .links-grid {
@@ -690,7 +691,7 @@
     .testimonial-card,
     .blog-card {
         will-change: transform;
-        contain: paint; /* ⟵ verhindert Einfluss nach außen */
+        contain: none; /* Shadow/Outline darf rausmalen */
     }
 
     /* Hover nur dort, wo Hover existiert (kein Mobile) */

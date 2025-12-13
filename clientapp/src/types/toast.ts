@@ -14,6 +14,7 @@ export interface Toast {
     type: ToastType;
     exiting: boolean;
     action?: ToastAction;
+    durationMs?: number;
 }
 export interface ToastAction {
     label: string;

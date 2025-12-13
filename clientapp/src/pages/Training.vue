@@ -2325,8 +2325,6 @@
         });
     };
 
-    const TOAST_DURATION = 3200; // ms
-
     const toggleFavoriteStopwatch = (id: string) => {
         const sw = props.stopwatches.find(x => x.id === id);
         if (!sw) return;
@@ -2433,7 +2431,6 @@
             type: types[type],
             exiting: false,
             createdAtMs: performance.now(),
-            durationMs: TOAST_DURATION
         };
 
         // Auto-Dismiss ausschließlich von <Toast/> steuern lassen

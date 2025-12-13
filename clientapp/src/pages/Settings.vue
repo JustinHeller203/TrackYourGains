@@ -1,4 +1,4 @@
-<!--Settings.vue--> 
+<!--Settings.vue-->
 
 <template>
     <div class="settings">
@@ -8,61 +8,189 @@
         </div>
 
         <div class="settings-grid">
-            <div class="setting-card">
-                <div class="setting-icon">🌙</div>
-                <div class="setting-content">
-                    <h3 class="setting-title">Dark Mode</h3>
-                    <p class="setting-description">Aktiviere den dunklen Modus für entspannteres Tracking</p>
-                </div>
-                <div class="setting-control">
-                    <input id="darkmode-toggle" type="checkbox" class="toggle-switch" v-model="isDarkDraft" />
-                    <label for="darkmode-toggle" class="toggle-label">
-                        <span class="toggle-text">{{ isDarkDraft ? 'AN' : 'AUS' }}</span>
-                    </label>
-                </div>
-            </div>
 
-            <div class="setting-card">
-                <div class="setting-icon">📊</div>
-                <div class="setting-content">
-                    <h3 class="setting-title">Einheiten</h3>
-                    <p class="setting-description">Wähle deine bevorzugten Maßeinheiten</p>
-                </div>
-                <div class="setting-control">
-                    <select v-model="preferredUnit" class="unit-select">
-                        <option value="kg">Kilogramm (kg)</option>
-                        <option value="lbs">Pfund (lbs)</option>
-                    </select>
-                </div>
-            </div>
+            <!-- Anzeige -->
+            <section class="settings-group">
+                <button type="button"
+                        class="group-head"
+                        @click="toggleGroup('display')"
+                        :aria-expanded="openGroups.display">
+                    <div class="group-left">
+                        <div class="group-icon">🖥️</div>
+                        <div class="group-text">
+                            <div class="group-title">Anzeige</div>
+                            <div class="group-sub">Theme, Einheiten & Look</div>
+                        </div>
+                    </div>
 
-            <div class="setting-card">
-                <div class="setting-icon">⚡️</div>
-                <div class="setting-content">
-                    <h3 class="setting-title">Auto-Berechnung</h3>
-                    <p class="setting-description">Rechner automatisch berechnen (Berechnen-Button ausblenden)</p>
-                </div>
-                <div class="setting-control">
-                    <input id="autocalc-toggle" type="checkbox" class="toggle-switch" v-model="autoCalcEnabled" />
-                    <label for="autocalc-toggle" class="toggle-label">
-                        <span class="toggle-text">{{ autoCalcEnabled ? 'AN' : 'AUS' }}</span>
-                    </label>
-                </div>
-            </div>
+                    <div class="group-right">
+                        <span class="group-chevron" :class="{ open: openGroups.display }">⌄</span>
+                    </div>
+                </button>
 
-            <div class="setting-card">
-                <div class="setting-icon">🔔</div>
-                <div class="setting-content">
-                    <h3 class="setting-title">Toast-Nachrichten</h3>
-                    <p class="setting-description">Ein-/Ausschalten von Toast-Benachrichtigungen</p>
-                </div>
-                <div class="setting-control">
-                    <input id="toasts-toggle" type="checkbox" class="toggle-switch" v-model="toastsEnabled" />
-                    <label for="toasts-toggle" class="toggle-label">
-                        <span class="toggle-text">{{ toastsEnabled ? 'AN' : 'AUS' }}</span>
-                    </label>
-                </div>
-            </div>
+                <Transition name="sg-collapse">
+
+                    <div v-show="openGroups.display" class="group-body">
+                        <div class="setting-card">
+                            <div class="setting-icon">🌙</div>
+                            <div class="setting-content">
+                                <h3 class="setting-title">Dark Mode</h3>
+                                <p class="setting-description">Aktiviere den dunklen Modus für entspannteres Tracking</p>
+                            </div>
+                            <div class="setting-control">
+                                <input id="darkmode-toggle" type="checkbox" class="toggle-switch" v-model="isDarkDraft" />
+                                <label for="darkmode-toggle" class="toggle-label">
+                                    <span class="toggle-text">{{ isDarkDraft ? 'AN' : 'AUS' }}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-card">
+                            <div class="setting-icon">📊</div>
+                            <div class="setting-content">
+                                <h3 class="setting-title">Einheiten</h3>
+                                <p class="setting-description">Wähle deine bevorzugten Maßeinheiten</p>
+                            </div>
+                            <div class="setting-control">
+                                <select v-model="preferredUnit" class="unit-select">
+                                    <option value="kg">Kilogramm (kg)</option>
+                                    <option value="lbs">Pfund (lbs)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </Transition>
+
+            </section>
+
+            <!-- System -->
+            <section class="settings-group">
+                <button type="button"
+                        class="group-head"
+                        @click="toggleGroup('system')"
+                        :aria-expanded="openGroups.system">
+                    <div class="group-left">
+                        <div class="group-icon">🧠</div>
+                        <div class="group-text">
+                            <div class="group-title">System</div>
+                            <div class="group-sub">Automationen & Sicherheit</div>
+                        </div>
+                    </div>
+
+                    <div class="group-right">
+                        <span class="group-chevron" :class="{ open: openGroups.system }">⌄</span>
+                    </div>
+                </button>
+                <Transition name="sg-collapse">
+
+                    <div v-show="openGroups.system" class="group-body">
+                        <div class="setting-card">
+                            <div class="setting-icon">⚡️</div>
+                            <div class="setting-content">
+                                <h3 class="setting-title">Auto-Berechnung</h3>
+                                <p class="setting-description">Rechner automatisch berechnen (Berechnen-Button ausblenden)</p>
+                            </div>
+                            <div class="setting-control">
+                                <input id="autocalc-toggle" type="checkbox" class="toggle-switch" v-model="autoCalcEnabled" />
+                                <label for="autocalc-toggle" class="toggle-label">
+                                    <span class="toggle-text">{{ autoCalcEnabled ? 'AN' : 'AUS' }}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-card">
+                            <div class="setting-icon">🗑️</div>
+                            <div class="setting-content">
+                                <h3 class="setting-title">Löschen bestätigen</h3>
+                                <p class="setting-description">Beim Löschen immer nachfragen (Schutz vor Fehlklicks)</p>
+                            </div>
+                            <div class="setting-control">
+                                <input id="confirm-delete-toggle"
+                                       type="checkbox"
+                                       class="toggle-switch"
+                                       v-model="confirmDeleteEnabled" />
+                                <label for="confirm-delete-toggle" class="toggle-label">
+                                    <span class="toggle-text">{{ confirmDeleteEnabled ? 'AN' : 'AUS' }}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </Transition>
+
+            </section>
+
+            <!-- Toasts -->
+            <section class="settings-group">
+                <button type="button"
+                        class="group-head"
+                        @click="toggleGroup('toast')"
+                        :aria-expanded="openGroups.toast">
+                    <div class="group-left">
+                        <div class="group-icon">🔔</div>
+                        <div class="group-text">
+                            <div class="group-title">Toasts</div>
+                            <div class="group-sub">Benachrichtigungen, Dauer & Typen</div>
+                        </div>
+                    </div>
+
+                    <div class="group-right">
+                        <span class="group-chevron" :class="{ open: openGroups.toast }">⌄</span>
+                    </div>
+                </button>
+                <Transition name="sg-collapse">
+
+                    <div v-show="openGroups.toast" class="group-body">
+                        <div class="setting-card">
+                            <div class="setting-icon">🔔</div>
+                            <div class="setting-content">
+                                <h3 class="setting-title">Toast-Nachrichten</h3>
+                                <p class="setting-description">Ein-/Ausschalten von Toast-Benachrichtigungen</p>
+                            </div>
+                            <div class="setting-control">
+                                <input id="toasts-toggle" type="checkbox" class="toggle-switch" v-model="toastsEnabled" />
+                                <label for="toasts-toggle" class="toggle-label">
+                                    <span class="toggle-text">{{ toastsEnabled ? 'AN' : 'AUS' }}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-card" v-if="toastsEnabled">
+                            <div class="setting-icon">⏳</div>
+                            <div class="setting-content">
+                                <h3 class="setting-title">Toast-Dauer</h3>
+                                <p class="setting-description">Wie lange Toasts sichtbar bleiben sollen</p>
+                            </div>
+                            <div class="setting-control">
+                                <select v-model.number="toastDurationMs" class="unit-select">
+                                    <option :value="1500">1.5s</option>
+                                    <option :value="2500">2.5s</option>
+                                    <option :value="4000">4s</option>
+                                    <option :value="6000">6s</option>
+                                    <option :value="9000">9s</option>
+                                    <option :value="12000">12s</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="setting-card" v-if="toastsEnabled">
+                            <div class="setting-icon">🧩</div>
+                            <div class="setting-content">
+                                <h3 class="setting-title">Toast-Arten</h3>
+                                <p class="setting-description">Wähle, welche Kategorien angezeigt werden (pro Toast-Typ)</p>
+                            </div>
+
+                            <div class="setting-control toast-types-control">
+                                <div class="toast-types-summary">
+                                    <button type="button" class="manage-btn" @click="openToastTypeManager">
+                                        Verwalten
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Transition>
+
+            </section>
 
         </div>
 
@@ -72,22 +200,32 @@
                                 @click="saveSettings" />
         </div>
 
+        <!-- Toast-Arten verwalten (Modal) -->
+        <ToastTypeManagerPopup :show="showToastTypeManager"
+                               :options="toastTypeOptions"
+                               :enabledMap="toastTypeEnabled"
+                               @close="closeToastTypeManager"
+                               @set-all="setAllToastTypes"
+                               @toggle="toggleToastType"
+                               @preview="previewToastType" />
+
         <Toast v-if="toast"
                :toast="toast"
                :dismissible="true"
                :autoDismiss="true"
                :position="toastPosition"
                @dismiss="onToastDismiss" />
-
     </div>
 </template>
 
+
 <script setup lang="ts">
-    import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
+    import { ref, reactive, computed, onMounted, watch, onBeforeUnmount } from 'vue'
     import { isDark, initTheme, setTheme, previewTheme } from '@/composables/useTheme'
     import { onBeforeRouteLeave } from 'vue-router'
     import Toast from '@/components/ui/Toast.vue'
     import SettingsSaveButton from '@/components/ui/buttons/SettingsSaveButton.vue'
+    import ToastTypeManagerPopup from '@/components/ui/popups/ToastTypeManagerPopup.vue'
 
     // Typen passend zu deiner Toast.vue
     type ToastType =
@@ -106,6 +244,19 @@
         exiting: boolean
         durationMs?: number
     }
+
+    type SettingsGroupKey = 'display' | 'system' | 'toast'
+
+    const openGroups = reactive<Record<SettingsGroupKey, boolean>>({
+        display: true,
+        system: true,
+        toast: true
+    })
+
+    function toggleGroup(key: SettingsGroupKey) {
+        openGroups[key] = !openGroups[key]
+    }
+
     function onToastDismiss(id: number) {
         if (toast.value?.id === id) {
             toast.value = null
@@ -115,8 +266,34 @@
     const autoCalcEnabled = ref(false)
     const allowedUnits = ['kg', 'lbs'] as const
 
+    function previewToastType(key: string) {
+        const k = key as ToastType
+
+        const msgByType: Record<ToastType, string> = {
+            'toast-default': 'Plan geladen',
+            'toast-save': 'Einstellungen gespeichert! 🎉',
+            'toast-add': 'Timer hinzugefügt',
+            'toast-delete': 'Timer gelöscht',
+            'toast-timer': 'Timername aktualisiert!',
+            'toast-reset': 'Gewichtsverlauf zurückgesetzt'
+        }
+
+        const opt = toastTypeOptions.find(o => o.key === k)
+
+        toast.value = {
+            id: Date.now(),
+            message: msgByType[k],
+            emoji: opt?.emoji ?? '🔔',
+            type: k,
+            exiting: false,
+            durationMs: toastDurationMs.value
+        }
+    }
+
     // Globale Toast-Einstellung
     const toastsEnabled = ref(true)
+
+    const toastDurationMs = ref<number>(2500)
 
     // Zentraler Toast-State für diese Seite
     const toast = ref<ToastModel | null>(null)
@@ -127,16 +304,91 @@
     const persistedTheme = ref<'dark' | 'light'>('light')
     const saved = ref(false)
 
+    const confirmDeleteEnabled = ref(true)
+
     const onToastsEnabledChanged = (e: CustomEvent<boolean>) => {
         toastsEnabled.value = !!e.detail
     }
-    window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+
+    const toastTypeOptions = [
+        { key: 'toast-default', label: 'Standard', emoji: '💬', hint: 'Allgemeine Infos & Hinweise' },
+        { key: 'toast-save', label: 'Speichern', emoji: '💾', hint: 'Wenn etwas gespeichert wurde' },
+        { key: 'toast-add', label: 'Hinzufügen', emoji: '➕', hint: 'Wenn du etwas erstellst/hinzufügst' },
+        { key: 'toast-delete', label: 'Löschen', emoji: '🗑️', hint: 'Wenn du etwas entfernst/löschst' },
+        { key: 'toast-timer', label: 'Timer', emoji: '⏱️', hint: 'Timer/Rest-Pausen Meldungen' },
+        { key: 'toast-reset', label: 'Reset', emoji: '🔁', hint: 'Wenn etwas zurückgesetzt wird' }
+    ] as const satisfies ReadonlyArray<{ key: ToastType; label: string; emoji: string; hint: string }>
+
+    const showToastTypeManager = ref(false)
+
+    function openToastTypeManager() {
+        showToastTypeManager.value = true
+    }
+    function closeToastTypeManager() {
+        showToastTypeManager.value = false
+    }
+    function setAllToastTypes(v: boolean) {
+        ; (Object.keys(toastTypeEnabled) as ToastType[]).forEach(k => (toastTypeEnabled[k] = v))
+    }
+
+    function toggleToastType(key: string) {
+        const k = key as ToastType
+        toastTypeEnabled[k] = !toastTypeEnabled[k]
+    }
+    const toastTypeEnabled = reactive<Record<ToastType, boolean>>({
+        'toast-default': true,
+        'toast-save': true,
+        'toast-add': true,
+        'toast-delete': true,
+        'toast-timer': true,
+        'toast-reset': true
+    })
+
+    const loadToastTypePrefs = () => {
+        // Primär: enabled-map
+        const raw = localStorage.getItem('toastTypeEnabled')
+        if (raw) {
+            try {
+                const parsed = JSON.parse(raw) as Partial<Record<ToastType, unknown>>
+                    ; (Object.keys(toastTypeEnabled) as ToastType[]).forEach((k) => {
+                        if (typeof parsed?.[k] === 'boolean') toastTypeEnabled[k] = parsed[k] as boolean
+                    })
+                return
+            } catch { /* ignore */ }
+        }
+
+        // Fallback: disabled-array (falls dein Toast-Menü sowas nutzt)
+        const rawDisabled = localStorage.getItem('toastDisabledTypes')
+        if (rawDisabled) {
+            try {
+                const disabled = JSON.parse(rawDisabled) as unknown
+                if (Array.isArray(disabled)) {
+                    ; (Object.keys(toastTypeEnabled) as ToastType[]).forEach((k) => {
+                        toastTypeEnabled[k] = !disabled.includes(k)
+                    })
+                }
+            } catch { /* ignore */ }
+        }
+    }
+
+    const onToastTypesChanged = (e: CustomEvent<Partial<Record<ToastType, boolean>>>) => {
+        const map = e.detail || {}
+            ; (Object.keys(toastTypeEnabled) as ToastType[]).forEach((k) => {
+                if (typeof map[k] === 'boolean') toastTypeEnabled[k] = map[k] as boolean
+            })
+    }
+
     onBeforeUnmount(() => {
         window.removeEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+        window.removeEventListener('toast-types-changed', onToastTypesChanged as EventListener)
+
     })
     onMounted(() => {
         // Persistierten Zustand initialisieren
         initTheme()
+
+        window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+
         persistedTheme.value = isDark.value ? 'dark' : 'light'
         isDarkDraft.value = isDark.value
 
@@ -150,6 +402,19 @@
         // Toasts aktiviert?
         const stored = localStorage.getItem('toastsEnabled')
         toastsEnabled.value = stored === null ? true : stored === 'true'
+
+        // Toast-Dauer laden
+        const durRaw = Number(localStorage.getItem('toastDurationMs'))
+        toastDurationMs.value = Number.isFinite(durRaw) && durRaw > 0 ? durRaw : 2500
+
+        // Löschen bestätigen?
+        const storedConfirm = localStorage.getItem('confirmDeleteEnabled')
+        confirmDeleteEnabled.value = storedConfirm === null ? true : storedConfirm === 'true'
+
+        loadToastTypePrefs()
+
+        window.addEventListener('toast-types-changed', onToastTypesChanged as EventListener)
+
     })
 
     watch(isDarkDraft, (v) => {
@@ -179,8 +444,22 @@
         localStorage.setItem('toastsEnabled', String(toastsEnabled.value))
         window.dispatchEvent(new CustomEvent('toasts-enabled-changed', { detail: toastsEnabled.value }))
 
-        // Zentralen Toast zeigen – nur wenn erlaubt
-        if (toastsEnabled.value) {
+        localStorage.setItem('toastTypeEnabled', JSON.stringify({ ...toastTypeEnabled }))
+
+        const disabledTypes = (Object.keys(toastTypeEnabled) as ToastType[]).filter((k) => !toastTypeEnabled[k])
+        localStorage.setItem('toastDisabledTypes', JSON.stringify(disabledTypes))
+
+        window.dispatchEvent(new CustomEvent('toast-types-changed', { detail: { ...toastTypeEnabled } }))
+
+        // Toast-Dauer persistieren + global announcen
+        localStorage.setItem('toastDurationMs', String(toastDurationMs.value))
+        window.dispatchEvent(new CustomEvent('toast-duration-changed', { detail: toastDurationMs.value }))
+
+        // Confirm-Delete persistieren + global announcen
+        localStorage.setItem('confirmDeleteEnabled', String(confirmDeleteEnabled.value))
+        window.dispatchEvent(new CustomEvent('confirm-delete-changed', { detail: confirmDeleteEnabled.value }))
+
+        if (toastsEnabled.value && toastTypeEnabled['toast-save']) {
             const id = Date.now()
             toast.value = {
                 id,
@@ -188,9 +467,10 @@
                 emoji: '💾',
                 type: 'toast-save',
                 exiting: false,
-                durationMs: 2500
+                durationMs: toastDurationMs.value
             }
         }
+
     }
 
     // Bei Verlassen ohne Speichern: Preview zurücksetzen
@@ -344,6 +624,12 @@
         gap: 0.75rem;
     }
 
+    /* Toast-Arten: Pills/Chips statt hässlicher Switch-Liste */
+    .toast-types-control {
+        align-items: stretch;
+    }
+
+
 
     .toggle-switch {
         width: 70px;
@@ -394,6 +680,7 @@
         align-items: center;
         line-height: 1; /* verhindert Höhen-Jump */
     }
+
     .toggle-text {
         display: inline-block;
         width: 3.2ch; /* genug für "AUS" */
@@ -496,4 +783,333 @@
             padding: 1rem;
         }
     }
+
+    .toast-types-summary {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+
+    .toast-types-meta {
+        margin: 0;
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .manage-btn {
+        border: 2px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border-radius: 14px;
+        padding: 0.65rem 0.9rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: transform 140ms ease, border-color 180ms ease, box-shadow 180ms ease;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+    }
+
+        .manage-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(129, 140, 248, 0.65);
+            box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
+        }
+
+    html.dark-mode .manage-btn {
+        background: #0d1117;
+        border-color: #30363d;
+        color: #ffffff;
+        box-shadow: 0 18px 36px rgba(0, 0, 0, 0.45);
+    }
+
+    html.dark-mode .modal-card {
+        background: #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        box-shadow: 0 34px 90px rgba(0, 0, 0, 0.7);
+    }
+
+    html.dark-mode .modal-title strong {
+        color: #ffffff;
+    }
+
+    html.dark-mode .modal-sub {
+        color: #c9d1d9;
+    }
+
+
+    @media (max-width: 768px) {
+        .toast-types-summary {
+            width: min(420px, 100%);
+        }
+    }
+
+    .settings-group {
+        display: grid;
+        gap: 1rem; /* Abstand zwischen Header-Card und Body */
+    }
+
+    .group-head {
+        width: 100%;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 18px;
+        padding: 1.15rem 1.2rem;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 60%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        transition: transform 160ms ease-out, box-shadow 200ms ease-out, border-color 180ms ease-out;
+    }
+
+        .group-head:hover {
+            transform: translateY(-2px);
+            border-color: rgba(129, 140, 248, 0.7);
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.28);
+        }
+
+        .group-head:focus-visible {
+            outline: none;
+            border-color: rgba(129, 140, 248, 0.85);
+            box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.18), 0 22px 48px rgba(15, 23, 42, 0.28);
+        }
+
+
+    html.dark-mode .group-head {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 60%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62%), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.55);
+    }
+
+
+    .group-left {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        min-width: 0;
+    }
+
+    .group-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        color: #fff;
+        font-size: 1.15rem;
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
+    }
+
+    html.dark-mode .group-icon {
+        background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
+    }
+
+    .group-text {
+        min-width: 0;
+        text-align: left;
+    }
+
+    .group-title {
+        font-weight: 950;
+        color: var(--text-primary);
+        font-size: 1.05rem;
+        line-height: 1.2;
+    }
+
+    .group-sub {
+        margin-top: 0.18rem;
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.92rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    html.dark-mode .group-title {
+        color: #fff;
+    }
+
+    html.dark-mode .group-sub {
+        color: #c9d1d9;
+    }
+
+    .group-right {
+        display: flex;
+        align-items: center;
+    }
+
+    .group-chevron {
+        font-size: 1.1rem;
+        transform: translateY(-1px);
+        transition: transform 160ms ease;
+        opacity: 0.9;
+        color: var(--text-primary);
+    }
+
+    html.dark-mode .group-chevron {
+        color: #fff;
+    }
+
+    .group-chevron.open {
+        transform: rotate(180deg);
+    }
+
+    .group-body {
+        padding: 0;
+        display: grid;
+        gap: 1.25rem;
+    }
+
+    @media (max-width: 768px) {
+        .group-sub {
+            display: none;
+        }
+
+        .group-head {
+            padding: 0.95rem 1rem;
+        }
+
+        .group-body {
+            gap: 1rem;
+        }
+    }
+
+    /* Collapse Animation für Settings-Gruppen (SMOOTH & HEAVY) */
+    .sg-collapse-enter-active,
+    .sg-collapse-leave-active {
+        overflow: hidden;
+        transform-origin: top;
+        position: relative;
+        isolation: isolate;
+        border-radius: 18px;
+        /* Performance: kein blur/clip-path */
+        will-change: max-height, opacity, transform;
+        contain: layout paint;
+        backface-visibility: hidden;
+        transform: translateZ(0);
+    }
+
+    /* Smooth open/close (Transitions statt Keyframes) */
+    .sg-collapse-enter-active {
+        transition: max-height 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease-out, transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .sg-collapse-leave-active {
+        transition: max-height 340ms cubic-bezier(0.4, 0, 0.2, 1), opacity 180ms ease-in, transform 340ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* States */
+    .sg-collapse-enter-from,
+    .sg-collapse-leave-to {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(-10px) scale(0.99);
+    }
+
+    .sg-collapse-enter-to,
+    .sg-collapse-leave-from {
+        max-height: 2400px;
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    /* Glow (ohne blur) */
+    .sg-collapse-enter-active::before,
+    .sg-collapse-leave-active::before {
+        content: '';
+        position: absolute;
+        inset: -40px;
+        z-index: -1;
+        background: radial-gradient(circle at 18% 0%, rgba(129, 140, 248, 0.28), transparent 58%), radial-gradient(circle at 82% 0%, rgba(34, 197, 94, 0.14), transparent 62%);
+        opacity: 0;
+        transform: scale(0.985);
+        transition: opacity 260ms ease-out, transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .sg-collapse-enter-to::before {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .sg-collapse-leave-to::before {
+        opacity: 0;
+        transform: scale(0.985);
+    }
+
+    /* Cards: stagger rein, clean raus (ohne blur) */
+    .sg-collapse-enter-active .setting-card {
+        will-change: transform, opacity;
+        opacity: 0;
+        transform: translateY(-10px) scale(0.992);
+        transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease-out;
+    }
+
+    .sg-collapse-enter-to .setting-card {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    /* Stagger nur beim reinfahren */
+    .sg-collapse-enter-active .setting-card:nth-child(1) {
+        transition-delay: 40ms;
+    }
+
+    .sg-collapse-enter-active .setting-card:nth-child(2) {
+        transition-delay: 85ms;
+    }
+
+    .sg-collapse-enter-active .setting-card:nth-child(3) {
+        transition-delay: 130ms;
+    }
+
+    .sg-collapse-enter-active .setting-card:nth-child(4) {
+        transition-delay: 175ms;
+    }
+
+    .sg-collapse-enter-active .setting-card:nth-child(5) {
+        transition-delay: 220ms;
+    }
+
+    .sg-collapse-enter-active .setting-card:nth-child(6) {
+        transition-delay: 265ms;
+    }
+
+    /* rausfahren: snap, aber smooth */
+    .sg-collapse-leave-active .setting-card {
+        transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1), opacity 180ms ease-in;
+    }
+
+    .sg-collapse-leave-to .setting-card {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.99);
+    }
+
+    /* Motion-safety */
+    @media (prefers-reduced-motion: reduce) {
+        .sg-collapse-enter-active,
+        .sg-collapse-leave-active {
+            transition: none;
+            transform: none;
+        }
+
+            .sg-collapse-enter-active::before,
+            .sg-collapse-leave-active::before {
+                transition: none;
+                opacity: 1;
+                transform: none;
+            }
+
+            .sg-collapse-enter-active .setting-card,
+            .sg-collapse-leave-active .setting-card {
+                transition: none;
+                opacity: 1;
+                transform: none;
+            }
+    }
+
 </style>

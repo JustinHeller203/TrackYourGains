@@ -670,6 +670,13 @@
         <ValidationPopup :show="validationErrorMessages.length > 0"
                          :errors="validationErrorMessages"
                          @close="clearValidation" />
+
+        <!-- Delete Confirm Popup (für Stats-Resets) -->
+        <DeleteConfirmPopup :show="showDeleteConfirmPopup"
+                            @confirm="confirmDeleteNow"
+                            @cancel="cancelDeleteConfirm" />
+
+
         <!-- Toast -->
         <Toast v-if="toast"
                :toast="toast"
@@ -709,6 +716,7 @@
     import ProgressEntryModal from '@/components/ui/popups/ProgressEntryModal.vue'
     import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
+    import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
 
     // Interfaces
     interface PlanExercise {
@@ -1168,9 +1176,7 @@
     const hasWeightStats = computed(() => weightHistory.value.length > 0)
     const hasWorkoutStats = computed(() => workouts.value.length > 0)
 
-    const resetWeightStats = () => {
-        if (!weightHistory.value.length) return
-
+    const doResetWeightStats = () => {
         // alten Zustand für Undo merken
         const snapshot = [...weightHistory.value]
         lastResetAction.value = {
@@ -1187,10 +1193,8 @@
             weightChart = null
         }
 
-        // Toasts ggf. noch unterdrückt? Sofort freigeben.
         releaseToasts()
 
-        // Reset-Toast mit Undo-Action
         addToast(
             'Gewichtsverlauf zurückgesetzt',
             'add',
@@ -1199,11 +1203,9 @@
                 handler: () => {
                     if (!lastResetAction.value || lastResetAction.value.kind !== 'weight') return
 
-                    // Daten zurückholen
                     weightHistory.value = [...lastResetAction.value.data]
                     localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
 
-                    // Canvas wird durch v-if erst im nächsten Tick wieder gerendert
                     nextTick(() => {
                         updateWeightChart()
                     })
@@ -1215,28 +1217,30 @@
         )
     }
 
+    const resetWeightStats = () => {
+        if (!weightHistory.value.length) return
 
-    const resetWorkoutStats = () => {
-        if (!workouts.value.length) return
-
-        // alten Zustand für Undo merken
+        requestDeleteConfirm({
+            title: 'Gewichtsverlauf wirklich löschen?',
+            message: 'Das setzt deinen Gewichtsverlauf zurück.',
+            onConfirm: doResetWeightStats,
+        })
+    }
+    const doResetWorkoutStats = () => {
         const snapshot = [...workouts.value]
         lastResetAction.value = {
             kind: 'workout',
             data: snapshot,
         }
 
-        // wirklich zurücksetzen
         workouts.value = []
         localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
 
         if (workoutChart) workoutChart.destroy()
         updateWorkoutChart()
 
-        // Toasts ggf. noch unterdrückt? Sofort freigeben.
         releaseToasts()
 
-        // Reset-Toast mit Undo-Action
         addToast(
             'Trainingsstatistik zurückgesetzt',
             'add',
@@ -1245,11 +1249,9 @@
                 handler: () => {
                     if (!lastResetAction.value || lastResetAction.value.kind !== 'workout') return
 
-                    // Daten zurückholen
                     workouts.value = [...lastResetAction.value.data]
                     localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
 
-                    // Canvas kommt per v-if erst im nächsten Tick zurück
                     nextTick(() => {
                         updateWorkoutChart()
                     })
@@ -1259,6 +1261,16 @@
                 },
             },
         )
+    }
+
+    const resetWorkoutStats = () => {
+        if (!workouts.value.length) return
+
+        requestDeleteConfirm({
+            title: 'Trainingsstatistik wirklich löschen?',
+            message: 'Das setzt deine Trainingsstatistik zurück.',
+            onConfirm: doResetWorkoutStats,
+        })
     }
 
 
@@ -3508,6 +3520,40 @@ Notiz: ${e.note ?? '-'}\n`
         confirmDownload();
     };
 
+    // --- Confirm-Delete (global Setting) ---
+    const confirmDeleteEnabled = ref(true)
+
+    const showDeleteConfirmPopup = ref(false)
+    let pendingDeleteAction: null | (() => void) = null
+
+    const requestDeleteConfirm = (opts: { title?: string; message?: string; onConfirm: () => void }) => {
+        if (!confirmDeleteEnabled.value) {
+            opts.onConfirm()
+            return
+        }
+        pendingDeleteAction = opts.onConfirm
+        showDeleteConfirmPopup.value = true
+    }
+
+    const confirmDeleteNow = () => {
+        const fn = pendingDeleteAction
+        pendingDeleteAction = null
+        showDeleteConfirmPopup.value = false
+        fn?.()
+    }
+
+    const cancelDeleteConfirm = () => {
+        pendingDeleteAction = null
+        showDeleteConfirmPopup.value = false
+    }
+
+    function handleConfirmDeleteSetting(e: Event) {
+        confirmDeleteEnabled.value = Boolean((e as CustomEvent).detail)
+        if (!confirmDeleteEnabled.value && showDeleteConfirmPopup.value) {
+            cancelDeleteConfirm()
+        }
+    }
+
     // --- Toast: State / Config
 
     const toast = ref<ToastModel | null>(null)
@@ -3608,7 +3654,8 @@ Notiz: ${e.note ?? '-'}\n`
         } as const
 
         const mapped = types[type]
-        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, action }
+        const durationMs = Number(localStorage.getItem('toastDurationMs')) || 3000
+        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, action, durationMs }
     }
    
     // --- Toast: Integration mit Overlays & Sichtbarkeit ---
@@ -3627,7 +3674,6 @@ Notiz: ${e.note ?? '-'}\n`
         || externalOverlayOpen.value
         || bodyBlocked.value
     )
-
     
     // ===== Utility: Zahlen, Debounce, Format, Charts, Global-Events =====
 

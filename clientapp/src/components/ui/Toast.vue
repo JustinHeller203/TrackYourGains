@@ -116,6 +116,49 @@
     function savePrefs(p: ToastPrefs) { localStorage.setItem(PREF_KEY, JSON.stringify(p)) }
 
     const prefs = ref<ToastPrefs>(loadPrefs())
+
+    // Settings.vue speichert Toast-Typen hier:
+    const TYPE_ENABLED_KEY = 'toastTypeEnabled'
+    const TYPE_DISABLED_KEY = 'toastDisabledTypes'
+
+    function readDisabledTypesFromSettingsStorage(): string[] {
+        // 1) enabled-map bevorzugen
+        const rawMap = localStorage.getItem(TYPE_ENABLED_KEY)
+        if (rawMap) {
+            try {
+                const map = JSON.parse(rawMap) as Record<string, unknown>
+                return Object.keys(map).filter((k) => map[k] === false)
+            } catch { /* ignore */ }
+        }
+
+        // 2) fallback: disabled-array
+        const rawArr = localStorage.getItem(TYPE_DISABLED_KEY)
+        if (rawArr) {
+            try {
+                const arr = JSON.parse(rawArr) as unknown
+                if (Array.isArray(arr)) return arr.filter((x) => typeof x === 'string') as string[]
+            } catch { /* ignore */ }
+        }
+
+        return []
+    }
+
+    function syncDisabledTypesFromSettings() {
+        const disabled = readDisabledTypesFromSettingsStorage()
+        prefs.value.disabledTypes = Array.from(new Set(disabled)) // auch [] sauber setzen
+        savePrefs(prefs.value)
+    }
+
+    function onToastTypesChanged(_e: CustomEvent<unknown>) {
+        // Quelle der Wahrheit ist localStorage (egal ob Event full-map oder partial war)
+        syncDisabledTypesFromSettings()
+        // disabled-array immer spiegeln, damit alte Pfade stabil bleiben
+        localStorage.setItem(TYPE_DISABLED_KEY, JSON.stringify(prefs.value.disabledTypes))
+    }
+
+    // initial einmal syncen (damit Settings-Werte gelten, auch ohne Reload)
+    syncDisabledTypesFromSettings()
+
     const userPosition = ref<Corner | null>(prefs.value.position ?? null)
     const savedPos = ref<{ x: number; y: number } | null>(prefs.value.posPx ?? null)
 
@@ -224,6 +267,22 @@
         prefs.value.enabled = !!e.detail
         savePrefs(prefs.value)
     }
+
+    const DEFAULT_TOAST_MS = 2500
+    const globalToastDurationMs = ref<number>(DEFAULT_TOAST_MS)
+
+    // Initial aus Settings laden
+    const storedToastDur = Number(localStorage.getItem('toastDurationMs'))
+    if (Number.isFinite(storedToastDur) && storedToastDur > 0) {
+        globalToastDurationMs.value = storedToastDur
+    }
+
+    function onToastDurationChanged(e: CustomEvent<number>) {
+        const n = Number(e.detail)
+        if (!Number.isFinite(n) || n <= 0) return
+        globalToastDurationMs.value = n
+    }
+
     const menuStyle = ref<Record<string, string>>({})
 
     const onGlobalFreeze = (e: CustomEvent<boolean>) => {
@@ -247,15 +306,6 @@
         } else {
             menuStyle.value = {}
         }
-    })
-    onMounted(() => {
-        window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
-        // Kein JS-Countdown mehr: CSS-Animation + @animationend ist die Wahrheit
-    })
-
-    onBeforeUnmount(() => {
-        window.removeEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
-        clearFallbackTimer()
     })
 
     function doDismiss() {
@@ -466,10 +516,30 @@
     function disableThisType() {
         const t = props.toast?.type
         if (!t) return
+
         if (!prefs.value.disabledTypes.includes(t)) {
             prefs.value.disabledTypes.push(t)
             savePrefs(prefs.value)
         }
+
+        // Settings-Keys ebenfalls updaten
+        localStorage.setItem(TYPE_DISABLED_KEY, JSON.stringify(prefs.value.disabledTypes))
+
+        // Wenn enabled-map existiert, dort auch spiegeln + Event feuern
+        try {
+            const raw = localStorage.getItem(TYPE_ENABLED_KEY)
+            if (raw) {
+                const map = JSON.parse(raw) as Record<string, unknown>
+                map[t] = false
+                localStorage.setItem(TYPE_ENABLED_KEY, JSON.stringify(map))
+                window.dispatchEvent(new CustomEvent('toast-types-changed', { detail: { [t]: false } }))
+            } else {
+                window.dispatchEvent(new CustomEvent('toast-types-changed', { detail: { [t]: false } }))
+            }
+        } catch {
+            window.dispatchEvent(new CustomEvent('toast-types-changed', { detail: { [t]: false } }))
+        }
+
         showMenu.value = false
         if (props.toast) {
             localVisible.value = false
@@ -495,10 +565,11 @@
             default: return 'pos-bottom-right'
         }
     })
+
     const progressMs = computed(() => {
         const t = props.toast as any
-        const base = (t?.durationMs ?? t?.duration ?? t?.timeout ?? 1800) as number
-        return Math.max(600, base)
+        const base = Number(t?.durationMs ?? t?.duration ?? t?.timeout ?? globalToastDurationMs.value)
+        return Math.max(600, Number.isFinite(base) ? base : globalToastDurationMs.value)
     })
 
     const accentColor = computed(() => {
@@ -615,14 +686,20 @@
 
     onMounted(() => {
         window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+        window.addEventListener('toast-duration-changed', onToastDurationChanged as EventListener)
+        window.addEventListener('toast-types-changed', onToastTypesChanged as EventListener)
         window.addEventListener('toast-global-freeze', onGlobalFreeze as EventListener)
     })
 
     onBeforeUnmount(() => {
         window.removeEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+        window.removeEventListener('toast-duration-changed', onToastDurationChanged as EventListener)
+        window.removeEventListener('toast-types-changed', onToastTypesChanged as EventListener)
         window.removeEventListener('toast-global-freeze', onGlobalFreeze as EventListener)
         clearFallbackTimer()
     })
+
+
     watch(toastPaused, (paused) => {
         if (!paused && finishedWhileFrozen.value && !isFrozen.value) {
             finishedWhileFrozen.value = false
@@ -636,36 +713,48 @@
         clearAfterSaveTimer()
         clearDismissTimer()
     })
-    watch(() => props.toast?.id, () => {
-        localVisible.value = true
-        autoClosing.value = false
-        closedOnce.value = false
-        showMenu.value = false
+    watch(
+        () => [props.toast?.id, props.toast?.message, props.toast?.type, props.toast?.emoji],
+        () => {
+            // Reset UI-State damit ein neuer Toast nie "unsichtbar festhängt"
+            localVisible.value = true
+            autoClosing.value = false
+            closedOnce.value = false
+            showMenu.value = false
 
-        clearDismissTimer()
-        clearFallbackTimer()
-        stopRaf()
+            repositionMode.value = false
+            dragPos.value = null
+            dragOffset.value = null
 
-        const t = props.toast
+            finishedWhileFrozen.value = false
+            remainingMs.value = 0
 
-        if (!prefs.value.enabled && t) {
-            localVisible.value = false
-            requestAnimationFrame(() => emit('dismiss', t.id))
-            return
-        }
+            clearDismissTimer()
+            clearFallbackTimer()
+            stopRaf()
 
-        if (t?.type && prefs.value.disabledTypes.includes(t.type)) {
-            localVisible.value = false
-            requestAnimationFrame(() => emit('dismiss', t.id))
-            return
-        }
+            const t = props.toast
+            if (!t) return
 
-        if (t && props.autoDismiss !== false) {
-            // JS-Fallback-Timer synchron zur Progress-Linie starten
-            // (pausiert/fortgesetzt über pause/resumeDismissTimer)
-            startDismissTimer(progressMs.value)
-        }
-    }, { immediate: true })
+            // Wenn global deaktiviert oder Typ deaktiviert → sofort dismiss (wie bisher)
+            if (!prefs.value.enabled) {
+                localVisible.value = false
+                requestAnimationFrame(() => emit('dismiss', t.id))
+                return
+            }
+
+            if (t.type && prefs.value.disabledTypes.includes(t.type)) {
+                localVisible.value = false
+                requestAnimationFrame(() => emit('dismiss', t.id))
+                return
+            }
+
+            if (props.autoDismiss !== false) {
+                startDismissTimer(progressMs.value)
+            }
+        },
+        { immediate: true }
+    )
     watch(isActuallyPaused, (paused) => {
         if (paused) {
             pauseDismissTimer()
