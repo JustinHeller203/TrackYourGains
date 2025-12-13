@@ -18,15 +18,19 @@
 import { reactive } from 'vue'
 import BasePopup from '@/components/ui/popups/BasePopup.vue'
 
-const props = withDefaults(defineProps<{
-    show: boolean
-    title?: string
-    variant?: string
-    overlayClass?: string | string[] | Record<string, boolean>
-    showActions?: boolean
-}>(), {
-    showActions: true,
-})
+    const props = withDefaults(defineProps<{
+        show: boolean
+        title?: string
+        variant?: string
+        overlayClass?: string | string[] | Record<string, boolean>
+        showActions?: boolean
+        cancelText?: string
+        saveText?: string
+    }>(), {
+        showActions: true,
+        cancelText: 'Abbrechen',
+        saveText: 'Speichern',
+    })
 
 defineEmits<{ (e: 'cancel'): void; (e: 'save', form: any): void }>()
 

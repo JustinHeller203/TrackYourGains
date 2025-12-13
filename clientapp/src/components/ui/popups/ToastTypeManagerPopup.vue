@@ -89,6 +89,9 @@
         (e: 'preview', key: string): void
     }>()
 
+    const cancelText = 'Abbrechen'
+    const saveText = 'Speichern'
+
     const enabledCount = computed(() =>
         props.options.filter(o => !!props.enabledMap[o.key]).length
     )
