@@ -14,6 +14,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<UserMeta> UserMetas => Set<UserMeta>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<GlycemicFood> GlycemicFoods => Set<GlycemicFood>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -105,5 +106,36 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             e.HasIndex(a => a.CreatedUtc);
             e.HasIndex(a => new { a.UserId, a.Action, a.CreatedUtc });
         });
+
+        // -------- GlycemicFood (GI / Carbs Table) --------
+        builder.Entity<GlycemicFood>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Key)
+             .IsRequired()
+             .HasMaxLength(80);
+
+            e.Property(x => x.Label)
+             .IsRequired()
+             .HasMaxLength(160);
+
+            e.Property(x => x.Gi)
+             .IsRequired();
+
+            e.Property(x => x.Carbs100)
+             .IsRequired()
+             .HasPrecision(6, 2);
+
+            e.Property(x => x.Note)
+             .HasMaxLength(220);
+
+            e.Property(x => x.CreatedUtc)
+             .IsRequired();
+
+            e.HasIndex(x => x.Key).IsUnique();
+            e.HasIndex(x => x.Label);
+        });
+
     }
 }
