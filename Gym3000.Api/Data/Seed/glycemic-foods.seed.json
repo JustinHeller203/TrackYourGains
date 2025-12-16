@@ -21,7 +21,7 @@
 	},
 	{
 		"key": "white_rice_cooked",
-		"label": "Reis (weiﬂ, gekocht)",
+		"label": "Reis (wei√ü, gekocht)",
 		"gi": 73,
 		"carbs100": 28.0,
 		"note": "Sorte schwankt"
@@ -40,7 +40,7 @@
 	},
 	{
 		"key": "white_bread",
-		"label": "Weiﬂbrot",
+		"label": "Wei√übrot",
 		"gi": 75,
 		"carbs100": 49.0
 	},
@@ -55,11 +55,11 @@
 		"label": "Kartoffeln (gekocht)",
 		"gi": 80,
 		"carbs100": 17.0,
-		"note": "abgek¸hlt oft niedriger"
+		"note": "abgek√ºhlt oft niedriger"
 	},
 	{
 		"key": "sweet_potato_boiled",
-		"label": "S¸ﬂkartoffel (gekocht)",
+		"label": "S√º√ükartoffel (gekocht)",
 		"gi": 60,
 		"carbs100": 20.0
 	},

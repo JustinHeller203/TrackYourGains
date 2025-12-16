@@ -1,3 +1,4 @@
+<!--Gym3000.Api.csproj-->
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
@@ -25,4 +26,9 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
 
+	<ItemGroup>
+		<Content Update="Data\Seed\glycemic-foods.seed.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 </Project>

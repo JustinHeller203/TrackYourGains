@@ -1,3 +1,4 @@
+//GlycemicFood.cs
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -16,15 +17,39 @@ public class GlycemicFood
 	[MaxLength(160)]
 	public string Label { get; set; } = default!;
 
-	// 0–110
-	public int Gi { get; set; }
+    // Kategorie fürs Filtern (fruit, grain, dairy, drink, snack, veg, legume, other)
+    [MaxLength(40)]
+    public string Category { get; set; } = "other";
 
-	// KH pro 100g
-	[Column(TypeName = "numeric(6,2)")]
-	public decimal Carbs100 { get; set; }
+    // GI ist optional + ggf. Spannweite
+    public int? Gi { get; set; }
+    public int? GiMin { get; set; }
+    public int? GiMax { get; set; }
 
-	[MaxLength(220)]
-	public string? Note { get; set; }
+    // KH pro 100g (optional)
+    [Column(TypeName = "numeric(6,2)")]
+    public decimal? Carbs100 { get; set; }
 
-	public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    // Standardportion in Gramm (optional)
+    [Column(TypeName = "numeric(6,2)")]
+    public decimal? ServingG { get; set; }
+
+    // Zusatzwerte pro 100g (optional)
+    [Column(TypeName = "numeric(6,2)")]
+    public decimal? Fiber100 { get; set; }
+
+    [Column(TypeName = "numeric(6,2)")]
+    public decimal? Sugar100 { get; set; }
+
+    public int? Calories100 { get; set; }
+
+    // Synonyme für Suche (z.B. ["weissbrot","toast","weißbrot"])
+    [Column(TypeName = "text[]")]
+    public string[]? Aliases { get; set; }
+
+    [MaxLength(220)]
+    public string? Note { get; set; }
+
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+
 }

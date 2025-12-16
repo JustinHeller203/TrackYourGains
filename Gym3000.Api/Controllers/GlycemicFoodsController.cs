@@ -1,3 +1,4 @@
+//Glycemic Foods Controller
 using Gym3000.Api.Data;
 using Gym3000.Api.Dtos;
 using Microsoft.AspNetCore.Mvc;
@@ -14,27 +15,56 @@ public class GlycemicFoodsController(ApplicationDbContext db) : ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<GlycemicFoodDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<GlycemicFoodDto>>> Get([FromQuery] string? query, [FromQuery] int take = 80)
+    public async Task<ActionResult<IEnumerable<GlycemicFoodDto>>> Get(
+    [FromQuery] string? query,
+    [FromQuery] string? category,
+    [FromQuery] int take = 80)
     {
         take = Math.Clamp(take, 1, 200);
 
-        var q = (query ?? "").Trim().ToLowerInvariant();
+        var q = (query ?? "").Trim();
+        var cat = (category ?? "").Trim();
 
         var baseQuery = db.GlycemicFoods.AsNoTracking();
 
-        if (!string.IsNullOrEmpty(q))
+        if (!string.IsNullOrWhiteSpace(cat))
         {
+            baseQuery = baseQuery.Where(x => EF.Functions.ILike(x.Category, cat));
+        }
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var pattern = $"%{q}%";
+
             baseQuery = baseQuery.Where(x =>
-                x.Label.ToLower().Contains(q) ||
-                x.Key.ToLower().Contains(q));
+                EF.Functions.ILike(x.Label, pattern) ||
+                EF.Functions.ILike(x.Key, pattern) ||
+                (x.Aliases != null && x.Aliases.Any(a => EF.Functions.ILike(a, pattern)))
+            );
         }
 
         var items = await baseQuery
             .OrderBy(x => x.Label)
             .Take(take)
-            .Select(x => new GlycemicFoodDto(x.Id, x.Key, x.Label, x.Gi, x.Carbs100, x.Note))
+            .Select(x => new GlycemicFoodDto(
+                x.Id,
+                x.Key,
+                x.Label,
+                x.Category,
+                x.Gi,
+                x.GiMin,
+                x.GiMax,
+                x.Carbs100,
+                x.ServingG,
+                x.Fiber100,
+                x.Sugar100,
+                x.Calories100,
+                x.Aliases,
+                x.Note
+            ))
             .ToListAsync();
 
         return Ok(items);
     }
+
 }
