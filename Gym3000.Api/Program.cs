@@ -217,6 +217,29 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// ========================== DB migrate + seed ==========================
+using (var scope = app.Services.CreateScope())
+{
+    var sp = scope.ServiceProvider;
+    var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+
+    try
+    {
+        var db = sp.GetRequiredService<ApplicationDbContext>();
+
+        // 1) Migrationen anwenden (Railway DB bekommt sonst keine neuen Tabellen)
+        await db.Database.MigrateAsync();
+
+        // 2) Seed laden (nur wenn noch leer)
+        await Gym3000.Api.Data.Seed.GlycemicFoodsSeeder.SeedAsync(db, logger);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Startup migrate/seed failed");
+        // optional: throw;  // wenn du willst dass App hart failt statt "halb kaputt" läuft
+    }
+}
+
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
