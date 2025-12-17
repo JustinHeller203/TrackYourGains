@@ -10,6 +10,11 @@
                  aria-modal="true"
                  @mousedown.self="$emit('cancel')">
                 <div class="popup" @click.stop>
+                    <XButton v-if="showClose"
+                             class="popup-x"
+                             aria-label="Schließen"
+                             @click="$emit('cancel')" />
+
                     <h3 v-if="title" class="popup-title">{{ title }}</h3>
 
                     <div class="popup-body">
@@ -33,18 +38,23 @@
 </template>
 
 <script setup lang="ts">
+    import XButton from '@/components/ui/buttons/XButton.vue'
+
     withDefaults(defineProps<{
         show: boolean
         title?: string
         overlayClass?: string | string[] | Record<string, boolean>
         variant?: string
         showActions?: boolean
+        showClose?: boolean
         cancelText?: string
         saveText?: string
     }>(), {
         cancelText: 'Abbrechen',
         saveText: 'Speichern',
+        showClose: true,
     })
+
     defineEmits<{ (e: 'cancel'): void; (e: 'save'): void }>()
 </script>
 
@@ -73,6 +83,16 @@
         border-bottom: 1px solid rgba(148, 163, 184, 0.25);
     }
 
+    .popup {
+        position: relative;
+    }
+
+    .popup-x {
+        position: absolute;
+        top: 0.85rem;
+        right: 0.85rem;
+        z-index: 2;
+    }
 
     .popup-body {
         font-size: var(--popup-body-size, 1rem);

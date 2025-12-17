@@ -81,6 +81,12 @@
                          :errors="validationErrorMessages"
                          @close="closeValidationPopup" />
 
+        <!-- ✅ Neuigkeiten-Popup -->
+        <GlobalNewsPopup :show="showNewsPopup"
+                         title="Was ist neu?"
+                         :items="newsItems"
+                         @close="onNewsClose" />
+
         <!-- ✅ Seiten-Inhalt -->
         <main class="main-content">
             <router-view :timers="timers"
@@ -99,6 +105,9 @@
                          @reorder-timers="reorderTimers"
                          @reorder-stopwatches="reorderStopwatches" />
         </main>
+
+        <!-- ✅ Mini-Guide: Spotlight auf ℹ️ (ExplanationPopup) -->
+        <GlobalExplainGuide :version="NEWS_VERSION" :block="showNewsPopup" />
 
         <footer class="app-footer">
             <div class="app-footer-content">
@@ -128,6 +137,8 @@
     import StickyTimerCard from '@/components/ui/global/StickyTimerCard.vue'
     import StickyStopwatchCard from '@/components/ui/global/StickyStopwatchCard.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
+    import GlobalNewsPopup from '@/components/ui/popups/global/GlobalNewsPopup.vue'
+    import GlobalExplainGuide from '@/components/ui/popups/global/GlobalExplainGuide.vue'
 
     const auth = useAuthStore()
 
@@ -228,6 +239,53 @@
             window.dispatchEvent(new CustomEvent('training:focus', { detail: { type, id } }))
         } else {
             router.push('/training')
+        }
+    }
+
+    const NEWS_SEEN_KEY = 'tyg_news_seen_version'
+    const NEWS_VERSION = '2025-12-17' // <- ändere das bei jedem Release/Update
+
+    const showNewsPopup = ref(false)
+    const newsItems = [
+        {
+            tag: 'Neu',
+            text: 'Neue Settings-Struktur. Zur Übersicht gibt’s jetzt saubere Gruppen: Anzeige, System & Toasts.'
+        },
+        {
+            tag: 'Neu',
+            text: 'Toast-Dauer einstellbar. Du bestimmst jetzt, wie lange Toasts sichtbar bleiben (1.5s bis 12s).'
+        },
+        {
+            tag: 'Neu',
+            text: 'Toast-Arten verwalten. Pro Toast-Typ (Save/Add/Delete/Timer/Reset/Standard) kannst du gezielt aktivieren/deaktivieren.'
+        },
+        {
+            tag: 'Neu',
+            text: 'ℹ️-Erklärungen in Rechnern: Bei jedem Calculator öffnet das ℹ️ ein Info-Popup (ExplanationPopup) – mit kurzer Erklärung, wofür der Rechner ist, plus hilfreichen Sections/Quick-Navigation.'
+        },
+        {
+            tag: 'Update',
+            text: 'Toasts komplett modernisiert. Neue Glass-Card Optik mit Blur, stärkere Kontraste im Dark Mode, feinere Shadows und rundere Kanten.'
+        },
+        {
+            tag: 'Neu',
+            text: 'Akzent & Progress-Bar upgraded. Jede Toast-Art hat jetzt einen klaren Farb-Accent + smoother Verlauf.'
+        }
+    ]
+
+
+    function onNewsClose(payload: { action: 'cancel' | 'save'; dontShowAgain: boolean }) {
+        showNewsPopup.value = false
+
+        if (payload.dontShowAgain) {
+            localStorage.setItem(NEWS_SEEN_KEY, NEWS_VERSION)
+        }
+
+        if (payload.action === 'save') {
+            // Guide erst starten, wenn News wirklich zu ist
+            window.setTimeout(() => {
+                window.dispatchEvent(new Event('tyg:explain-guide'))
+            }, 120)
         }
     }
 
@@ -631,12 +689,71 @@
         return `${m}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`
     }
 
-    // Keydown
     const handleKeydown = (event: KeyboardEvent) => {
+        // ESC schließt Mobile-Menü
         if (event.key === 'Escape' && menuOpen.value) {
             event.preventDefault()
             closeMenu()
+            return
         }
+
+        // nicht wenn User in Eingabefeldern/Editable tippt oder auf Buttons/Links ist
+        const el = event.target as HTMLElement | null
+        const tag = (el?.tagName || '').toLowerCase()
+        const isTypingTarget =
+            tag === 'input' ||
+            tag === 'textarea' ||
+            tag === 'select' ||
+            (el as any)?.isContentEditable
+
+        const isInteractiveTarget =
+            tag === 'button' ||
+            tag === 'a' ||
+            (el?.getAttribute?.('role') === 'button') ||
+            (el?.getAttribute?.('role') === 'link')
+
+        // SPACE -> Global Explain Guide starten
+        // SPACE -> Global Explain Guide starten (FORCE)
+        const k = (event.key || '').toLowerCase()
+        const isSpace = event.code === 'Space' || k === ' ' || k === 'spacebar'
+        if (isSpace) {
+            if (event.repeat) return
+            if (isTypingTarget || isInteractiveTarget) return
+
+            event.preventDefault()
+            event.stopImmediatePropagation()
+            event.stopPropagation()
+
+            // wenn News offen ist, erst schließen -> dann Guide starten (sonst blockt props.block)
+            if (showNewsPopup.value) {
+                showNewsPopup.value = false
+                window.setTimeout(() => {
+                    window.dispatchEvent(new Event('tyg:explain-guide-force'))
+                }, 120)
+            } else {
+                window.dispatchEvent(new Event('tyg:explain-guide-force'))
+            }
+            return
+        }
+
+
+        // Ctrl+Alt+N (Win/Linux) / Cmd+Alt+N (Mac) -> News-Popup
+        const key = (event.key || '').toLowerCase()
+        const isN = key === 'n' || event.code === 'KeyN'
+
+        const hasCtrlOrCmd = event.ctrlKey || event.metaKey
+        const isNewsHotkey = isN && hasCtrlOrCmd && event.altKey
+
+        if (!isNewsHotkey) return
+        if (event.repeat) return
+        if (showNewsPopup.value) return
+        if (isTypingTarget || isInteractiveTarget) return
+
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        event.stopPropagation()
+
+        showNewsPopup.value = true
     }
 
     // Scrollbarbreite als CSS-Var
@@ -654,9 +771,14 @@
         window.removeEventListener('resize', setSBW)
     })
 
+
     // Load saved data
     onMounted(() => {
         loadAll()
+        const seen = localStorage.getItem(NEWS_SEEN_KEY)
+        if (seen !== NEWS_VERSION) {
+            showNewsPopup.value = true
+        }
 
         // Timer rehydrieren
         timers.value.forEach(t => {
@@ -698,14 +820,15 @@
         })
 
         saveAll()
-        window.addEventListener('keydown', handleKeydown)
+        window.addEventListener('keydown', handleKeydown, { capture: true })
+
     })
 
 
     onBeforeUnmount(() => {
         window.removeEventListener('mousemove', onDrag)
         window.removeEventListener('mouseup', stopDrag)
-        window.removeEventListener('keydown', handleKeydown)
+        window.removeEventListener('keydown', handleKeydown, { capture: true } as any)
     })
 
     // Persist
@@ -1017,4 +1140,5 @@
             gap: 0.35rem 0.75rem; /* etwas enger auf kleineren Screens */
         }
     }
+
 </style>

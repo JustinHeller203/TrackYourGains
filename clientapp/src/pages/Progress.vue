@@ -719,6 +719,7 @@
     import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
+    import { useRoute } from 'vue-router'
 
     // Interfaces
     interface PlanExercise {
@@ -1740,6 +1741,32 @@
         }
     }
 
+    //=============== Jump to Rechner Infos ===========
+
+    const route = useRoute()
+
+    async function jumpToCalculatorsFromRoute() {
+        const tab = String(route.query.tab || '')
+        const focus = String(route.query.focus || '')
+
+        if (tab !== 'calculators') return
+
+        // Tab umschalten
+        activeTab.value = 'calculators'
+
+        // warten bis DOM wirklich da ist
+        await nextTick()
+
+        // sauber an den Rechner-Bereich
+        const el =
+            document.querySelector('.calc-filterbar') ||
+            document.querySelector('.calculators-grid')
+
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+        // optional: Query wieder "sauber machen", damit refresh nicht jedes Mal scrollt
+        // (wenn du das willst, sag kurz Bescheid – dann mach ich’s ohne History-Spam)
+    }
 
     //=============== BMI Calculator ==========
 
@@ -2426,7 +2453,14 @@
             trainingPlans.value = []
             favoritePlansIds.value = []
         }
+        jumpToCalculatorsFromRoute()
+
     })
+
+    watch(
+        () => [route.query.tab, route.query.focus],
+        () => jumpToCalculatorsFromRoute()
+    )
 
     //ProgressEntryModal
 

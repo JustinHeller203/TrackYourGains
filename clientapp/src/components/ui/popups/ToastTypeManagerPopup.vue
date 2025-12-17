@@ -12,12 +12,8 @@
                 <span class="tm-sub">{{ enabledCount }} aktiv · {{ disabledCount }} deaktiviert</span>
             </div>
 
-            <button type="button"
-                    class="tm-close"
-                    aria-label="Schließen"
-                    @click="$emit('close')">
-                ×
-            </button>
+            <XButton aria-label="Schließen" @click="$emit('close')" />
+
         </div>
 
         <!-- Actions wie früher (full width, border-bottom) -->
@@ -68,6 +64,7 @@
 <script setup lang="ts">
     import { computed } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
+    import XButton from '@/components/ui/buttons/XButton.vue'
 
     type ToastTypeOption = {
         key: string
@@ -103,35 +100,6 @@
         font-weight: 800;
         font-size: 0.95rem;
     }
-
-    .tm-close {
-        width: 38px;
-        height: 38px;
-        border-radius: 12px;
-        border: none;
-        background: transparent;
-        color: var(--text-primary);
-        cursor: pointer;
-        font-size: 1.4rem;
-        line-height: 1;
-        flex: 0 0 auto;
-        transition: transform 140ms ease, background 180ms ease, opacity 140ms ease;
-    }
-
-        .tm-close:hover {
-            transform: translateY(-1px);
-            background: rgba(148, 163, 184, 0.10);
-        }
-
-        .tm-close:active {
-            transform: translateY(0);
-            background: rgba(148, 163, 184, 0.14);
-        }
-
-        .tm-close:focus-visible {
-            outline: none;
-            background: rgba(129, 140, 248, 0.12);
-        }
 
     .tm-btn {
         border-radius: 14px;
@@ -216,14 +184,6 @@
         display: block;
         font-size: 1.05rem;
         color: var(--text-primary);
-    }
-
-    .tm-sub {
-        display: block;
-        margin-top: 0.2rem;
-        font-size: 0.92rem;
-        color: var(--text-secondary);
-        font-weight: 800;
     }
 
     .tm-actions {
