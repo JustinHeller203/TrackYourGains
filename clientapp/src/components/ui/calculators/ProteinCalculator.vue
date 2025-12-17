@@ -60,7 +60,7 @@
                             <button class="calc-chip"
                                     type="button"
                                     :disabled="!hasValidResult"
-                                    :aria-disabled="(!hasValidResult).toString()"
+                                    :aria-disabled="!hasValidResult"
                                     :class="{ 'is-disabled': !hasValidResult }"
                                     :title="hasValidResult ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
                                     @click="copyPopupSummary()">
@@ -667,6 +667,7 @@
         font-size: .95rem;
         color: var(--text-secondary);
     }
+
     @media (max-width: 600px) {
         .footer-actions {
             display: grid;
@@ -680,6 +681,7 @@
             padding: .5rem .6rem;
         }
     }
+
     .card-footer {
         border-top: 1px solid var(--border-color);
         padding: .75rem 1rem 0;

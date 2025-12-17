@@ -65,7 +65,7 @@
                             <button class="calc-chip"
                                     type="button"
                                     :disabled="glResult === null"
-                                    :aria-disabled="(glResult === null).toString()"
+                                    :aria-disabled="glResult === null"
                                     :class="{ 'is-disabled': glResult === null }"
                                     :title="glResult !== null ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
                                     @click="copyPopupSummary()">

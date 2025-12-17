@@ -74,12 +74,13 @@
                             <button class="calc-chip"
                                     type="button"
                                     :disabled="result === null"
-                                    :aria-disabled="(result === null).toString()"
+                                    :aria-disabled="result === null"
                                     :class="{ 'is-disabled': result === null }"
                                     :title="result !== null ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
                                     @click="copyPopupSummary()">
                                 📋 Copy
-                            </button>                        </div>
+                            </button>
+                        </div>
 
                         <div id="bf_tldr"
                              class="calc-callout calc-callout--tldr"

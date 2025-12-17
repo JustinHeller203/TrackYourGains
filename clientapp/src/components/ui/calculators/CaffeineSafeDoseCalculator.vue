@@ -63,12 +63,13 @@
                             <button class="calc-chip"
                                     type="button"
                                     :disabled="!cafResult"
-                                    :aria-disabled="(!cafResult).toString()"
+                                    :aria-disabled="!cafResult"
                                     :class="{ 'is-disabled': !cafResult }"
                                     :title="cafResult ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
                                     @click="copyPopupSummary()">
                                 📋 Copy
-                            </button>                        </div>
+                            </button>
+                        </div>
 
                         <div id="caf_tldr"
                              class="calc-callout calc-callout--tldr"
@@ -694,5 +695,4 @@
         align-items: center;
         gap: .35rem;
     }
-
 </style>

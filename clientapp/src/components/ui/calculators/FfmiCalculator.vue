@@ -60,7 +60,7 @@
                             <button class="calc-chip"
                                     type="button"
                                     :disabled="!result"
-                                    :aria-disabled="(!result).toString()"
+                                    :aria-disabled="!result"
                                     :class="{ 'is-disabled': !result }"
                                     :title="result ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
                                     @click="copyPopupSummary()">

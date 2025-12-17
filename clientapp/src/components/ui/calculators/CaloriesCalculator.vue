@@ -61,12 +61,13 @@
                             <button class="calc-chip"
                                     type="button"
                                     :disabled="!result"
-                                    :aria-disabled="(!result).toString()"
+                                    :aria-disabled="!result"
                                     :class="{ 'is-disabled': !result }"
                                     :title="result ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
                                     @click="copyPopupSummary()">
                                 📋 Copy
-                            </button>                        </div>
+                            </button>
+                        </div>
 
                         <div id="cal_tldr"
                              class="calc-callout calc-callout--tldr"
@@ -615,6 +616,7 @@
             box-shadow: 0 0 5px rgba(99,102,241,.5);
             outline: none;
         }
+
     @media (max-width: 600px) {
         .footer-actions {
             display: grid;
@@ -685,5 +687,4 @@
     .calc-card--wide {
         grid-column: 1 / -1;
     }
-
 </style>

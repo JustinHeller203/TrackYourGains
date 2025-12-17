@@ -63,12 +63,13 @@
                             <button class="calc-chip"
                                     type="button"
                                     :disabled="!bmiResult"
-                                    :aria-disabled="(!bmiResult).toString()"
+                                    :aria-disabled="!bmiResult"
                                     :class="{ 'is-disabled': !bmiResult }"
                                     :title="bmiResult ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
                                     @click="copyPopupSummary()">
                                 📋 Copy
-                            </button>                        </div>
+                            </button>
+                        </div>
 
                         <div id="calc_tldr" class="calc-callout calc-callout--tldr" :class="{ 'calc-target': activeTargetId === 'calc_tldr' }" tabindex="-1">
                             <div class="calc-callout-title"> 📌 Kurzfassung</div>

@@ -58,7 +58,7 @@
                             <button class="calc-chip"
                                     type="button"
                                     :disabled="!(oneRmResult != null || formattedResult)"
-                                    :aria-disabled="(!(oneRmResult != null || formattedResult)).toString()"
+                                    :aria-disabled="!(oneRmResult != null || formattedResult)"
                                     :class="{ 'is-disabled': !(oneRmResult != null || formattedResult) }"
                                     :title="(oneRmResult != null || formattedResult) ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
                                     @click="copyPopupSummary()">
@@ -559,6 +559,7 @@
     .btn-icon {
         margin-right: .4rem;
     }
+
     @media (max-width: 600px) {
         .footer-actions {
             display: grid;

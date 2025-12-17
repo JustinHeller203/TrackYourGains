@@ -65,7 +65,7 @@
                             <button class="calc-chip"
                                     type="button"
                                     :disabled="result == null"
-                                    :aria-disabled="(result == null).toString()"
+                                    :aria-disabled="result == null"
                                     :class="{ 'is-disabled': result == null }"
                                     :title="result == null ? 'Erst berechnen, dann kopieren' : 'Kopieren'"
                                     @click="copyPopupSummary()">
@@ -548,5 +548,4 @@
         align-items: center;
         gap: .4rem;
     }
-
 </style>
