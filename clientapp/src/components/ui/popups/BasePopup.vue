@@ -76,10 +76,15 @@
 
     .popup-body {
         font-size: var(--popup-body-size, 1rem);
-        /* wichtig: damit Slot-Content (Inputs etc.) nicht am Rand klebt */
         padding: 1rem 1.1rem;
+        /* WICHTIG: erlaubt korrektes Scroll-Layout */
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
     }
-
+    .popup-overlay.explanation-popup .popup-body {
+        padding-right: 0;
+    }
         .popup-body :deep(label) {
             display: block;
             font-size: 0.95rem;

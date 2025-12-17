@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
-import BasePopup from './BasePopup.vue'
+import BasePopup from '../BasePopup.vue'
 import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
 import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
 

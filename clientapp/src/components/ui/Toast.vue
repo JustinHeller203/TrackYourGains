@@ -823,25 +823,31 @@
     /* ===== Toast Box ===== */
     .toast {
         pointer-events: auto;
-        background: var(--bg-card);
-        padding: .9rem 1rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.2);
+        position: relative;
+        overflow: hidden;
         display: inline-flex;
         align-items: center;
-        gap: .5rem;
+        gap: .55rem;
+        padding: .9rem 1rem;
+        border-radius: 14px;
+        /* clean surface (less color-mush) */
+        background: color-mix(in srgb, var(--bg-card) 92%, #0b1220 8%);
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        box-shadow: 0 16px 38px rgba(15, 23, 42, 0.22);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         font-size: .9rem;
-        animation: toast-enter .3s ease;
-        max-width: min(80vw, 420px);
         line-height: 1.35;
         color: var(--text-primary);
-        position: relative;
-        overflow: visible;
+        animation: toast-enter .22s ease-out;
+        max-width: min(86vw, 460px);
     }
 
     html.dark-mode .toast {
-        background: #1c2526;
-        color: #c9d1d9;
+        background: rgba(2, 6, 23, 0.82);
+        border-color: rgba(148, 163, 184, 0.40);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+        color: #f0f6fc;
     }
 
     .toast-emoji {
@@ -858,18 +864,6 @@
         animation-play-state: var(--toast-play, running);
     }
 
-    /* Typen */
-    .toast-default {
-        border-left: 4px solid #4B6CB7;
-    }
-
-    .toast-add {
-        border-left: 4px solid #10b981;
-    }
-
-    .toast-delete {
-        border-left: 4px solid #ef4444;
-    }
     @media (hover: none) and (pointer: coarse), (max-width: 1024px) {
         .toast {
             /* keine Browser-Long-Press-Aktionen, kein Double-Tap-Zoom-Highlight */
@@ -883,18 +877,35 @@
                 -webkit-touch-callout: none;
             }
     }
+    /* Typen: nur Accent-Variable, kein border-left */
+    .toast-default {
+        --toast-accent: #4B6CB7;
+    }
+
+    .toast-add {
+        --toast-accent: #10b981;
+    }
+
+    .toast-delete {
+        --toast-accent: #ef4444;
+    }
+
     .toast-save {
-        border-left: 4px solid #F59E0B;
+        --toast-accent: #F59E0B;
     }
 
     .toast-timer {
-        border-left: 4px solid #6b7280;
+        --toast-accent: #6b7280;
     }
 
     .toast-reset {
-        border-left: 4px solid #ef4444;
+        --toast-accent: #ef4444;
     }
 
+    /* dezente Accent-Edge wie Landingpage-Glow */
+    .toast::before {
+        content: none;
+    }
     /* Close-Button */
     .toast-close {
         appearance: none;
@@ -946,16 +957,26 @@
 
     .toast-progress {
         position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        left: 10px;
+        right: 10px;
+        bottom: 8px;
         height: 3px;
-        background: var(--toast-accent, #4B6CB7);
-        opacity: .95;
+        border-radius: 999px;
+        background: linear-gradient( 90deg, color-mix(in srgb, var(--toast-accent, var(--accent-primary)) 90%, #fff 10%), var(--toast-accent, var(--accent-secondary)) );
+        opacity: .75;
         transform-origin: left;
         animation: toast-progress-shrink var(--toast-duration, 3000ms) linear forwards;
         pointer-events: none;
+        bottom: 10px;
         animation-play-state: var(--toast-play, running);
+    }
+
+    @media (hover: hover) {
+        .toast:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.55);
+        }
     }
 
     @keyframes toast-progress-shrink {
@@ -972,7 +993,7 @@
         opacity: .9;
     }
 
-    
+
     .toast-action {
         appearance: none;
         border: 0;
@@ -981,7 +1002,7 @@
         border-radius: 6px;
         font-weight: 700;
         cursor: pointer;
-        color: var(--accent-primary, #4B6CB7);
+        color: var(--toast-accent, var(--accent-primary, #4B6CB7));
         text-decoration: none;
         text-underline-offset: 2px;
         transition: background .15s, text-decoration-color .15s, color .15s;

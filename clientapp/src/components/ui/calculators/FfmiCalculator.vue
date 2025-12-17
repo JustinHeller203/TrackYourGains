@@ -2,10 +2,228 @@
 <template>
     <div class="calculator-card">
         <div class="card-header">
+
             <h3 class="card-title">
                 {{ title || 'FFMI-Rechner' }}
-                <InfoHover :text="infoText" />
+
+                <ExplanationPopup v-if="infoText"
+                                  title="FFMI (Fat-Free Mass Index)"
+                                  kicker="Rechner erklärt"
+                                  aria-open="FFMI Erklärung öffnen"
+                                  aria-close="Schließen"
+                                  :text="infoText">
+                    <template #graphic>
+                        <div class="calc-hero" role="img" aria-label="FFMI Kurzkarte">
+                            <div class="calc-hero-top">
+                                <span class="calc-hero-title">ℹ️ Was bedeutet FFMI?</span>
+                            </div>
+
+                            <div class="calc-hero-sub">
+                                FFMI zeigt deine <strong>fettfreie Masse</strong> (Gewicht minus Fett) im Verhältnis zur <strong>Größe</strong> — je höher, desto „muskulöser“ (bei ähnlichem KFA).
+                            </div>
+
+                            <div class="calc-hero-pills" aria-label="Schnellnavigation">
+                                <button class="calc-chip" type="button" @click="jumpTo('ffmi_formula')">⚙️ Formel</button>
+                                <button class="calc-chip" type="button" @click="jumpTo('ffmi_bands')">📊 Einordnung</button>
+                                <button class="calc-chip" type="button" @click="jumpTo('ffmi_next')">👉 Was heißt das?</button>
+                                <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('ffmi_important')">⚠️ Wichtig</button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div class="calc-scan">
+                        <div v-if="result"
+                             id="ffmi_you"
+                             class="calc-callout calc-callout--tldr"
+                             :class="{ 'calc-target': activeTargetId === 'ffmi_you' }"
+                             tabindex="-1">
+                            <div class="calc-callout-title">✅ Dein Ergebnis</div>
+                            <div class="calc-callout-text">
+                                <div><strong>FFMI:</strong> {{ result.value.toFixed(1) }} — <strong>{{ result.category }}</strong></div>
+                                <div class="calc-note calc-note--tight">
+                                    Tipp: FFMI ist ein Richtwert. Progress + KFA-Schätzung entscheidet.
+                                </div>
+
+                                <div class="calc-actions">
+                                    <button class="calc-chip" type="button" @click="jumpTo('ffmi_next')">👉 Was heißt das?</button>
+                                    <button class="calc-chip" type="button" @click="jumpTo('ffmi_bands')">📊 Einordnung</button>
+                                    <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('ffmi_important')">⚠️ Wichtig</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="calc-chips" aria-label="Kurzüberblick">
+                            <button class="calc-chip" type="button" @click="jumpTo('ffmi_formula')">⚙️ Formel</button>
+                            <button class="calc-chip" type="button" @click="jumpTo('ffmi_example')">📐 Beispiel</button>
+                            <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('ffmi_bands')">📊 Bereiche</button>
+                            <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('ffmi_important')">⚠️ Wichtig</button>
+                            <button class="calc-chip"
+                                    type="button"
+                                    :disabled="!result"
+                                    :aria-disabled="(!result).toString()"
+                                    :class="{ 'is-disabled': !result }"
+                                    :title="result ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
+                                    @click="copyPopupSummary()">
+                                📋 Copy
+                            </button>
+                        </div>
+
+                        <div id="ffmi_tldr"
+                             class="calc-callout calc-callout--tldr"
+                             :class="{ 'calc-target': activeTargetId === 'ffmi_tldr' }"
+                             tabindex="-1">
+                            <div class="calc-callout-title">📌 Kurzfassung</div>
+                            <div class="calc-callout-text">
+                                <div>
+                                    FFMI = <strong>fettfreie Masse</strong> relativ zur <strong>Körpergröße</strong>.
+                                </div>
+                                <ul class="calc-list calc-list--spaced">
+                                    <li><strong>Besser als BMI:</strong> berücksichtigt Fettanteil (indirekt)</li>
+                                    <li><strong>Heißt nicht:</strong> „gesund/ungesund“ — nur Körperkomposition</li>
+                                    <li><strong>Merke:</strong> KFA-Schätzung muss halbwegs passen</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="calc-callout"
+                             :class="{ 'calc-target': activeTargetId === 'ffmi_next' }"
+                             tabindex="-1"
+                             id="ffmi_next">
+                            <div class="calc-callout-title">👉 Was heißt das jetzt?</div>
+                            <ul class="calc-list">
+                                <li><strong>FFMI steigt:</strong> du hast (meist) fettfreie Masse aufgebaut oder KFA ist gesunken.</li>
+                                <li><strong>FFMI stagniert:</strong> okay — check Progress im Gym + Kalorien/Protein + Schlaf.</li>
+                                <li><strong>FFMI fällt:</strong> oft Cut zu hart / Kraft sinkt / KFA-Schätzung daneben.</li>
+                            </ul>
+                        </div>
+
+                        <div class="calc-grid">
+
+                            <section class="calc-card">
+                                <h4 class="calc-h">👥 Für wen ist der FFMI wertvoll?</h4>
+                                <ul class="calc-list">
+                                    <li>✅ Krafttraining: “baue ich wirklich Muskeln auf?”</li>
+                                    <li>✅ Cut/Bulk: Fortschritt trotz Gewichtsschwankungen besser einordnen</li>
+                                    <li>✅ Wenn BMI dich verarscht (viel Muskel / wenig Muskel)</li>
+                                    <li>⚠️ Wenn KFA nur geraten ist: nur als groben Trend nutzen</li>
+                                </ul>
+                            </section>
+
+                            <section class="calc-card">
+                                <h4 class="calc-h">🧠 Was misst der FFMI?</h4>
+                                <ul class="calc-list">
+                                    <li><strong>Misst:</strong> fettfreie Masse relativ zur Größe</li>
+                                    <li><strong>Beinhaltet:</strong> Muskeln + Wasser + Knochen + Organe (alles ohne Fett)</li>
+                                    <li><strong>Misst nicht:</strong> “gesund/ungesund” oder “ästhetisch”</li>
+                                    <li><strong>Merke:</strong> gleiche FFMI-Zahl kann bei unterschiedlichem KFA komplett anders aussehen</li>
+                                </ul>
+                            </section>
+
+                            <section class="calc-card">
+                                <h4 class="calc-h">⚖️ FFMI vs. BMI</h4>
+                                <ul class="calc-list">
+                                    <li><strong>BMI:</strong> Gewicht ↔ Größe (keine Ahnung ob Muskel oder Fett)</li>
+                                    <li><strong>FFMI:</strong> nimmt Fett raus (über KFA) → näher an “Muskel-Status”</li>
+                                    <li><strong>Praxis:</strong> Wenn du trainierst, ist FFMI fast immer hilfreicher als BMI</li>
+                                </ul>
+                            </section>
+                            <section id="ffmi_formula"
+                                     class="calc-card"
+                                     :class="{ 'calc-target': activeTargetId === 'ffmi_formula' }"
+                                     tabindex="-1">
+                                <h4 class="calc-h">⚙️ Formel</h4>
+                                <div class="calc-note">1) Fettfreie Masse berechnen → 2) auf Größe normieren.</div>
+                                <div class="calc-formula calc-formula--first">
+                                    <span class="calc-formula-k">FFM</span>
+                                    <span class="calc-formula-eq">=</span>
+                                    <span class="calc-formula-v">Gewicht × (1 − KFA)</span>
+                                </div>
+                                <div class="calc-formula">
+                                    <span class="calc-formula-k">FFMI</span>
+                                    <span class="calc-formula-eq">=</span>
+                                    <span class="calc-formula-v">FFM ÷ Größe² (m)</span>
+                                </div>
+                            </section>
+
+                            <section id="ffmi_bands"
+                                     class="calc-card"
+                                     :class="{ 'calc-target': activeTargetId === 'ffmi_bands' }"
+                                     tabindex="-1">
+                                <h4 class="calc-h">📊 Einordnung (grob)</h4>
+                                <ul class="calc-list">
+                                    <li><strong>~18–20:</strong> sportlich/fit</li>
+                                    <li><strong>~20–22:</strong> sehr solide Muskelbasis</li>
+                                    <li><strong>~22–24:</strong> stark (meist viel Training)</li>
+                                    <li><strong>24+:</strong> selten ohne sehr viel Training + sehr guten Voraussetzungen</li>
+                                </ul>
+                                <div class="calc-note calc-note--tight">
+                                    Das ist grob: KFA-Schätzung & Messfehler können die Zahl spürbar verschieben.
+                                </div>
+                            </section>
+
+                            <section id="ffmi_example"
+                                     class="calc-card"
+                                     :class="{ 'calc-target': activeTargetId === 'ffmi_example' }"
+                                     tabindex="-1">
+                                <h4 class="calc-h">📐 Beispiel</h4>
+                                <div class="calc-example">
+                                    <div class="calc-example-row">
+                                        <span>80 kg, 180 cm, 15% KFA</span>
+                                        <span class="calc-example-strong">FFMI ≈ 20,9</span>
+                                    </div>
+                                    <div class="calc-example-sub">
+                                        Stabil sportlich. Wird höher durch mehr fettfreie Masse oder weniger KFA.
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div id="ffmi_important"
+                             class="calc-callout calc-callout--warn"
+                             :class="{ 'calc-target': activeTargetId === 'ffmi_important' }"
+                             tabindex="-1">
+                            <div class="calc-callout-title">⚠️ Wichtig (damit du’s richtig nutzt)</div>
+                            <ul class="calc-list">
+                                <li><strong>KFA-Schätzung</strong> ist der größte Hebel: daneben = FFMI daneben.</li>
+                                <li><strong>Wasser/Glykogen</strong> ändern Gewicht kurzfristig → Zahl kann springen.</li>
+                                <li>Bewerte lieber <strong>Trend + Kraftwerte + Fotos</strong> statt nur eine Zahl.</li>
+                            </ul>
+                        </div>
+
+                        <div id="ffmi_ignore"
+                             class="calc-callout"
+                             :class="{ 'calc-target': activeTargetId === 'ffmi_ignore' }"
+                             tabindex="-1">
+                            <div class="calc-callout-title">🧠 Wann du den FFMI locker ignorieren darfst</div>
+                            <ul class="calc-list">
+                                <li>Deine <strong>Kraft</strong> steigt solide und dein Training läuft.</li>
+                                <li>Du hast klare <strong>Messwerte</strong> (Taille/Umfänge/Fotos) die den Trend zeigen.</li>
+                                <li>Dein KFA ist nur geraten und schwankt — dann ist FFMI halt Noise.</li>
+                            </ul>
+                        </div>
+
+                        <section class="calc-card">
+                            <h4 class="calc-h">❓ Häufige Fragen</h4>
+                            <ul class="calc-list">
+                                <li><strong>„Warum schwankt mein FFMI?“</strong> → KFA-Schätzung/Wasser/Wiegen.</li>
+                                <li><strong>„Wie genau muss mein KFA sein, damit FFMI Sinn macht?“</strong> → Nutz immer die gleiche Methode + gleiche Bedingungen und schau auf den Trend.</li>
+                                <li><strong>„Wie steigern?“</strong> → Aufbau + Progression + Protein + Schlaf.</li>
+                            </ul>
+                        </section>
+                    </div>
+
+
+                    <template #mini>
+                        <div class="calc-mini">
+                            <div class="calc-mini-title">Reality-Check ✅</div>
+                            <div class="calc-mini-text">
+                                FFMI ist ein <strong>Kompass</strong>, kein Urteil. Tracke <strong>Gewicht</strong>, <strong>KFA-Trend</strong> und <strong>Leistung</strong> zusammen.
+                            </div>
+                        </div>
+                    </template>
+                </ExplanationPopup>
             </h3>
+
 
             <FavoriteButton :active="isFavorite"
                             :titleActive="'Aus Favoriten entfernen'"
@@ -68,8 +286,8 @@
 </template>
 
 <script setup lang="ts">
-    import { computed } from 'vue'
-    import InfoHover from '@/components/ui/InfoHover.vue'
+    import { computed, ref } from 'vue'
+    import ExplanationPopup from '@/components/ui/popups/ExplanationPopup.vue'
     import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
     import ExportButton from '@/components/ui/buttons/ExportButton.vue'
     import ResetButton from '@/components/ui/buttons/ResetButton.vue'
@@ -110,9 +328,49 @@
     const infoText = computed(
         () =>
             props.info ??
-            'FFMI (Fat-Free Mass Index) schätzt fettfreie Masse relativ zur Körpergröße und ist robuster als der BMI.'
+            'FFMI (Fat-Free Mass Index) ist wie ein „Muskel-Index“: Er nimmt deine fettfreie Masse (Gewicht minus Fett) und setzt sie ins Verhältnis zur Größe. Praktisch, um „muskulös vs. nur schwer“ zu unterscheiden. Wichtig: Wenn der KFA daneben liegt, ist auch der FFMI ungenauer — deshalb eher Trends vergleichen als eine Zahl feiern.'
     )
 
+    const activeTargetId = ref<string | null>(null)
+    let activeTargetTimer: number | null = null
+
+    function jumpTo(id: string) {
+        const el = document.getElementById(id)
+        if (!el) return
+
+        if (activeTargetTimer) window.clearTimeout(activeTargetTimer)
+        activeTargetId.value = id
+
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            ; (el as HTMLElement).focus?.({ preventScroll: true })
+
+        activeTargetTimer = window.setTimeout(() => {
+            activeTargetId.value = null
+            activeTargetTimer = null
+        }, 1400)
+    }
+
+    async function copyPopupSummary() {
+        if (!result.value) return
+
+        const parts: string[] = []
+
+        if (weight.value != null) parts.push(`Gewicht: ${weight.value} ${props.unit === 'kg' ? 'kg' : 'lbs'}`)
+        if (height.value != null) parts.push(`Größe: ${height.value} cm`)
+        if (bodyFat.value != null) parts.push(`KFA: ${bodyFat.value}%`)
+
+        if (result.value) parts.push(`FFMI: ${result.value.value.toFixed(1)} (${result.value.category})`)
+
+        const text = parts.join(' | ')
+        try {
+            await navigator.clipboard.writeText(text)
+            emit('copy')
+            activeTargetId.value = 'ffmi_you'
+            window.setTimeout(() => (activeTargetId.value = null), 700)
+        } catch {
+            // optional später: Fehler-Toast
+        }
+    }
     function onWeightInput(e: Event) {
         const raw = (e.target as HTMLInputElement).value
         emit('update:ffmiWeight', raw === '' ? null : Number(raw))

@@ -56,7 +56,7 @@
 
         <template #actions>
             <div class="tm-foot">
-                <button type="button" class="tm-btn primary" @click="$emit('close')">
+                <button type="button" class="tm-btn primary" @click="$emit('done')">
                     Fertig
                 </button>
             </div>
@@ -84,13 +84,11 @@
 
     defineEmits<{
         (e: 'close'): void
+        (e: 'done'): void
         (e: 'set-all', v: boolean): void
         (e: 'toggle', key: string): void
         (e: 'preview', key: string): void
     }>()
-
-    const cancelText = 'Abbrechen'
-    const saveText = 'Speichern'
 
     const enabledCount = computed(() =>
         props.options.filter(o => !!props.enabledMap[o.key]).length

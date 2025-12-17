@@ -228,8 +228,10 @@
                                             :glCategory="glCategory"
                                             :isFavorite="true"
                                             @toggleFavorite="() => toggleFavorite('Glykämische Last')"
+                                            @update:glFood="v => glFood = v"
+                                            @update:glServing="v => glServing = v"
+                                            @update:glCarbs100="v => glCarbs100 = v"
                                             @update:glGi="v => glGi = v"
-                                            @update:glCarbs="v => glCarbs = v"
                                             @calculate="calculateGlyLoad"
                                             @copy="copyGlyLoad"
                                             @export="openDownloadPopup('glyload')"
@@ -405,8 +407,10 @@
                                         :glCategory="glCategory"
                                         :isFavorite="isFavorite('Glykämische Last')"
                                         @toggleFavorite="() => toggleFavorite('Glykämische Last')"
+                                        @update:glFood="v => glFood = v"
+                                        @update:glServing="v => glServing = v"
+                                        @update:glCarbs100="v => glCarbs100 = v"
                                         @update:glGi="v => glGi = v"
-                                        @update:glCarbs="v => glCarbs = v"
                                         @calculate="calculateGlyLoad"
                                         @copy="copyGlyLoad"
                                         @export="openDownloadPopup('glyload')"
@@ -432,7 +436,6 @@
                                  @reset="resetCalculator('water')" />
 
             </div>
-
 
             <!-- ===================== PLÄNE TAB ===================== -->
             <div v-show="activeTab === 'plans'" class="plans-section">
@@ -466,7 +469,6 @@
                         </div>
                     </template>
                 </div>
-
 
                 <div class="plan-card" v-if="matchesPlanSearch('Ernährungsplan')">
                     <div class="card-header">
@@ -994,24 +996,24 @@
 
     // Basis-State für die Werte, die in den Cards angezeigt werden
 
-    const weightHistory = ref < WeightEntry[] > ([]);
-    const workouts = ref < Workout[] > ([]);
-    const meals = ref < Meal[] > ([]);
-    const goal = ref < number | null > (null);
+    const weightHistory = ref<WeightEntry[]>([]);
+    const workouts = ref<Workout[]>([]);
+    const meals = ref<Meal[]>([]);
+    const goal = ref<number | null>(null);
 
     // State für die Popups der DashboardCards
 
-    const newWeight = ref < number | null > (null);
-    const newGoal = ref < number | null > (null);
+    const newWeight = ref<number | null>(null);
+    const newGoal = ref<number | null>(null);
     const showWeightPopup = ref(false);
     const showGoalPopup = ref(false);
-    const weightInput = ref < HTMLInputElement | null > (null);
-    const goalInput = ref < HTMLInputElement | null > (null);
+    const weightInput = ref<HTMLInputElement | null>(null);
+    const goalInput = ref<HTMLInputElement | null>(null);
 
     // Tabs + Responsive-Handling für :compact in DashboardCard
 
     const mq = window.matchMedia('(max-width: 600px)')
-    const isMobile = ref < boolean > (mq.matches)
+    const isMobile = ref<boolean>(mq.matches)
 
     const handleMqChange = (e: MediaQueryListEvent | MediaQueryList) => {
         isMobile.value = 'matches' in e ? e.matches : (e as MediaQueryList).matches
@@ -1063,7 +1065,7 @@
     })
 
     //  Validierung für Gewicht & Zielgewicht
-    const validationErrorMessages = ref < string[] > ([]);
+    const validationErrorMessages = ref<string[]>([]);
 
     const validateWeight = (weight: number | null): string | null => {
         if (weight === null || isNaN(weight)) return 'Gewicht muss eine Zahl sein';
@@ -1084,7 +1086,7 @@
 
     // ================== Popup-Logik: Card "Aktuelles Gewicht" ==================
 
-    const latestRecordedWeightDisplay = computed < number | null > (() =>
+    const latestRecordedWeightDisplay = computed<number | null>(() =>
         weightHistory.value.length ? kgToDisplay(weightHistory.value[0].weight) : null
     )
 
@@ -1166,10 +1168,10 @@
 
     // Suche
 
-    const searchQuery = ref < string > ('');
-    const planSearchQuery = ref < string > ('');
+    const searchQuery = ref<string>('');
+    const planSearchQuery = ref<string>('');
 
-    const activeTab = ref < 'stats' | 'calculators' | 'plans' > ('stats');
+    const activeTab = ref<'stats' | 'calculators' | 'plans'>('stats');
 
     // ===== Stats-Tab: ChartCard Gewichtsverlauf & Trainingsstatistik =====
 
@@ -1276,7 +1278,7 @@
 
     // ===== Filterleiste =====
 
-    const calcCategory = ref < CalcCategory > ('alle')
+    const calcCategory = ref<CalcCategory>('alle')
 
     const CALC_CATEGORY: Record<string, CalcCategory> = {
         'BMI': 'gesundheit',
@@ -1311,7 +1313,7 @@
 
     //===== Favorit Calculators =====
 
-    const favoriteCalculators = ref < Set < string >> (new Set())
+    const favoriteCalculators = ref<Set<string>>(new Set())
     const FAVORITES_KEY = 'progress_favorite_calculators'
     const favoriteCalcs = computed(() => Array.from(favoriteCalculators.value));
 
@@ -1741,10 +1743,10 @@
 
     //=============== BMI Calculator ==========
 
-    const bmiGender = ref < 'male' | 'female' > ('male');
-    const bmiWeight = ref < number | null > (null);
-    const bmiHeight = ref < number | null > (null);
-    const bmiResult = ref < { value: number; category: string } | null > (null);
+    const bmiGender = ref<'male' | 'female'>('male');
+    const bmiWeight = ref<number | null>(null);
+    const bmiHeight = ref<number | null>(null);
+    const bmiResult = ref<{ value: number; category: string } | null>(null);
 
     const validateBMI = (): string[] => {
         const errors: string[] = [];
@@ -1808,16 +1810,16 @@
 
     //========== Calories Calculator ==========
 
-    const calorieAge = ref < number | null > (null);
-    const calorieGender = ref < 'male' | 'female' > ('male');
-    const calorieWeight = ref < number | null > (null);
-    const calorieHeight = ref < number | null > (null);
-    const calorieActivity = ref < string > ('1.2');
-    const calorieGoal = ref < number > (0);
-    const calorieResult = ref < {
+    const calorieAge = ref<number | null>(null);
+    const calorieGender = ref<'male' | 'female'>('male');
+    const calorieWeight = ref<number | null>(null);
+    const calorieHeight = ref<number | null>(null);
+    const calorieActivity = ref<string>('1.2');
+    const calorieGoal = ref<number>(0);
+    const calorieResult = ref<{
         total: number;
         macros: { carbs: number; protein: number; fat: number };
-    } | null > (null);
+    } | null>(null);
 
     const validateCalories = (): string[] => {
         const errors: string[] = [];
@@ -1891,11 +1893,11 @@
 
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
-    const proteinWeight = ref < number | null > (null)
-    const proteinGoal = ref < 'maintain' | 'bulk' | 'cut' > ('maintain')
-    const proteinResult = ref < { recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null > (null)
-    const proteinActivity = ref < 'low' | 'moderate' | 'high' > ('low')
-    const proteinMeals = ref < number | null > (null)
+    const proteinWeight = ref<number | null>(null)
+    const proteinGoal = ref<'maintain' | 'bulk' | 'cut'>('maintain')
+    const proteinResult = ref<{ recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null>(null)
+    const proteinActivity = ref<'low' | 'moderate' | 'high'>('low')
+    const proteinMeals = ref<number | null>(null)
 
     const validateProtein = (): string[] => {
         const errors: string[] = []
@@ -1974,10 +1976,10 @@
 
     //========== 1RM ==========
 
-    const oneRmExercise = ref < string > ('');
-    const oneRmWeight = ref < number | null > (null);
-    const oneRmReps = ref < number | null > (null);
-    const oneRmResult = ref < number | null > (null);
+    const oneRmExercise = ref<string>('');
+    const oneRmWeight = ref<number | null>(null);
+    const oneRmReps = ref<number | null>(null);
+    const oneRmResult = ref<number | null>(null);
 
     const validateOneRm = (): string[] => {
         const errors: string[] = [];
@@ -2027,10 +2029,10 @@
 
     // ===== Koffein Calculator ==========
 
-    const cafWeight = ref < number | null > (null)
-    const cafSensitivity = ref < 'low' | 'normal' | 'high' > ('normal')
-    const cafStatus = ref < 'none' | 'pregnant' > ('none')
-    const cafResult = ref < { perDose: number; perDay: number } | null > (null)
+    const cafWeight = ref<number | null>(null)
+    const cafSensitivity = ref<'low' | 'normal' | 'high'>('normal')
+    const cafStatus = ref<'none' | 'pregnant'>('none')
+    const cafResult = ref<{ perDose: number; perDay: number } | null>(null)
 
     const validateCaffeine = (): string[] => {
         const errors: string[] = []
@@ -2103,12 +2105,12 @@
     })
     // ========== BodyFat Calculator ==========
 
-    const bodyFatGender = ref < 'male' | 'female' > ('male');
-    const bodyFatWaist = ref < number | null > (null);
-    const bodyFatNeck = ref < number | null > (null);
-    const bodyFatHip = ref < number | null > (null);
-    const bodyFatHeight = ref < number | null > (null);
-    const bodyFatResult = ref < number | null > (null);
+    const bodyFatGender = ref<'male' | 'female'>('male');
+    const bodyFatWaist = ref<number | null>(null);
+    const bodyFatNeck = ref<number | null>(null);
+    const bodyFatHip = ref<number | null>(null);
+    const bodyFatHeight = ref<number | null>(null);
+    const bodyFatResult = ref<number | null>(null);
 
     const validateBodyFat = (): string[] => {
         const errors: string[] = [];
@@ -2171,10 +2173,10 @@
 
     // ========== FFMI Calculator ==========
 
-    const ffmiWeight = ref < number | null > (null);
-    const ffmiHeight = ref < number | null > (null);
-    const ffmiBodyFat = ref < number | null > (null);
-    const ffmiResult = ref < { value: number; category: string } | null > (null);
+    const ffmiWeight = ref<number | null>(null);
+    const ffmiHeight = ref<number | null>(null);
+    const ffmiBodyFat = ref<number | null>(null);
+    const ffmiResult = ref<{ value: number; category: string } | null>(null);
 
     const validateFFMI = (): string[] => {
         const errors: string[] = [];
@@ -2234,17 +2236,17 @@
 
     // ========== GlycemicLoadCalculator ==========
 
-    const glFood = ref < string > ('')
-    const glServing = ref < number | null > (null)
-    const glCarbs100 = ref < number | null > (null)
-    const glGi = ref < number | null > (null)
-    const glCarbs = computed < number | null > (() => {
+    const glFood = ref<string>('')
+    const glServing = ref<number | null>(null)
+    const glCarbs100 = ref<number | null>(null)
+    const glGi = ref<number | null>(null)
+    const glCarbs = computed<number | null>(() => {
         if (glServing.value == null || glCarbs100.value == null) return null
         return (Number(glCarbs100.value) * Number(glServing.value)) / 100
     })
 
-    const glResult = ref < number | null > (null)
-    const glCategory = computed < string > (() => {
+    const glResult = ref<number | null>(null)
+    const glCategory = computed<string>(() => {
         if (glResult.value == null) return ''
         if (glResult.value < 10) return 'niedrig'
         if (glResult.value < 20) return 'mittel'
@@ -2326,10 +2328,10 @@
     })
     // ========== Water Calculator ==========
 
-    const waterWeight = ref < number | null > (null);
-    const waterActivity = ref < 'low' | 'moderate' | 'high' > ('low');
-    const waterClimate = ref < 'temperate' | 'hot' | 'very_hot' > ('temperate');
-    const waterResult = ref < number | null > (null);
+    const waterWeight = ref<number | null>(null);
+    const waterActivity = ref<'low' | 'moderate' | 'high'>('low');
+    const waterClimate = ref<'temperate' | 'hot' | 'very_hot'>('temperate');
+    const waterResult = ref<number | null>(null);
 
     const validateWater = (): string[] => {
         const errors: string[] = [];
@@ -2381,8 +2383,8 @@
 
     // ======== Pläne-Tab: State =======
 
-    const trainingPlans = ref < TrainingPlan[] > ([]);
-    const favoritePlansIds = ref < string[] > ([])
+    const trainingPlans = ref<TrainingPlan[]>([]);
+    const favoritePlansIds = ref<string[]>([])
 
 
 
@@ -2431,40 +2433,40 @@
     const showProgressPopup = ref(false);
     const showProgressExtras = ref(false);
 
-    const currentExercise = ref < string > ('');
+    const currentExercise = ref<string>('');
 
-    const newProgressReps = ref < number | null > (null);
-    const newProgressSets = ref < number | null > (null);
-    const newProgressNote = ref < string > ('');
-    const newProgressDuration = ref < number | null > (null)
+    const newProgressReps = ref<number | null>(null);
+    const newProgressSets = ref<number | null>(null);
+    const newProgressNote = ref<string>('');
+    const newProgressDuration = ref<number | null>(null)
 
-    const newProgressDistance = ref < number | null > (null)
-    const newProgressTempo = ref < string > ('')
-    const newProgressRestSeconds = ref < number | null > (null)
-    const newProgressAvgHr = ref < number | null > (null)
-    const newProgressCalories = ref < number | null > (null)
-    const newProgressPace = ref < string > ('')
-    const newProgressHrZone = ref < number | null > (null)
-    const newProgressBorg = ref < number | null > (null)
+    const newProgressDistance = ref<number | null>(null)
+    const newProgressTempo = ref<string>('')
+    const newProgressRestSeconds = ref<number | null>(null)
+    const newProgressAvgHr = ref<number | null>(null)
+    const newProgressCalories = ref<number | null>(null)
+    const newProgressPace = ref<string>('')
+    const newProgressHrZone = ref<number | null>(null)
+    const newProgressBorg = ref<number | null>(null)
 
-    const newProgressPainFree = ref < number | null > (null)
-    const newProgressMovementQuality = ref < number | null > (null)
-    const newProgressEquipment = ref < string > ('')
-    const newProgressEquipmentCustom = ref < string > ('')
-    const newProgressSide = ref < '' | 'links' | 'rechts' | 'beidseitig' > ('')
+    const newProgressPainFree = ref<number | null>(null)
+    const newProgressMovementQuality = ref<number | null>(null)
+    const newProgressEquipment = ref<string>('')
+    const newProgressEquipmentCustom = ref<string>('')
+    const newProgressSide = ref<'' | 'links' | 'rechts' | 'beidseitig'>('')
 
-    const newProgressSetDetails = ref < Array < { weight: number | null; reps: number | null } >> ([])
+    const newProgressSetDetails = ref<Array<{ weight: number | null; reps: number | null }>>([])
 
     const newProgressIsDropset = ref(false)
-    const newProgressDropsets = ref < Array < { weight: number | null; reps: number | null } >> ([])
+    const newProgressDropsets = ref<Array<{ weight: number | null; reps: number | null }>>([])
 
-    const editingEntry = ref < Workout | null > (null);
+    const editingEntry = ref<Workout | null>(null);
 
     const reopenPlanProgressAfterSave = ref(false)
 
-    const progressEntryModalRef = ref < ProgressEntryModalExposed | null > (null)
+    const progressEntryModalRef = ref<ProgressEntryModalExposed | null>(null)
 
-    const newProgressWeight = ref < number | null > (null)
+    const newProgressWeight = ref<number | null>(null)
 
     // --- Helper: Übungs-Namen → Typ erkennen ---
 
@@ -2493,7 +2495,7 @@
     }
 
 
-    const detectedInputType = computed < ExerciseType > (() =>
+    const detectedInputType = computed<ExerciseType>(() =>
         isStretchName(currentExercise.value) ? 'dehnung'
             : isCardioName(currentExercise.value) ? 'ausdauer'
                 : 'kraft'
@@ -2860,12 +2862,12 @@
     // ===== Journal & Plan-Progress: State & Helper =====
 
     const maxEntries = ref(3);
-    const showMore = ref < { [key: string]: boolean } > ({});
+    const showMore = ref<{ [key: string]: boolean }>({});
 
-    const prevWeightHistory = ref < WeightEntry[] | null > (null)
-    const prevWorkoutsSnapshot = ref < Workout[] | null > (null)
-    const journalSearch = ref < string > ('')
-    const journalType = ref < 'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer' > ('alle')
+    const prevWeightHistory = ref<WeightEntry[] | null>(null)
+    const prevWorkoutsSnapshot = ref<Workout[] | null>(null)
+    const journalSearch = ref<string>('')
+    const journalType = ref<'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'>('alle')
 
     const router = useRouter()
     const TYPE_LABEL: Record<WorkoutType, string> = {
@@ -2896,7 +2898,7 @@
         return [...base, ...ds, ...extraCols].join(' ')
     }
     const summarizeCategories = (items: Workout[]): string => {
-        const types = new Set < WorkoutType > (items.map(w => (w.type ?? 'kraft') as WorkoutType))
+        const types = new Set<WorkoutType>(items.map(w => (w.type ?? 'kraft') as WorkoutType))
         const labels = [...types].map(t => TYPE_LABEL[t])
         if (labels.length === 1) return labels[0]
         if (labels.length > 3) return 'Gemischt'
@@ -2906,39 +2908,40 @@
     function aggregateDay(items: Workout[]): JournalGroup[] {
         const strength = items.filter(it => (it.type ?? 'kraft') === 'kraft' || it.type === 'calisthenics')
 
-        const byExercise = new Map < string, { entries: Workout[]; notes: string[]
-    }> ()
-    for (const it of strength) {
-        const key = it.exercise || 'Unbenannte Übung'
-        if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
+        const byExercise = new Map<string, {
+            entries: Workout[]; notes: string[]
+        }>()
+        for (const it of strength) {
+            const key = it.exercise || 'Unbenannte Übung'
+            if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
 
-        const setCount = Math.max(1, Number(it.sets ?? 1))
-        for (let s = 0; s < setCount; s++) {
-            const detail = it.setDetails?.[s]
-            byExercise.get(key)!.entries.push({
-                ...it,
-                sets: 1,
-                weight: detail ? detail.weight : it.weight,
-                reps: detail ? detail.reps : it.reps,
+            const setCount = Math.max(1, Number(it.sets ?? 1))
+            for (let s = 0; s < setCount; s++) {
+                const detail = it.setDetails?.[s]
+                byExercise.get(key)!.entries.push({
+                    ...it,
+                    sets: 1,
+                    weight: detail ? detail.weight : it.weight,
+                    reps: detail ? detail.reps : it.reps,
+                })
+            }
+
+            if (it.note) byExercise.get(key)!.notes.push(it.note)
+        }
+
+        const groups: JournalGroup[] = []
+        for (const [exercise, { entries, notes }] of byExercise.entries()) {
+            groups.push({
+                exercise,
+                entries,
+                note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
             })
         }
 
-        if (it.note) byExercise.get(key)!.notes.push(it.note)
+        return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
     }
 
-    const groups: JournalGroup[] = []
-    for (const [exercise, { entries, notes }] of byExercise.entries()) {
-        groups.push({
-            exercise,
-            entries,
-            note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
-        })
-    }
-
-    return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
-}
-
-    const journalDays = computed < JournalDay[] > (() => {
+    const journalDays = computed<JournalDay[]>(() => {
         if (!currentPlanId.value) return []
         const all = getProgressForPlan(currentPlanId.value)
 
@@ -2953,7 +2956,7 @@
             return inExercise || inNote
         })
 
-        const byDay = new Map < string, Workout[]> ()
+        const byDay = new Map<string, Workout[]>()
         for (const w of filtered) {
             const day = (w.date || '').slice(0, 10)
             if (!byDay.has(day)) byDay.set(day, [])
@@ -2972,7 +2975,7 @@
         return aggregateDay(items)
     }
 
-    const sortedPlanEntries = computed < Workout[] > (() => {
+    const sortedPlanEntries = computed<Workout[]>(() => {
         if (!currentPlanId.value) return []
         return [...getProgressForPlan(currentPlanId.value)]
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -3016,10 +3019,10 @@
     //Show Progress
 
     const showPlanProgressPopup = ref(false)
-    const currentPlanId = ref < string | null > (null);
-    const progressModalEl = ref < HTMLElement | null > (null)
+    const currentPlanId = ref<string | null>(null);
+    const progressModalEl = ref<HTMLElement | null>(null)
     const visibleDays = ref(7)
-    const expandedDays = ref < Set < string >> (new Set())
+    const expandedDays = ref<Set<string>>(new Set())
 
     let endIO: IntersectionObserver | null = null
 
@@ -3063,7 +3066,7 @@
     };
 
     const entriesByDay = computed(() => {
-        const map = new Map < string, Workout[]> ()
+        const map = new Map<string, Workout[]>()
         if (!currentPlanId.value) return map
         for (const w of getProgressForPlan(currentPlanId.value)) {
             const day = (w.date || '').slice(0, 10)
@@ -3074,7 +3077,7 @@
         return new Map([...map.entries()].sort((a, b) => b[0].localeCompare(a[0])))
     })
 
-    const dayCards = computed < DayCard[] > (() => {
+    const dayCards = computed<DayCard[]>(() => {
         return [...entriesByDay.value.entries()].map(([day, items]) => {
             const uniqueExercises = new Set(items.map(i => i.exercise)).size
             return { day, uniqueExercises }
@@ -3135,9 +3138,9 @@
     //======== Export Popup ========
 
     const showDownloadPopup = ref(false);
-    const downloadFormat = ref < 'html' | 'csv' | 'json' | 'pdf' | 'txt' > ('html');
-    const downloadCalculator = ref < string | null > (null);
-    const downloadPlanId = ref < string | null > (null);
+    const downloadFormat = ref<'html' | 'csv' | 'json' | 'pdf' | 'txt'>('html');
+    const downloadCalculator = ref<string | null>(null);
+    const downloadPlanId = ref<string | null>(null);
 
     const openDownloadPopup = (calculator: string, planId?: string) => {
         downloadCalculator.value = calculator;
@@ -3657,7 +3660,7 @@ Notiz: ${e.note ?? '-'}\n`
         const durationMs = Number(localStorage.getItem('toastDurationMs')) || 3000
         toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, action, durationMs }
     }
-   
+
     // --- Toast: Integration mit Overlays & Sichtbarkeit ---
 
     const externalOverlayOpen = ref(false)
@@ -3674,7 +3677,7 @@ Notiz: ${e.note ?? '-'}\n`
         || externalOverlayOpen.value
         || bodyBlocked.value
     )
-    
+
     // ===== Utility: Zahlen, Debounce, Format, Charts, Global-Events =====
 
     const toNum = (v: unknown): number | null => {
@@ -3723,7 +3726,7 @@ Notiz: ${e.note ?? '-'}\n`
         errors.forEach(e => addToast(e, 'default'))
     }
 
-    // ======= Milestones + loadFromLocalStorage ======= 
+    // ======= Milestones + loadFromLocalStorage =======
 
     const checkMilestones = (
         planId?: string,
@@ -4243,6 +4246,7 @@ Notiz: ${e.note ?? '-'}\n`
         /* Hover-Effekte der ChartCards sollen nicht abgeschnitten werden */
         overflow: visible;
     }
+
         .progress-charts .card-info {
             margin: 0;
             margin-top: 0.2rem;
@@ -4250,6 +4254,7 @@ Notiz: ${e.note ?? '-'}\n`
             font-weight: 500;
             color: var(--text-secondary);
         }
+
         .progress-charts > * {
             min-width: 0;
         }
@@ -4274,7 +4279,7 @@ Notiz: ${e.note ?? '-'}\n`
         display: contents;
     }
 
-    
+
 
     /* Ernährungsplan-Card – gleiche Welt wie andere Cards, ohne Farb-Overkill */
     .plan-card {
@@ -4414,7 +4419,7 @@ Notiz: ${e.note ?? '-'}\n`
         border: 1px solid var(--border-color);
     }
 
-    
+
 
     /* ===================== EXPORT-POPUP ===================== */
 
@@ -4670,7 +4675,7 @@ Notiz: ${e.note ?? '-'}\n`
         gap: .5rem;
     }
 
-  
+
     /* Fortschritt ansehen – Header mit Download-Button rechts */
     .modal .card-header {
         display: flex;
@@ -5249,7 +5254,6 @@ Notiz: ${e.note ?? '-'}\n`
     .modal--progress > .card-header + .day-card-list {
         margin-top: 1rem; /* taste dich bei Bedarf ran: .75rem – 1.25rem */
     }
-
 </style>
 <style>
     body:has(.modal-overlay) {

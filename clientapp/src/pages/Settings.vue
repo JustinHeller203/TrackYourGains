@@ -195,16 +195,25 @@
         </div>
 
         <div class="settings-footer">
-            <SettingsSaveButton :disabled="false"
-                                title="Einstellungen speichern"
-                                @click="saveSettings" />
+            <div ref="saveBtnWrap" class="save-wrap">
+                <SettingsSaveButton :disabled="false"
+                                    title="Einstellungen speichern"
+                                    @click="saveSettings" />
+            </div>
         </div>
+
+        <ReminderPopup :show="showSaveHint"
+                       :x="saveHintX"
+                       :y="saveHintY"
+                       emoji="💾"
+                       text="Denk dran: unten noch auf „Einstellungen speichern“ klicken 👀" />
 
         <!-- Toast-Arten verwalten (Modal) -->
         <ToastTypeManagerPopup :show="showToastTypeManager"
                                :options="toastTypeOptions"
                                :enabledMap="toastTypeEnabled"
-                               @close="closeToastTypeManager"
+                               @close="onToastTypeManagerClose"
+                               @done="onToastTypeManagerDone"
                                @set-all="setAllToastTypes"
                                @toggle="toggleToastType"
                                @preview="previewToastType" />
@@ -226,6 +235,7 @@
     import Toast from '@/components/ui/Toast.vue'
     import SettingsSaveButton from '@/components/ui/buttons/SettingsSaveButton.vue'
     import ToastTypeManagerPopup from '@/components/ui/popups/ToastTypeManagerPopup.vue'
+    import ReminderPopup from '@/components/ui/popups/ReminderPopup.vue'
 
     // Typen passend zu deiner Toast.vue
     type ToastType =
@@ -253,8 +263,17 @@
         toast: true
     })
 
+    const SETTINGS_GROUPS_COLLAPSE_FLAG = 'settings:collapse-groups-on-enter'
+
     function toggleGroup(key: SettingsGroupKey) {
         openGroups[key] = !openGroups[key]
+    }
+
+    function collapseAllGroups() {
+        ; (Object.keys(openGroups) as SettingsGroupKey[]).forEach((k) => {
+            openGroups[k] = false
+        })
+        showToastTypeManager.value = false
     }
 
     function onToastDismiss(id: number) {
@@ -321,12 +340,68 @@
 
     const showToastTypeManager = ref(false)
 
+    const saveBtnWrap = ref<HTMLElement | null>(null)
+    const showSaveHint = ref(false)
+    const saveHintX = ref(0)
+    const saveHintY = ref(0)
+
+    let toastTypesSnapshot = ''
+    let saveHintTimer: number | null = null
+
+    const TOAST_TYPES_REMINDER_COUNT_KEY = 'settings:toast-types-save-reminder-count'
+
     function openToastTypeManager() {
+        // Snapshot, um später echte Änderungen zu erkennen
+        toastTypesSnapshot = JSON.stringify({ ...toastTypeEnabled })
         showToastTypeManager.value = true
     }
-    function closeToastTypeManager() {
-        showToastTypeManager.value = false
+
+    function maybeShowSaveHintEvery5() {
+        // Position über dem Save-Button setzen
+        const el = saveBtnWrap.value
+        if (!el) return
+
+        const r = el.getBoundingClientRect()
+        saveHintX.value = r.left + r.width / 2
+        saveHintY.value = r.top - 10
+
+        showSaveHint.value = true
+
+        if (saveHintTimer) window.clearTimeout(saveHintTimer)
+        saveHintTimer = window.setTimeout(() => {
+            showSaveHint.value = false
+            saveHintTimer = null
+        }, 3500)
     }
+
+    function onToastTypeManagerClose() {
+        // Abbruch / X / Overlay -> kein Reminder, Snapshot verwerfen
+        showToastTypeManager.value = false
+        toastTypesSnapshot = ''
+    }
+
+    function onToastTypeManagerDone() {
+        // Fertig -> hier Reminder-Logik
+        showToastTypeManager.value = false
+
+        const now = JSON.stringify({ ...toastTypeEnabled })
+        const changed = toastTypesSnapshot && now !== toastTypesSnapshot
+        toastTypesSnapshot = ''
+
+        if (!changed) return
+
+        const raw = Number(localStorage.getItem(TOAST_TYPES_REMINDER_COUNT_KEY) || '0')
+        const next = Number.isFinite(raw) ? raw + 1 : 1
+        localStorage.setItem(TOAST_TYPES_REMINDER_COUNT_KEY, String(next))
+
+        const REMINDER_STEPS = [1, 2, 3, 5, 8, 13]
+
+        if (REMINDER_STEPS.includes(next)) {
+            maybeShowSaveHintEvery5()
+        }
+    }
+
+
     function setAllToastTypes(v: boolean) {
         ; (Object.keys(toastTypeEnabled) as ToastType[]).forEach(k => (toastTypeEnabled[k] = v))
     }
@@ -379,9 +454,15 @@
     }
 
     onBeforeUnmount(() => {
+        collapseAllGroups()
+
         window.removeEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
         window.removeEventListener('toast-types-changed', onToastTypesChanged as EventListener)
 
+        if (saveHintTimer) {
+            window.clearTimeout(saveHintTimer)
+            saveHintTimer = null
+        }
     })
     onMounted(() => {
         // Persistierten Zustand initialisieren
@@ -415,7 +496,26 @@
 
         window.addEventListener('toast-types-changed', onToastTypesChanged as EventListener)
 
+        // Wenn wir von Settings weg sind, sollen die Gruppen beim nächsten Öffnen zu sein
+        if (sessionStorage.getItem(SETTINGS_GROUPS_COLLAPSE_FLAG) === '1') {
+            collapseAllGroups()
+            sessionStorage.removeItem(SETTINGS_GROUPS_COLLAPSE_FLAG)
+        }
     })
+
+    onBeforeRouteLeave((_to, _from, next) => {
+        // Flag setzen, damit beim nächsten Mount alles zu ist (falls Komponente neu gemountet wird)
+        sessionStorage.setItem(SETTINGS_GROUPS_COLLAPSE_FLAG, '1')
+
+        // current view auch direkt zuklappen (für KeepAlive / sauberen State)
+        collapseAllGroups()
+
+        if (!saved.value) {
+            previewTheme(persistedTheme.value)
+        }
+        next()
+    })
+
 
     watch(isDarkDraft, (v) => {
         previewTheme(v ? 'dark' : 'light')
@@ -472,14 +572,6 @@
         }
 
     }
-
-    // Bei Verlassen ohne Speichern: Preview zurücksetzen
-    onBeforeRouteLeave((_to, _from, next) => {
-        if (!saved.value) {
-            previewTheme(persistedTheme.value)
-        }
-        next()
-    })
 </script>
 <style scoped>
     .settings {
@@ -1112,4 +1204,8 @@
             }
     }
 
+    .save-wrap {
+        display: inline-block;
+        position: relative;
+    }
 </style>
