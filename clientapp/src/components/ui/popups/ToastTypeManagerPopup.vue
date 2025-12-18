@@ -12,8 +12,6 @@
                 <span class="tm-sub">{{ enabledCount }} aktiv · {{ disabledCount }} deaktiviert</span>
             </div>
 
-            <XButton aria-label="Schließen" @click="$emit('close')" />
-
         </div>
 
         <!-- Actions wie früher (full width, border-bottom) -->
