@@ -62,7 +62,6 @@
 <script setup lang="ts">
     import { computed } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
-    import XButton from '@/components/ui/buttons/XButton.vue'
 
     type ToastTypeOption = {
         key: string

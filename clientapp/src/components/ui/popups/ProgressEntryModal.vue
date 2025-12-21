@@ -321,11 +321,11 @@
 
 <script setup lang="ts">
     import { computed, nextTick, onMounted, ref, watch } from 'vue'
-    import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
-    import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
+    import PopupCancelButton from '@/components/ui/buttons/popup/PopupCancelButton.vue'
+    import PopupSaveButton from '@/components/ui/buttons/popup/PopupSaveButton.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue'
-    import PopupDeleteButton from '@/components/ui/buttons/PopupDeleteButton.vue' 
+    import PopupDeleteButton from '@/components/ui/buttons/popup/PopupDeleteButton.vue' 
 
     const equipmentCustomInput = ref<HTMLInputElement | null>(null)
     const equipmentProxy = computed({

@@ -29,8 +29,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import BasePopup from './BasePopup.vue'
-import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
-import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
+import PopupSaveButton from '@/components/ui/buttons/popup/PopupSaveButton.vue'
+import PopupCancelButton from '@/components/ui/buttons/popup/PopupCancelButton.vue'
 
 const props = defineProps<{
   show: boolean

@@ -48,7 +48,7 @@
 <script setup lang="ts">
     import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
     import { useRouter } from 'vue-router'
-    import XButton from '@/components/ui/buttons/XButton.vue'
+    import XButton from '@/components/ui/buttons/popup/XButton.vue'
 
     const props = defineProps<{
         version: string

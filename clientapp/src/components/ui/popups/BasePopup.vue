@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-    import XButton from '@/components/ui/buttons/XButton.vue'
+    import XButton from '@/components/ui/buttons/popup/XButton.vue'
 
     withDefaults(defineProps<{
         show: boolean

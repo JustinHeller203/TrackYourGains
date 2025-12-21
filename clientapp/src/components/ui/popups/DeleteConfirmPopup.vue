@@ -17,8 +17,8 @@
 <script setup lang="ts">
     import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
     import BasePopup from './BasePopup.vue'
-    import PopupDeleteButton from '@/components/ui/buttons/PopupDeleteButton.vue'
-    import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
+    import PopupDeleteButton from '@/components/ui/buttons/popup/PopupDeleteButton.vue'
+    import PopupCancelButton from '@/components/ui/buttons/popup/PopupCancelButton.vue'
 
     const props = defineProps<{ show: boolean }>()
     const emit = defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()

@@ -46,6 +46,20 @@
                         </div>
 
                         <div class="setting-card">
+                            <div class="setting-icon">⬆️</div>
+                            <div class="setting-content">
+                                <h3 class="setting-title">Scroll-Hoch Button</h3>
+                                <p class="setting-description">Scrollt automatisch nach oben</p>
+                            </div>
+                            <div class="setting-control">
+                                <input id="backtop-toggle" type="checkbox" class="toggle-switch" v-model="backToTopEnabled" />
+                                <label for="backtop-toggle" class="toggle-label">
+                                    <span class="toggle-text">{{ backToTopEnabled ? 'AN' : 'AUS' }}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-card">
                             <div class="setting-icon">📊</div>
                             <div class="setting-content">
                                 <h3 class="setting-title">Einheiten</h3>
@@ -143,9 +157,21 @@
                         <div class="setting-card">
                             <div class="setting-icon">🔔</div>
                             <div class="setting-content">
-                                <h3 class="setting-title">Toast-Nachrichten</h3>
+                                <div class="setting-title-row">
+                                    <h3 class="setting-title">Toast-Nachrichten</h3>
+
+                                    <button type="button"
+                                            class="tm-preview"
+                                            aria-label="Vorschau"
+                                            title="Vorschau"
+                                            @click="previewToastSettingsDemo">
+                                        👁️
+                                    </button>
+                                </div>
+
                                 <p class="setting-description">Ein-/Ausschalten von Toast-Benachrichtigungen</p>
                             </div>
+
                             <div class="setting-control">
                                 <input id="toasts-toggle" type="checkbox" class="toggle-switch" v-model="toastsEnabled" />
                                 <label for="toasts-toggle" class="toggle-label">
@@ -310,7 +336,7 @@
     }
 
     // Globale Toast-Einstellung
-    const toastsEnabled = ref(true)
+    const toastsEnabled = ref(false)
 
     const toastDurationMs = ref<number>(2500)
 
@@ -324,6 +350,9 @@
     const saved = ref(false)
 
     const confirmDeleteEnabled = ref(true)
+
+    const backToTopEnabled = ref(true)
+    const BTT_ENABLED_KEY = 'backToTopEnabled'
 
     const onToastsEnabledChanged = (e: CustomEvent<boolean>) => {
         toastsEnabled.value = !!e.detail
@@ -356,6 +385,16 @@
         showToastTypeManager.value = true
     }
 
+    function previewToastSettingsDemo() {
+        toast.value = {
+            id: Date.now(),
+            message: toastsEnabled.value ? 'Beispiel: Toast ist aktiv ✅' : 'Beispiel: Toast ist AUS (nur Vorschau) 👀',
+            emoji: '👁️',
+            type: 'toast-default',
+            exiting: false,
+            durationMs: toastDurationMs.value
+        }
+    }
     function maybeShowSaveHintEvery5() {
         // Position über dem Save-Button setzen
         const el = saveBtnWrap.value
@@ -492,6 +531,9 @@
         const storedConfirm = localStorage.getItem('confirmDeleteEnabled')
         confirmDeleteEnabled.value = storedConfirm === null ? true : storedConfirm === 'true'
 
+        const bttStored = localStorage.getItem(BTT_ENABLED_KEY)
+        backToTopEnabled.value = bttStored === null ? true : bttStored === 'true'
+
         loadToastTypePrefs()
 
         window.addEventListener('toast-types-changed', onToastTypesChanged as EventListener)
@@ -558,6 +600,9 @@
         // Confirm-Delete persistieren + global announcen
         localStorage.setItem('confirmDeleteEnabled', String(confirmDeleteEnabled.value))
         window.dispatchEvent(new CustomEvent('confirm-delete-changed', { detail: confirmDeleteEnabled.value }))
+
+        localStorage.setItem(BTT_ENABLED_KEY, String(backToTopEnabled.value))
+        window.dispatchEvent(new CustomEvent('back-to-top-enabled-changed', { detail: backToTopEnabled.value }))
 
         if (toastsEnabled.value && toastTypeEnabled['toast-save']) {
             const id = Date.now()
@@ -856,6 +901,12 @@
         }
     }
 
+    .setting-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
     @media (max-width: 768px) {
         .setting-card {
             grid-template-columns: 1fr;
@@ -1108,6 +1159,28 @@
         max-height: 2400px;
         opacity: 1;
         transform: translateY(0) scale(1);
+    }
+    /* 1:1 aus ToastTypeManagerPopup.vue (Preview-Auge) */
+    .tm-preview {
+        border: none;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        margin-left: 0.45rem;
+        padding: 0;
+        line-height: 1;
+        font-size: 0.95rem;
+        opacity: 0.85;
+    }
+
+        .tm-preview:hover {
+            opacity: 1;
+        }
+
+    .setting-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
     }
 
     /* Glow (ohne blur) */

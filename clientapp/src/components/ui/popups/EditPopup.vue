@@ -38,8 +38,8 @@
 <script setup lang="ts">
     import { ref, watch, onMounted, nextTick } from 'vue'
     import BasePopup from './BasePopup.vue'
-    import PopupSaveButton from '../buttons/PopupSaveButton.vue'
-    import PopupCancelButton from '../buttons/PopupCancelButton.vue'
+    import PopupSaveButton from '../buttons/popup/PopupSaveButton.vue'
+    import PopupCancelButton from '../buttons/popup/PopupCancelButton.vue'
 
     type InputKind = 'text' | 'number' | 'select'
 

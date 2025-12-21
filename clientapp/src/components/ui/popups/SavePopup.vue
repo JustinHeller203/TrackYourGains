@@ -26,8 +26,8 @@
 
 <script setup lang="ts">
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
-    import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
-    import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
+    import PopupSaveButton from '@/components/ui/buttons/popup/PopupSaveButton.vue'
+    import PopupCancelButton from '@/components/ui/buttons/popup/PopupCancelButton.vue'
 
     withDefaults(defineProps<{
         show: boolean

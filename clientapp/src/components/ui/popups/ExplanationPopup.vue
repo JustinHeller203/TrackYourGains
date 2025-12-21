@@ -50,8 +50,6 @@
             </slot>
         </template>
     </BasePopup>
-
-
 </template>
 
 <script setup lang="ts">

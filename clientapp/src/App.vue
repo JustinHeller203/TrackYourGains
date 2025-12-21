@@ -109,24 +109,10 @@
         <!-- ✅ Mini-Guide: Spotlight auf ℹ️ (ExplanationPopup) -->
         <GlobalExplainGuide :version="NEWS_VERSION" :block="showNewsPopup" />
 
-        <footer class="app-footer">
-            <div class="app-footer-content">
-                <router-link to="/legal-notice" class="footer-link">
-                    Impressum
-                </router-link>
-                <router-link to="/terms" class="footer-link">
-                    AGB
-                </router-link>
-                <router-link to="/privacy" class="footer-link">
-                    Datenschutz
-                </router-link>
-                <router-link to="/cookies" class="footer-link">Cookies</router-link>
-                <router-link to="/refund" class="footer-link">Widerruf</router-link>
-                <router-link to="/contact" class="footer-link">Kontakt</router-link>
-                <router-link to="/faq" class="footer-link">FAQ</router-link>
-                <router-link to="/about" class="footer-link">Über uns</router-link>
-            </div>
-        </footer>
+        <AppFooter />
+
+        <BackToTopButton />
+
     </div>
 </template>
 
@@ -139,6 +125,8 @@
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import GlobalNewsPopup from '@/components/ui/popups/global/GlobalNewsPopup.vue'
     import GlobalExplainGuide from '@/components/ui/popups/global/GlobalExplainGuide.vue'
+    import AppFooter from '@/AppFooter.vue'
+    import BackToTopButton from '@/components/ui/buttons/BackToTopButton.vue'
 
     const auth = useAuthStore()
 
@@ -841,6 +829,19 @@
     @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css');
 
     /* === (deine Styles unverändert) === */
+    /* === BackToTop: feste Brand-Tokens (bleiben immer gleich) === */
+    :global(:root) {
+        --tyg-btt-accent-1: #6366f1; /* Indigo-ish */
+        --tyg-btt-accent-2: #22c55e; /* Green-ish */
+        --tyg-btt-card: color-mix(in srgb, var(--bg-card, #0b1220) 92%, #020617 8%);
+    }
+
+    /* Darkmode kann auch fixed bleiben (oder leicht angepasst) */
+    :global(html.dark-mode) {
+        --tyg-btt-accent-1: #6B8DD6; /* wie dein Landing dark CTA */
+        --tyg-btt-accent-2: #4B6CB7;
+        --tyg-btt-card: #020617;
+    }
 
     .app-container {
         min-height: 100vh;
@@ -1093,51 +1094,6 @@
         .burger-menu {
             display: block;
             margin-right: 12px;
-        }
-    }
-
-
-
-    .app-footer {
-        margin-top: auto;
-        padding: 1.5rem 1rem 2rem;
-        border-top: 1px solid var(--border-color);
-        font-size: 0.8rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        opacity: 0.85;
-    }
-
-    .app-footer-content {
-        max-width: 1200px;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        flex-wrap: wrap; /* 💡 erlaubt Zeilenumbruch */
-        gap: 0.5rem 1rem; /* Abstand zwischen Links (vertikal/horizontal) */
-    }
-
-    .footer-link {
-        text-decoration: underline;
-        cursor: pointer;
-        color: var(--text-primary);
-        margin: 0 0.25rem;
-        white-space: nowrap; /* Jeder Link bleibt in sich einzeilig */
-    }
-
-    html.dark-mode .footer-link {
-        color: #ffffff;
-    }
-
-    @media (max-width: 640px) {
-        .app-footer {
-            padding: 1.25rem 0.75rem 1.75rem;
-            font-size: 0.75rem;
-        }
-
-        .app-footer-content {
-            gap: 0.35rem 0.75rem; /* etwas enger auf kleineren Screens */
         }
     }
 

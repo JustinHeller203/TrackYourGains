@@ -21,7 +21,7 @@
 
 <script setup lang="ts">
 import BasePopup from './BasePopup.vue'
-import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
+import PopupSaveButton from '@/components/ui/buttons/popup/PopupSaveButton.vue'
 
 defineProps<{
   show: boolean
