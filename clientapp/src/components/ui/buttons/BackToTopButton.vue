@@ -1,4 +1,5 @@
-﻿<template>
+﻿<!--Pfad: components/ui/buttons/BackToTopButton.vue-->
+<template>
     <button v-show="enabled && visible"
             type="button"
             class="backtop-btn"
@@ -12,14 +13,14 @@
 
 <script setup lang="ts">
     import { ref, onMounted, onBeforeUnmount } from 'vue'
+    import { LS_BACK_TO_TOP_ENABLED } from '@/constants/storageKeys'
 
     const visible = ref(false)
 
     const enabled = ref(true)
-    const BTT_ENABLED_KEY = 'backToTopEnabled'
 
     function loadEnabled() {
-        const raw = localStorage.getItem(BTT_ENABLED_KEY)
+        const raw = localStorage.getItem(LS_BACK_TO_TOP_ENABLED)
         enabled.value = raw === null ? true : raw === 'true'
     }
 

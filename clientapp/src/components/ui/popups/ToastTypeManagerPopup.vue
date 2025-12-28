@@ -1,4 +1,4 @@
-<!--ToastTypeManagerPopup.vue-->
+<!--Pfad: components/ui/popups/ToastTypeManagerPopup.vue-->
 
 <template>
     <BasePopup :show="show"
@@ -50,9 +50,7 @@
 
         <template #actions>
             <div class="tm-foot">
-                <button type="button" class="tm-btn primary" @click="$emit('done')">
-                    Fertig
-                </button>
+                <PopupActionButton @click="$emit('done')">Fertig</PopupActionButton>
             </div>
         </template>
     </BasePopup>
@@ -62,6 +60,7 @@
 <script setup lang="ts">
     import { computed } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
     type ToastTypeOption = {
         key: string
@@ -136,35 +135,6 @@
         .tm-btn.ghost:hover {
             opacity: 1;
         }
-
-        .tm-btn.primary {
-            background: rgba(129, 140, 248, 0.10);
-            border: 2px solid rgba(129, 140, 248, 0.45);
-            color: var(--text-primary);
-            font-weight: 900;
-        }
-
-        .tm-btn.primary {
-            transition: transform 140ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
-        }
-
-            .tm-btn.primary:hover {
-                transform: translateY(-1px);
-                background: rgba(129, 140, 248, 0.14);
-                border-color: rgba(129, 140, 248, 0.65);
-                box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
-            }
-
-            .tm-btn.primary:active {
-                transform: translateY(0);
-                background: rgba(129, 140, 248, 0.09);
-            }
-
-            .tm-btn.primary:focus-visible {
-                outline: none;
-                box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.18), 0 16px 30px rgba(15, 23, 42, 0.18);
-            }
-
 
     .tm-head {
         /* full width wie früher modal-head */

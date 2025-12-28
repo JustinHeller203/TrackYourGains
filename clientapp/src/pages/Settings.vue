@@ -98,6 +98,41 @@
                 <Transition name="sg-collapse">
 
                     <div v-show="openGroups.system" class="group-body">
+
+                        <div class="setting-card">
+                            <div class="setting-icon">⏲️</div>
+                            <div class="setting-content">
+                                <h3 class="setting-title">Sticky Timer</h3>
+                                <p class="setting-description">Sticky Timer überhaupt erlauben (ein-/ausblenden)</p>
+                            </div>
+                            <div class="setting-control">
+                                <input id="sticky-timer-toggle"
+                                       type="checkbox"
+                                       class="toggle-switch"
+                                       v-model="stickyTimerEnabled" />
+                                <label for="sticky-timer-toggle" class="toggle-label">
+                                    <span class="toggle-text">{{ stickyTimerEnabled ? 'AN' : 'AUS' }}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-card">
+                            <div class="setting-icon">⏱️</div>
+                            <div class="setting-content">
+                                <h3 class="setting-title">Sticky Stoppuhr</h3>
+                                <p class="setting-description">Sticky Stoppuhren überhaupt erlauben (ein-/ausblenden)</p>
+                            </div>
+                            <div class="setting-control">
+                                <input id="sticky-stopwatch-toggle"
+                                       type="checkbox"
+                                       class="toggle-switch"
+                                       v-model="stickyStopwatchEnabled" />
+                                <label for="sticky-stopwatch-toggle" class="toggle-label">
+                                    <span class="toggle-text">{{ stickyStopwatchEnabled ? 'AN' : 'AUS' }}</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="setting-card">
                             <div class="setting-icon">⚡️</div>
                             <div class="setting-content">
@@ -255,13 +290,26 @@
 
 
 <script setup lang="ts">
-    import { ref, reactive, computed, onMounted, watch, onBeforeUnmount } from 'vue'
+    import { ref, reactive, onMounted, watch, onBeforeUnmount } from 'vue'
     import { isDark, initTheme, setTheme, previewTheme } from '@/composables/useTheme'
     import { onBeforeRouteLeave } from 'vue-router'
     import Toast from '@/components/ui/Toast.vue'
     import SettingsSaveButton from '@/components/ui/buttons/SettingsSaveButton.vue'
     import ToastTypeManagerPopup from '@/components/ui/popups/ToastTypeManagerPopup.vue'
     import ReminderPopup from '@/components/ui/popups/ReminderPopup.vue'
+    import {
+        LS_PREFERRED_UNIT,
+        LS_AUTO_CALC_ENABLED,
+        LS_TOASTS_ENABLED,
+        LS_TOAST_DURATION_MS,
+        LS_CONFIRM_DELETE_ENABLED,
+        LS_BACK_TO_TOP_ENABLED,
+        LS_TOAST_TYPES_REMINDER_COUNT,
+        LS_TOAST_TYPE_ENABLED,
+        LS_TOAST_DISABLED_TYPES,
+        LS_STICKY_TIMER_ENABLED,
+        LS_STICKY_STOPWATCH_ENABLED,
+    } from '@/constants/storageKeys'
 
     // Typen passend zu deiner Toast.vue
     type ToastType =
@@ -350,9 +398,9 @@
     const saved = ref(false)
 
     const confirmDeleteEnabled = ref(true)
-
     const backToTopEnabled = ref(true)
-    const BTT_ENABLED_KEY = 'backToTopEnabled'
+    const stickyTimerEnabled = ref(true)
+    const stickyStopwatchEnabled = ref(true)
 
     const onToastsEnabledChanged = (e: CustomEvent<boolean>) => {
         toastsEnabled.value = !!e.detail
@@ -376,8 +424,6 @@
 
     let toastTypesSnapshot = ''
     let saveHintTimer: number | null = null
-
-    const TOAST_TYPES_REMINDER_COUNT_KEY = 'settings:toast-types-save-reminder-count'
 
     function openToastTypeManager() {
         // Snapshot, um später echte Änderungen zu erkennen
@@ -429,9 +475,9 @@
 
         if (!changed) return
 
-        const raw = Number(localStorage.getItem(TOAST_TYPES_REMINDER_COUNT_KEY) || '0')
+        const raw = Number(localStorage.getItem(LS_TOAST_TYPES_REMINDER_COUNT) || '0')
         const next = Number.isFinite(raw) ? raw + 1 : 1
-        localStorage.setItem(TOAST_TYPES_REMINDER_COUNT_KEY, String(next))
+        localStorage.setItem(LS_TOAST_TYPES_REMINDER_COUNT, String(next))
 
         const REMINDER_STEPS = [1, 2, 3, 5, 8, 13]
 
@@ -460,7 +506,7 @@
 
     const loadToastTypePrefs = () => {
         // Primär: enabled-map
-        const raw = localStorage.getItem('toastTypeEnabled')
+        const raw = localStorage.getItem(LS_TOAST_TYPE_ENABLED)
         if (raw) {
             try {
                 const parsed = JSON.parse(raw) as Partial<Record<ToastType, unknown>>
@@ -472,7 +518,7 @@
         }
 
         // Fallback: disabled-array (falls dein Toast-Menü sowas nutzt)
-        const rawDisabled = localStorage.getItem('toastDisabledTypes')
+        const rawDisabled = localStorage.getItem(LS_TOAST_DISABLED_TYPES)
         if (rawDisabled) {
             try {
                 const disabled = JSON.parse(rawDisabled) as unknown
@@ -513,26 +559,35 @@
         isDarkDraft.value = isDark.value
 
         // Einheiten / AutoCalc laden
-        const unit = (localStorage.getItem('preferredUnit') || '').toLowerCase()
+        const unit = (localStorage.getItem(LS_PREFERRED_UNIT) || '').toLowerCase()
         preferredUnit.value = (allowedUnits as readonly string[]).includes(unit)
             ? (unit as 'kg' | 'lbs')
             : 'kg'
-        autoCalcEnabled.value = localStorage.getItem('autoCalcEnabled') === 'true'
+
+        autoCalcEnabled.value = localStorage.getItem(LS_AUTO_CALC_ENABLED) === 'true'
 
         // Toasts aktiviert?
-        const stored = localStorage.getItem('toastsEnabled')
+        const stored = localStorage.getItem(LS_TOASTS_ENABLED)
         toastsEnabled.value = stored === null ? true : stored === 'true'
 
         // Toast-Dauer laden
-        const durRaw = Number(localStorage.getItem('toastDurationMs'))
+        const durRaw = Number(localStorage.getItem(LS_TOAST_DURATION_MS))
         toastDurationMs.value = Number.isFinite(durRaw) && durRaw > 0 ? durRaw : 2500
 
         // Löschen bestätigen?
-        const storedConfirm = localStorage.getItem('confirmDeleteEnabled')
+        const storedConfirm = localStorage.getItem(LS_CONFIRM_DELETE_ENABLED)
         confirmDeleteEnabled.value = storedConfirm === null ? true : storedConfirm === 'true'
 
-        const bttStored = localStorage.getItem(BTT_ENABLED_KEY)
+        // Back-to-top?
+        const bttStored = localStorage.getItem(LS_BACK_TO_TOP_ENABLED)
         backToTopEnabled.value = bttStored === null ? true : bttStored === 'true'
+
+        // Sticky Timer / Stoppuhr?
+        const stStored = localStorage.getItem(LS_STICKY_TIMER_ENABLED)
+        stickyTimerEnabled.value = stStored === null ? true : stStored === 'true'
+
+        const ssStored = localStorage.getItem(LS_STICKY_STOPWATCH_ENABLED)
+        stickyStopwatchEnabled.value = ssStored === null ? true : ssStored === 'true'
 
         loadToastTypePrefs()
 
@@ -577,32 +632,38 @@
         // Units & AutoCalc persistieren
         const unit = (preferredUnit.value || 'kg').toLowerCase() as 'kg' | 'lbs'
         const normalized = (allowedUnits as readonly string[]).includes(unit) ? unit : 'kg'
-        localStorage.setItem('preferredUnit', normalized)
+        localStorage.setItem(LS_PREFERRED_UNIT, normalized)
         window.dispatchEvent(new CustomEvent('preferred-unit-changed', { detail: normalized }))
 
-        localStorage.setItem('autoCalcEnabled', String(autoCalcEnabled.value))
+        localStorage.setItem(LS_AUTO_CALC_ENABLED, String(autoCalcEnabled.value))
 
         // Toasts persistieren + global announcen
-        localStorage.setItem('toastsEnabled', String(toastsEnabled.value))
+        localStorage.setItem(LS_TOASTS_ENABLED, String(toastsEnabled.value))
         window.dispatchEvent(new CustomEvent('toasts-enabled-changed', { detail: toastsEnabled.value }))
 
-        localStorage.setItem('toastTypeEnabled', JSON.stringify({ ...toastTypeEnabled }))
+        localStorage.setItem(LS_TOAST_TYPE_ENABLED, JSON.stringify({ ...toastTypeEnabled }))
 
         const disabledTypes = (Object.keys(toastTypeEnabled) as ToastType[]).filter((k) => !toastTypeEnabled[k])
-        localStorage.setItem('toastDisabledTypes', JSON.stringify(disabledTypes))
+        localStorage.setItem(LS_TOAST_DISABLED_TYPES, JSON.stringify(disabledTypes))
 
         window.dispatchEvent(new CustomEvent('toast-types-changed', { detail: { ...toastTypeEnabled } }))
 
         // Toast-Dauer persistieren + global announcen
-        localStorage.setItem('toastDurationMs', String(toastDurationMs.value))
+        localStorage.setItem(LS_TOAST_DURATION_MS, String(toastDurationMs.value))
         window.dispatchEvent(new CustomEvent('toast-duration-changed', { detail: toastDurationMs.value }))
 
         // Confirm-Delete persistieren + global announcen
-        localStorage.setItem('confirmDeleteEnabled', String(confirmDeleteEnabled.value))
+        localStorage.setItem(LS_CONFIRM_DELETE_ENABLED, String(confirmDeleteEnabled.value))
         window.dispatchEvent(new CustomEvent('confirm-delete-changed', { detail: confirmDeleteEnabled.value }))
 
-        localStorage.setItem(BTT_ENABLED_KEY, String(backToTopEnabled.value))
+        localStorage.setItem(LS_BACK_TO_TOP_ENABLED, String(backToTopEnabled.value))
         window.dispatchEvent(new CustomEvent('back-to-top-enabled-changed', { detail: backToTopEnabled.value }))
+
+        localStorage.setItem(LS_STICKY_TIMER_ENABLED, String(stickyTimerEnabled.value))
+        window.dispatchEvent(new CustomEvent('sticky-timer-enabled-changed', { detail: stickyTimerEnabled.value }))
+
+        localStorage.setItem(LS_STICKY_STOPWATCH_ENABLED, String(stickyStopwatchEnabled.value))
+        window.dispatchEvent(new CustomEvent('sticky-stopwatch-enabled-changed', { detail: stickyStopwatchEnabled.value }))
 
         if (toastsEnabled.value && toastTypeEnabled['toast-save']) {
             const id = Date.now()

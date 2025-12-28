@@ -23,39 +23,43 @@
         </div>
 
         <template #actions>
-            <PopupCancelButton @click="$emit('cancel')">Abbrechen</PopupCancelButton>
-            <PopupSaveButton @click="onSave">Speichern</PopupSaveButton>
+            <PopupActionButton variant="ghost" @click="$emit('cancel')">
+                Abbrechen
+            </PopupActionButton>
+
+            <PopupActionButton autofocus @click="onSave">
+                Speichern
+            </PopupActionButton>
         </template>
     </BasePopup>
 
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
-import BasePopup from '../BasePopup.vue'
-import PopupSaveButton from '@/components/ui/buttons/popup/PopupSaveButton.vue'
-    import PopupCancelButton from '@/components/ui/buttons/popup/PopupCancelButton.vue'
+    import { ref, watch, nextTick } from 'vue'
+    import BasePopup from '../BasePopup.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
-const props = defineProps<{ show: boolean }>()
-const emit = defineEmits<{ (e: 'cancel'): void; (e: 'save', p: { newEmail: string; password: string }): void }>()
+    const props = defineProps<{ show: boolean }>()
+    const emit = defineEmits<{ (e: 'cancel'): void; (e: 'save', p: { newEmail: string; password: string }): void }>()
 
-const email = ref('')
-const password = ref('')
-const error = ref('')
-const emailRef = ref<HTMLInputElement|null>(null)
+    const email = ref('')
+    const password = ref('')
+    const error = ref('')
+    const emailRef = ref<HTMLInputElement | null>(null)
 
-watch(() => props.show, async (open) => {
-  if (open) { error.value = ''; email.value = ''; password.value = ''; await nextTick(); emailRef.value?.focus() }
-})
+    watch(() => props.show, async (open) => {
+        if (open) { error.value = ''; email.value = ''; password.value = ''; await nextTick(); emailRef.value?.focus() }
+    })
 
-function onSave() {
-  if (!email.value) { error.value = 'Bitte eine E-Mail eingeben.'; return }
-  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)
-  if (!valid) { error.value = 'Bitte eine gültige E-Mail eingeben.'; return }
-  if (!password.value) { error.value = 'Bitte Passwort eingeben.'; return }
-  error.value = ''
-  emit('save', { newEmail: email.value, password: password.value })
-}
+    function onSave() {
+        if (!email.value) { error.value = 'Bitte eine E-Mail eingeben.'; return }
+        const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)
+        if (!valid) { error.value = 'Bitte eine gültige E-Mail eingeben.'; return }
+        if (!password.value) { error.value = 'Bitte Passwort eingeben.'; return }
+        error.value = ''
+        emit('save', { newEmail: email.value, password: password.value })
+    }
 </script>
 
 <style scoped>
@@ -101,5 +105,4 @@ function onSave() {
         border: 0;
         box-shadow: none;
     }
-
 </style>

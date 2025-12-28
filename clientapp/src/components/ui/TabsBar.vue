@@ -24,7 +24,56 @@
                    type="text"
                    placeholder="Rechner suchen..."
                    class="search-input" />
+
+            <button class="filter-btn"
+                    type="button"
+                    aria-label="Kategorie Filter öffnen"
+                    :aria-expanded="filterOpen ? 'true' : 'false'"
+                    @click="filterOpen = !filterOpen">
+                Kategorie
+                <span class="filter-caret">▾</span>
+            </button>
+
+            <div v-if="filterOpen" class="filter-overlay" @mousedown.self="filterOpen = false">
+                <div class="filter-panel" role="menu" aria-label="Kategorie wählen">
+                    <button class="filter-item"
+                            role="menuitem"
+                            :data-active="(props.calcCategory ?? 'alle') === 'alle'"
+                            @click="setCategory('alle')">
+                        Alle
+                    </button>
+
+                    <button class="filter-item"
+                            role="menuitem"
+                            :data-active="props.calcCategory === 'gesundheit'"
+                            @click="setCategory('gesundheit')">
+                        Gesundheit
+                    </button>
+
+                    <button class="filter-item"
+                            role="menuitem"
+                            :data-active="props.calcCategory === 'kraft'"
+                            @click="setCategory('kraft')">
+                        Kraft
+                    </button>
+
+                    <button class="filter-item"
+                            role="menuitem"
+                            :data-active="props.calcCategory === 'ernaehrung'"
+                            @click="setCategory('ernaehrung')">
+                        Ernährung
+                    </button>
+
+                    <button class="filter-item"
+                            role="menuitem"
+                            :data-active="props.calcCategory === 'alltag'"
+                            @click="setCategory('alltag')">
+                        Alltag
+                    </button>
+                </div>
+            </div>
         </div>
+
 
         <div v-if="modelValue === 'plans'" class="search-container">
             <input :value="planSearchQuery"
@@ -37,17 +86,35 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  modelValue: 'stats' | 'calculators' | 'plans'
-  searchQuery: string
-  planSearchQuery: string
-}>()
+    import { ref, watch } from 'vue'
 
-defineEmits<{
-  (e: 'update:modelValue', v: 'stats' | 'calculators' | 'plans'): void
-  (e: 'update:searchQuery', v: string): void
-  (e: 'update:planSearchQuery', v: string): void
-}>()
+    type CalcCategory = 'alle' | 'gesundheit' | 'kraft' | 'ernaehrung' | 'alltag'
+
+    const props = defineProps<{
+        modelValue: 'stats' | 'calculators' | 'plans'
+        searchQuery: string
+        planSearchQuery: string
+        calcCategory?: CalcCategory
+    }>()
+
+    const emit = defineEmits<{
+        (e: 'update:modelValue', v: 'stats' | 'calculators' | 'plans'): void
+        (e: 'update:searchQuery', v: string): void
+        (e: 'update:planSearchQuery', v: string): void
+        (e: 'update:calcCategory', v: CalcCategory): void
+    }>()
+
+    const filterOpen = ref(false)
+
+    function setCategory(v: CalcCategory) {
+        emit('update:calcCategory', v)
+        filterOpen.value = false
+    }
+
+    watch(() => props.modelValue, () => {
+        filterOpen.value = false
+    })
+
 </script>
 
 <style scoped>
@@ -104,4 +171,80 @@ defineEmits<{
             box-shadow: 0 0 5px rgba(99, 102, 241, 0.5);
             outline: none;
         }
+
+    .search-container {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        flex: 1;
+        max-width: 520px; /* bisschen mehr Platz für Button */
+    }
+
+    .search-input {
+        flex: 1;
+    }
+
+    .filter-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-secondary);
+        color: var(--text-color);
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+        white-space: nowrap;
+    }
+
+        .filter-btn:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+
+    .filter-caret {
+        opacity: .8;
+    }
+
+    .filter-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+    }
+
+    .filter-panel {
+        position: absolute;
+        right: 1rem;
+        top: 4.6rem; /* falls’s nicht sitzt: runter/hoch schieben */
+        width: min(260px, calc(100vw - 2rem));
+        padding: .6rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        box-shadow: 0 18px 60px rgba(0,0,0,.25);
+        display: grid;
+        gap: .35rem;
+    }
+
+    .filter-item {
+        text-align: left;
+        padding: .65rem .75rem;
+        border-radius: 10px;
+        border: none;
+        background: transparent;
+        color: var(--text-color);
+        cursor: pointer;
+    }
+
+        .filter-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .filter-item[data-active="true"] {
+            background: var(--accent-primary);
+            color: #fff;
+        }
+
 </style>

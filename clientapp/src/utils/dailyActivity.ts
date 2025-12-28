@@ -1,7 +1,11 @@
 ﻿// src/utils/dailyActivity.ts
-const ACTIVITY_KEY = 'profile_activity';
-const LAST_VISIT_KEY = 'profile_last_visit_day';
+import {
+    LS_PROFILE_LAST_VISIT_DAY,
+    LS_PROFILE_ACTIVITY,
+} from '@/constants/storageKeys'
 
+const ACTIVITY_KEY = LS_PROFILE_ACTIVITY
+const LAST_VISIT_KEY = LS_PROFILE_LAST_VISIT_DAY
 function loadJSON<T>(key: string, fallback: T): T {
     try {
         const raw = localStorage.getItem(key);

@@ -1,3 +1,5 @@
+<!--Pfad: components/ui/buttons/DeleteButton.vue-->
+
 <template>
     <BaseButton :title="title || 'Plan löschen'"
                 :aria-label="ariaLabel || title || 'Plan löschen'"
@@ -26,10 +28,12 @@
     .delete-btn {
         background: none;
         border: none;
+        font-size: 1.2rem;
         cursor: pointer;
-        font-size: 1.1rem;
+        padding: 0.5rem;
         color: #6b7280;
-        transition: transform 0.2s ease;
+        border-radius: 8px;
+        transition: color 0.2s, text-shadow 0.2s, transform 0.1s;
     }
 
     .table-delete-btn.transparent {
@@ -37,10 +41,11 @@
         box-shadow: none !important;
     }
 
-    html.dark-mode .delete-btn:hover,
-    html.dark-mode .table-delete-btn:hover {
+    .delete-btn:hover,
+    .table-delete-btn:hover {
         color: #7f1d1d;
-        text-shadow: 0 0 8px #7f1d1d, 0 0 4px #7f1d1d;
+        text-shadow: 0 0 8px rgba(127, 29, 29, 0.5), 0 0 4px rgba(127, 29, 29, 0.5);
+        transform: scale(1.1);
     }
 
     .delete-btn:hover {
@@ -49,7 +54,8 @@
         transform: scale(1.1);
     }
 
-    html.dark-mode .delete-btn:hover {
+    html.dark-mode .delete-btn:hover,
+    html.dark-mode .table-delete-btn:hover {
         color: #7f1d1d;
         text-shadow: 0 0 8px #7f1d1d, 0 0 4px #7f1d1d;
     }

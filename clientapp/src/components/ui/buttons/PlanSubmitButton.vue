@@ -1,3 +1,4 @@
+<!--Pfad: components/ui/buttons/PlanSubmitButton.vue-->
 <template>
     <button class="plan-submit-btn"
             :class="[block ? 'block' : '', extraClass]"

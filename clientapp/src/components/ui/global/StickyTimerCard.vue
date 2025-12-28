@@ -1,5 +1,6 @@
 <template>
-    <div class="sticky-timer-card"
+    <div v-if="stickyEnabled"
+         class="sticky-timer-card"
          ref="cardEl"
          :class="[{ resizing: resizeMode, movable: moveMode }, sizePreset]"
          :style="{
@@ -197,7 +198,7 @@
 
 <script setup lang="ts">
 
-    import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount } from 'vue'
+    import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount, toRef } from 'vue'
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
 
     // ADD inline time edit (double click)
@@ -917,6 +918,19 @@
         zIndex?: number
     }
 
+    const props = defineProps<{
+        timer: TimerInstance
+        stickyEnabled: boolean
+        formatTimer: (time: number) => string
+        startTimer: (timer: TimerInstance) => void
+        stopTimer: (timer: TimerInstance) => void
+        resetTimer: (timer: TimerInstance) => void
+        startDrag: (e: MouseEvent, timer: TimerInstance) => void
+        focusInTraining: (type: 'timer' | 'stopwatch', id: string) => void
+    }>()
+
+    const stickyEnabled = toRef(props, 'stickyEnabled')
+
     const {
         timer,
         formatTimer,
@@ -925,15 +939,8 @@
         resetTimer,
         startDrag,
         focusInTraining,
-    } = defineProps<{
-        timer: TimerInstance
-        formatTimer: (time: number) => string
-        startTimer: (timer: TimerInstance) => void
-        stopTimer: (timer: TimerInstance) => void
-        resetTimer: (timer: TimerInstance) => void
-        startDrag: (e: MouseEvent, timer: TimerInstance) => void
-        focusInTraining: (type: 'timer' | 'stopwatch', id: string) => void
-    }>()
+    } = props
+
 </script>
 
 <style>

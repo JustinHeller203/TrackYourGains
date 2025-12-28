@@ -1,3 +1,5 @@
+<!--Pfad: components/ui/popups/ExportPopup.vue-->
+
 <template>
     <BasePopup :show="show"
                title="Daten exportieren"
@@ -18,8 +20,13 @@
             </div>
         </template>
         <template #actions>
-            <PopupSaveButton @click="$emit('confirm')">Download</PopupSaveButton>
-            <PopupCancelButton @click="$emit('cancel')">Abbrechen</PopupCancelButton>
+            <PopupActionButton variant="ghost" @click="$emit('cancel')">
+                Abbrechen
+            </PopupActionButton>
+
+            <PopupActionButton autofocus @click="$emit('confirm')">
+                Download
+            </PopupActionButton>
         </template>
     </BasePopup>
 </template>
@@ -27,8 +34,7 @@
 <script setup lang="ts">
     import { computed, nextTick, ref, watch } from 'vue'
     import BasePopup from './BasePopup.vue'
-    import PopupSaveButton from '@/components/ui/buttons/popup/PopupSaveButton.vue'
-    import PopupCancelButton from '@/components/ui/buttons/popup/PopupCancelButton.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
     type Fmt = 'html' | 'pdf' | 'csv' | 'json' | 'txt'
 

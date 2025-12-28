@@ -149,7 +149,6 @@
 </template>
 
 <script setup lang="ts">
-    // aktuell statische Seite – später kannst du hier dynamische Inhalte ergänzen
 </script>
 
 <style scoped>

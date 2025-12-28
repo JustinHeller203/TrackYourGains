@@ -10,7 +10,9 @@ type Options = {
 type Instance = {
     update: () => void;
     destroy: () => void;
+    setOptions: (next: Partial<Required<Options>>) => void;
 };
+
 
 type ElEx = HTMLElement & { __autoFlip?: Instance };
 
@@ -26,10 +28,15 @@ const vAutoFlip: Directive<ElEx, Options> = {
         };
 
         const getTrigger = (): HTMLElement | null => {
+            // Teleport-safe: zuerst expliziten Trigger nehmen
+            if (opts.trigger && document.contains(opts.trigger)) return opts.trigger;
+
+            // Fallback nur wenn NICHT teleported / im Toast-Tree
             const toastHost = el.closest('.toast') as HTMLElement | null;
             if (toastHost && document.contains(toastHost)) return toastHost;
-            if (opts.trigger && document.contains(opts.trigger)) return opts.trigger;
-            return (el.previousElementSibling as HTMLElement | null) ?? null;
+
+            // KEIN previousElementSibling-Fallback (bei Teleport komplett random)
+            return null;
         };
 
         // interner Update-Runner
@@ -48,7 +55,6 @@ const vAutoFlip: Directive<ElEx, Options> = {
 
             // kurz sichtbar stellen, falls opacity:0 verwendet wird
             const prevPos = el.style.position;
-            const prevVis = el.style.visibility;
             el.style.position = opts.strategy;
             el.style.visibility = 'hidden';
 
@@ -80,7 +86,7 @@ const vAutoFlip: Directive<ElEx, Options> = {
                 el.style.position = opts.strategy;
                 el.style.top = `${Math.round(top)}px`;
                 el.style.left = `${Math.round(left)}px`;
-                el.style.visibility = prevVis || '';
+                el.style.visibility = 'visible';
 
                 el.classList.toggle('menu--bottom', placeBottom);
                 el.classList.toggle('menu--top', !placeBottom);
@@ -118,6 +124,13 @@ const vAutoFlip: Directive<ElEx, Options> = {
 
         el.__autoFlip = {
             update,
+            setOptions(next) {
+                // opts ist das Objekt aus mounted() (closure) -> mutierbar
+                if (next.trigger !== undefined) opts.trigger = next.trigger;
+                if (next.margin !== undefined) opts.margin = next.margin;
+                if (next.strategy !== undefined) opts.strategy = next.strategy;
+                if (next.align !== undefined) opts.align = next.align;
+            },
             destroy() {
                 ro.disconnect();
                 mo.disconnect();
@@ -127,10 +140,16 @@ const vAutoFlip: Directive<ElEx, Options> = {
         };
     },
 
-    updated(el: ElEx) {
+    updated(el: ElEx, binding: DirectiveBinding<Options>) {
+        const v = binding.value ?? {};
+        el.__autoFlip?.setOptions({
+            trigger: v.trigger ?? null,
+            margin: v.margin ?? 8,
+            strategy: v.strategy ?? 'fixed',
+            align: v.align ?? 'start',
+        });
         el.__autoFlip?.update();
     },
-
     unmounted(el: ElEx) {
         el.__autoFlip?.destroy();
         delete el.__autoFlip;

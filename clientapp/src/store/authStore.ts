@@ -2,9 +2,9 @@
 import { defineStore } from "pinia";
 import { login, register, logout, changeEmail, changePassword, deleteAccount as svcDeleteAccount } from "@/services/auth";
 import { getToken } from "@/lib/api";
+import { LS_AUTH_EMAIL } from "@/constants/storageKeys";
 
 type AuthResponseDto = { token: string; email: string };
-const EMAIL_KEY = "auth_email";
 
 type User = { email: string };
 
@@ -21,7 +21,7 @@ export const useAuthStore = defineStore("auth", {
     actions: {
         async init() {
             const token = getToken();
-            const email = localStorage.getItem(EMAIL_KEY);
+            const email = localStorage.getItem(LS_AUTH_EMAIL);
             this.user = token && email ? { email } : null;
             this.loading = false;
         },
@@ -29,26 +29,26 @@ export const useAuthStore = defineStore("auth", {
         async signIn(email: string, password: string) {
             const data: AuthResponseDto = await login(email, password);
             this.user = { email: data.email };
-            localStorage.setItem(EMAIL_KEY, data.email);
+            localStorage.setItem(LS_AUTH_EMAIL, data.email);
         },
 
         // Registrieren mit confirmPassword
         async signUp(email: string, password: string, confirmPassword: string) {
             const data: AuthResponseDto = await register(email, password, confirmPassword);
             this.user = { email: data.email };
-            localStorage.setItem(EMAIL_KEY, data.email);
+            localStorage.setItem(LS_AUTH_EMAIL, data.email);
         },
 
         async signOut() {
             await logout();
             this.user = null;
-            localStorage.removeItem(EMAIL_KEY);
+            localStorage.removeItem(LS_AUTH_EMAIL);
         },
 
         async changeEmail(newEmail: string, password: string) {
             const data: AuthResponseDto = await changeEmail(newEmail, password);
             this.user = { email: data.email };
-            localStorage.setItem(EMAIL_KEY, data.email);
+            localStorage.setItem(LS_AUTH_EMAIL, data.email);
         },
 
         async changePassword(current: string, next: string) {
@@ -61,7 +61,7 @@ export const useAuthStore = defineStore("auth", {
         async deleteAccount(password: string) {
             await svcDeleteAccount(password);
             this.user = null;
-            localStorage.removeItem(EMAIL_KEY);
+            localStorage.removeItem(LS_AUTH_EMAIL);
         },
     },
 });

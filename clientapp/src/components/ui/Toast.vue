@@ -5,7 +5,7 @@
              v-show="localVisible"
              class="toast"
              ref="toastEl"
-             :class="[toast.type, { 'toast-exit': toast.exiting, 'is-reposition': repositionMode }]"
+             :class="[toast.type, { 'toast-exit': toast.exiting, 'is-reposition': repositionMode, 'has-menu': showMenu }]"
              :style="toastInlineStyle"
              role="status"
              aria-live="polite"
@@ -43,18 +43,22 @@
             </div>
 
             <!-- Kontextmenü bei Long-Press -->
-            <HoldMenu v-if="showMenu"
-                      :menu-style="menuStyle">
-                <button type="button" @click="disableAllToasts">
-                    Toast Nachrichten deaktivieren
-                </button>
-                <button type="button" @click="disableThisType">
-                    Diese Art deaktivieren
-                </button>
-                <button type="button" @click="startReposition">
-                    Verschieben
-                </button>
-            </HoldMenu>
+            <Teleport to="body">
+                <HoldMenu v-if="showMenu"
+                          class="toast-menu-host"
+                          :menu-style="menuStyle"
+                          :trigger="menuTrigger">
+                    <button type="button" @click="disableAllToasts">
+                        Toast Nachrichten deaktivieren
+                    </button>
+                    <button type="button" @click="disableThisType">
+                        Diese Art deaktivieren
+                    </button>
+                    <button type="button" @click="startReposition">
+                        Verschieben
+                    </button>
+                </HoldMenu>
+            </Teleport>
 
             <!-- Controls beim Verschieben -->
             <div v-if="repositionMode" class="reposition-controls">
@@ -78,11 +82,18 @@
     import { computed, ref, watch, onBeforeUnmount, nextTick, onMounted } from 'vue'
     import type { Toast as ToastModel } from '@/types/toast'
     import { useToastPaused, pauseToasts, resumeToasts } from '@/utils/toastBus'
-    import vAutoFlip from '@/directives/autoFlip';
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
+    import {
+        LS_TOAST_PREFS,
+        LS_TOAST_TYPE_ENABLED,
+        LS_TOAST_DISABLED_TYPES,
+        LS_TOASTS_ENABLED,
+        LS_TOAST_DURATION_MS,
+    } from '@/constants/storageKeys'
 
     const toastPaused = useToastPaused()
     const finishedWhileFrozen = ref(false)
+    const menuTrigger = ref<HTMLElement | null>(null)
 
     const props = defineProps<{
         toast: ToastModel | null
@@ -103,7 +114,7 @@
     }
     type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
-    const PREF_KEY = 'tyg_toast_prefs'
+    const PREF_KEY = LS_TOAST_PREFS
     type ToastPrefs = {
         enabled: boolean;
         disabledTypes: string[];
@@ -118,8 +129,8 @@
     const prefs = ref<ToastPrefs>(loadPrefs())
 
     // Settings.vue speichert Toast-Typen hier:
-    const TYPE_ENABLED_KEY = 'toastTypeEnabled'
-    const TYPE_DISABLED_KEY = 'toastDisabledTypes'
+    const TYPE_ENABLED_KEY = LS_TOAST_TYPE_ENABLED
+    const TYPE_DISABLED_KEY = LS_TOAST_DISABLED_TYPES
 
     function readDisabledTypesFromSettingsStorage(): string[] {
         // 1) enabled-map bevorzugen
@@ -258,11 +269,13 @@
         startedAt.value = Date.now()
         dismissTimerId.value = window.setTimeout(doDismiss, remainingMs.value) as unknown as number
     }
-    const storedEnabled = localStorage.getItem('toastsEnabled')
+
+    const storedEnabled = localStorage.getItem(LS_TOASTS_ENABLED)
     if (storedEnabled !== null) {
         prefs.value.enabled = storedEnabled === 'true'
         savePrefs(prefs.value)
     }
+
     function onToastsEnabledChanged(e: CustomEvent<boolean>) {
         prefs.value.enabled = !!e.detail
         savePrefs(prefs.value)
@@ -272,7 +285,7 @@
     const globalToastDurationMs = ref<number>(DEFAULT_TOAST_MS)
 
     // Initial aus Settings laden
-    const storedToastDur = Number(localStorage.getItem('toastDurationMs'))
+    const storedToastDur = Number(localStorage.getItem(LS_TOAST_DURATION_MS))
     if (Number.isFinite(storedToastDur) && storedToastDur > 0) {
         globalToastDurationMs.value = storedToastDur
     }
@@ -335,6 +348,7 @@
         window.dispatchEvent(new CustomEvent('toast-global-freeze', { detail: true }))
 
         await nextTick()
+        menuTrigger.value = toastEl.value
         requestAnimationFrame(() => { ignoreNextAnim.value = false })
     }
 
@@ -344,7 +358,7 @@
         savePrefs(prefs.value)
 
         // 2) Auch die globale Settings-Persistenz spiegeln
-        localStorage.setItem('toastsEnabled', 'false')
+        localStorage.setItem(LS_TOASTS_ENABLED, 'false')
         window.dispatchEvent(new CustomEvent('toasts-enabled-changed', { detail: false }))
 
         // 3) Menü schließen und aktuellen Toast sofort ausblenden
@@ -649,8 +663,7 @@
         const toast = toastEl.value
         const target = e.target as HTMLElement
 
-        // Klicks direkt im Menü ignorieren
-        if (target.closest('.toast-menu')) return
+        if (target.closest('.hold-menu')) return
         if (toast && toast.contains(target)) return
 
         // Menü schließen, aber jegliche weitere Handler blocken,
@@ -676,6 +689,7 @@
         isHolding.value = false
         if (!repositionMode.value) resumeToasts()
         window.dispatchEvent(new CustomEvent('toast-global-freeze', { detail: false }))   // global
+        menuTrigger.value = null
         if (!isFrozen.value && !toastPaused.value && finishedWhileFrozen.value) {
             finishedWhileFrozen.value = false
             tryDismissAfterProgress()
@@ -1044,4 +1058,13 @@
     .pe-auto {
         pointer-events: auto;
     }
+    .toast.has-menu {
+        overflow: visible;
+    }
+
+    /* Root vom HoldMenu nach vorne ziehen (scoped-safe, weil class am Component-root hängt) */
+    .toast-menu-host {
+        z-index: calc(var(--z-toast, 2147483647) + 1);
+    }
+
 </style>

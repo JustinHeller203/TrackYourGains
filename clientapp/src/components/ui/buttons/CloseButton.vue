@@ -1,3 +1,4 @@
+<!--Pfad: components/ui/buttons/CloseButton.vue-->
 <template>
     <BaseButton :type="type"
                 :title="title"

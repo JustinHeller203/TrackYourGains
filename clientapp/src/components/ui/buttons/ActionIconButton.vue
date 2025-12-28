@@ -1,13 +1,15 @@
-﻿<template>
+﻿<!--Pfad: components/ui/buttons/ActionIconButton.vue-->
+
+<template>
     <div class="icon-btn-wrap">
         <BaseButton :type="type"
                     :title="title"
                     :aria-label="ariaLabel || title"
                     :disabled="disabled"
-                    class="download-btn"
+                    class="action-btn download-btn"
                     :class="extraClass"
                     @click="$emit('click', $event)">
-            <slot>??</slot>
+            <slot>⬇️</slot>
         </BaseButton>
     </div>
 </template>

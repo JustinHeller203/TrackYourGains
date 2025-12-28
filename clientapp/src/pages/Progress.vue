@@ -36,8 +36,10 @@
             <TabsBar v-model:modelValue="activeTab"
                      :searchQuery="searchQuery"
                      :planSearchQuery="planSearchQuery"
+                     :calcCategory="calcCategory"
                      @update:searchQuery="val => (searchQuery = val)"
-                     @update:planSearchQuery="val => (planSearchQuery = val)" />
+                     @update:planSearchQuery="val => (planSearchQuery = val)"
+                     @update:calcCategory="val => (calcCategory = val)" />
 
             <!-- ===================== STATISTIKEN TAB ===================== -->
             <div v-show="activeTab === 'stats'" class="progress-charts">
@@ -121,6 +123,27 @@
                                         @copy="copyCalories"
                                         @export="openDownloadPopup('calories')"
                                         @reset="resetCalculator('calories')" />
+
+                    <!-- Burn Rate Favorit -->
+                    <BurnRateCalculator v-if="isFavorite('Burn Rate') && matchesCalc('Burn Rate')"
+                                        :unit="unit"
+                                        :autoCalcEnabled="autoCalcEnabled"
+                                        :burnStartWeight="burnStartWeight"
+                                        :burnGoalWeight="burnGoalWeight"
+                                        :burnMaintenance="burnMaintenance"
+                                        :burnIntake="burnIntake"
+                                        :burnResult="burnRateResult"
+                                        :isFavorite="true"
+                                        @toggleFavorite="() => toggleFavorite('Burn Rate')"
+                                        @update:burnStartWeight="(v: number | null) => (burnStartWeight = v)"
+                                        @update:burnGoalWeight="(v: number | null) => (burnGoalWeight = v)"
+                                        @update:burnMaintenance="(v: number | null) => (burnMaintenance = v)"
+                                        @update:burnIntake="(v: number | null) => (burnIntake = v)"
+                                        @calculate="calculateBurnRate"
+                                        @copy="copyBurnRate"
+                                        @export="openDownloadPopup('burnRate')"
+                                        @reset="resetCalculator('burnRate')" />
+
                     <!-- Protein Favorit -->
                     <ProteinCalculator v-if="isFavorite('Proteinbedarf') && matchesCalc('Proteinbedarf')"
                                        :unit="unit"
@@ -301,6 +324,26 @@
                                     @copy="copyCalories"
                                     @export="openDownloadPopup('calories')"
                                     @reset="resetCalculator('calories')" />
+
+                <!-- Burn Rate Standard -->
+                <BurnRateCalculator v-if="matchesCalc('Burn Rate') && !isFavorite('Burn Rate')"
+                                    :unit="unit"
+                                    :autoCalcEnabled="autoCalcEnabled"
+                                    :burnStartWeight="burnStartWeight"
+                                    :burnGoalWeight="burnGoalWeight"
+                                    :burnMaintenance="burnMaintenance"
+                                    :burnIntake="burnIntake"
+                                    :burnResult="burnRateResult"
+                                    :isFavorite="isFavorite('Burn Rate')"
+                                    @toggleFavorite="() => toggleFavorite('Burn Rate')"
+                                    @update:burnStartWeight="(v: number | null) => (burnStartWeight = v)"
+                                    @update:burnGoalWeight="(v: number | null) => (burnGoalWeight = v)"
+                                    @update:burnMaintenance="(v: number | null) => (burnMaintenance = v)"
+                                    @update:burnIntake="(v: number | null) => (burnIntake = v)"
+                                    @calculate="calculateBurnRate"
+                                    @copy="copyBurnRate"
+                                    @export="openDownloadPopup('burnRate')"
+                                    @reset="resetCalculator('burnRate')" />
 
                 <ProteinCalculator v-if="matchesCalc('Proteinbedarf') && !isFavorite('Proteinbedarf')"
                                    :unit="unit"
@@ -544,123 +587,24 @@
                             v-model:equipmentCustom="newProgressEquipmentCustom"
                             v-model:side="newProgressSide"
                             @invalid="openValidationPopupError" />
+
         <!-- Fortschritt ansehen (Cards je Tag) — OHNE Teleport -->
-        <div v-if="showPlanProgressPopup && currentPlanId"
-             class="modal-overlay"
-             @click.self="closePlanProgressPopup">
-            <div class="modal modal--progress"
-                 role="dialog"
-                 aria-modal="true"
-                 ref="progressModalEl"
-                 @click.stop>
-                <div class="card-header">
-                    <h3 class="modal-title">📖 Fortschritt – {{ currentPlanName }}</h3>
-                    <div class="card-actions" v-if="dayCards.length">
-                        <ActionIconButton ariaLabel="Herunterladen"
-                                          title="Herunterladen"
-                                          @click="openDownloadPopup('progress', currentPlanId!)">
-                            ⬇️
-                        </ActionIconButton>
-                    </div>
-                </div>
-
-                <div v-if="!dayCards.length" class="list-item empty">
-                    Noch kein Fortschritt erfasst.
-                    <button class="open-btn" style="margin-left:.5rem" @click="addEntryFromPlanView">
-                        Erster Eintrag
-                    </button>
-                </div>
-
-                <div v-else class="day-card-list">
-                    <article v-for="c in visibleDayCards" :key="c.day" class="day-card">
-                        <div class="day-card-row">
-                            <div class="day-card-main">
-                                <div class="day-date">{{ formatDayLong(c.day) }}</div>
-                                <div class="day-meta">
-                                    <span class="count">{{ c.uniqueExercises }} Übungen</span>
-                                </div>
-                            </div>
-                            <div class="day-card-actions">
-                                <button class="open-btn" @click="editLatestEntryForDay(c.day)">Bearbeiten</button>
-                                <button class="open-btn" @click="toggleDay(c.day)">
-                                    {{ expandedDays.has(c.day) ? 'Schließen' : 'Öffnen' }}
-                                </button>
-                            </div>
-                        </div>
-                        <div class="day-details">
-                            <!-- Cardio (zeit-/distanzbasiert) -->
-                            <div v-if="cardioForDay(c.day).length" class="exercise-block">
-                                <div class="exercise-header">Cardio</div>
-                                <ul class="journal-entries">
-                                    <li v-for="(e, i) in cardioForDay(c.day)" :key="'cardio-'+e.date+'-'+i" class="journal-entry">
-                                        <div class="entry-head">
-                                            <span class="entry-exercise">{{ e.exercise }}</span>
-                                            <span class="type-chip" data-type="ausdauer">Cardio</span>
-                                            <span class="entry-summary">
-                                                <template v-if="e.durationMin != null">
-                                                    {{ e.durationMin }} Min
-                                                </template>
-                                                <template v-if="e.sets && e.reps">
-                                                    <span v-if="e.durationMin != null"> · </span>
-                                                    {{ e.sets }}×{{ e.reps }}
-                                                </template>
-                                            </span>
-                                        </div>
-                                        <div class="chips">
-                                            <span v-if="e.avgHr != null" class="chip">Ø Puls {{ e.avgHr }}</span>
-                                            <span v-if="e.calories != null" class="chip">{{ e.calories }} kcal</span>
-                                            <span v-if="e.pace" class="chip">{{ e.pace }}/km</span>
-                                            <span v-if="e.hrZone != null" class="chip">Zone {{ e.hrZone }}</span>
-                                            <span v-if="e.borg != null" class="chip">Borg {{ e.borg }}</span>
-                                        </div>
-                                        <div v-if="e.note" class="note">— {{ e.note }}</div>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <!-- Dehnung (zeit-/satzbasiert) -->
-                            <div v-if="stretchForDay(c.day).length" class="exercise-block">
-                                <div class="exercise-header">Dehnung</div>
-                                <ul class="journal-entries">
-                                    <li v-for="(e, i) in stretchForDay(c.day)" :key="'flex-'+e.date+'-'+i" class="journal-entry">
-                                        <div class="entry-head">
-                                            <span class="entry-exercise">{{ e.exercise }}</span>
-                                            <span class="type-chip" data-type="dehnung">Dehnung</span>
-                                            <span class="entry-summary">
-                                                {{ e.durationMin }} Min
-                                                <span v-if="e.sets && e.reps"> · {{ e.sets }}×{{ e.reps }}</span>
-                                            </span>
-                                        </div>
-                                        <div class="chips">
-                                            <span v-if="e.side" class="chip">{{ e.side }}</span>
-                                            <span v-if="e.painFree != null" class="chip">Schmerzfrei {{ e.painFree }}/10</span>
-                                            <span v-if="e.movementQuality != null" class="chip">Qualität {{ e.movementQuality }}/10</span>
-                                            <span v-if="e.equipment" class="chip">{{ e.equipment }}</span>
-                                            <span v-if="e.equipmentCustom" class="chip">{{ e.equipmentCustom }}</span>
-                                        </div>
-                                        <div v-if="e.note" class="note">— {{ e.note }}</div>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </article>
-
-                    <div v-if="dayCards.length > visibleDays" class="load-more">
-                        <button class="open-btn" @click="visibleDays += 7">Weitere Tage laden</button>
-                    </div>
-                </div>
-
-                <div class="scroll-sentinel-end" aria-hidden="true" style="height:1px"></div>
-
-                <div class="modal-actions">
-                    <PopupCancelButton ariaLabel="Abbrechen" @click="closePlanProgressPopup" />
-                    <PopupSaveButton ariaLabel="Eintragen" @click="addEntryFromPlanView">
-                        Neuer Eintrag
-                    </PopupSaveButton>
-                </div>
-            </div>
-        </div>
-
+        <PlanProgressPopup ref="planProgressPopupRef"
+                           :show="showPlanProgressPopup"
+                           :currentPlanId="currentPlanId"
+                           :currentPlanName="currentPlanName"
+                           :dayCards="dayCards"
+                           :visibleDayCards="visibleDayCards"
+                           v-model:visibleDays="visibleDays"
+                           :expandedDays="expandedDays"
+                           :formatDayLong="formatDayLong"
+                           :cardioForDay="cardioForDay"
+                           :stretchForDay="stretchForDay"
+                           @close="closePlanProgressPopup"
+                           @add-entry="addEntryFromPlanView"
+                           @download="(planId) => openDownloadPopup('progress', planId)"
+                           @edit-day="editLatestEntryForDay"
+                           @toggle-day="toggleDay" />
 
         <!-- Export-Popup -->
         <ExportPopup :show="showDownloadPopup"
@@ -712,15 +656,42 @@
     import ProteinCalculator from '@/components/ui/calculators/ProteinCalculator.vue'
     import CaffeineSafeDoseCalculator from '@/components/ui/calculators/CaffeineSafeDoseCalculator.vue'
     import GlycemicLoadCalculator from '@/components/ui/calculators/GlycemicLoadCalculator.vue'
+    import BurnRateCalculator from '@/components/ui/calculators/BurnRateCalculator.vue'
     import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
-    import PopupSaveButton from '@/components/ui/buttons/popup/PopupSaveButton.vue'
     import type { Toast as ToastModel } from '@/types/toast'
-    import PopupCancelButton from '@/components/ui/buttons/popup/PopupCancelButton.vue'
     import ProgressEntryModal from '@/components/ui/popups/ProgressEntryModal.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
+    import PlanProgressPopup from '@/components/ui/popups/PlanProgressPopup.vue'
+
     import { useRoute } from 'vue-router'
 
+    import {
+        LS_AUTO_CALC_ENABLED,
+        LS_OPEN_PLAN_ID,
+        LS_PROGRESS_FAVORITE_CALCULATORS,
+        LS_PROGRESS_WEIGHTS,
+        LS_PROGRESS_WORKOUTS,
+        LS_PROGRESS_GOAL,
+
+        LS_PROGRESS_BMI,
+        LS_PROGRESS_CALORIES,
+        LS_PROGRESS_ONE_RM,
+        LS_PROGRESS_BODY_FAT,
+        LS_PROGRESS_FFMI,
+        LS_PROGRESS_WATER,
+        LS_PROGRESS_PROTEIN,
+        LS_PROGRESS_CAFFEINE,
+        LS_PROGRESS_GLYLOAD,
+        LS_PROGRESS_BURN_RATE,
+
+        LS_LEGACY_TRAINING_PLANS,
+
+        LS_TOAST_DURATION_MS,
+        LS_TOASTS_ENABLED,
+        LS_TRAINING_DATA,
+    } from '@/constants/storageKeys'
     // Interfaces
     interface PlanExercise {
         exercise: string
@@ -1108,7 +1079,7 @@
         weightHistory.value.unshift({ date: today, weight: weightKg });
 
         // Persistieren
-        localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value));
+        localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value));
 
         // 👉 Körpergewicht oben im Fortschritt-Editor direkt mitziehen
         newProgressWeight.value = kgToDisplay(weightKg)
@@ -1189,7 +1160,7 @@
 
         // wirklich zurücksetzen
         weightHistory.value = []
-        localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
+        localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value))
 
         if (weightChart) {
             weightChart.destroy()
@@ -1207,7 +1178,7 @@
                     if (!lastResetAction.value || lastResetAction.value.kind !== 'weight') return
 
                     weightHistory.value = [...lastResetAction.value.data]
-                    localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
+                    localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value))
 
                     nextTick(() => {
                         updateWeightChart()
@@ -1237,7 +1208,7 @@
         }
 
         workouts.value = []
-        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
+        localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value))
 
         if (workoutChart) workoutChart.destroy()
         updateWorkoutChart()
@@ -1253,7 +1224,7 @@
                     if (!lastResetAction.value || lastResetAction.value.kind !== 'workout') return
 
                     workouts.value = [...lastResetAction.value.data]
-                    localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
+                    localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value))
 
                     nextTick(() => {
                         updateWorkoutChart()
@@ -1291,6 +1262,7 @@
         'Proteinbedarf': 'ernaehrung',
         'Koffein': 'alltag',
         'Glykämische Last': 'ernaehrung',
+        'Burn Rate': 'ernaehrung',
 
     }
 
@@ -1315,7 +1287,7 @@
     //===== Favorit Calculators =====
 
     const favoriteCalculators = ref<Set<string>>(new Set())
-    const FAVORITES_KEY = 'progress_favorite_calculators'
+    const FAVORITES_KEY = LS_PROGRESS_FAVORITE_CALCULATORS
     const favoriteCalcs = computed(() => Array.from(favoriteCalculators.value));
 
     const isFavorite = (id: string) => isFavCalculator(id);
@@ -1355,14 +1327,12 @@
     const isFavCalculator = (id: string) => favoriteCalculators.value.has(id)
 
     onMounted(() => {
-        const flag = localStorage.getItem('autoCalcEnabled')
+        const flag = localStorage.getItem(LS_AUTO_CALC_ENABLED)
         autoCalcEnabled.value = flag === 'true'
         loadFavoriteCalculators()
 
-        const stored = localStorage.getItem('toastsEnabled')
+        const stored = localStorage.getItem(LS_TOASTS_ENABLED)
         toastsEnabled.value = stored === null ? true : stored === 'true'
-
-        window.addEventListener('toasts-enabled-changed', handleToastsSetting)
     })
 
 
@@ -1391,6 +1361,7 @@
         { key: 'Proteinbedarf', name: 'Proteinbedarfsrechner', isFavorite: false },
         { key: 'Glykämische Last', name: 'GL-Rechner', isFavorite: false },
         { key: 'Koffein', name: 'Koffein – sichere Dosis', isFavorite: false },
+        { key: 'Burn Rate', name: 'Burn Rate – Kalorien-Bilanz', isFavorite: false },
     ])
 
     const resetCalculator = (calculator: string) => {
@@ -1412,7 +1383,7 @@
                 bmiWeight.value = null
                 bmiHeight.value = null
                 bmiResult.value = null
-                localStorage.removeItem('progress_bmi')
+                localStorage.removeItem(LS_PROGRESS_BMI)
 
                 addToast('BMI-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1452,7 +1423,7 @@
                 calorieActivity.value = '1.2'
                 calorieGoal.value = 0
                 calorieResult.value = null
-                localStorage.removeItem('progress_calories')
+                localStorage.removeItem(LS_PROGRESS_CALORIES)
 
                 addToast('Kalorienbedarfsrechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1477,6 +1448,43 @@
                 break
             }
 
+            case 'burnRate': {
+                lastCalculatorReset.value = {
+                    id: 'burnRate',
+                    data: {
+                        startWeight: burnStartWeight.value,
+                        goalWeight: burnGoalWeight.value,
+                        maintenance: burnMaintenance.value,
+                        intake: burnIntake.value,
+                        result: burnRateResult.value,
+                    }
+                }
+
+                burnStartWeight.value = null
+                burnGoalWeight.value = null
+                burnMaintenance.value = null
+                burnIntake.value = null
+                burnRateResult.value = null
+                localStorage.removeItem(LS_PROGRESS_BURN_RATE)
+
+                addToast('Burn Rate zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'burnRate') return
+                        const prev = lastCalculatorReset.value.data
+                        burnStartWeight.value = prev.startWeight
+                        burnGoalWeight.value = prev.goalWeight
+                        burnMaintenance.value = prev.maintenance
+                        burnIntake.value = prev.intake
+                        burnRateResult.value = prev.result
+                        saveToLocalStorage('burnRate', prev)
+                        lastCalculatorReset.value = null
+                        addToast('Burn Rate wiederhergestellt', 'add')
+                    }
+                })
+                break
+            }
+
             case 'oneRm': {
                 lastCalculatorReset.value = {
                     id: 'oneRm',
@@ -1492,7 +1500,7 @@
                 oneRmWeight.value = null
                 oneRmReps.value = null
                 oneRmResult.value = null
-                localStorage.removeItem('progress_oneRm')
+                localStorage.removeItem(LS_PROGRESS_ONE_RM)
 
                 addToast('1RM-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1530,7 +1538,7 @@
                 bodyFatHip.value = null
                 bodyFatHeight.value = null
                 bodyFatResult.value = null
-                localStorage.removeItem('progress_bodyFat')
+                localStorage.removeItem(LS_PROGRESS_BODY_FAT)
 
                 addToast('Körperfett-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1566,7 +1574,7 @@
                 ffmiHeight.value = null
                 ffmiBodyFat.value = null
                 ffmiResult.value = null
-                localStorage.removeItem('progress_ffmi')
+                localStorage.removeItem(LS_PROGRESS_FFMI)
 
                 addToast('FFMI-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1600,7 +1608,7 @@
                 waterActivity.value = 'low'
                 waterClimate.value = 'temperate'
                 waterResult.value = null
-                localStorage.removeItem('progress_water')
+                localStorage.removeItem(LS_PROGRESS_WATER)
 
                 addToast('Wasserbedarfsrechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1636,7 +1644,7 @@
                 proteinActivity.value = 'low'
                 proteinMeals.value = null
                 proteinResult.value = null
-                localStorage.removeItem('progress_protein')
+                localStorage.removeItem(LS_PROGRESS_PROTEIN)
 
                 addToast('Proteinbedarf-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1676,7 +1684,7 @@
                 cafSensitivity.value = 'normal'
                 cafStatus.value = 'none'
                 cafResult.value = null
-                localStorage.removeItem('progress_caffeine')
+                localStorage.removeItem(LS_PROGRESS_CAFFEINE)
 
                 addToast('Koffein-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1712,7 +1720,7 @@
                 glCarbs100.value = null
                 glGi.value = null
                 glResult.value = null
-                localStorage.removeItem('progress_glyload')
+                localStorage.removeItem(LS_PROGRESS_GLYLOAD)
 
                 addToast('GL-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1744,15 +1752,24 @@
     //=============== Jump to Rechner Infos ===========
 
     const route = useRoute()
+    const router = useRouter()
 
     async function jumpToCalculatorsFromRoute() {
         const tab = String(route.query.tab || '')
-        const focus = String(route.query.focus || '')
+        const focusRaw = String(route.query.focus || '')
+        const focus = focusRaw.trim()
 
         if (tab !== 'calculators') return
 
         // Tab umschalten
         activeTab.value = 'calculators'
+
+        // optional: Fokus setzt Filter direkt passend
+        if (focus) {
+            searchQuery.value = focus
+            const cat = CALC_CATEGORY[focus]
+            if (cat) calcCategory.value = cat
+        }
 
         // warten bis DOM wirklich da ist
         await nextTick()
@@ -1764,8 +1781,13 @@
 
         el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
-        // optional: Query wieder "sauber machen", damit refresh nicht jedes Mal scrollt
-        // (wenn du das willst, sag kurz Bescheid – dann mach ich’s ohne History-Spam)
+        // URL cleanen (ohne History-Spam)
+        if (route.query.tab || route.query.focus) {
+            const q: Record<string, any> = { ...route.query }
+            delete q.tab
+            delete q.focus
+            router.replace({ query: q })
+        }
     }
 
     //=============== BMI Calculator ==========
@@ -1916,6 +1938,110 @@
     watch([calorieAge, calorieGender, calorieWeight, calorieHeight, calorieActivity, calorieGoal], () => {
         if (autoCalcEnabled.value) debouncedCalcCalories()
     })
+
+    //========== Burn Rate Calculator ==========
+
+    const burnStartWeight = ref<number | null>(null)
+    const burnGoalWeight = ref<number | null>(null)
+    const burnMaintenance = ref<number | null>(null)
+    const burnIntake = ref<number | null>(null)
+
+    type BurnRateResult = {
+        dailyDelta: number
+        weeklyChangeKg: number
+        weeklyChangeDisplay: number
+        daysToGoal: number | null
+        note?: string
+    }
+    const burnRateResult = ref<BurnRateResult | null>(null)
+
+    const validateBurnRate = (): string[] => {
+        const errors: string[] = []
+        const sw = Number(burnStartWeight.value)
+        const gw = Number(burnGoalWeight.value)
+        const tdee = Number(burnMaintenance.value)
+        const intake = Number(burnIntake.value)
+
+        if (!Number.isFinite(sw) || sw <= 0) errors.push('Startgewicht muss > 0 sein')
+        if (!Number.isFinite(gw) || gw <= 0) errors.push('Zielgewicht muss > 0 sein')
+        if (!Number.isFinite(tdee) || tdee <= 0) errors.push('Erhaltung (TDEE) muss > 0 sein')
+        if (!Number.isFinite(intake) || intake <= 0) errors.push('Intake muss > 0 sein')
+
+        return errors
+    }
+
+    const calculateBurnRate = () => {
+        const errors = validateBurnRate()
+        if (errors.length) { openValidationPopupError(errors); return }
+
+        const startKg = unit.value === 'kg' ? Number(burnStartWeight.value) : Number(burnStartWeight.value) * KG_PER_LB
+        const goalKg = unit.value === 'kg' ? Number(burnGoalWeight.value) : Number(burnGoalWeight.value) * KG_PER_LB
+
+        const tdee = Number(burnMaintenance.value)
+        const intake = Number(burnIntake.value)
+
+        const dailyDelta = intake - tdee // negativ = Defizit, positiv = Überschuss
+        const weeklyChangeKg = (dailyDelta * 7) / 7700
+
+        const weeklyChangeDisplay =
+            unit.value === 'kg' ? weeklyChangeKg : (weeklyChangeKg / KG_PER_LB)
+
+        const targetChangeKg = goalKg - startKg
+        let daysToGoal: number | null = null
+        let note = ''
+
+        if (Math.abs(weeklyChangeKg) < 1e-9) {
+            daysToGoal = null
+            note = 'Du bist auf Erhaltung – so erreichst du das Zielgewicht nicht. Stell Intake/TDEE so ein, dass Defizit/Überschuss entsteht.'
+        } else if ((targetChangeKg > 0 && weeklyChangeKg <= 0) || (targetChangeKg < 0 && weeklyChangeKg >= 0)) {
+            daysToGoal = null
+            note = 'Deine Bilanz passt nicht zum Ziel. Beispiel: Ziel runter → du brauchst Defizit (Bilanz negativ).'
+        } else {
+            const weeks = Math.abs(targetChangeKg / weeklyChangeKg)
+            const days = Math.round(weeks * 7)
+            daysToGoal = Number.isFinite(days) ? Math.max(1, days) : null
+            note = ''
+        }
+
+        burnRateResult.value = { dailyDelta, weeklyChangeKg, weeklyChangeDisplay, daysToGoal, note: note || undefined }
+
+        addToast('Burn Rate berechnet', 'default')
+        saveToLocalStorage('burnRate', {
+            startWeight: burnStartWeight.value,
+            goalWeight: burnGoalWeight.value,
+            maintenance: burnMaintenance.value,
+            intake: burnIntake.value,
+            result: burnRateResult.value,
+        })
+    }
+
+    const copyBurnRate = () => {
+        if (!burnRateResult.value) return
+        const r = burnRateResult.value
+        const txt = `Burn Rate – Kalorien-Bilanz
+- Startgewicht: ${burnStartWeight.value ?? '-'} ${unit.value}
+- Zielgewicht: ${burnGoalWeight.value ?? '-'} ${unit.value}
+- Erhaltung (TDEE): ${burnMaintenance.value ?? '-'} kcal/Tag
+- Intake: ${burnIntake.value ?? '-'} kcal/Tag
+- Bilanz: ${r.dailyDelta > 0 ? '+' : ''}${Math.round(r.dailyDelta)} kcal/Tag
+- Tempo: ${r.weeklyChangeDisplay > 0 ? '+' : ''}${r.weeklyChangeDisplay.toFixed(2)} ${unit.value === 'kg' ? 'kg' : 'lbs'}/Woche
+- Bis Ziel: ${r.daysToGoal != null ? `~${r.daysToGoal} Tage` : '—'}
+${r.note ? `- Hinweis: ${r.note}` : ''}`
+        copyText(txt)
+    }
+
+    const debouncedCalcBurnRate = debounce(() => {
+        if (!validateBurnRate().length) withSilentToasts(calculateBurnRate)
+    })
+
+    watch([burnStartWeight, burnGoalWeight, burnMaintenance, burnIntake, unit], () => {
+        if (autoCalcEnabled.value) debouncedCalcBurnRate()
+    })
+    watch(autoCalcEnabled, (on) => {
+        if (!on) return
+        debouncedCalcBurnRate()
+    })
+
     //========== Protein Calculator ==========
 
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
@@ -2110,7 +2236,7 @@
         copyText(txt)
     }
 
-    const caffeineData = localStorage.getItem('progress_caffeine')
+    const caffeineData = localStorage.getItem(LS_PROGRESS_CAFFEINE)
     if (caffeineData) {
         const parsed = JSON.parse(caffeineData)
         cafWeight.value = parsed.weight
@@ -2327,7 +2453,7 @@
         copyText(txt)
     }
 
-    const glyloadData = localStorage.getItem('progress_glyload')
+    const glyloadData = localStorage.getItem(LS_PROGRESS_GLYLOAD)
     if (glyloadData) {
         const parsed = JSON.parse(glyloadData)
         glFood.value = parsed.food
@@ -2439,13 +2565,13 @@
 
     onMounted(() => {
         try {
-            const raw = localStorage.getItem('trainingData')
+            const raw = localStorage.getItem(LS_TRAINING_DATA)
             if (raw) {
                 const parsed = JSON.parse(raw)
                 trainingPlans.value = Array.isArray(parsed?.plans) ? parsed.plans : []
                 favoritePlansIds.value = Array.isArray(parsed?.favoritePlans) ? parsed.favoritePlans : []
             } else {
-                const legacy = localStorage.getItem('trainingPlans')
+                const legacy = localStorage.getItem(LS_LEGACY_TRAINING_PLANS)
                 trainingPlans.value = legacy ? JSON.parse(legacy) : []
                 favoritePlansIds.value = []
             }
@@ -2734,7 +2860,7 @@
         if (onlyWeightChanged) {
             const today = new Date().toISOString().split('T')[0]
             weightHistory.value.unshift({ date: today, weight: enteredKg })
-            localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
+            localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value))
 
             newProgressWeight.value = kgToDisplay(enteredKg)
             updateWeightChart()
@@ -2858,7 +2984,7 @@
             if (enteredKg2 != null && (latestKg2 == null || Math.abs(enteredKg2 - latestKg2) > 1e-9)) {
                 const today2 = new Date().toISOString().split('T')[0]
                 weightHistory.value.unshift({ date: today2, weight: enteredKg2 })
-                localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
+                localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value))
                 updateWeightChart()
             }
         }
@@ -2880,7 +3006,7 @@
             showToast({ message: 'Fortschritt gespeichert!', type: 'success', emoji: '✅' })
         }
 
-        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
+        localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value))
         closeProgressPopup()
 
         if (reopenPlanProgressAfterSave.value) {
@@ -2903,7 +3029,6 @@
     const journalSearch = ref<string>('')
     const journalType = ref<'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'>('alle')
 
-    const router = useRouter()
     const TYPE_LABEL: Record<WorkoutType, string> = {
         kraft: 'Kraft',
         calisthenics: 'Calisthenics',
@@ -3017,7 +3142,7 @@
 
     const deleteProgressEntry = (planId: string, date: string) => {
         workouts.value = workouts.value.filter(w => !(w.planId === planId && w.date === date));
-        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value));
+        localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value));
         showToast({ message: 'Eintrag gelöscht!', type: 'success', emoji: '🗑️' });
     };
 
@@ -3046,22 +3171,24 @@
     };
 
     const openInTraining = (planId: string) => {
-        localStorage.setItem('openPlanId', planId)
+        localStorage.setItem(LS_OPEN_PLAN_ID, planId)
         router.push({ name: 'Training' })
     }
 
     //Show Progress
 
+    type PlanProgressPopupExposed = { modalEl: HTMLElement | null }
+
     const showPlanProgressPopup = ref(false)
     const currentPlanId = ref<string | null>(null);
-    const progressModalEl = ref<HTMLElement | null>(null)
+    const planProgressPopupRef = ref<PlanProgressPopupExposed | null>(null)
     const visibleDays = ref(7)
     const expandedDays = ref<Set<string>>(new Set())
 
     let endIO: IntersectionObserver | null = null
 
     function setupProgressIO() {
-        const root = progressModalEl.value
+        const root = planProgressPopupRef.value?.modalEl ?? null
         if (!root) return
         const endEl = root.querySelector('.scroll-sentinel-end')
         if (!endEl) return
@@ -3229,6 +3356,23 @@
                     },
                 };
                 filename = 'calorie_result';
+                break;
+
+            case 'burnRate':
+                if (!burnRateResult.value) { addToast('Kein Burn-Rate-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return }
+                data = {
+                    start_weight: burnStartWeight.value,
+                    goal_weight: burnGoalWeight.value,
+                    unit: unit.value,
+                    maintenance_kcal_per_day: burnMaintenance.value,
+                    intake_kcal_per_day: burnIntake.value,
+                    daily_delta_kcal: Math.round(burnRateResult.value.dailyDelta),
+                    weekly_change_kg: burnRateResult.value.weeklyChangeKg,
+                    weekly_change_display: burnRateResult.value.weeklyChangeDisplay,
+                    days_to_goal: burnRateResult.value.daysToGoal,
+                    note: burnRateResult.value.note ?? null,
+                }
+                filename = 'burn_rate_result'
                 break;
 
             case 'oneRm':
@@ -3604,7 +3748,7 @@ Notiz: ${e.note ?? '-'}\n`
     const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
     const lastResetAction = ref<{ kind: 'weight' | 'workout'; data: any } | null>(null)
     const lastCalculatorReset = ref<{
-        id: 'bmi' | 'calories' | 'oneRm' | 'bodyFat' | 'ffmi' | 'water' | 'protein' | 'caffeine' | 'glyload';
+        id: 'bmi' | 'calories' | 'oneRm' | 'bodyFat' | 'ffmi' | 'water' | 'protein' | 'caffeine' | 'glyload' | 'burnRate';
         data: any;
     } | null>(null)
     // --- Toast: Dismiss & Exit-Animation ---
@@ -3691,7 +3835,7 @@ Notiz: ${e.note ?? '-'}\n`
         } as const
 
         const mapped = types[type]
-        const durationMs = Number(localStorage.getItem('toastDurationMs')) || 3000
+        const durationMs = Number(localStorage.getItem(LS_TOAST_DURATION_MS)) || 3000
         toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, action, durationMs }
     }
 
@@ -3805,14 +3949,14 @@ Notiz: ${e.note ?? '-'}\n`
 
     const loadFromLocalStorage = () => {
         try {
-            const weightsData = localStorage.getItem('progress_weights');
+            const weightsData = localStorage.getItem(LS_PROGRESS_WEIGHTS);
             if (weightsData) {
                 const parsed = JSON.parse(weightsData);
                 if (Array.isArray(parsed)) {
                     weightHistory.value = parsed;
                 }
             }
-            const bmiData = localStorage.getItem('progress_bmi');
+            const bmiData = localStorage.getItem(LS_PROGRESS_BMI);
             if (bmiData) {
                 const parsed = JSON.parse(bmiData);
                 bmiGender.value = parsed.gender;
@@ -3820,7 +3964,7 @@ Notiz: ${e.note ?? '-'}\n`
                 bmiHeight.value = parsed.height;
                 bmiResult.value = parsed.result;
             }
-            const calorieData = localStorage.getItem('progress_calories');
+            const calorieData = localStorage.getItem(LS_PROGRESS_CALORIES);
             if (calorieData) {
                 const parsed = JSON.parse(calorieData);
                 calorieAge.value = parsed.age;
@@ -3831,7 +3975,7 @@ Notiz: ${e.note ?? '-'}\n`
                 calorieGoal.value = parsed.goal;
                 calorieResult.value = parsed.result;
             }
-            const oneRmData = localStorage.getItem('progress_oneRm');
+            const oneRmData = localStorage.getItem(LS_PROGRESS_ONE_RM);
             if (oneRmData) {
                 const parsed = JSON.parse(oneRmData);
                 oneRmExercise.value = parsed.exercise;
@@ -3839,7 +3983,7 @@ Notiz: ${e.note ?? '-'}\n`
                 oneRmReps.value = parsed.reps;
                 oneRmResult.value = parsed.result;
             }
-            const bodyFatData = localStorage.getItem('progress_bodyFat');
+            const bodyFatData = localStorage.getItem(LS_PROGRESS_BODY_FAT);
             if (bodyFatData) {
                 const parsed = JSON.parse(bodyFatData);
                 bodyFatGender.value = parsed.gender;
@@ -3849,7 +3993,7 @@ Notiz: ${e.note ?? '-'}\n`
                 bodyFatHeight.value = parsed.height;
                 bodyFatResult.value = parsed.result;
             }
-            const ffmiData = localStorage.getItem('progress_ffmi');
+            const ffmiData = localStorage.getItem(LS_PROGRESS_FFMI);
             if (ffmiData) {
                 const parsed = JSON.parse(ffmiData);
                 ffmiWeight.value = parsed.weight;
@@ -3857,7 +4001,7 @@ Notiz: ${e.note ?? '-'}\n`
                 ffmiBodyFat.value = parsed.bodyFat;
                 ffmiResult.value = parsed.result;
             }
-            const waterData = localStorage.getItem('progress_water');
+            const waterData = localStorage.getItem(LS_PROGRESS_WATER);
             if (waterData) {
                 const parsed = JSON.parse(waterData);
                 waterWeight.value = parsed.weight;
@@ -3865,17 +4009,17 @@ Notiz: ${e.note ?? '-'}\n`
                 waterClimate.value = parsed.climate;
                 waterResult.value = parsed.result;
             }
-            const goalData = localStorage.getItem('progress_goal');
+            const goalData = localStorage.getItem(LS_PROGRESS_GOAL);
             if (goalData) {
                 const parsed = JSON.parse(goalData);
                 goal.value = parsed.goal;
             }
-            const workoutsData = localStorage.getItem('progress_workouts');
+            const workoutsData = localStorage.getItem(LS_PROGRESS_WORKOUTS);
             if (workoutsData) {
                 const parsed = JSON.parse(workoutsData);
                 workouts.value = parsed;
             }
-            const proteinData = localStorage.getItem('progress_protein')
+            const proteinData = localStorage.getItem(LS_PROGRESS_PROTEIN);
             if (proteinData) {
                 const parsed = JSON.parse(proteinData)
                 proteinWeight.value = parsed.weight
@@ -3887,7 +4031,21 @@ Notiz: ${e.note ?? '-'}\n`
                 }
             }
 
-            const trainingData = localStorage.getItem('trainingData');
+            const burnData = localStorage.getItem(LS_PROGRESS_BURN_RATE);
+            if (burnData) {
+                const parsed = JSON.parse(burnData)
+                burnStartWeight.value = parsed.startWeight ?? null
+                burnGoalWeight.value = parsed.goalWeight ?? null
+                burnMaintenance.value = parsed.maintenance ?? null
+                burnIntake.value = parsed.intake ?? null
+                burnRateResult.value = parsed.result ?? null
+
+                if (autoCalcEnabled.value && !validateBurnRate().length) {
+                    calculateBurnRate()
+                }
+            }
+
+            const trainingData = localStorage.getItem(LS_TRAINING_DATA);
             if (trainingData) {
                 try {
                     const parsedTraining = JSON.parse(trainingData);

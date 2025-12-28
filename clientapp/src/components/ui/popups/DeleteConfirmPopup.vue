@@ -1,15 +1,18 @@
 <template>
     <BasePopup :show="show && confirmDeleteEnabled"
+               title="Löschen bestätigen"
                overlayClass="delete-popup"
                @cancel="emit('cancel')">
-        <template #default>
-            <h3 class="popup-title">Löschen bestätigen</h3>
-            <p class="popup-message">Willst du das wirklich löschen?</p>
-        </template>
+        <p class="popup-message">Willst du das wirklich löschen?</p>
 
         <template #actions>
-            <PopupDeleteButton autofocus @click="$emit('confirm')">Löschen</PopupDeleteButton>
-            <PopupCancelButton @click="$emit('cancel')">Abbrechen</PopupCancelButton>
+            <PopupActionButton variant="ghost" @click="$emit('cancel')">
+                Abbrechen
+            </PopupActionButton>
+
+            <PopupActionButton autofocus danger @click="$emit('confirm')">
+                Löschen
+            </PopupActionButton>
         </template>
     </BasePopup>
 </template>
@@ -17,8 +20,8 @@
 <script setup lang="ts">
     import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
     import BasePopup from './BasePopup.vue'
-    import PopupDeleteButton from '@/components/ui/buttons/popup/PopupDeleteButton.vue'
-    import PopupCancelButton from '@/components/ui/buttons/popup/PopupCancelButton.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
+    import { LS_CONFIRM_DELETE_ENABLED } from '@/constants/storageKeys'
 
     const props = defineProps<{ show: boolean }>()
     const emit = defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
@@ -26,7 +29,7 @@
     const confirmDeleteEnabled = ref(true)
 
     const readSetting = () => {
-        const stored = localStorage.getItem('confirmDeleteEnabled')
+        const stored = localStorage.getItem(LS_CONFIRM_DELETE_ENABLED)
         confirmDeleteEnabled.value = stored === null ? true : stored === 'true'
     }
 
@@ -54,16 +57,11 @@
 
 
 <style scoped>
-    /* exakt wie vorher in Training.vue */
-    .popup-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-    }
-
     .popup-message {
+        margin: 0;
         font-size: 1rem;
         line-height: 1.5;
-        margin: 0 0 1rem;
+        color: var(--text-secondary);
+        text-align: center;
     }
 </style>

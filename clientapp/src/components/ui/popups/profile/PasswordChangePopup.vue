@@ -33,8 +33,13 @@
 
         <!-- Footer-Buttons -->
         <template #actions>
-            <PopupCancelButton @click="$emit('cancel')">Abbrechen</PopupCancelButton>
-            <PopupSaveButton @click="onSave">Speichern</PopupSaveButton>
+            <PopupActionButton variant="ghost" @click="$emit('cancel')">
+                Abbrechen
+            </PopupActionButton>
+
+            <PopupActionButton autofocus @click="onSave">
+                Speichern
+            </PopupActionButton>
         </template>
     </BasePopup>
 </template>
@@ -42,8 +47,7 @@
 <script setup lang="ts">
     import { ref, watch, nextTick } from "vue";
     import BasePopup from "../BasePopup.vue";
-    import PopupSaveButton from "@/components/ui/buttons/popup/PopupSaveButton.vue";
-    import PopupCancelButton from "@/components/ui/buttons/popup/PopupCancelButton.vue";
+    import PopupActionButton from "@/components/ui/buttons/popup/PopupActionButton.vue";
 
     const props = defineProps<{ show: boolean }>();
 

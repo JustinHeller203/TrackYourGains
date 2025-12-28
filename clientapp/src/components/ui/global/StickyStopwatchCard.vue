@@ -1,5 +1,6 @@
 <template>
-    <div class="sticky-stopwatch-card"
+    <div v-if="stickyEnabled"
+         class="sticky-stopwatch-card"
          ref="cardEl"
          :class="[{ resizing: resizeMode, movable: moveMode }, sizePreset]"
          :style="{
@@ -189,7 +190,7 @@
 
 <script setup lang="ts">
 
-    import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount } from 'vue'
+    import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount, toRef } from 'vue'
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
 
     const Z_KEY = '__stickyZ'
@@ -231,6 +232,18 @@
         zIndex?: number
     }
 
+    const props = defineProps<{
+        stopwatch: StopwatchInstance
+        stickyEnabled: boolean
+        formatStopwatch: (time: number) => string
+        toggleStopwatch: (sw: StopwatchInstance) => void
+        resetStopwatch: (sw: StopwatchInstance) => void
+        addLap: (sw: StopwatchInstance) => void
+        startDrag: (e: MouseEvent, sw: StopwatchInstance) => void
+        focusInTraining: (type: 'timer' | 'stopwatch', id: string) => void
+    }>()
+
+    const stickyEnabled = toRef(props, 'stickyEnabled')
 
     const {
         stopwatch,
@@ -240,15 +253,7 @@
         addLap,
         startDrag,
         focusInTraining,
-    } = defineProps<{
-        stopwatch: StopwatchInstance
-        formatStopwatch: (time: number) => string
-        toggleStopwatch: (sw: StopwatchInstance) => void
-        resetStopwatch: (sw: StopwatchInstance) => void
-        addLap: (sw: StopwatchInstance) => void
-        startDrag: (e: MouseEvent, sw: StopwatchInstance) => void
-        focusInTraining: (type: 'timer' | 'stopwatch', id: string) => void
-    }>()
+    } = props
 
     const emit = defineEmits<{
         (e: 'open', id: string): void

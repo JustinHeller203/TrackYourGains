@@ -1,3 +1,4 @@
+<!--Pfad: components/ui/buttons/AddExerciseButton.vue-->
 <template>
     <BaseButton :type="type"
                 :title="title"

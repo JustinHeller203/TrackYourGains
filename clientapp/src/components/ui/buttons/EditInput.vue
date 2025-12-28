@@ -1,3 +1,4 @@
+<!--Pfad: components/ui/buttons/EditInput.vue-->
 <template>
     <BaseButton :type="type"
                 :title="title || ariaLabel"

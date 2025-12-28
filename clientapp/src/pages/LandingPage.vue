@@ -110,6 +110,11 @@
 
 <script setup lang="ts">
     import { ref, onMounted, onUnmounted } from 'vue'
+    import {
+        LS_PROGRESS_WORKOUTS,
+        LS_PROGRESS_MEALS,
+        LS_PROGRESS_WEIGHTS,
+    } from '@/constants/storageKeys'
 
     const typedText = ref('')
     const fullText = 'TrackYourGains'
@@ -125,9 +130,9 @@
     const loadStatsFromStorage = () => {
         if (typeof window === 'undefined') return
 
-        // --- Workouts: aus progress_workouts ---
+        // --- Workouts: aus LS_PROGRESS_WORKOUTS ---
         try {
-            const rawWorkouts = window.localStorage.getItem('progress_workouts')
+            const rawWorkouts = window.localStorage.getItem(LS_PROGRESS_WORKOUTS)
             const parsed = rawWorkouts ? JSON.parse(rawWorkouts) as unknown[] : []
             workoutsCompleted.value = Array.isArray(parsed) ? parsed.length : 0
         } catch {
@@ -136,7 +141,7 @@
 
         // --- Mahlzeiten: aus progress_meals ---
         try {
-            const rawMeals = window.localStorage.getItem('progress_meals')
+            const rawMeals = window.localStorage.getItem(LS_PROGRESS_MEALS)
             const parsedMeals = rawMeals ? JSON.parse(rawMeals) as StoredMeal[] : []
             mealsPlanned.value = Array.isArray(parsedMeals) ? parsedMeals.length : 0
         } catch {
@@ -145,7 +150,7 @@
 
         // --- Kilo abgenommen: aus progress_weights ---
         try {
-            const rawWeights = window.localStorage.getItem('progress_weights')
+            const rawWeights = window.localStorage.getItem(LS_PROGRESS_WEIGHTS)
             const weights = rawWeights ? JSON.parse(rawWeights) as StoredWeightEntry[] : []
 
             if (Array.isArray(weights) && weights.length >= 2) {
@@ -661,7 +666,18 @@
         max-width: 640px;
         margin: 0 auto;
         position: relative;
+        width: 100%;
+        box-sizing: border-box;
+        /* verhindert Layout-Sprung beim Wechsel */
+        min-height: 220px;
     }
+
+    @media (max-width: 520px) {
+        .testimonials-slider {
+            min-height: 260px;
+        }
+    }
+
 
     .testimonial-dots {
         display: flex;
@@ -933,5 +949,11 @@
             box-shadow: var(--shadow);
         }
     }
+    :global(html),
+    :global(body) {
+        overflow-x: hidden;
+    }
+
+
 </style>
 

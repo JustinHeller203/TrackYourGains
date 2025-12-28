@@ -1,427 +1,407 @@
 <!-- src/components/ui/calculators/GlycemicLoadCalculator.vue -->
 <template>
-    <div class="calculator-card">
-        <div class="card-header">
-            <h3 class="card-title">
-                {{ title || 'Glykämische Last (GL) Rechner' }}
-                <ExplanationPopup v-if="infoText"
-                                  title="Glykämische Last (GL)"
-                                  kicker="Rechner erklärt"
-                                  aria-open="GL Erklärung öffnen"
-                                  aria-close="Schließen"
-                                  ref="glInfoPopup"
-                                  :text="infoText">
-                    <template #graphic>
-                        <div class="calc-hero" role="img" aria-label="GL Kurzkarte">
-                            <div class="calc-hero-top">
-                                <span class="calc-hero-title">ℹ️ Was bedeutet GL?</span>
-                            </div>
+    <BaseCalculator :title="title || 'Glykämische Last (GL) Rechner'"
+                    :showInfo="!!infoText"
+                    infoTitle="Glykämische Last (GL)"
+                    infoKicker="Rechner erklärt"
+                    ariaOpen="GL Erklärung öffnen"
+                    ariaClose="Schließen"
+                    :info="infoText"
+                    :autoCalcEnabled="autoCalcEnabled"
+                    :isFavorite="isFavorite"
+                    :showCalculateButton="!autoCalcEnabled"
+                    :showCopyButton="glResult !== null"
+                    :copyText="copyText"
+                    @toggleFavorite="$emit('toggleFavorite')"
+                    @calculate="$emit('calculate')"
+                    @copy="$emit('copy')"
+                    @export="$emit('export')"
+                    @reset="$emit('reset')">
 
-                            <div class="calc-hero-sub">
-                                Die <strong>Glykämische Last (GL)</strong> zeigt, <strong>wie stark eine Portion Essen deinen Blutzucker wirklich beeinflusst</strong>.
-                                Sie berücksichtigt nicht nur wie schnell Kohlenhydrate wirken, sondern auch wie viel du davon isst.
-                            </div>
+        <!-- Graphic -->
+        <template #graphic="{ jumpTo }">
+            <div class="calc-hero" role="img" aria-label="GL Kurzkarte">
+                <div class="calc-hero-top">
+                    <span class="calc-hero-title">ℹ️ Was bedeutet GL?</span>
+                </div>
 
-                            <div class="calc-hero-pills" aria-label="Schnellnavigation">
-                                <button class="calc-chip" type="button" @click="jumpTo('gl_formula')">⚙️ So wird er berechnet</button>
-                                <button class="calc-chip" type="button" @click="jumpTo('gl_bands')">📊 So wird's eingeordnet</button>
-                                <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('gl_limits')">⚠️ Wichtig</button>
-                            </div>
-                        </div>
-                    </template>
+                <div class="calc-hero-sub">
+                    Die <strong>Glykämische Last (GL)</strong> zeigt, <strong>wie stark eine Portion Essen deinen Blutzucker wirklich beeinflusst</strong>.
+                    Sie berücksichtigt nicht nur wie schnell Kohlenhydrate wirken, sondern auch wie viel du davon isst.
+                </div>
 
-                    <div class="calc-scan">
-                        <div v-if="glResult !== null"
-                             id="gl_you"
-                             class="calc-callout calc-callout--tldr"
-                             :class="{ 'calc-target': activeTargetId === 'gl_you' }"
-                             tabindex="-1">
-                            <div class="calc-callout-title">✅ Dein Ergebnis</div>
-                            <div class="calc-callout-text">
-                                <div>
-                                    <strong>GL pro Portion:</strong> {{ glResult!.toFixed(1) }}
-                                    <span v-if="glCategory">— <strong>{{ glCategory }}</strong></span>
-                                </div>
+                <div class="calc-hero-pills" aria-label="Schnellnavigation">
+                    <button class="calc-chip" type="button" @click="jumpTo('gl_formula')">⚙️ So wird er berechnet</button>
+                    <button class="calc-chip" type="button" @click="jumpTo('gl_bands')">📊 So wird's eingeordnet</button>
+                    <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('gl_limits')">⚠️ Wichtig</button>
+                </div>
+            </div>
+        </template>
 
-                                <div class="calc-note calc-note--tight">
-                                    Tipp: GL ist am besten für <strong>Vergleiche</strong> (Portionen/Meals), nicht als “verboten”-Label.
-                                </div>
-
-                                <div class="calc-actions">
-                                    <button class="calc-chip" type="button" @click="jumpTo('gl_next')">👉 Was heißt das?</button>
-                                    <button class="calc-chip" type="button" @click="jumpTo('gl_bands')">📊 Einordnung</button>
-                                    <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('gl_limits')">⚠️ Wichtig</button>
-                                </div>
-                            </div>
+        <!-- Popup -->
+        <template #popup="{ jumpTo, activeTargetId, onCopy }">
+            <div class="calc-scan">
+                <div v-if="glResult !== null"
+                     id="gl_you"
+                     class="calc-callout calc-callout--tldr"
+                     :class="{ 'calc-target': activeTargetId === 'gl_you' }"
+                     tabindex="-1">
+                    <div class="calc-callout-title">✅ Dein Ergebnis</div>
+                    <div class="calc-callout-text">
+                        <div>
+                            <strong>GL pro Portion:</strong> {{ glResult!.toFixed(1) }}
+                            <span v-if="glCategory">— <strong>{{ glCategory }}</strong></span>
                         </div>
 
-                        <div class="calc-chips" aria-label="Kurzüberblick">
-                            <button class="calc-chip" type="button" @click="jumpTo('gl_formula')">⚙️ Formel</button>
-                            <button class="calc-chip" type="button" @click="jumpTo('gl_example')">📐 Beispiel</button>
-                            <button class="calc-chip" type="button" @click="openGlTable()">📚 GL Tabelle</button>
-                            <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('gl_bands')">📊 Bereiche</button>
-                            <button class="calc-chip" type="button" @click="jumpTo('gl_insulin')">🧠 Insulin</button>
+                        <div class="calc-note calc-note--tight">
+                            Tipp: GL ist am besten für <strong>Vergleiche</strong> (Portionen/Meals), nicht als “verboten”-Label.
+                        </div>
+
+                        <div class="calc-actions">
+                            <button class="calc-chip" type="button" @click="jumpTo('gl_next')">👉 Was heißt das?</button>
+                            <button class="calc-chip" type="button" @click="jumpTo('gl_bands')">📊 Einordnung</button>
                             <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('gl_limits')">⚠️ Wichtig</button>
-                            <button class="calc-chip"
-                                    type="button"
-                                    :disabled="glResult === null"
-                                    :aria-disabled="glResult === null"
-                                    :class="{ 'is-disabled': glResult === null }"
-                                    :title="glResult !== null ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
-                                    @click="copyPopupSummary()">
-                                📋 Copy
-                            </button>
                         </div>
+                    </div>
+                </div>
 
-                        <div id="gl_tldr"
-                             class="calc-callout calc-callout--tldr"
-                             :class="{ 'calc-target': activeTargetId === 'gl_tldr' }"
-                             tabindex="-1">
-                            <div class="calc-callout-title">📌 Kurzfassung</div>
-                            <div class="calc-callout-text">
-                                <div>
-                                    <div>
-                                        GL zeigt, <strong>wie stark dein Blutzucker nach einer Mahlzeit ansteigt</strong> – abhängig von
-                                        <strong>Art</strong> der Kohlenhydrate <em>und</em> der <strong>Menge</strong>.
-                                    </div>
-                                </div>
-                                <ul class="calc-list calc-list--spaced">
-                                    <li><strong>GI:</strong> Wie schnell Zucker ins Blut geht (Tempo)</li>
-                                    <li><strong>GL:</strong> Wie stark es insgesamt wirkt (Tempo <strong>+ Menge</strong>)</li>
-                                    <li><strong>Merke:</strong> Auch „gesunde“ Foods können bei großen Portionen stark wirken</li>
-                                </ul>
-                            </div>
+                <div class="calc-chips" aria-label="Kurzüberblick">
+                    <button class="calc-chip" type="button" @click="jumpTo('gl_formula')">⚙️ Formel</button>
+                    <button class="calc-chip" type="button" @click="jumpTo('gl_example')">📐 Beispiel</button>
+                    <button class="calc-chip" type="button" @click="openGlTable()">📚 GL Tabelle</button>
+                    <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('gl_bands')">📊 Bereiche</button>
+                    <button class="calc-chip" type="button" @click="jumpTo('gl_insulin')">🧠 Insulin</button>
+                    <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('gl_limits')">⚠️ Wichtig</button>
+
+                    <button class="calc-chip"
+                            type="button"
+                            :disabled="glResult === null"
+                            :aria-disabled="glResult === null"
+                            :class="{ 'is-disabled': glResult === null }"
+                            :title="glResult !== null ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
+                            @click="() => { onCopy?.(); jumpTo('gl_you') }">
+                        📋 Copy
+                    </button>
+                </div>
+
+                <div id="gl_tldr"
+                     class="calc-callout calc-callout--tldr"
+                     :class="{ 'calc-target': activeTargetId === 'gl_tldr' }"
+                     tabindex="-1">
+                    <div class="calc-callout-title">📌 Kurzfassung</div>
+                    <div class="calc-callout-text">
+                        <div>
+                            GL zeigt, <strong>wie stark dein Blutzucker nach einer Mahlzeit ansteigt</strong> – abhängig von
+                            <strong>Art</strong> der Kohlenhydrate <em>und</em> der <strong>Menge</strong>.
                         </div>
+                        <ul class="calc-list calc-list--spaced">
+                            <li><strong>GI:</strong> Wie schnell Zucker ins Blut geht (Tempo)</li>
+                            <li><strong>GL:</strong> Wie stark es insgesamt wirkt (Tempo <strong>+ Menge</strong>)</li>
+                            <li><strong>Merke:</strong> Auch „gesunde“ Foods können bei großen Portionen stark wirken</li>
+                        </ul>
+                    </div>
+                </div>
 
-                        <div class="calc-callout"
-                             :class="{ 'calc-target': activeTargetId === 'gl_next' }"
-                             tabindex="-1"
-                             id="gl_next">
-                            <div class="calc-callout-title">👉 Was heißt das jetzt?</div>
-                            <ul class="calc-list">
-                                <li>
-                                    <strong>Niedrige GL:</strong> Blutzucker bleibt stabil →
-                                    meist <strong>weniger Hunger</strong> & längere Sättigung.
-                                </li>
-                                <li><strong>Mittlere GL:</strong> normal — Kontext zählt (Timing, Aktivität, Protein/Fett dazu).</li>
-                                <li><strong>Hohe GL:</strong> nicht “schlecht”, aber <strong>macht eher Hunger/Cravings</strong> bei manchen.</li>
-                            </ul>
-                        </div>
+                <div class="calc-callout"
+                     :class="{ 'calc-target': activeTargetId === 'gl_next' }"
+                     tabindex="-1"
+                     id="gl_next">
+                    <div class="calc-callout-title">👉 Was heißt das jetzt?</div>
+                    <ul class="calc-list">
+                        <li>
+                            <strong>Niedrige GL:</strong> Blutzucker bleibt stabil →
+                            meist <strong>weniger Hunger</strong> & längere Sättigung.
+                        </li>
+                        <li><strong>Mittlere GL:</strong> normal — Kontext zählt (Timing, Aktivität, Protein/Fett dazu).</li>
+                        <li><strong>Hohe GL:</strong> nicht “schlecht”, aber <strong>macht eher Hunger/Cravings</strong> bei manchen.</li>
+                    </ul>
+                </div>
 
-                        <section id="gl_insulin"
-                                 class="calc-card"
-                                 :class="{ 'calc-target': activeTargetId === 'gl_insulin' }"
-                                 tabindex="-1">
-                            <div class="calc-callout-title">🧠 Insulin-Reaktion erklärt</div>
-                            <ul class="calc-list">
-                                <li><strong>Wenn du Kohlenhydrate isst</strong>, steigt dein Blutzucker.</li>
-                                <li>Der Körper schüttet dann <strong>Insulin</strong> aus, damit Zucker aus dem Blut <strong>in die Zellen</strong> aufgenommen werden kann.</li>
-                                <li><strong>Hohe GL</strong> bedeutet oft: stärkere Blutzuckerreaktion → häufig auch eine stärkere Insulinantwort.</li>
-                                <li><strong>Wichtig:</strong> Insulin ist nicht „schlecht“ – es ist ein normales, lebenswichtiges Hormon.</li>
-                            </ul>
-                            <div class="calc-note calc-note--tight">
-                                Merksatz: <strong>GL</strong> beschreibt, wie stark eine <strong>Portion</strong> Kohlenhydrate deinen Blutzucker typischerweise beeinflusst.
-                            </div>
-                        </section>
+                <section id="gl_insulin"
+                         class="calc-card"
+                         :class="{ 'calc-target': activeTargetId === 'gl_insulin' }"
+                         tabindex="-1">
+                    <div class="calc-callout-title">🧠 Insulin-Reaktion erklärt</div>
+                    <ul class="calc-list">
+                        <li><strong>Wenn du Kohlenhydrate isst</strong>, steigt dein Blutzucker.</li>
+                        <li>Der Körper schüttet dann <strong>Insulin</strong> aus, damit Zucker aus dem Blut <strong>in die Zellen</strong> aufgenommen werden kann.</li>
+                        <li><strong>Hohe GL</strong> bedeutet oft: stärkere Blutzuckerreaktion → häufig auch eine stärkere Insulinantwort.</li>
+                        <li><strong>Wichtig:</strong> Insulin ist nicht „schlecht“ – es ist ein normales, lebenswichtiges Hormon.</li>
+                    </ul>
+                    <div class="calc-note calc-note--tight">
+                        Merksatz: <strong>GL</strong> beschreibt, wie stark eine <strong>Portion</strong> Kohlenhydrate deinen Blutzucker typischerweise beeinflusst.
+                    </div>
+                </section>
 
+                <div id="gl_when"
+                     class="calc-callout"
+                     :class="{ 'calc-target': activeTargetId === 'gl_when' }"
+                     tabindex="-1">
+                    <div class="calc-callout-title">🎯 Wann soll ich GL wirklich beachten?</div>
+                    <ul class="calc-list">
+                        <li><strong>Wenn du nach KH oft müde wirst</strong> oder “Food-Koma” bekommst.</li>
+                        <li><strong>Wenn du schnell wieder Hunger</strong> hast (Cravings 1–2h nach dem Essen).</li>
+                        <li><strong>Wenn du im Cut bist</strong> und Sättigung/Alltag leichter machen willst.</li>
+                        <li><strong>Wenn du Diabetes/Insulinresistenz hast</strong> (dann ist GL oft extra relevant).</li>
+                        <li><strong>Wenn du Meals vergleichst</strong>: “welches hält mich länger satt?”</li>
+                    </ul>
+                    <div class="calc-note calc-note--tight">
+                        Quick Win: Bei hoher GL → <strong>Portion kleiner</strong> oder <strong>Protein/Fett/Ballaststoffe</strong> dazu (bremst den Spike).
+                    </div>
+                </div>
 
-                        <div id="gl_when"
-                             class="calc-callout"
-                             :class="{ 'calc-target': activeTargetId === 'gl_when' }"
-                             tabindex="-1">
-                            <div class="calc-callout-title">🎯 Wann soll ich GL wirklich beachten?</div>
-                            <ul class="calc-list">
-                                <li><strong>Wenn du nach KH oft müde wirst</strong> oder “Food-Koma” bekommst.</li>
-                                <li><strong>Wenn du schnell wieder Hunger</strong> hast (Cravings 1–2h nach dem Essen).</li>
-                                <li><strong>Wenn du im Cut bist</strong> und Sättigung/Alltag leichter machen willst.</li>
-                                <li><strong>Wenn du Diabetes/Insulinresistenz hast</strong> (dann ist GL oft extra relevant).</li>
-                                <li><strong>Wenn du Meals vergleichst</strong>: “welches hält mich länger satt?”</li>
-                            </ul>
-                            <div class="calc-note calc-note--tight">
-                                Quick Win: Bei hoher GL → <strong>Portion kleiner</strong> oder <strong>Protein/Fett/Ballaststoffe</strong> dazu (bremst den Spike).
-                            </div>
-                        </div>
+                <div id="gl_gi"
+                     class="calc-callout"
+                     :class="{ 'calc-target': activeTargetId === 'gl_gi' }"
+                     tabindex="-1">
+                    <div class="calc-callout-title">📘 Lektion: Was ist der Glykämische Index (GI)?</div>
 
-                        <div id="gl_gi"
-                             class="calc-callout"
-                             :class="{ 'calc-target': activeTargetId === 'gl_gi' }"
-                             tabindex="-1">
-                            <div class="calc-callout-title">📘 Lektion: Was ist der Glykämische Index (GI)?</div>
-
-                            <div class="calc-callout-text">
-                                Der <strong>Glykämische Index (GI)</strong> beschreibt das <strong>Tempo</strong>, wie schnell die Kohlenhydrate
-                                eines Lebensmittels deinen <strong>Blutzucker</strong> im Vergleich zu <strong>Glukose</strong> ansteigen lassen.
-                            </div>
-
-                            <ul class="calc-list">
-                                <li><strong>GI = Geschwindigkeit</strong> (wie schnell steigt’s?)</li>
-                                <li><strong>GL = Wirkung pro Portion</strong> (Geschwindigkeit <em>und</em> Menge)</li>
-                                <li>Hoher GI kann okay sein, wenn die Portion klein ist → GL bleibt niedriger.</li>
-                            </ul>
-
-                            <div class="calc-note calc-note--tight">
-                                Merksatz: <strong>GI = Tempo</strong>, <strong>GL = Gesamt-Impact der Portion</strong>.
-                            </div>
-                        </div>
-
-                        <div id="gl_gl"
-                             class="calc-callout"
-                             :class="{ 'calc-target': activeTargetId === 'gl_gl' }"
-                             tabindex="-1">
-                            <div class="calc-callout-title">🧠 Glykämischer Index (0–110): welche Zahl soll ich eingeben?</div>
-
-                            <div class="gi-steps" role="list" aria-label="GI Schritt-für-Schritt">
-                                <div class="gi-step" role="listitem">
-                                    <div class="gi-step-k">1) Was eingeben?</div>
-                                    <div class="gi-step-v">
-                                        Den <strong>GI-Wert</strong> deines Foods (eine Zahl <strong>0–110</strong>).
-                                    </div>
-                                </div>
-
-                                <div class="gi-step" role="listitem">
-                                    <div class="gi-step-k">2) Woher nehmen?</div>
-                                    <div class="gi-step-v">
-                                        Aus einer <strong>GI-Tabelle</strong> (Suchbegriff: <strong>„GI Tabelle + Lebensmittel“</strong>).
-                                    </div>
-                                </div>
-
-                                <div class="gi-step" role="listitem">
-                                    <div class="gi-step-k">3) Wenn mehrere Werte?</div>
-                                    <div class="gi-step-v">
-                                        Nimm den Wert, der zur <strong>Zubereitung</strong> passt (gekocht / reif / „al dente“).
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="gi-chiprow" aria-label="Schnelle Beispiele">
-                                <span class="gi-chip"><strong>Banane</strong> ~50–60</span>
-                                <span class="gi-chip"><strong>Reis</strong> ~50–90</span>
-                                <span class="gi-chip"><strong>Hafer</strong> eher niedriger</span>
-                            </div>
-
-                            <div class="calc-note calc-note--tight gi-note">
-                                <strong>Unsicher?</strong> Nimm die <strong>Mitte</strong> der Range.
-                                Beispiel: <strong>50–60 → 55</strong>. Das reicht locker für Vergleiche.
-                            </div>
-
-                            <ul class="calc-list gi-mini">
-                                <li><strong>Reifer</strong> = oft höherer GI (z. B. Banane).</li>
-                                <li><strong>Weich gekocht</strong> = oft höherer GI (Pasta/Reis), <strong>„al dente“</strong> eher niedriger.</li>
-                                <li><strong>0–110 Schutz:</strong> Wenn du drüber bist, wird automatisch begrenzt.</li>
-                            </ul>
-
-                        </div>
-
-                        <div class="calc-grid">
-
-                            <section class="calc-card">
-                                <h4 class="calc-h">🧠 Was misst GL?</h4>
-                                <ul class="calc-list">
-                                    <li>
-                                        <strong>Misst:</strong> wie stark eine <strong>konkrete Portion Essen</strong>
-                                        deinen <strong>Blutzucker & Insulin</strong> belastet
-                                    </li>
-                                    <li><strong>Bausteine:</strong> GI + verfügbare KH</li>
-                                    <li><strong>Misst nicht:</strong> Mikros, Proteinqualität, Sättigung 1:1</li>
-                                </ul>
-                            </section>
-
-                            <section id="gl_formula"
-                                     class="calc-card"
-                                     :class="{ 'calc-target': activeTargetId === 'gl_formula' }"
-                                     tabindex="-1">
-                                <h4 class="calc-h">⚙️ Formel</h4>
-                                <div class="calc-formula">
-                                    <span class="calc-formula-k">GL</span>
-                                    <span class="calc-formula-eq">=</span>
-                                    <span class="calc-formula-v">(GI × verfügbare KH pro Portion) ÷ 100</span>
-                                </div>
-                                <div class="calc-note">
-                                    Verfügbare KH = Gesamt-KH minus Ballaststoffe (wenn du sie kennst).
-                                </div>
-                            </section>
-
-                            <section id="gl_bands"
-                                     class="calc-card"
-                                     :class="{ 'calc-target': activeTargetId === 'gl_bands' }"
-                                     tabindex="-1">
-                                <h4 class="calc-h">📊 Kategorien</h4>
-                                <div class="calc-bands">
-                                    <div class="calc-band"><span class="calc-band-k">Unter 10</span><span class="calc-band-v">niedrig</span></div>
-                                    <div class="calc-band"><span class="calc-band-k">10 – 19</span><span class="calc-band-v">mittel</span></div>
-                                    <div class="calc-band"><span class="calc-band-k">20+</span><span class="calc-band-v">hoch</span></div>
-                                </div>
-                            </section>
-
-                            <section id="gl_example"
-                                     class="calc-card"
-                                     :class="{ 'calc-target': activeTargetId === 'gl_example' }"
-                                     tabindex="-1">
-                                <h4 class="calc-h">📐 Beispiel</h4>
-                                <div class="calc-example">
-                                    <div class="calc-example-row">
-                                        <span>GI 55, 30g verfügbare KH</span>
-                                        <span class="calc-example-strong">GL ≈ 16,5</span>
-                                    </div>
-                                    <div class="calc-example-sub">
-                                        “Mittel” — wird niedriger, wenn die Portion kleiner ist oder KH geringer sind.
-                                    </div>
-                                </div>
-                            </section>
-                        </div>
-
-                        <div class="calc-callout">
-                            <div class="calc-callout-title">🧠 Wann du den GL-Rechner easy ignorieren darfst</div>
-                            <ul class="calc-list">
-                                <li>Deine <strong>Mahlzeiten sind gemischt</strong> (Protein, Fett, Ballaststoffe dabei).</li>
-                                <li>Du hast <strong>keine Probleme mit Hunger, Cravings oder Energie-Crashes</strong>.</li>
-                                <li>Dein Fokus liegt auf <strong>Gesamtkalorien, Protein & Trainingsleistung</strong>.</li>
-                                <li>Du isst intuitiv & konstant — dann bringt GL kaum Mehrwert.</li>
-                            </ul>
-                        </div>
-                        <div id="gl_limits"
-                             class="calc-callout calc-callout--warn"
-                             :class="{ 'calc-target': activeTargetId === 'gl_limits' }"
-                             tabindex="-1">
-                            <div class="calc-callout-title">⚠️ Wichtig (damit du’s richtig nutzt)</div>
-                            <ul class="calc-list">
-                                <li><strong>GI/GL Tabellen</strong> sind je nach Zubereitung/Reife anders.</li>
-                                <li><strong>Meal-Mix</strong> (Protein/Fett/Ballaststoffe) verändert die Wirkung.</li>
-                                <li>Nutze GL für <strong>Vergleiche</strong>, nicht als “gut/böse”.</li>
-                            </ul>
-                        </div>
-
-                        <section class="calc-card">
-                            <h4 class="calc-h">❓ Häufige Fragen</h4>
-                            <ul class="calc-list">
-                                <li><strong>„Warum ist mein GL trotz ‘gesundem’ Food hoch?“</strong> → Portion/KH-Menge ist der Hebel.</li>
-                                <li><strong>„Warum schwankt GI/GL je nach Quelle?“</strong> → Reifegrad, Kochen, Sorte, Messmethode.</li>
-                                <li><strong>„Was hat GL mit Insulin zu tun?“</strong> → höhere GL → meist stärkerer Blutzuckeranstieg → oft mehr Insulin-Antwort.</li>
-                                <li><strong>„Wann sollte ich GL ernst nehmen?“</strong> → wenn du Hunger/Cravings/Crashs hast oder im Cut Sättigung optimieren willst.</li>
-                                <li><strong>„Wie senke ich GL easy?“</strong> → Portion runter, mehr Ballaststoffe/Protein dazu, KH smarter wählen.</li>
-                            </ul>
-                        </section>
+                    <div class="calc-callout-text">
+                        Der <strong>Glykämische Index (GI)</strong> beschreibt das <strong>Tempo</strong>, wie schnell die Kohlenhydrate
+                        eines Lebensmittels deinen <strong>Blutzucker</strong> im Vergleich zu <strong>Glukose</strong> ansteigen lassen.
                     </div>
 
-                    <template #mini>
-                        <div class="calc-mini">
-                            <div class="calc-mini-title">Reality-Check ✅</div>
-                            <div class="calc-mini-text">
-                                GL hilft dir bei <strong>Portionen</strong>. Für “gesund” zählen auch <strong>Protein</strong>, <strong>Ballaststoffe</strong> &amp; <strong>Gesamtkalorien</strong>.
+                    <ul class="calc-list">
+                        <li><strong>GI = Geschwindigkeit</strong> (wie schnell steigt’s?)</li>
+                        <li><strong>GL = Wirkung pro Portion</strong> (Geschwindigkeit <em>und</em> Menge)</li>
+                        <li>Hoher GI kann okay sein, wenn die Portion klein ist → GL bleibt niedriger.</li>
+                    </ul>
+
+                    <div class="calc-note calc-note--tight">
+                        Merksatz: <strong>GI = Tempo</strong>, <strong>GL = Gesamt-Impact der Portion</strong>.
+                    </div>
+                </div>
+
+                <div id="gl_gl"
+                     class="calc-callout"
+                     :class="{ 'calc-target': activeTargetId === 'gl_gl' }"
+                     tabindex="-1">
+                    <div class="calc-callout-title">🧠 Glykämischer Index (0–110): welche Zahl soll ich eingeben?</div>
+
+                    <div class="gi-steps" role="list" aria-label="GI Schritt-für-Schritt">
+                        <div class="gi-step" role="listitem">
+                            <div class="gi-step-k">1) Was eingeben?</div>
+                            <div class="gi-step-v">
+                                Den <strong>GI-Wert</strong> deines Foods (eine Zahl <strong>0–110</strong>).
                             </div>
                         </div>
-                    </template>
-                </ExplanationPopup>
-            </h3>
 
+                        <div class="gi-step" role="listitem">
+                            <div class="gi-step-k">2) Woher nehmen?</div>
+                            <div class="gi-step-v">
+                                Aus einer <strong>GI-Tabelle</strong> (Suchbegriff: <strong>„GI Tabelle + Lebensmittel“</strong>).
+                            </div>
+                        </div>
+
+                        <div class="gi-step" role="listitem">
+                            <div class="gi-step-k">3) Wenn mehrere Werte?</div>
+                            <div class="gi-step-v">
+                                Nimm den Wert, der zur <strong>Zubereitung</strong> passt (gekocht / reif / „al dente“).
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gi-chiprow" aria-label="Schnelle Beispiele">
+                        <span class="gi-chip"><strong>Banane</strong> ~50–60</span>
+                        <span class="gi-chip"><strong>Reis</strong> ~50–90</span>
+                        <span class="gi-chip"><strong>Hafer</strong> eher niedriger</span>
+                    </div>
+
+                    <div class="calc-note calc-note--tight gi-note">
+                        <strong>Unsicher?</strong> Nimm die <strong>Mitte</strong> der Range.
+                        Beispiel: <strong>50–60 → 55</strong>. Das reicht locker für Vergleiche.
+                    </div>
+
+                    <ul class="calc-list gi-mini">
+                        <li><strong>Reifer</strong> = oft höherer GI (z. B. Banane).</li>
+                        <li><strong>Weich gekocht</strong> = oft höherer GI (Pasta/Reis), <strong>„al dente“</strong> eher niedriger.</li>
+                        <li><strong>0–110 Schutz:</strong> Wenn du drüber bist, wird automatisch begrenzt.</li>
+                    </ul>
+                </div>
+
+                <div class="calc-grid">
+                    <section class="calc-card">
+                        <h4 class="calc-h">🧠 Was misst GL?</h4>
+                        <ul class="calc-list">
+                            <li>
+                                <strong>Misst:</strong> wie stark eine <strong>konkrete Portion Essen</strong>
+                                deinen <strong>Blutzucker & Insulin</strong> belastet
+                            </li>
+                            <li><strong>Bausteine:</strong> GI + verfügbare KH</li>
+                            <li><strong>Misst nicht:</strong> Mikros, Proteinqualität, Sättigung 1:1</li>
+                        </ul>
+                    </section>
+
+                    <section id="gl_formula"
+                             class="calc-card"
+                             :class="{ 'calc-target': activeTargetId === 'gl_formula' }"
+                             tabindex="-1">
+                        <h4 class="calc-h">⚙️ Formel</h4>
+                        <div class="calc-formula">
+                            <span class="calc-formula-k">GL</span>
+                            <span class="calc-formula-eq">=</span>
+                            <span class="calc-formula-v">(GI × verfügbare KH pro Portion) ÷ 100</span>
+                        </div>
+                        <div class="calc-note">
+                            Verfügbare KH = Gesamt-KH minus Ballaststoffe (wenn du sie kennst).
+                        </div>
+                    </section>
+
+                    <section id="gl_bands"
+                             class="calc-card"
+                             :class="{ 'calc-target': activeTargetId === 'gl_bands' }"
+                             tabindex="-1">
+                        <h4 class="calc-h">📊 Kategorien</h4>
+                        <div class="calc-bands">
+                            <div class="calc-band"><span class="calc-band-k">Unter 10</span><span class="calc-band-v">niedrig</span></div>
+                            <div class="calc-band"><span class="calc-band-k">10 – 19</span><span class="calc-band-v">mittel</span></div>
+                            <div class="calc-band"><span class="calc-band-k">20+</span><span class="calc-band-v">hoch</span></div>
+                        </div>
+                    </section>
+
+                    <section id="gl_example"
+                             class="calc-card"
+                             :class="{ 'calc-target': activeTargetId === 'gl_example' }"
+                             tabindex="-1">
+                        <h4 class="calc-h">📐 Beispiel</h4>
+                        <div class="calc-example">
+                            <div class="calc-example-row">
+                                <span>GI 55, 30g verfügbare KH</span>
+                                <span class="calc-example-strong">GL ≈ 16,5</span>
+                            </div>
+                            <div class="calc-example-sub">
+                                “Mittel” — wird niedriger, wenn die Portion kleiner ist oder KH geringer sind.
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="calc-callout">
+                    <div class="calc-callout-title">🧠 Wann du den GL-Rechner easy ignorieren darfst</div>
+                    <ul class="calc-list">
+                        <li>Deine <strong>Mahlzeiten sind gemischt</strong> (Protein, Fett, Ballaststoffe dabei).</li>
+                        <li>Du hast <strong>keine Probleme mit Hunger, Cravings oder Energie-Crashes</strong>.</li>
+                        <li>Dein Fokus liegt auf <strong>Gesamtkalorien, Protein & Trainingsleistung</strong>.</li>
+                        <li>Du isst intuitiv & konstant — dann bringt GL kaum Mehrwert.</li>
+                    </ul>
+                </div>
+
+                <div id="gl_limits"
+                     class="calc-callout calc-callout--warn"
+                     :class="{ 'calc-target': activeTargetId === 'gl_limits' }"
+                     tabindex="-1">
+                    <div class="calc-callout-title">⚠️ Wichtig (damit du’s richtig nutzt)</div>
+                    <ul class="calc-list">
+                        <li><strong>GI/GL Tabellen</strong> sind je nach Zubereitung/Reife anders.</li>
+                        <li><strong>Meal-Mix</strong> (Protein/Fett/Ballaststoffe) verändert die Wirkung.</li>
+                        <li>Nutze GL für <strong>Vergleiche</strong>, nicht als “gut/böse”.</li>
+                    </ul>
+                </div>
+
+                <section class="calc-card">
+                    <h4 class="calc-h">❓ Häufige Fragen</h4>
+                    <ul class="calc-list">
+                        <li><strong>„Warum ist mein GL trotz ‘gesundem’ Food hoch?“</strong> → Portion/KH-Menge ist der Hebel.</li>
+                        <li><strong>„Warum schwankt GI/GL je nach Quelle?“</strong> → Reifegrad, Kochen, Sorte, Messmethode.</li>
+                        <li><strong>„Was hat GL mit Insulin zu tun?“</strong> → höhere GL → meist stärkerer Blutzuckeranstieg → oft mehr Insulin-Antwort.</li>
+                        <li><strong>„Wann sollte ich GL ernst nehmen?“</strong> → wenn du Hunger/Cravings/Crashs hast oder im Cut Sättigung optimieren willst.</li>
+                        <li><strong>„Wie senke ich GL easy?“</strong> → Portion runter, mehr Ballaststoffe/Protein dazu, KH smarter wählen.</li>
+                    </ul>
+                </section>
+            </div>
+        </template>
+
+        <!-- Mini -->
+        <template #mini>
+            <div class="calc-mini">
+                <div class="calc-mini-title">Reality-Check ✅</div>
+                <div class="calc-mini-text">
+                    GL hilft dir bei <strong>Portionen</strong>. Für “gesund” zählen auch <strong>Protein</strong>, <strong>Ballaststoffe</strong> &amp; <strong>Gesamtkalorien</strong>.
+                </div>
+            </div>
+        </template>
+
+        <!-- Inputs -->
+        <template #inputs="{ openInfoAndJump, maybeAutoCalc }">
             <GlTablePopup ref="glTablePopup" @apply="applyFromGlTable" />
 
+            <div class="input-group">
+                <label>Lebensmittel</label>
+                <input :value="food"
+                       @input="(e) => { onFood(e); maybeAutoCalc() }"
+                       type="text"
+                       placeholder="z. B. Reis, Banane …"
+                       class="edit-input" />
+            </div>
 
-            <FavoriteButton :active="isFavorite"
-                            :titleActive="'Aus Favoriten entfernen'"
-                            :titleInactive="'Zu Favoriten hinzufügen'"
-                            @toggle="$emit('toggleFavorite')" />
-        </div>
+            <div class="input-group">
+                <label>Portionsgröße (g)</label>
+                <input :value="serving ?? ''"
+                       @input="(e) => { onServing(e); maybeAutoCalc() }"
+                       type="text"
+                       inputmode="decimal"
+                       autocomplete="off"
+                       placeholder="z. B. 150"
+                       class="edit-input" />
+            </div>
 
-        <div class="input-group">
-            <label>Lebensmittel</label>
-            <input :value="food"
-                   @input="onFood"
-                   type="text"
-                   placeholder="z. B. Reis, Banane …"
-                   class="edit-input" />
-        </div>
+            <div class="input-group">
+                <label>Kohlenhydrate pro 100 (g)</label>
+                <input :value="carbs100 ?? ''"
+                       @input="(e) => { onCarbs100(e); maybeAutoCalc() }"
+                       type="text"
+                       inputmode="decimal"
+                       autocomplete="off"
+                       placeholder="z. B. 28"
+                       class="edit-input" />
+                <small class="hint">Falls bekannt: Ballaststoffe von den Gesamt-KH abziehen.</small>
+            </div>
 
-        <div class="input-group">
-            <label>Portionsgröße (g)</label>
-            <input :value="serving ?? ''"
-                   @input="onServing"
-                   type="text"
-                   inputmode="decimal"
-                   autocomplete="off"
-                   placeholder="z. B. 150"
-                   class="edit-input" />
-        </div>
+            <div class="input-group">
+                <label class="gi-label">
+                    <span>Glykämischer Index (0–110)</span>
 
-        <div class="input-group">
-            <label>Kohlenhydrate pro 100 (g)</label>
-            <input :value="carbs100 ?? ''"
-                   @input="onCarbs100"
-                   type="text"
-                   inputmode="decimal"
-                   autocomplete="off"
-                   placeholder="z. B. 28"
-                   class="edit-input" />
-            <small class="hint">Falls bekannt: Ballaststoffe von den Gesamt-KH abziehen.</small>
-        </div>
+                    <button class="info-btn"
+                            type="button"
+                            aria-label="GI Erklärung öffnen"
+                            title="Was ist der GI?"
+                            @click="openInfoAndJump('gl_gi')">
+                        <span class="info-emoji" aria-hidden="true">ℹ️</span>
+                    </button>
+                </label>
 
-        <div class="input-group">
-            <label class="gi-label">
-                <span>Glykämischer Index (0–110)</span>
+                <input :value="gi ?? ''"
+                       @input="(e) => { onGi(e); maybeAutoCalc() }"
+                       type="text"
+                       inputmode="decimal"
+                       autocomplete="off"
+                       placeholder="z. B. 55"
+                       class="edit-input" />
+            </div>
+        </template>
 
-                <button class="info-btn"
-                        type="button"
-                        aria-label="GI Erklärung öffnen"
-                        title="Was ist der GI?"
-                        @click="openPopupAndJump('gl_gi')"
-                        @keydown.enter.prevent="openPopupAndJump('gl_gi')"
-                        @keydown.space.prevent="openPopupAndJump('gl_gi')">
-                    <span class="info-emoji" aria-hidden="true">ℹ️</span>
-                </button>
-            </label>
-
-            <input :value="gi ?? ''"
-                   @input="onGi"
-                   type="text"
-                   inputmode="decimal"
-                   autocomplete="off"
-                   placeholder="z. B. 55"
-                   class="edit-input" />
-        </div>
-
-
-        <CalculateButton v-if="!autoCalcEnabled" @click="onCalculate()" />
-
-
-        <div v-if="glResult !== null" class="result">
-            <div class="result-header">
+        <!-- Result -->
+        <template #result>
+            <div v-if="glResult !== null">
                 <p>
                     <strong>GL pro Portion:</strong> {{ glResult!.toFixed(1) }}
                     <span v-if="glCategory">— Kategorie: {{ glCategory }}</span>
                     <br v-if="carbs !== null" />
                     <span v-if="carbs !== null"><strong>Kohlenhydrate pro Portion:</strong> {{ carbs!.toFixed(1) }} g</span>
                 </p>
-                <CopyButton @click="$emit('copy')" />
             </div>
-        </div>
+        </template>
 
-        <div class="card-footer">
-            <div class="footer-actions">
-                <ExportButton class="calc-footer-btn"
-                              title="Exportieren"
-                              aria-label="Exportieren"
-                              data-short="Export"
-                              @click="$emit('export')" />
-                <ResetButton class="calc-footer-btn"
-                             title="Zurücksetzen"
-                             aria-label="Zurücksetzen"
-                             data-short="Reset"
-                             @click="$emit('reset')" />
-            </div>
-        </div>
-    </div>
+    </BaseCalculator>
 </template>
 
+
 <script setup lang="ts">
-    import { computed, ref, nextTick } from 'vue'
-    import ExplanationPopup from '@/components/ui/popups/ExplanationPopup.vue'
-    import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
-    import ExportButton from '@/components/ui/buttons/ExportButton.vue'
-    import ResetButton from '@/components/ui/buttons/ResetButton.vue'
-    import CopyButton from '@/components/ui/buttons/CopyButton.vue'
-    import CalculateButton from '@/components/ui/buttons/CalculateButton.vue'
+    import { computed, ref } from 'vue'
+    import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
     import GlTablePopup from '@/components/ui/popups/calc/GlTablePopup.vue'
     import type { GlTableItem } from '@/components/ui/popups/calc/GlTablePopup.vue'
+
 
     type Category = 'niedrig' | 'mittel' | 'hoch' | string
 
@@ -458,13 +438,25 @@
     const gi = computed(() => props.glGi)
     const carbs = computed(() => props.glCarbs ?? null)
 
-    const glInfoPopup = ref<{ open?: () => void } | null>(null)
-
     const glTablePopup = ref<{ open?: () => void } | null>(null)
 
     function openGlTable() {
         glTablePopup.value?.open?.()
     }
+
+    const copyText = computed<string | null>(() => {
+        if (props.glResult == null) return null
+
+        const parts: string[] = []
+        if (food.value?.trim()) parts.push(`Food: ${food.value.trim()}`)
+        if (serving.value != null) parts.push(`Portion: ${serving.value} g`)
+        if (carbs100.value != null) parts.push(`KH/100g: ${carbs100.value} g`)
+        if (gi.value != null) parts.push(`GI: ${gi.value}`)
+        if (carbs.value != null) parts.push(`verf. KH/Portion: ${carbs.value.toFixed(1)} g`)
+        parts.push(`GL: ${props.glResult.toFixed(1)}${props.glCategory ? ` (${props.glCategory})` : ''}`)
+
+        return parts.join(' | ')
+    })
 
     function applyFromGlTable(item: GlTableItem) {
         // setzt dir direkt alles sinnvoll vor
@@ -476,68 +468,11 @@
         emit('update:glServing', 100)
     }
 
-    function openPopupAndJump(id: string) {
-        glInfoPopup.value?.open?.()
-
-        nextTick(() => {
-            window.setTimeout(() => jumpTo(id), 60)
-        })
-    }
-    let lastCalcAt = 0
-    function onCalculate() {
-        const now = Date.now()
-        if (now - lastCalcAt < 60) return // verhindert Doppel-Emit
-        lastCalcAt = now
-        emit('calculate')
-    }
-
     const infoText = computed(
         () =>
             props.info ??
             'GL = (GI × verfügbare KH pro Portion in g) / 100. Richtwerte: niedrig < 10, mittel 10–19, hoch ≥ 20.'
     )
-
-    const activeTargetId = ref<string | null>(null)
-    let activeTargetTimer: number | null = null
-
-    function jumpTo(id: string) {
-        const el = document.getElementById(id)
-        if (!el) return
-
-        if (activeTargetTimer) window.clearTimeout(activeTargetTimer)
-        activeTargetId.value = id
-
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            ; (el as HTMLElement).focus?.({ preventScroll: true })
-
-        activeTargetTimer = window.setTimeout(() => {
-            activeTargetId.value = null
-            activeTargetTimer = null
-        }, 1400)
-    }
-
-    async function copyPopupSummary() {
-        if (props.glResult == null) return
-
-        const parts: string[] = []
-
-        if (food.value?.trim()) parts.push(`Food: ${food.value.trim()}`)
-        if (serving.value != null) parts.push(`Portion: ${serving.value} g`)
-        if (carbs100.value != null) parts.push(`KH/100g: ${carbs100.value} g`)
-        if (gi.value != null) parts.push(`GI: ${gi.value}`)
-        if (carbs.value != null) parts.push(`verf. KH/Portion: ${carbs.value.toFixed(1)} g`)
-        if (props.glResult != null) parts.push(`GL: ${props.glResult.toFixed(1)}${props.glCategory ? ` (${props.glCategory})` : ''}`)
-
-        const text = parts.join(' | ')
-        try {
-            await navigator.clipboard.writeText(text)
-            emit('copy')
-            activeTargetId.value = 'gl_you'
-            window.setTimeout(() => (activeTargetId.value = null), 700)
-        } catch {
-            // optional später: Fehler-Toast
-        }
-    }
 
     function normalizeNumberInput(raw: string) {
         return raw.trim().replace(/\s+/g, '').replace(',', '.')
@@ -545,6 +480,7 @@
     function onFood(e: Event) {
         emit('update:glFood', (e.target as HTMLInputElement).value)
     }
+
     function onServing(e: Event) {
         const raw = normalizeNumberInput((e.target as HTMLInputElement).value)
 
@@ -590,71 +526,6 @@
 </script>
 
 <style scoped>
-    /* Card */
-    .calculator-card {
-        position: relative;
-        /* overflow entfernt, damit InfoHover-Tooltip nicht abgeschnitten wird */
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        text-align: left;
-        padding: 1.6rem 1.8rem 1.1rem;
-        border-radius: 18px;
-        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
-        border: 1px solid rgba(148, 163, 184, 0.26);
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
-        gap: 0.75rem;
-        color: var(--text-primary);
-        transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 260ms cubic-bezier(0.22, 0.61, 0.36, 1), border-color 220ms ease-out, background 260ms ease-out;
-        will-change: transform, box-shadow;
-    }
-
-
-    /* Hover nur auf Geräten mit Maus */
-    @media (hover: hover) {
-        .calculator-card:hover {
-            /* nur noch verschieben, kein Scale -> Text bleibt scharf */
-            transform: translateY(-4px);
-            box-shadow: 0 26px 60px rgba(15, 23, 42, 0.4);
-            border-color: rgba(129, 140, 248, 0.7);
-            background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 11%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 90%, #020617 10%);
-        }
-    }
-
-    /* Dark-Mode-Variante wie bei den DashboardCards */
-    html.dark-mode .calculator-card {
-        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
-        border-color: rgba(148, 163, 184, 0.45);
-        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
-    }
-
-    /* Kleine Screens: etwas kompakter */
-    @media (max-width: 600px) {
-        .calculator-card {
-            padding: 1.25rem 1.2rem 0.9rem;
-            border-radius: 16px;
-        }
-    }
-
-
-    /* Header */
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .card-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: .5rem;
-        color: var(--text-primary);
-    }
-
-    /* Inputs */
     .input-group {
         margin-bottom: 1rem;
     }
@@ -691,57 +562,6 @@
         color: var(--text-secondary);
     }
 
-    /* Result */
-    .result {
-        margin-top: 1rem;
-        padding: 1rem;
-        background: var(--bg-secondary);
-        border-radius: 8px;
-    }
-
-    .result-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-        margin-bottom: .35rem;
-    }
-
-    /* Footer */
-    .card-footer {
-        border-top: 1px solid var(--border-color);
-        padding: .75rem 1rem 0;
-        display: flex;
-        justify-content: flex-end;
-        gap: .75rem;
-        margin-top: .75rem;
-    }
-
-    .footer-spacer {
-        flex: 1;
-    }
-
-    .footer-actions {
-        display: flex;
-        display: flex;
-        gap: .5rem;
-        flex-wrap: wrap;
-    }
-
-    @media (max-width: 600px) {
-        .footer-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr; /* zwei gleich breite Buttons */
-            gap: .5rem;
-            width: 100%;
-        }
-
-        .calc-footer-btn {
-            min-height: 44px; /* gutes Touch-Target */
-            padding: .5rem .6rem;
-        }
-    }
-
     .gi-label {
         display: flex;
         align-items: center;
@@ -749,7 +569,7 @@
         gap: .5rem;
     }
 
-    /* GI Block: scannable Steps + Chips */
+    /* GI Block */
     .gi-steps {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -929,4 +749,5 @@
             width: 100%;
         }
     }
+
 </style>

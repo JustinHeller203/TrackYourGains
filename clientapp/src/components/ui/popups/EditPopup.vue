@@ -2,7 +2,7 @@
     <BasePopup :show="modelValue"
                :title="title"
                overlayClass="edit-popup"
-               @cancel="$emit('update:modelValue', false)">
+               @click="emit('cancel'); $emit('update:modelValue', false)">
         <div class="input-group">
             <!-- NEU: Select -->
             <select v-if="inputType === 'select'"
@@ -27,10 +27,16 @@
         </div>
 
         <template #actions>
-            <PopupSaveButton title="Speichern" aria-label="Speichern" @click="save" />
-            <PopupCancelButton title="Abbrechen"
-                               aria-label="Abbrechen"
-                               @click="$emit('update:modelValue', false)" />
+            <PopupActionButton variant="ghost"
+                               @click="$emit('update:modelValue', false)">
+                Abbrechen
+            </PopupActionButton>
+
+            <PopupActionButton autofocus
+                               :danger="!!props.confirmDanger"
+                               @click="save">
+                {{ props.confirmText || 'Speichern' }}
+            </PopupActionButton>
         </template>
     </BasePopup>
 </template>
@@ -38,8 +44,7 @@
 <script setup lang="ts">
     import { ref, watch, onMounted, nextTick } from 'vue'
     import BasePopup from './BasePopup.vue'
-    import PopupSaveButton from '../buttons/popup/PopupSaveButton.vue'
-    import PopupCancelButton from '../buttons/popup/PopupCancelButton.vue'
+    import PopupActionButton from '../buttons/popup/PopupActionButton.vue'
 
     type InputKind = 'text' | 'number' | 'select'
 
@@ -50,16 +55,26 @@
         placeholder: string
         value: string
         options?: Array<{ label: string; value: string }>
+
+        // NEU: Button-Label + Danger-Style steuerbar (z.B. "Entfernen")
+        confirmText?: string
+        confirmDanger?: boolean
     }>()
 
     const emit = defineEmits<{
         (e: 'update:modelValue', v: boolean): void
+        (e: 'update:value', v: string): void
         (e: 'save', v: string): void
         (e: 'cancel'): void
     }>()
 
     const localValue = ref(props.value)
+
     watch(() => props.value, v => (localValue.value = v))
+
+    watch(localValue, (v) => {
+        emit('update:value', (v ?? '').toString())
+    })
 
     const inputEl = ref<HTMLInputElement | null>(null)
     const selectEl = ref<HTMLSelectElement | null>(null)

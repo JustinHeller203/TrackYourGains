@@ -1,4 +1,4 @@
-<!--CalculateButton.vue-->
+<!--Pfad: components/ui/buttons/CalculateButton.vue-->
 <template>
     <button class="popup-btn save-btn"
             type="button"

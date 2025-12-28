@@ -1,3 +1,4 @@
+<!--Pfad: components/ui/buttons/AddButton.vue-->
 <template>
     <BaseButton :type="type"
                 :title="title || 'Hinzufügen'"
@@ -10,16 +11,16 @@
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/ui/buttons/BaseButton.vue'
+    import BaseButton from '@/components/ui/buttons/BaseButton.vue'
 
-defineProps<{
-  type?: 'button' | 'submit' | 'reset'
-  title?: string
-  ariaLabel?: string
-  disabled?: boolean
-}>()
+    defineProps<{
+        type?: 'button' | 'submit' | 'reset'
+        title?: string
+        ariaLabel?: string
+        disabled?: boolean
+    }>()
 
-defineEmits<{ (e:'click', ev:MouseEvent): void }>()
+    defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 </script>
 
 <style scoped>

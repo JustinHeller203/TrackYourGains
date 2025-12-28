@@ -56,6 +56,7 @@
         <StickyTimerCard v-for="timer in timers.filter(t => t.shouldStaySticky)"
                          :key="'timer-' + timer.id"
                          :timer="timer"
+                         :sticky-enabled="stickyTimersEnabled"
                          :format-timer="formatTimer"
                          :start-timer="startTimer"
                          :stop-timer="stopTimer"
@@ -68,6 +69,7 @@
         <StickyStopwatchCard v-for="sw in stopwatches.filter(sw => sw.shouldStaySticky)"
                              :key="'sw-' + sw.id"
                              :stopwatch="sw"
+                             :sticky-enabled="stickyStopwatchesEnabled"
                              :format-stopwatch="formatStopwatch"
                              :toggle-stopwatch="toggleStopwatch"
                              :reset-stopwatch="resetStopwatch"
@@ -127,7 +129,15 @@
     import GlobalExplainGuide from '@/components/ui/popups/global/GlobalExplainGuide.vue'
     import AppFooter from '@/AppFooter.vue'
     import BackToTopButton from '@/components/ui/buttons/BackToTopButton.vue'
-
+    import {
+        LS_TRAINING_TIMERS_V1,
+        LS_TRAINING_STOPWATCHES_V1,
+        LS_NEWS_SEEN_VERSION,
+        LS_TRAINING_FOCUS_TYPE,
+        LS_TRAINING_FOCUS_ID,
+        LS_STICKY_TIMER_ENABLED,
+        LS_STICKY_STOPWATCH_ENABLED,
+    } from '@/constants/storageKeys'
     const auth = useAuthStore()
 
     async function logoutAndClose() {
@@ -211,16 +221,18 @@
     const navRef = ref<HTMLElement | null>(null)
     const router = useRouter()
 
-    const TIMER_KEY = 'training_timers_v1'
-    const STOPWATCH_KEY = 'training_stopwatches_v1'
+    const TIMER_KEY = LS_TRAINING_TIMERS_V1
+    const STOPWATCH_KEY = LS_TRAINING_STOPWATCHES_V1
+    const NEWS_SEEN_KEY = LS_NEWS_SEEN_VERSION
+
 
     // === neue Refs & Konstanten oben zu den anderen Refs ===
     const dragEl = ref<HTMLElement | null>(null)
     const EDGE_PAD = 8  // Sicherheitsabstand zu den Rändern
 
     function focusInTraining(type: 'timer' | 'stopwatch', id: string) {
-        localStorage.setItem('trainingFocusType', type)
-        localStorage.setItem('trainingFocusId', id)
+        localStorage.setItem(LS_TRAINING_FOCUS_TYPE, type)
+        localStorage.setItem(LS_TRAINING_FOCUS_ID, id)
 
         if (router.currentRoute.value.path === '/training') {
             // Schon dort → fokussieren ohne Route neu zu laden
@@ -230,7 +242,6 @@
         }
     }
 
-    const NEWS_SEEN_KEY = 'tyg_news_seen_version'
     const NEWS_VERSION = '2025-12-17' // <- ändere das bei jedem Release/Update
 
     const showNewsPopup = ref(false)
@@ -305,6 +316,24 @@
         localStorage.setItem(STOPWATCH_KEY, JSON.stringify(s))
     }
 
+    function readBool(key: string, fallback = true) {
+        try {
+            const v = localStorage.getItem(key)
+            if (v == null) return fallback
+            return v === 'true'
+        } catch {
+            return fallback
+        }
+    }
+
+    const stickyTimersEnabled = ref(readBool(LS_STICKY_TIMER_ENABLED, true))
+    const stickyStopwatchesEnabled = ref(readBool(LS_STICKY_STOPWATCH_ENABLED, true))
+
+    function refreshStickyPrefs() {
+        stickyTimersEnabled.value = readBool(LS_STICKY_TIMER_ENABLED, true)
+        stickyStopwatchesEnabled.value = readBool(LS_STICKY_STOPWATCH_ENABLED, true)
+    }
+
     function onApplyStyleAll(payload: {
         kind: 'timer' | 'stopwatch'
         style: {
@@ -337,8 +366,11 @@
 
     // App.vue | REPLACE loadAll mit eindeutigen Namen
     function loadAll() {
-        const oldTimers = localStorage.getItem('myAppTimers')
-        const oldStop = localStorage.getItem('myAppStopwatches')
+        const LEGACY_TIMERS_KEY = 'myAppTimers'
+        const LEGACY_STOPWATCHES_KEY = 'myAppStopwatches'
+        const oldTimers = localStorage.getItem(LEGACY_TIMERS_KEY)
+        const oldStop = localStorage.getItem(LEGACY_STOPWATCHES_KEY)
+
 
         try {
             const t = JSON.parse(localStorage.getItem(TIMER_KEY) || oldTimers || '[]')
@@ -396,8 +428,8 @@
     }
     watch(() => route.fullPath, () => {
         if (menuOpen.value) closeMenu()
+        refreshStickyPrefs()
     })
-
     function handleDocClick(e: MouseEvent) {
         if (!menuOpen.value) return
         const target = e.target as Node
@@ -407,6 +439,8 @@
     }
 
     onMounted(() => {
+        refreshStickyPrefs()
+
         document.addEventListener('click', handleDocClick, true)
     })
 

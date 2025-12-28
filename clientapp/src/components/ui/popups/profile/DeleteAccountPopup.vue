@@ -49,26 +49,30 @@
         </div>
 
         <template #actions>
-            <PopupCancelButton @click="$emit('cancel')">Abbrechen</PopupCancelButton>
-            <PopupSaveButton class="!bg-red-600"
-                             :disabled="!canArmDeletion || countdown > 0"
-                             @click="onConfirm">
+            <PopupActionButton variant="ghost" @click="$emit('cancel')">
+                Abbrechen
+            </PopupActionButton>
+
+            <PopupActionButton autofocus
+                               danger
+                               :disabled="!canArmDeletion || countdown > 0"
+                               @click="onConfirm">
                 <template v-if="canArmDeletion && countdown > 0">
                     Endgültig löschen ({{ countdown }}s)
                 </template>
                 <template v-else>
                     Endgültig löschen
                 </template>
-            </PopupSaveButton>
+            </PopupActionButton>
         </template>
+
     </BasePopup>
 </template>
 
 <script setup lang="ts">
     import { ref, watch, nextTick, computed, onUnmounted } from 'vue'
     import BasePopup from '../BasePopup.vue'
-    import PopupSaveButton from '@/components/ui/buttons/popup/PopupSaveButton.vue'
-    import PopupCancelButton from '@/components/ui/buttons/popup/PopupCancelButton.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
     const props = defineProps<{ show: boolean; confirmPhrase?: string }>()
     const emit = defineEmits<{ (e: 'cancel'): void; (e: 'confirm', p: { password: string }): void }>()

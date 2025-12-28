@@ -23,6 +23,9 @@
 
                     <!-- Kontextmenü -->
                     <HoldMenu v-if="showAvatarMenu"
+                              ref="avatarMenuEl"
+                              class="profile-holdmenu"
+                              :trigger="avatarEl"
                               :menuStyle="avatarMenuStyle">
                         <button type="button"
                                 @click="openAvatarFull"
@@ -509,6 +512,21 @@
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
     import ShortcardPopup from '@/components/ui/popups/ShortcardPopup.vue'
     import { useAutoGoals, type AutoGoalResult, type TrainingEntry } from '@/composables/useAutoGoals'
+    import {
+        LS_ALL_KEYS,
+        wipeLocalStorage,
+
+        LS_AUTH_EMAIL,
+        LS_PROFILE_ACTIVITY,
+        LS_PROFILE_AVATAR,
+        LS_PROFILE_DISPLAY_NAME,
+        LS_PROFILE_EARNED_BADGES,
+        LS_PROFILE_FAV_TIMERS,
+        LS_PROFILE_GOAL_ORDER,
+        LS_PROFILE_MEMBER_SINCE,
+        LS_PROFILE_MOTTO,
+        LS_PROFILE_PROGRESS,
+    } from '@/constants/storageKeys'
 
     function loadJSON<T>(key: string, fallback: T): T {
         try {
@@ -552,13 +570,11 @@
         nutrition: 'Ernährung loggen'
     };
 
-    // INSERT Order-State
     const goalOrder = ref<GoalKey[]>(
-        JSON.parse(localStorage.getItem('profile_goal_order') || '["muscle","weight","nutrition"]')
-    );
+        loadJSON<GoalKey[]>(LS_PROFILE_GOAL_ORDER, ['muscle', 'weight', 'nutrition'])
+    )
 
-    // INSERT Persist
-    watch(goalOrder, v => localStorage.setItem('profile_goal_order', JSON.stringify(v)), { deep: true });
+    watch(goalOrder, v => saveJSON(LS_PROFILE_GOAL_ORDER, v), { deep: true })
 
     // INSERT Move-Funktion
     function moveGoal(index: number, dir: -1 | 1) {
@@ -627,13 +643,12 @@
         const prev = motto.value || ''
         if (!prev) return
         motto.value = ''
-        localStorage.setItem(LS_KEYS.motto, '')
+        localStorage.setItem(LS_PROFILE_MOTTO, '')
         showUndo('Motto gelöscht', () => {
             motto.value = prev
-            localStorage.setItem(LS_KEYS.motto, prev)
+            localStorage.setItem(LS_PROFILE_MOTTO, prev)
         }, 5000)
     }
-
     function onViewerKeydown(e: KeyboardEvent) {
         // Seite nicht scrollen lassen, wenn der Viewer aktiv ist
         const preventKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', ' '];
@@ -777,21 +792,21 @@
     const mottoView = computed(() => softHyphenate(motto.value || ''));
     // --- LocalStorage Keys ---
     const LS_KEYS = {
-        activity: 'profile_activity',
-        progress: 'profile_progress',
-        favorites: 'profile_fav_timers',
-        motto: 'profile_motto',
-        memberSince: 'profile_member_since',
-        email: 'auth_email',
-        avatar: 'profile_avatar',
-        earnedBadges: 'profile_earned_badges'
+        activity: LS_PROFILE_ACTIVITY,
+        progress: LS_PROFILE_PROGRESS,
+        favorites: LS_PROFILE_FAV_TIMERS,
+        motto: LS_PROFILE_MOTTO,
+        memberSince: LS_PROFILE_MEMBER_SINCE,
+        email: LS_AUTH_EMAIL,
+        avatar: LS_PROFILE_AVATAR,
+        earnedBadges: LS_PROFILE_EARNED_BADGES
     } as const
     const { calculateGoals } = useAutoGoals()
 
     const AVATAR_KEY = LS_KEYS.avatar
     function openDeleteAvatarPopup() {
         closeAvatarMenu()
-        softDeleteAvatar()
+        showDeleteAvatarPopup.value = true
     }
     type UndoEntry = { id: number; label: string; rollback: () => void; timer: number | null }
     const undoEntry = ref<UndoEntry | null>(null)
@@ -884,7 +899,7 @@
         pickAvatar()
     }
 
-    const displayName = ref<string>(localStorage.getItem('profile_display_name') ?? '');
+    const displayName = ref<string>(localStorage.getItem(LS_PROFILE_DISPLAY_NAME) ?? '');
     const profileCompletion = computed(() => {
         let score = 0, total = 5;
         if (displayName.value.trim()) score++;
@@ -894,7 +909,7 @@
         if (progress.value.muscle + progress.value.weight + progress.value.nutrition > 0) score++;
         return Math.round((score / total) * 100);
     });
-    watch(displayName, v => localStorage.setItem('profile_display_name', v));
+    watch(displayName, v => localStorage.setItem(LS_PROFILE_DISPLAY_NAME, v));
 
     function onViewerWheel(e: WheelEvent) {
         const delta = -e.deltaY; // up = zoom in
@@ -915,7 +930,7 @@
 
     const editingName = ref(false);
     function saveDisplayName() {
-        localStorage.setItem('profile_display_name', displayName.value || '');
+        localStorage.setItem(LS_PROFILE_DISPLAY_NAME, displayName.value || '');
         editingName.value = false;
         addToast('Name gespeichert', 'save');
     }
@@ -990,12 +1005,10 @@
     }
     function openAvatarMenuAt(_ev?: PointerEvent | MouseEvent) {
         showAvatarMenu.value = true
-        suppressNextClick.value = true // verhindert den „nachlaufenden“ Click vom Long-Press
+        suppressNextClick.value = true
 
         nextTick(() => {
-            const el = document.querySelector<HTMLElement>('.hold-menu')
-            avatarMenuEl.value = el || null
-                ; (el as any)?.__autoFlip?.update?.()
+            ; (avatarMenuEl.value as any)?.__autoFlip?.update?.()
         })
     }
 
@@ -1090,19 +1103,41 @@
     let prevFocusEl: Element | null = null;
 
     // Click-Away: außerhalb schließen
+    // Click-Away + Esc: außerhalb schließen
+    function getAvatarMenuNode(): HTMLElement | null {
+        const r: any = avatarMenuEl.value
+        const el = r?.$el ?? r
+        return el instanceof HTMLElement ? el : null
+    }
+
     function onOutsidePointer(e: PointerEvent) {
-        const m = avatarMenuEl.value, a = avatarEl.value
+        const m = getAvatarMenuNode()
+        const a = avatarEl.value
         const t = e.target as Node
+
         if (m && m.contains(t)) return
         if (a && a.contains(t)) return
+
         closeAvatarMenu()
     }
+
+    function onAvatarMenuKeydown(e: KeyboardEvent) {
+        if (e.key !== 'Escape') return
+        e.preventDefault()
+        e.stopPropagation()
+        closeAvatarMenu()
+    }
+
     watch(showAvatarMenu, (open) => {
-        const opt = { capture: true } as any
-        open
-            ? window.addEventListener('pointerdown', onOutsidePointer, true)
-            : window.removeEventListener('pointerdown', onOutsidePointer, true)
+        if (open) {
+            window.addEventListener('pointerdown', onOutsidePointer, true)
+            window.addEventListener('keydown', onAvatarMenuKeydown, true)
+        } else {
+            window.removeEventListener('pointerdown', onOutsidePointer, true)
+            window.removeEventListener('keydown', onAvatarMenuKeydown, true)
+        }
     })
+
 
     function onAvatarSelected(e: Event) {
         const input = e.target as HTMLInputElement
@@ -1236,8 +1271,9 @@
 
     const favoriteTimers = ref<number>(Number(localStorage.getItem(LS_KEYS.favorites) ?? 2))
     const motto = ref<string>(localStorage.getItem(LS_KEYS.motto) ?? 'No excuses. Just results.')
-    const memberSince = computed(() => localStorage.getItem(LS_KEYS.memberSince) ?? '2025')
-
+    const memberSince = computed(() =>
+        localStorage.getItem(LS_KEYS.memberSince) ?? new Date().getFullYear().toString()
+    )
     // --- Derivates aus Activity ---
     const weeklyWorkouts = computed(() => sumLastDays(activity.value, 7))
     const streakDays = computed(() => calcStreak(activity.value))
@@ -1485,7 +1521,7 @@
             await auth.deleteAccount(password)
 
             // lokale Daten wipen (wie bisher)
-            Object.values(LS_KEYS).forEach(k => localStorage.removeItem(k))
+            wipeLocalStorage(LS_ALL_KEYS)
 
             addToast('Konto gelöscht. Bye 👋', 'delete')
             router.push({ name: 'home' })
@@ -1577,7 +1613,7 @@
             return
         }
         // lokale Daten löschen
-        Object.values(LS_KEYS).forEach(k => localStorage.removeItem(k))
+        wipeLocalStorage(LS_ALL_KEYS)
         addToast('Lokale Profildaten gelöscht', 'delete')
         await auth.signOut()
         router.push({ name: 'home' })
@@ -2905,4 +2941,25 @@
             gap: .8rem;
         }
     }
+
+    .profile-holdmenu {
+        /* Match deine Profile-Cards (radial/soft) */
+        --hm-bg: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        --hm-border: 1px solid rgba(148, 163, 184, 0.26);
+        --hm-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        --hm-radius: 16px;
+        --hm-pad: .35rem;
+        /* bisschen weniger “Glas”, mehr “Card” */
+        --hm-backdrop: blur(6px);
+        /* Hover subtiler (passt zu Cards) */
+        --hm-hover: rgba(148, 163, 184, 0.14);
+    }
+
+    html.dark-mode .profile-holdmenu {
+        --hm-bg-dark: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        --hm-border-dark: 1px solid rgba(148, 163, 184, 0.45);
+        --hm-shadow-dark: 0 22px 55px rgba(0, 0, 0, 0.70);
+        --hm-hover-dark: rgba(148, 163, 184, 0.16);
+    }
+
 </style>

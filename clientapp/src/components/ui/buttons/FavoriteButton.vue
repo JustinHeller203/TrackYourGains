@@ -1,4 +1,5 @@
-﻿<template>
+﻿<!--Pfad: components/ui/buttons/FavoriteButton.vue-->
+<template>
     <button class="favorite-btn"
             type="button"
             :aria-pressed="active"
@@ -9,13 +10,13 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  active: boolean
-  titleActive?: string
-  titleInactive?: string
-}>()
+    defineProps<{
+        active: boolean
+        titleActive?: string
+        titleInactive?: string
+    }>()
 
-defineEmits<{ (e:'toggle'): void }>()
+    defineEmits<{ (e: 'toggle'): void }>()
 </script>
 
 <style scoped>

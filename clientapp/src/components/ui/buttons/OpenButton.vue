@@ -1,3 +1,4 @@
+<!--Pfad: components/ui/buttons/OpenButton.vue-->
 <template>
     <div class="open-btn-wrap">
         <BaseButton :type="type"

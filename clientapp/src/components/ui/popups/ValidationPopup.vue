@@ -17,16 +17,16 @@
         </div>
 
         <template #actions>
-            <PopupSaveButton autofocus @click="$emit('close')">
-                OK
-            </PopupSaveButton>
+            <PopupActionButton autofocus @click="$emit('close')">
+                Verstanden
+            </PopupActionButton>
         </template>
     </BasePopup>
 </template>
 
 <script setup lang="ts">
     import BasePopup from './BasePopup.vue'
-    import PopupSaveButton from '@/components/ui/buttons/popup/PopupSaveButton.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
     withDefaults(defineProps<{
         show: boolean

@@ -49,6 +49,7 @@
     import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
     import { useRouter } from 'vue-router'
     import XButton from '@/components/ui/buttons/popup/XButton.vue'
+    import { LS_GUIDE_EXPLAIN_SEEN_VERSION } from '@/constants/storageKeys'
 
     const props = defineProps<{
         version: string
@@ -58,7 +59,7 @@
 
     const router = useRouter()
 
-    const LS_KEY = 'tyg_guide_explain_seen_version'
+    const LS_KEY = LS_GUIDE_EXPLAIN_SEEN_VERSION
 
     const show = ref(false)
     const spotEl = ref<HTMLElement | null>(null)

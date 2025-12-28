@@ -1,3 +1,4 @@
+<!--Pfad: components/ui/buttons/SettingsSaveButton.vue-->
 <template>
     <button class="save-button"
             type="button"

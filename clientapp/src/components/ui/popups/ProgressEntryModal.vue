@@ -1,10 +1,12 @@
 <!--ProgressEntryModal.vue-->
 <template>
-    <div v-if="show"
-         class="modal-overlay"
-         @pointerdown="onOverlayPointerDown"
-         @pointerup="onOverlayPointerUp">
-        <div class="modal" role="dialog" aria-modal="true" @click.stop>
+    <BasePopup :show="show"
+               title="📝 Fortschritt eintragen"
+               overlayClass="progress-entry-popup"
+               :showClose="true"
+               @cancel="onCancel">
+
+        <div class="modal" @click.stop>
             <h3 class="modal-title"> 📝 Fortschritt eintragen</h3>
 
             <label class="field-label" for="progress-exercise">Übung</label>
@@ -19,7 +21,6 @@
                     {{ ex.exercise }}
                 </option>
             </select>
-
 
             <!-- Cardio-Inputs -->
             <div v-if="inputType === 'ausdauer'" class="modal-grid grid-2">
@@ -85,6 +86,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- Kraft/Calisthenics (Standard) -->
             <div v-else class="modal-grid grid-2">
                 <div>
@@ -179,7 +181,6 @@
                 </template>
 
                 <!-- Ausdauer -->
-                <!-- Ausdauer -->
                 <template v-else-if="inputType === 'ausdauer'">
                     <div>
                         <label class="field-label" for="extra-distance">Distanz (km, optional)</label>
@@ -237,7 +238,6 @@
                     </div>
                 </template>
 
-
                 <!-- Dehnung -->
                 <template v-else-if="inputType === 'dehnung'">
                     <div>
@@ -289,43 +289,51 @@
                    placeholder="RPE, Tempo, Feeling..."
                    :readonly="!hasExerciseSelected"
                    @focus="!hasExerciseSelected && requireExercise('note')" />
-
-            <div class="modal-actions" :class="{ 'has-delete': localIsEditing }">
-                <PopupDeleteButton v-if="localIsEditing"
-                                   class="action-delete"
-                                   @click="onDelete">Löschen</PopupDeleteButton>
-
-                <PopupCancelButton class="action-cancel"
-                                   ariaLabel="Abbrechen"
-                                   @click="onCancel" />
-
-                <PopupSaveButton class="action-save"
-                                 ariaLabel="Speichern"
-                                 @click="onSave" />
-            </div>
-
-
-            <ValidationPopup :show="Boolean(errors && errors.length)"
-                             :errors="errors || []"
-                             @close="$emit('dismissErrors')" />
-
-            <ValidationPopup :show="showBorgError"
-                             :errors="borgErrors"
-                             title="Ungültige Borg-Skala"
-                             lead="Die Borg-Skala geht von 6 (sehr leicht) bis 20 (maximal)."
-                             @close="onCloseBorgError" />
-
         </div>
-    </div>
+
+        <template #actions>
+            <div class="modal-actions" :class="{ 'has-delete': localIsEditing }">
+                <PopupActionButton v-if="localIsEditing"
+                                   class="action-delete"
+                                   danger
+                                   @click="onDelete">
+                    Löschen
+                </PopupActionButton>
+
+                <PopupActionButton class="action-cancel"
+                                   variant="ghost"
+                                   @click="onCancel">
+                    Abbrechen
+                </PopupActionButton>
+
+                <PopupActionButton class="action-save"
+                                   autofocus
+                                   @click="onSave">
+                    Speichern
+                </PopupActionButton>
+            </div>
+        </template>
+
+        <ValidationPopup :show="Boolean(errors && errors.length)"
+                         :errors="errors || []"
+                         @close="$emit('dismissErrors')" />
+
+        <ValidationPopup :show="showBorgError"
+                         :errors="borgErrors"
+                         title="Ungültige Borg-Skala"
+                         lead="Die Borg-Skala geht von 6 (sehr leicht) bis 20 (maximal)."
+                         @close="onCloseBorgError" />
+
+    </BasePopup>
 </template>
+
 
 <script setup lang="ts">
     import { computed, nextTick, onMounted, ref, watch } from 'vue'
-    import PopupCancelButton from '@/components/ui/buttons/popup/PopupCancelButton.vue'
-    import PopupSaveButton from '@/components/ui/buttons/popup/PopupSaveButton.vue'
+    import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue'
-    import PopupDeleteButton from '@/components/ui/buttons/popup/PopupDeleteButton.vue' 
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
     const equipmentCustomInput = ref<HTMLInputElement | null>(null)
     const equipmentProxy = computed({
@@ -1024,34 +1032,6 @@
 </script>
 
 <style scoped>
-    .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,.4);
-        display: grid;
-        place-items: center;
-        z-index: 60;
-    }
-
-    .modal {
-        width: min(560px, 92vw);
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-        padding: 1rem 1rem 0.75rem;
-        scroll-padding-bottom: 6rem;
-        /* Scroll greift fr�her */
-        max-height: 78vh; /* Fallback */
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-        scrollbar-width: thin;
-        scrollbar-color: color-mix(in oklab, var(--accent-primary) 70%, transparent) color-mix(in oklab, var(--bg-secondary) 92%, transparent);
-        scrollbar-gutter: stable both-edges;
-        --sb-size: 12px;
-    }
-
     /* Bevorzuge dynamische/small viewport heights -> noch fr�her scollen */
     @supports (height: 100dvh) {
         .modal {
@@ -1084,37 +1064,39 @@
             max-height: 56svh;
         }
     }
-        .modal::-webkit-scrollbar {
-            width: var(--sb-size);
-            height: var(--sb-size);
+
+    .modal::-webkit-scrollbar {
+        width: var(--sb-size);
+        height: var(--sb-size);
+    }
+
+    .modal::-webkit-scrollbar-track {
+        background: color-mix(in oklab, var(--bg-secondary) 92%, transparent);
+        border-left: 1px solid var(--border-color);
+        border-radius: 999px;
+    }
+
+    .modal::-webkit-scrollbar-thumb {
+        /* On-brand Daumen mit leichtem Glow-Ring */
+        background: linear-gradient( 180deg, color-mix(in oklab, var(--accent-primary) 85%, #fff), var(--accent-primary) );
+        border-radius: 999px;
+        border: 3px solid transparent; /* macht den Thumb schlanker */
+        background-clip: padding-box;
+        box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-primary) 40%, transparent);
+    }
+
+        .modal::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient( 180deg, color-mix(in oklab, var(--accent-primary) 92%, #fff), var(--accent-primary) );
         }
 
-        .modal::-webkit-scrollbar-track {
-            background: color-mix(in oklab, var(--bg-secondary) 92%, transparent);
-            border-left: 1px solid var(--border-color);
-            border-radius: 999px;
+        .modal::-webkit-scrollbar-thumb:active {
+            background: linear-gradient( 180deg, var(--accent-primary), color-mix(in oklab, var(--accent-primary) 80%, #000) );
         }
 
-        .modal::-webkit-scrollbar-thumb {
-            /* On-brand Daumen mit leichtem Glow-Ring */
-            background: linear-gradient( 180deg, color-mix(in oklab, var(--accent-primary) 85%, #fff), var(--accent-primary) );
-            border-radius: 999px;
-            border: 3px solid transparent; /* macht den Thumb schlanker */
-            background-clip: padding-box;
-            box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-primary) 40%, transparent);
-        }
+    .modal::-webkit-scrollbar-corner {
+        background: transparent;
+    }
 
-            .modal::-webkit-scrollbar-thumb:hover {
-                background: linear-gradient( 180deg, color-mix(in oklab, var(--accent-primary) 92%, #fff), var(--accent-primary) );
-            }
-
-            .modal::-webkit-scrollbar-thumb:active {
-                background: linear-gradient( 180deg, var(--accent-primary), color-mix(in oklab, var(--accent-primary) 80%, #000) );
-            }
-
-        .modal::-webkit-scrollbar-corner {
-            background: transparent;
-        }
     .modal-title {
         font-weight: 700;
         margin: .25rem 0 0.75rem;
@@ -1282,11 +1264,6 @@
             .modal-actions > * {
                 width: 100%;
             }
-    }
-    .errors {
-        margin: .75rem 0 1rem;
-        color: #b91c1c;
-        font-size: .9rem;
     }
 
     @media (max-width: 520px) {
@@ -1550,44 +1527,6 @@
         width: auto; /* �berschreibt .input { width:100% } im Kombi-Layout */
         min-width: 0; /* l�sst Flex korrekt rechnen */
     }
-
-    /* --- Cardio-Reihe: immer einzeilig, nichts wrappt --- */
-    .grid-cardio {
-        /* linke Spalte nur so breit wie Label + kleiner Dauer-Input */
-        grid-template-columns: max-content 1fr;
-        column-gap: 1rem;
-        align-items: end;
-    }
-
-        /* Dauer-Input bewusst klein halten */
-        .grid-cardio #progress-duration {
-            width: 7.5ch;
-            max-inline-size: 7.5ch;
-            padding: .5rem .6rem;
-        }
-
-        /* Label in Cardio links nie umbrechen (spart Platz) */
-        .grid-cardio > div:first-child .field-label {
-            white-space: nowrap;
-        }
-
-        /* Distanz + Toggle: strikt nebeneinander */
-        .grid-cardio .input-with-extras {
-            display: grid !important;
-            grid-template-columns: minmax(12rem, 1fr) auto !important; /* Input f�llt, Chip nur so breit wie n�tig */
-            align-items: center;
-            column-gap: .5rem;
-            row-gap: 0;
-        }
-
-        /* Chip kompakt + ellipsis bei langem Text */
-        .grid-cardio .btn-extras-chip {
-            padding: .42rem .54rem;
-            max-inline-size: 12rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
 
     @media (min-width: 961px) {
         /* Mehr Platz, damit Input + Chip nebeneinander passen */
