@@ -2970,11 +2970,6 @@
         }
     }
 
-    .builder-landing {
-        animation: builderPop .6s cubic-bezier(.2,.8,.2,1);
-        background-image: radial-gradient(1200px 120px at 50% -20px, rgba(99,102,241,.08), transparent 70%);
-    }
-
     @media (prefers-reduced-motion: reduce) {
         .builder-landing {
             animation: none;

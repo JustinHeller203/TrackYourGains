@@ -290,7 +290,7 @@
 
 
 <script setup lang="ts">
-    import { ref, reactive, onMounted, watch, onBeforeUnmount } from 'vue'
+    import { ref, reactive, onMounted, watch, onBeforeUnmount, onActivated } from 'vue'
     import { isDark, initTheme, setTheme, previewTheme } from '@/composables/useTheme'
     import { onBeforeRouteLeave } from 'vue-router'
     import Toast from '@/components/ui/Toast.vue'
@@ -332,9 +332,9 @@
     type SettingsGroupKey = 'display' | 'system' | 'toast'
 
     const openGroups = reactive<Record<SettingsGroupKey, boolean>>({
-        display: true,
-        system: true,
-        toast: true
+        display: false,
+        system: false,
+        toast: false
     })
 
     const SETTINGS_GROUPS_COLLAPSE_FLAG = 'settings:collapse-groups-on-enter'
@@ -350,6 +350,10 @@
         showToastTypeManager.value = false
     }
 
+    onActivated(() => {
+        // Falls Settings via <KeepAlive> gecached ist: beim Re-Enter IMMER zu
+        collapseAllGroups()
+    })
     function onToastDismiss(id: number) {
         if (toast.value?.id === id) {
             toast.value = null
@@ -598,6 +602,7 @@
             collapseAllGroups()
             sessionStorage.removeItem(SETTINGS_GROUPS_COLLAPSE_FLAG)
         }
+        collapseAllGroups()
     })
 
     onBeforeRouteLeave((_to, _from, next) => {
@@ -664,6 +669,8 @@
 
         localStorage.setItem(LS_STICKY_STOPWATCH_ENABLED, String(stickyStopwatchEnabled.value))
         window.dispatchEvent(new CustomEvent('sticky-stopwatch-enabled-changed', { detail: stickyStopwatchEnabled.value }))
+
+        window.dispatchEvent(new Event('tyg:sticky-prefs-changed'))
 
         if (toastsEnabled.value && toastTypeEnabled['toast-save']) {
             const id = Date.now()

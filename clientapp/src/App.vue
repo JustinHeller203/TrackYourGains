@@ -53,7 +53,7 @@
         <div v-if="menuOpen" class="nav-overlay" @click="closeMenu"></div>
 
         <!-- ✅ Sticky Timer -->
-        <StickyTimerCard v-for="timer in timers.filter(t => t.shouldStaySticky)"
+        <StickyTimerCard v-for="timer in (stickyTimersEnabled ? timers.filter(t => t.shouldStaySticky) : [])"
                          :key="'timer-' + timer.id"
                          :timer="timer"
                          :sticky-enabled="stickyTimersEnabled"
@@ -66,7 +66,7 @@
                          @apply-style-all="onApplyStyleAll" />
 
         <!-- ✅ Sticky Stopwatch -->
-        <StickyStopwatchCard v-for="sw in stopwatches.filter(sw => sw.shouldStaySticky)"
+        <StickyStopwatchCard v-for="sw in (stickyStopwatchesEnabled ? stopwatches.filter(sw => sw.shouldStaySticky) : [])"
                              :key="'sw-' + sw.id"
                              :stopwatch="sw"
                              :sticky-enabled="stickyStopwatchesEnabled"
@@ -329,6 +329,7 @@
     const stickyTimersEnabled = ref(readBool(LS_STICKY_TIMER_ENABLED, true))
     const stickyStopwatchesEnabled = ref(readBool(LS_STICKY_STOPWATCH_ENABLED, true))
 
+
     function refreshStickyPrefs() {
         stickyTimersEnabled.value = readBool(LS_STICKY_TIMER_ENABLED, true)
         stickyStopwatchesEnabled.value = readBool(LS_STICKY_STOPWATCH_ENABLED, true)
@@ -438,13 +439,22 @@
         }
     }
 
+    function onStickyPrefsChanged() {
+        refreshStickyPrefs()
+    }
+
     onMounted(() => {
         refreshStickyPrefs()
+
+        window.addEventListener('tyg:sticky-prefs-changed', onStickyPrefsChanged as any)
+        window.addEventListener('storage', onStickyPrefsChanged) // falls anderer Tab
 
         document.addEventListener('click', handleDocClick, true)
     })
 
     onBeforeUnmount(() => {
+        window.removeEventListener('tyg:sticky-prefs-changed', onStickyPrefsChanged as any)
+        window.removeEventListener('storage', onStickyPrefsChanged)
         document.removeEventListener('click', handleDocClick, true)
     })
 

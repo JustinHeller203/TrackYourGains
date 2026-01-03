@@ -1,3 +1,4 @@
+<!--Nutrition.vue-->
 <template>
     <div class="nutrition" :class="{ 'cs-locked': comingSoon }">
         <h2 class="page-title">🍽️ Ernährung</h2>
@@ -265,13 +266,13 @@
 
 <style scoped>
     .nutrition {
-        position: relative; /* wichtig, damit das Overlay nur diesen Bereich bedeckt */
+        position: relative;
         padding: 2rem;
-        background: var(--bg-primary);
+        background: transparent !important;
         min-height: 100vh;
-        overflow: hidden; /* verhindert Scrollen innerhalb der Seite, Navbar bleibt */
+        /* WICHTIG: sonst werden Glow/Blur-Kanten brutal abgeschnitten (wirkt “kantig”) */
+        overflow: visible;
     }
-
     .chart-container {
         max-width: 400px;
         margin: 2rem auto;
@@ -354,61 +355,105 @@
 
     /* === COMING SOON OVERLAY: bedeckt NUR die Nutrition.vue, Navbar bleibt klickbar === */
     .coming-soon-overlay {
-        position: absolute; /* innerhalb .nutrition */
-        inset: 0;
+        --cs-blue: #60a5fa;
+        --cs-purple: #a855f7;
+        /* FIX: nicht im .nutrition "eingesperrt" -> fullscreen */
+        position: fixed;
+        /* Navbar bleibt sichtbar/klickbar: overlay startet darunter */
+        top: var(--nav-h, 72px);
+        left: 0;
+        right: 0;
+        bottom: 0;
         z-index: 50;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: grid;
+        place-items: center;
         padding: 2rem;
-        background: rgba(0, 0, 0, 0.7);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
+        /* blau/lila ambient statt grauer “platte” */
+        background: radial-gradient(1100px 700px at 20% 18%, rgba(96,165,250,.26), transparent 62%), radial-gradient(900px 650px at 85% 85%, rgba(168,85,247,.22), transparent 64%), rgba(2, 6, 23, 0.64);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         animation: cs-fade .2s ease-out;
         pointer-events: all;
     }
 
+        /* optional: falls du irgendwo noch 'ne harte Kante siehst -> weicher “fade” am Rand */
+        .coming-soon-overlay::after {
+            content: "";
+            position: absolute;
+            inset: -40px;
+            background: radial-gradient(800px 520px at 50% 50%, rgba(96,165,250,.10), transparent 70%), radial-gradient(760px 520px at 60% 60%, rgba(168,85,247,.08), transparent 72%);
+            filter: blur(22px);
+            opacity: .9;
+            pointer-events: none;
+        }
+
     .coming-soon-card {
-        width: 100%;
-        max-width: 740px;
+        position: relative;
+        width: min(760px, 100%);
         text-align: center;
-        padding: 3rem 2rem;
-        border-radius: 24px;
-        background: radial-gradient(1200px 400px at 50% -10%, rgba(59,130,246,.15), transparent 70%), radial-gradient(800px 300px at -10% 110%, rgba(16,185,129,.12), transparent 70%), var(--bg-card);
-        border: 1px solid var(--border-color);
-        box-shadow: 0 20px 60px rgba(0,0,0,.45);
+        padding: 3.2rem 2.4rem;
+        border-radius: 34px; /* <- weniger kantig */
+        overflow: hidden;
+        /* mehr “hero/landing” vibe */
+        background: radial-gradient(1200px 420px at 10% 0%, rgba(96,165,250,.22), transparent 60%), radial-gradient(900px 420px at 95% 110%, rgba(168,85,247,.18), transparent 62%), rgba(10, 18, 38, 0.62);
+        /* KEIN harter Border mehr */
+        border: 0;
+        box-shadow: 0 26px 90px rgba(0,0,0,.62), 0 0 0 1px rgba(255,255,255,.06) inset;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
         animation: cs-pop .25s cubic-bezier(.2,.8,.2,1);
         pointer-events: auto;
     }
 
-    .cs-badge {
-        display: inline-block;
-        padding: .35rem .7rem;
-        border-radius: 999px;
-        font-size: .8rem;
-        letter-spacing: .04em;
-        background: rgba(59,130,246,.15);
-        border: 1px solid rgba(59,130,246,.35);
-        color: #9ec1ff;
-        margin-bottom: .75rem;
-    }
+        /* soft gradient “border” ohne harte Kante */
+        .coming-soon-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            padding: 1px;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(96,165,250,.55), rgba(168,85,247,.45));
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: .55;
+            pointer-events: none;
+        }
 
     .cs-title {
         font-size: clamp(2rem, 6vw, 4rem);
         font-weight: 900;
-        margin: 0 0 .5rem 0;
+        margin: 0 0 .6rem 0;
         line-height: 1.05;
-        background: linear-gradient(90deg, #60a5fa, #34d399, #f59e0b);
+        background: linear-gradient(135deg, var(--cs-blue), var(--cs-purple));
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
-        text-shadow: 0 2px 30px rgba(96,165,250,.25);
+        text-shadow: 0 10px 40px rgba(96,165,250,.18), 0 10px 40px rgba(168,85,247,.14);
+    }
+
+    .cs-badge {
+        display: inline-block;
+        padding: 0.4rem 0.9rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        /* wie hero-badge */
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--accent-primary);
+        border: 1px solid rgba(129, 140, 248, 0.5);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.25);
+        margin-bottom: 0.9rem;
     }
 
     .cs-sub {
-        color: var(--text-secondary, #cbd5e1);
-        margin-bottom: .25rem;
+        color: var(--text-secondary);
+        margin: 0;
         font-size: 1rem;
+        line-height: 1.55;
     }
 
     @keyframes cs-pop {
@@ -432,4 +477,72 @@
             opacity: 1
         }
     }
+
+    /* ===================== Responsive Coming-Soon ===================== */
+    @media (max-width: 820px) {
+        .coming-soon-overlay {
+            top: var(--nav-h, 64px);
+            padding: 1.25rem;
+        }
+
+        .coming-soon-card {
+            width: min(680px, 100%);
+            padding: 2.6rem 1.8rem;
+            border-radius: 28px;
+        }
+
+        .cs-title {
+            font-size: clamp(1.8rem, 8vw, 3.2rem);
+        }
+
+        .cs-sub {
+            font-size: .98rem;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .coming-soon-overlay {
+            top: var(--nav-h, 60px);
+            padding: 1rem;
+            /* wirkt auf mobile weniger “dunkle Platte” */
+            background: radial-gradient(900px 620px at 30% 15%, rgba(96,165,250,.28), transparent 62%), radial-gradient(820px 600px at 80% 85%, rgba(168,85,247,.24), transparent 64%), rgba(2, 6, 23, 0.60);
+        }
+
+        .coming-soon-card {
+            padding: 2.1rem 1.3rem;
+            border-radius: 24px;
+        }
+
+        .cs-badge {
+            font-size: .78rem;
+            padding: .35rem .75rem;
+        }
+
+        .cs-sub {
+            font-size: .95rem;
+            line-height: 1.5;
+        }
+    }
+
+    /* very small phones / landscape */
+    @media (max-width: 380px), (max-height: 520px) {
+        .coming-soon-overlay {
+            /* wenn Höhe knapp wird: nicht mittig “quetschen”, sondern oben + scroll */
+            place-items: start center;
+            padding: .75rem;
+            overflow: auto;
+        }
+
+        .coming-soon-card {
+            margin-top: .75rem;
+            padding: 1.6rem 1.05rem;
+            border-radius: 20px;
+        }
+
+        .cs-title {
+            font-size: clamp(1.55rem, 9vw, 2.6rem);
+            margin-bottom: .45rem;
+        }
+    }
+
 </style>

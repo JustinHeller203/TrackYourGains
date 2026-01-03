@@ -88,19 +88,6 @@
                 </div>
             </div>
         </section>
-        <section class="blog">
-            <h2 class="section-title">Aktuelle Blogbeiträge 📚</h2>
-            <div class="blog-grid">
-                <div class="blog-card">
-                    <h3 class="blog-title">Wie du deine Fitnessziele erreichst 🏆</h3>
-                    <p class="blog-text">Erfahre, wie du mit TrackYourGains deine Fitnessziele erreichen kannst.</p>
-                </div>
-                <div class="blog-card">
-                    <h3 class="blog-title">Tipps für bessere Ernährung 🍎</h3>
-                    <p class="blog-text">Lerne, wie du deine Mahlzeiten optimierst.</p>
-                </div>
-            </div>
-        </section>
         <section class="cta">
             <h2 class="section-title">Bereit für deine Transformation? 🌟</h2>
             <router-link to="/progress" class="cta-button">Los geht’s! 🚀</router-link>
@@ -209,7 +196,7 @@
 
     const setupScrollReveal = () => {
         const sections = document.querySelectorAll<HTMLElement>(
-            '.stats, .features, .quick-links, .testimonials, .blog, .cta'
+            '.stats, .features, .quick-links, .testimonials, .cta'
         )
 
         if (!('IntersectionObserver' in window)) {
@@ -393,8 +380,7 @@
 
     .stat-card,
     .feature-card,
-    .testimonial-card,
-    .blog-card {
+    .testimonial-card{
         position: relative;
         overflow: hidden;
         display: flex;
@@ -457,7 +443,6 @@
     .features,
     .quick-links,
     .testimonials,
-    .blog,
     .cta {
         padding: 4rem 1rem;
         max-width: 1200px;
@@ -633,8 +618,7 @@
     .stats-grid,
     .features-grid,
     .links-grid,
-    .testimonials-grid,
-    .blog-grid {
+    .testimonials-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1.5rem;
@@ -654,8 +638,7 @@
         .stats-grid > *,
         .features-grid > *,
         .links-grid > *,
-        .testimonials-grid > *,
-        .blog-grid > * {
+        .testimonials-grid > * {
             min-width: 0; /* ⟵ Kinder dürfen schrumpfen */
         }
 
@@ -704,8 +687,7 @@
         }
     .stat-card,
     .feature-card,
-    .testimonial-card,
-    .blog-card {
+    .testimonial-card{
         will-change: transform;
         contain: none; /* Shadow/Outline darf rausmalen */
     }
@@ -714,8 +696,7 @@
     @media (hover: hover) {
         .stat-card:hover,
         .feature-card:hover,
-        .testimonial-card:hover,
-        .blog-card:hover {
+        .testimonial-card:hover {
             transform: translateY(-3px) scale(1.01);
             box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
             border-color: rgba(129, 140, 248, 0.55);
@@ -741,8 +722,7 @@
     }
 
     .feature-text,
-    .testimonial-text,
-    .blog-text {
+    .testimonial-text {
         font-size: 0.95rem;
         color: var(--text-secondary);
         line-height: 1.55;
@@ -825,8 +805,7 @@
     /* ===== Dark mode variants ===== */
     html.dark-mode .stat-card,
     html.dark-mode .feature-card,
-    html.dark-mode .testimonial-card,
-    html.dark-mode .blog-card {
+    html.dark-mode .testimonial-card{
         background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
         border-color: rgba(148, 163, 184, 0.45);
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
@@ -834,7 +813,6 @@
 
     html.dark-mode .section-title,
     html.dark-mode .feature-title,
-    html.dark-mode .blog-title,
     html.dark-mode .testimonial-author {
         color: #f0f6fc;
     }
@@ -845,8 +823,7 @@
 
     html.dark-mode .stat-text,
     html.dark-mode .feature-text,
-    html.dark-mode .testimonial-text,
-    html.dark-mode .blog-text {
+    html.dark-mode .testimonial-text{
         color: #c9d1d9;
     }
 
@@ -910,7 +887,6 @@
         .features,
         .quick-links,
         .testimonials,
-        .blog,
         .cta {
             padding: 2rem 1rem;
         }
