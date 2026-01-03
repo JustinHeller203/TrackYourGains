@@ -101,13 +101,13 @@
         set: (v) => emit('update:calcCategory', v),
     })
 
-    const categoryItems = [
+    const categoryItems: Array<{ value: CalcCategory; label: string }> = [
         { value: 'alle', label: 'Alle' },
         { value: 'gesundheit', label: 'Gesundheit' },
         { value: 'kraft', label: 'Kraft' },
         { value: 'ernaehrung', label: 'Ernährung' },
         { value: 'alltag', label: 'Alltag' },
-    ] as const
+    ]
 
     function toggleFilter() {
         filterOpen.value = !filterOpen.value
