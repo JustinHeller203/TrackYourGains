@@ -68,7 +68,11 @@
         </section>
         <section class="testimonials">
             <h2 class="section-title">Was unsere Nutzer sagen 🗣️</h2>
-            <div class="testimonials-slider">
+            <div class="testimonials-slider"
+                 @touchstart.passive="onSwipeStart"
+                 @touchmove.passive="onSwipeMove"
+                 @touchend="onSwipeEnd"
+                 @touchcancel="onSwipeEnd">
                 <div v-for="(testimonial, index) in testimonials"
                      :key="testimonial.id"
                      class="testimonial-card"
@@ -169,6 +173,73 @@
 
     const currentTestimonial = ref(0)
     let testimonialTimer: number | undefined
+
+    // --- Swipe (Mobile) ---
+    const swipe = ref({
+        active: false,
+        startX: 0,
+        startY: 0,
+        lastX: 0,
+        lastY: 0,
+        moved: false,
+    })
+
+    const SWIPE_MIN_PX = 40      // wie “hart” man wischen muss
+    const SWIPE_MAX_Y_PX = 70    // wenn zu vertikal -> ignorieren
+
+    function goNextTestimonial() {
+        if (testimonials.value.length <= 1) return
+        currentTestimonial.value = (currentTestimonial.value + 1) % testimonials.value.length
+    }
+
+    function goPrevTestimonial() {
+        if (testimonials.value.length <= 1) return
+        currentTestimonial.value =
+            (currentTestimonial.value - 1 + testimonials.value.length) % testimonials.value.length
+    }
+
+    function onSwipeStart(e: TouchEvent) {
+        if (testimonials.value.length <= 1) return
+        const t = e.touches[0]
+        swipe.value.active = true
+        swipe.value.moved = false
+        swipe.value.startX = t.clientX
+        swipe.value.startY = t.clientY
+        swipe.value.lastX = t.clientX
+        swipe.value.lastY = t.clientY
+
+        // optional: Autoplay kurz anhalten während der User swiped
+        stopTestimonialRotation()
+    }
+
+    function onSwipeMove(e: TouchEvent) {
+        if (!swipe.value.active) return
+        const t = e.touches[0]
+        swipe.value.lastX = t.clientX
+        swipe.value.lastY = t.clientY
+        swipe.value.moved = true
+    }
+
+    function onSwipeEnd() {
+        if (!swipe.value.active) return
+        swipe.value.active = false
+
+        const dx = swipe.value.lastX - swipe.value.startX
+        const dy = swipe.value.lastY - swipe.value.startY
+
+        // zu vertikal -> das war scrollen, kein swipe
+        if (Math.abs(dy) > SWIPE_MAX_Y_PX) {
+            startTestimonialRotation()
+            return
+        }
+
+        if (Math.abs(dx) >= SWIPE_MIN_PX) {
+            if (dx < 0) goNextTestimonial() // nach links wischen -> nächstes
+            else goPrevTestimonial()        // nach rechts wischen -> vorheriges
+        }
+
+        startTestimonialRotation()
+    }
 
     const startTestimonialRotation = () => {
         if (typeof window === 'undefined' || testimonials.value.length <= 1) return
@@ -651,8 +722,10 @@
         position: relative;
         width: 100%;
         box-sizing: border-box;
-        /* verhindert Layout-Sprung beim Wechsel */
         min-height: 220px;
+        touch-action: pan-y; /* vertikal scrollen bleibt normal, horizontal swipe wird sauber */
+        -webkit-user-select: none;
+        user-select: none;
     }
 
     @media (max-width: 520px) {
