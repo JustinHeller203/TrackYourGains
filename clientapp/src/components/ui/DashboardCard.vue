@@ -1,4 +1,4 @@
-<!--DashboardCard.vue-->
+<!--Pfad: src/components/ui/DashboardCard.vue-->
 <template>
     <div class="card card--crazy"
          :style="{ cursor: clickable ? 'pointer' : 'default' }"

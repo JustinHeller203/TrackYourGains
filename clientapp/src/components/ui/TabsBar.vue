@@ -1,92 +1,72 @@
+<!--Pfad: src/components/ui/TabsBar.vue-->
+
 <template>
     <div class="tabs">
-        <button class="tab"
-                :class="{ active: modelValue === 'stats' }"
-                @click="$emit('update:modelValue', 'stats')">
-            Statistiken
-        </button>
-
-        <button class="tab"
-                :class="{ active: modelValue === 'calculators' }"
-                @click="$emit('update:modelValue', 'calculators')">
-            Rechner
-        </button>
-
-        <button class="tab"
-                :class="{ active: modelValue === 'plans' }"
-                @click="$emit('update:modelValue', 'plans')">
-            Pläne
-        </button>
-
-        <div v-if="modelValue === 'calculators'" class="search-container">
-            <input :value="searchQuery"
-                   @input="$emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
-                   type="text"
-                   placeholder="Rechner suchen..."
-                   class="search-input" />
-
-            <button class="filter-btn"
-                    type="button"
-                    aria-label="Kategorie Filter öffnen"
-                    :aria-expanded="filterOpen ? 'true' : 'false'"
-                    @click="filterOpen = !filterOpen">
-                Kategorie
-                <span class="filter-caret">▾</span>
+        <div class="tabs__segmented" role="tablist" aria-label="Ansicht wählen">
+            <button class="tabs__tab"
+                    role="tab"
+                    :aria-selected="modelValue === 'stats' ? 'true' : 'false'"
+                    :data-active="modelValue === 'stats'"
+                    @click="$emit('update:modelValue', 'stats')">
+                Statistiken
             </button>
 
-            <div v-if="filterOpen" class="filter-overlay" @mousedown.self="filterOpen = false">
-                <div class="filter-panel" role="menu" aria-label="Kategorie wählen">
-                    <button class="filter-item"
-                            role="menuitem"
-                            :data-active="(props.calcCategory ?? 'alle') === 'alle'"
-                            @click="setCategory('alle')">
-                        Alle
-                    </button>
+            <button class="tabs__tab"
+                    role="tab"
+                    :aria-selected="modelValue === 'calculators' ? 'true' : 'false'"
+                    :data-active="modelValue === 'calculators'"
+                    @click="$emit('update:modelValue', 'calculators')">
+                Rechner
+            </button>
 
-                    <button class="filter-item"
-                            role="menuitem"
-                            :data-active="props.calcCategory === 'gesundheit'"
-                            @click="setCategory('gesundheit')">
-                        Gesundheit
-                    </button>
-
-                    <button class="filter-item"
-                            role="menuitem"
-                            :data-active="props.calcCategory === 'kraft'"
-                            @click="setCategory('kraft')">
-                        Kraft
-                    </button>
-
-                    <button class="filter-item"
-                            role="menuitem"
-                            :data-active="props.calcCategory === 'ernaehrung'"
-                            @click="setCategory('ernaehrung')">
-                        Ernährung
-                    </button>
-
-                    <button class="filter-item"
-                            role="menuitem"
-                            :data-active="props.calcCategory === 'alltag'"
-                            @click="setCategory('alltag')">
-                        Alltag
-                    </button>
-                </div>
-            </div>
+            <button class="tabs__tab"
+                    role="tab"
+                    :aria-selected="modelValue === 'plans' ? 'true' : 'false'"
+                    :data-active="modelValue === 'plans'"
+                    @click="$emit('update:modelValue', 'plans')">
+                Pläne
+            </button>
         </div>
 
 
+        <div v-if="modelValue === 'calculators'" class="search-container calculators-search calc-search-wrap">
+            <UiSearch v-model="calcSearchModel"
+                      placeholder="Rechner suchen..."
+                      ariaLabel="Rechner suchen"
+                      :center="false"
+                      maxWidth="520px" />
+
+            <button class="filter-btn icon-only"
+                    ref="filterBtnEl"
+                    type="button"
+                    aria-label="Kategorie Filter öffnen"
+                    :aria-expanded="filterOpen ? 'true' : 'false'"
+                    @click="toggleFilter">
+                <img src="/Filter.png" class="filter-icon" alt="" aria-hidden="true" />
+                <span class="sr-only">Kategorie</span>
+            </button>
+
+            <FilterMenu v-model:open="filterOpen"
+                        v-model="calcCategoryModel"
+                        title="Kategorie"
+                        :anchorEl="filterBtnEl"
+                        :items="categoryItems" />
+        </div>
+
         <div v-if="modelValue === 'plans'" class="search-container">
-            <input :value="planSearchQuery"
-                   @input="$emit('update:planSearchQuery', ($event.target as HTMLInputElement).value)"
-                   type="text"
-                   placeholder="Pläne suchen..."
-                   class="search-input" />
+            <UiSearch v-model="planSearchModel"
+                      placeholder="Pläne suchen..."
+                      ariaLabel="Pläne suchen"
+                      :center="false"
+                      maxWidth="520px" />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-    import { ref, watch } from 'vue'
+    import { ref, watch, computed } from 'vue'
+    import UiSearch from '@/components/ui/kits/UiSearch.vue'
+    import FilterMenu from '@/components/ui/menu/FilterMenu.vue'
 
     type CalcCategory = 'alle' | 'gesundheit' | 'kraft' | 'ernaehrung' | 'alltag'
 
@@ -103,16 +83,42 @@
         (e: 'update:planSearchQuery', v: string): void
         (e: 'update:calcCategory', v: CalcCategory): void
     }>()
+    const calcSearchModel = computed({
+        get: () => props.searchQuery,
+        set: (v: string) => emit('update:searchQuery', v),
+    })
+
+    const planSearchModel = computed({
+        get: () => props.planSearchQuery,
+        set: (v: string) => emit('update:planSearchQuery', v),
+    })
 
     const filterOpen = ref(false)
+    const filterBtnEl = ref<HTMLElement | null>(null)
 
-    function setCategory(v: CalcCategory) {
-        emit('update:calcCategory', v)
+    const calcCategoryModel = computed<CalcCategory>({
+        get: () => (props.calcCategory ?? 'alle'),
+        set: (v) => emit('update:calcCategory', v),
+    })
+
+    const categoryItems = [
+        { value: 'alle', label: 'Alle' },
+        { value: 'gesundheit', label: 'Gesundheit' },
+        { value: 'kraft', label: 'Kraft' },
+        { value: 'ernaehrung', label: 'Ernährung' },
+        { value: 'alltag', label: 'Alltag' },
+    ] as const
+
+    function toggleFilter() {
+        filterOpen.value = !filterOpen.value
+    }
+
+    function closeFilter() {
         filterOpen.value = false
     }
 
     watch(() => props.modelValue, () => {
-        filterOpen.value = false
+        closeFilter()
     })
 
 </script>
@@ -126,28 +132,66 @@
         align-items: center;
     }
 
-    .tab {
-        padding: 0.75rem 1.5rem;
-        border: none;
-        background: var(--bg-secondary);
-        color: var(--text-secondary);
-        font-size: 1rem;
-        font-weight: 500;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.3s, color 0.3s, transform 0.2s;
+    .tabs__segmented {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .35rem;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+        background: radial-gradient(circle at 18% 35%, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 58%), radial-gradient(circle at 85% 70%, color-mix(in srgb, var(--accent-secondary) 10%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 86%, white 14%);
+        box-shadow: 0 14px 40px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255,255,255,0.08);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
     }
 
-        .tab:hover {
-            background: var(--bg-hover);
+    .tabs__tab {
+        border: 0;
+        background: transparent;
+        color: color-mix(in srgb, var(--text-secondary) 92%, transparent);
+        font-weight: 700;
+        font-size: .95rem;
+        padding: .62rem 1.05rem;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: transform .12s ease, background-color .12s ease, color .12s ease, box-shadow .12s ease;
+        user-select: none;
+        white-space: nowrap;
+    }
+
+        .tabs__tab:hover {
             color: var(--text-primary);
+            background: color-mix(in srgb, var(--bg-secondary) 82%, white 18%);
+            transform: translateY(-1px);
         }
 
-        .tab.active {
-            background: var(--accent-primary);
-            color: #fff;
-            transform: translateY(-2px);
+        .tabs__tab[data-active="true"] {
+            color: var(--text-primary);
+            background: radial-gradient(circle at 18% 30%, color-mix(in srgb, var(--accent-primary) 22%, transparent), transparent 60%), color-mix(in srgb, var(--bg-secondary) 82%, white 18%);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+            border: 1px solid color-mix(in srgb, var(--accent-primary) 40%, transparent);
         }
+
+        .tabs__tab:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 24%, transparent);
+        }
+
+    /* Dark Mode */
+    html.dark-mode .tabs__segmented {
+        background: radial-gradient(circle at 18% 35%, rgba(99,102,241,0.16), transparent 58%), radial-gradient(circle at 85% 70%, rgba(34,197,94,0.12), transparent 62%), rgba(2, 6, 23, 0.72);
+        border-color: rgba(148, 163, 184, 0.22);
+        box-shadow: 0 18px 55px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    html.dark-mode .tabs__tab:hover {
+        background: rgba(30, 41, 59, 0.45);
+    }
+
+    html.dark-mode .tabs__tab[data-active="true"] {
+        background: radial-gradient(circle at 18% 30%, rgba(99,102,241,0.22), transparent 60%), rgba(30, 41, 59, 0.55);
+        border-color: rgba(99, 102, 241, 0.42);
+    }
 
     .search-container {
         position: relative;
@@ -179,6 +223,75 @@
         flex: 1;
         max-width: 520px; /* bisschen mehr Platz für Button */
     }
+    .calc-search-wrap {
+        --ui-search-right-offset: 2.6rem; /* Platz für Filter-Button rechts */
+        --ui-search-max: 520px;
+    }
+
+    .calculators-search {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .search-input.with-filter {
+        width: 100%;
+        padding-right: 3.1rem; /* Platz für Icon-Button */
+    }
+
+    .filter-btn.icon-only {
+        position: absolute;
+        top: 50%;
+        right: .5rem;
+        transform: translateY(-50%);
+        width: 2.35rem;
+        height: 2.35rem;
+        padding: 0;
+        border-radius: 10px;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        justify-content: center;
+        gap: 0;
+    }
+
+
+        .filter-btn.icon-only:hover {
+            transform: translateY(-50%) translateY(-1px);
+        }
+
+    .filter-icon {
+        width: 1.15rem;
+        height: 1.15rem;
+        display: block;
+        /* macht dunkles PNG-Icon weiß */
+        filter: brightness(0) invert(1);
+        opacity: .95;
+    }
+
+    .filter-btn.icon-only:hover {
+        background: var(--bg-hover);
+    }
+
+    .filter-btn.icon-only:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+    }
+
+
+    /* Screenreader-only */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0,0,0,0);
+        white-space: nowrap;
+        border: 0;
+    }
 
     .search-input {
         flex: 1;
@@ -207,44 +320,4 @@
     .filter-caret {
         opacity: .8;
     }
-
-    .filter-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 999;
-    }
-
-    .filter-panel {
-        position: absolute;
-        right: 1rem;
-        top: 4.6rem; /* falls’s nicht sitzt: runter/hoch schieben */
-        width: min(260px, calc(100vw - 2rem));
-        padding: .6rem;
-        border-radius: 12px;
-        border: 1px solid var(--border-color);
-        background: var(--bg-secondary);
-        box-shadow: 0 18px 60px rgba(0,0,0,.25);
-        display: grid;
-        gap: .35rem;
-    }
-
-    .filter-item {
-        text-align: left;
-        padding: .65rem .75rem;
-        border-radius: 10px;
-        border: none;
-        background: transparent;
-        color: var(--text-color);
-        cursor: pointer;
-    }
-
-        .filter-item:hover {
-            background: var(--bg-hover);
-        }
-
-        .filter-item[data-active="true"] {
-            background: var(--accent-primary);
-            color: #fff;
-        }
-
 </style>

@@ -252,9 +252,10 @@
         <div v-if="plans.length" class="workout-list">
             <h3 class="section-title">Deine Trainingspläne</h3>
 
-            <div class="search-container">
-                <input v-model="planSearch" placeholder="Nach Planname oder Trainingsziel suchen" class="plan-search-input" />
-            </div>
+            <UiSearch v-model="planSearch"
+                      placeholder="Nach Planname oder Trainingsziel suchen"
+                      aria-label="Trainingspläne durchsuchen"
+                      class="plan-search" />
 
             <!-- Favoriten sortieren -->
             <Draggable v-if="favoritePlanItems.length"
@@ -634,10 +635,11 @@
     import ExportPopup from '@/components/ui/popups/ExportPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
-    import UiSelect from '@/components/ui/UiSelect.vue'
+    import UiSelect from '@/components/ui/kits/UiSelect.vue'
     import TimerComponent from '@/components/ui/training/TimerComponent.vue'
     import StopwatchComponent from '@/components/ui/training/StopwatchComponent.vue'
-    import PlanMenu from '@/components/ui/menu/PlanMenu.vue';
+    import PlanMenu from '@/components/ui/menu/PlanMenu.vue'
+    import UiSearch from '@/components/ui/kits/UiSearch.vue';
     import type { TimerInstance, StopwatchInstance } from '@/types/training'
 
     import {
@@ -648,7 +650,7 @@
         LS_STICKY_TIMER_ENABLED,
         LS_STICKY_STOPWATCH_ENABLED,
     } from '@/constants/storageKeys'
-    import Table from '@/components/ui/training/Table.vue'
+    import Table from '@/components/ui/kits/UiTable.vue'
 
     // Typ-Definitionen (bleiben unverändert)
     interface PlanExercise {
@@ -2970,6 +2972,10 @@
         }
     }
 
+    .plan-search {
+        margin-bottom: 1rem;
+    }
+
     @media (prefers-reduced-motion: reduce) {
         .builder-landing {
             animation: none;
@@ -3409,72 +3415,6 @@
             background: var(--bg-card);
             box-shadow: 0 12px 32px rgba(15,23,42,0.45);
         }
-    }
-
-    .search-container {
-        width: 100%;
-        margin-bottom: 1rem;
-        display: flex;
-        justify-content: center;
-    }
-
-    .plan-search-input {
-        width: 100%;
-        max-width: 720px;
-        height: var(--control-height);
-        font-size: var(--control-font-size);
-        color: var(--text-primary);
-        padding: 0 .95rem 0 2.35rem; /* Platz fürs Icon */
-        border-radius: 999px;
-        /* Basis-Fläche */
-        background-color: color-mix(in srgb, var(--bg-card) 86%, white 14%);
-        border: 1px solid rgba(148, 163, 184, 0.22);
-        /* Glows + Icon (Icon ist letztes Layer) */
-        background-image: radial-gradient(circle at 18% 35%, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 58%), radial-gradient(circle at 85% 70%, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 62%), url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%23888' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat, no-repeat, no-repeat;
-        background-position: center, center, .9rem center;
-        background-size: auto, auto, 16px 16px;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 26px rgba(15, 23, 42, 0.12);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
-    }
-
-    html.dark-mode .plan-search-input {
-        color: #ffffff;
-        background-color: rgba(2, 6, 23, 0.72);
-        border-color: rgba(148, 163, 184, 0.28);
-        background-image: radial-gradient(circle at 18% 35%, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 58%), radial-gradient(circle at 85% 70%, color-mix(in srgb, var(--accent-secondary) 12%, transparent), transparent 62%), url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%239aa3ab' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 14px 34px rgba(0, 0, 0, 0.55);
-    }
-
-        html.dark-mode .plan-search-input::placeholder {
-            color: rgba(201, 209, 217, 0.78);
-        }
-
-        html.dark-mode .plan-search-input:hover {
-            border-color: rgba(129, 140, 248, 0.40);
-        }
-
-        html.dark-mode .plan-search-input:focus {
-            border-color: color-mix(in srgb, var(--accent-primary) 65%, rgba(129, 140, 248, 0.55));
-        }
-
-    .plan-search-input::placeholder {
-        color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
-        opacity: 1;
-    }
-
-    .plan-search-input:hover {
-        border-color: rgba(129, 140, 248, 0.35);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 14px 34px rgba(15, 23, 42, 0.16);
-    }
-
-    .plan-search-input:focus {
-        outline: none;
-        transform: translateY(-1px);
-        border-color: color-mix(in srgb, var(--accent-primary) 55%, rgba(129, 140, 248, 0.55));
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 22%, transparent), 0 16px 38px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
     .form-card input,

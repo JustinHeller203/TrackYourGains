@@ -1,3 +1,5 @@
+<!--Pfad: src/components/ui/menu/KebabMenu.vue-->
+
 <template>
     <teleport to="body">
         <div v-if="open" class="km-root" @mousedown.stop>
@@ -207,14 +209,14 @@
         background: transparent;
     }
 
-        .km-item:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-        }
+    .km-item:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
 
-        .km-item[data-danger="true"] {
-            color: rgba(248, 113, 113, 0.95);
-        }
+    .km-item[data-danger="true"] {
+        color: rgba(248, 113, 113, 0.95);
+    }
 
     @media (hover:hover) {
         .km-item:not(:disabled):hover {

@@ -1,4 +1,6 @@
-﻿<template>
+﻿<!--Pfad: src/components/ui/menu/PlanMenu.vue-->
+
+<template>
     <div class="plan-menu" @click.stop>
         <EditButton title="Plan bearbeiten" @click="$emit('edit')" />
         <DeleteButton title="Plan löschen" @click="$emit('delete')" />
@@ -11,15 +13,15 @@
 </template>
 
 <script setup lang="ts">
-import EditButton from '@/components/ui/buttons/EditButton.vue'
-import DeleteButton from '@/components/ui/buttons/DeleteButton.vue'
-import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
+    import EditButton from '@/components/ui/buttons/EditButton.vue'
+    import DeleteButton from '@/components/ui/buttons/DeleteButton.vue'
+    import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
 
-defineEmits<{
-  (e: 'edit'): void
-  (e: 'delete'): void
-  (e: 'download'): void
-}>()
+    defineEmits<{
+        (e: 'edit'): void
+        (e: 'delete'): void
+        (e: 'download'): void
+    }>()
 </script>
 
 <style scoped>

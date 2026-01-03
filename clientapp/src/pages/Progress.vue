@@ -63,18 +63,6 @@
                 </ChartCard>
             </div>
 
-            <!-- ======= FILTER-LEISTE (nur für Rechner) ======= -->
-            <div v-show="activeTab === 'calculators'" class="calc-filterbar">
-                <label class="calc-filterlabel">Kategorie</label>
-                <select v-model="calcCategory" class="calc-filterselect">
-                    <option value="alle">Alle</option>
-                    <option value="gesundheit">Gesundheit</option>
-                    <option value="kraft">Kraft</option>
-                    <option value="ernaehrung">Ernährung</option>
-                    <option value="alltag">Alltag</option>
-                </select>
-            </div>
-
             <!-- ===================== CALCULATORS TAB ===================== -->
             <div v-show="activeTab === 'calculators'" class="calculators-grid">
 
