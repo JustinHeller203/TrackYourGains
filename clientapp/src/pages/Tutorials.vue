@@ -1,15 +1,9 @@
-<!--Tutorial.vue-->
+<!--src/pages/Tutorial.vue-->
 <template>
     <div class="tutorials" :class="{ 'dark-mode': darkMode }">
         <h2 class="page-title">🎥 Übungstutorials</h2>
         <div class="search-and-filter">
             <input v-model="searchQuery" placeholder="Tutorial suchen..." class="search-bar" />
-            <select v-model="selectedCategory" class="category-filter">
-                <option value="">Alle Kategorien</option>
-                <option value="Oberkörper">Oberkörper</option>
-                <option value="Unterkörper">Unterkörper</option>
-                <option value="Ganzkörper">Ganzkörper</option>
-            </select>
         </div>
         <div v-if="loading" class="loading-indicator">
             <p>Tutorials werden geladen...</p>
@@ -44,7 +38,6 @@
     import { ref, computed, onMounted } from 'vue';
 
     const searchQuery = ref('');
-    const selectedCategory = ref('');
     const loading = ref(true);
     const darkMode = ref(false);
 
@@ -137,18 +130,18 @@
     });
 
     const filteredTutorials = computed(() => {
-        return tutorials.value.filter(tutorial => {
-            const matchesSearchQuery = tutorial.title.toLowerCase().includes(searchQuery.value.toLowerCase());
-            const matchesCategory = selectedCategory.value ? tutorial.category === selectedCategory.value : true;
-            return matchesSearchQuery && matchesCategory;
-        });
+        const q = searchQuery.value.trim().toLowerCase();
+        if (!q) return tutorials.value;
+
+        return tutorials.value.filter(t =>
+            t.title.toLowerCase().includes(q)
+            || t.description.toLowerCase().includes(q)
+            || t.category.toLowerCase().includes(q)
+        );
     });
 </script>
 
 <style scoped>
-    /* Tutorial.vue – REPLACE .tutorials-Block mit App-/Progress-Gradient */
-
-    /* Tutorial.vue – Tutorials-Wrapper soll den globalen App-Gradient durchlassen */
     .tutorials {
         padding: clamp(1.4rem, 3vw, 2.4rem);
         min-height: 100vh;
@@ -159,39 +152,38 @@
         background: transparent; /* kein eigener Kasten-Gradient mehr */
     }
 
-    /* auch im Dark Mode kein extra Hintergrund */
     html.dark-mode .tutorials {
         background: transparent;
     }
 
-
-
     .page-title {
-        font-size: 2.5rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 1.5rem;
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        letter-spacing: -0.025em;
+        text-align: center;
     }
-
-        .page-title.dark-mode {
-            background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
-        }
 
     .search-and-filter {
         display: flex;
-        align-items: center;
-        gap: .75rem; /* statt margin-right auf dem Input */
-        flex-wrap: wrap; /* darf umbrechen */
+        justify-content: center;
         margin-bottom: 1.5rem;
     }
 
+    .search-bar {
+        width: min(520px, 100%);
+    }
     .search-bar, .category-filter {
         min-width: 0;
     }
     /* dürfen schrumpfen */
 
+    @media (max-width: 600px) {
+        .page-title {
+            font-size: 1.75rem;
+        }
+    }
     @media (max-width: 600px) {
         .tutorials {
             padding: 1rem;

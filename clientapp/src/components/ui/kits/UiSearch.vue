@@ -1,7 +1,8 @@
 <!--Pfad: src/components/ui/kits/UiSearch.vue-->
 <template>
-   <div class="ui-search"
-     :class="{ 'is-center': center }">
+    <div class="ui-search"
+         :class="{ 'is-center': center }"
+         :style="{ '--ui-search-max': maxWidth }">
         <input class="ui-search__input"
                :id="id"
                :name="name"

@@ -4320,13 +4320,13 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-
     .page-title {
         font-size: 2.25rem;
         font-weight: 700;
         color: var(--text-primary);
         margin-bottom: 1rem;
         letter-spacing: -0.025em;
+        text-align: center;
     }
 
     .page-subtext {
@@ -4334,6 +4334,7 @@ Notiz: ${e.note ?? '-'}\n`
         margin-bottom: 2rem;
         font-size: 1rem;
         font-weight: 500;
+        text-align: center;
     }
 
     .dashboard-container {
@@ -5433,10 +5434,5 @@ Notiz: ${e.note ?? '-'}\n`
     .modal--progress > .card-header + .list-item.empty,
     .modal--progress > .card-header + .day-card-list {
         margin-top: 1rem; /* taste dich bei Bedarf ran: .75rem – 1.25rem */
-    }
-</style>
-<style>
-    body:has(.modal-overlay) {
-        overflow: hidden;
     }
 </style>

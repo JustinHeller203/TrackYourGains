@@ -28,37 +28,40 @@
             </button>
         </div>
 
-
         <div v-if="modelValue === 'calculators'" class="search-container calculators-search calc-search-wrap">
-            <UiSearch v-model="calcSearchModel"
-                      placeholder="Rechner suchen..."
-                      ariaLabel="Rechner suchen"
-                      :center="false"
-                      maxWidth="520px" />
+            <div class="search-field">
+                <UiSearch v-model="calcSearchModel"
+                          placeholder="Rechner suchen..."
+                          ariaLabel="Rechner suchen"
+                          :center="false"
+                          maxWidth="100%" />
 
-            <button class="filter-btn icon-only"
-                    ref="filterBtnEl"
-                    type="button"
-                    aria-label="Kategorie Filter öffnen"
-                    :aria-expanded="filterOpen ? 'true' : 'false'"
-                    @click="toggleFilter">
-                <img src="/Filter.png" class="filter-icon" alt="" aria-hidden="true" />
-                <span class="sr-only">Kategorie</span>
-            </button>
+                <button class="filter-btn icon-only"
+                        ref="filterBtnEl"
+                        type="button"
+                        aria-label="Kategorie Filter öffnen"
+                        :aria-expanded="filterOpen ? 'true' : 'false'"
+                        @click="toggleFilter">
+                    <img src="/Filter.png" class="filter-icon" alt="" aria-hidden="true" />
+                    <span class="sr-only">Kategorie</span>
+                </button>
 
-            <FilterMenu v-model:open="filterOpen"
-                        v-model="calcCategoryModel"
-                        title="Kategorie"
-                        :anchorEl="filterBtnEl"
-                        :items="categoryItems" />
+                <FilterMenu v-model:open="filterOpen"
+                            v-model="calcCategoryModel"
+                            title="Kategorie"
+                            :anchorEl="filterBtnEl"
+                            :items="categoryItems" />
+            </div>
         </div>
 
         <div v-if="modelValue === 'plans'" class="search-container">
-            <UiSearch v-model="planSearchModel"
-                      placeholder="Pläne suchen..."
-                      ariaLabel="Pläne suchen"
-                      :center="false"
-                      maxWidth="520px" />
+            <div class="search-field">
+                <UiSearch v-model="planSearchModel"
+                          placeholder="Pläne suchen..."
+                          ariaLabel="Pläne suchen"
+                          :center="false"
+                          maxWidth="100%" />
+            </div>
         </div>
     </div>
 </template>
@@ -125,11 +128,18 @@
 
 <style scoped>
     .tabs {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 2rem;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        column-gap: 1rem;
+        row-gap: 1rem;
         align-items: center;
+        width: 100%;
+        margin-bottom: 2rem;
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 0;
+        padding-right: 0;
+        --ui-search-max: 640px; /* <- cap auf wide screens */
     }
 
     .tabs__segmented {
@@ -137,6 +147,11 @@
         align-items: center;
         gap: .35rem;
         padding: .35rem;
+        width: fit-content; /* <- shrink to content */
+        max-width: 100%;
+        justify-self: start; /* <- kein Grid-stretch */
+        overflow: hidden; /* <- sauber bei kleinen Screens */
+
         border-radius: 999px;
         border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
         background: radial-gradient(circle at 18% 35%, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 58%), radial-gradient(circle at 85% 70%, color-mix(in srgb, var(--accent-secondary) 10%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 86%, white 14%);
@@ -193,12 +208,6 @@
         border-color: rgba(99, 102, 241, 0.42);
     }
 
-    .search-container {
-        position: relative;
-        flex: 1;
-        max-width: 300px;
-    }
-
     .search-input {
         width: 100%;
         padding: 0.75rem;
@@ -210,34 +219,49 @@
         transition: border-color 0.3s, box-shadow 0.3s;
     }
 
+    @media (max-width: 720px) {
+        .tabs {
+            grid-template-columns: 1fr;
+            --ui-search-max: 100%;
+        }
+
+        .search-container {
+            justify-self: stretch;
+            max-width: 100%;
+        }
+
+        .search-grow {
+            width: 100%;
+            margin-left: 0;
+        }
+    }
+
         .search-input:focus {
             border-color: var(--accent-primary);
             box-shadow: 0 0 5px rgba(99, 102, 241, 0.5);
             outline: none;
         }
 
-    .search-container {
-        display: flex;
-        align-items: center;
-        gap: .75rem;
-        flex: 1;
-        max-width: 520px; /* bisschen mehr Platz für Button */
-    }
     .calc-search-wrap {
         --ui-search-right-offset: 2.6rem; /* Platz für Filter-Button rechts */
-        --ui-search-max: 520px;
     }
 
     .calculators-search {
-        position: relative;
+        width: 100%;
+        min-width: 0;
+        justify-self: stretch;
         display: flex;
-        align-items: center;
-        gap: .75rem;
+        justify-content: flex-end; /* <- bis ganz nach rechts */
     }
 
     .search-input.with-filter {
         width: 100%;
         padding-right: 3.1rem; /* Platz für Icon-Button */
+    }
+
+    .search-field {
+        position: relative;
+        width: 100%;
     }
 
     .filter-btn.icon-only {
@@ -320,4 +344,24 @@
     .filter-caret {
         opacity: .8;
     }
+
+
+    /* optional, aber hilft falls Grid/Flex gemischt ist */
+    .search-container,
+    .calculators-search {
+        min-width: 0;
+    }
+
+    .search-container {
+        width: 100%;
+        min-width: 0;
+        justify-self: stretch; /* füllt die ganze Grid-Spalte bis ganz rechts */
+    }
+
+    .search-field {
+        position: relative; /* <- anchor for absolute filter button */
+        width: min(var(--ui-search-max), 100%);
+        margin-left: auto; /* <- schiebt das Feld ganz nach rechts */
+    }
+
 </style>
