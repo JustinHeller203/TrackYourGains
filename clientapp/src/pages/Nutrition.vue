@@ -262,16 +262,6 @@
 
     // === Coming Soon Overlay State (nicht schließbar) ===
     const comingSoon = ref(true)
-
-    watch(
-        comingSoon,
-        (v) => {
-            const cls = 'cs-no-scroll'
-            document.documentElement.classList.toggle(cls, v)
-            document.body.classList.toggle(cls, v)
-        },
-        { immediate: true }
-    )
 </script>
 
 <style scoped>
@@ -367,27 +357,24 @@
     .coming-soon-overlay {
         --cs-blue: #60a5fa;
         --cs-purple: #a855f7;
+        /* FIX: nicht im .nutrition "eingesperrt" -> fullscreen */
         position: fixed;
+        /* Navbar bleibt sichtbar/klickbar: overlay startet darunter */
         top: var(--nav-h, 72px);
         left: 0;
         right: 0;
         bottom: 0;
-        z-index: 9999;
-        /* Overlay darf scrollen, Body nicht */
-        overflow: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
+        z-index: 50;
         display: grid;
         place-items: center;
         padding: 2rem;
-        padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+        /* blau/lila ambient statt grauer “platte” */
         background: radial-gradient(1100px 700px at 20% 18%, rgba(96,165,250,.26), transparent 62%), radial-gradient(900px 650px at 85% 85%, rgba(168,85,247,.22), transparent 64%), rgba(2, 6, 23, 0.64);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         animation: cs-fade .2s ease-out;
         pointer-events: all;
     }
-
 
         /* optional: falls du irgendwo noch 'ne harte Kante siehst -> weicher “fade” am Rand */
         .coming-soon-overlay::after {
