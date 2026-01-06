@@ -24,7 +24,7 @@
                     </div>
 
                     <div class="group-right">
-                        <span class="group-chevron" :class="{ open: openGroups.display }">⌄</span>
+                        <span class="group-chevron" :class="{ open: openGroups.display }"></span>
                     </div>
                 </button>
 
@@ -92,7 +92,7 @@
                     </div>
 
                     <div class="group-right">
-                        <span class="group-chevron" :class="{ open: openGroups.system }">⌄</span>
+                        <span class="group-chevron" :class="{ open: openGroups.system }"></span>
                     </div>
                 </button>
                 <Transition name="sg-collapse">
@@ -183,7 +183,7 @@
                     </div>
 
                     <div class="group-right">
-                        <span class="group-chevron" :class="{ open: openGroups.toast }">⌄</span>
+                        <span class="group-chevron" :class="{ open: openGroups.toast }"></span>
                     </div>
                 </button>
                 <Transition name="sg-collapse">
@@ -1155,19 +1155,36 @@
     }
 
     .group-chevron {
-        font-size: 1.1rem;
-        transform: translateY(-1px);
-        transition: transform 160ms ease;
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
         opacity: 0.9;
         color: var(--text-primary);
+        transition: transform 180ms ease, opacity 160ms ease;
+    }
+
+        .group-chevron::before {
+            content: '';
+            width: 9px;
+            height: 9px;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg); /* runter */
+            transition: transform 180ms ease;
+        }
+
+        .group-chevron.open::before {
+            transform: rotate(225deg); /* hoch */
+        }
+
+    .group-head:hover .group-chevron {
+        opacity: 1;
+        transform: scale(1.05);
     }
 
     html.dark-mode .group-chevron {
         color: #fff;
-    }
-
-    .group-chevron.open {
-        transform: rotate(180deg);
     }
 
     .group-body {

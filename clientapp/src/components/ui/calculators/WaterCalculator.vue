@@ -8,6 +8,7 @@
                     ariaClose="Schließen"
                     :info="infoText"
                     :autoCalcEnabled="autoCalcEnabled"
+                    :validate="validateWater"
                     :isFavorite="isFavorite"
                     :showCalculateButton="!autoCalcEnabled"
                     :showCopyButton="waterResult != null"
@@ -16,7 +17,8 @@
                     @calculate="$emit('calculate')"
                     @copy="$emit('copy')"
                     @export="$emit('export')"
-                    @reset="$emit('reset')">
+                    @reset="$emit('reset')"
+                    @invalid="(errors) => $emit('invalid', errors)">
 
         <!-- Graphic -->
         <template #graphic="{ jumpTo }">
@@ -212,34 +214,34 @@
 
         <!-- Inputs -->
         <template #inputs="{ maybeAutoCalc, normalizeNumberInput }">
-            <div class="input-group">
-                <label>Körpergewicht ({{ unit === 'kg' ? 'kg' : 'lbs' }})</label>
-                <input :value="weightInputValue"
-                       @input="(e) => { onWeightInput(e, normalizeNumberInput); maybeAutoCalc() }"
-                       type="text"
-                       inputmode="decimal"
-                       autocomplete="off"
-                       :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="weightInputValue"
+                               :label="`Körpergewicht (${unitNormalized === 'kg' ? 'kg' : 'lbs'})`"
+                               type="text"
+                               inputmode="decimal"
+                               autocomplete="off"
+                               :placeholder="unitNormalized === 'kg' ? 'z.B. 70' : 'z.B. 155'"
+                               @update:modelValue="(v) => { onWeightInputValue(v, normalizeNumberInput); maybeAutoCalc() }" />
 
-            <div class="input-group">
-                <label>Aktivitätslevel</label>
-                <select :value="activity" @change="(e) => { onActivityChange(e); maybeAutoCalc() }" class="edit-input">
-                    <option value="low">Niedrig (kein Sport)</option>
-                    <option value="moderate">Moderat (1-3x/Woche)</option>
-                    <option value="high">Hoch (4-7x/Woche)</option>
-                </select>
-            </div>
+            <UiCalculatorInput :modelValue="activity"
+                               as="select"
+                               label="Aktivitätslevel"
+                               @update:modelValue="(v) => { emit('update:waterActivity', String(v) as Activity); maybeAutoCalc() }"
+                               :options="[
+        { label: 'Niedrig (kein Sport)', value: 'low' },
+        { label: 'Moderat (1-3x/Woche)', value: 'moderate' },
+        { label: 'Hoch (4-7x/Woche)', value: 'high' },
+    ]" />
 
-            <div class="input-group">
-                <label>Klima</label>
-                <select :value="climate" @change="(e) => { onClimateChange(e); maybeAutoCalc() }" class="edit-input">
-                    <option value="temperate">Gemäßigt</option>
-                    <option value="hot">Heiß</option>
-                    <option value="very_hot">Sehr heiß</option>
-                </select>
-            </div>
+            <UiCalculatorInput :modelValue="climate"
+                               as="select"
+                               label="Klima"
+                               @update:modelValue="(v) => { emit('update:waterClimate', String(v) as Climate); maybeAutoCalc() }"
+                               :options="[
+        { label: 'Gemäßigt', value: 'temperate' },
+        { label: 'Heiß', value: 'hot' },
+        { label: 'Sehr heiß', value: 'very_hot' },
+    ]" />
+
         </template>
 
         <!-- Result -->
@@ -255,6 +257,7 @@
 <script setup lang="ts">
     import { computed, onMounted, watch } from 'vue'
     import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
+    import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
     import { LS_PROGRESS_WATER_INPUTS_V1 } from '@/constants/storageKeys'
 
     type Unit = 'kg' | 'lb' | 'lbs' | string
@@ -262,6 +265,10 @@
     type Climate = 'temperate' | 'hot' | 'very_hot'
     type NormalizeFn = (raw: string) => string
 
+    const unitNormalized = computed<'kg' | 'lbs'>(() => {
+        const u = String(props.unit || 'kg').toLowerCase()
+        return u === 'lb' || u === 'lbs' ? 'lbs' : 'kg'
+    })
     const props = defineProps<{
         unit: Unit
         autoCalcEnabled: boolean
@@ -283,6 +290,7 @@
         (e: 'copy'): void
         (e: 'export'): void
         (e: 'reset'): void
+        (e: 'invalid', errors: string[]): void
     }>()
 
     const activity = computed(() => props.waterActivity)
@@ -302,11 +310,8 @@
     const copyText = computed<string | null>(() => {
         if (props.waterResult == null) return null
 
-        const unitLower = String(props.unit || '').toLowerCase()
-        const u = (unitLower === 'lbs' || unitLower === 'lb') ? 'lbs' : 'kg'
-
         const parts: string[] = []
-        if (props.waterWeight != null) parts.push(`Gewicht: ${props.waterWeight} ${u}`)
+        if (props.waterWeight != null) parts.push(`Gewicht: ${props.waterWeight} ${unitNormalized.value === 'kg' ? 'kg' : 'lbs'}`)
         if (props.waterActivity) parts.push(`Aktivität: ${props.waterActivity}`)
         if (props.waterClimate) parts.push(`Klima: ${props.waterClimate}`)
         parts.push(`Wasserbedarf: ${props.waterResult.toFixed(1)} L/Tag`)
@@ -314,8 +319,8 @@
         return parts.join(' | ')
     })
 
-    function onWeightInput(e: Event, normalize?: NormalizeFn) {
-        const raw0 = (e.target as HTMLInputElement).value
+    function onWeightInputValue(v: string | number, normalize?: NormalizeFn) {
+        const raw0 = String(v ?? '')
         const raw = normalize ? normalize(raw0) : raw0.trim().replace(',', '.')
         if (raw === '') {
             emit('update:waterWeight', null)
@@ -325,12 +330,31 @@
         if (Number.isFinite(n)) emit('update:waterWeight', n)
     }
 
-    function onActivityChange(e: Event) {
-        emit('update:waterActivity', (e.target as HTMLSelectElement).value as Activity)
-    }
+    function validateWater(): string[] {
+        const errors: string[] = []
 
-    function onClimateChange(e: Event) {
-        emit('update:waterClimate', (e.target as HTMLSelectElement).value as Climate)
+        const weightLabel = `Körpergewicht (${unitNormalized.value === 'kg' ? 'kg' : 'lbs'})`
+
+        const w = props.waterWeight
+        if (w == null || Number.isNaN(w)) {
+            errors.push(`Bitte gib dein ${weightLabel} ein.`)
+            return errors
+        }
+        if (w <= 0) errors.push(`${weightLabel} muss größer als 0 sein.`)
+        else if (unitNormalized.value === 'kg' && w > 400) errors.push(`${weightLabel} wirkt unrealistisch hoch.`)
+        else if (unitNormalized.value === 'lbs' && w > 900) errors.push(`${weightLabel} wirkt unrealistisch hoch.`)
+
+        const a = props.waterActivity
+        if (a !== 'low' && a !== 'moderate' && a !== 'high') {
+            errors.push('Bitte wähle dein Aktivitätslevel.')
+        }
+
+        const c = props.waterClimate
+        if (c !== 'temperate' && c !== 'hot' && c !== 'very_hot') {
+            errors.push('Bitte wähle dein Klima.')
+        }
+
+        return errors
     }
 
     const LS_KEY = LS_PROGRESS_WATER_INPUTS_V1
@@ -364,32 +388,4 @@
 </script>
 
 <style scoped>
-    .input-group {
-        margin-bottom: 1rem;
-    }
-
-        .input-group label {
-            display: block;
-            font-size: .9rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-bottom: .25rem;
-        }
-
-    .edit-input {
-        width: 100%;
-        padding: .75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        font-size: .9rem;
-        transition: border-color .3s, box-shadow .3s;
-    }
-
-        .edit-input:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99,102,241,.5);
-            outline: none;
-        }
 </style>

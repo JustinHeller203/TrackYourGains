@@ -8,6 +8,7 @@
                     ariaClose="Schließen"
                     :info="info || defaultInfo"
                     :autoCalcEnabled="autoCalcEnabled"
+                    :validate="validateProtein"
                     :isFavorite="isFavorite"
                     :showCalculateButton="!autoCalcEnabled"
                     :showCopyButton="hasValidResult"
@@ -16,7 +17,8 @@
                     @calculate="onCalculateClick"
                     @copy="$emit('copy')"
                     @export="$emit('export')"
-                    @reset="$emit('reset')">
+                    @reset="$emit('reset')"
+                    @invalid="(errors) => $emit('invalid', errors)">
 
         <!-- Graphic -->
         <template #graphic="{ jumpTo }">
@@ -279,52 +281,45 @@
         </template>
 
         <!-- Inputs -->
-        <template #inputs="{ maybeAutoCalc }">
-            <div class="input-group">
-                <label>Körpergewicht ({{ unitNormalized === 'kg' ? 'kg' : 'lbs' }})</label>
-                <input :value="weightInputValue"
-                       @input="(e) => { onWeightInput(e); maybeAutoCalc() }"
-                       type="number"
-                       :placeholder="unitNormalized === 'kg' ? 'z. B. 75' : 'z. B. 165'"
-                       class="edit-input"
-                       step="any"
-                       min="0" />
-            </div>
+        <template #inputs="{ maybeAutoCalc, normalizeNumberInput }">
+            <UiCalculatorInput :modelValue="weightInputValue"
+                               :label="`Körpergewicht (${unitNormalized === 'kg' ? 'kg' : 'lbs'})`"
+                               type="text"
+                               inputmode="decimal"
+                               autocomplete="off"
+                               :placeholder="unitNormalized === 'kg' ? 'z. B. 75' : 'z. B. 165'"
+                               @update:modelValue="(v) => { onWeightInputValue(v, normalizeNumberInput); maybeAutoCalc() }" />
 
-            <div class="input-group">
-                <label>Ziel</label>
-                <select :value="goal"
-                        @change="(e) => { onGoalChange(e); maybeAutoCalc() }"
-                        class="edit-input">
-                    <option value="cut">Fettverlust</option>
-                    <option value="maintain">Gewicht halten</option>
-                    <option value="bulk">Muskelaufbau</option>
-                </select>
-            </div>
+            <UiCalculatorInput :modelValue="goal"
+                               as="select"
+                               label="Ziel"
+                               @update:modelValue="(v) => { emit('update:proteinGoal', String(v) as Goal); maybeAutoCalc() }"
+                               :options="[
+                           { label: 'Fettverlust', value: 'cut' },
+                           { label: 'Gewicht halten', value: 'maintain' },
+                           { label: 'Muskelaufbau', value: 'bulk' },
+                       ]" />
 
-            <div class="input-group">
-                <label>Aktivität</label>
-                <select :value="activityEffective"
-                        @change="(e) => { onActivityChange(e); maybeAutoCalc() }"
-                        class="edit-input">
-                    <option value="low">Niedrig</option>
-                    <option value="moderate">Moderat</option>
-                    <option value="high">Hoch</option>
-                </select>
-            </div>
+            <UiCalculatorInput :modelValue="activityEffective"
+                               as="select"
+                               label="Aktivität"
+                               @update:modelValue="(v) => { emit('update:proteinActivity', String(v) as Activity); maybeAutoCalc() }"
+                               :options="[
+                           { label: 'Niedrig', value: 'low' },
+                           { label: 'Moderat', value: 'moderate' },
+                           { label: 'Hoch', value: 'high' },
+                       ]" />
 
-            <div class="input-group">
-                <label>Anzahl Mahlzeiten/Tag (optional)</label>
-                <input :value="mealsInputValue"
-                       @input="onMealsInput"
-                       type="number"
-                       placeholder="z. B. 3"
-                       class="edit-input"
-                       min="1"
-                       step="1" />
-                <p class="hint">Wenn gesetzt, zeigen wir zusätzlich g pro Mahlzeit.</p>
-            </div>
+            <UiCalculatorInput :modelValue="mealsInputValue"
+                               label="Mahlzeiten/Tag (optional)"
+                               type="text"
+                               inputmode="numeric"
+                               autocomplete="off"
+                               placeholder="z. B. 3"
+                               hint="Wenn gesetzt, zeigen wir zusätzlich g pro Mahlzeit."
+                               @update:modelValue="(v) => { onMealsInputValue(v); }" />
         </template>
+
 
         <!-- Result -->
         <template #result>
@@ -347,6 +342,7 @@
 <script setup lang="ts">
     import { ref, computed, watch } from 'vue'
     import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
+    import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
 
     type Unit = 'kg' | 'lb' | 'lbs' | string
     type Goal = 'maintain' | 'bulk' | 'cut'
@@ -381,6 +377,7 @@
         (e: 'copy'): void
         (e: 'export'): void
         (e: 'reset'): void
+        (e: 'invalid', errors: string[]): void
     }>()
 
     const copyText = computed<string | null>(() => {
@@ -389,7 +386,7 @@
         const parts: string[] = []
 
         if (props.proteinWeight != null) {
-            parts.push(`Gewicht: ${props.proteinWeight} ${unitNormalized.value === 'kg' ? 'kg' : 'lbs'}`)
+            parts.push(`Körpergewicht: ${props.proteinWeight} ${unitNormalized.value === 'kg' ? 'kg' : 'lbs'}`)
         }
 
         parts.push(`Ziel: ${props.proteinGoal}`)
@@ -426,12 +423,18 @@
     }
 
     function computeLocalResult(): ProteinResult | null {
+        const weightLabel = `Körpergewicht (${unitNormalized.value === 'kg' ? 'kg' : 'lbs'})`
+
         const w = props.proteinWeight
-        if (w == null || !Number.isFinite(w) || w <= 0) return null
-        const weightKg = unitNormalized.value === 'kg' ? w : w * LBS_TO_KG
-        const factor = proteinFactor(props.proteinGoal, activityEffective.value)
-        const recommend = weightKg * factor
-        return { recommend, factor, weightDisplay: `${weightKg.toFixed(1)} kg` }
+        if (w == null || Number.isNaN(w)) {
+            errors.push(`Bitte gib dein ${weightLabel} ein.`)
+            return errors
+        }
+
+        if (w <= 0) errors.push(`${weightLabel} muss größer als 0 sein.`)
+        else if (unitNormalized.value === 'kg' && w > 400) errors.push(`${weightLabel} wirkt unrealistisch hoch.`)
+        else if (unitNormalized.value === 'lbs' && w > 900) errors.push(`${weightLabel} wirkt unrealistisch hoch.`)
+
     }
 
     /* Lokaler Fallback */
@@ -446,10 +449,6 @@
         { immediate: true }
     )
 
-    /* Ergebnis-Priorität:
-       - autoCalcEnabled: nimm lokal (snappier UI)
-       - sonst: nimm Parent, fallback lokal
-    */
     const effectiveResult = computed<ProteinResult | null>(() => {
         return props.autoCalcEnabled
             ? (internalResult.value ?? props.proteinResult ?? null)
@@ -491,58 +490,61 @@
         internalResult.value = computeLocalResult()
         emit('calculate')
     }
-    function onWeightInput(e: Event) {
-        const raw = (e.target as HTMLInputElement).value.trim()
-        const value = raw === '' ? null : Number(raw)
-        emit('update:proteinWeight', raw === '' || Number.isNaN(value) ? null : value)
+    function onWeightInputValue(v: string | number, normalize?: (raw: string) => string) {
+        const raw0 = String(v ?? '')
+        const raw = normalize ? normalize(raw0) : raw0.trim().replace(',', '.')
+        if (raw === '') return emit('update:proteinWeight', null)
+
+        const n = Number(raw)
+        emit('update:proteinWeight', Number.isFinite(n) ? n : null)
     }
-    function onGoalChange(e: Event) {
-        const val = (e.target as HTMLSelectElement).value as Goal
-        emit('update:proteinGoal', (val ?? props.proteinGoal) as Goal)
-    }
-    function onActivityChange(e: Event) {
-        const val = (e.target as HTMLSelectElement).value as Activity
-        emit('update:proteinActivity', (val ?? activityEffective.value) as Activity)
-    }
-    function onMealsInput(e: Event) {
-        const raw = (e.target as HTMLInputElement).value.trim()
+
+    function onMealsInputValue(v: string | number) {
+        const raw = String(v ?? '').replace(/[^\d]/g, '')
         if (raw === '') return emit('update:proteinMeals', null)
-        const parsed = Number(raw)
-        emit('update:proteinMeals', Number.isNaN(parsed) ? null : Math.max(1, Math.floor(parsed)))
+
+        const n = Number(raw)
+        emit('update:proteinMeals', Number.isFinite(n) ? Math.max(1, Math.floor(n)) : null)
     }
+
+    function validateProtein(): string[] {
+        const errors: string[] = []
+
+        const w = props.proteinWeight
+        if (w == null || Number.isNaN(w)) {
+            errors.push('Bitte gib dein Körpergewicht (kg) ein.')
+            return errors
+        }
+
+        if (w <= 0) errors.push('Körpergewicht (kg) muss größer als 0 sein.')
+        else if (unitNormalized.value === 'kg' && w > 400) errors.push('Körpergewicht (kg) wirkt unrealistisch hoch.')
+        else if (unitNormalized.value === 'lbs' && w > 900) errors.push('Körpergewicht (kg) wirkt unrealistisch hoch.') // Label bleibt bewusst wie Input
+
+        const g = props.proteinGoal
+        if (g !== 'cut' && g !== 'maintain' && g !== 'bulk') {
+            errors.push('Bitte wähle dein Ziel.')
+        }
+
+        const a = props.proteinActivity
+        if (a == null || (a !== 'low' && a !== 'moderate' && a !== 'high')) {
+            errors.push('Bitte wähle deine Aktivität.')
+        }
+
+        const m = props.proteinMeals
+        if (m != null) {
+            if (!Number.isFinite(m)) errors.push('Mahlzeiten/Tag (optional) ist ungültig.')
+            else if (m < 1) errors.push('Mahlzeiten/Tag (optional) muss mindestens 1 sein.')
+            else if (m > 20) errors.push('Mahlzeiten/Tag (optional) wirkt unrealistisch hoch.')
+        }
+
+        return errors
+    }
+
 </script>
 
 <style scoped>
-    .input-group {
-        margin-bottom: 1rem;
-    }
-
-    .edit-input {
-        width: 100%;
-        padding: .75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        font-size: .9rem;
-        transition: border-color .3s, box-shadow .3s;
-    }
-
-        .edit-input:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99,102,241,.5);
-            outline: none;
-        }
-
-    .hint {
-        margin-top: .4rem;
-        font-size: .85rem;
-        color: var(--text-secondary);
-    }
-
     .result-sub {
         font-size: .95rem;
         color: var(--text-secondary);
     }
-
 </style>

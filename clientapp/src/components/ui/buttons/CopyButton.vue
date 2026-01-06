@@ -1,6 +1,6 @@
 ﻿<!--Pfad: components/ui/buttons/CopyButton.vue-->
 <template>
-    <button class="btn-ghost mini" type="button" @click="$emit('click')">
+    <button class="btn-ghost mini" type="button" title="Kopieren" @click="$emit('click')">
         📋 <slot>Kopieren</slot>
     </button>
 </template>

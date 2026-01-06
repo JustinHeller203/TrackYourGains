@@ -1,6 +1,6 @@
 ﻿<!--Pfad: components/ui/buttons/ExportButton.vue-->
 <template>
-    <button class="btn-ghost" type="button" @click="$emit('click')">
+    <button class="btn-ghost" type="button" title="Exportieren" @click="$emit('click')">
         <span class="btn-icon">⬇️</span>
         <span class="btn-label"><slot>Exportieren</slot></span>
     </button>

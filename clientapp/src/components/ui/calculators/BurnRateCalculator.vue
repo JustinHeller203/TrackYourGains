@@ -1,5 +1,6 @@
 ﻿<!--BurnrateCalculator-->
 <template>
+
     <BaseCalculator :title="title || 'BurnRate Calculator'"
                     :showInfo="true"
                     infoTitle="BurnRate Calculator"
@@ -8,6 +9,7 @@
                     ariaClose="Schließen"
                     :info="resolvedInfoText"
                     :autoCalcEnabled="autoCalcEnabled"
+                    :validate="validateBurnRate"
                     :isFavorite="isFavorite"
                     :showCalculateButton="!autoCalcEnabled"
                     :showCopyButton="hasResult"
@@ -16,7 +18,8 @@
                     @calculate="onManualCalculate"
                     @copy="$emit('copy')"
                     @export="$emit('export')"
-                    @reset="() => { resetDefaults(); $emit('reset') }">
+                    @reset="() => { resetDefaults(); $emit('reset') }"
+                    @invalid="(errors) => $emit('invalid', errors)">
 
         <!-- Graphic -->
         <template #graphic="{ jumpTo }">
@@ -243,71 +246,52 @@
 
         <!-- Inputs -->
         <template #inputs="{ maybeAutoCalc, normalizeNumberInput }">
-            <div class="input-group">
-                <label>Modus</label>
-                <div class="mode">
-                    <button class="mode-btn"
-                            type="button"
-                            :class="{ active: mode === 'fat_to_kcal' }"
-                            @click="() => { mode = 'fat_to_kcal'; maybeAutoCalc() }">
-                        Fett → kcal
-                    </button>
+            <!-- Modus Buttons (bleibt) -->
+            <div class="mode">
+                <button class="mode-btn"
+                        type="button"
+                        :class="{ active: mode === 'fat_to_kcal' }"
+                        @click="() => { mode = 'fat_to_kcal'; if (!autoCalcEnabled) didCalculate = false; maybeAutoCalc() }">
+                    Fett → kcal
+                </button>
 
-                    <button class="mode-btn"
-                            type="button"
-                            :class="{ active: mode === 'kcal_to_fat' }"
-                            @click="() => { mode = 'kcal_to_fat'; maybeAutoCalc() }">
-                        kcal → Fett
-                    </button>
-                </div>
+                <button class="mode-btn"
+                        type="button"
+                        :class="{ active: mode === 'kcal_to_fat' }"
+                        @click="() => { mode = 'kcal_to_fat'; if (!autoCalcEnabled) didCalculate = false; maybeAutoCalc() }">
+                    kcal → Fett
+                </button>
             </div>
 
-            <div class="input-group">
-                <label>{{ mode === 'fat_to_kcal' ? 'Fettmenge' : 'Kalorien' }}</label>
+            <!-- Betrag -->
+            <div class="br-row">
+                <UiCalculatorInput :modelValue="amountRaw"
+                                   type="text"
+                                   inputmode="decimal"
+                                   autocomplete="off"
+                                   :label="mode === 'fat_to_kcal' ? 'Fettmenge' : 'Kalorien'"
+                                   :placeholder="mode === 'fat_to_kcal' ? 'z.B. 250' : 'z.B. 500'"
+                                   :hint="modeHint"
+                                  @update:modelValue="(v) => { amountRaw = normalizeNumberInput(String(v)); if (!autoCalcEnabled) didCalculate = false; maybeAutoCalc() }" />
 
-                <div class="input-row">
-                    <input class="edit-input"
-                           type="text"
-                           inputmode="decimal"
-                           autocomplete="off"
-                           :value="amountRaw"
-                           @input="(e) => { onAmountInput(e, normalizeNumberInput); maybeAutoCalc() }"
-                           :placeholder="mode === 'fat_to_kcal' ? 'z.B. 250' : 'z.B. 500'" />
-
-                    <select v-if="mode === 'fat_to_kcal'"
-                            class="edit-input unit-select"
-                            :value="fatUnit"
-                            @change="(e) => { fatUnit = (e.target as HTMLSelectElement).value as any; maybeAutoCalc() }">
-                        <option value="mg">mg</option>
-                        <option value="g">g</option>
-                        <option value="kg">kg</option>
-                    </select>
-
-                    <template v-else>
-                        <span class="suffix">kcal</span>
-
-                        <select class="edit-input unit-select"
-                                aria-label="Ausgabe-Einheit"
-                                :value="fatUnit"
-                                @change="(e) => { fatUnit = (e.target as HTMLSelectElement).value as any; maybeAutoCalc() }">
-                            <option value="mg">mg</option>
-                            <option value="g">g</option>
-                            <option value="kg">kg</option>
-                        </select>
-                    </template>
-                </div>
-
-                <div class="hint">{{ modeHint }}</div>
+                <UiCalculatorInput :modelValue="fatUnit"
+                                   as="select"
+                                   :label="mode === 'fat_to_kcal' ? 'Einheit' : 'Ausgabe-Einheit'"
+                                   :options="[
+             { label: 'mg', value: 'mg' },
+             { label: 'g', value: 'g' },
+             { label: 'kg', value: 'kg' }
+           ]"
+                                   @change="(v) => { fatUnit = v as any; if (!autoCalcEnabled) didCalculate = false; maybeAutoCalc() }" />
             </div>
-
-
         </template>
+
 
         <!-- Result -->
         <template #result>
             <div v-if="hasResult">
                 <p>
-                    <strong>Ergebnis:</strong>
+                    <strong>Ergebnis:</strong>&nbsp;
                     <template v-if="mode === 'fat_to_kcal'">
                         {{ formatNumber(resultKcal) }} kcal
                     </template>
@@ -315,34 +299,18 @@
                         {{ formatNumber(resultFatValue) }} {{ fatUnit }}
                     </template>
                 </p>
-
-                <p class="result-sub">
-                    <template v-if="mode === 'fat_to_kcal'">
-                        Das ist die Energie, die ungefähr dem Fett entspricht (Richtwert).
-                    </template>
-                    <template v-else>
-                        Das ist die Fettmenge, die energetisch ungefähr zu den kcal passt (Richtwert).
-                    </template>
-                </p>
-
-                <p class="note">
-                    Kein medizinischer Rat. Körperfettverlust ist nicht 1:1 (Wasser/Glykogen/Adaptation).
-                </p>
             </div>
         </template>
-
     </BaseCalculator>
-
-
 </template>
 
 <script setup lang="ts">
     import { computed, ref } from 'vue'
     import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
+    import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
 
     type Mode = 'fat_to_kcal' | 'kcal_to_fat'
     type FatUnit = 'mg' | 'g' | 'kg'
-    type NormalizeFn = (raw: string) => string
 
     const props = withDefaults(defineProps<{
         title?: string
@@ -363,6 +331,7 @@
         (e: 'copy'): void
         (e: 'export'): void
         (e: 'reset'): void
+        (e: 'invalid', errors: string[]): void
     }>()
 
     const mode = ref<Mode>('fat_to_kcal')
@@ -372,12 +341,50 @@
 
     const kcalPerKg = computed(() => 7700)
 
-    function onAmountInput(e: Event, normalizeNumberInput?: NormalizeFn) {
-        const el = e.target as HTMLInputElement | null
-        if (!el) return
-        const raw = el.value ?? ''
-        amountRaw.value = normalizeNumberInput ? normalizeNumberInput(raw) : raw
+    const didCalculate = ref(false)
+
+    const hasResult = computed(() => {
+        const baseValid = amountRaw.value.trim() !== '' && amount.value > 0
+        if (!baseValid) return false
+        return props.autoCalcEnabled ? true : didCalculate.value
+    })
+
+    function resetDefaults() {
+        amountRaw.value = ''
+        mode.value = 'fat_to_kcal'
+        fatUnit.value = 'g'
+        didCalculate.value = false
     }
+
+    function onManualCalculate() {
+        if (props.autoCalcEnabled) return
+        didCalculate.value = true
+    }
+
+    function validateBurnRate(): string[] {
+        const errors: string[] = []
+
+        if (!amountRaw.value.trim()) {
+            errors.push(mode.value === 'fat_to_kcal'
+                ? 'Bitte gib eine Fettmenge ein.'
+                : 'Bitte gib Kalorien ein.'
+            )
+            return errors
+        }
+
+        if (!Number.isFinite(amount.value)) {
+            errors.push('Bitte gib eine gültige Zahl ein.')
+            return errors
+        }
+
+        if (amount.value <= 0) {
+            errors.push('Wert muss größer als 0 sein.')
+            return errors
+        }
+
+        return errors
+    }
+
 
     const resolvedInfoText = computed(() =>
         props.infoText ?? props.info ??
@@ -388,8 +395,6 @@
         const n = Number(String(amountRaw.value).replace(',', '.'))
         return Number.isFinite(n) && n >= 0 ? n : 0
     })
-
-    const hasResult = computed(() => amountRaw.value.trim() !== '' && amount.value > 0)
 
     const mgToKcalFactor = computed(() => kcalPerKg.value / 1_000_000) // 1 kg = 1.000.000 mg
 
@@ -441,16 +446,6 @@
         return parts.join(' | ')
     })
 
-    function resetDefaults() {
-        amountRaw.value = ''
-        mode.value = 'fat_to_kcal'
-        fatUnit.value = 'g'
-    }
-    function onManualCalculate() {
-        // Rechner ist live (computed). Button ist nur fürs einheitliche UX.
-        emit('calculate')
-    }
-
     function formatNumber(n: number) {
         if (!Number.isFinite(n)) return '0'
         const abs = Math.abs(n)
@@ -467,4 +462,21 @@
 </script>
 
 <style scoped>
+    .br-row {
+        display: flex;
+        gap: .75rem;
+        align-items: flex-start;
+    }
+
+    /* kein :deep -> nimm global, damit es safe greift */
+    :global(.br-row .ui-input) {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    :global(.br-row .ui-select) {
+        flex: 0 0 160px;
+    }
+
+
 </style>

@@ -8,6 +8,7 @@
                     ariaClose="Schließen"
                     :info="infoText"
                     :autoCalcEnabled="autoCalcEnabled"
+                    :validate="validateGl"
                     :isFavorite="isFavorite"
                     :showCalculateButton="!autoCalcEnabled"
                     :showCopyButton="glResult !== null"
@@ -16,7 +17,8 @@
                     @calculate="$emit('calculate')"
                     @copy="$emit('copy')"
                     @export="$emit('export')"
-                    @reset="$emit('reset')">
+                    @reset="$emit('reset')"
+                    @invalid="(errors) => $emit('invalid', errors)">
 
         <!-- Graphic -->
         <template #graphic="{ jumpTo }">
@@ -322,62 +324,46 @@
         </template>
 
         <!-- Inputs -->
+        <!-- Inputs -->
         <template #inputs="{ openInfoAndJump, maybeAutoCalc }">
             <GlTablePopup ref="glTablePopup" @apply="applyFromGlTable" />
 
-            <div class="input-group">
-                <label>Lebensmittel</label>
-                <input :value="food"
-                       @input="(e) => { onFood(e); maybeAutoCalc() }"
-                       type="text"
-                       placeholder="z. B. Reis, Banane …"
-                       class="edit-input" />
+            <UiCalculatorInput :modelValue="food"
+                               label="Lebensmittel"
+                               placeholder="z. B. Reis, Banane …"
+                               @update:modelValue="(v) => { emit('update:glFood', String(v)); maybeAutoCalc() }" />
+
+            <UiCalculatorInput :modelValue="serving ?? ''"
+                               type="number"
+                               inputmode="decimal"
+                               label="Portionsgröße (g)"
+                               placeholder="z. B. 150"
+                               @update:modelValue="(v) => { emit('update:glServing', toNumberOrNull(v)); maybeAutoCalc() }" />
+
+            <UiCalculatorInput :modelValue="carbs100 ?? ''"
+                               type="number"
+                               inputmode="decimal"
+                               label="Kohlenhydrate pro 100 (g)"
+                               placeholder="z. B. 28"
+                               hint="Falls bekannt: Ballaststoffe von den Gesamt-KH abziehen."
+                               @update:modelValue="(v) => { emit('update:glCarbs100', toNumberOrNull(v)); maybeAutoCalc() }" />
+
+            <div class="gi-label">
+                <span>Glykämischer Index (0–110)</span>
+                <button class="info-btn"
+                        type="button"
+                        aria-label="GI Erklärung öffnen"
+                        title="Was ist der GI?"
+                        @click="openInfoAndJump('gl_gi')">
+                    <span class="info-emoji" aria-hidden="true">ℹ️</span>
+                </button>
             </div>
 
-            <div class="input-group">
-                <label>Portionsgröße (g)</label>
-                <input :value="serving ?? ''"
-                       @input="(e) => { onServing(e); maybeAutoCalc() }"
-                       type="text"
-                       inputmode="decimal"
-                       autocomplete="off"
-                       placeholder="z. B. 150"
-                       class="edit-input" />
-            </div>
-
-            <div class="input-group">
-                <label>Kohlenhydrate pro 100 (g)</label>
-                <input :value="carbs100 ?? ''"
-                       @input="(e) => { onCarbs100(e); maybeAutoCalc() }"
-                       type="text"
-                       inputmode="decimal"
-                       autocomplete="off"
-                       placeholder="z. B. 28"
-                       class="edit-input" />
-                <small class="hint">Falls bekannt: Ballaststoffe von den Gesamt-KH abziehen.</small>
-            </div>
-
-            <div class="input-group">
-                <label class="gi-label">
-                    <span>Glykämischer Index (0–110)</span>
-
-                    <button class="info-btn"
-                            type="button"
-                            aria-label="GI Erklärung öffnen"
-                            title="Was ist der GI?"
-                            @click="openInfoAndJump('gl_gi')">
-                        <span class="info-emoji" aria-hidden="true">ℹ️</span>
-                    </button>
-                </label>
-
-                <input :value="gi ?? ''"
-                       @input="(e) => { onGi(e); maybeAutoCalc() }"
-                       type="text"
-                       inputmode="decimal"
-                       autocomplete="off"
-                       placeholder="z. B. 55"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="gi ?? ''"
+                               type="number"
+                               inputmode="decimal"
+                               placeholder="z. B. 55"
+                               @update:modelValue="(v) => { emit('update:glGi', clampGi(toNumberOrNull(v))); maybeAutoCalc() }" />
         </template>
 
         <!-- Result -->
@@ -400,6 +386,7 @@
     import { computed, ref } from 'vue'
     import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
     import GlTablePopup from '@/components/ui/popups/calc/GlTablePopup.vue'
+    import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
     import type { GlTableItem } from '@/components/ui/popups/calc/GlTablePopup.vue'
 
 
@@ -430,6 +417,7 @@
         (e: 'copy'): void
         (e: 'export'): void
         (e: 'reset'): void
+        (e: 'invalid', errors: string[]): void
     }>()
 
     const food = computed(() => props.glFood)
@@ -448,10 +436,10 @@
         if (props.glResult == null) return null
 
         const parts: string[] = []
-        if (food.value?.trim()) parts.push(`Food: ${food.value.trim()}`)
-        if (serving.value != null) parts.push(`Portion: ${serving.value} g`)
-        if (carbs100.value != null) parts.push(`KH/100g: ${carbs100.value} g`)
-        if (gi.value != null) parts.push(`GI: ${gi.value}`)
+        if (food.value?.trim()) parts.push(`Lebensmittel: ${food.value.trim()}`)
+        if (serving.value != null) parts.push(`Portionsgröße: ${serving.value} g`)
+        if (carbs100.value != null) parts.push(`Kohlenhydrate pro 100: ${carbs100.value} g`)
+        if (gi.value != null) parts.push(`Glykämischer Index: ${gi.value}`)
         if (carbs.value != null) parts.push(`verf. KH/Portion: ${carbs.value.toFixed(1)} g`)
         parts.push(`GL: ${props.glResult.toFixed(1)}${props.glCategory ? ` (${props.glCategory})` : ''}`)
 
@@ -474,101 +462,63 @@
             'GL = (GI × verfügbare KH pro Portion in g) / 100. Richtwerte: niedrig < 10, mittel 10–19, hoch ≥ 20.'
     )
 
-    function normalizeNumberInput(raw: string) {
-        return raw.trim().replace(/\s+/g, '').replace(',', '.')
-    }
-    function onFood(e: Event) {
-        emit('update:glFood', (e.target as HTMLInputElement).value)
-    }
-
-    function onServing(e: Event) {
-        const raw = normalizeNumberInput((e.target as HTMLInputElement).value)
-
-        // leer = bewusst löschen
-        if (raw === '') {
-            emit('update:glServing', null)
-            return
-        }
+    function toNumberOrNull(v: string | number) {
+        const raw = String(v).trim().replace(/\s+/g, '').replace(',', '.')
+        if (raw === '') return null
 
         const num = Number(raw)
-        // bei ungültigen Zwischenwerten (z.B. "-", "e", ".") NICHT emitten
-        if (Number.isFinite(num)) emit('update:glServing', num)
+        return Number.isFinite(num) ? num : null
     }
 
-    function onCarbs100(e: Event) {
-        const raw = normalizeNumberInput((e.target as HTMLInputElement).value)
-
-        if (raw === '') {
-            emit('update:glCarbs100', null)
-            return
-        }
-
-        const num = Number(raw)
-        if (Number.isFinite(num)) emit('update:glCarbs100', num)
+    function clampGi(v: number | null) {
+        if (v == null) return null
+        return Math.min(110, Math.max(0, v))
     }
 
-    function onGi(e: Event) {
-        const raw = normalizeNumberInput((e.target as HTMLInputElement).value)
+    function validateGl(): string[] {
+        const errors: string[] = []
 
-        if (raw === '') {
-            emit('update:glGi', null)
-            return
+        const f = String(props.glFood ?? '').trim()
+        if (!f) {
+            errors.push('Bitte gib ein Lebensmittel ein.')
         }
 
-        const num = Number(raw)
-        if (!Number.isFinite(num)) return
+        const s = props.glServing
+        if (s == null || Number.isNaN(s)) {
+            errors.push('Bitte gib die Portionsgröße (g) ein.')
+        } else {
+            if (s <= 0) errors.push('Portionsgröße (g) muss größer als 0 sein.')
+            else if (s > 5000) errors.push('Portionsgröße (g) wirkt unrealistisch hoch.')
+        }
 
-        // GI Bereich absichern (0–110)
-        const clamped = Math.min(110, Math.max(0, num))
-        emit('update:glGi', clamped)
+        const c100 = props.glCarbs100
+        if (c100 == null || Number.isNaN(c100)) {
+            errors.push('Bitte gib die Kohlenhydrate pro 100 (g) ein.')
+        } else {
+            if (c100 < 0) errors.push('Kohlenhydrate pro 100 (g) dürfen nicht negativ sein.')
+            else if (c100 > 200) errors.push('Kohlenhydrate pro 100 (g) wirken unrealistisch hoch.')
+        }
+
+        const g = props.glGi
+        if (g == null || Number.isNaN(g)) {
+            errors.push('Bitte gib den Glykämischen Index (0–110) ein.')
+        } else {
+            if (g < 0 || g > 110) errors.push('Glykämischer Index (0–110) muss zwischen 0 und 110 liegen.')
+        }
+
+        return errors
     }
 
 </script>
 
 <style scoped>
-    .input-group {
-        margin-bottom: 1rem;
-    }
-
-        .input-group label {
-            display: block;
-            font-size: .9rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-bottom: .25rem;
-        }
-
-    .edit-input {
-        width: 100%;
-        padding: .75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        font-size: .9rem;
-        transition: border-color .3s, box-shadow .3s;
-    }
-
-        .edit-input:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99,102,241,.5);
-            outline: none;
-        }
-
-    .hint {
-        display: block;
-        margin-top: .35rem;
-        font-size: .8rem;
-        color: var(--text-secondary);
-    }
-
     .gi-label {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        justify-content: space-between;
-        gap: .5rem;
+        justify-content: flex-start;
+        gap: .4rem;
+        width: fit-content;
     }
-
     /* GI Block */
     .gi-steps {
         display: grid;
@@ -632,122 +582,5 @@
         }
     }
 
-    /* GL Tabelle */
-    .gl-table-tools {
-        display: flex;
-        gap: .5rem;
-        align-items: center;
-        margin: .55rem 0 .7rem;
-    }
-
-    .gl-table-search {
-        flex: 1;
-        padding: .65rem .75rem;
-        border-radius: 12px;
-        border: 1px solid rgba(148, 163, 184, 0.22);
-        background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
-        color: var(--text-primary);
-        outline: none;
-    }
-
-        .gl-table-search:focus {
-            border-color: rgba(129, 140, 248, 0.7);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
-        }
-
-    .gl-table-clear {
-        padding: .65rem .75rem;
-        border-radius: 12px;
-        border: 1px solid rgba(148, 163, 184, 0.22);
-        background: color-mix(in srgb, var(--bg-secondary) 75%, transparent);
-        color: var(--text-primary);
-        cursor: pointer;
-    }
-
-        .gl-table-clear:disabled {
-            opacity: .45;
-            cursor: not-allowed;
-        }
-
-    .gl-table-grid {
-        display: grid;
-        gap: .55rem;
-    }
-
-    .gl-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .7rem;
-        padding: .75rem .8rem;
-        border-radius: 14px;
-        border: 1px solid rgba(148, 163, 184, 0.18);
-        background: color-mix(in srgb, var(--bg-secondary) 84%, transparent);
-        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
-    }
-
-    .gl-row-main {
-        min-width: 0;
-    }
-
-    .gl-food {
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: .25rem;
-    }
-
-    .gl-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: .4rem;
-    }
-
-    .gl-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: .28rem .5rem;
-        border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.18);
-        background: rgba(255, 255, 255, 0.04);
-        font-size: .78rem;
-        color: var(--text-primary);
-    }
-
-    .gl-pill--muted {
-        opacity: .75;
-    }
-
-    .gl-apply {
-        flex: 0 0 auto;
-        padding: .55rem .75rem;
-        border-radius: 12px;
-        border: 1px solid rgba(129, 140, 248, 0.35);
-        background: color-mix(in srgb, var(--accent-primary) 22%, transparent);
-        color: var(--text-primary);
-        cursor: pointer;
-    }
-
-        .gl-apply:hover {
-            border-color: rgba(129, 140, 248, 0.7);
-        }
-
-    .gl-empty {
-        padding: .85rem .8rem;
-        border-radius: 14px;
-        border: 1px dashed rgba(148, 163, 184, 0.25);
-        color: var(--text-secondary);
-        background: rgba(255, 255, 255, 0.03);
-    }
-
-    @media (max-width: 560px) {
-        .gl-row {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .gl-apply {
-            width: 100%;
-        }
-    }
-
+   
 </style>

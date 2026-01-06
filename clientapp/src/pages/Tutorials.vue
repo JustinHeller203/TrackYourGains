@@ -3,7 +3,11 @@
     <div class="tutorials" :class="{ 'dark-mode': darkMode }">
         <h2 class="page-title">🎥 Übungstutorials</h2>
         <div class="search-and-filter">
-            <input v-model="searchQuery" placeholder="Tutorial suchen..." class="search-bar" />
+            <UiSearch v-model="searchQuery"
+                      placeholder="Tutorial suchen…"
+                      ariaLabel="Tutorial suchen"
+                      :center="true"
+                      maxWidth="520px" />
         </div>
         <div v-if="loading" class="loading-indicator">
             <p>Tutorials werden geladen...</p>
@@ -36,6 +40,7 @@
 
 <script setup lang="ts">
     import { ref, computed, onMounted } from 'vue';
+    import UiSearch from '@/components/ui/kits/UiSearch.vue'
 
     const searchQuery = ref('');
     const loading = ref(true);
@@ -52,7 +57,6 @@
     const tutorials = ref<Tutorial[]>([]);
 
     onMounted(async () => {
-        // Simulate loading data from an external source
         await new Promise(resolve => setTimeout(resolve, 1000));
         tutorials.value = [
             {
@@ -170,15 +174,6 @@
         justify-content: center;
         margin-bottom: 1.5rem;
     }
-
-    .search-bar {
-        width: min(520px, 100%);
-    }
-    .search-bar, .category-filter {
-        min-width: 0;
-    }
-    /* dürfen schrumpfen */
-
     @media (max-width: 600px) {
         .page-title {
             font-size: 1.75rem;
@@ -188,21 +183,6 @@
         .tutorials {
             padding: 1rem;
         }
-        /* angenehmer auf Phone */
-        .search-and-filter {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .search-bar, .category-filter {
-            width: 100%;
-        }
-    }
-
-    .search-bar, .category-filter {
-        padding: 0.5rem;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
     }
 
     .tutorials-grid {
@@ -217,9 +197,6 @@
             min-width: 0;
         }
 
-    /* Tutorial.vue – REPLACE alter .tutorial-card-Block */
-
-    /* Premium-Card für YT-Tutorials – optisch wie workout-list / plan-card */
     .tutorial-card {
         position: relative;
         z-index: 1;
@@ -254,20 +231,17 @@
                 opacity: 1;
             }
 
-    /* Dark-Mode Variante – same vibe wie Progress / plan-card */
     html.dark-mode .tutorial-card {
         background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62% ), #020617;
         border-color: rgba(148, 163, 184, 0.5);
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
-    /* Typo sauber halten wie bei deinen anderen Cards */
     .card-title,
     .card-info {
         overflow-wrap: anywhere;
         word-break: break-word;
     }
-
 
     .card-title {
         font-size: 1.5rem;

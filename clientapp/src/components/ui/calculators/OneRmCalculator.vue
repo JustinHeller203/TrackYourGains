@@ -8,6 +8,7 @@
                     ariaClose="Schließen"
                     :info="infoText"
                     :autoCalcEnabled="autoCalcEnabled"
+                    :validate="validateOneRm"
                     :isFavorite="isFavorite"
                     :showCalculateButton="!autoCalcEnabled"
                     :showCopyButton="hasResult"
@@ -16,7 +17,8 @@
                     @calculate="$emit('calculate')"
                     @copy="$emit('copy')"
                     @export="$emit('export')"
-                    @reset="$emit('reset')">
+                    @reset="$emit('reset')"
+                    @invalid="(errors) => $emit('invalid', errors)" >
 
         <!-- Graphic -->
         <template #graphic="{ jumpTo }">
@@ -211,36 +213,29 @@
 
         <!-- Inputs -->
         <template #inputs="{ maybeAutoCalc, normalizeNumberInput }">
-            <div class="input-group">
-                <label>Übung</label>
-                <input :value="exercise"
-                       @input="(e) => { onExerciseInput(e); maybeAutoCalc() }"
-                       type="text"
-                       placeholder="z. B. Bankdrücken"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="exercise"
+                               label="Übung"
+                               type="text"
+                               placeholder="z. B. Bankdrücken"
+                               autocomplete="off"
+                               @update:modelValue="(v) => { emit('update:oneRmExercise', String(v)); maybeAutoCalc() }" />
 
-            <div class="input-group">
-                <label>Gewicht ({{ unit === 'kg' ? 'kg' : 'lbs' }})</label>
-                <input :value="weight ?? ''"
-                       @input="(e) => { onWeightInput(e, normalizeNumberInput); maybeAutoCalc() }"
-                       type="text"
-                       inputmode="decimal"
-                       autocomplete="off"
-                       :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="weightInputValue"
+                               label="Gewicht"
+                               type="text"
+                               inputmode="decimal"
+                               autocomplete="off"
+                               :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
+                               @update:modelValue="(v) => { onWeightInputValue(v, normalizeNumberInput); maybeAutoCalc() }" />
 
-            <div class="input-group">
-                <label>Wiederholungen</label>
-                <input :value="reps ?? ''"
-                       @input="(e) => { onRepsInput(e, (v) => v.replace(/[^\d]/g, '')); maybeAutoCalc() }"
-                       type="text"
-                       inputmode="numeric"
-                       autocomplete="off"
-                       placeholder="z. B. 8"
-                       class="edit-input" />
-            </div>
+
+            <UiCalculatorInput :modelValue="repsInputValue"
+                               label="Wiederholungen"
+                               type="text"
+                               inputmode="numeric"
+                               autocomplete="off"
+                               placeholder="z. B. 8"
+                               @update:modelValue="(v) => { onRepsInputValue(v); maybeAutoCalc() }" />
         </template>
 
         <!-- Result -->
@@ -258,6 +253,7 @@
 <script setup lang="ts">
     import { computed } from 'vue'
     import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
+    import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
 
     type Unit = 'kg' | 'lb' | 'lbs' | string
     type NormalizeFn = (raw: string) => string
@@ -284,6 +280,7 @@
         (e: 'copy'): void
         (e: 'export'): void
         (e: 'reset'): void
+        (e: 'invalid', errors: string[]): void
     }>()
 
     const infoText = computed(() =>
@@ -291,13 +288,41 @@
         'Schätzt dein einmaliges Maximalgewicht. Standard: Epley (1RM ≈ Gewicht × (1 + Wiederholungen/30)). Richtwert, kein Max-Test.'
     )
 
+    function validateOneRm(): string[] {
+        const errors: string[] = []
+
+        const ex = String(props.oneRmExercise ?? '').trim()
+        if (!ex) {
+            errors.push('Bitte gib eine Übung ein.')
+        }
+
+        const w = props.oneRmWeight
+        if (w == null || Number.isNaN(w)) {
+            errors.push('Bitte gib das Gewicht ein.')
+            return errors
+        }
+
+        if (w <= 0) errors.push('Gewicht muss größer als 0 sein.')
+        else if (String(props.unit).toLowerCase() === 'kg' && w > 500) errors.push('Gewicht wirkt unrealistisch hoch (kg).')
+        else if ((String(props.unit).toLowerCase() === 'lb' || String(props.unit).toLowerCase() === 'lbs') && w > 1100)
+            errors.push('Gewicht wirkt unrealistisch hoch (lbs).')
+
+        const r = props.oneRmReps
+        if (r == null || Number.isNaN(r)) {
+            errors.push('Bitte gib die Wiederholungen ein.')
+            return errors
+        }
+
+        if (r <= 0) errors.push('Wiederholungen müssen größer als 0 sein.')
+        else if (r > 20) errors.push('Wiederholungen wirken für 1RM-Schätzung zu hoch (20+ wird sehr ungenau).')
+
+        return errors
+    }
+
     /* Bindings */
     const exercise = computed(() => props.oneRmExercise)
-    const weight = computed(() => props.oneRmWeight)
-    const reps = computed(() => props.oneRmReps)
 
     const hasResult = computed(() => props.oneRmResult != null || !!props.formattedResult)
-    const copyTextValue = computed(() => copyText.value ?? null)
 
     /* Anzeige: bevorzugt formattedResult, sonst lokal formatieren */
     const displayResult = computed(() => {
@@ -314,19 +339,22 @@
         const parts: string[] = []
         if (props.oneRmExercise?.trim()) parts.push(`Übung: ${props.oneRmExercise.trim()}`)
         if (props.oneRmWeight != null) parts.push(`Gewicht: ${props.oneRmWeight} ${String(props.unit).toLowerCase() === 'lbs' ? 'lbs' : 'kg'}`)
-        if (props.oneRmReps != null) parts.push(`Reps: ${props.oneRmReps}`)
+        if (props.oneRmReps != null) parts.push(`Wiederholungen: ${props.oneRmReps}`)
         parts.push(`1RM: ${displayResult.value}`)
 
         return parts.join(' | ')
     })
 
-    /* Handlers */
-    function onExerciseInput(e: Event) {
-        emit('update:oneRmExercise', (e.target as HTMLInputElement).value)
-    }
+    const weightInputValue = computed(() =>
+        props.oneRmWeight == null || Number.isNaN(props.oneRmWeight) ? '' : String(props.oneRmWeight)
+    )
+    const repsInputValue = computed(() =>
+        props.oneRmReps == null || Number.isNaN(props.oneRmReps) ? '' : String(props.oneRmReps)
+    )
 
-    function onWeightInput(e: Event, normalize?: NormalizeFn) {
-        const raw0 = (e.target as HTMLInputElement).value
+    /* Handlers (Value-basiert statt Event-basiert) */
+    function onWeightInputValue(v: string | number, normalize?: NormalizeFn) {
+        const raw0 = String(v ?? '')
         const raw = normalize ? normalize(raw0) : raw0.trim().replace(',', '.')
         if (raw === '') {
             emit('update:oneRmWeight', null)
@@ -336,9 +364,8 @@
         if (Number.isFinite(n)) emit('update:oneRmWeight', n)
     }
 
-    function onRepsInput(e: Event, normalize?: NormalizeFn) {
-        const raw0 = (e.target as HTMLInputElement).value
-        const raw = normalize ? normalize(raw0) : raw0.trim()
+    function onRepsInputValue(v: string | number) {
+        const raw = String(v ?? '').replace(/[^\d]/g, '')
         if (raw === '') {
             emit('update:oneRmReps', null)
             return
@@ -350,32 +377,4 @@
 </script>
 
 <style scoped>
-    .input-group {
-        margin-bottom: 1rem;
-    }
-
-        .input-group label {
-            display: block;
-            font-size: .9rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-bottom: .25rem;
-        }
-
-    .edit-input {
-        width: 100%;
-        padding: .75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        font-size: .9rem;
-        transition: border-color .3s, box-shadow .3s;
-    }
-
-        .edit-input:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99,102,241,.5);
-            outline: none;
-        }
 </style>

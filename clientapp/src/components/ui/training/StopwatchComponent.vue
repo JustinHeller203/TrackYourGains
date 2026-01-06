@@ -99,17 +99,41 @@
                             </div>
 
                             <div class="laps-stats" aria-label="Runden Statistiken">
-                                <span class="stat-item">Best: {{ formatLapTime(getLapStats(stopwatch).best) }}</span>
-                                <span class="stat-sep">|</span>
-                                <span class="stat-item">Worst: {{ formatLapTime(getLapStats(stopwatch).worst) }}</span>
-                                <span class="stat-sep">|</span>
-                                <span class="stat-item">Ø: {{ formatLapTime(getLapStats(stopwatch).avg) }}</span>
+                                <div class="laps-marquee">
+                                    <!-- 1. Laufband -->
+                                    <div class="laps-marquee__inner">
+                                        <span class="stat-item">Best: {{ formatLapTime(getLapStats(stopwatch).best) }}</span>
+                                        <span class="stat-sep">|</span>
+                                        <span class="stat-item">Worst: {{ formatLapTime(getLapStats(stopwatch).worst) }}</span>
+                                        <span class="stat-sep">|</span>
+                                        <span class="stat-item">Ø: {{ formatLapTime(getLapStats(stopwatch).avg) }}</span>
 
-                                <template v-if="typeof stopwatch.targetSeconds === 'number' && stopwatch.targetSeconds > 0">
-                                    <span class="stat-sep">|</span>
-                                    <span class="stat-item">Ziel: {{ formatLapTime(stopwatch.targetSeconds) }}</span>
-                                </template>
+                                        <template v-if="typeof stopwatch.targetSeconds === 'number' && stopwatch.targetSeconds > 0">
+                                            <span class="stat-sep">|</span>
+                                            <span class="stat-item">Ziel: {{ formatLapTime(stopwatch.targetSeconds) }}</span>
+                                        </template>
+
+                                        <span class="stat-sep">|</span>
+                                    </div>
+
+                                    <!-- 2. Laufband (Kopie) -->
+                                    <div class="laps-marquee__inner" aria-hidden="true">
+                                        <span class="stat-item">Best: {{ formatLapTime(getLapStats(stopwatch).best) }}</span>
+                                        <span class="stat-sep">|</span>
+                                        <span class="stat-item">Worst: {{ formatLapTime(getLapStats(stopwatch).worst) }}</span>
+                                        <span class="stat-sep">|</span>
+                                        <span class="stat-item">Ø: {{ formatLapTime(getLapStats(stopwatch).avg) }}</span>
+
+                                        <template v-if="typeof stopwatch.targetSeconds === 'number' && stopwatch.targetSeconds > 0">
+                                            <span class="stat-sep">|</span>
+                                            <span class="stat-item">Ziel: {{ formatLapTime(stopwatch.targetSeconds) }}</span>
+                                        </template>
+
+                                        <span class="stat-sep">|</span>
+                                    </div>
+                                </div>
                             </div>
+
 
                             <div v-if="(stopwatch.laps?.length || 0) > 1"
                                  class="laps-trend"
@@ -254,7 +278,7 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, watch, computed } from 'vue'
+    import { ref, watch, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
     import Draggable from 'vuedraggable'
     import type { StopwatchInstance as StopwatchInstanceBase, LapEntry } from '@/types/stopwatch'
     import AddButton from '@/components/ui/buttons/AddButton.vue'
@@ -1523,5 +1547,103 @@
         justify-content: center;
         margin-top: .45rem;
     }
+
+    /* ===== Mobile Ticker for laps stats ===== */
+    .laps-stats__track {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .55rem;
+        flex-wrap: wrap; /* default wie vorher */
+    }
+
+    /* Wenn schmal: eine Zeile + scroll */
+    @media (max-width: 510px) {
+        .laps-stats {
+            justify-content: flex-start;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+        }
+
+        .laps-stats__track {
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            width: max-content; /* <-- wichtig: scrollWidth wird “real” */
+            will-change: transform;
+            padding-inline: 12px;
+            transform: translateX(0);
+        }
+
+        /* nur wenn overflow wirklich da ist */
+        .laps-stats__track {
+            animation: lapsStatsMarquee 14s linear infinite;
+        }
+    }
+
+    @keyframes lapsStatsMarquee {
+        from {
+            transform: translateX(0);
+        }
+
+        to {
+            transform: translateX(calc(var(--marquee-shift, 0px) * -1));
+        }
+    }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+        .laps-stats__track {
+            animation: none !important;
+            transform: none !important;
+        }
+    }
+
+    /* ===== Marquee: immer laufen lassen (mobile only) ===== */
+    @media (max-width: 510px) {
+        .laps-stats {
+            justify-content: flex-start;
+            width: 100%;
+            overflow: hidden;
+            flex-wrap: nowrap; /* <-- NEU */
+            min-width: 0; /* <-- NEU (verhindert komische flex overflow bugs) */
+            position: relative;
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+        }
+
+        .laps-marquee {
+            animation: lapsMarqueeLoop 18s linear infinite;
+        }
+    }
+
+    .laps-marquee {
+        display: flex;
+        width: max-content;
+        flex-wrap: nowrap;
+        will-change: transform;
+    }
+
+    .laps-marquee__inner {
+        display: inline-flex;
+        align-items: center;
+        gap: .55rem;
+        white-space: nowrap;
+        flex-wrap: nowrap;
+        padding-inline: 12px;
+    }
+
+    @keyframes lapsMarqueeLoop {
+        from {
+            transform: translateX(0);
+        }
+
+        to {
+            transform: translateX(-50%);
+        }
+    }
+
 
 </style>

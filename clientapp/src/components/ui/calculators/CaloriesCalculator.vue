@@ -8,6 +8,7 @@
                     ariaClose="Schließen"
                     :info="infoText"
                     :autoCalcEnabled="autoCalcEnabled"
+                    :validate="validateCalories"
                     :isFavorite="isFavorite"
                     :showCalculateButton="!autoCalcEnabled"
                     :showCopyButton="!!result"
@@ -16,7 +17,8 @@
                     @calculate="$emit('calculate')"
                     @copy="$emit('copy')"
                     @export="$emit('export')"
-                    @reset="$emit('reset')">
+                    @reset="$emit('reset')"
+                    @invalid="(errors) => $emit('invalid', errors)">
 
         <!-- Graphic -->
         <template #graphic="{ jumpTo }">
@@ -257,47 +259,39 @@
 
         <!-- Inputs -->
         <template #inputs="{ openInfoAndJump, maybeAutoCalc }">
-            <div class="input-group">
-                <label>Alter (Jahre)</label>
-                <input :value="age ?? ''"
-                       @input="(e) => { onAgeInput(e); maybeAutoCalc() }"
-                       type="number"
-                       placeholder="z.B. 30"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="age ?? ''"
+                               type="number"
+                               inputmode="numeric"
+                               label="Alter (Jahre)"
+                               placeholder="z.B. 30"
+                               @update:modelValue="(v) => { emit('update:calorieAge', v === '' ? null : Number(v)); maybeAutoCalc() }" />
 
-            <div class="input-group">
-                <label>Geschlecht</label>
-                <select :value="gender"
-                        @change="(e) => { onGenderChange(e); maybeAutoCalc() }"
-                        class="edit-input">
-                    <option value="male">Männlich</option>
-                    <option value="female">Weiblich</option>
-                </select>
-            </div>
+            <UiCalculatorInput :modelValue="gender"
+                               as="select"
+                               label="Geschlecht"
+                               :options="[
+      { label: 'Männlich', value: 'male' },
+      { label: 'Weiblich', value: 'female' }
+    ]"
+                               @change="(v) => { emit('update:calorieGender', v as Gender); maybeAutoCalc() }" />
 
-            <div class="input-group">
-                <label>Gewicht ({{ unit === 'kg' ? 'kg' : 'lbs' }})</label>
-                <input :value="weight ?? ''"
-                       @input="(e) => { onWeightInput(e); maybeAutoCalc() }"
-                       type="number"
-                       :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="weight ?? ''"
+                               type="number"
+                               inputmode="decimal"
+                               :label="`Körpergewicht (${unit === 'kg' ? 'kg' : 'lbs'})`"
+                               :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
+                               @update:modelValue="(v) => { emit('update:calorieWeight', v === '' ? null : Number(v)); maybeAutoCalc() }" />
 
-            <div class="input-group">
-                <label>Größe (cm)</label>
-                <input :value="height ?? ''"
-                       @input="(e) => { onHeightInput(e); maybeAutoCalc() }"
-                       type="number"
-                       placeholder="z.B. 175"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="height ?? ''"
+                               type="number"
+                               inputmode="numeric"
+                               label="Körpergröße (cm)"
+                               placeholder="z.B. 175"
+                               @update:modelValue="(v) => { emit('update:calorieHeight', v === '' ? null : Number(v)); maybeAutoCalc() }" />
 
-            <div class="input-group">
-                <label class="label-row">
-                    <span>Aktivitätslevel</span>
-
+            <div class="input-pair-tight">
+                <label class="label-with-info">
+                    Aktivitätslevel
                     <button type="button"
                             class="info-btn"
                             aria-label="Aktivitätslevel Erklärung öffnen"
@@ -307,21 +301,21 @@
                     </button>
                 </label>
 
-                <select :value="activity"
-                        @change="(e) => { onActivityChange(e); maybeAutoCalc() }"
-                        class="edit-input">
-                    <option value="1.2">Sitzend</option>
-                    <option value="1.375">Leicht aktiv</option>
-                    <option value="1.55">Moderat aktiv</option>
-                    <option value="1.725">Sehr aktiv</option>
-                    <option value="1.9">Extrem aktiv</option>
-                </select>
+                <UiCalculatorInput :modelValue="activity"
+                                   as="select"
+                                   :options="[
+          { label: 'Sitzend', value: '1.2' },
+          { label: 'Leicht aktiv', value: '1.375' },
+          { label: 'Moderat aktiv', value: '1.55' },
+          { label: 'Sehr aktiv', value: '1.725' },
+          { label: 'Extrem aktiv', value: '1.9' }
+        ]"
+                                   @change="(v) => { emit('update:calorieActivity', String(v)); maybeAutoCalc() }" />
             </div>
 
-            <div class="input-group">
-                <label class="label-row">
-                    <span>Kalorienziel</span>
-
+            <div class="input-pair-tight">
+                <label class="label-with-info">
+                    Kalorienziel
                     <button type="button"
                             class="info-btn"
                             aria-label="Kalorienziel Erklärung öffnen"
@@ -331,15 +325,19 @@
                     </button>
                 </label>
 
-                <select :value="goal"
-                        @change="(e) => { onGoalChange(e); maybeAutoCalc() }"
-                        class="edit-input">
-                    <option :value="0">Erhaltung</option>
-                    <option v-for="n in steps" :key="'surplus-'+n" :value="n">+{{ n }} kcal (Überschuss)</option>
-                    <option v-for="n in steps" :key="'deficit-'+n" :value="-n">-{{ n }} kcal (Defizit)</option>
-                </select>
+                <UiCalculatorInput :modelValue="goal"
+                                   as="select"
+                                   :options="[
+                                   { label: 'Erhaltung' , value: 0 },
+                                   ...steps.map(n=>
+                    ({ label: `+${n} kcal (Überschuss)`, value: n })),
+                    ...steps.map(n => ({ label: `-${n} kcal (Defizit)`, value: -n }))
+                    ]"
+                    @change="(v) => { emit('update:calorieGoal', Number(v)); maybeAutoCalc() }" />
             </div>
+
         </template>
+
 
         <!-- Result -->
         <template #result>
@@ -365,7 +363,7 @@
 <script setup lang="ts">
     import { computed } from 'vue'
     import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
-
+    import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
 
     type Gender = 'male' | 'female'
     type Unit = 'kg' | 'lb' | 'lbs' | string
@@ -404,6 +402,7 @@
         (e: 'copy'): void
         (e: 'export'): void
         (e: 'reset'): void
+        (e: 'invalid', errors: string[]): void
     }>()
 
     /* bindings */
@@ -428,8 +427,8 @@
 
         if (age.value != null) parts.push(`Alter: ${age.value}`)
         if (gender.value) parts.push(`Geschlecht: ${gender.value === 'male' ? 'männlich' : 'weiblich'}`)
-        if (weight.value != null) parts.push(`Gewicht: ${weight.value} ${props.unit === 'kg' ? 'kg' : 'lbs'}`)
-        if (height.value != null) parts.push(`Größe: ${height.value} cm`)
+        if (weight.value != null) parts.push(`Körpergewicht: ${weight.value} ${props.unit === 'kg' ? 'kg' : 'lbs'}`)
+        if (height.value != null) parts.push(`Körpergröße: ${height.value} cm`)
         if (activity.value) parts.push(`Aktivität: ${activity.value}`)
         parts.push(`Ziel: ${goal.value > 0 ? '+' : ''}${goal.value} kcal`)
 
@@ -441,69 +440,90 @@
         return parts.join(' | ')
     })
 
-    /* handlers */
-    function onAgeInput(e: Event) {
-        const raw = (e.target as HTMLInputElement).value
-        emit('update:calorieAge', raw === '' ? null : Number(raw))
+    function validateCalories(): string[] {
+        const errors: string[] = []
+
+        const a = props.calorieAge
+        if (a == null || Number.isNaN(a)) {
+            errors.push('Bitte gib dein Alter (Jahre) ein.')
+        } else {
+            if (a <= 0) errors.push('Alter (Jahre) muss größer als 0 sein.')
+            else if (a < 10) errors.push('Alter (Jahre) wirkt unrealistisch niedrig.')
+            else if (a > 120) errors.push('Alter (Jahre) wirkt unrealistisch hoch.')
+        }
+
+        if (props.calorieGender !== 'male' && props.calorieGender !== 'female') {
+            errors.push('Bitte wähle dein Geschlecht.')
+        }
+
+        const w = props.calorieWeight
+        if (w == null || Number.isNaN(w)) {
+            errors.push('Bitte gib dein Körpergewicht ein.')
+        } else {
+            if (w <= 0) errors.push('Körpergewicht muss größer als 0 sein.')
+            else if (props.unit === 'kg' && w > 400) errors.push('Körpergewicht wirkt unrealistisch hoch (kg).')
+            else if ((props.unit === 'lb' || props.unit === 'lbs') && w > 900) errors.push('Körpergewicht wirkt unrealistisch hoch (lbs).')
+        }
+
+        const h = props.calorieHeight
+        if (h == null || Number.isNaN(h)) {
+            errors.push('Bitte gib deine Körpergröße (cm) ein.')
+        } else {
+            if (h <= 0) errors.push('Körpergröße (cm) muss größer als 0 sein.')
+            else if (h < 80) errors.push('Körpergröße (cm) wirkt unrealistisch niedrig.')
+            else if (h > 250) errors.push('Körpergröße (cm) wirkt unrealistisch hoch.')
+        }
+
+        const act = String(props.calorieActivity ?? '').trim()
+        if (!act) {
+            errors.push('Bitte wähle dein Aktivitätslevel.')
+        } else {
+            const n = Number(act)
+            const allowed = [1.2, 1.375, 1.55, 1.725, 1.9]
+            if (!Number.isFinite(n) || !allowed.includes(n)) {
+                errors.push('Aktivitätslevel ist ungültig.')
+            }
+        }
+
+        const g = props.calorieGoal
+        if (!Number.isFinite(g)) {
+            errors.push('Kalorienziel ist ungültig.')
+        } else if (Math.abs(g) > 2000) {
+            errors.push('Kalorienziel wirkt unrealistisch hoch.')
+        }
+
+        return errors
     }
-    function onGenderChange(e: Event) {
-        emit('update:calorieGender', (e.target as HTMLSelectElement).value as Gender)
-    }
-    function onWeightInput(e: Event) {
-        const raw = (e.target as HTMLInputElement).value
-        emit('update:calorieWeight', raw === '' ? null : Number(raw))
-    }
-    function onHeightInput(e: Event) {
-        const raw = (e.target as HTMLInputElement).value
-        emit('update:calorieHeight', raw === '' ? null : Number(raw))
-    }
-    function onActivityChange(e: Event) {
-        emit('update:calorieActivity', (e.target as HTMLSelectElement).value)
-    }
-    function onGoalChange(e: Event) {
-        emit('update:calorieGoal', Number((e.target as HTMLSelectElement).value))
-    }
+
 </script>
 
 <style scoped>
-    .input-group {
-        margin-bottom: 1rem;
-    }
-
-        .input-group label {
-            display: block;
-            font-size: .9rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-bottom: .25rem;
-        }
-
-    .label-row {
-        display: inline-flex;
+    /* nur noch kleine helpers */
+    .label-with-info {
+        display: flex;
         align-items: center;
-        gap: .4rem;
+        gap: .45rem;
+        font: inherit;
+        font-size: .92rem;
+        font-weight: 600;
+        line-height: 1.1;
+        letter-spacing: .01em;
+        color: color-mix(in srgb, var(--text-primary) 88%, transparent);
     }
 
-    .edit-input {
-        width: 100%;
-        padding: .75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        font-size: .9rem;
-        transition: border-color .3s, box-shadow .3s;
-    }
-
-        .edit-input:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99,102,241,.5);
-            outline: none;
+        .label-with-info .info-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
         }
 
-    .result-list {
-        margin: .25rem 0 0;
-        padding-left: 1.1rem;
+        .label-with-info .info-emoji {
+            font-size: .95em;
+        }
+
+    .calc-card--wide {
+        grid-column: 1 / -1;
     }
 
     .chart-container {
@@ -511,7 +531,9 @@
         margin-top: .5rem;
     }
 
-    .calc-card--wide {
-        grid-column: 1 / -1;
+    .input-pair-tight {
+        display: flex;
+        flex-direction: column;
+        gap: .4rem; /* tighter label -> select spacing */
     }
 </style>

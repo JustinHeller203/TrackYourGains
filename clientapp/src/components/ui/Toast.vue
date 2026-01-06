@@ -1,4 +1,4 @@
-<!--Toast.vue-->
+<!--Pfad: components/ui/Toast.vue-->
 <template>
     <div class="toast-container" :class="[positionClass, { 'pe-auto': showMenu || repositionMode }]" :style="containerDragStyle">
         <div v-if="toast"

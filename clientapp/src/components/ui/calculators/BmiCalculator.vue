@@ -16,7 +16,9 @@
                     @calculate="$emit('calculate')"
                     @copy="$emit('copy')"
                     @export="$emit('export')"
-                    @reset="$emit('reset')">
+                    @reset="$emit('reset')"
+                    :validate="validate"
+                    @invalid="onInvalid">
         <!-- Graphic -->
         <template #graphic="{ jumpTo }">
             <div class="calc-hero" role="img" aria-label="BMI Kurzkarte">
@@ -232,33 +234,32 @@
         </template>
 
         <!-- Inputs -->
-        <template #inputs>
-            <div class="input-group">
-                <label>Geschlecht</label>
-                <select :value="gender" @change="onGenderChange" class="edit-input">
-                    <option value="male">Männlich</option>
-                    <option value="female">Weiblich</option>
-                </select>
-            </div>
+        <template #inputs="{ UiCalculatorInput, maybeAutoCalc }">
+            <UiCalculatorInput :modelValue="gender"
+                               as="select"
+                               label="Geschlecht"
+                               :options="[
+                         { label: 'Männlich', value: 'male' },
+                         { label: 'Weiblich', value: 'female' }
+                       ]"
+                               @change="(v) => { emit('update:bmiGender', v as any); maybeAutoCalc?.() }" />
 
-            <div class="input-group">
-                <label>Gewicht ({{ unit === 'kg' ? 'kg' : 'lbs' }})</label>
-                <input :value="weight ?? ''"
-                       @input="onWeightInput"
-                       type="number"
-                       :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="weight ?? ''"
+                               type="number"
+                               :label="`Körpergewicht (${unit === 'kg' ? 'kg' : 'lbs'})`"
+                               :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
+                               inputmode="decimal"
+                               @update:modelValue="(v) => { emit('update:bmiWeight', v === '' ? null : Number(v)); maybeAutoCalc?.() }" />
 
-            <div class="input-group">
-                <label>Größe (cm)</label>
-                <input :value="height ?? ''"
-                       @input="onHeightInput"
-                       type="number"
-                       placeholder="z.B. 175"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="height ?? ''"
+                               type="number"
+                               label="Körpergröße (cm)"
+                               placeholder="z.B. 175"
+                               inputmode="numeric"
+                               @update:modelValue="(v) => { emit('update:bmiHeight', v === '' ? null : Number(v)); maybeAutoCalc?.() }" />
         </template>
+
+
 
         <!-- Result -->
         <template #result>
@@ -276,6 +277,7 @@
     import { computed, onMounted, watch } from 'vue'
     import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
     import { LS_PROGRESS_BMI } from '@/constants/storageKeys'
+    import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
 
     type Gender = 'male' | 'female'
     type Unit = 'kg' | 'lb' | 'lbs' | string
@@ -303,6 +305,7 @@
         (e: 'copy'): void
         (e: 'export'): void
         (e: 'reset'): void
+        (e: 'invalid', errors: string[]): void
     }>()
 
     const normalWeightRange = computed(() => {
@@ -329,6 +332,27 @@
         }
     })
 
+    function validate(): string[] {
+        const errors: string[] = []
+
+        const w = props.bmiWeight
+        const h = props.bmiHeight
+
+        if (w == null || Number.isNaN(w)) errors.push('Bitte gib dein Körpergewicht ein.')
+        else if (w <= 0) errors.push('Körpergewicht muss größer als 0 sein.')
+        else if (props.unit === 'kg' && w > 400) errors.push('Körpergewicht wirkt unrealistisch hoch (kg).')
+        else if ((props.unit === 'lb' || props.unit === 'lbs') && w > 900) errors.push('Körpergewicht wirkt unrealistisch hoch (lbs).')
+
+        if (h == null || Number.isNaN(h)) errors.push('Bitte gib deine Körpergröße ein.')
+        else if (h <= 0) errors.push('Körpergröße muss größer als 0 sein.')
+        else if (h < 80 || h > 250) errors.push('Körpergröße wirkt unrealistisch (cm).')
+
+        return errors
+    }
+
+    function onInvalid(errors: string[]) {
+        emit('invalid', errors)
+    }
 
     const copyText = computed<string | null>(() => {
         if (!props.bmiResult) return null
@@ -375,47 +399,7 @@
         },
         { deep: false }
     )
-
-    function onGenderChange(ev: Event) {
-        emit('update:bmiGender', (ev.target as HTMLSelectElement).value as Gender)
-    }
-    function onWeightInput(ev: Event) {
-        const raw = (ev.target as HTMLInputElement).value
-        emit('update:bmiWeight', raw === '' ? null : Number(raw))
-    }
-    function onHeightInput(ev: Event) {
-        const raw = (ev.target as HTMLInputElement).value
-        emit('update:bmiHeight', raw === '' ? null : Number(raw))
-    }
 </script>
 
 <style scoped>
-    .input-group {
-        margin-bottom: 1rem;
-    }
-
-        .input-group label {
-            display: block;
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-        }
-
-    .edit-input {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        font-size: 0.9rem;
-        transition: border-color .3s, box-shadow .3s;
-    }
-
-        .edit-input:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99, 102, 241, 0.5);
-            outline: none;
-        }
 </style>

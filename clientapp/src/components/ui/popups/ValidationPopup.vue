@@ -1,4 +1,4 @@
-<!--ValidationPopup.vue-->
+<!--Pfad: components\ui\popups\ValidationPopup.vue-->
 <template>
     <BasePopup :show="show"
                :title="title"

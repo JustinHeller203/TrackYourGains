@@ -16,7 +16,9 @@
                     @calculate="emit('calculate')"
                     @copy="emit('copy')"
                     @export="emit('export')"
-                    @reset="emit('reset')">
+                    @reset="emit('reset')"
+                    :validate="validateFfmi"
+                    @invalid="(errors) => emit('invalid', errors)" >
 
         <!-- Graphic -->
         <template #graphic="{ jumpTo }">
@@ -234,33 +236,28 @@
 
         <!-- Inputs -->
         <template #inputs="{ maybeAutoCalc }">
-            <div class="input-group">
-                <label>Gewicht ({{ unit === 'kg' ? 'kg' : 'lbs' }})</label>
-                <input :value="weight ?? ''"
-                       @input="(e) => { onWeightInput(e); maybeAutoCalc() }"
-                       type="number"
-                       :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="weight ?? ''"
+                               type="number"
+                               inputmode="decimal"
+                               :label="`Körpergewicht (${unit === 'kg' ? 'kg' : 'lbs'})`"
+                               :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
+                               @update:modelValue="(v) => { emit('update:ffmiWeight', v === '' ? null : Number(v)); maybeAutoCalc() }" />
 
-            <div class="input-group">
-                <label>Größe (cm)</label>
-                <input :value="height ?? ''"
-                       @input="(e) => { onHeightInput(e); maybeAutoCalc() }"
-                       type="number"
-                       placeholder="z.B. 175"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="height ?? ''"
+                               type="number"
+                               inputmode="numeric"
+                               label="Körpergröße (cm)"
+                               placeholder="z.B. 175"
+                               @update:modelValue="(v) => { emit('update:ffmiHeight', v === '' ? null : Number(v)); maybeAutoCalc() }" />
 
-            <div class="input-group">
-                <label>Körperfettanteil (%)</label>
-                <input :value="bodyFat ?? ''"
-                       @input="(e) => { onBodyFatInput(e); maybeAutoCalc() }"
-                       type="number"
-                       placeholder="z.B. 15"
-                       class="edit-input" />
-            </div>
+            <UiCalculatorInput :modelValue="bodyFat ?? ''"
+                               type="number"
+                               inputmode="decimal"
+                               label="Körperfettanteil (%)"
+                               placeholder="z.B. 15"
+                               @update:modelValue="(v) => { emit('update:ffmiBodyFat', v === '' ? null : Number(v)); maybeAutoCalc() }" />
         </template>
+
 
         <!-- Result -->
         <template #result>
@@ -276,6 +273,7 @@
 <script setup lang="ts">
     import { computed } from 'vue'
     import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
+    import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
 
     type Unit = 'kg' | 'lb' | 'lbs' | string
     interface FfmiResult { value: number; category: string }
@@ -301,6 +299,7 @@
         (e: 'copy'): void
         (e: 'export'): void
         (e: 'reset'): void
+        (e: 'invalid', errors: string[]): void
     }>()
 
     const weight = computed(() => props.ffmiWeight)
@@ -319,56 +318,48 @@
 
         const parts: string[] = []
 
-        if (weight.value != null) parts.push(`Gewicht: ${weight.value} ${props.unit === 'kg' ? 'kg' : 'lbs'}`)
-        if (height.value != null) parts.push(`Größe: ${height.value} cm`)
-        if (bodyFat.value != null) parts.push(`KFA: ${bodyFat.value}%`)
+        if (weight.value != null) parts.push(`Körpergewicht: ${weight.value} ${props.unit === 'kg' ? 'kg' : 'lbs'}`)
+        if (height.value != null) parts.push(`Körpergröße: ${height.value} cm`)
+        if (bodyFat.value != null) parts.push(`Körperfettanteil: ${bodyFat.value}%`)
 
         parts.push(`FFMI: ${result.value.value.toFixed(1)} (${result.value.category})`)
 
         return parts.join(' | ')
     })
 
-    function onWeightInput(e: Event) {
-        const raw = (e.target as HTMLInputElement).value
-        emit('update:ffmiWeight', raw === '' ? null : Number(raw))
+    function validateFfmi(): string[] {
+        const errors: string[] = []
+
+        const w = props.ffmiWeight
+        if (w == null || Number.isNaN(w)) {
+            errors.push('Bitte gib dein Körpergewicht ein.')
+        } else {
+            if (w <= 0) errors.push('Körpergewicht muss größer als 0 sein.')
+            else if (props.unit === 'kg' && w > 400) errors.push('Körpergewicht wirkt unrealistisch hoch (kg).')
+            else if ((props.unit === 'lb' || props.unit === 'lbs') && w > 900) errors.push('Körpergewicht wirkt unrealistisch hoch (lbs).')
+        }
+
+        const h = props.ffmiHeight
+        if (h == null || Number.isNaN(h)) {
+            errors.push('Bitte gib deine Körpergröße (cm) ein.')
+        } else {
+            if (h <= 0) errors.push('Körpergröße (cm) muss größer als 0 sein.')
+            else if (h < 80) errors.push('Körpergröße (cm) wirkt unrealistisch niedrig.')
+            else if (h > 250) errors.push('Körpergröße (cm) wirkt unrealistisch hoch.')
+        }
+
+        const bf = props.ffmiBodyFat
+        if (bf == null || Number.isNaN(bf)) {
+            errors.push('Bitte gib deinen Körperfettanteil (%) ein.')
+        } else {
+            if (bf <= 0) errors.push('Körperfettanteil (%) muss größer als 0 sein.')
+            else if (bf >= 80) errors.push('Körperfettanteil (%) wirkt unrealistisch hoch.')
+        }
+
+        return errors
     }
-    function onHeightInput(e: Event) {
-        const raw = (e.target as HTMLInputElement).value
-        emit('update:ffmiHeight', raw === '' ? null : Number(raw))
-    }
-    function onBodyFatInput(e: Event) {
-        const raw = (e.target as HTMLInputElement).value
-        emit('update:ffmiBodyFat', raw === '' ? null : Number(raw))
-    }
+
 </script>
 
 <style scoped>
-    .input-group {
-        margin-bottom: 1rem;
-    }
-
-        .input-group label {
-            display: block;
-            font-size: .9rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-bottom: .25rem;
-        }
-
-    .edit-input {
-        width: 100%;
-        padding: .75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        font-size: .9rem;
-        transition: border-color .3s, box-shadow .3s;
-    }
-
-        .edit-input:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99,102,241,.5);
-            outline: none;
-        }
 </style>

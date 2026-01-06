@@ -86,7 +86,8 @@
                                    @calculate="calculateBMI"
                                    @copy="copyBMI"
                                    @export="openDownloadPopup('bmi')"
-                                   @reset="resetCalculator('bmi')" />
+                                   @reset="resetCalculator('bmi')"
+                                   @invalid="onCalcInvalid" />
 
                     <!-- Kalorien Favorit -->
                     <CaloriesCalculator v-if="isFavorite('Kalorienbedarf') && matchesCalc('Kalorienbedarf')"
@@ -110,7 +111,8 @@
                                         @calculate="calculateCalories"
                                         @copy="copyCalories"
                                         @export="openDownloadPopup('calories')"
-                                        @reset="resetCalculator('calories')" />
+                                        @reset="resetCalculator('calories')"
+                                        @invalid="onCalcInvalid" />
 
                     <!-- Burn Rate Favorit -->
                     <BurnRateCalculator v-if="isFavorite('Burn Rate') && matchesCalc('Burn Rate')"
@@ -130,7 +132,8 @@
                                         @calculate="calculateBurnRate"
                                         @copy="copyBurnRate"
                                         @export="openDownloadPopup('burnRate')"
-                                        @reset="resetCalculator('burnRate')" />
+                                        @reset="resetCalculator('burnRate')"
+                                        @invalid="onCalcInvalid" />
 
                     <!-- Protein Favorit -->
                     <ProteinCalculator v-if="isFavorite('Proteinbedarf') && matchesCalc('Proteinbedarf')"
@@ -150,7 +153,8 @@
                                        @calculate="calculateProtein"
                                        @copy="copyProtein"
                                        @export="openDownloadPopup('protein')"
-                                       @reset="resetCalculator('protein')" />
+                                       @reset="resetCalculator('protein')"
+                                       @invalid="onCalcInvalid" />
 
                     <!-- 1RM Favorit -->
                     <OneRmCalculator v-if="isFavorite('1RM') && matchesCalc('1RM')"
@@ -169,7 +173,8 @@
                                      @calculate="calculateOneRm"
                                      @copy="copyOneRm"
                                      @export="openDownloadPopup('oneRm')"
-                                     @reset="resetCalculator('oneRm')" />
+                                     @reset="resetCalculator('oneRm')"
+                                     @invalid="onCalcInvalid" />
 
                     <!-- Körperfett Favorit -->
                     <BodyFatCalculator v-if="isFavorite('Körperfett') && matchesCalc('Körperfett')"
@@ -190,7 +195,8 @@
                                        @calculate="calculateBodyFat"
                                        @copy="copyBodyFat"
                                        @export="openDownloadPopup('bodyFat')"
-                                       @reset="resetCalculator('bodyFat')" />
+                                       @reset="resetCalculator('bodyFat')"
+                                       @invalid="onCalcInvalid" />
 
                     <!-- Koffein Favorit -->
                     <CaffeineSafeDoseCalculator v-if="isFavorite('Koffein') && matchesCalc('Koffein')"
@@ -208,7 +214,8 @@
                                                 @calculate="calculateCaffeine"
                                                 @copy="copyCaffeine"
                                                 @export="openDownloadPopup('caffeine')"
-                                                @reset="resetCalculator('caffeine')" />
+                                                @reset="onCafReset"
+                                                @invalid="onCalcInvalid" />
 
                     <!-- FFMI Favorit -->
                     <FfmiCalculator v-if="isFavorite('FFMI') && matchesCalc('FFMI')"
@@ -226,7 +233,8 @@
                                     @calculate="calculateFFMI"
                                     @copy="copyFFMI"
                                     @export="openDownloadPopup('ffmi')"
-                                    @reset="resetCalculator('ffmi')" />
+                                    @reset="resetCalculator('ffmi')"
+                                    @invalid="onCalcInvalid" />
                     <!-- GL Favorit -->
                     <GlycemicLoadCalculator v-if="isFavorite('Glykämische Last') && matchesCalc('Glykämische Last')"
                                             :autoCalcEnabled="autoCalcEnabled"
@@ -246,7 +254,8 @@
                                             @calculate="calculateGlyLoad"
                                             @copy="copyGlyLoad"
                                             @export="openDownloadPopup('glyload')"
-                                            @reset="resetCalculator('glyload')" />
+                                            @reset="resetCalculator('glyload')"
+                                            @invalid="onCalcInvalid" />
 
 
                     <!-- Wasser Favorit -->
@@ -265,7 +274,8 @@
                                      @calculate="calculateWater"
                                      @copy="copyWater"
                                      @export="openDownloadPopup('water')"
-                                     @reset="resetCalculator('water')" />
+                                     @reset="resetCalculator('water')"
+                                     @invalid="onCalcInvalid" />
                 </template>
 
 
@@ -287,7 +297,8 @@
                                @calculate="calculateBMI"
                                @copy="copyBMI"
                                @export="openDownloadPopup('bmi')"
-                               @reset="resetCalculator('bmi')" />
+                               @reset="resetCalculator('bmi')"
+                               @invalid="onCalcInvalid" />
 
                 <!-- ========== Kalorienbedarfsrechner ========== -->
                 <CaloriesCalculator v-if="matchesCalc('Kalorienbedarf') && !isFavorite('Kalorienbedarf')"
@@ -311,7 +322,8 @@
                                     @calculate="calculateCalories"
                                     @copy="copyCalories"
                                     @export="openDownloadPopup('calories')"
-                                    @reset="resetCalculator('calories')" />
+                                    @reset="resetCalculator('calories')"
+                                    @invalid="onCalcInvalid" />
 
                 <!-- Burn Rate Standard -->
                 <BurnRateCalculator v-if="matchesCalc('Burn Rate') && !isFavorite('Burn Rate')"
@@ -331,7 +343,8 @@
                                     @calculate="calculateBurnRate"
                                     @copy="copyBurnRate"
                                     @export="openDownloadPopup('burnRate')"
-                                    @reset="resetCalculator('burnRate')" />
+                                    @reset="resetCalculator('burnRate')"
+                                    @invalid="onCalcInvalid" />
 
                 <ProteinCalculator v-if="matchesCalc('Proteinbedarf') && !isFavorite('Proteinbedarf')"
                                    :unit="unit"
@@ -350,7 +363,8 @@
                                    @calculate="calculateProtein"
                                    @copy="copyProtein"
                                    @export="openDownloadPopup('protein')"
-                                   @reset="resetCalculator('protein')" />
+                                   @reset="resetCalculator('protein')"
+                                   @invalid="onCalcInvalid" />
 
                 <!-- ========== 1RM Rechner ========== -->
                 <OneRmCalculator v-if="matchesCalc('1RM') && !isFavorite('1RM')"
@@ -369,7 +383,8 @@
                                  @calculate="calculateOneRm"
                                  @copy="copyOneRm"
                                  @export="openDownloadPopup('oneRm')"
-                                 @reset="resetCalculator('oneRm')" />
+                                 @reset="resetCalculator('oneRm')"
+                                 @invalid="onCalcInvalid" />
                 <!-- Koffein Standard -->
                 <CaffeineSafeDoseCalculator v-if="matchesCalc('Koffein') && !isFavorite('Koffein')"
                                             :unit="unit"
@@ -386,7 +401,8 @@
                                             @calculate="calculateCaffeine"
                                             @copy="copyCaffeine"
                                             @export="openDownloadPopup('caffeine')"
-                                            @reset="resetCalculator('caffeine')" />
+                                            @reset="onCafReset"
+                                            @invalid="onCalcInvalid" />
 
                 <!-- ========== Körperfett Rechner ========== -->
                 <BodyFatCalculator v-if="matchesCalc('Körperfett') && !isFavorite('Körperfett')"
@@ -407,7 +423,8 @@
                                    @calculate="calculateBodyFat"
                                    @copy="copyBodyFat"
                                    @export="openDownloadPopup('bodyFat')"
-                                   @reset="resetCalculator('bodyFat')" />
+                                   @reset="resetCalculator('bodyFat')"
+                                   @invalid="onCalcInvalid" />
 
                 <!-- ========== FFMI Rechner ========== -->
                 <FfmiCalculator v-if="matchesCalc('FFMI') && !isFavorite('FFMI')"
@@ -425,7 +442,8 @@
                                 @calculate="calculateFFMI"
                                 @copy="copyFFMI"
                                 @export="openDownloadPopup('ffmi')"
-                                @reset="resetCalculator('ffmi')" />
+                                @reset="resetCalculator('ffmi')"
+                                @invalid="onCalcInvalid" />
                 <!-- GL Standard -->
                 <GlycemicLoadCalculator v-if="matchesCalc('Glykämische Last') && !isFavorite('Glykämische Last')"
                                         :autoCalcEnabled="autoCalcEnabled"
@@ -445,7 +463,8 @@
                                         @calculate="calculateGlyLoad"
                                         @copy="copyGlyLoad"
                                         @export="openDownloadPopup('glyload')"
-                                        @reset="resetCalculator('glyload')" />
+                                        @reset="resetCalculator('glyload')"
+                                        @invalid="onCalcInvalid" />
 
 
                 <!-- ========== Wasserbedarfsrechner ========== -->
@@ -464,8 +483,8 @@
                                  @calculate="calculateWater"
                                  @copy="copyWater"
                                  @export="openDownloadPopup('water')"
-                                 @reset="resetCalculator('water')" />
-
+                                 @reset="resetCalculator('water')"
+                                 @invalid="onCalcInvalid" />
             </div>
 
             <!-- ===================== PLÄNE TAB ===================== -->
@@ -601,9 +620,9 @@
                      @cancel="closeDownloadPopup" />
 
         <!-- Validation Popup-->
-        <ValidationPopup :show="validationErrorMessages.length > 0"
-                         :errors="validationErrorMessages"
-                         @close="clearValidation" />
+        <ValidationPopup :show="calcValidationErrors.length > 0"
+                         :errors="calcValidationErrors"
+                         @close="clearCalcValidation" />
 
         <!-- Delete Confirm Popup (für Stats-Resets) -->
         <DeleteConfirmPopup :show="showDeleteConfirmPopup"
@@ -650,7 +669,6 @@
     import ProgressEntryModal from '@/components/ui/popups/ProgressEntryModal.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
-    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import PlanProgressPopup from '@/components/ui/popups/PlanProgressPopup.vue'
 
     import { useRoute } from 'vue-router'
@@ -956,24 +974,24 @@
 
     // Basis-State für die Werte, die in den Cards angezeigt werden
 
-    const weightHistory = ref<WeightEntry[]>([]);
-    const workouts = ref<Workout[]>([]);
-    const meals = ref<Meal[]>([]);
-    const goal = ref<number | null>(null);
+    const weightHistory = ref < WeightEntry[] > ([]);
+    const workouts = ref < Workout[] > ([]);
+    const meals = ref < Meal[] > ([]);
+    const goal = ref < number | null > (null);
 
     // State für die Popups der DashboardCards
 
-    const newWeight = ref<number | null>(null);
-    const newGoal = ref<number | null>(null);
+    const newWeight = ref < number | null > (null);
+    const newGoal = ref < number | null > (null);
     const showWeightPopup = ref(false);
     const showGoalPopup = ref(false);
-    const weightInput = ref<HTMLInputElement | null>(null);
-    const goalInput = ref<HTMLInputElement | null>(null);
+    const weightInput = ref < HTMLInputElement | null > (null);
+    const goalInput = ref < HTMLInputElement | null > (null);
 
     // Tabs + Responsive-Handling für :compact in DashboardCard
 
     const mq = window.matchMedia('(max-width: 600px)')
-    const isMobile = ref<boolean>(mq.matches)
+    const isMobile = ref < boolean > (mq.matches)
 
     const handleMqChange = (e: MediaQueryListEvent | MediaQueryList) => {
         isMobile.value = 'matches' in e ? e.matches : (e as MediaQueryList).matches
@@ -1025,11 +1043,11 @@
     })
 
     //  Validierung für Gewicht & Zielgewicht
-    const validationErrorMessages = ref<string[]>([]);
+    const validationErrorMessages = ref < string[] > ([]);
 
     const validateWeight = (weight: number | null): string | null => {
         if (weight === null || isNaN(weight)) return 'Gewicht muss eine Zahl sein';
-        if (weight <= 0) return 'Gewicht muss größer als 0 sein';
+        if (weight <= 0) return 'Körpergewicht muss größer als 0 sein';
         const kg = displayToKg(Number(weight));
         if (kg > 200) return 'Gewicht darf maximal 200 kg sein';
 
@@ -1046,7 +1064,7 @@
 
     // ================== Popup-Logik: Card "Aktuelles Gewicht" ==================
 
-    const latestRecordedWeightDisplay = computed<number | null>(() =>
+    const latestRecordedWeightDisplay = computed < number | null > (() =>
         weightHistory.value.length ? kgToDisplay(weightHistory.value[0].weight) : null
     )
 
@@ -1093,11 +1111,11 @@
 
     const saveToLocalStorage = (key: string, data: any) => {
         try {
-            localStorage.setItem(`progress_${key}`, JSON.stringify(data));
+            localStorage.setItem(key, JSON.stringify(data))
         } catch (err) {
-            console.error(`Error saving ${key} to localStorage:`, err);
+            console.error(`Error saving ${key} to localStorage:`, err)
         }
-    };
+    }
 
     const openGoalPopup = () => {
         newGoal.value = null;
@@ -1114,7 +1132,7 @@
             return;
         }
         goal.value = displayToKg(Number(newGoal.value));
-        saveToLocalStorage('goal', { goal: goal.value });
+        saveToLocalStorage(LS_PROGRESS_GOAL, { goal: goal.value })
         addToast('Zielgewicht gespeichert', 'default');
         closeGoalPopup();
     };
@@ -1128,10 +1146,10 @@
 
     // Suche
 
-    const searchQuery = ref<string>('');
-    const planSearchQuery = ref<string>('');
+    const searchQuery = ref < string > ('');
+    const planSearchQuery = ref < string > ('');
 
-    const activeTab = ref<'stats' | 'calculators' | 'plans'>('stats');
+    const activeTab = ref < 'stats' | 'calculators' | 'plans' > ('stats');
 
     // ===== Stats-Tab: ChartCard Gewichtsverlauf & Trainingsstatistik =====
 
@@ -1238,7 +1256,7 @@
 
     // ===== Filterleiste =====
 
-    const calcCategory = ref<CalcCategory>('alle')
+    const calcCategory = ref < CalcCategory > ('alle')
 
     const CALC_CATEGORY: Record<string, CalcCategory> = {
         'BMI': 'gesundheit',
@@ -1261,20 +1279,9 @@
         return searchOk && categoryOk
     }
 
-    const sortedCalculators = computed(() => {
-        return calculators.value
-            .filter(c => matchesCalc(c.key))
-            .sort((a, b) => {
-                const aFav = favoriteCalculators.value.has(a.key) ? 1 : 0
-                const bFav = favoriteCalculators.value.has(b.key) ? 1 : 0
-                if (bFav !== aFav) return bFav - aFav   // Favoriten nach oben
-                return a.name.localeCompare(b.name, 'de') // danach alphabetisch
-            })
-    })
-
     //===== Favorit Calculators =====
 
-    const favoriteCalculators = ref<Set<string>>(new Set())
+    const favoriteCalculators = ref < Set < string >> (new Set())
     const FAVORITES_KEY = LS_PROGRESS_FAVORITE_CALCULATORS
     const favoriteCalcs = computed(() => Array.from(favoriteCalculators.value));
 
@@ -1327,31 +1334,6 @@
     // ===== Allgemein zu den Calculators =====
     const autoCalcEnabled = ref(false)
 
-    const getCalculatorComponent = (key: string) => {
-        switch (key) {
-            case 'BMI': return 'BmiCalculator'
-            case 'Kalorienbedarf': return 'CaloriesCalculator'
-            case '1RM': return 'OneRmCalculator'
-            case 'Körperfett': return 'BodyFatCalculator'
-            case 'FFMI': return 'FfmiCalculator'
-            case 'Wasserbedarf': return 'WaterCalculator'
-            default: return 'div'
-        }
-    }
-
-    const calculators = ref([
-        { key: 'BMI', name: 'BMI-Rechner', isFavorite: false },
-        { key: 'Kalorienbedarf', name: 'Kalorienbedarfsrechner', isFavorite: false },
-        { key: '1RM', name: '1RM-Rechner', isFavorite: false },
-        { key: 'Körperfett', name: 'Körperfett-Rechner', isFavorite: false },
-        { key: 'FFMI', name: 'FFMI-Rechner', isFavorite: false },
-        { key: 'Wasserbedarf', name: 'Wasserbedarfsrechner', isFavorite: false },
-        { key: 'Proteinbedarf', name: 'Proteinbedarfsrechner', isFavorite: false },
-        { key: 'Glykämische Last', name: 'GL-Rechner', isFavorite: false },
-        { key: 'Koffein', name: 'Koffein – sichere Dosis', isFavorite: false },
-        { key: 'Burn Rate', name: 'Burn Rate – Kalorien-Bilanz', isFavorite: false },
-    ])
-
     const resetCalculator = (calculator: string) => {
         releaseToasts()
 
@@ -1382,7 +1364,7 @@
                         bmiWeight.value = prev.weight
                         bmiHeight.value = prev.height
                         bmiResult.value = prev.result
-                        saveToLocalStorage('bmi', prev)
+                        saveToLocalStorage(LS_PROGRESS_BMI, prev)
                         lastCalculatorReset.value = null
                         addToast('BMI-Rechner wiederhergestellt', 'add')
                     }
@@ -1425,7 +1407,7 @@
                         calorieActivity.value = prev.activity
                         calorieGoal.value = prev.goal
                         calorieResult.value = prev.result
-                        saveToLocalStorage('calories', prev)
+                        saveToLocalStorage(LS_PROGRESS_CALORIES, prev)
                         if (calorieResult.value && activeTab.value === 'calculators') {
                             updateMacroChart()
                         }
@@ -1465,7 +1447,7 @@
                         burnMaintenance.value = prev.maintenance
                         burnIntake.value = prev.intake
                         burnRateResult.value = prev.result
-                        saveToLocalStorage('burnRate', prev)
+                        saveToLocalStorage(LS_PROGRESS_BURN_RATE, prev)
                         lastCalculatorReset.value = null
                         addToast('Burn Rate wiederhergestellt', 'add')
                     }
@@ -1499,7 +1481,7 @@
                         oneRmWeight.value = prev.weight
                         oneRmReps.value = prev.reps
                         oneRmResult.value = prev.result
-                        saveToLocalStorage('oneRm', prev)
+                        saveToLocalStorage(LS_PROGRESS_ONE_RM, prev)
                         lastCalculatorReset.value = null
                         addToast('1RM-Rechner wiederhergestellt', 'add')
                     }
@@ -1539,7 +1521,7 @@
                         bodyFatHip.value = prev.hip
                         bodyFatHeight.value = prev.height
                         bodyFatResult.value = prev.result
-                        saveToLocalStorage('bodyFat', prev)
+                        saveToLocalStorage(LS_PROGRESS_BODY_FAT, prev)
                         lastCalculatorReset.value = null
                         addToast('Körperfett-Rechner wiederhergestellt', 'add')
                     }
@@ -1573,7 +1555,7 @@
                         ffmiHeight.value = prev.height
                         ffmiBodyFat.value = prev.bodyFat
                         ffmiResult.value = prev.result
-                        saveToLocalStorage('ffmi', prev)
+                        saveToLocalStorage(LS_PROGRESS_FFMI, prev)
                         lastCalculatorReset.value = null
                         addToast('FFMI-Rechner wiederhergestellt', 'add')
                     }
@@ -1607,7 +1589,7 @@
                         waterActivity.value = prev.activity
                         waterClimate.value = prev.climate
                         waterResult.value = prev.result
-                        saveToLocalStorage('water', prev)
+                        saveToLocalStorage(LS_PROGRESS_WATER, prev)
                         lastCalculatorReset.value = null
                         addToast('Wasserbedarfsrechner wiederhergestellt', 'add')
                     }
@@ -1644,7 +1626,7 @@
                         proteinActivity.value = prev.activity
                         proteinMeals.value = prev.meals
                         proteinResult.value = prev.result
-                        saveToLocalStorage('protein', {
+                        saveToLocalStorage(LS_PROGRESS_PROTEIN, {
                             weight: prev.weight,
                             goal: prev.goal,
                             activity: prev.activity,
@@ -1683,7 +1665,7 @@
                         cafSensitivity.value = prev.sensitivity
                         cafStatus.value = prev.status
                         cafResult.value = prev.result
-                        saveToLocalStorage('caffeine', prev)
+                        saveToLocalStorage(LS_PROGRESS_CAFFEINE, prev)
                         lastCalculatorReset.value = null
                         addToast('Koffein-Rechner wiederhergestellt', 'add')
                     }
@@ -1720,7 +1702,7 @@
                         glCarbs100.value = prev.carbs100
                         glGi.value = prev.gi
                         glResult.value = prev.result
-                        saveToLocalStorage('glyload', {
+                        saveToLocalStorage(LS_PROGRESS_GLYLOAD, {
                             food: prev.food,
                             serving: prev.serving,
                             carbs100: prev.carbs100,
@@ -1737,6 +1719,16 @@
         }
     }
 
+    //=============== Validation Rechner ===========
+
+    const calcValidationErrors = ref < string[] > ([])
+
+    function onCalcInvalid(errors: string[]) {
+        calcValidationErrors.value = errors
+    }
+    function clearCalcValidation() {
+        calcValidationErrors.value = []
+    }
     //=============== Jump to Rechner Infos ===========
 
     const route = useRoute()
@@ -1780,27 +1772,14 @@
 
     //=============== BMI Calculator ==========
 
-    const bmiGender = ref<'male' | 'female'>('male');
-    const bmiWeight = ref<number | null>(null);
-    const bmiHeight = ref<number | null>(null);
-    const bmiResult = ref<{ value: number; category: string } | null>(null);
-
-    const validateBMI = (): string[] => {
-        const errors: string[] = [];
-        if (!bmiGender.value) errors.push('Geschlecht muss ausgewählt sein');
-        if (bmiWeight.value === null || isNaN(bmiWeight.value) || bmiWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (bmiHeight.value === null || isNaN(bmiHeight.value) || bmiHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        return errors;
-    };
+    const bmiGender = ref < 'male' | 'female' > ('male');
+    const bmiWeight = ref < number | null > (null);
+    const bmiHeight = ref < number | null > (null);
+    const bmiResult = ref < { value: number; category: string } | null > (null);
 
     const calculateBMI = () => {
-        const errors = validateBMI();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        if (bmiWeight.value == null || bmiHeight.value == null) return
+
         const weightKg = unit.value === 'kg' ? Number(bmiWeight.value) : Number(bmiWeight.value) * KG_PER_LB
         const heightM = Number(bmiHeight.value) / 100
         const bmi = weightKg / (heightM * heightM)
@@ -1819,12 +1798,12 @@
         }
         bmiResult.value = { value: bmi, category };
         addToast('BMI berechnet', 'default');
-        saveToLocalStorage('bmi', {
+        saveToLocalStorage(LS_PROGRESS_BMI, {
             gender: bmiGender.value,
             weight: bmiWeight.value,
             height: bmiHeight.value,
             result: bmiResult.value,
-        });
+        })
     };
 
     const copyBMI = () => {
@@ -1838,7 +1817,7 @@
     }
 
     const debouncedCalcBMI = debounce(() => {
-        if (!validateBMI().length) withSilentToasts(calculateBMI)
+        withSilentToasts(calculateBMI)
     })
 
     watch([bmiGender, bmiWeight, bmiHeight], () => {
@@ -1847,34 +1826,20 @@
 
     //========== Calories Calculator ==========
 
-    const calorieAge = ref<number | null>(null);
-    const calorieGender = ref<'male' | 'female'>('male');
-    const calorieWeight = ref<number | null>(null);
-    const calorieHeight = ref<number | null>(null);
-    const calorieActivity = ref<string>('1.2');
-    const calorieGoal = ref<number>(0);
-    const calorieResult = ref<{
+    const calorieAge = ref < number | null > (null);
+    const calorieGender = ref < 'male' | 'female' > ('male');
+    const calorieWeight = ref < number | null > (null);
+    const calorieHeight = ref < number | null > (null);
+    const calorieActivity = ref < string > ('1.2');
+    const calorieGoal = ref < number > (0);
+    const calorieResult = ref < {
         total: number;
         macros: { carbs: number; protein: number; fat: number };
-    } | null>(null);
-
-    const validateCalories = (): string[] => {
-        const errors: string[] = [];
-        if (calorieAge.value === null || isNaN(calorieAge.value) || calorieAge.value <= 0)
-            errors.push('Alter muss größer als 0 sein');
-        if (calorieWeight.value === null || isNaN(calorieWeight.value) || calorieWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (calorieHeight.value === null || isNaN(calorieHeight.value) || calorieHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        return errors;
-    };
+    } | null > (null);
 
     const calculateCalories = () => {
-        const errors = validateCalories();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        if (calorieAge.value == null || calorieWeight.value == null || calorieHeight.value == null) return
+
         let bmr = 0;
         const weightKg = unit.value === 'kg' ? Number(calorieWeight.value) : Number(calorieWeight.value) * KG_PER_LB;
         const height = Number(calorieHeight.value);
@@ -1895,7 +1860,7 @@
         calorieResult.value = { total, macros };
         updateMacroChart();
         addToast('Kalorienbedarf berechnet', 'default');
-        saveToLocalStorage('calories', {
+        saveToLocalStorage(LS_PROGRESS_CALORIES, {
             age,
             gender: calorieGender.value,
             weight: calorieWeight.value,
@@ -1920,7 +1885,7 @@
     }
 
     const debouncedCalcCalories = debounce(() => {
-        if (!validateCalories().length) withSilentToasts(calculateCalories)
+        withSilentToasts(calculateCalories)
     })
 
     watch([calorieAge, calorieGender, calorieWeight, calorieHeight, calorieActivity, calorieGoal], () => {
@@ -1929,10 +1894,10 @@
 
     //========== Burn Rate Calculator ==========
 
-    const burnStartWeight = ref<number | null>(null)
-    const burnGoalWeight = ref<number | null>(null)
-    const burnMaintenance = ref<number | null>(null)
-    const burnIntake = ref<number | null>(null)
+    const burnStartWeight = ref < number | null > (null)
+    const burnGoalWeight = ref < number | null > (null)
+    const burnMaintenance = ref < number | null > (null)
+    const burnIntake = ref < number | null > (null)
 
     type BurnRateResult = {
         dailyDelta: number
@@ -1941,26 +1906,16 @@
         daysToGoal: number | null
         note?: string
     }
-    const burnRateResult = ref<BurnRateResult | null>(null)
-
-    const validateBurnRate = (): string[] => {
-        const errors: string[] = []
-        const sw = Number(burnStartWeight.value)
-        const gw = Number(burnGoalWeight.value)
-        const tdee = Number(burnMaintenance.value)
-        const intake = Number(burnIntake.value)
-
-        if (!Number.isFinite(sw) || sw <= 0) errors.push('Startgewicht muss > 0 sein')
-        if (!Number.isFinite(gw) || gw <= 0) errors.push('Zielgewicht muss > 0 sein')
-        if (!Number.isFinite(tdee) || tdee <= 0) errors.push('Erhaltung (TDEE) muss > 0 sein')
-        if (!Number.isFinite(intake) || intake <= 0) errors.push('Intake muss > 0 sein')
-
-        return errors
-    }
+    const burnRateResult = ref < BurnRateResult | null > (null)
 
     const calculateBurnRate = () => {
-        const errors = validateBurnRate()
-        if (errors.length) { openValidationPopupError(errors); return }
+        // Safety-Guard
+        if (
+            burnStartWeight.value == null ||
+            burnGoalWeight.value == null ||
+            burnMaintenance.value == null ||
+            burnIntake.value == null
+        ) return
 
         const startKg = unit.value === 'kg' ? Number(burnStartWeight.value) : Number(burnStartWeight.value) * KG_PER_LB
         const goalKg = unit.value === 'kg' ? Number(burnGoalWeight.value) : Number(burnGoalWeight.value) * KG_PER_LB
@@ -1994,7 +1949,7 @@
         burnRateResult.value = { dailyDelta, weeklyChangeKg, weeklyChangeDisplay, daysToGoal, note: note || undefined }
 
         addToast('Burn Rate berechnet', 'default')
-        saveToLocalStorage('burnRate', {
+        saveToLocalStorage(LS_PROGRESS_BURN_RATE, {
             startWeight: burnStartWeight.value,
             goalWeight: burnGoalWeight.value,
             maintenance: burnMaintenance.value,
@@ -2019,7 +1974,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }
 
     const debouncedCalcBurnRate = debounce(() => {
-        if (!validateBurnRate().length) withSilentToasts(calculateBurnRate)
+        withSilentToasts(calculateBurnRate)
     })
 
     watch([burnStartWeight, burnGoalWeight, burnMaintenance, burnIntake, unit], () => {
@@ -2034,23 +1989,15 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
-    const proteinWeight = ref<number | null>(null)
-    const proteinGoal = ref<'maintain' | 'bulk' | 'cut'>('maintain')
-    const proteinResult = ref<{ recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null>(null)
-    const proteinActivity = ref<'low' | 'moderate' | 'high'>('low')
-    const proteinMeals = ref<number | null>(null)
-
-    const validateProtein = (): string[] => {
-        const errors: string[] = []
-        const w = Number(proteinWeight.value)
-        if (!Number.isFinite(w) || w <= 0) errors.push('Gewicht muss größer als 0 sein')
-        if (!proteinGoal.value) errors.push('Ziel muss ausgewählt sein')
-        return errors
-    }
+    const proteinWeight = ref < number | null > (null)
+    const proteinGoal = ref < 'maintain' | 'bulk' | 'cut' > ('maintain')
+    const proteinResult = ref < { recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null > (null)
+    const proteinActivity = ref < 'low' | 'moderate' | 'high' > ('low')
+    const proteinMeals = ref < number | null > (null)
 
     const calculateProtein = () => {
-        const errors = validateProtein()
-        if (errors.length) { openValidationPopupError(errors); return }
+        // Safety-Guard
+        if (proteinWeight.value == null) return
 
         const weightKg = unit.value === 'kg'
             ? Number(proteinWeight.value)
@@ -2083,7 +2030,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         }
 
         addToast('Proteinbedarf berechnet', 'default')
-        saveToLocalStorage('protein', {
+        saveToLocalStorage(LS_PROGRESS_PROTEIN, {
             weight: proteinWeight.value,
             goal: proteinGoal.value,
             activity: proteinActivity.value,
@@ -2104,7 +2051,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }
 
     const debouncedCalcProtein = debounce(() => {
-        if (!validateProtein().length) withSilentToasts(calculateProtein)
+        withSilentToasts(calculateProtein)
     }, 300)
 
     watch([proteinWeight, proteinGoal, proteinActivity, unit], () => {
@@ -2117,33 +2064,22 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     //========== 1RM ==========
 
-    const oneRmExercise = ref<string>('');
-    const oneRmWeight = ref<number | null>(null);
-    const oneRmReps = ref<number | null>(null);
-    const oneRmResult = ref<number | null>(null);
-
-    const validateOneRm = (): string[] => {
-        const errors: string[] = [];
-        if (oneRmWeight.value === null || isNaN(oneRmWeight.value) || oneRmWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (oneRmReps.value === null || isNaN(oneRmReps.value) || oneRmReps.value <= 0)
-            errors.push('Wiederholungen müssen größer als 0 sein');
-        return errors;
-    };
+    const oneRmExercise = ref < string > ('');
+    const oneRmWeight = ref < number | null > (null);
+    const oneRmReps = ref < number | null > (null);
+    const oneRmResult = ref < number | null > (null);
 
     const calculateOneRm = () => {
-        const errors = validateOneRm();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        // Safety-Guard
+        if (oneRmWeight.value == null || oneRmReps.value == null) return
+
         const weightKg = unit.value === 'kg' ? Number(oneRmWeight.value) : Number(oneRmWeight.value) * KG_PER_LB;
         const reps = Number(oneRmReps.value);
         const oneRmKg = weightKg * (1 + reps / 30);
         oneRmResult.value = oneRmKg;
 
         addToast('1RM berechnet', 'default');
-        saveToLocalStorage('oneRm', {
+        saveToLocalStorage(LS_PROGRESS_ONE_RM, {
             exercise: oneRmExercise.value,
             weight: oneRmWeight.value,
             reps,
@@ -2161,7 +2097,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }
 
     const debouncedCalc1RM = debounce(() => {
-        if (!validateOneRm().length) withSilentToasts(calculateOneRm)
+        withSilentToasts(calculateOneRm)
     })
 
     watch([oneRmWeight, oneRmReps, oneRmExercise], () => {
@@ -2170,22 +2106,14 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     // ===== Koffein Calculator ==========
 
-    const cafWeight = ref<number | null>(null)
-    const cafSensitivity = ref<'low' | 'normal' | 'high'>('normal')
-    const cafStatus = ref<'none' | 'pregnant'>('none')
-    const cafResult = ref<{ perDose: number; perDay: number } | null>(null)
-
-    const validateCaffeine = (): string[] => {
-        const errors: string[] = []
-        if (cafWeight.value === null || isNaN(cafWeight.value) || cafWeight.value <= 0) {
-            errors.push('Gewicht muss größer als 0 sein')
-        }
-        return errors
-    }
+    const cafWeight = ref < number | null > (null)
+    const cafSensitivity = ref < 'low' | 'normal' | 'high' > ('normal')
+    const cafStatus = ref < 'none' | 'pregnant' > ('none')
+    const cafResult = ref < { perDose: number; perDay: number } | null > (null)
 
     const calculateCaffeine = () => {
-        const errors = validateCaffeine()
-        if (errors.length) { openValidationPopupError(errors); return }
+        // Safety-Guard
+        if (cafWeight.value == null) return
 
         const kg = unit.value === 'kg'
             ? Number(cafWeight.value)
@@ -2204,7 +2132,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         cafResult.value = { perDose, perDay }
         addToast('Koffein-Empfehlung berechnet', 'default')
 
-        saveToLocalStorage('caffeine', {
+        saveToLocalStorage(LS_PROGRESS_CAFFEINE, {
             weight: cafWeight.value,
             sensitivity: cafSensitivity.value,
             status: cafStatus.value,
@@ -2234,7 +2162,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }
 
     const debouncedCalcCaffeine = debounce(() => {
-        if (!validateCaffeine().length) withSilentToasts(calculateCaffeine)
+        withSilentToasts(calculateCaffeine)
     })
 
     watch([cafWeight, cafSensitivity, cafStatus], () => {
@@ -2246,32 +2174,18 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     })
     // ========== BodyFat Calculator ==========
 
-    const bodyFatGender = ref<'male' | 'female'>('male');
-    const bodyFatWaist = ref<number | null>(null);
-    const bodyFatNeck = ref<number | null>(null);
-    const bodyFatHip = ref<number | null>(null);
-    const bodyFatHeight = ref<number | null>(null);
-    const bodyFatResult = ref<number | null>(null);
-
-    const validateBodyFat = (): string[] => {
-        const errors: string[] = [];
-        if (bodyFatWaist.value === null || isNaN(bodyFatWaist.value) || bodyFatWaist.value <= 0)
-            errors.push('Bauchumfang muss größer als 0 sein');
-        if (bodyFatNeck.value === null || isNaN(bodyFatNeck.value) || bodyFatNeck.value <= 0)
-            errors.push('Halsumfang muss größer als 0 sein');
-        if (bodyFatHeight.value === null || isNaN(bodyFatHeight.value) || bodyFatHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        if (bodyFatGender.value === 'female' && (bodyFatHip.value === null || isNaN(bodyFatHip.value) || bodyFatHip.value <= 0))
-            errors.push('Hüftumfang muss größer als 0 sein');
-        return errors;
-    };
+    const bodyFatGender = ref < 'male' | 'female' > ('male');
+    const bodyFatWaist = ref < number | null > (null);
+    const bodyFatNeck = ref < number | null > (null);
+    const bodyFatHip = ref < number | null > (null);
+    const bodyFatHeight = ref < number | null > (null);
+    const bodyFatResult = ref < number | null > (null);
 
     const calculateBodyFat = () => {
-        const errors = validateBodyFat();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        // Safety-Guard
+        if (bodyFatWaist.value == null || bodyFatNeck.value == null || bodyFatHeight.value == null) return
+        if (bodyFatGender.value === 'female' && bodyFatHip.value == null) return
+
         const waist = Number(bodyFatWaist.value);
         const neck = Number(bodyFatNeck.value);
         const height = Number(bodyFatHeight.value);
@@ -2284,7 +2198,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         }
         bodyFatResult.value = Math.max(0, bodyFat);
         addToast('Körperfett berechnet', 'default');
-        saveToLocalStorage('bodyFat', {
+        saveToLocalStorage(LS_PROGRESS_BODY_FAT, {
             gender: bodyFatGender.value,
             waist,
             neck,
@@ -2305,7 +2219,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }
 
     const debouncedCalcBodyFat = debounce(() => {
-        if (!validateBodyFat().length) withSilentToasts(calculateBodyFat)
+        withSilentToasts(calculateBodyFat)
     })
 
     watch([bodyFatGender, bodyFatWaist, bodyFatNeck, bodyFatHip, bodyFatHeight], () => {
@@ -2314,29 +2228,17 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     // ========== FFMI Calculator ==========
 
-    const ffmiWeight = ref<number | null>(null);
-    const ffmiHeight = ref<number | null>(null);
-    const ffmiBodyFat = ref<number | null>(null);
-    const ffmiResult = ref<{ value: number; category: string } | null>(null);
-
-    const validateFFMI = (): string[] => {
-        const errors: string[] = [];
-        if (ffmiWeight.value === null || isNaN(ffmiWeight.value) || ffmiWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (ffmiHeight.value === null || isNaN(ffmiHeight.value) || ffmiHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        if (ffmiBodyFat.value === null || isNaN(ffmiBodyFat.value) || ffmiBodyFat.value < 0 || ffmiBodyFat.value > 100)
-            errors.push('Körperfettanteil muss zwischen 0 und 100% liegen');
-        return errors;
-    };
+    const ffmiWeight = ref < number | null > (null);
+    const ffmiHeight = ref < number | null > (null);
+    const ffmiBodyFat = ref < number | null > (null);
+    const ffmiResult = ref < { value: number; category: string } | null > (null);
 
     const calculateFFMI = () => {
-        const errors = validateFFMI();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        // Safety-Guard
+        if (ffmiWeight.value == null || ffmiHeight.value == null || ffmiBodyFat.value == null) return
+
         const weightKg = unit.value === 'kg' ? Number(ffmiWeight.value) : Number(ffmiWeight.value) * KG_PER_LB;
+
         const heightM = Number(ffmiHeight.value) / 100;
         const bodyFat = Number(ffmiBodyFat.value) / 100;
         const leanMass = weightKg * (1 - bodyFat);
@@ -2349,7 +2251,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         else category = 'Extrem muskulös';
         ffmiResult.value = { value: ffmi, category };
         addToast('FFMI berechnet', 'default');
-        saveToLocalStorage('ffmi', {
+        saveToLocalStorage(LS_PROGRESS_FFMI, {
             weight: ffmiWeight.value,
             height: ffmiHeight.value,
             bodyFat: ffmiBodyFat.value,
@@ -2368,7 +2270,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }
 
     const debouncedCalcFFMI = debounce(() => {
-        if (!validateFFMI().length) withSilentToasts(calculateFFMI)
+        withSilentToasts(calculateFFMI)
     })
 
     watch([ffmiWeight, ffmiHeight, ffmiBodyFat], () => {
@@ -2377,38 +2279,26 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     // ========== GlycemicLoadCalculator ==========
 
-    const glFood = ref<string>('')
-    const glServing = ref<number | null>(null)
-    const glCarbs100 = ref<number | null>(null)
-    const glGi = ref<number | null>(null)
-    const glCarbs = computed<number | null>(() => {
+    const glFood = ref < string > ('')
+    const glServing = ref < number | null > (null)
+    const glCarbs100 = ref < number | null > (null)
+    const glGi = ref < number | null > (null)
+    const glCarbs = computed < number | null > (() => {
         if (glServing.value == null || glCarbs100.value == null) return null
         return (Number(glCarbs100.value) * Number(glServing.value)) / 100
     })
 
-    const glResult = ref<number | null>(null)
-    const glCategory = computed<string>(() => {
+    const glResult = ref < number | null > (null)
+    const glCategory = computed < string > (() => {
         if (glResult.value == null) return ''
         if (glResult.value < 10) return 'niedrig'
         if (glResult.value < 20) return 'mittel'
         return 'hoch'
     })
 
-    const validateGlyLoad = (): string[] => {
-        const errors: string[] = []
-        if (!glFood.value.trim()) errors.push('Lebensmittel muss angegeben werden')
-        if (glServing.value === null || isNaN(glServing.value) || glServing.value <= 0)
-            errors.push('Portionsgröße muss größer als 0 g sein')
-        if (glCarbs100.value === null || isNaN(glCarbs100.value) || glCarbs100.value < 0)
-            errors.push('Kohlenhydrate pro 100 g müssen ≥ 0 g sein')
-        if (glGi.value === null || isNaN(glGi.value) || glGi.value < 0 || glGi.value > 110)
-            errors.push('Glykämischer Index muss zwischen 0 und 110 liegen')
-        return errors
-    }
-
     const calculateGlyLoad = () => {
-        const errors = validateGlyLoad()
-        if (errors.length) { openValidationPopupError(errors); return }
+        // Safety-Guard
+        if (glServing.value == null || glCarbs100.value == null || glGi.value == null) return
 
         const serving = Number(glServing.value)
         const carbs100 = Number(glCarbs100.value)
@@ -2420,7 +2310,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         glResult.value = gl
         addToast('Glykämische Last berechnet', 'default')
 
-        saveToLocalStorage('glyload', {
+        saveToLocalStorage(LS_PROGRESS_GLYLOAD, {
             food: glFood.value,
             serving,
             carbs100,
@@ -2449,15 +2339,12 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         glCarbs100.value = parsed.carbs100
         glGi.value = parsed.gi
 
-        if (parsed.result && typeof parsed.result === 'object' && 'gl' in parsed.result) {
-            glResult.value = Number(parsed.result.gl)
-        } else {
-            glResult.value = parsed.result ?? null
-        }
+        glResult.value = parsed.result != null ? Number(parsed.result) : null
+
     }
 
     const debouncedCalcGlyLoad = debounce(() => {
-        if (!validateGlyLoad().length) withSilentToasts(calculateGlyLoad)
+        withSilentToasts(calculateGlyLoad)
     })
 
     watch([glFood, glServing, glCarbs100, glGi], () => {
@@ -2469,25 +2356,17 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     })
     // ========== Water Calculator ==========
 
-    const waterWeight = ref<number | null>(null);
-    const waterActivity = ref<'low' | 'moderate' | 'high'>('low');
-    const waterClimate = ref<'temperate' | 'hot' | 'very_hot'>('temperate');
-    const waterResult = ref<number | null>(null);
-
-    const validateWater = (): string[] => {
-        const errors: string[] = [];
-        if (waterWeight.value === null || isNaN(waterWeight.value) || waterWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        return errors;
-    };
+    const waterWeight = ref < number | null > (null);
+    const waterActivity = ref < 'low' | 'moderate' | 'high' > ('low');
+    const waterClimate = ref < 'temperate' | 'hot' | 'very_hot' > ('temperate');
+    const waterResult = ref < number | null > (null);
 
     const calculateWater = () => {
-        const errors = validateWater();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        // Safety-Guard
+        if (waterWeight.value == null) return
+
         const weightKg = unit.value === 'kg' ? Number(waterWeight.value) : Number(waterWeight.value) * KG_PER_LB;
+
         let baseWater = weightKg * 0.035;
         if (waterActivity.value === 'moderate') baseWater += 0.5;
         else if (waterActivity.value === 'high') baseWater += 1.0;
@@ -2495,7 +2374,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         if (waterClimate.value === 'very_hot') baseWater += 1.0;
         waterResult.value = Math.max(1.5, baseWater);
         addToast('Wasserbedarf berechnet', 'default');
-        saveToLocalStorage('water', {
+        saveToLocalStorage(LS_PROGRESS_WATER, {
             weight: waterWeight.value,
             activity: waterActivity.value,
             climate: waterClimate.value,
@@ -2515,7 +2394,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }
 
     const debouncedCalcWater = debounce(() => {
-        if (!validateWater().length) withSilentToasts(calculateWater)
+        withSilentToasts(calculateWater)
     })
 
     watch([waterWeight, waterActivity, waterClimate], () => {
@@ -2524,8 +2403,8 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     // ======== Pläne-Tab: State =======
 
-    const trainingPlans = ref<TrainingPlan[]>([]);
-    const favoritePlansIds = ref<string[]>([])
+    const trainingPlans = ref < TrainingPlan[] > ([]);
+    const favoritePlansIds = ref < string[] > ([])
 
 
 
@@ -2581,40 +2460,40 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const showProgressPopup = ref(false);
     const showProgressExtras = ref(false);
 
-    const currentExercise = ref<string>('');
+    const currentExercise = ref < string > ('');
 
-    const newProgressReps = ref<number | null>(null);
-    const newProgressSets = ref<number | null>(null);
-    const newProgressNote = ref<string>('');
-    const newProgressDuration = ref<number | null>(null)
+    const newProgressReps = ref < number | null > (null);
+    const newProgressSets = ref < number | null > (null);
+    const newProgressNote = ref < string > ('');
+    const newProgressDuration = ref < number | null > (null)
 
-    const newProgressDistance = ref<number | null>(null)
-    const newProgressTempo = ref<string>('')
-    const newProgressRestSeconds = ref<number | null>(null)
-    const newProgressAvgHr = ref<number | null>(null)
-    const newProgressCalories = ref<number | null>(null)
-    const newProgressPace = ref<string>('')
-    const newProgressHrZone = ref<number | null>(null)
-    const newProgressBorg = ref<number | null>(null)
+    const newProgressDistance = ref < number | null > (null)
+    const newProgressTempo = ref < string > ('')
+    const newProgressRestSeconds = ref < number | null > (null)
+    const newProgressAvgHr = ref < number | null > (null)
+    const newProgressCalories = ref < number | null > (null)
+    const newProgressPace = ref < string > ('')
+    const newProgressHrZone = ref < number | null > (null)
+    const newProgressBorg = ref < number | null > (null)
 
-    const newProgressPainFree = ref<number | null>(null)
-    const newProgressMovementQuality = ref<number | null>(null)
-    const newProgressEquipment = ref<string>('')
-    const newProgressEquipmentCustom = ref<string>('')
-    const newProgressSide = ref<'' | 'links' | 'rechts' | 'beidseitig'>('')
+    const newProgressPainFree = ref < number | null > (null)
+    const newProgressMovementQuality = ref < number | null > (null)
+    const newProgressEquipment = ref < string > ('')
+    const newProgressEquipmentCustom = ref < string > ('')
+    const newProgressSide = ref < '' | 'links' | 'rechts' | 'beidseitig' > ('')
 
-    const newProgressSetDetails = ref<Array<{ weight: number | null; reps: number | null }>>([])
+    const newProgressSetDetails = ref < Array < { weight: number | null; reps: number | null } >> ([])
 
     const newProgressIsDropset = ref(false)
-    const newProgressDropsets = ref<Array<{ weight: number | null; reps: number | null }>>([])
+    const newProgressDropsets = ref < Array < { weight: number | null; reps: number | null } >> ([])
 
-    const editingEntry = ref<Workout | null>(null);
+    const editingEntry = ref < Workout | null > (null);
 
     const reopenPlanProgressAfterSave = ref(false)
 
-    const progressEntryModalRef = ref<ProgressEntryModalExposed | null>(null)
+    const progressEntryModalRef = ref < ProgressEntryModalExposed | null > (null)
 
-    const newProgressWeight = ref<number | null>(null)
+    const newProgressWeight = ref < number | null > (null)
 
     // --- Helper: Übungs-Namen → Typ erkennen ---
 
@@ -2643,7 +2522,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }
 
 
-    const detectedInputType = computed<ExerciseType>(() =>
+    const detectedInputType = computed < ExerciseType > (() =>
         isStretchName(currentExercise.value) ? 'dehnung'
             : isCardioName(currentExercise.value) ? 'ausdauer'
                 : 'kraft'
@@ -2984,15 +2863,24 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             if (idx !== -1) {
                 workouts.value[idx] = payload
                 showToast({ message: 'Fortschritt aktualisiert!', type: 'success', emoji: '✅' })
+
+                // 👇 PR/Meilenstein nach Update checken (aktuelle date ausklammern)
+                if (payload.type === 'kraft' || payload.type === 'calisthenics') {
+                    checkMilestones(payload.planId, payload.exercise, payload.weight, payload.reps, payload.date)
+                }
             }
             editingEntry.value = null
         } else {
             workouts.value.push(payload)
-            if (payload.type !== 'ausdauer') {
-                checkMilestones(payload.planId, payload.exercise, payload.weight, payload.reps)
+
+            // 👇 PR/Meilenstein nach Save checken (aktuelle date ausklammern)
+            if (payload.type === 'kraft' || payload.type === 'calisthenics') {
+                checkMilestones(payload.planId, payload.exercise, payload.weight, payload.reps, payload.date)
             }
+
             showToast({ message: 'Fortschritt gespeichert!', type: 'success', emoji: '✅' })
         }
+
 
         localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value))
         closeProgressPopup()
@@ -3010,12 +2898,12 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     // ===== Journal & Plan-Progress: State & Helper =====
 
     const maxEntries = ref(3);
-    const showMore = ref<{ [key: string]: boolean }>({});
+    const showMore = ref < { [key: string]: boolean } > ({});
 
-    const prevWeightHistory = ref<WeightEntry[] | null>(null)
-    const prevWorkoutsSnapshot = ref<Workout[] | null>(null)
-    const journalSearch = ref<string>('')
-    const journalType = ref<'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'>('alle')
+    const prevWeightHistory = ref < WeightEntry[] | null > (null)
+    const prevWorkoutsSnapshot = ref < Workout[] | null > (null)
+    const journalSearch = ref < string > ('')
+    const journalType = ref < 'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer' > ('alle')
 
     const TYPE_LABEL: Record<WorkoutType, string> = {
         kraft: 'Kraft',
@@ -3045,7 +2933,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         return [...base, ...ds, ...extraCols].join(' ')
     }
     const summarizeCategories = (items: Workout[]): string => {
-        const types = new Set<WorkoutType>(items.map(w => (w.type ?? 'kraft') as WorkoutType))
+        const types = new Set < WorkoutType > (items.map(w => (w.type ?? 'kraft') as WorkoutType))
         const labels = [...types].map(t => TYPE_LABEL[t])
         if (labels.length === 1) return labels[0]
         if (labels.length > 3) return 'Gemischt'
@@ -3055,40 +2943,40 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     function aggregateDay(items: Workout[]): JournalGroup[] {
         const strength = items.filter(it => (it.type ?? 'kraft') === 'kraft' || it.type === 'calisthenics')
 
-        const byExercise = new Map<string, {
+        const byExercise = new Map < string, {
             entries: Workout[]; notes: string[]
-        }>()
-        for (const it of strength) {
-            const key = it.exercise || 'Unbenannte Übung'
-            if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
+    }> ()
+    for (const it of strength) {
+        const key = it.exercise || 'Unbenannte Übung'
+        if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
 
-            const setCount = Math.max(1, Number(it.sets ?? 1))
-            for (let s = 0; s < setCount; s++) {
-                const detail = it.setDetails?.[s]
-                byExercise.get(key)!.entries.push({
-                    ...it,
-                    sets: 1,
-                    weight: detail ? detail.weight : it.weight,
-                    reps: detail ? detail.reps : it.reps,
-                })
-            }
-
-            if (it.note) byExercise.get(key)!.notes.push(it.note)
-        }
-
-        const groups: JournalGroup[] = []
-        for (const [exercise, { entries, notes }] of byExercise.entries()) {
-            groups.push({
-                exercise,
-                entries,
-                note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
+        const setCount = Math.max(1, Number(it.sets ?? 1))
+        for (let s = 0; s < setCount; s++) {
+            const detail = it.setDetails?.[s]
+            byExercise.get(key)!.entries.push({
+                ...it,
+                sets: 1,
+                weight: detail ? detail.weight : it.weight,
+                reps: detail ? detail.reps : it.reps,
             })
         }
 
-        return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
+        if (it.note) byExercise.get(key)!.notes.push(it.note)
     }
 
-    const journalDays = computed<JournalDay[]>(() => {
+    const groups: JournalGroup[] = []
+    for (const [exercise, { entries, notes }] of byExercise.entries()) {
+        groups.push({
+            exercise,
+            entries,
+            note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
+        })
+    }
+
+    return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
+    }
+
+    const journalDays = computed < JournalDay[] > (() => {
         if (!currentPlanId.value) return []
         const all = getProgressForPlan(currentPlanId.value)
 
@@ -3103,7 +2991,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             return inExercise || inNote
         })
 
-        const byDay = new Map<string, Workout[]>()
+        const byDay = new Map < string, Workout[]> ()
         for (const w of filtered) {
             const day = (w.date || '').slice(0, 10)
             if (!byDay.has(day)) byDay.set(day, [])
@@ -3122,7 +3010,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         return aggregateDay(items)
     }
 
-    const sortedPlanEntries = computed<Workout[]>(() => {
+    const sortedPlanEntries = computed < Workout[] > (() => {
         if (!currentPlanId.value) return []
         return [...getProgressForPlan(currentPlanId.value)]
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -3168,10 +3056,10 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     type PlanProgressPopupExposed = { modalEl: HTMLElement | null }
 
     const showPlanProgressPopup = ref(false)
-    const currentPlanId = ref<string | null>(null);
-    const planProgressPopupRef = ref<PlanProgressPopupExposed | null>(null)
+    const currentPlanId = ref < string | null > (null);
+    const planProgressPopupRef = ref < PlanProgressPopupExposed | null > (null)
     const visibleDays = ref(7)
-    const expandedDays = ref<Set<string>>(new Set())
+    const expandedDays = ref < Set < string >> (new Set())
 
     let endIO: IntersectionObserver | null = null
 
@@ -3215,7 +3103,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     };
 
     const entriesByDay = computed(() => {
-        const map = new Map<string, Workout[]>()
+        const map = new Map < string, Workout[]> ()
         if (!currentPlanId.value) return map
         for (const w of getProgressForPlan(currentPlanId.value)) {
             const day = (w.date || '').slice(0, 10)
@@ -3226,7 +3114,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         return new Map([...map.entries()].sort((a, b) => b[0].localeCompare(a[0])))
     })
 
-    const dayCards = computed<DayCard[]>(() => {
+    const dayCards = computed < DayCard[] > (() => {
         return [...entriesByDay.value.entries()].map(([day, items]) => {
             const uniqueExercises = new Set(items.map(i => i.exercise)).size
             return { day, uniqueExercises }
@@ -3287,9 +3175,9 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     //======== Export Popup ========
 
     const showDownloadPopup = ref(false);
-    const downloadFormat = ref<'html' | 'csv' | 'json' | 'pdf' | 'txt'>('html');
-    const downloadCalculator = ref<string | null>(null);
-    const downloadPlanId = ref<string | null>(null);
+    const downloadFormat = ref < 'html' | 'csv' | 'json' | 'pdf' | 'txt' > ('html');
+    const downloadCalculator = ref < string | null > (null);
+    const downloadPlanId = ref < string | null > (null);
 
     const openDownloadPopup = (calculator: string, planId?: string) => {
         downloadCalculator.value = calculator;
@@ -3725,7 +3613,7 @@ Notiz: ${e.note ?? '-'}\n`
 
     // --- Toast: State / Config
 
-    const toast = ref<ToastModel | null>(null)
+    const toast = ref < ToastModel | null > (null)
     let toastId = 0
 
     const toastsEnabled = ref(true)
@@ -3733,12 +3621,55 @@ Notiz: ${e.note ?? '-'}\n`
     const suppressToasts = ref(false)
     let toastReleaseTimer: ReturnType<typeof setTimeout> | null = null
 
-    const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
-    const lastResetAction = ref<{ kind: 'weight' | 'workout'; data: any } | null>(null)
-    const lastCalculatorReset = ref<{
+    const toastPosition = ref < 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' > ('bottom-right')
+    const lastResetAction = ref < { kind: 'weight' | 'workout'; data: any } | null > (null)
+    const lastCalculatorReset = ref < {
         id: 'bmi' | 'calories' | 'oneRm' | 'bodyFat' | 'ffmi' | 'water' | 'protein' | 'caffeine' | 'glyload' | 'burnRate';
         data: any;
-    } | null>(null)
+    } | null > (null)
+
+    // Toast Snapshots Rechner
+
+    type CafResetSnapshot = {
+        weight: number | null
+        sensitivity: 'low' | 'normal' | 'high'
+        status: 'none' | 'pregnant'
+        lastDoseTime: string
+        sleepTime: string
+        showTimingExtras: boolean
+    }
+
+    function onCafReset(snapshot?: CafResetSnapshot) {
+        // 1) HARD RESET (deine echten refs)
+        cafWeight = null
+        cafSensitivity = 'normal'
+        cafStatus = 'none'
+        cafLastDoseTime = ''
+        cafSleepTime = ''
+        cafResult = null
+
+        // 2) Toast mit Undo
+        pushToast({
+            type: 'toast-reset',
+            emoji: '♻️',
+            message: 'Koffein-Rechner zurückgesetzt',
+            durationMs: 3500,
+            action: snapshot ? {
+                label: 'Rückgängig',
+                handler: () => {
+                    cafWeight = snapshot.weight
+                    cafSensitivity = snapshot.sensitivity
+                    cafStatus = snapshot.status
+                    cafLastDoseTime = snapshot.lastDoseTime
+                    cafSleepTime = snapshot.sleepTime
+
+                    // optional: wenn AutoCalc an ist
+                    // calculateCaffeine()
+                }
+            } : undefined
+        })
+    }
+
     // --- Toast: Dismiss & Exit-Animation ---
 
     function onToastDismiss(id: number) {
@@ -3898,37 +3829,46 @@ Notiz: ${e.note ?? '-'}\n`
         planId?: string,
         exercise?: string,
         weightKg?: number,
-        reps?: number
+        reps?: number,
+        entryDate?: string, // 👈 neu: damit wir den aktuellen Eintrag beim Vergleich ausklammern können
     ) => {
-        if (workouts.value.length >= 10) {
-            celebrateMilestone('Meilenstein: 10 Workouts erreicht! 🎉');
+        if (workouts.value.length === 10) {
+            celebrateMilestone('Meilenstein: 10 Workouts erreicht! 🎉')
         }
 
-
         if (initialWeight.value && typeof currentWeight.value === 'string') {
-            const weightChange = Math.abs(Number(currentWeight.value) - initialWeight.value);
+            const weightChange = Math.abs(Number(currentWeight.value) - initialWeight.value)
             if (weightChange >= 5) {
-                celebrateMilestone('Meilenstein: 5 kg Gewichtsveränderung! 🎉');
+                celebrateMilestone('Meilenstein: 5 kg Gewichtsveränderung! 🎉')
             }
         }
 
         if (planId && exercise && typeof weightKg === 'number' && typeof reps === 'number') {
-            const progressEntries = getProgressForPlan(planId);
-            const lastEntry = progressEntries
-                .filter(e => e.exercise === exercise && (e.type === 'kraft' || e.type === 'calisthenics'))
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+            const prevEntry = getProgressForPlan(planId)
+                .filter(e =>
+                    e.exercise === exercise
+                    && (e.type === 'kraft' || e.type === 'calisthenics')
+                    && (!entryDate || e.date !== entryDate) // 👈 wichtig: NICHT gegen den aktuellen Eintrag vergleichen
+                )
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
 
-            if (lastEntry) {
-                const improved =
-                    weightKg > lastEntry.weight ||
-                    (weightKg === lastEntry.weight && (reps ?? -Infinity) > (lastEntry.reps ?? -Infinity));
-                if (improved) {
-                    showToast({ message: `Meilenstein erreicht! ${exercise}: ${formatWeight(weightKg, 0)} × ${reps} Wdh. 🎉`, type: 'success', emoji: '🎉' });
-                    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                }
+            if (!prevEntry) return
+
+            const improved =
+                weightKg > prevEntry.weight ||
+                (weightKg === prevEntry.weight && reps > (prevEntry.reps ?? -Infinity))
+
+            if (improved) {
+                showToast({
+                    message: `Meilenstein erreicht! ${exercise}: ${formatWeight(weightKg, 0)} × ${reps} Wdh. 🎉`,
+                    type: 'success',
+                    emoji: '🎉',
+                })
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } })
             }
         }
-    };
+    }
+
 
     const celebrateMilestone = (message: string) => {
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
@@ -4014,7 +3954,7 @@ Notiz: ${e.note ?? '-'}\n`
                 proteinGoal.value = parsed.goal
                 proteinResult.value = parsed.result
 
-                if (autoCalcEnabled.value && !validateProtein().length) {
+                if (autoCalcEnabled.value) {
                     calculateProtein()
                 }
             }
@@ -4028,7 +3968,7 @@ Notiz: ${e.note ?? '-'}\n`
                 burnIntake.value = parsed.intake ?? null
                 burnRateResult.value = parsed.result ?? null
 
-                if (autoCalcEnabled.value && !validateBurnRate().length) {
+                if (autoCalcEnabled.value) {
                     calculateBurnRate()
                 }
             }
@@ -4127,6 +4067,7 @@ Notiz: ${e.note ?? '-'}\n`
                 workoutChart = null;
                 macroChart = null;
             }
+            freezeProgressBackground()
         });
     }, { immediate: true });
 
@@ -4136,6 +4077,21 @@ Notiz: ${e.note ?? '-'}\n`
             updateWorkoutChart();
         }
     });
+
+    let bgFreezeObserver: MutationObserver | null = null
+    function freezeProgressBackground() {
+        const el = document.querySelector('.progress') as HTMLElement | null
+        if (!el) return
+
+        // wir nutzen jetzt .progress::before als Background-Layer
+        // => alle alten Inline-Copies killen, damit nix "alt" durchblitzt
+        el.style.backgroundImage = ''
+        el.style.backgroundColor = ''
+        el.style.backgroundRepeat = ''
+        el.style.backgroundPosition = ''
+        el.style.backgroundSize = ''
+        el.style.backgroundAttachment = ''
+    }
 
     onMounted(() => {
         withSilentToasts(loadFromLocalStorage)
@@ -4153,6 +4109,16 @@ Notiz: ${e.note ?? '-'}\n`
         window.addEventListener('touchstart', releaseToasts as any)
 
         toastReleaseTimer = setTimeout(() => releaseToasts(), 1500)
+
+        freezeProgressBackground()
+        window.addEventListener('resize', freezeProgressBackground)
+
+        bgFreezeObserver = new MutationObserver(() => freezeProgressBackground())
+        bgFreezeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class', 'style'],
+        })
+
     })
 
     onUnmounted(() => {
@@ -4172,17 +4138,24 @@ Notiz: ${e.note ?? '-'}\n`
         if (weightChart) weightChart.destroy();
         if (workoutChart) workoutChart.destroy();
         if (macroChart) macroChart.destroy();
+
+        window.removeEventListener('resize', freezeProgressBackground)
+        bgFreezeObserver?.disconnect()
+        bgFreezeObserver = null
     })
 </script>
 
 <style scoped>
+
     .progress {
         padding: clamp(1.4rem, 3vw, 2.4rem);
         min-height: 100vh;
         font-family: 'Inter', sans-serif;
         color: var(--text-primary);
         overflow-x: hidden;
-        /* kein eigener Verlauf hier, damit der Seiten-Background durchgeht */
+        /* eigener Layer statt "Parent Background klauen" */
+        position: relative;
+        isolation: isolate;
         background: transparent;
     }
 
@@ -4190,7 +4163,20 @@ Notiz: ${e.note ?? '-'}\n`
     html.dark-mode .progress {
         background: transparent;
     }
-    /* Canvas nie breiter als der Container */
+
+    .progress::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 58% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 12%, transparent), transparent 62% ), var(--bg-app, #f8fafc);
+    }
+
+    html.dark-mode .progress::before {
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 22%, transparent), transparent 58% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 16%, transparent), transparent 62% ), #020617;
+    }
+
     .chart-canvas {
         display: block;
         width: 100% !important; /* überschreibt Chart.js-Inlinebreite */
@@ -4199,10 +4185,6 @@ Notiz: ${e.note ?? '-'}\n`
         box-sizing: border-box;
     }
 
-    /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
-
-    /* Trainingspläne-Box – mehr "Card"-Feeling wie Dashboard/Calculators */
-    /* Trainingspläne-Box – gleiches Card-Universum wie Dashboard/Calculators */
     .workout-list {
         position: relative;
         background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 56% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);

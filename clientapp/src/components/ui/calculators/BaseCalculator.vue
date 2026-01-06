@@ -1,11 +1,11 @@
-<!--BaseCalculator.vue-->
+
 <!-- src/components/ui/calculators/BaseCalculator.vue -->
 <template>
     <div class="calculator-card" :class="cardClass">
         <!-- Header -->
         <div class="card-header">
             <h3 class="card-title">
-                {{ title }}
+                <span class="card-title-text">{{ title }}</span>
 
                 <ExplanationPopup v-if="showInfo"
                                   :title="infoTitle"
@@ -53,6 +53,7 @@
         <!-- Inputs -->
         <div class="calc-body">
             <slot name="inputs"
+                  :UiCalculatorInput="UiCalculatorInput"
                   :maybeAutoCalc="maybeAutoCalc"
                   :normalizeNumberInput="normalizeNumberInput"
                   :openInfo="openInfo"
@@ -66,7 +67,7 @@
                          @click="emitCalculate()" />
 
         <!-- Result -->
-        <div v-if="$slots.result" class="result">
+        <div v-if="hasResultContent" class="result">
             <div class="result-header">
                 <div class="result-main">
                     <slot name="result" />
@@ -86,14 +87,12 @@
             <div class="footer-actions">
                 <ExportButton v-if="showExport"
                               class="calc-footer-btn"
-                              title="Exportieren"
                               aria-label="Exportieren"
                               data-short="Export"
                               @click="$emit('export')" />
 
                 <ResetButton v-if="showReset"
                              class="calc-footer-btn"
-                             title="Zurücksetzen"
                              aria-label="Zurücksetzen"
                              data-short="Reset"
                              @click="$emit('reset')" />
@@ -103,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, nextTick, ref } from 'vue'
+    import { computed, nextTick, ref, useSlots, Comment, Text, Fragment } from 'vue'
     import { useCalcJumpTo } from '@/composables/useCalcJumpTo'
     import ExplanationPopup from '@/components/ui/popups/ExplanationPopup.vue'
     import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
@@ -111,6 +110,7 @@
     import ResetButton from '@/components/ui/buttons/ResetButton.vue'
     import CopyButton from '@/components/ui/buttons/CopyButton.vue'
     import CalculateButton from '@/components/ui/buttons/CalculateButton.vue'
+    import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
 
     type CopyTextFactory = string | null | undefined | (() => string | Promise<string>)
 
@@ -128,6 +128,9 @@
 
         /* Behavior */
         autoCalcEnabled?: boolean
+
+        /* Validation */
+        validate?: () => string[]
 
         /* Buttons / UI */
         showFavorite?: boolean
@@ -175,8 +178,18 @@
         (e: 'copy'): void
         (e: 'export'): void
         (e: 'reset'): void
+        (e: 'invalid', errors: string[]): void
     }>()
 
+    const runValidation = (): boolean => {
+        if (!props.validate) return true
+        const errors = props.validate() ?? []
+        if (errors.length) {
+            emit('invalid', errors)
+            return false
+        }
+        return true
+    }
     const infoText = computed(() => props.info ?? '')
 
     const infoPopupRef = ref<{ open?: () => void } | null>(null)
@@ -192,18 +205,22 @@
     /* ===== JumpTo highlight ===== */
     const { activeTargetId, jumpTo, flashTarget } = useCalcJumpTo({ clearAfterMs: 1400 })
 
-    /* ===== Calculate (anti double click spam) ===== */
     let lastCalcAt = 0
+
     function emitCalculate() {
         const now = Date.now()
         if (now - lastCalcAt < 60) return
         lastCalcAt = now
+
+        if (!runValidation()) return
         emit('calculate')
     }
 
     function maybeAutoCalc() {
-        if (props.autoCalcEnabled) emitCalculate()
+        if (!props.autoCalcEnabled) return
+        emitCalculate()
     }
+
 
     /* ===== Copy ===== */
     async function resolveCopyText(factory: CopyTextFactory): Promise<string | null> {
@@ -224,7 +241,7 @@
             await navigator.clipboard.writeText(text)
             emit('copy')
         } catch {
-            // optional später: Fehler-Toast
+            // optional sp ter: Fehler-Toast
         }
     }
 
@@ -232,6 +249,41 @@
     function normalizeNumberInput(raw: string) {
         return raw.trim().replace(/\s+/g, '').replace(',', '.')
     }
+
+    const slots = useSlots()
+
+    function hasMeaningfulContent(nodes: any[]): boolean {
+        for (const n of nodes ?? []) {
+            if (!n) continue
+
+            // Vue Comment Node
+            if (n.type === Comment) continue
+
+            // Vue Text Node
+            if (n.type === Text) {
+                const t = String(n.children ?? '').trim()
+                if (t.length) return true
+                continue
+            }
+
+            // Fragment -> check children
+            if (n.type === Fragment) {
+                const kids = Array.isArray(n.children) ? n.children : []
+                if (hasMeaningfulContent(kids)) return true
+                continue
+            }
+
+            // Any real element/component counts as content
+            return true
+        }
+        return false
+    }
+
+    const hasResultContent = computed(() => {
+        const vnodes = slots.result?.() ?? []
+        return hasMeaningfulContent(vnodes)
+    })
+
 </script>
 
 <style scoped>
@@ -290,11 +342,32 @@
         align-items: center;
         gap: .5rem;
         color: var(--text-primary);
+        min-width: 0;
+        flex-wrap: nowrap;
     }
 
+        .card-title > :first-child {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .card-title > *:last-child {
+            flex: 0 0 auto;
+        }
+
+        .card-title :deep(button),
+        .card-title :deep(a) {
+            flex: 0 0 auto;
+        }
     .calc-body {
         display: flex;
         flex-direction: column;
+        /* mehr Luft zwischen Inputs */
+        gap: .95rem;
+        /* extra Abstand zum "Berechnen"-Button */
+        margin-bottom: 1rem;
     }
 
     .result {
@@ -313,32 +386,35 @@
         margin-bottom: .35rem;
     }
 
-    /* Footer */
     .card-footer {
         border-top: 1px solid var(--border-color);
         padding: .75rem 0 0;
         display: flex;
         justify-content: flex-end;
-        gap: .75rem;
         margin-top: .75rem;
     }
-
     .footer-actions {
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: .5rem;
-        flex-wrap: wrap;
+        width: 100%;
+        max-width: 420px;
+    }
+    .calc-footer-btn {
+        width: 100%;
+        min-height: 44px;
     }
 
     @media (max-width: 600px) {
+        .card-footer {
+            justify-content: center;
+        }
+
         .footer-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: .5rem;
-            width: 100%;
+            max-width: none;
         }
 
         .calc-footer-btn {
-            min-height: 44px;
             padding: .5rem .6rem;
         }
     }

@@ -54,7 +54,7 @@
     const updateLabelMode = () => {
         if (typeof window === 'undefined') return
         const w = window.innerWidth
-        useShortLabels.value = w <= 810 && w >= 687
+        useShortLabels.value = !iconOnly.value && w <= 810
         iconOnly.value = w <= 350
     }
 
@@ -139,15 +139,14 @@
     .card-footer {
         border-top: 1px solid rgba(148, 163, 184, 0.26);
         padding: 0.75rem 0 0;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
         gap: 0.6rem;
-        align-items: stretch;
-        justify-items: stretch;
+        width: 100%;
+        align-self: stretch;
     }
-
         .card-footer > * {
-            flex: 1 1 0;
             min-width: 0;
         }
 
@@ -155,14 +154,12 @@
         display: inline-flex;
         justify-content: center;
         align-items: center;
-        width: 100%;
+        width: auto;
         min-height: 40px;
         padding: .55rem .85rem;
         line-height: 1.2;
-        white-space: normal;
+        white-space: nowrap;
         text-align: center;
-        text-wrap: balance;
-        word-break: keep-all;
         font-size: 0.95rem;
     }
 

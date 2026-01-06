@@ -18,6 +18,7 @@
                 <router-link to="/training" class="footer-link">Training</router-link>
                 <router-link to="/nutrition" class="footer-link">Ernährung</router-link>
                 <router-link to="/progress" class="footer-link">Fortschritt</router-link>
+                <router-link to="/tutorials" class="footer-link">Tutorials</router-link>
                 <router-link to="/settings" class="footer-link">Einstellungen</router-link>
             </nav>
 
