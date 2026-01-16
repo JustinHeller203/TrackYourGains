@@ -82,7 +82,7 @@
             return;
         }
         if (next !== repeat) {
-            error.value = "Passw�rter stimmen nicht überein.";
+            error.value = "Passwörter stimmen nicht überein.";
             return;
         }
         error.value = "";

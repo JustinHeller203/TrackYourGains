@@ -1,3 +1,5 @@
+<!--Pfad: src/components/ui/menu/KebabMenu.vue-->
+
 <template>
     <BasePopup :show="show && confirmDeleteEnabled"
                title="Löschen bestätigen"
@@ -5,12 +7,19 @@
                @cancel="emit('cancel')">
         <p class="popup-message">Willst du das wirklich löschen?</p>
 
+        <label class="dontshow" @click.stop>
+            <input v-model="dontShowAgain"
+                   type="checkbox"
+                   class="dontshow-input"
+                   @change.stop />
+            <span class="dontshow-label">Nicht mehr anzeigen</span>
+        </label>
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
                 Abbrechen
             </PopupActionButton>
 
-            <PopupActionButton autofocus danger @click="$emit('confirm')">
+            <PopupActionButton autofocus danger @click="onConfirm">
                 Löschen
             </PopupActionButton>
         </template>
@@ -30,16 +39,34 @@
 
     const readSetting = () => {
         const stored = localStorage.getItem(LS_CONFIRM_DELETE_ENABLED)
-        confirmDeleteEnabled.value = stored === null ? true : stored === 'true'
+        const enabled = stored === null ? true : stored === 'true'
+        confirmDeleteEnabled.value = enabled
+        dontShowAgain.value = !enabled
     }
 
     const onConfirmDeleteChanged = (e: Event) => {
         confirmDeleteEnabled.value = Boolean((e as CustomEvent).detail)
     }
 
+    const dontShowAgain = ref(false)
+
+    const setConfirmDeleteEnabled = (enabled: boolean) => {
+        localStorage.setItem(LS_CONFIRM_DELETE_ENABLED, String(enabled))
+        window.dispatchEvent(new CustomEvent('confirm-delete-changed', { detail: enabled }))
+        confirmDeleteEnabled.value = enabled
+    }
+
+    const initializing = ref(true)
+
     onMounted(() => {
         readSetting()
         window.addEventListener('confirm-delete-changed', onConfirmDeleteChanged)
+        initializing.value = false
+    })
+
+    watch(dontShowAgain, () => {
+        // absichtlich KEIN persist hier
+        // nur merken – gespeichert wird erst bei "Löschen"
     })
 
     onBeforeUnmount(() => {
@@ -64,4 +91,34 @@
         color: var(--text-secondary);
         text-align: center;
     }
+
+    .dontshow {
+        margin-top: 0.75rem;
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        user-select: none;
+        cursor: pointer;
+    }
+
+    .dontshow-input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--accent-primary);
+        cursor: pointer;
+    }
+
+    .dontshow-label {
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 0.98rem;
+        line-height: 1.2;
+    }
+
+    .dontshow:focus-within .dontshow-label {
+        color: var(--text-primary);
+    }
+
 </style>

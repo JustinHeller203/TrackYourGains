@@ -23,6 +23,7 @@
     --popup-title-size: 1.25rem;
     --popup-body-size: 1rem;
     --sbw: calc(100vw - 100%);
+
 }
 
 html.dark-mode {

@@ -423,19 +423,34 @@
     }
 
     function computeLocalResult(): ProteinResult | null {
+        const errors: string[] = []
         const weightLabel = `Körpergewicht (${unitNormalized.value === 'kg' ? 'kg' : 'lbs'})`
 
-        const w = props.proteinWeight
-        if (w == null || Number.isNaN(w)) {
+        const wRaw = props.proteinWeight
+        if (wRaw == null || Number.isNaN(wRaw)) {
             errors.push(`Bitte gib dein ${weightLabel} ein.`)
-            return errors
+        } else {
+            if (wRaw <= 0) errors.push(`${weightLabel} muss größer als 0 sein.`)
+            else if (unitNormalized.value === 'kg' && wRaw > 400) errors.push(`${weightLabel} wirkt unrealistisch hoch.`)
+            else if (unitNormalized.value === 'lbs' && wRaw > 900) errors.push(`${weightLabel} wirkt unrealistisch hoch.`)
         }
 
-        if (w <= 0) errors.push(`${weightLabel} muss größer als 0 sein.`)
-        else if (unitNormalized.value === 'kg' && w > 400) errors.push(`${weightLabel} wirkt unrealistisch hoch.`)
-        else if (unitNormalized.value === 'lbs' && w > 900) errors.push(`${weightLabel} wirkt unrealistisch hoch.`)
+        if (errors.length) {
+            emit('invalid', errors)
+            return null
+        }
 
+        const weightKg = unitNormalized.value === 'lbs' ? (wRaw! * LBS_TO_KG) : wRaw!
+        const factor = proteinFactor(props.proteinGoal, activityEffective.value)
+        const recommend = weightKg * factor
+
+        return {
+            recommend,
+            factor,
+            weightDisplay: `${wRaw} ${unitNormalized.value === 'kg' ? 'kg' : 'lbs'}`
+        }
     }
+
 
     /* Lokaler Fallback */
     const internalResult = ref<ProteinResult | null>(null)

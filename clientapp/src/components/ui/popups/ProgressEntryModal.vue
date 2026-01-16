@@ -1,156 +1,201 @@
-<!--ProgressEntryModal.vue-->
+﻿<!--pfad: components/ui/popups/ProgressEntryModal.vue-->
 <template>
-    <BasePopup :show="show"
+    <BasePopup :show="showProxy"
                title="📝 Fortschritt eintragen"
                overlayClass="progress-entry-popup"
                :showClose="true"
                @cancel="onCancel">
 
         <div class="modal" @click.stop>
-            <h3 class="modal-title"> 📝 Fortschritt eintragen</h3>
+            <UiPopupSelect id="progress-exercise"
+                           ref="exerciseSelect"
+                           label="Übung"
+                           placeholder="Übung wählen"
+                           v-model="exerciseLocal"
+                           :options="exercises.map(e => ({ label: e.exercise, value: e.exercise }))" />
 
-            <label class="field-label" for="progress-exercise">Übung</label>
-            <select id="progress-exercise"
-                    ref="exerciseSelect"
-                    v-model="exerciseProxy"
-                    class="input select">
-                <option value="" disabled>Übung wählen</option>
-                <option v-for="ex in exercises"
-                        :key="ex.exercise"
-                        :value="ex.exercise">
-                    {{ ex.exercise }}
-                </option>
-            </select>
+            <div class="exercise-gap"></div>
 
             <!-- Cardio-Inputs -->
-            <div v-if="inputType === 'ausdauer'" class="modal-grid grid-2">
+            <div v-if="inputType === 'ausdauer'" class="modal-grid grid-2 grid-cardio">
                 <div>
-                    <label class="field-label" for="progress-duration">Dauer (Min)</label>
-                    <input id="progress-duration"
-                           ref="durationInput"
-                           type="number"
-                           min="1"
-                           v-model.number="durationProxy"
-                           class="input"
-                           placeholder="z. B. 30"
-                           :readonly="!hasExerciseSelected"
-                           @focus="!hasExerciseSelected && requireExercise('duration')" />
+                    <UiPopupInput id="progress-duration"
+                                  ref="durationInput"
+                                  label="Dauer (Min)"
+                                  type="number"
+                                  inputmode="numeric"
+                                  min="1"
+                                  step="1"
+                                  v-model="durationTextLocal"
+                                  placeholder="z. B. 30"
+                                  :readonly="!hasExerciseSelected"
+                                  @focus="!hasExerciseSelected && requireExercise('duration')" />
+
                 </div>
 
                 <div>
-                    <label class="field-label" for="progress-weight">Körpergewicht ({{ unit }})</label>
                     <div class="input-with-extras">
-                        <input id="progress-weight"
-                               ref="weightInput"
-                               type="number"
-                               min="0"
-                               step="0.5"
-                               v-model.number="weightProxy"
-                               class="input"
-                               :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'" />
-                        <ExtrasToggleButton :toggled="!!props.showExtras"
+                        <UiPopupInput id="progress-weight"
+                                      ref="weightInput"
+                                      :label="`Körpergewicht (${unit})`"
+                                      type="number"
+                                      inputmode="decimal"
+                                      min="0"
+                                      step="0.5"
+                                      v-model="weightTextLocal"
+                                      :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
+                                      :readonly="false" />
+
+                        <ExtrasToggleButton :toggled="showExtrasLocal"
                                             title="Extras einblenden"
                                             aria-label="Extras einblenden"
                                             :extraClass="['btn-extras-chip','extras-align', !hasExerciseSelected ? 'disabled-chip' : '']"
-                                            @click="() => { if (requireExercise('extras')) emit('update:showExtras', !props.showExtras) }" />
+                                            @click="() => { if (requireExercise('extras')) showExtrasLocal = !showExtrasLocal }" />
                     </div>
                 </div>
+
             </div>
 
             <!-- Dehnung-Inputs -->
             <div v-else-if="inputType === 'dehnung'" class="modal-grid grid-2">
                 <div>
-                    <label class="field-label" for="stretch-sets">Sätze insgesamt</label>
-                    <input id="stretch-sets"
-                           type="number" min="1" max="7"
-                           v-model.number="setsProxy"
-                           class="input"
-                           placeholder="z. B. 3"
-                           :readonly="!hasExerciseSelected"
-                           @focus="!hasExerciseSelected && requireExercise('sets')" />
+                    <UiPopupInput id="stretch-sets"
+                                  label="Sätze insgesamt"
+                                  type="number"
+                                  inputmode="numeric"
+                                  min="1"
+                                  max="7"
+                                  step="1"
+                                  v-model="setsTextLocal"
+                                  placeholder="z. B. 3"
+                                  :readonly="!hasExerciseSelected"
+                                  @focus="!hasExerciseSelected && requireExercise('sets')" />
                 </div>
 
                 <div>
-                    <label class="field-label" for="stretch-weight">Körpergewicht ({{ unit }})</label>
                     <div class="input-with-extras">
-                        <input id="stretch-weight"
-                               type="number" min="0" step="0.5"
-                               v-model.number="weightProxy"
-                               class="input"
-                               :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'" />
-                        <ExtrasToggleButton :toggled="!!props.showExtras"
+                        <UiPopupInput id="stretch-weight"
+                                      ref="weightInput"
+                                      :label="`Körpergewicht (${unit})`"
+                                      type="number"
+                                      inputmode="decimal"
+                                      min="0"
+                                      step="0.5"
+                                      v-model="weightTextLocal"
+                                      :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
+                                      :readonly="false" />
+
+                        <ExtrasToggleButton :toggled="showExtrasLocal"
                                             title="Extras einblenden"
                                             aria-label="Extras einblenden"
                                             :extraClass="['btn-extras-chip','extras-align', !hasExerciseSelected ? 'disabled-chip' : '']"
-                                            @click="() => { if (requireExercise('extras')) emit('update:showExtras', !props.showExtras) }" />
+                                            @click="() => { if (requireExercise('extras')) showExtrasLocal = !showExtrasLocal }" />
+
                     </div>
                 </div>
             </div>
+
 
             <!-- Kraft/Calisthenics (Standard) -->
             <div v-else class="modal-grid grid-2">
                 <div>
-                    <label class="field-label" for="progress-sets">Sätze insgesamt</label>
-                    <input id="progress-sets" type="number" min="1" max="7"
-                           v-model.number="setsProxy" class="input" placeholder="z. B. 3"
-                           :readonly="!hasExerciseSelected"
-                           @focus="!hasExerciseSelected && requireExercise('sets')" />
+                    <UiPopupInput id="progress-sets"
+                                  label="Sätze insgesamt"
+                                  type="number"
+                                  inputmode="numeric"
+                                  min="1"
+                                  max="7"
+                                  step="1"
+                                  v-model="setsTextLocal"
+                                  placeholder="z. B. 3"
+                                  :readonly="!hasExerciseSelected"
+                                  @focus="!hasExerciseSelected && requireExercise('sets')" />
+
                 </div>
 
                 <div>
-                    <label class="field-label" for="progress-weight">Körpergewicht ({{ unit }})</label>
                     <div class="input-with-extras">
-                        <input id="progress-weight"
-                               ref="weightInput"
-                               type="number" min="0" step="0.5"
-                               v-model.number="weightProxy"
-                               class="input"
-                               :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'" />
+                        <UiPopupInput id="progress-weight"
+                                      ref="weightInput"
+                                      :label="`Körpergewicht (${unit})`"
+                                      type="number"
+                                      inputmode="decimal"
+                                      min="0"
+                                      step="0.5"
+                                      v-model="weightTextLocal"
+                                      :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
+                                      :readonly="false" />
 
-                        <ExtrasToggleButton :toggled="!!props.showExtras"
+                        <ExtrasToggleButton :toggled="showExtrasLocal"
                                             title="Extras einblenden"
                                             aria-label="Extras einblenden"
                                             :extraClass="['btn-extras-chip','extras-align', !hasExerciseSelected ? 'disabled-chip' : '']"
-                                            @click="() => { if (requireExercise('extras')) emit('update:showExtras', !props.showExtras) }" />
+                                            @click="() => { if (requireExercise('extras')) showExtrasLocal = !showExtrasLocal }" />
                     </div>
                 </div>
             </div>
 
-            <div v-if="Number(setsProxy) > 0 && (inputType === 'kraft' || inputType === 'calisthenics' || inputType === 'dehnung')"
+            <div v-if="Number(setsLocal) > 0 && (inputType === 'kraft' || inputType === 'calisthenics' || inputType === 'dehnung')"
                  class="set-rows">
-                <div v-for="(row, i) in setDetailsProxy" :key="i" class="set-row">
+                <div v-for="(row, i) in setDetailsLocal" :key="i" class="set-row">
                     <div class="set-row-label">Satz {{ i + 1 }}</div>
 
                     <!-- Kraft / Calisthenics: Gewicht + Wdh. -->
                     <template v-if="inputType === 'kraft' || inputType === 'calisthenics'">
-                        <input type="number" min="0" step="0.5" class="input"
-                               :placeholder="(inputType === 'calisthenics' ? (unit === 'kg' ? 'Zusatzgewicht' : 'Added weight') : (unit === 'kg' ? 'Gewicht' : 'Weight'))"
-                               :value="row?.weight ?? ''"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('set-weight')"
-                               @input="onRowChange(i, 'weight', ($event.target as HTMLInputElement).valueAsNumber)" />
+                        <UiPopupInput :id="`set-${i}-weight`"
+                                      label=""
+                                      type="number"
+                                      inputmode="decimal"
+                                      min="0"
+                                      step="0.5"
+                                      :placeholder="(inputType === 'calisthenics'
+      ? (unit === 'kg' ? 'Zusatzgewicht' : 'Added weight')
+      : (unit === 'kg' ? 'Gewicht' : 'Weight'))"
+                                      :modelValue="rowField(i,'weight')"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('set-weight')"
+                                      @update:modelValue="v => setRowField(i,'weight', v)" />
 
-                        <input type="number" min="1" class="input" placeholder="Wdh."
-                               :value="row?.reps ?? ''"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('set-reps')"
-                               @input="onRowChange(i, 'reps', ($event.target as HTMLInputElement).valueAsNumber)" />
+                        <UiPopupInput :id="`set-${i}-reps`"
+                                      label=""
+                                      type="number"
+                                      inputmode="numeric"
+                                      min="1"
+                                      step="1"
+                                      placeholder="Wdh."
+                                      :modelValue="rowField(i,'reps')"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('set-reps')"
+                                      @update:modelValue="v => setRowField(i,'reps', v)" />
                     </template>
 
                     <!-- Dehnung: Dauer (Sek.) + optionale Wdh. -->
                     <template v-else>
-                        <input type="number" min="5" max="600" step="5" class="input"
-                               placeholder="Dauer (Sek.)"
-                               :value="(row as any)?.durationSec ?? ''"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('stretch-duration')"
-                               @input="onRowChange(i, 'durationSec', ($event.target as HTMLInputElement).valueAsNumber)" />
+                        <UiPopupInput :id="`set-${i}-duration`"
+                                      label=""
+                                      type="number"
+                                      inputmode="numeric"
+                                      min="5"
+                                      max="600"
+                                      step="5"
+                                      placeholder="Dauer (Sek.)"
+                                      :modelValue="rowField(i,'durationSec')"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('stretch-duration')"
+                                      @update:modelValue="v => setRowField(i,'durationSec', v)" />
 
-                        <input type="number" min="1" max="10" class="input" placeholder="Wdh. (optional)"
-                               :value="row?.reps ?? ''"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('stretch-reps')"
-                               @input="onRowChange(i, 'reps', ($event.target as HTMLInputElement).valueAsNumber)" />
+                        <UiPopupInput :id="`set-${i}-reps-opt`"
+                                      label=""
+                                      type="number"
+                                      inputmode="numeric"
+                                      min="1"
+                                      max="10"
+                                      step="1"
+                                      placeholder="Wdh. (optional)"
+                                      :modelValue="rowField(i,'reps')"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('stretch-reps')"
+                                      @update:modelValue="v => setRowField(i,'reps', v)" />
                     </template>
                 </div>
 
@@ -163,132 +208,194 @@
                 </div>
             </div>
 
-            <div v-if="props.showExtras" class="extras-section grid-2">
+            <div v-if="showExtrasLocal" class="extras-section grid-2">
                 <!-- Kraft & Calisthenics -->
                 <template v-if="inputType === 'kraft' || inputType === 'calisthenics'">
                     <div>
-                        <label class="field-label" for="extra-tempo">Tempo</label>
-                        <input id="extra-tempo" type="text" v-model="tempoProxy" class="input" placeholder="z. B. 3-1-1"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('tempo')" />
+                        <UiPopupInput id="extra-tempo"
+                                      label="Tempo"
+                                      v-model="tempoLocal"
+                                      placeholder="z. B. 3-1-1"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('tempo')" />
+
                     </div>
                     <div>
-                        <label class="field-label" for="extra-rest">Pausenzeit (Sek.)</label>
-                        <input id="extra-rest" type="number" min="0" step="5" v-model.number="restSecondsProxy" class="input" placeholder="z. B. 90"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('rest')" />
+                        <UiPopupInput id="extra-rest"
+                                      label="Pausenzeit (Sek.)"
+                                      type="number"
+                                      inputmode="numeric"
+                                      min="0"
+                                      step="5"
+                                      v-model="restSecondsTextLocal"
+                                      placeholder="z. B. 90"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('rest')" />
+
                     </div>
                 </template>
 
                 <!-- Ausdauer -->
                 <template v-else-if="inputType === 'ausdauer'">
                     <div>
-                        <label class="field-label" for="extra-distance">Distanz (km, optional)</label>
-                        <input id="extra-distance" type="number" min="0" step="0.1"
-                               v-model.number="distanceProxy" class="input" placeholder="z. B. 5"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('distance')" />
+                        <UiPopupInput id="extra-distance"
+                                      label="Distanz (km, optional)"
+                                      type="number"
+                                      inputmode="decimal"
+                                      min="0"
+                                      step="0.1"
+                                      v-model="distanceTextLocal"
+                                      placeholder="z. B. 5"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('distance')" />
+
                     </div>
 
                     <div>
-                        <label class="field-label" for="extra-avgHr">Durchschnittspuls (bpm)</label>
-                        <input id="extra-avgHr" type="number" min="0" step="1"
-                               v-model.number="avgHrProxy" class="input" placeholder="z. B. 145"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('avgHr')" />
+                        <UiPopupInput id="extra-avgHr"
+                                      label="Durchschnittspuls (bpm)"
+                                      type="number"
+                                      inputmode="numeric"
+                                      min="0"
+                                      step="1"
+                                      v-model="avgHrTextLocal"
+                                      placeholder="z. B. 145"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('avgHr')" />
                     </div>
 
                     <div>
-                        <label class="field-label" for="extra-calories">Kalorienverbrauch (kcal)</label>
-                        <input id="extra-calories" type="number" min="0" step="1"
-                               v-model.number="caloriesProxy" class="input" placeholder="z. B. 350"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('calories')" />
+                        <UiPopupInput id="extra-calories"
+                                      label="Kalorienverbrauch (kcal)"
+                                      type="number"
+                                      inputmode="numeric"
+                                      min="0"
+                                      step="1"
+                                      v-model="caloriesTextLocal"
+                                      placeholder="z. B. 350"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('calories')" />
                     </div>
 
                     <div>
-                        <label class="field-label" for="extra-pace">Pace (min/km)</label>
-                        <input id="extra-pace" type="text" v-model="paceProxy"
-                               class="input" placeholder="z. B. 5:20"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('pace')" />
+                        <UiPopupInput id="extra-pace"
+                                      label="Pace (min/km)"
+                                      v-model="paceLocal"
+                                      placeholder="z. B. 5:20"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('pace')" />
                     </div>
 
                     <div>
-                        <label class="field-label" for="extra-hrZone">Herzfrequenzzone</label>
-                        <select id="extra-hrZone" v-model.number="hrZoneProxy" class="input select"
-                                :disabled="!hasExerciseSelected">
-                            <option :value="null" disabled>Herzfrequenzzone auswählen</option>
-                            <option :value="1">Zone 1 : Sehr leicht</option>
-                            <option :value="2">Zone 2 : Leicht</option>
-                            <option :value="3">Zone 3 : Mittel</option>
-                            <option :value="4">Zone 4 : Schwer</option>
-                            <option :value="5">Zone 5 : Maximal</option>
-                        </select>
+                        <UiPopupSelect id="extra-hrZone"
+                                       label="Herzfrequenzzone"
+                                       placeholder="Herzfrequenzzone auswählen"
+                                       v-model="hrZoneSelectLocal"
+                                       :disabled="!hasExerciseSelected"
+                                       :options="[
+    { label: 'Zone 1 : Sehr leicht', value: '1' },
+    { label: 'Zone 2 : Leicht', value: '2' },
+    { label: 'Zone 3 : Mittel', value: '3' },
+    { label: 'Zone 4 : Schwer', value: '4' },
+    { label: 'Zone 5 : Maximal', value: '5' },
+  ]" />
                     </div>
 
                     <div>
-                        <label class="field-label" for="extra-borg">Borg-Skala (6-20)</label>
-                        <input id="extra-borg" ref="borgInput" type="number" inputmode="numeric"
-                               min="6" max="20" step="1" v-model="borgLocal"
-                               @focus="onBorgFocus" @blur="onBorgBlur"
-                               class="input" placeholder="z. B. 13"
-                               :readonly="!hasExerciseSelected"
-                               @focus.capture="!hasExerciseSelected && requireExercise('borg')" />
+                        <UiPopupInput id="extra-borg"
+                                      ref="borgInput"
+                                      label="Borg-Skala (6-20)"
+                                      type="number"
+                                      inputmode="numeric"
+                                      min="6"
+                                      max="20"
+                                      step="1"
+                                      v-model="borgLocal"
+                                      placeholder="z. B. 13"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="onBorgFocus"
+                                      @blur="onBorgBlur" />
+
                     </div>
                 </template>
 
                 <!-- Dehnung -->
                 <template v-else-if="inputType === 'dehnung'">
                     <div>
-                        <label class="field-label" for="extra-painFree">Schmerzfreiheit (1-10)</label>
-                        <input id="extra-painFree" type="number" min="1" max="10" step="1" v-model.number="painFreeProxy" class="input" placeholder="z. B. 8"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('painFree')" />
+                        <UiPopupInput id="extra-painFree"
+                                      label="Schmerzfreiheit (1-10)"
+                                      type="number"
+                                      inputmode="numeric"
+                                      min="1"
+                                      max="10"
+                                      step="1"
+                                      v-model="painFreeTextLocal"
+                                      placeholder="z. B. 8"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('painFree')" />
                     </div>
                     <div>
-                        <label class="field-label" for="extra-moveQuality">Bewegungsqualität (1-10)</label>
-                        <input id="extra-moveQuality" type="number" min="1" max="10" step="1" v-model.number="movementQualityProxy" class="input" placeholder="z. B. 7"
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('moveQuality')" />
+                        <UiPopupInput id="extra-moveQuality"
+                                      label="Bewegungsqualität (1-10)"
+                                      type="number"
+                                      inputmode="numeric"
+                                      min="1"
+                                      max="10"
+                                      step="1"
+                                      v-model="movementQualityTextLocal"
+                                      placeholder="z. B. 7"
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('moveQuality')" />
+                    </div>
+
+                    <div>
+                        <UiPopupSelect id="extra-equipment"
+                                       label="Hilfsmittel"
+                                       placeholder="Hilfsmittel auswählen"
+                                       v-model="equipmentLocal"
+                                       :disabled="!hasExerciseSelected"
+                                       :options="[
+                  { label: 'Band', value: 'Band' },
+                  { label: 'Rolle', value: 'Rolle' },
+                  { label: 'Ball', value: 'Ball' },
+                  { label: 'Stab', value: 'Stab' },
+                  { label: 'Benutzerdefiniert...', value: 'custom' },
+              ]" />
+                    </div>
+                    <div v-if="equipmentLocal === 'custom'">
+                        <UiPopupInput id="extra-equipment-custom"
+                                      ref="equipmentCustomInput"
+                                      label="Eigenes Hilfsmittel"
+                                      v-model="equipmentCustomLocal"
+                                      placeholder="z. B. Theraband (grün), usw."
+                                      :readonly="!hasExerciseSelected"
+                                      @focus="!hasExerciseSelected && requireExercise('equipmentCustom')" />
                     </div>
                     <div>
-                        <label class="field-label" for="extra-equipment">Hilfsmittel</label>
-                        <select id="extra-equipment" v-model="equipmentProxy" class="input select"
-                                :disabled="!hasExerciseSelected">
-                            <option value="" disabled>Hilfsmittel auswählen</option>
-                            <option value="Band">Band</option>
-                            <option value="Rolle">Rolle</option>
-                            <option value="Ball">Ball</option>
-                            <option value="Stab">Stab</option>
-                            <option value="custom">Benutzerdefiniert...</option>
-                        </select>
-                    </div>
-                    <div v-if="equipmentProxy === 'custom'">
-                        <label class="field-label" for="extra-equipment-custom">Eigenes Hilfsmittel</label>
-                        <input v-if="equipmentProxy === 'custom'" id="extra-equipment-custom" type="text"
-                               v-model="equipmentCustomProxy" class="input" placeholder="z. B. Theraband (grün), usw."
-                               :readonly="!hasExerciseSelected"
-                               @focus="!hasExerciseSelected && requireExercise('equipmentCustom')" />
-                    </div>
-                    <div>
-                        <label class="field-label" for="extra-side">Betroffene Seite</label>
-                        <select id="extra-side" v-model="sideProxy" class="input select"
-                                :disabled="!hasExerciseSelected">
-                            <option value="" disabled>Seite auswählen</option>
-                            <option value="links">Links</option>
-                            <option value="rechts">Rechts</option>
-                            <option value="beidseitig">Beidseitig</option>
-                        </select>
+                        <UiPopupSelect id="extra-side"
+                                       label="Betroffene Seite"
+                                       placeholder="Seite auswählen"
+                                       v-model="sideLocal"
+                                       :disabled="!hasExerciseSelected"
+                                       :options="[
+                  { label: 'Links', value: 'links' },
+                  { label: 'Rechts', value: 'rechts' },
+                  { label: 'Beidseitig', value: 'beidseitig' },
+              ]" />
+
                     </div>
                 </template>
             </div>
 
-            <label class="field-label" for="progress-note">Notiz (optional)</label>
-            <input id="progress-note" type="text" v-model="noteProxy" class="input"
-                   placeholder="RPE, Tempo, Feeling..."
-                   :readonly="!hasExerciseSelected"
-                   @focus="!hasExerciseSelected && requireExercise('note')" />
+            <UiPopupInput id="progress-note"
+                          class="note-input"
+                          :class="{ 'note-input--extras': showExtrasLocal }"
+                          label="Notiz (optional)"
+                          v-model="noteLocal"
+                          placeholder="RPE, Tempo, Feeling..."
+                          :readonly="!hasExerciseSelected"
+                          @focus="!hasExerciseSelected && requireExercise('note')" />
+
         </div>
 
         <template #actions>
@@ -334,626 +441,433 @@
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
+    import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
+    import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
 
-    const equipmentCustomInput = ref<HTMLInputElement | null>(null)
-    const equipmentProxy = computed({
-        get: () => props.equipment ?? '',
-        set: v => emit('update:equipment', v),
+    type Focusable = { focus: () => void }
+
+    type Unit = 'kg' | 'lbs'
+    type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
+    type SetDetail = { weight: number | null; reps: number | null; durationSec?: number | null }
+    type PlanExercise = { exercise: string; sets: number; reps: number; goal?: string }
+
+    type Workout = {
+        planId?: string
+        exercise: string
+        date: string
+        type?: ExerciseType
+
+        // base
+        sets: number
+        weight: number
+        reps: number
+        note?: string
+
+        // cardio
+        durationMin?: number
+        distanceKm?: number
+        avgHr?: number
+        calories?: number
+        pace?: string
+        hrZone?: number
+        borg?: number
+
+        // kraft extras
+        tempo?: string
+        restSeconds?: number
+        isDropset?: boolean
+        dropsets?: Array<{ weight: number | null; reps: number | null }>
+        setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null }>
+
+        // stretch extras
+        painFree?: number
+        movementQuality?: number
+        equipment?: string
+        equipmentCustom?: string
+        side?: '' | 'links' | 'rechts' | 'beidseitig'
+    }
+
+    const props = defineProps<{
+        show: boolean
+        unit: Unit
+        exercises: PlanExercise[]
+        errors?: string[]
+        planId: string | null
+        latestBodyWeightDisplay?: number | null
+    }>()
+
+    const showProxy = computed({
+        get: () => props.show,
+        set: (v: boolean) => emit('update:show', v),
     })
-    const borgInput = ref<HTMLInputElement | null>(null)
-    const borgLocal = ref<string>('')
+
+    function closePopup() {
+        showExtrasLocal.value = false
+        localEditingEntry.value = null
+        showProxy.value = false
+    }
+    const emit = defineEmits<{
+        (e: 'update:show', v: boolean): void
+        (e: 'dismissErrors'): void
+        (e: 'cancel'): void
+        (e: 'invalid', errors: string[]): void
+        (e: 'save', payload: {
+            workout: Workout
+            updatedBodyWeightKg?: number | null
+            mode: 'create' | 'edit'
+            editingDate?: string | null
+        }): void
+        (e: 'delete', payload: { planId: string; date: string }): void
+    }>()
+
+    /* helpers */
+    const toStr = (v: unknown) => (v == null ? '' : String(v))
+    const toNumber = (v: unknown): number | null => {
+        const s = toStr(v).replace(',', '.').trim()
+        if (!s) return null
+        const n = Number(s)
+        return Number.isFinite(n) ? n : null
+    }
+    const toNumberOr = (v: unknown, fallback: number | null = null) => (toNumber(v) ?? fallback)
+
+    /* unit conversion */
+    const lbsToKg = (lbs: number) => lbs * 0.45359237
+    const kgToLbs = (kg: number) => kg / 0.45359237
+    const displayToKg = (n: number) => (props.unit === 'kg' ? n : lbsToKg(n))
+    const kgToDisplay = (n: number) => (props.unit === 'kg' ? n : kgToLbs(n))
+
+    /* detect type from exercise name */
+    const isCardioName = (name: string) => {
+        const n = (name || '').toLowerCase()
+        const kw = [
+            'lauf', 'jogg', 'run', 'treadmill', 'rad', 'fahrrad', 'bike', 'spinning', 'cycling', 'row', 'rudern',
+            'ergometer', 'crosstrainer', 'ellip', 'seilspring', 'rope', 'treppen', 'stairs', 'schwimm', 'walk', 'hike',
+        ]
+        return kw.some(k => n.includes(k))
+    }
+    const isStretchName = (name: string) => {
+        const n = (name || '').toLowerCase()
+        const kw = ['dehn', 'stretch', 'mobil', 'mobility', 'beweglich', 'yoga', 'faszien', 'smr', 'roll', 'hip opener']
+        return kw.some(k => n.includes(k))
+    }
+
+    /* refs for focus */
+    const exerciseSelect = ref<Focusable | null>(null)
+    const weightInput = ref<Focusable | null>(null)
+    const durationInput = ref<Focusable | null>(null)
+    const borgInput = ref<Focusable | null>(null)
+    const equipmentCustomInput = ref<Focusable | null>(null)
+
+    /* core local state */
+    const showExtrasLocal = ref(false)
+    const localEditingEntry = ref<Workout | null>(null)
+    const localIsEditing = computed(() => !!localEditingEntry.value)
+
+    const exerciseLocal = ref('')
+    const setsLocal = ref<number | null>(null)
+    const weightLocal = ref<number | null>(null)
+    const repsLocal = ref<number | null>(null)
+    const noteLocal = ref('')
+
+    const durationLocal = ref<number | null>(null)
+    const distanceLocal = ref<number | null>(null)
+
+    const tempoLocal = ref('')
+    const restSecondsLocal = ref<number | null>(null)
+
+    const avgHrLocal = ref<number | null>(null)
+    const caloriesLocal = ref<number | null>(null)
+    const paceLocal = ref('')
+    const hrZoneLocal = ref<number | null>(null)
+
+    /* borg ui */
+    const borgLocalNum = ref<number | null>(null)
+    const borgLocal = ref('')
     const isEditingBorg = ref(false)
     const showBorgError = ref(false)
     const borgErrors = ref<string[]>([])
 
-    const toStr = (v: unknown) => (v == null ? '' : String(v));
-
-    const toNumber = (v: unknown): number | null => {
-        const s = toStr(v).replace(',', '.').trim();
-        if (!s) return null;
-        const n = Number(s);
-        return Number.isFinite(n) ? n : null;
-    };
-
     function parseBorg(v: unknown): number | null {
-        const n = toNumber(v);
-        // optional: clamp + runden
-        return n == null ? null : Math.round(n);
+        const n = toNumber(v)
+        return n == null ? null : Math.round(n)
     }
-
     function openSyncBorg() {
-        borgLocal.value = props.borg == null ? '' : String(props.borg)
+        borgLocal.value = borgLocalNum.value == null ? '' : String(borgLocalNum.value)
     }
-
     function onBorgFocus() { isEditingBorg.value = true }
-
     function onBorgBlur() {
         isEditingBorg.value = false
         const n = parseBorg(borgLocal.value)
 
         if (n == null) {
-            emit('update:borg', null)
+            borgLocalNum.value = null
             return
         }
-
         if (n < 6 || n > 20) {
             borgErrors.value = [`Borg-Skala muss zwischen 6 und 20 liegen (dein Wert: ${n}).`]
             showBorgError.value = true
             return
         }
-
-        emit('update:borg', n)
-    }
-
-    function validateBorg() {
-        const v = borgProxy.value
-        if (v == null) return
-        if (v < 6 || v > 20) {
-            borgErrors.value = [`Borg-Skala muss zwischen 6 und 20 liegen (dein Wert: ${v}).`]
-            showBorgError.value = true
-        }
+        borgLocalNum.value = n
     }
     function onCloseBorgError() {
         showBorgError.value = false
         nextTick(() => borgInput.value?.focus())
     }
 
-    type Unit = 'kg' | 'lbs'
-    interface PlanExercise {
-        exercise: string
-        sets: number
-        reps: number
-        goal?: string
-    }
-    const localIsEditing = ref(false)  // steuert Delete-Button/Actions lokal
-    const wasCanceled = ref(false)     // merkt: zuletzt Abbrechen gedr�ckt
+    /* stretch extras */
+    const painFreeLocal = ref<number | null>(null)
+    const movementQualityLocal = ref<number | null>(null)
+    const equipmentLocal = ref<string>('')
+    const equipmentCustomLocal = ref<string>('')
+    const sideLocal = ref<'' | 'links' | 'rechts' | 'beidseitig'>('')
 
-    type SetDetail = { weight: number | null; reps: number | null; durationSec?: number | null }
+    const setDetailsLocal = ref<SetDetail[]>([])
+    const isDropsetLocal = ref(false)
+    const dropsetsLocal = ref<Array<{ weight: number | null; reps: number | null }>>([])
 
-    const props = defineProps<{
-        show: boolean
-        unit: Unit
-        exercises: PlanExercise[]
-        exercise: string
-        sets: number | null
-        weight: number | null
-        reps: number | null
-        note: string
-        errors?: string[]
-
-        inputType: 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
-        duration: number | null
-        distance: number | null
-        setDetails: SetDetail[]
-        showExtras?: boolean
-
-        // Extras: Kraft/Calisthenics
-        tempo?: string
-        restSeconds?: number | null
-
-        // Extras: Ausdauer
-        avgHr?: number | null
-        calories?: number | null
-        pace?: string
-        hrZone?: number | null
-        borg?: number | null
-        isEditing?: boolean            // ?? NEU: true = Eintrag wird bearbeitet
-
-        // Extras: Dehnung
-        painFree?: number | null
-        movementQuality?: number | null
-        equipment?: string | null
-        equipmentCustom?: string | null
-        side?: '' | 'links' | 'rechts' | 'beidseitig' | null
-    }>()
-
-    const emit = defineEmits<{
-        (e: 'update:show', v: boolean): void
-        (e: 'update:exercise', v: string): void
-        (e: 'update:sets', v: number | null): void
-        (e: 'update:weight', v: number | null): void
-        (e: 'update:reps', v: number | null): void
-        (e: 'update:note', v: string): void
-        (e: 'update:duration', v: number | null): void
-        (e: 'update:distance', v: number | null): void
-        (e: 'save'): void
-        (e: 'cancel'): void
-        (e: 'dismissErrors'): void
-        (e: 'update:setDetails', v: SetDetail[]): void
-        (e: 'update:showExtras', v: boolean): void
-
-        // Extras
-        (e: 'update:tempo', v: string): void
-        (e: 'update:restSeconds', v: number | null): void
-        (e: 'delete'): void
-
-        (e: 'update:avgHr', v: number | null): void
-        (e: 'update:calories', v: number | null): void
-        (e: 'update:pace', v: string): void
-        (e: 'update:hrZone', v: number | null): void
-        (e: 'update:borg', v: number | null): void
-
-        (e: 'update:painFree', v: number | null): void
-        (e: 'update:movementQuality', v: number | null): void
-        (e: 'update:equipment', v: string): void
-        (e: 'update:side', v: '' | 'links' | 'rechts' | 'beidseitig'): void
-        (e: 'update:equipmentCustom', v: string): void
-        (e: 'invalid', errors: string[]): void
-
-        // ?? NEU: Parent-Flag explizit kontrollieren k�nnen
-        (e: 'update:isEditing', v: boolean): void
-    }>()
-
-    watch([() => props.isEditing, () => props.exercise, () => props.show], ([isEditing, ex, show]) => {
-        localIsEditing.value = !!(show && isEditing && !!ex?.trim() && !wasCanceled.value)
-    })
-    function onDelete() {
-        // Optional: confirm() einbauen, wenn du willst
-        // if (!confirm('Eintrag wirklich l�schen?')) return
-        emit('delete')
-    }
-
-    const setDetailsProxy = computed<SetDetail[]>({
-        get: () => props.setDetails ?? [],
-        set: v => emit('update:setDetails', v),
-    })
-    const keyFor = (ex: string, t: DraftType) => (ex ? `${ex}::${t}` : '')
-
-    /** Proxys f�r saubere v-model:foo Bindings */
-    const exerciseProxy = computed({
-        get: () => props.exercise,
-        set: v => emit('update:exercise', v),
-    })
-    const setsProxy = computed({
-        get: () => props.sets,
-        set: v => emit('update:sets', v),
-    })
-    const weightProxy = computed({
-        get: () => props.weight,
-        set: v => emit('update:weight', v),
-    })
-    const repsProxy = computed({
-        get: () => props.reps,
-        set: v => emit('update:reps', v),
-    })
-    const noteProxy = computed({
-        get: () => props.note,
-        set: v => emit('update:note', v),
-    })
-
-    const exerciseSelect = ref<HTMLSelectElement | null>(null)
-    const weightInput = ref<HTMLInputElement | null>(null)
-    const durationInput = ref<HTMLInputElement | null>(null) // ? neu
-    function focusFirst() {
-        nextTick(() => {
-            exerciseSelect.value?.focus()
-            nextTick(() => {
-                (props.inputType === 'ausdauer'
-                    ? durationInput.value
-                    : weightInput.value
-                )?.focus()
-            })
-        })
-    }
-    function onCancel() {
-        wasCanceled.value = true
-        localIsEditing.value = false
-        emit('update:isEditing', false)
-
-        // wichtig: alte �bung killen -> kein �Edit klebt�
-        emit('update:exercise', '')
-
-        clearCache()
-        emit('update:showExtras', false)
-        emit('update:show', false)
-        emit('cancel')
-    }
-    const durationProxy = computed({
-        get: () => props.duration,
-        set: v => emit('update:duration', v),
-    })
-    const distanceProxy = computed({
-        get: () => props.distance,
-        set: v => emit('update:distance', v),
-    })
-    // Extras: Kraft/Calisthenics
-    const tempoProxy = computed({
-        get: () => props.tempo ?? '',
-        set: v => emit('update:tempo', v),
-    })
-    const restSecondsProxy = computed({
-        get: () => props.restSeconds ?? null,
-        set: v => emit('update:restSeconds', v),
-    })
-
-    // Extras: Ausdauer
-    const avgHrProxy = computed({
-        get: () => props.avgHr ?? null,
-        set: v => emit('update:avgHr', v),
-    })
-    const caloriesProxy = computed({
-        get: () => props.calories ?? null,
-        set: v => emit('update:calories', v),
-    })
-    const paceProxy = computed({
-        get: () => props.pace ?? '',
-        set: v => emit('update:pace', v),
-    })
-    const hrZoneProxy = computed({
-        get: () => props.hrZone ?? null,
-        set: v => emit('update:hrZone', v),
-    })
-    const borgProxy = computed({
-        get: () => props.borg ?? null,
-        set: v => emit('update:borg', v),
-    })
-
-    // Extras: Dehnung
-    const painFreeProxy = computed({
-        get: () => props.painFree ?? null,
-        set: v => emit('update:painFree', v),
-    })
-    const movementQualityProxy = computed({
-        get: () => props.movementQuality ?? null,
-        set: v => emit('update:movementQuality', v),
-    })
-    const equipmentCustomProxy = computed({
-        get: () => props.equipmentCustom ?? '',
-        set: v => emit('update:equipmentCustom', v),
-    })
-    const sideProxy = computed({
-        get: () => props.side ?? '',
-        set: v => emit('update:side', v),
-    })
-
-    function onSave() {
-        if (!hasExerciseSelected.value && (props.inputType !== 'kraft' && props.inputType !== 'calisthenics')) {
-            if (!requireExercise('save')) return
-        }
-
-        // Ausdauer: Borg pr�fen (wie gehabt)
-        if (props.inputType === 'ausdauer') {
-            const n = parseBorg(borgLocal.value)
-            if (n != null && (n < 6 || n > 20)) {
-                borgErrors.value = [`Borg-Skala muss zwischen 6 und 20 liegen (dein Wert: ${n}).`]
-                showBorgError.value = true
-                return
-            }
-            emit('update:borg', n ?? null)
-        }
-
-        // Dehnung: NUR per-Satz Dauer validieren (>0), Reps sind optional
-        if (props.inputType === 'dehnung') {
-            // 1) Validieren: pro Satz Dauer > 0
-            const rows = Array.isArray(setDetailsProxy.value) ? setDetailsProxy.value : []
-            const hasInvalid = rows.some(r => {
-                const d = (r as any)?.durationSec
-                return !(typeof d === 'number' && isFinite(d) && d > 0)
-            })
-            if (hasInvalid) {
-                emit('invalid', ['Bitte pro Satz eine Dauer in Sekunden > 0 angeben.'])
-                return
-            }
-
-            // 2) Normalisieren: Gewicht auf 0 (falls Parent generisch auf number pr�ft),
-            //    Wdh. wirklich optional -> null lassen, Werte runden/clampen
-            const clean = rows.map(r => {
-                const d = Math.max(5, Math.min(600, Math.round((r as any)?.durationSec ?? 0)))
-                const reps = (r?.reps != null && r.reps >= 1) ? Math.round(r.reps) : null
-                return { weight: 0, durationSec: d, reps }
-            })
-            emit('update:setDetails', clean)
-
-            // 3) Globale Felder f�r Dehnung auf �nicht relevant�
-            emit('update:reps', null)
-            emit('update:duration', null)
-        }
-
-        emit('save')
-        nextTick(clearCache)
-    }
-    const hasExerciseSelected = computed(() =>
-        !!(props.exercise && props.exercise.trim())
+    const detectedInputType = computed<ExerciseType>(() =>
+        isStretchName(exerciseLocal.value) ? 'dehnung'
+            : isCardioName(exerciseLocal.value) ? 'ausdauer'
+                : 'kraft'
     )
+    const inputType = computed(() => detectedInputType.value)
+
+    const hasExerciseSelected = computed(() => !!exerciseLocal.value.trim())
 
     function requireExercise(reason?: string): boolean {
         if (hasExerciseSelected.value) return true
 
-        // Focus-/Tippen-Cases ohne Popup halten
         const silentReasons = new Set([
-            'duration', 'sets', 'set-weight', 'set-reps', 'stretch-duration', 'stretch-reps',
-            'tempo', 'rest', 'distance', 'avgHr', 'calories', 'pace', 'hrZone', 'borg',
-            'painFree', 'moveQuality', 'equipmentCustom', 'note', 'extras'
+            'weight',
+            'set-weight', 'set-reps', 'stretch-duration', 'stretch-reps', 'set-row', 'stretch-quick',
         ])
         const silent = reason ? silentReasons.has(reason) : false
 
-        if (!silent) {
-            emit('invalid', ['Bitte w�hle zuerst eine �bung, bevor du Werte eingibst.'])
-        }
+        if (!silent) emit('invalid', ['Bitte wähle zuerst eine Übung, bevor du Werte eingibst.'])
         nextTick(() => exerciseSelect.value?.focus())
         return false
     }
 
-    /* ?? Neu: onSave als submit nach au�en freigeben */
-    defineExpose({
-        submit: onSave
+    function focusFirst() {
+        nextTick(() => {
+            exerciseSelect.value?.focus()
+            if (!hasExerciseSelected.value) return
+            nextTick(() => {
+                (inputType.value === 'ausdauer' ? durationInput.value : weightInput.value)?.focus()
+            })
+        })
+    }
+
+    /* text proxies for inputs */
+    const setsTextLocal = computed({
+        get: () => (setsLocal.value == null ? '' : String(setsLocal.value)),
+        set: v => { setsLocal.value = toNumberOr(v, null) },
+    })
+    const repsTextLocal = computed({
+        get: () => (repsLocal.value == null ? '' : String(repsLocal.value)),
+        set: v => { repsLocal.value = toNumberOr(v, null) },
+    })
+    const weightTextLocal = computed({
+        get: () => (weightLocal.value == null ? '' : String(weightLocal.value)),
+        set: v => { weightLocal.value = toNumberOr(v, null) },
+    })
+    const durationTextLocal = computed({
+        get: () => (durationLocal.value == null ? '' : String(durationLocal.value)),
+        set: v => { durationLocal.value = toNumberOr(v, null) },
+    })
+    const distanceTextLocal = computed({
+        get: () => (distanceLocal.value == null ? '' : String(distanceLocal.value)),
+        set: v => { distanceLocal.value = toNumberOr(v, null) },
+    })
+    const avgHrTextLocal = computed({
+        get: () => (avgHrLocal.value == null ? '' : String(avgHrLocal.value)),
+        set: v => { avgHrLocal.value = toNumberOr(v, null) },
+    })
+    const caloriesTextLocal = computed({
+        get: () => (caloriesLocal.value == null ? '' : String(caloriesLocal.value)),
+        set: v => { caloriesLocal.value = toNumberOr(v, null) },
+    })
+    const restSecondsTextLocal = computed({
+        get: () => (restSecondsLocal.value == null ? '' : String(restSecondsLocal.value)),
+        set: v => { restSecondsLocal.value = toNumberOr(v, null) },
+    })
+    const painFreeTextLocal = computed({
+        get: () => (painFreeLocal.value == null ? '' : String(painFreeLocal.value)),
+        set: v => { painFreeLocal.value = toNumberOr(v, null) },
+    })
+    const movementQualityTextLocal = computed({
+        get: () => (movementQualityLocal.value == null ? '' : String(movementQualityLocal.value)),
+        set: v => { movementQualityLocal.value = toNumberOr(v, null) },
+    })
+    const hrZoneSelectLocal = computed<string>({
+        get: () => (hrZoneLocal.value == null ? '' : String(hrZoneLocal.value)),
+        set: v => {
+            const n = toNumberOr(v, null)
+            hrZoneLocal.value = n == null ? null : Math.round(n)
+        },
     })
 
-    const overlayDown = ref(false)
-    const overlayStart = ref<{ x: number; y: number } | null>(null)
+    /* set rows helpers */
+    type RowField = 'weight' | 'reps' | 'durationSec'
+    function rowField(i: number, field: RowField): string {
+        const r = setDetailsLocal.value?.[i] as any
+        const v = r?.[field]
+        return v == null ? '' : String(v)
+    }
+    function onRowChange(i: number, field: RowField, val: number | null) {
+        if (!hasExerciseSelected.value) { requireExercise('set-row'); return }
 
-    function onOverlayPointerDown(e: PointerEvent) {
-        if (e.target !== e.currentTarget) { overlayDown.value = false; return }
-        overlayDown.value = true
-        overlayStart.value = { x: e.clientX, y: e.clientY }
+        let n: number | null = (typeof val === 'number' && Number.isFinite(val)) ? val : null
+        if (field === 'reps' && (n == null || n < 1)) n = null
+        if (field === 'durationSec' && n != null) n = Math.max(5, Math.min(600, Math.round(n)))
+
+        const next = setDetailsLocal.value.map((r, idx) => idx === i ? { ...r, [field]: n } : r)
+        setDetailsLocal.value = next
+    }
+    function setRowField(i: number, field: RowField, raw: unknown) {
+        const n = toNumberOr(raw, null)
+        onRowChange(i, field, n)
     }
 
-    function onOverlayPointerUp(e: PointerEvent) {
-        if (!overlayDown.value) return
-        if (e.target !== e.currentTarget) { overlayDown.value = false; return }
-
-        const start = overlayStart.value
-        const moved = start ? Math.hypot(e.clientX - start.x, e.clientY - start.y) : 0
-        const hasSelection = !!(window.getSelection && window.getSelection()?.toString())
-
-        if (moved < 6 && !hasSelection) onCancel()  // ? nur �absichtlicher� Klick
-        overlayDown.value = false
-        overlayStart.value = null
+    /* stretch quick actions */
+    function applyStretchDuration(sec: number) {
+        if (!hasExerciseSelected.value) { requireExercise('stretch-quick'); return }
+        const s = Math.max(5, Math.min(600, Number(sec) || 0))
+        setDetailsLocal.value = setDetailsLocal.value.map(r => ({ ...r, durationSec: s }))
     }
-    type DraftType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
-    type Draft = {
-        type: DraftType
-        sets: number | null
-        reps: number | null
-        setDetails: SetDetail[]
-        duration: number | null
-        distance: number | null
-        note: string
-
-        // Extras: Kraft/Calisthenics
-        tempo?: string | null
-        restSeconds?: number | null
-
-        // Extras: Ausdauer
-        avgHr?: number | null
-        calories?: number | null
-        pace?: string | null
-        hrZone?: number | null
-        borg?: number | null
-
-        // Extras: Dehnung
-        painFree?: number | null
-        movementQuality?: number | null
-        equipment?: string | null
-        equipmentCustom?: string | null   // ?? hinzuf�gen
-        side?: '' | 'links' | 'rechts' | 'beidseitig' | null
+    function applyStretchDurationFromFirst() {
+        if (!hasExerciseSelected.value) { requireExercise('stretch-quick'); return }
+        const first = setDetailsLocal.value[0]?.durationSec
+        const s = Math.max(5, Math.min(600, Number(first ?? 30)))
+        setDetailsLocal.value = setDetailsLocal.value.map((r, i) => (i === 0 ? r : ({ ...r, durationSec: s })))
     }
-    const draftCache = ref<Record<string, Draft>>({})
 
-    function snapshot(ex: string, t: DraftType) {
-        if (!ex) return
-        const k = keyFor(ex, t)
-        draftCache.value[k] = {
-            type: t,
-            sets: setsProxy.value ?? null,
-            reps: repsProxy.value ?? null,
-            setDetails: [...(setDetailsProxy.value ?? [])],
-            duration: durationProxy.value ?? null,
-            distance: distanceProxy.value ?? null,
-            note: noteProxy.value ?? '',
+    /* create/edit API for parent */
+    function openCreate(args: { planId: string; defaultBodyWeightDisplay: number | null }) {
+        localEditingEntry.value = null
+        showExtrasLocal.value = false
 
-            // Extras
-            tempo: tempoProxy.value ?? null,
-            restSeconds: restSecondsProxy.value ?? null,
+        exerciseLocal.value = ''
+        setsLocal.value = null
+        repsLocal.value = null
+        noteLocal.value = ''
 
-            avgHr: avgHrProxy.value ?? null,
-            calories: caloriesProxy.value ?? null,
-            pace: paceProxy.value || null,
-            hrZone: hrZoneProxy.value ?? null,
-            borg: borgProxy.value ?? null,
+        durationLocal.value = null
+        distanceLocal.value = null
 
-            painFree: painFreeProxy.value ?? null,
-            movementQuality: movementQualityProxy.value ?? null,
-            equipment: equipmentProxy.value || null,
-            equipmentCustom: equipmentCustomProxy.value || null,
-            side: sideProxy.value || null,
-        }
+        tempoLocal.value = ''
+        restSecondsLocal.value = null
+
+        avgHrLocal.value = null
+        caloriesLocal.value = null
+        paceLocal.value = ''
+        hrZoneLocal.value = null
+        borgLocalNum.value = null
+
+        painFreeLocal.value = null
+        movementQualityLocal.value = null
+        equipmentLocal.value = ''
+        equipmentCustomLocal.value = ''
+        sideLocal.value = ''
+
+        setDetailsLocal.value = []
+        isDropsetLocal.value = false
+        dropsetsLocal.value = []
+
+        weightLocal.value = args.defaultBodyWeightDisplay
+
+        showBorgError.value = false
+        borgErrors.value = []
+        nextTick(() => openSyncBorg())
     }
-    function resetForType(t: DraftType) {
-        emit('update:setDetails', [])
-        emit('update:note', '')
 
-        // allgemeine Defaults
-        emit('update:duration', null)
-        emit('update:distance', null)
-        emit('update:reps', null)
+    function openEdit(args: { planId: string; entry: Workout }) {
+        const entry = args.entry
+        localEditingEntry.value = entry
 
-        // Extras zur�cksetzen
-        emit('update:tempo', '')
-        emit('update:restSeconds', null)
+        exerciseLocal.value = entry.exercise || ''
+        setsLocal.value = entry.sets ?? 1
+        repsLocal.value = entry.reps ?? null
+        noteLocal.value = entry.note ?? ''
 
-        emit('update:avgHr', null)
-        emit('update:calories', null)
-        emit('update:pace', '')
-        emit('update:hrZone', null)
-        emit('update:borg', null)
+        durationLocal.value = entry.durationMin ?? null
+        distanceLocal.value = entry.distanceKm ?? null
 
-        emit('update:painFree', null)
-        emit('update:movementQuality', null)
-        emit('update:equipment', '')
-        emit('update:equipmentCustom', '')
-        emit('update:side', '')
+        tempoLocal.value = entry.tempo ?? ''
+        restSecondsLocal.value = entry.restSeconds ?? null
 
-        if (t === 'ausdauer') {
-            emit('update:sets', null)
-        } else if (t === 'dehnung') {
-            emit('update:sets', null)
+        avgHrLocal.value = entry.avgHr ?? null
+        caloriesLocal.value = entry.calories ?? null
+        paceLocal.value = entry.pace ?? ''
+        hrZoneLocal.value = entry.hrZone ?? null
+        borgLocalNum.value = entry.borg ?? null
+
+        painFreeLocal.value = entry.painFree ?? null
+        movementQualityLocal.value = entry.movementQuality ?? null
+        equipmentLocal.value = entry.equipment ?? ''
+        equipmentCustomLocal.value = entry.equipmentCustom ?? ''
+        sideLocal.value = (entry.side as any) ?? ''
+
+        if (entry.setDetails?.length) {
+            setDetailsLocal.value = entry.setDetails.map((s: { weight?: number | null; reps?: number | null; durationSec?: number | null }) => ({
+                weight: s.weight ?? null,
+                reps: s.reps ?? null,
+                durationSec: s.durationSec ?? null,
+            }))
+            setsLocal.value = entry.setDetails.length
         } else {
-            // kraft/calisthenics
-            emit('update:sets', null)
-        }
-        nextTick(() => openSyncBorg())   // ?? HINZUF�GEN
-
-    }
-    function restore(ex: string, t: DraftType) {
-        if (!ex) { resetForType(t); return }
-        const k = keyFor(ex, t)
-        const d = draftCache.value[k]
-        if (d) {
-            emit('update:sets', d.sets)
-            emit('update:reps', d.reps)
-            emit('update:setDetails', [...d.setDetails])
-            emit('update:duration', d.duration)
-            emit('update:distance', d.distance)
-            emit('update:note', d.note)
-
-            // Extras
-            emit('update:tempo', d.tempo ?? '')
-            emit('update:restSeconds', d.restSeconds ?? null)
-
-            emit('update:avgHr', d.avgHr ?? null)
-            emit('update:calories', d.calories ?? null)
-            emit('update:pace', d.pace ?? '')
-            emit('update:hrZone', d.hrZone ?? null)
-            emit('update:borg', d.borg ?? null)
-
-            emit('update:painFree', d.painFree ?? null)
-            emit('update:movementQuality', d.movementQuality ?? null)
-            emit('update:equipment', d.equipment ?? '')
-            emit('update:equipmentCustom', d.equipmentCustom ?? '')
-            emit('update:side', d.side ?? '')
-        } else {
-            resetForType(t)
+            setDetailsLocal.value = []
         }
 
-        nextTick(() => openSyncBorg())   // ?? HINZUF�GEN
+        isDropsetLocal.value = Boolean(entry.isDropset && (entry.dropsets?.length ?? 0) > 0)
+        dropsetsLocal.value = (entry.dropsets ?? []).map((ds: { weight?: number | null; reps?: number | null }) => ({
+            weight: ds.weight ?? null,
+            reps: ds.reps ?? null,
+        }))
 
-    }
-    function snapshotCurrentExercise() {
-        const ex = (exerciseProxy.value || '').trim()
-        if (!ex) return
-        draftCache.value[ex] = {
-            type: props.inputType,
-            sets: setsProxy.value ?? null,
-            reps: repsProxy.value ?? null,
-            setDetails: [...(setDetailsProxy.value ?? [])],
-            duration: durationProxy.value ?? null,
-            distance: distanceProxy.value ?? null,
-            note: noteProxy.value ?? '',
-
-            tempo: tempoProxy.value ?? null,
-            restSeconds: restSecondsProxy.value ?? null,
-
-            avgHr: avgHrProxy.value ?? null,
-            calories: caloriesProxy.value ?? null,
-            pace: paceProxy.value || null,
-            hrZone: hrZoneProxy.value ?? null,
-            borg: borgProxy.value ?? null,
-
-            painFree: painFreeProxy.value ?? null,
-            movementQuality: movementQualityProxy.value ?? null,
-            equipment: equipmentProxy.value || null,
-            equipmentCustom: equipmentCustomProxy.value || null,
-            side: sideProxy.value || null,
-        } as Draft
+        showExtrasLocal.value = false
+        showBorgError.value = false
+        borgErrors.value = []
+        nextTick(() => openSyncBorg())
     }
 
-    function restoreExerciseDraft(ex: string) {
-        const d = draftCache.value[ex]
-        if (d) {
-            emit('update:sets', d.sets)
-            emit('update:reps', d.reps)
-            emit('update:setDetails', [...d.setDetails])
-            emit('update:duration', d.duration)
-            emit('update:distance', d.distance)
-            emit('update:note', d.note)
+    defineExpose({ openCreate, openEdit, submit: () => onSave() })
 
-            emit('update:tempo', d.tempo ?? '')
-            emit('update:restSeconds', d.restSeconds ?? null)
-
-            emit('update:avgHr', d.avgHr ?? null)
-            emit('update:calories', d.calories ?? null)
-            emit('update:pace', d.pace ?? '')
-            emit('update:hrZone', d.hrZone ?? null)
-            emit('update:borg', d.borg ?? null)
-
-            emit('update:painFree', d.painFree ?? null)
-            emit('update:movementQuality', d.movementQuality ?? null)
-            emit('update:equipment', d.equipment ?? '')
-            emit('update:equipmentCustom', d.equipmentCustom ?? '')
-            emit('update:side', d.side ?? '')
-        } else {
-            emit('update:setDetails', [])
-            emit('update:sets', null)
-            emit('update:reps', null)
-            emit('update:duration', null)
-            emit('update:distance', null)
-            emit('update:note', '')
-
-            emit('update:tempo', '')
-            emit('update:restSeconds', null)
-
-            emit('update:avgHr', null)
-            emit('update:calories', null)
-            emit('update:pace', '')
-            emit('update:hrZone', null)
-            emit('update:borg', null)
-
-            emit('update:painFree', null)
-            emit('update:movementQuality', null)
-            emit('update:equipment', '')
-            emit('update:equipmentCustom', '')
-            emit('update:side', '')
+    /* keep setDetails length in sync with setsLocal */
+    watch([setsLocal, inputType], ([s, t]) => {
+        const raw = Number(s) || 0
+        const count = Math.max(0, Math.min(7, raw))
+        if (raw > 7) {
+            emit('invalid', ['Maximal 7 Sätze erlaubt.'])
+            setsLocal.value = 7
         }
-    }
 
-
-    function clearCache() {
-        draftCache.value = {}
-    }
-
-    watch(() => props.inputType, (nextType, prevType) => {
-        const ex = exerciseProxy.value || ''
-        if (!ex) return
-        if (prevType) snapshot(ex, prevType)  // alten Typ sichern
-        nextTick(() => restore(ex, nextType)) // neuen Typ laden / defaults
-    })
-
-    watch(exerciseProxy, (nextEx, prevEx) => {
-        const t = props.inputType
-        if (prevEx) snapshot(prevEx, t)       // alten Zustand sichern (alte �bung + aktueller Typ)
-        nextTick(() => restore(nextEx || '', t)) // neuen Zustand laden / defaults f�r diesen Typ
-    })
-
-    watch(equipmentProxy, (val, prev) => {
-        if (val !== 'custom' && equipmentCustomProxy.value) {
-            emit('update:equipmentCustom', '')
-        }
-        if (val === 'custom') {
-            nextTick(() => equipmentCustomInput.value?.focus())
-        }
-    })
-
-    watch(() => props.show, v => {
-        if (v) {
-            if (wasCanceled.value) {
-                // Nach "Abbrechen" immer frischer Create-State
-                localIsEditing.value = false
-                emit('update:isEditing', false)
-                wasCanceled.value = false
-            } else {
-                // ECHTES Edit nur, wenn Flag true UND eine �bung vorliegt
-                localIsEditing.value = !!(props.isEditing && !!props.exercise?.trim())
+        const next = [...setDetailsLocal.value]
+        if (count > next.length) {
+            for (let i = next.length; i < count; i++) {
+                if (t === 'dehnung') next.push({ weight: 0, reps: null, durationSec: 30 })
+                else next.push({ weight: null, reps: repsLocal.value ?? null })
             }
+        } else if (count < next.length) {
+            next.splice(count)
+        }
+        setDetailsLocal.value = next
+    })
 
+    watch(equipmentLocal, (val) => {
+        if (val !== 'custom' && equipmentCustomLocal.value) equipmentCustomLocal.value = ''
+        if (val === 'custom') nextTick(() => equipmentCustomInput.value?.focus())
+    })
+
+    watch(() => props.show, (v) => {
+        if (v) {
             focusFirst()
             nextTick(() => openSyncBorg())
         } else {
-            emit('update:showExtras', false)
-            localIsEditing.value = false
+            showExtrasLocal.value = false
         }
     })
-
 
     onMounted(() => {
         if (props.show) {
@@ -962,89 +876,146 @@
         }
     })
 
-    watch(setsProxy, (n) => {
-        let raw = Number(n) || 0
+    function onCancel() {
+        closePopup()
+        emit('cancel')
+    }
 
-        if (raw > 7) {
-            emit('invalid', ['Maximal 7 S�tze erlaubt.'])
-            raw = 7
-            emit('update:sets', 7)
-        }
+    function onDelete() {
+        const planId = props.planId
+        const date = localEditingEntry.value?.date
+        if (!planId || !date) return
+        emit('delete', { planId, date })
+        closePopup()
+    }
 
-        const count = Math.max(0, raw)
-        const next = [...setDetailsProxy.value]
+    function onSave() {
+        const saveErrors: string[] = []
 
-        if (count > next.length) {
-            for (let i = next.length; i < count; i++) {
-                if (props.inputType === 'dehnung') {
-                    // Gewicht = 0, damit generische Parent-Checks nicht wegen null meckern
-                    next.push({ weight: 0, reps: null, durationSec: 30 })
-                } else {
-                    next.push({ weight: null, reps: repsProxy.value ?? null })
-                }
+        if (!exerciseLocal.value.trim()) saveErrors.push('Bitte wähle zuerst eine Übung.')
+
+        const t = detectedInputType.value
+
+        if (t === 'ausdauer') {
+            const dur = durationLocal.value
+            if (!(typeof dur === 'number' && Number.isFinite(dur) && dur >= 1)) {
+                saveErrors.push('Bitte eine Dauer in Minuten (mind. 1) angeben.')
             }
-        } else if (count < next.length) {
-            next.splice(count)
-        }
-        emit('update:setDetails', next)
-    })
-    function onRowChange(i: number, field: 'weight' | 'reps' | 'durationSec', val: number | null) {
-        if (!hasExerciseSelected.value) { requireExercise('set-row'); return }
-
-        // NaN -> null, optionales Verhalten f�r Reps bei Dehnung: 0 => null
-        let n: number | null
-        if (typeof val === 'number' && Number.isFinite(val)) {
-            n = val
         } else {
-            n = null
+            const s = setsLocal.value
+            if (!(typeof s === 'number' && Number.isFinite(s) && s >= 1)) {
+                saveErrors.push('Bitte mindestens 1 Satz angeben.')
+            }
         }
 
-        // Dehnung: Wenn user "0" tippt bei Wdh., behandeln wir es als "leer"
-        if (field === 'reps' && (n == null || n < 1)) {
-            n = null
+        if (saveErrors.length) {
+            emit('invalid', saveErrors)
+            return
         }
 
-        // Dehnung Dauer clampen (5..600) und auf Integer runden
-        if (field === 'durationSec' && n != null) {
-            n = Math.max(5, Math.min(600, Math.round(n)))
+        const planId = props.planId ?? undefined
+        const isEdit = !!localEditingEntry.value
+        const editingDate = localEditingEntry.value?.date ?? null
+
+        let workout: Workout
+
+        if (t === 'ausdauer') {
+            workout = {
+                planId,
+                exercise: exerciseLocal.value.trim(),
+                sets: 0, weight: 0, reps: 0,
+                note: noteLocal.value?.trim() || undefined,
+                date: localEditingEntry.value?.date ?? new Date().toISOString(),
+                type: 'ausdauer',
+                durationMin: Number(durationLocal.value),
+                distanceKm: distanceLocal.value != null ? Number(distanceLocal.value) : undefined,
+                avgHr: avgHrLocal.value ?? undefined,
+                calories: caloriesLocal.value ?? undefined,
+                pace: paceLocal.value?.trim() || undefined,
+                hrZone: hrZoneLocal.value ?? undefined,
+                borg: borgLocalNum.value ?? undefined,
+            }
+        } else if (t === 'dehnung') {
+            workout = {
+                planId,
+                exercise: exerciseLocal.value.trim(),
+                sets: Number(setsLocal.value) || 0,
+                weight: 0,
+                reps: repsLocal.value ?? 0,
+                note: noteLocal.value?.trim() || undefined,
+                date: localEditingEntry.value?.date ?? new Date().toISOString(),
+                type: 'dehnung',
+                durationMin: durationLocal.value ?? undefined,
+                painFree: painFreeLocal.value ?? undefined,
+                movementQuality: movementQualityLocal.value ?? undefined,
+                equipment: equipmentLocal.value || undefined,
+                equipmentCustom: equipmentCustomLocal.value || undefined,
+                side: sideLocal.value || undefined,
+            }
+        } else {
+            const hasPerSet = (setDetailsLocal.value?.length ?? 0) > 0
+            const perSet = hasPerSet
+                ? setDetailsLocal.value
+                    .filter(r => r.weight != null && r.reps != null)
+                    .map(r => ({ weight: displayToKg(Number(r.weight)), reps: Number(r.reps) }))
+                : []
+
+            const first = perSet[0]
+            const baseWeightKg =
+                weightLocal.value != null && Number.isFinite(Number(weightLocal.value)) && Number(weightLocal.value) >= 0
+                    ? displayToKg(Number(weightLocal.value))
+                    : 0
+
+            workout = {
+                planId,
+                exercise: exerciseLocal.value.trim(),
+                sets: hasPerSet ? perSet.length : (Number(setsLocal.value) || 0),
+                weight: hasPerSet ? first.weight : baseWeightKg,
+                reps: hasPerSet ? first.reps : (Number(repsLocal.value) || 0),
+                note: noteLocal.value?.trim() || undefined,
+                date: localEditingEntry.value?.date ?? new Date().toISOString(),
+                type: 'kraft',
+                tempo: tempoLocal.value?.trim() || undefined,
+                restSeconds: restSecondsLocal.value ?? undefined,
+                isDropset: isDropsetLocal.value || undefined,
+                dropsets: isDropsetLocal.value
+                    ? (dropsetsLocal.value ?? [])
+                        .filter(ds => ds.weight != null && ds.reps != null)
+                        .map(ds => ({ weight: displayToKg(Number(ds.weight)), reps: Number(ds.reps) }))
+                    : undefined,
+                setDetails: hasPerSet ? perSet : undefined,
+            }
         }
 
-        const next = setDetailsProxy.value.map((r, idx) =>
-            idx === i ? { ...r, [field]: n } : r
-        )
-        emit('update:setDetails', next)
-    }
+        const updatedBodyWeightKg =
+            weightLocal.value != null && Number(weightLocal.value) > 0
+                ? displayToKg(Number(weightLocal.value))
+                : null
 
-    function applyStretchDuration(sec: number) {
-        if (!hasExerciseSelected.value) { requireExercise('stretch-quick'); return }
-        const s = Math.max(5, Math.min(600, Number(sec) || 0))
-        const next = setDetailsProxy.value.map(r => ({ ...r, durationSec: s }))
-        emit('update:setDetails', next)
-    }
-
-    function applyStretchDurationFromFirst() {
-        if (!hasExerciseSelected.value) { requireExercise('stretch-quick'); return }
-        const first = setDetailsProxy.value[0]?.durationSec
-        const s = Math.max(5, Math.min(600, Number(first ?? 30)))
-        const next = setDetailsProxy.value.map((r, i) => i === 0 ? r : ({ ...r, durationSec: s }))
-        emit('update:setDetails', next)
+        emit('save', { workout, updatedBodyWeightKg, mode: isEdit ? 'edit' : 'create', editingDate })
+        closePopup()
     }
 </script>
 
+
 <style scoped>
-    /* Bevorzuge dynamische/small viewport heights -> noch fr�her scollen */
+
+    :global(.popup-overlay.progress-entry-popup) {
+        z-index: 10050 !important;
+    }
+
+    /* Bevorzuge dynamische/small viewport heights -> noch fr her scollen */
     @supports (height: 100dvh) {
         .modal {
             max-height: min(76dvh, 86svh);
         }
     }
-
     /* Kleine Breiten: noch strenger limitieren */
     @media (max-width: 560px) {
         .modal {
             max-height: 68svh;
         }
-        /* fr�her Scroll auf kleinen Screens */
+        /* fr her Scroll auf kleinen Screens */
     }
 
     @media (max-width: 480px) {
@@ -1097,42 +1068,6 @@
         background: transparent;
     }
 
-    .modal-title {
-        font-weight: 700;
-        margin: .25rem 0 0.75rem;
-    }
-
-    .field-label {
-        display: block;
-        font-size: .9rem;
-        color: var(--text-secondary);
-        margin: .5rem 0 .25rem;
-    }
-
-    .input {
-        width: 100%;
-        padding: .6rem .75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-primary);
-    }
-
-        .input:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-        }
-
-    .select {
-        appearance: auto;
-    }
-
-    .modal-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: .75rem;
-    }
-
     .modal-actions {
         display: flex;
         justify-content: flex-end;
@@ -1161,7 +1096,7 @@
                 box-sizing: border-box;
             }
 
-            /* Viele UI-Buttons haben gro�e Default-Paddings � kompakter machen */
+            /* Viele UI-Buttons haben gro e Default-Paddings   kompakter machen */
             .modal-actions :is(button, a, .btn, .base-button) {
                 padding: .55rem .5rem !important;
                 font-size: .92rem !important;
@@ -1170,7 +1105,7 @@
             }
     }
 
-    /* === Sehr schmale Ger�te: Delete oben full width, darunter Cancel/Save === */
+    /* === Sehr schmale Ger te: Delete oben full width, darunter Cancel/Save === */
     @media (max-width: 360px) {
         .modal-actions {
             grid-template-columns: 1fr 1fr; /* 2 Spalten */
@@ -1184,7 +1119,7 @@
                     "cancel save";
             }
 
-            /* Mapping �ber deine Klassen aus dem Template */
+            /* Mapping  ber deine Klassen aus dem Template */
             .modal-actions .action-delete {
                 grid-area: delete;
             }
@@ -1204,19 +1139,19 @@
             }
     }
 
-    /* Optional: Buttons unten immer sichtbar halten (bleibt im Scrollbereich �kleben�) */
+    /* Optional: Buttons unten immer sichtbar halten (bleibt im Scrollbereich  kleben ) */
     @media (max-width: 480px) {
         .modal-actions {
             position: sticky;
             bottom: 0;
             background: linear-gradient(to top, var(--bg-card), color-mix(in oklab, var(--bg-card) 80%, transparent));
             padding-bottom: .75rem;
-            /* Falls der Modal innen seitliche Padding hat: nichts �berstehen lassen */
+            /* Falls der Modal innen seitliche Padding hat: nichts  berstehen lassen */
         }
     }
 
     @media (max-width: 420px) {
-        /* Grid statt Flex: gleiche Breite, kein �berlaufen */
+        /* Grid statt Flex: gleiche Breite, kein  berlaufen */
         .modal-actions {
             display: grid;
             gap: .5rem;
@@ -1228,13 +1163,13 @@
                 grid-template-columns: repeat(3, 1fr);
             }
 
-            /* Buttons sollen die Zelle vollst�ndig f�llen */
+            /* Buttons sollen die Zelle vollst ndig f llen */
             .modal-actions > * {
                 width: 100%;
             }
     }
 
-    /* === Sehr schmale Ger�te: Delete oben volle Breite, darunter Cancel/Save === */
+    /* === Sehr schmale Ger te: Delete oben volle Breite, darunter Cancel/Save === */
     @media (max-width: 340px) {
         .modal-actions {
             grid-template-columns: 1fr 1fr; /* 2 Spalten */
@@ -1271,7 +1206,7 @@
             grid-template-columns: 1fr;
         }
     }
-    /* Extras Section � clean & modern */
+    /* Extras Section   clean & modern */
     .extras-section {
         margin-top: .75rem;
         padding-top: .75rem;
@@ -1300,19 +1235,6 @@
         }
     }
 
-    .modal-grid.grid-2 {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        align-items: center; /* statt end -> mittig */
-        gap: 1rem;
-    }
-
-    .input {
-        width: 100%;
-        padding: .7rem 0.9rem; /* gr��erer Input */
-        font-size: 0.9rem; /* besser lesbar */
-    }
-
     @media (max-width: 520px) {
         .modal-grid.grid-2 {
             grid-template-columns: 1fr;
@@ -1328,14 +1250,19 @@
 
     .set-row {
         display: grid;
-        grid-template-columns: 90px 1fr 1fr;
+        grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1fr);
         gap: .5rem;
-        align-items: center;
     }
 
     .set-row-label {
-        font-size: .9rem;
+        display: flex;
+        align-items: center;
+        height: 100%;
+        font-size: 1rem;
+        font-weight: 700;
         color: var(--text-secondary);
+        line-height: 1;
+        transform: translateY(-9px); /* Label bissl höher */
     }
 
     @media (max-width: 520px) {
@@ -1344,188 +1271,61 @@
         }
     }
 
-    .select option[disabled] {
-        color: var(--text-secondary);
-    }
-    /* Input + Toggle nebeneinander, stabil */
-    .input-with-extras {
-        display: grid;
-        grid-template-columns: minmax(0,1fr) auto; /* Input dehnt sich, Button so breit wie n�tig */
-        align-items: center;
-        gap: .5rem;
-    }
-
-    /* Chip-Optik (�berschreibt BaseButton-Defaults: keine volle Breite) */
-    .btn-extras-chip {
-        display: inline-flex;
-        width: auto;
-        margin: 0;
-        padding: .5rem .6rem;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        background: var(--bg-secondary);
-        color: var(--text-primary);
-        font-weight: 600;
-        line-height: 1;
-        white-space: nowrap; /* kein Umbruch des Labels */
-    }
-
-    /* Button an das rechte Grid-Ende pinnen */
     .extras-align {
         justify-self: end;
+        align-self: center;
+        margin-top: 5px; /* bei Bedarf 4px */
     }
-
-    .btn-extras-chip:hover {
-        background: var(--bg-secondary);
-        border-color: var(--accent-primary);
-        color: var(--accent-primary);
-        transform: translateY(-1px);
-    }
-
-    .btn-extras-chip.active {
-        border-color: var(--accent-primary);
-        color: var(--accent-primary);
-    }
-
-    /* etwas kompakter auf sehr kleinen Screens */
-    @media (max-width:560px) {
-        .input-with-extras {
-            gap: .4rem;
-        }
-
-        .btn-extras-chip {
-            padding: .5rem .55rem;
-        }
-    }
-
-    /* Chip-Optik f�r den Toggle (wird �ber :extraClass gesetzt) */
-    .btn-extras-chip {
-        padding: .5rem .6rem;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        background: var(--bg-secondary);
-        color: var(--text-primary);
-        font-weight: 600;
-        line-height: 1;
-    }
-
-        .btn-extras-chip:hover {
-            background: var(--bg-secondary);
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-            transform: translateY(-1px);
-        }
-
-        .btn-extras-chip.active {
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-        }
 
     @media (max-width:560px) {
         .input-with-extras {
             gap: .4rem;
         }
     }
-    /* Legt Input + Button in eine feste 2-Spalten-Reihe */
+
     .input-with-extras {
         display: grid;
         grid-template-columns: 1fr auto;
         gap: .5rem;
-        align-items: center;
+        align-items: end; /* statt center -> Chip hängt unten an der Input-Kante */
     }
 
-    /* BaseButton-Defaults �berstimmen: NICHT volle Breite */
-    .btn-extras-chip {
-        display: inline-flex; /* wichtig */
-        width: auto; /* wichtig */
-        margin: 0; /* sicherheitshalber */
-        padding: .5rem .6rem;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        background: var(--bg-secondary);
-        color: var(--text-primary);
-        font-weight: 600;
-        line-height: 1;
-    }
-
-        .btn-extras-chip:hover {
-            background: var(--bg-secondary);
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-            transform: translateY(-1px);
+        .input-with-extras .btn-extras-chip {
+            margin-bottom: -9px;
         }
-
-        .btn-extras-chip.active {
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-        }
-
-    .input[readonly] {
-        opacity: .7;
-        cursor: not-allowed;
-    }
-
-    .select:disabled {
-        opacity: .7;
-        cursor: not-allowed;
-    }
 
     .disabled-chip {
         opacity: .6;
         cursor: not-allowed;
     }
 
-    /* etwas enger auf sehr kleinen Screens */
-    @media (max-width:560px) {
-        .input-with-extras {
-            gap: .4rem;
-        }
-    }
-    /* Zwei-Spalten: gleiche Label-Zeilenh�he, Inputs b�ndig */
-    .modal-grid.grid-2 > div {
+    /* REPLACE: modal-grid baseline clean (kein 3-col default, kein overlap) */
+    .modal-grid {
         display: grid;
-        grid-template-rows: 1.7rem auto; /* mehr Platz f�r die Label-Zeile */
+        grid-template-columns: 1fr;
+        gap: .75rem;
     }
 
-    /* Label in grid-2 etwas h�her und mit mehr Abstand zum Input */
-    .modal-grid.grid-2 .field-label {
-        font-size: .95rem; /* etwas gr��er lesbar */
-        line-height: 1.6rem; /* passt zur 1.7rem-Row */
-        margin: .20rem 0 .15rem; /* extra Abstand zum Input */
-        white-space: nowrap; /* einzeilig -> Spalten bleiben b�ndig */
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Leicht kompaktere Reihe ohne Auswirkung auf Ausrichtung */
-    .modal-grid.grid-2 {
-        gap: .6rem 1rem;
-    }
-
-        .modal-grid.grid-2 .input {
-            padding: .6rem .8rem;
+        /* REPLACE: grid-2 soll nur Spalten steuern – NICHT innere Rows erzwingen */
+        .modal-grid.grid-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: start;
+            gap: .6rem 1rem;
         }
 
-        .modal-grid.grid-2 .btn-extras-chip {
-            padding: .42rem .54rem;
-        }
+            /* REMOVE-Effekt: KEIN eigenes Grid pro Zelle -> verhindert Überlappung */
+            .modal-grid.grid-2 > div {
+                display: block;
+            }
+
+            .modal-grid.grid-2 .btn-extras-chip {
+                padding: .42rem .54rem;
+            }
 
     @media (max-width: 520px) {
         .modal-grid.grid-2 > div {
             display: block;
         }
-
-        .modal-grid.grid-2 .field-label {
-            font-size: .9rem;
-            line-height: 1.2;
-            margin: .5rem 0 .25rem;
-            white-space: normal;
-        }
-    }
-    /* === FIX: Input bleibt breit, Button wrappt sauber bei langem Label === */
-    .input-with-extras > .input {
-        width: auto; /* �berschreibt .input { width:100% } im Kombi-Layout */
-        min-width: 0; /* l�sst Flex korrekt rechnen */
     }
 
     @media (min-width: 961px) {
@@ -1543,20 +1343,9 @@
 
             /* Container: Label oben, darunter die Inhaltsebene */
             .modal-grid.grid-2 > div {
-                display: grid;
-                grid-template-columns: 1fr;
-                grid-template-rows: 1.7rem auto;
-                align-items: end;
+                display: block;
             }
-
-                /* Labels einzeilig lassen */
-                .modal-grid.grid-2 > div .field-label {
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                }
-
-                /* WICHTIG: Chip NICHT �berlagern -> echte 2-Spalten-Zeile */
+                /* WICHTIG: Chip NICHT  berlagern -> echte 2-Spalten-Zeile */
                 .modal-grid.grid-2 > div .input-with-extras {
                     display: grid !important;
                     grid-template-columns: 1fr auto; /* Input | Chip */
@@ -1564,23 +1353,12 @@
                     align-items: center;
                 }
 
-                    /* Einheitliche Input-H�he/Breite */
-                    .modal-grid.grid-2 .input,
-                    .modal-grid.grid-2 > div .input-with-extras > .input,
-                    .modal-grid.grid-2 > div > .input {
-                        width: 100%;
-                        min-width: 0;
-                        padding: .72rem 1rem;
-                        font-size: .95rem;
-                        line-height: 1.2;
-                        box-sizing: border-box;
-                    }
-
                 /* Chip normal rechts ausrichten, ohne absolute Pos. */
                 .modal-grid.grid-2 > div .extras-align {
                     position: static;
                     justify-self: end;
                 }
+
 
         /* Cardio-Reihe: ebenfalls nebeneinander ohne Wrap */
         .grid-cardio {
@@ -1604,6 +1382,33 @@
             }
     }
 
+
+    .btn-extras-chip {
+        display: inline-flex;
+        width: auto;
+        margin: 0;
+        padding: .5rem .6rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+        .btn-extras-chip:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+
+        .btn-extras-chip.active {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
     .set-quick-actions {
         margin-top: .25rem;
         display: flex;
@@ -1615,5 +1420,13 @@
         .grid-cardio {
             grid-template-columns: 1fr;
         }
+    }
+
+    .exercise-gap {
+        height: .85rem; /* wenn du mehr willst: 1.1rem */
+    }
+
+    .note-input--extras {
+        margin-top: 1.05rem; /* wenn noch mehr: 1.25rem */
     }
 </style>

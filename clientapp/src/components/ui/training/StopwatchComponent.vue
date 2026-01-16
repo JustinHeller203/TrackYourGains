@@ -1645,5 +1645,16 @@
         }
     }
 
+    /* Hide 2nd marquee copy on desktop (only needed for the loop on small screens) */
+    .laps-marquee__inner[aria-hidden="true"] {
+        display: none;
+    }
+
+    @media (max-width: 510px) {
+        .laps-marquee__inner[aria-hidden="true"] {
+            display: inline-flex;
+        }
+    }
+
 
 </style>

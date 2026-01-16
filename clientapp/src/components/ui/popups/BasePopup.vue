@@ -105,39 +105,41 @@
     .popup-overlay.explanation-popup .popup-body {
         padding-right: 0;
     }
-        .popup-body :deep(label) {
-            display: block;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.35rem;
-        }
 
-        .popup-body :deep(.edit-input) {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-secondary);
-            color: var(--text-color);
-            font-size: 0.95rem;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        .popup-body :deep(.edit-input:focus) {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99,102,241,.5);
-            outline: none;
-        }
-
-    /* Varianten-Abst�nde (Beispiele) */
-    .popup-overlay.weight-goal-popup :deep(.edit-input) {
-        margin-bottom: 1.25rem;
+    .popup-overlay.weight-goal-popup .popup {
+        width: min(560px, 94vw); /* optional: wirkt weniger "fett" */
     }
 
-    .popup-overlay.export-popup :deep(.edit-input) {
-        margin-bottom: 0.5rem;
+    .popup-overlay.weight-goal-popup .popup-body {
+        flex: 1;
+        justify-content: center; /* vertikal im Body */
     }
+
+        /* Optional: Input-Wrapper nicht ganz am Rand kleben */
+        .popup-overlay.weight-goal-popup .popup-body > * {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+    /* BasePopup.vue — REPLACE: alte edit-input Regeln raus, neue UiPopupInput Regeln rein */
+
+    .popup-body :deep(.popinp) {
+        margin-bottom: 0.95rem;
+    }
+
+    /* letzter Input im Popup: kein extra Abstand */
+    .popup-body :deep(.popinp:last-child) {
+        margin-bottom: 0;
+    }
+
+    /* Varianten: wenn du spezielle Abstände brauchst */
+    .popup-overlay.weight-goal-popup :deep(.popinp) {
+        margin-bottom: 0; /* sonst hängt das Ding optisch zu weit oben */
+    }
+
+    .popup-overlay.export-popup :deep(.popinp) {
+        margin-bottom: 0.6rem;
+    }
+
 
     .popup-body :deep(.downloaddistance) {
         margin-bottom: 0.5rem;
@@ -172,6 +174,11 @@
         text-align: left;
         font-family: var(--popup-font-family, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
         padding: 0; /* wichtig: wie modal-card */
+    }
+
+    .popup-overlay.weight-goal-popup .popup-body {
+        flex: 1; /* nimmt den Platz zwischen Title und Actions */
+        justify-content: center; /* vertikal mittig */
     }
     html.dark-mode .popup-overlay .popup {
         background: #020617;

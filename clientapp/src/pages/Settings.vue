@@ -1,4 +1,4 @@
-<!--Settings.vue-->
+<!--pages/Settings.vue-->
 
 <template>
     <div class="settings">
@@ -409,7 +409,9 @@
     const onToastsEnabledChanged = (e: CustomEvent<boolean>) => {
         toastsEnabled.value = !!e.detail
     }
-
+    const onConfirmDeleteEnabledChanged = (e: CustomEvent<boolean>) => {
+        confirmDeleteEnabled.value = !!e.detail
+    }
     const toastTypeOptions = [
         { key: 'toast-default', label: 'Standard', emoji: '💬', hint: 'Allgemeine Infos & Hinweise' },
         { key: 'toast-save', label: 'Speichern', emoji: '💾', hint: 'Wenn etwas gespeichert wurde' },
@@ -547,6 +549,7 @@
 
         window.removeEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
         window.removeEventListener('toast-types-changed', onToastTypesChanged as EventListener)
+        window.removeEventListener('confirm-delete-changed', onConfirmDeleteEnabledChanged as EventListener)
 
         if (saveHintTimer) {
             window.clearTimeout(saveHintTimer)
@@ -558,6 +561,8 @@
         initTheme()
 
         window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+
+        window.addEventListener('confirm-delete-changed', onConfirmDeleteEnabledChanged as EventListener)
 
         persistedTheme.value = isDark.value ? 'dark' : 'light'
         isDarkDraft.value = isDark.value

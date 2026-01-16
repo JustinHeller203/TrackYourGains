@@ -4,14 +4,13 @@
                :overlayClass="overlayClass"
                @cancel="$emit('cancel')">
         <template #default>
-            <div class="input-group">
-                <input ref="inp"
-                       class="edit-input"
-                       :placeholder="placeholder"
-                       v-model="proxy"
-                       :maxlength="maxLength || undefined"
-                       @keydown.enter.prevent="$emit('save', proxy)"
-                       @keydown.escape.prevent="$emit('cancel')" />
+            <div class="input-group" @keydown.escape.prevent="$emit('cancel')">
+                <UiPopupInput :modelValue="proxy"
+                              :placeholder="placeholder"
+                              :maxlength="maxLength || undefined"
+                              autofocus
+                              @update:modelValue="(v) => (proxy = v)"
+                              @enter="$emit('save', proxy)" />
             </div>
         </template>
 
@@ -28,9 +27,10 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, nextTick, ref, watch } from 'vue'
+    import { computed } from 'vue'
     import BasePopup from './BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
+    import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
 
     const props = defineProps<{
         show: boolean
@@ -53,11 +53,6 @@
     const proxy = computed({
         get: () => props.modelValue,
         set: (v: string) => emit('update:modelValue', v)
-    })
-
-    const inp = ref<HTMLInputElement | null>(null)
-    watch(() => props.show, async (open) => {
-        if (open) { await nextTick(); inp.value?.focus() }
     })
 
     const disableSave = computed(() => props.required ? proxy.value.trim().length === 0 : false)

@@ -1,4 +1,4 @@
-﻿<!--ExplanationPopup.vue:-->
+﻿<!--components/ui/popups/ExplanationPopup.vue:-->
 
 <template>
     <button class="info-btn"
