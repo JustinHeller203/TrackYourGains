@@ -2387,10 +2387,18 @@
         opacity: .95;
     }
 
-    .abbr-dot {
+    /* Separator immer stabil: via CSS statt extra DOM-Span */
+    .entry-footer .abbr-item:not(:last-child)::after {
+        content: '·';
         margin-left: .35rem;
         opacity: .6;
     }
+
+    /* den alten Dot-Span killen, damit nix doppelt wird */
+    .abbr-dot {
+        display: none;
+    }
+
 
     .entry-summary--grid {
         display: grid;
