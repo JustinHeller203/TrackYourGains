@@ -1,4 +1,4 @@
-<!--Pfad: src/components/ui/menu/KebabMenu.vue-->
+<!--Pfad: src/components/ui/menu/DeleteConfirmPopup.vue-->
 
 <template>
     <BasePopup :show="show && confirmDeleteEnabled"

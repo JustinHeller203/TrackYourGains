@@ -24,6 +24,7 @@
         color: #b91c1c;
         font-size: .9rem;
         transition: border-color .2s, color .2s, transform .1s;
+
     }
 
     @media (max-width: 600px) {

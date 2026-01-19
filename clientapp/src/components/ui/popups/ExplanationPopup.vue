@@ -1,19 +1,14 @@
 ﻿<!--components/ui/popups/ExplanationPopup.vue:-->
 
 <template>
-    <button class="info-btn"
-            type="button"
-            :aria-label="ariaOpen"
-            :title="ariaOpen"
-            @click="open()"
-            @keydown.enter.prevent="open()"
-            @keydown.space.prevent="open()">
-        <span class="info-emoji" aria-hidden="true">ℹ️</span>
-    </button>
+    <InfoButton :ariaLabel="ariaOpen"
+                :title="ariaOpen"
+                @click="open()" />
 
     <BasePopup :show="isOpen"
                :title="titleText"
                overlay-class="explanation-popup"
+               :zIndex="zIndex"
                :show-actions="false"
                @cancel="close()">
 
@@ -55,6 +50,7 @@
 <script setup lang="ts">
     import { computed, onBeforeUnmount, ref, useSlots } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
+    import InfoButton from '@/components/ui/buttons/InfoButton.vue'
 
     const props = defineProps<{
         // neu: UI-only Props
@@ -62,6 +58,7 @@
         kicker?: string
         ariaOpen?: string
         ariaClose?: string
+        zIndex?: number
 
         // legacy: wird NICHT mehr automatisch “intelligent” ausgewertet
         text?: string
@@ -108,32 +105,6 @@
 </script>
 
 <style scoped>
-    /* Info-Button bleibt wie gehabt */
-    :global(.info-btn) {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: 0;
-        background: transparent;
-        padding: 0.1rem;
-        cursor: pointer;
-        line-height: 1;
-        border-radius: 10px;
-        transition: transform 0.12s ease, background 0.12s ease;
-    }
-
-        :global(.info-btn:hover) {
-            transform: translateY(-1px);
-            background: rgba(148, 163, 184, 0.14);
-        }
-
-    :global(.info-btn:active) {
-        transform: translateY(0px) scale(0.98);
-    }
-
-    :global(.info-emoji) {
-        font-size: 1rem;
-    }
 
     /* ===== ExplanationPopup Content innerhalb BasePopup ===== */
 
@@ -251,19 +222,21 @@
         scrollbar-color: rgba(99,102,241,.8) rgba(148,163,184,.12);
     }
 
-    :slotted(.calc-scan) {
+    /* === calc-* Styles: global innerhalb ExplanationPopup (weil :slotted nur top-level trifft) === */
+    /* Wir scopen das bewusst auf ExplanationPopup Overlay + Slot-Content */
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-scan) {
         display: grid;
         gap: 0.85rem;
     }
 
-    :slotted(.calc-chips) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-chips) {
         display: flex;
         flex-wrap: wrap;
         gap: 0.45rem;
         margin: 0.1rem 0 0.2rem;
     }
 
-    :slotted(.calc-chip) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-chip) {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
@@ -277,35 +250,35 @@
         color: rgba(226, 232, 240, 0.92);
     }
 
-    :slotted(.calc-chip--good) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-chip--good) {
         border-color: rgba(34, 197, 94, 0.28);
         background: rgba(34, 197, 94, 0.10);
     }
 
-    :slotted(.calc-chip--warn) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-chip--warn) {
         border-color: rgba(251, 191, 36, 0.28);
         background: rgba(251, 191, 36, 0.10);
     }
 
-    :slotted(.calc-grid) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-grid) {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 0.75rem;
     }
 
     @media (max-width: 560px) {
-        :slotted(.calc-grid) {
+        :global(.popup-overlay.explanation-popup .explain-slot .calc-grid) {
             grid-template-columns: 1fr;
         }
     }
 
-    :slotted(.calc-h) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-h) {
         margin: 0 0 0.55rem;
         font-size: 0.95rem;
         color: rgba(255, 255, 255, 0.92);
     }
 
-    :slotted(.calc-list) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-list) {
         margin: 0;
         padding-left: 1.05rem;
         display: grid;
@@ -315,51 +288,51 @@
         color: rgba(226, 232, 240, 0.88);
     }
 
-    :slotted(.calc-formula-k) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-formula-k) {
         font-weight: 900;
         color: rgba(255, 255, 255, 0.95);
     }
 
-    :slotted(.calc-formula-eq) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-formula-eq) {
         opacity: 0.75;
     }
 
-    :slotted(.calc-note) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-note) {
         font-size: 0.82rem;
         opacity: 0.85;
         line-height: 1.5;
     }
 
-    :slotted(.calc-bands) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-bands) {
         display: grid;
         gap: 0.45rem;
     }
 
-    :slotted(.calc-band-k) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-band-k) {
         font-weight: 800;
         color: rgba(255, 255, 255, 0.92);
     }
 
-    :slotted(.calc-band-v) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-band-v) {
         opacity: 0.9;
     }
 
-    :slotted(.calc-example) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-example) {
         display: grid;
         gap: 0.45rem;
     }
 
-    :slotted(.calc-card) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-card) {
         border-radius: 16px;
         border: 1px solid rgba(148, 163, 184, 0.18);
         background: rgba(2, 6, 23, 0.35);
         padding: 0.85rem 0.9rem;
-        min-width: 0; /* wichtig: grid-item darf schrumpfen */
+        min-width: 0;
     }
 
-    :slotted(.calc-formula) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-formula) {
         display: flex;
-        flex-wrap: wrap; /* lange Formeln dürfen umbrechen */
+        flex-wrap: wrap;
         align-items: baseline;
         gap: 0.5rem;
         padding: 0.65rem 0.75rem;
@@ -370,15 +343,15 @@
         min-width: 0;
     }
 
-    :slotted(.calc-formula-v) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-formula-v) {
         font-weight: 700;
         color: rgba(226, 232, 240, 0.92);
         min-width: 0;
-        overflow-wrap: anywhere; /* bricht auch bei “log10(Bauch−Hals)” */
+        overflow-wrap: anywhere;
         word-break: break-word;
     }
 
-    :slotted(.calc-band) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-band) {
         display: flex;
         justify-content: space-between;
         gap: 0.75rem;
@@ -389,7 +362,7 @@
         min-width: 0;
     }
 
-    :slotted(.calc-example-row) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-example-row) {
         display: flex;
         justify-content: space-between;
         gap: 0.75rem;
@@ -400,53 +373,53 @@
         min-width: 0;
     }
 
-    :slotted(.calc-band-k),
-    :slotted(.calc-band-v),
-    :slotted(.calc-example-row > span) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-band-k),
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-band-v),
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-example-row > span) {
         min-width: 0;
         overflow-wrap: anywhere;
     }
 
-    :slotted(.calc-example-strong) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-example-strong) {
         font-weight: 900;
     }
 
-    :slotted(.calc-example-sub) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-example-sub) {
         font-size: 0.84rem;
         line-height: 1.5;
         opacity: 0.9;
     }
 
-    :slotted(.calc-callout) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-callout) {
         border-radius: 16px;
         padding: 0.85rem 0.9rem;
         border: 1px solid rgba(148, 163, 184, 0.18);
         background: rgba(2, 6, 23, 0.35);
     }
 
-    :slotted(.calc-callout--tldr) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-callout--tldr) {
         border-color: rgba(129, 140, 248, 0.25);
         background: rgba(99, 102, 241, 0.10);
     }
 
-    :slotted(.calc-callout--warn) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-callout--warn) {
         border-color: rgba(251, 191, 36, 0.22);
         background: rgba(251, 191, 36, 0.08);
     }
 
-    :slotted(.calc-callout-title) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-callout-title) {
         font-weight: 900;
         margin-bottom: 0.35rem;
         color: rgba(255, 255, 255, 0.92);
     }
 
-    :slotted(.calc-callout-text) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-callout-text) {
         font-size: 0.88rem;
         line-height: 1.55;
         color: rgba(226, 232, 240, 0.9);
     }
 
-    :slotted(.calc-callout-hint) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-callout-hint) {
         font-size: 0.78rem;
         font-weight: 700;
         opacity: 0.75;
@@ -469,44 +442,45 @@
             box-shadow: inset 0 0 0 2px rgba(129, 140, 248, 0.75), inset 0 0 0 6px rgba(129, 140, 248, 0.14);
         }
     }
-    :slotted(.calc-target) {
+
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-target) {
         border-radius: 18px;
         box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.70) inset, 0 0 0 6px rgba(129, 140, 248, 0.16) inset;
         animation: calcRingPulse 520ms ease-out 1;
         transition: box-shadow 160ms ease, filter 160ms ease;
     }
 
-    :slotted(.calc-mini) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-mini) {
         display: grid;
         gap: 0.35rem;
     }
 
-    :slotted(.calc-mini-title) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-mini-title) {
         font-weight: 900;
         margin: 0;
     }
 
-    :slotted(.calc-mini-text) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-mini-text) {
         font-size: 0.88rem;
         line-height: 1.55;
         color: rgba(226, 232, 240, 0.9);
     }
 
-    :slotted(.calc-hero) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero) {
         border-radius: 16px;
         border: 1px solid rgba(148, 163, 184, 0.18);
         background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 55%), radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.14), transparent 60%), rgba(2, 6, 23, 0.35);
         padding: 0.85rem 0.95rem;
     }
 
-    :slotted(.calc-hero-top) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-top) {
         display: flex;
         align-items: center;
         gap: 0.6rem;
         margin-bottom: 0.35rem;
     }
 
-    :slotted(.calc-hero-badge) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-badge) {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -521,26 +495,26 @@
         background: rgba(99, 102, 241, 0.12);
     }
 
-    :slotted(.calc-hero-title) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-title) {
         font-size: 0.98rem;
         font-weight: 900;
         color: rgba(255, 255, 255, 0.92);
     }
 
-    :slotted(.calc-hero-sub) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-sub) {
         font-size: 0.86rem;
         line-height: 1.5;
         color: rgba(226, 232, 240, 0.86);
         margin-bottom: 0.65rem;
     }
 
-    :slotted(.calc-hero-pills) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pills) {
         display: flex;
         flex-wrap: wrap;
         gap: 0.45rem;
     }
 
-    :slotted(.calc-hero-pill) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill) {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
@@ -557,51 +531,52 @@
         transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease, background 120ms ease;
     }
 
-    :slotted(.calc-hero-pill:hover) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill:hover) {
         transform: translateY(-1px);
         filter: brightness(1.05);
         border-color: rgba(129, 140, 248, 0.35);
     }
 
-    :slotted(.calc-hero-pill:active) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill:active) {
         transform: translateY(0px) scale(0.98);
     }
 
-    :slotted(.calc-hero-pill:focus-visible) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill:focus-visible) {
         outline: none;
         box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.35);
     }
 
-    :slotted(.calc-hero-pill--warn) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill--warn) {
         border-color: rgba(251, 191, 36, 0.22);
         background: rgba(251, 191, 36, 0.08);
     }
 
-    :slotted(.calc-actions) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-actions) {
         margin-top: 0.55rem;
         display: flex;
         gap: 0.45rem;
         flex-wrap: wrap;
     }
-    :slotted(.calc-list--spaced) {
+
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-list--spaced) {
         margin-top: 0.45rem;
     }
 
-    :slotted(.calc-formula--first) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-formula--first) {
         margin-top: 0.55rem;
     }
 
-    :slotted(.calc-note--spaced) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-note--spaced) {
         margin-top: 0.55rem;
     }
 
-    :slotted(.calc-note--tight) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-note--tight) {
         margin-top: 0.35rem;
     }
 
     /* Copy disabled: muss sofort nach "nicht klickbar" aussehen */
-    :slotted(.calc-chip.is-disabled),
-    :slotted(.calc-chip:disabled) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-chip.is-disabled),
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-chip:disabled) {
         opacity: 0.45;
         filter: grayscale(1) saturate(0.2);
         cursor: not-allowed;
@@ -609,6 +584,15 @@
         box-shadow: none !important;
         transform: none !important;
     }
+
+    @media (hover: hover) {
+        :global(.popup-overlay.explanation-popup .explain-slot .calc-chip.is-disabled:hover),
+        :global(.popup-overlay.explanation-popup .explain-slot .calc-chip:disabled:hover) {
+            box-shadow: none !important;
+            transform: none !important;
+        }
+    }
+
 
     /* falls .calc-chip sonst Hover-Glow bekommt -> im Disabled killen */
     @media (hover: hover) {

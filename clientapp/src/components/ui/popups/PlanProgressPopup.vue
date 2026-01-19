@@ -26,175 +26,349 @@
                 </div>
             </div>
 
-            <div v-else class="day-card-list">
-                <article v-for="c in visibleDayCards" :key="c.day" class="day-card">
-                    <div class="day-card-row"
-                         role="button"
-                         tabindex="0"
-                         :aria-expanded="expandedDays.has(c.day)"
-                         @click="toggleDay(c.day)"
-                         @keydown.enter.prevent="toggleDay(c.day)"
-                         @keydown.space.prevent="toggleDay(c.day)">
-                        <div class="day-card-main">
-                            <div class="day-date">{{ formatDayLong(c.day) }}</div>
-                            <div class="day-meta">
-                                <span class="count">{{ c.uniqueExercises }} Übungen</span>
-                            </div>
-                        </div>
-
-                        <div class="day-card-actions" @click.stop @dblclick.stop>
-                            <KebabButton title="Mehr"
-                                         ariaLabel="Aktionen"
-                                         @click.stop="openDayMenu(c.day, $event)" />
-                        </div>
-
-                    </div>
-
-                    <div class="day-details-wrap" :class="{ open: expandedDays.has(c.day) }">
-                        <div class="day-details">
-                            <!-- Kraft / Calisthenics -->
-                            <div v-if="strengthForDay(c.day).length" class="exercise-block">
-                                <div class="exercise-header">Kraft</div>
-                                <ul class="journal-entries">
-                                    <li v-for="(e, i) in strengthForDay(c.day)"
-                                        :key="'str-'+e.date+'-'+i"
-                                        class="journal-entry">
-                                        <div class="entry-head"
-                                             role="button"
-                                             tabindex="0"
-                                             @dblclick.stop.prevent="onEntryDblClick(e)"
-                                             @keydown.enter.stop.prevent="onEntryDblClick(e)">
-                                            <span class="entry-exercise">{{ e.exercise }}</span>
-                                            <span class="type-chip" :data-type="e.type || 'kraft'">
-                                                {{ e.type === 'calisthenics' ? 'Calisthenics' : 'Kraft' }}
-                                            </span>
-
-                                            <span class="entry-summary">
-                                                <!-- 1) Wenn setDetails existiert: zeig echte Sätze -->
-                                                <span v-if="e.setDetails?.length" class="sum-pill sum-pill--sets" :title="e.setDetails.map((s, idx) => `Satz ${idx+1}: ${s.reps ?? '–'} Wdh · ${s.weight ?? '–'} kg`).join(' | ')">
-                                                    <span class="sum-k">Sätze</span>
-                                                    <span class="sum-sets">
-                                                        <span v-for="(s, idx) in e.setDetails" :key="idx" class="sum-set">
-                                                            {{ (s.reps ?? '–') }}×{{ (s.weight ?? '–') }}
-                                                        </span>
-                                                    </span>
-                                                </span>
-
-                                                <!-- 2) Fallback: alte Felder -->
-                                                <template v-else>
-                                                    <span v-if="e.sets && e.reps" class="sum-pill">
-                                                        <span class="sum-k">Sätze</span> {{ e.sets }}×{{ e.reps }}
-                                                    </span>
-
-                                                    <span v-if="e.weight != null" class="sum-pill">
-                                                        <span class="sum-k">Gewicht</span> {{ e.weight }} kg
-                                                    </span>
-                                                </template>
-                                            </span>
-
-                                        </div>
-
-                                        <div v-if="e.note" class="note">— {{ e.note }}</div>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <!-- Cardio (zeit-/distanzbasiert) -->
-                            <div v-if="cardioForDay(c.day).length" class="exercise-block">
-                                <div class="exercise-header">Cardio</div>
-                                <ul class="journal-entries">
-                                    <li v-for="(e, i) in cardioForDay(c.day)"
-                                        :key="'cardio-'+e.date+'-'+i"
-                                        class="journal-entry">
-                                        <div class="entry-head"
-                                             role="button"
-                                             tabindex="0"
-                                             @dblclick.stop.prevent="onEntryDblClick(e)"
-                                             @keydown.enter.stop.prevent="onEntryDblClick(e)">
-
-                                            <span class="entry-exercise">{{ e.exercise }}</span>
-                                            <span class="type-chip" data-type="ausdauer">Cardio</span>
-                                            <span class="entry-summary">
-                                                <span v-if="e.durationMin != null" class="sum-pill">
-                                                    <span class="sum-k">Dauer</span> {{ e.durationMin }} Min
-                                                </span>
-
-                                                <span v-if="e.sets && e.reps" class="sum-pill">
-                                                    <span class="sum-k">Intervalle</span> {{ e.sets }}×{{ e.reps }}
-                                                </span>
-                                            </span>
-                                        </div>
-
-                                        <div class="chips">
-                                            <span v-if="(e as any).distanceKm != null" class="chip">{{ (e as any).distanceKm }} km</span>
-                                            <span v-if="e.avgHr != null" class="chip">Ø Puls {{ e.avgHr }}</span>
-                                            <span v-if="e.calories != null" class="chip">{{ e.calories }} kcal</span>
-                                            <span v-if="e.pace" class="chip">{{ e.pace }}/km</span>
-                                            <span v-if="e.hrZone != null" class="chip">Zone {{ e.hrZone }}</span>
-                                            <span v-if="e.borg != null" class="chip">Borg {{ e.borg }}</span>
-                                        </div>
-
-                                        <div v-if="e.note" class="note">— {{ e.note }}</div>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <!-- Dehnung (zeit-/satzbasiert) -->
-                            <div v-if="stretchForDay(c.day).length" class="exercise-block">
-                                <div class="exercise-header">Dehnung</div>
-                                <ul class="journal-entries">
-                                    <li v-for="(e, i) in stretchForDay(c.day)"
-                                        :key="'flex-'+e.date+'-'+i"
-                                        class="journal-entry">
-                                        <div class="entry-head"
-                                             role="button"
-                                             tabindex="0"
-                                             @dblclick.stop.prevent="onEntryDblClick(e)"
-                                             @keydown.enter.stop.prevent="onEntryDblClick(e)">
-                                            <span class="entry-exercise">{{ e.exercise }}</span>
-                                            <span class="type-chip" data-type="dehnung">Dehnung</span>
-                                            <span class="entry-summary">
-                                                <span v-if="e.durationMin != null" class="sum-pill">
-                                                    <span class="sum-k">Dauer</span> {{ e.durationMin }} Min
-                                                </span>
-
-                                                <span v-if="e.sets && e.reps" class="sum-pill">
-                                                    <span class="sum-k">Sätze</span> {{ e.sets }}×{{ e.reps }}
-                                                </span>
-                                            </span>
-                                        </div>
-
-                                        <div class="chips">
-                                            <span v-if="e.side" class="chip">{{ e.side }}</span>
-                                            <span v-if="e.painFree != null" class="chip">Schmerzfrei {{ e.painFree }}/10</span>
-                                            <span v-if="e.movementQuality != null" class="chip">Qualität {{ e.movementQuality }}/10</span>
-                                            <span v-if="e.equipment" class="chip">{{ e.equipment }}</span>
-                                            <span v-if="e.equipmentCustom" class="chip">{{ e.equipmentCustom }}</span>
-                                        </div>
-
-                                        <div class="chips" v-if="e.tempo || e.restSeconds != null || e.isDropset || (e.dropsets?.length)">
-                                            <span v-if="e.tempo" class="chip">Tempo {{ e.tempo }}</span>
-                                            <span v-if="e.restSeconds != null" class="chip">Pause {{ e.restSeconds }}s</span>
-
-                                            <span v-if="e.isDropset || (e.dropsets?.length)"
-                                                  class="chip"
-                                                  :title="e.dropsets?.length ? e.dropsets.map((ds, idx) => `Drop ${idx+1}: ${(ds.reps ?? '–')}×${(ds.weight ?? '–')}`).join(' | ') : ''">
-                                                Dropset
-                                            </span>
-                                        </div>
-
-                                        <div v-if="e.note" class="note">— {{ e.note }}</div>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                <div v-if="dayCards.length > visibleDays" class="load-more">
-                    <button class="progress-btn" @click="visibleDays = visibleDays + 7">
-                        Weitere Tage laden
+            <div v-else>
+                <!-- View Toggle -->
+                <div class="progress-topbar">
+                    <button type="button"
+                            class="progress-btn"
+                            :class="{ 'progress-btn--active': viewMode === 'list' }"
+                            @click="viewMode = 'list'">
+                        Liste
                     </button>
+
+                    <button v-if="viewMode === 'list' && selectedDay"
+                            type="button"
+                            class="progress-btn"
+                            @click="clearSelectedDay">
+                        Alle Tage
+                    </button>
+
+                    <button type="button"
+                            class="progress-btn"
+                            :class="{ 'progress-btn--active': viewMode === 'calendar' }"
+                            @click="viewMode = 'calendar'">
+                        Kalender
+                    </button>
+                </div>
+
+                <!-- Calendar View -->
+                <Calender v-if="viewMode === 'calendar'"
+                          :daysWithEntries="daysWithEntriesArr"
+                          @select="jumpToDay" />
+
+                <!-- List View -->
+                <div v-else class="day-card-list">
+
+                    <article v-for="c in displayDayCards" :key="c.day" class="day-card" :data-day="c.day">
+
+                        <div class="day-card-row"
+                             role="button"
+                             tabindex="0"
+                             :aria-expanded="expandedDays.has(c.day)"
+                             @click="toggleDay(c.day)"
+                             @keydown.enter.prevent="toggleDay(c.day)"
+                             @keydown.space.prevent="toggleDay(c.day)">
+                            <div class="day-card-main">
+                                <div class="day-date">{{ formatDayLong(c.day) }}</div>
+                                <div class="day-meta">
+                                    <span class="count">{{ c.uniqueExercises }} Übungen</span>
+                                </div>
+                            </div>
+
+                            <div class="day-card-actions" @click.stop @dblclick.stop>
+                                <KebabButton title="Mehr"
+                                             ariaLabel="Aktionen"
+                                             @click.stop="openDayMenu(c.day, $event)" />
+                            </div>
+
+                        </div>
+
+                        <div v-if="selectedDay && c.day === selectedDay && !hasEntriesForSelectedDay"
+                             class="day-empty">
+                            Kein Eintrag an diesem Tag gemacht.
+                        </div>
+
+                        <div class="day-details-wrap" :class="{ open: expandedDays.has(c.day) }">
+                            <div class="day-details">
+                                <!-- Kraft / Calisthenics -->
+                                <div v-if="strengthForDay(c.day).length" class="exercise-block">
+                                    <div class="exercise-header">Kraft</div>
+                                    <ul class="journal-entries">
+                                        <li v-for="g in strengthGroupsForDay(c.day)"
+                                            :key="g.key"
+                                            class="journal-entry">
+                                            <div class="entry-head"
+                                                 role="button"
+                                                 tabindex="0"
+                                                 @dblclick.stop.prevent="onEntryDblClick(g.editEntry)"
+                                                 @keydown.enter.stop.prevent="onEntryDblClick(g.editEntry)">
+                                                <span class="entry-exercise">{{ g.entry.exercise }}</span>
+
+                                                <span class="entry-chips">
+                                                    <span class="type-chip" :data-type="g.entry.type || 'kraft'">
+                                                        {{ g.entry.type === 'calisthenics' ? 'Calisthenics' : 'Kraft' }}
+                                                    </span>
+                                                </span>
+
+                                                <span class="entry-actions">
+                                                    <template v-if="g.entry.setDetails?.length">
+                                                        <span v-if="setStats(g.entry).repsAvg != null" class="sum-pill">
+                                                            Ø {{ setStats(g.entry).repsAvg }} <span class="sum-u">Wdh</span>
+                                                        </span>
+
+                                                        <span v-if="setStats(g.entry).weightAvg != null" class="sum-pill">
+                                                            Ø {{ setStats(g.entry).weightAvg }} <span class="sum-u">kg</span>
+                                                        </span>
+                                                    </template>
+
+                                                    <template v-else>
+                                                        <span v-if="g.entry.reps" class="sum-pill">
+                                                            {{ g.entry.reps }} <span class="sum-u">Wdh</span>
+                                                        </span>
+
+                                                        <span v-if="g.entry.weight != null" class="sum-pill">
+                                                            {{ g.entry.weight }} <span class="sum-u">kg</span>
+                                                        </span>
+                                                    </template>
+
+                                                    <button v-if="hasDetails(g.entry)"
+                                                            type="button"
+                                                            class="sum-pill sum-pill--ghost"
+                                                            @click.stop="toggleGroupSets(g.key)">
+                                                        {{ expandedEntryKeys.has(g.key) ? 'Weniger' : 'Details' }}
+                                                    </button>
+                                                </span>
+                                            </div>
+
+                                            <div v-if="expandedEntryKeys.has(g.key) && hasDetails(g.entry)"
+                                                 class="set-details"
+                                                 @click.stop>
+
+                                                <div v-if="extrasForEntry(g.entry).length" class="extras-grid">
+                                                    <span v-for="(x, xi) in extrasForEntry(g.entry)"
+                                                          :key="`xd-${xi}`"
+                                                          class="extra-chip">
+                                                        <span class="extra-k">{{ x.label }}</span>
+                                                        <span class="extra-v">{{ x.value }}</span>
+                                                    </span>
+                                                </div>
+
+                                                <div v-if="g.entry.setDetails?.length" class="set-list">
+                                                    <div v-for="(s, idx) in g.entry.setDetails"
+                                                         :key="idx"
+                                                         class="set-row">
+                                                        <span class="set-idx">{{ idx + 1 }}S</span>
+                                                        <span class="set-reps">{{ s.reps ?? '–' }} Wdh</span>
+                                                        <span class="set-weight">{{ s.weight ?? '–' }} kg</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="g.entry.note" class="note">— {{ g.entry.note }}</div>
+
+                                            <div v-if="abbrItemsForEntry(g.entry).length" class="entry-footer" @click.stop>
+                                                <span v-for="(it, idx) in abbrItemsForEntry(g.entry)"
+                                                      :key="it.key"
+                                                      class="abbr-item">
+                                                    <span class="abbr-k">{{ it.key }}</span>
+                                                    <span class="abbr-sep">=</span>
+                                                    <span class="abbr-v">{{ it.label }}</span>
+                                                    <span v-if="idx < abbrItemsForEntry(g.entry).length - 1" class="abbr-dot">·</span>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- Cardio (zeit-/distanzbasiert) -->
+                                <div v-if="cardioGroupsForDay(c.day).length" class="exercise-block">
+                                    <div class="exercise-header">Cardio</div>
+                                    <ul class="journal-entries">
+                                        <li v-for="g in cardioGroupsForDay(c.day)"
+                                            :key="g.key"
+                                            class="journal-entry">
+                                            <div class="entry-head"
+                                                 role="button"
+                                                 tabindex="0"
+                                                 @dblclick.stop.prevent="onEntryDblClick(g.editEntry)"
+                                                 @keydown.enter.stop.prevent="onEntryDblClick(g.editEntry)">
+
+                                                <span class="entry-exercise">{{ g.entry.exercise }}</span>
+                                                <span class="type-chip" data-type="ausdauer">Cardio</span>
+
+                                                <span class="entry-actions">
+                                                    <span v-if="cardioSummary(g.entries).durationSumMin > 0" class="sum-pill">
+                                                        Σ {{ cardioSummary(g.entries).durationSumMin }} <span class="sum-u">Min</span>
+                                                    </span>
+
+                                                    <span v-if="cardioSummary(g.entries).intervalsText" class="sum-pill">
+                                                        {{ cardioSummary(g.entries).intervalsText }} <span class="sum-u">Int</span>
+                                                    </span>
+
+                                                    <button v-if="hasDetails(g.entry) || g.entries.length"
+                                                            type="button"
+                                                            class="sum-pill sum-pill--ghost"
+                                                            @click.stop="toggleGroupSets(g.key)">
+                                                        {{ expandedEntryKeys.has(g.key) ? 'Weniger' : 'Details' }}
+                                                    </button>
+                                                </span>
+
+                                            </div>
+
+                                            <div v-if="expandedEntryKeys.has(g.key) && (hasDetails(g.entry) || g.entries.length)"
+                                                 class="set-details"
+                                                 @click.stop>
+
+                                                <!-- Summary (kommt immer zuerst) -->
+                                                <div class="metric-grid">
+                                                    <div v-if="cardioSummary(g.entries).durationSumMin > 0" class="metric">
+                                                        <div class="metric-label">Σ Dauer</div>
+                                                        <div class="metric-value">
+                                                            {{ cardioSummary(g.entries).durationSumMin }} <span class="metric-u">Min</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div v-if="cardioSummary(g.entries).distanceSumKm != null" class="metric">
+                                                        <div class="metric-label">Σ Distanz</div>
+                                                        <div class="metric-value">
+                                                            {{ cardioSummary(g.entries).distanceSumKm }} <span class="metric-u">km</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div v-if="cardioSummary(g.entries).paceTotal" class="metric">
+                                                        <div class="metric-label">Pace</div>
+                                                        <div class="metric-value">
+                                                            {{ cardioSummary(g.entries).paceTotal }} <span class="metric-u">/km</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div v-if="cardioSummary(g.entries).avgHrAvg != null" class="metric">
+                                                        <div class="metric-label">Ø Puls</div>
+                                                        <div class="metric-value">
+                                                            {{ cardioSummary(g.entries).avgHrAvg }}
+                                                        </div>
+                                                    </div>
+
+                                                    <div v-if="cardioSummary(g.entries).caloriesSum != null" class="metric">
+                                                        <div class="metric-label">Σ kcal</div>
+                                                        <div class="metric-value">
+                                                            {{ cardioSummary(g.entries).caloriesSum }}
+                                                        </div>
+                                                    </div>
+
+                                                    <div v-if="cardioSummary(g.entries).intervalsText" class="metric">
+                                                        <div class="metric-label">Intervals</div>
+                                                        <div class="metric-value">
+                                                            {{ cardioSummary(g.entries).intervalsText }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Extras (aus gemergtem Entry) - bleibt da, aber kommt zuletzt -->
+                                                <div v-if="extrasForEntry(g.entry).length" class="extras-grid extras-grid--scroll">
+                                                    <span v-for="(x, xi) in extrasForEntry(g.entry)"
+                                                          :key="`cxd-${xi}`"
+                                                          class="extra-chip">
+                                                        <span class="extra-k">{{ x.label }}</span>
+                                                        <span class="extra-v">{{ x.value }}</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="g.entry.note" class="note">— {{ g.entry.note }}</div>
+
+                                            <div v-if="abbrItemsForCardio(g.entries, g.entry).length" class="entry-footer" @click.stop>
+                                                <span v-for="(it, idx) in abbrItemsForCardio(g.entries, g.entry)"
+                                                      :key="it.key"
+                                                      class="abbr-item">
+                                                    <span class="abbr-k">{{ it.key }}</span>
+                                                    <span class="abbr-sep">=</span>
+                                                    <span class="abbr-v">{{ it.label }}</span>
+                                                    <span v-if="idx < abbrItemsForCardio(g.entries, g.entry).length - 1" class="abbr-dot">·</span>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- Dehnung (zeit-/satzbasiert) -->
+                                <div v-if="stretchForDay(c.day).length" class="exercise-block">
+                                    <div class="exercise-header">Dehnung</div>
+                                    <ul class="journal-entries">
+                                        <li v-for="(e, i) in stretchForDay(c.day)"
+                                            :key="'flex-'+e.date+'-'+i"
+                                            class="journal-entry">
+                                            <div class="entry-head"
+                                                 role="button"
+                                                 tabindex="0"
+                                                 @dblclick.stop.prevent="onEntryDblClick(e)"
+                                                 @keydown.enter.stop.prevent="onEntryDblClick(e)">
+
+                                                <span class="entry-exercise">{{ stretchTitle(e) }}</span>
+                                                <span class="type-chip" data-type="dehnung">Dehnung</span>
+
+                                                <span class="entry-actions">
+                                                    <span v-if="stretchSummaryDuration(e)" class="sum-pill">
+                                                        Ø {{ stretchSummaryDuration(e) }} <span class="sum-u">sek</span>
+                                                    </span>
+
+                                                    <button v-if="hasDetails(e)"
+                                                            type="button"
+                                                            class="sum-pill sum-pill--ghost"
+                                                            @click.stop="toggleEntrySets(e, i)">
+                                                        {{ expandedEntryKeys.has(entryKey(e, i)) ? 'Weniger' : 'Details' }}
+                                                    </button>
+                                                </span>
+                                            </div>
+
+                                            <div v-if="expandedEntryKeys.has(entryKey(e, i)) && hasDetails(e)"
+                                                 class="set-details"
+                                                 @click.stop>
+
+                                                <div v-if="rowIndexes(e).length" class="set-list">
+                                                    <div v-for="idx in rowIndexes(e)"
+                                                         :key="`s-row-${idx}`"
+                                                         class="set-row">
+                                                        <span class="set-idx">{{ idx }}S</span>
+                                                        <span class="set-reps">{{ stretchRepsText(e, idx) }}</span>
+                                                        <span class="set-right">{{ stretchDurationText(e, idx) }}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div v-if="extrasForEntry(e).length" class="extras-grid">
+                                                    <span v-for="(x, xi) in extrasForEntry(e)"
+                                                          :key="`sxd-${xi}`"
+                                                          class="extra-chip">
+                                                        <span class="extra-k">{{ x.label }}</span>
+                                                        <span class="extra-v">{{ x.value }}</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div v-if="e.note" class="note">— {{ e.note }}</div>
+
+                                            <div v-if="abbrItemsForEntry(e).length" class="entry-footer" @click.stop>
+                                                <span v-for="(it, idx) in abbrItemsForEntry(e)"
+                                                      :key="it.key"
+                                                      class="abbr-item">
+                                                    <span class="abbr-k">{{ it.key }}</span>
+                                                    <span class="abbr-sep">=</span>
+                                                    <span class="abbr-v">{{ it.label }}</span>
+                                                    <span v-if="idx < abbrItemsForEntry(e).length - 1" class="abbr-dot">·</span>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <div v-if="!selectedDay && dayCards.length > visibleDays" class="load-more">
+                        <button class="progress-btn" @click="visibleDays = visibleDays + 7">
+                            Weitere Tage laden
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -211,31 +385,31 @@
             </PopupActionButton>
         </template>
 
-        <ActionSelectPopup :show="showDayPickPopup"
-                           :title="dayPickAction === 'delete' ? 'Tage löschen' : 'Tag bearbeiten'"
-                           :subtitle="dayPickAction === 'delete'
-        ? 'Setz Haken, was gelöscht werden soll'
-        : 'Wähl einen Tag aus'"
-                           :helper="dayPickAction === 'edit' ? 'Bearbeiten ist Single-Select.' : ''"
-                           :rows="dayPickRows"
-                           :selectionMode="dayPickAction === 'edit' ? 'single' : 'multi'"
-                           :showAllOption="dayPickAction === 'delete'"
-                           allLabel="Alle Tage"
-                           v-model:allSelected="dayPickAll"
-                           v-model:selectedIds="dayPickSelected"
+        <ActionSelectPopup :show="showEntryPickPopup"
+                           :title="entryPickAction === 'delete' ? 'Übungen löschen' : 'Übung bearbeiten'"
+                           :subtitle="entryPickAction === 'delete'
+        ? 'Setz Haken, welche Übungen aus diesem Tag gelöscht werden sollen'
+        : 'Wähl eine Übung aus diesem Tag'"
+                           :helper="entryPickAction === 'edit' ? 'Bearbeiten ist Single-Select.' : ''"
+                           :rows="entryPickRows"
+                           :selectionMode="entryPickAction === 'edit' ? 'single' : 'multi'"
+                           :showAllOption="entryPickAction === 'delete'"
+                           allLabel="Alle Übungen"
+                           v-model:allSelected="entryPickAll"
+                           v-model:selectedIds="entryPickSelected"
                            cancelText="Abbrechen"
-                           :confirmText="dayPickAction === 'delete' ? 'Löschen' : 'Weiter'"
-                           :confirmDanger="dayPickAction === 'delete'"
-                           @cancel="closeDayPickPopup"
-                           @confirm="onDayPickConfirm" />
+                           :confirmText="entryPickAction === 'delete' ? 'Löschen' : 'Weiter'"
+                           :confirmDanger="entryPickAction === 'delete'"
+                           @cancel="closeEntryPickPopup"
+                           @confirm="onEntryPickConfirm" />
 
         <ActionSelectPopup :show="showDownloadPickPopup"
-                           title="Tage herunterladen"
-                           subtitle="Wähl aus, welche Tage im Export landen sollen"
+                           title="Übungen herunterladen"
+                           subtitle="Wähl aus, welche Übungen aus diesem Tag im Export landen sollen"
                            :rows="downloadPickRows"
                            selectionMode="multi"
                            :showAllOption="true"
-                           allLabel="Alle Tage"
+                           allLabel="Alle Übungen"
                            v-model:allSelected="downloadPickAll"
                            v-model:selectedIds="downloadPickSelected"
                            cancelText="Abbrechen"
@@ -257,15 +431,16 @@
 </template>
 
 
+
 <script setup lang="ts">
     import { ref, computed, watch, nextTick } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
-    import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import KebabButton from '@/components/ui/buttons/KebabButton.vue'
     import KebabMenu, { type KebabMenuItem } from '@/components/ui/menu/KebabMenu.vue'
     import ActionSelectPopup, { type ActionSelectRow } from '@/components/ui/popups/ActionSelectPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
+    import Calender from '@/components/ui/kits/calender/Calender.vue'
 
     type DayCard = { day: string; uniqueExercises: number }
 
@@ -284,7 +459,7 @@
         reps?: number | null
 
         // per-set details (kraft/calisthenics)
-        setDetails?: Array<{ weight: number | null; reps: number | null }> | null
+        setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null }> | null
 
         // kraft extras
         tempo?: string | null
@@ -304,7 +479,6 @@
         // stretch extras
         side?: string | null
         painFree?: number | null
-        movementQuality?: number | null
         equipment?: string | null
         equipmentCustom?: string | null
     }
@@ -321,10 +495,12 @@
     const emit = defineEmits<{
         (e: 'close'): void
         (e: 'add-entry', payload: { planId: string; keepOpen: boolean }): void
-        (e: 'download', payload: { planId: string; days: string[] }): void
+        (e: 'download', payload: { planId: string; days: string[]; exercises?: string[]; allExercises?: boolean }): void
         (e: 'edit-day', day: string): void
         (e: 'delete-day', day: string): void
         (e: 'edit-entry', entry: WorkoutLike): void
+        (e: 'delete-entries', payload: { planId: string; entries: WorkoutLike[] }): void
+        (e: 'delete', payload: { planId: string; entries: WorkoutLike[] }): void
     }>()
 
     const modalEl = ref<HTMLElement | null>(null)
@@ -342,6 +518,22 @@
         { id: 'delete', label: 'Löschen', icon: '🗑️', hint: 'Auswahl', danger: true },
     ]))
 
+    type EntryPickAction = 'edit' | 'delete'
+
+    const showEntryPickPopup = ref(false)
+    const entryPickAction = ref<EntryPickAction>('edit')
+    const entryPickAll = ref(false)
+    const entryPickSelected = ref<string[]>([])
+    const entryPickRows = ref<ActionSelectRow[]>([])
+    const entryPickDay = ref<string | null>(null)
+
+    // lookup: rowId -> alle echten entries + editEntry (latest)
+    const entryPickMap = ref(new Map<string, { entries: WorkoutLike[]; editEntry: WorkoutLike; label: string; value: string }>())
+
+    // Delete confirm: wir löschen entries (nicht Tage)
+    const pendingDeleteEntries = ref<WorkoutLike[]>([])
+
+
     type DayPickAction = 'edit' | 'delete'
 
     const showDayPickPopup = ref(false)
@@ -355,19 +547,443 @@
     const downloadPickAll = ref(false)
     const downloadPickSelected = ref<string[]>([])
     const downloadPickRows = ref<ActionSelectRow[]>([])
+    const downloadPickDay = ref<string | null>(null)
 
-    const buildDownloadPickRows = () => {
-        downloadPickRows.value = dayCards.value.map(c => ({
-            id: c.day,
-            label: props.formatDayLong(c.day),
-            value: `${c.uniqueExercises} Übungen`,
+    const expandedEntryKeys = ref<Set<string>>(new Set())
+
+    const entryKey = (e: WorkoutLike, index: number) =>
+        `${(e.date || '').slice(0, 19)}|${e.exercise}|${e.type ?? 'kraft'}|${index}`
+
+    const toggleGroupSets = (key: string) => {
+        const next = new Set(expandedEntryKeys.value)
+        next.has(key) ? next.delete(key) : next.add(key)
+        expandedEntryKeys.value = next
+    }
+
+    const toggleEntrySets = (e: WorkoutLike, index: number) => {
+        const k = entryKey(e, index)
+        const next = new Set(expandedEntryKeys.value)
+        next.has(k) ? next.delete(k) : next.add(k)
+        expandedEntryKeys.value = next
+    }
+
+    const setStats = (e: WorkoutLike) => {
+        const details = e.setDetails ?? []
+        const reps = details.map(s => s.reps).filter((x): x is number => typeof x === 'number')
+        const weights = details.map(s => s.weight).filter((x): x is number => typeof x === 'number')
+
+        const avg = (arr: number[]) => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : null
+
+        const repsAvgRaw = avg(reps)
+        const weightAvgRaw = avg(weights)
+
+        const repsMin = reps.length ? Math.min(...reps) : null
+        const repsMax = reps.length ? Math.max(...reps) : null
+        const weightMin = weights.length ? Math.min(...weights) : null
+        const weightMax = weights.length ? Math.max(...weights) : null
+
+        // Anzeige: Wdh = ganze Zahl, Gewicht = 1 Dezimal nur wenn nötig
+        const repsAvg = (typeof repsAvgRaw === 'number') ? Math.round(repsAvgRaw) : null
+        const weightAvg = (typeof weightAvgRaw === 'number')
+            ? (Number.isInteger(weightAvgRaw) ? String(weightAvgRaw) : weightAvgRaw.toFixed(1))
+            : null
+
+        return {
+            sets: details.length,
+
+            // avg (für Chips)
+            repsAvg,
+            weightAvg,
+
+            // min/max (falls du's später nochmal brauchst)
+            repsMin,
+            repsMax,
+            weightMin,
+            weightMax,
+        }
+    }
+
+    const viewMode = ref<'list' | 'calendar'>('list')
+
+    const selectedDay = ref<string | null>(null)
+
+    const selectedDayCard = computed<DayCard | null>(() => {
+        const day = selectedDay.value
+        if (!day) return null
+
+        const items = entriesByDay.value.get(day) ?? []
+        const uniqueExercises = new Set(items.map(i => i.exercise)).size
+        return { day, uniqueExercises }
+    })
+
+    const displayDayCards = computed<DayCard[]>(() => {
+        if (selectedDayCard.value) return [selectedDayCard.value]
+        return visibleDayCards.value
+    })
+
+    const hasEntriesForSelectedDay = computed(() => {
+        const day = selectedDay.value
+        if (!day) return true
+        return (entriesByDay.value.get(day)?.length ?? 0) > 0
+    })
+
+    const jumpToDay = async (day: string) => {
+        viewMode.value = 'list'
+        selectedDay.value = day
+
+        // Nur diesen Tag offen lassen
+        expandedDays.value = new Set([day])
+        expandedEntryKeys.value = new Set()
+
+        await nextTick()
+    }
+
+    const clearSelectedDay = () => {
+        selectedDay.value = null
+        expandedDays.value = new Set()
+        expandedEntryKeys.value = new Set()
+        visibleDays.value = 7
+    }
+
+    type ExtraItem = { label: string; value: string }
+
+    const extrasForEntry = (e: WorkoutLike): ExtraItem[] => {
+        const t = (e.type ?? 'kraft')
+
+        // Kraft / Calisthenics extras
+        if (t === 'kraft' || t === 'calisthenics') {
+            const items: ExtraItem[] = []
+            if (e.tempo) items.push({ label: 'Tempo', value: String(e.tempo) })
+            if (e.restSeconds != null) items.push({ label: 'Pause', value: `${e.restSeconds}s` })
+
+            const hasDrops = Boolean(e.isDropset || (e.dropsets?.length ?? 0) > 0)
+            if (hasDrops) {
+                const n = (e.dropsets?.length ?? 0)
+                items.push({ label: 'Dropset', value: n ? `${n}×` : 'Ja' })
+            }
+            return items
+        }
+
+        // Cardio extras
+        if (t === 'ausdauer') {
+            const items: ExtraItem[] = []
+            if (e.hrZone != null) items.push({ label: 'Zone', value: `${e.hrZone}` })
+            if (e.borg != null) items.push({ label: 'Borg', value: `${e.borg}` })
+            return items
+        }
+
+        // Dehnung extras
+        if (t === 'dehnung') {
+            const items: ExtraItem[] = []
+            if (e.painFree != null) items.push({ label: 'Schmerzfrei', value: `${e.painFree}/10` })
+            if (e.equipmentCustom) items.push({ label: 'Hilfsmittel', value: String(e.equipmentCustom) })
+            else if (e.equipment) items.push({ label: 'Hilfsmittel', value: String(e.equipment) })
+            return items
+        }
+
+        return []
+    }
+
+    const extrasPreview = (e: WorkoutLike) => extrasForEntry(e).slice(0, 2)
+
+    const hasDetails = (e: WorkoutLike) =>
+        Boolean(
+            (e.setDetails?.length ?? 0) > 0 ||
+            extrasForEntry(e).length > 0 ||
+            e.durationMin != null ||
+            e.sets != null ||
+            e.reps != null ||
+            e.distanceKm != null ||
+            e.avgHr != null ||
+            e.calories != null ||
+            e.pace != null ||
+            e.hrZone != null ||
+            e.borg != null
+        )
+
+    const rowIndexes = (e: WorkoutLike) => {
+        const n = typeof e.sets === 'number' && e.sets > 0 ? e.sets : 0
+        if (n > 0) return Array.from({ length: n }, (_, i) => i + 1)
+        // fallback: show 1 row if we have any time/reps worth showing
+        if ((e.durationMin != null && e.durationMin !== 0) || (e.reps != null && e.reps !== 0)) return [1]
+        return []
+    }
+
+    const repsText = (e: WorkoutLike) =>
+        (e.reps != null && e.reps !== 0) ? `${e.reps} Wdh` : ''
+
+    const durationText = (e: WorkoutLike) =>
+        (e.durationMin != null && e.durationMin !== 0) ? `${e.durationMin} Min` : ''
+
+    const stretchTitle = (e: WorkoutLike) => {
+        const side = (e.side ?? '').toString().trim().toLowerCase()
+        if (!side) return e.exercise
+
+        // akzeptiert: "rechts", "right", "r", "r.", "links", "left", "l", "l."
+        const isRight = ['rechts', 'right', 'r', 'r.'].includes(side)
+        const isLeft = ['links', 'left', 'l', 'l.'].includes(side)
+
+        if (isRight) return `${e.exercise} (R)`
+        if (isLeft) return `${e.exercise} (L)`
+
+        // fallback: wenn jemand "beidseitig" oder irgendwas custom reinschreibt
+        return e.exercise
+    }
+    const stretchDurationsSec = (e: WorkoutLike) => {
+        const arr = e.setDetails ?? []
+        return arr
+            .map(s => s.durationSec)
+            .filter((x): x is number => typeof x === 'number' && x > 0)
+    }
+
+    const formatAvgSec = (sec: number) => {
+        if (!sec || sec <= 0) return ''
+        const rounded = Math.round(sec)
+
+        if (rounded < 60) return `${rounded}s`
+
+        const m = Math.floor(rounded / 60)
+        const s = rounded % 60
+        return `${m}:${String(s).padStart(2, '0')}`
+    }
+
+    const stretchSummaryDuration = (e: WorkoutLike) => {
+        const times = stretchDurationsSec(e)
+        if (!times.length) return ''
+
+        const avg = times.reduce((a, b) => a + b, 0) / times.length
+        return formatAvgSec(avg)
+    }
+
+    // ADD: Dehnung optional reps pro Satz
+    const stretchRepsText = (e: WorkoutLike, idx: number) => {
+        const r = e.setDetails?.[idx - 1]?.reps
+        return (typeof r === 'number' && r > 0) ? `${r} Wdh` : ''
+    }
+
+    const stretchDurationText = (e: WorkoutLike, idx: number) => {
+        const sec = e.setDetails?.[idx - 1]?.durationSec
+        if (typeof sec === 'number' && sec > 0) return `${sec} sek.`
+        return ''
+    }
+
+    type AbbrItem = { key: string; label: string }
+
+    const abbrItemsForEntry = (e: WorkoutLike): AbbrItem[] => {
+        const items: AbbrItem[] = []
+
+        // (R)/(L) nur wenn Dehnung + side wirklich gesetzt
+        const side = (e.side ?? '').toString().trim().toLowerCase()
+        const hasR = ['rechts', 'right', 'r', 'r.'].includes(side)
+        const hasL = ['links', 'left', 'l', 'l.'].includes(side)
+        if (hasR) items.push({ key: 'R', label: 'Rechts' })
+        if (hasL) items.push({ key: 'L', label: 'Links' })
+
+        // Wdh.: wenn irgendwo Wiederholungen genutzt werden
+        const usesReps =
+            (typeof e.reps === 'number' && e.reps > 0) ||
+            (e.setDetails?.some(s => typeof s.reps === 'number' && s.reps > 0) ?? false)
+
+        if (usesReps) items.push({ key: 'Wdh.', label: 'Wiederholungen' })
+
+        // S: Sätze (wenn Sets genutzt werden)
+        const usesSets =
+            (e.setDetails?.length ?? 0) > 0 ||
+            (typeof e.sets === 'number' && e.sets > 0)
+
+        if (usesSets) items.push({ key: 'S', label: 'Sätze' })
+
+        // sek.: Sekunden (Dehnung pro Satz über durationSec)
+        const usesSeconds =
+            (e.setDetails?.some(s => typeof s.durationSec === 'number' && s.durationSec > 0) ?? false)
+
+        if (usesSeconds) items.push({ key: 'sek.', label: 'Sekunden' })
+
+        // Min: Minuten (Cardio)
+        const usesMinutes = (typeof e.durationMin === 'number' && e.durationMin > 0)
+        if (usesMinutes) items.push({ key: 'Min', label: 'Minuten' })
+
+        // Kg: Gewicht (Kraft)
+        const usesKg =
+            (typeof e.weight === 'number' && e.weight > 0) ||
+            (e.setDetails?.some(s => typeof s.weight === 'number' && s.weight > 0) ?? false) ||
+            (e.dropsets?.some(s => typeof s.weight === 'number' && s.weight > 0) ?? false)
+
+        if (usesKg) items.push({ key: 'kg', label: 'Kilogramm' })
+
+        // km: Distanz (Cardio)
+        const usesKm = (typeof e.distanceKm === 'number' && e.distanceKm > 0)
+        if (usesKm) items.push({ key: 'km', label: 'Kilometer' })
+
+        return items
+    }
+
+    const makeExerciseRowId = (e: WorkoutLike) => {
+        const t = (e.type ?? 'kraft') || 'kraft'
+        const side = (e.side ?? '').toString().trim().toLowerCase()
+        // stabil: typ|exercise|side  (side nur relevant bei cardio/dehnung)
+        return `${t}|${e.exercise}|${side}`
+    }
+
+    const typeLabel = (t: WorkoutLike['type']) =>
+        t === 'calisthenics' ? 'Calisthenics'
+            : t === 'ausdauer' ? 'Cardio'
+                : t === 'dehnung' ? 'Dehnung'
+                    : 'Kraft'
+
+    const buildEntryPickRowsForDay = (day: string) => {
+        const items = entriesByDay.value.get(day) ?? []
+        const map = new Map<string, WorkoutLike[]>()
+
+        for (const e of items) {
+            const id = makeExerciseRowId(e) // typ|exercise|side
+            if (!map.has(id)) map.set(id, [])
+            map.get(id)!.push(e)
+        }
+
+        const lookup = new Map<string, { entries: WorkoutLike[]; editEntry: WorkoutLike; label: string; value: string }>()
+        const rows: ActionSelectRow[] = []
+
+        for (const [id, arr] of map.entries()) {
+            const sorted = [...arr].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+            const last = sorted[sorted.length - 1]
+
+            const label =
+                (last.type === 'dehnung')
+                    ? stretchTitle(last)
+                    : (last.type === 'ausdauer')
+                        ? (() => {
+                            const side = (last.side ?? '').toString().trim().toLowerCase()
+                            const sideTag =
+                                ['rechts', 'right', 'r', 'r.'].includes(side) ? ' (R)'
+                                    : ['links', 'left', 'l', 'l.'].includes(side) ? ' (L)'
+                                        : ''
+                            return `${last.exercise}${sideTag}`
+                        })()
+                        : last.exercise
+
+            const value = typeLabel(last.type ?? 'kraft')
+
+            lookup.set(id, { entries: sorted, editEntry: last, label, value })
+            rows.push({ id, label, value })
+        }
+
+        // stabil sort: nach “latest” entry desc
+        rows.sort((a, b) => {
+            const ea = lookup.get(a.id)?.editEntry?.date || ''
+            const eb = lookup.get(b.id)?.editEntry?.date || ''
+            return eb.localeCompare(ea)
+        })
+
+        entryPickMap.value = lookup
+        entryPickRows.value = rows
+    }
+
+    const openEntryPickPopup = (action: EntryPickAction, day: string) => {
+        entryPickAction.value = action
+        entryPickDay.value = day
+        buildEntryPickRowsForDay(day)
+
+        entryPickAll.value = false
+        entryPickSelected.value = action === 'edit' ? [] : []
+        showEntryPickPopup.value = true
+    }
+
+    const closeEntryPickPopup = () => {
+        showEntryPickPopup.value = false
+        entryPickAll.value = false
+        entryPickSelected.value = []
+        entryPickRows.value = []
+        entryPickDay.value = null
+        entryPickMap.value = new Map()
+    }
+
+    const normalizeSelectPayload = (payload: any): { all: boolean; ids: string[] } => {
+        const all = Boolean(payload?.all ?? payload?.allSelected ?? payload?.isAll ?? false)
+        const ids = (payload?.ids ?? payload?.selectedIds ?? payload?.selected ?? []) as string[]
+        return { all, ids: Array.isArray(ids) ? ids : [] }
+    }
+
+    const onEntryPickConfirm = (payload: any) => {
+        const planId = props.currentPlanId
+        const day = entryPickDay.value
+        if (!planId || !day) return
+
+        const norm = normalizeSelectPayload(payload)
+        const ids = norm.all ? [...entryPickMap.value.keys()] : norm.ids
+
+        if (entryPickAction.value === 'edit') {
+            const id = ids[0]
+            if (!id) return
+            const hit = entryPickMap.value.get(id)
+            if (!hit) return
+            closeEntryPickPopup()
+            emit('edit-entry', hit.editEntry)
+            return
+        }
+
+        // delete
+        if (!ids.length) return
+
+        const entries = ids.flatMap(id => entryPickMap.value.get(id)?.entries ?? [])
+        if (!entries.length) return
+
+        pendingDeleteEntries.value = entries
+        closeEntryPickPopup()
+        showDeletePopup.value = true
+    }
+
+
+    const buildDownloadPickRowsForDay = (day: string) => {
+        const items = entriesByDay.value.get(day) ?? []
+        if (!items.length) {
+            downloadPickRows.value = []
+            return
+        }
+
+        // wir bauen “einmal pro Übung/Typ/Side”
+        const map = new Map<string, { label: string; value: string }>()
+
+        const pushRow = (e: WorkoutLike, label: string, value: string) => {
+            const id = makeExerciseRowId(e)
+            if (!map.has(id)) map.set(id, { label, value })
+        }
+
+        // Kraft + Calisthenics (nimm deine Groups -> sauber & deduped)
+        for (const g of strengthGroupsForDay(day)) {
+            const t = (g.entry.type ?? 'kraft') === 'calisthenics' ? 'Calisthenics' : 'Kraft'
+            pushRow(g.entry, g.entry.exercise, t)
+        }
+
+        // Cardio (Groups berücksichtigen Side)
+        for (const g of cardioGroupsForDay(day)) {
+            const side = (g.entry.side ?? '').toString().trim().toLowerCase()
+            const sideTag =
+                ['rechts', 'right', 'r', 'r.'].includes(side) ? ' (R)'
+                    : ['links', 'left', 'l', 'l.'].includes(side) ? ' (L)'
+                        : ''
+            pushRow(g.entry, `${g.entry.exercise}${sideTag}`, 'Cardio')
+        }
+
+        // Dehnung (jede Entry ist eigen, aber wir dedupen per key)
+        for (const e of stretchForDay(day)) {
+            // stretchTitle hängt Side dran -> nice fürs Label
+            pushRow(e, stretchTitle(e), 'Dehnung')
+        }
+
+        downloadPickRows.value = [...map.entries()].map(([id, v]) => ({
+            id,
+            label: v.label,
+            value: v.value,
         }))
     }
 
     const openDownloadPickPopup = (initialDay: string) => {
-        buildDownloadPickRows()
-        downloadPickAll.value = false
-        downloadPickSelected.value = [initialDay] // nice UX: Starttag vorselecten
+        downloadPickDay.value = initialDay
+        buildDownloadPickRowsForDay(initialDay)
+
+        downloadPickAll.value = true
+        downloadPickSelected.value = []
         showDownloadPickPopup.value = true
     }
 
@@ -376,17 +992,28 @@
         downloadPickAll.value = false
         downloadPickSelected.value = []
         downloadPickRows.value = []
+        downloadPickDay.value = null
     }
 
-    const onDownloadPickConfirm = (payload: { all: boolean; ids: string[] }) => {
+    const onDownloadPickConfirm = (payload: any) => {
         const planId = props.currentPlanId
-        if (!planId) return
+        const day = downloadPickDay.value
+        if (!planId || !day) return
 
-        const picked = normalizePickedDays(payload)
-        if (!picked.length) return
+        const norm = normalizeSelectPayload(payload)
+        const allExercises = norm.all
+        const pickedExercises = allExercises ? [] : norm.ids
+
+        if (!allExercises && !pickedExercises.length) return
 
         closeDownloadPickPopup()
-        emit('download', { planId, days: picked })
+
+        emit('download', {
+            planId,
+            days: [day],
+            allExercises,
+            exercises: allExercises ? undefined : pickedExercises,
+        })
     }
 
     const showDeletePopup = ref(false)
@@ -394,13 +1021,19 @@
 
     const cancelDelete = () => {
         showDeletePopup.value = false
-        pendingDeleteDays.value = []
+        pendingDeleteEntries.value = []
     }
 
     const confirmDelete = () => {
-        for (const day of pendingDeleteDays.value) {
-            emit('delete-day', day)
+        const planId = props.currentPlanId
+        if (!planId) { cancelDelete(); return }
+
+        const entries = pendingDeleteEntries.value
+        if (entries.length) {
+            emit('delete-entries', { planId, entries })
+            emit('delete', { planId, entries }) // Alias: falls Parent nur @delete nutzt
         }
+
         cancelDelete()
     }
 
@@ -479,14 +1112,14 @@
         if (id === 'edit') {
             const d = menuDay.value
             closeDayMenu()
-            openDayPickPopup('edit', d)
+            openEntryPickPopup('edit', d)
             return
         }
 
         if (id === 'delete') {
             const d = menuDay.value
             closeDayMenu()
-            openDayPickPopup('delete', d)
+            openEntryPickPopup('delete', d)
             return
         }
 
@@ -508,6 +1141,8 @@
         }
         return new Map([...map.entries()].sort((a, b) => b[0].localeCompare(a[0])))
     })
+
+    const daysWithEntriesArr = computed(() => [...entriesByDay.value.keys()])
 
     const dayCards = computed<DayCard[]>(() => {
         return [...entriesByDay.value.entries()].map(([day, items]) => {
@@ -532,6 +1167,212 @@
         return items.filter(w => (w.type ?? 'kraft') === 'ausdauer')
     }
 
+    type CardioGroup = {
+        key: string
+        entry: WorkoutLike          // gemergter Anzeige-Entry (Ø Werte)
+        editEntry: WorkoutLike      // letzter echter Entry fürs Edit
+        entries: WorkoutLike[]      // alle Sessions (für Details Rows)
+    }
+
+    const nAvg = (arr: number[]) => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : null
+
+    const mergeCardioEntries = (day: string, entries: WorkoutLike[]): WorkoutLike => {
+        const sorted = [...entries].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+        const last = sorted[sorted.length - 1]
+
+        const durations = sorted
+            .map(e => e.durationMin)
+            .filter((x): x is number => typeof x === 'number' && x > 0)
+
+        const setsArr = sorted
+            .map(e => e.sets)
+            .filter((x): x is number => typeof x === 'number' && x > 0)
+
+        const repsArr = sorted
+            .map(e => e.reps)
+            .filter((x): x is number => typeof x === 'number' && x > 0)
+
+        const distArr = sorted
+            .map(e => e.distanceKm)
+            .filter((x): x is number => typeof x === 'number' && x > 0)
+
+        const avgHrArr = sorted
+            .map(e => e.avgHr)
+            .filter((x): x is number => typeof x === 'number' && x > 0)
+
+        const kcalArr = sorted
+            .map(e => e.calories)
+            .filter((x): x is number => typeof x === 'number' && x > 0)
+
+        const durationMinAvg = nAvg(durations)
+        const setsAvg = nAvg(setsArr)
+        const repsAvg = nAvg(repsArr)
+        const distanceAvg = nAvg(distArr)
+        const avgHrAvg = nAvg(avgHrArr)
+        const caloriesAvg = nAvg(kcalArr)
+
+        return {
+            planId: last.planId ?? null,
+            exercise: last.exercise,
+            date: `${day}T00:00:00`,
+            type: 'ausdauer',
+            side: last.side ?? null,
+
+            // Ø Werte für Chips / Extras
+            durationMin: durationMinAvg != null ? Math.round(durationMinAvg) : null,
+            sets: setsAvg != null ? Math.round(setsAvg) : null,
+            reps: repsAvg != null ? Math.round(repsAvg) : null,
+
+            distanceKm: distanceAvg != null ? Number.isInteger(distanceAvg) ? distanceAvg : Number(distanceAvg.toFixed(1)) : null,
+            avgHr: avgHrAvg != null ? Math.round(avgHrAvg) : null,
+            calories: caloriesAvg != null ? Math.round(caloriesAvg) : null,
+
+            // “latest wins” bei Strings
+            pace: last.pace ?? null,
+            hrZone: last.hrZone ?? null,
+            borg: last.borg ?? null,
+
+            note: last.note ?? null,
+        }
+    }
+
+    const cardioGroupsForDay = (day: string): CardioGroup[] => {
+        const items = entriesByDay.value.get(day) ?? []
+        const cardio = items.filter(w => (w.type ?? 'kraft') === 'ausdauer')
+
+        const map = new Map<string, WorkoutLike[]>()
+
+        for (const e of cardio) {
+            const side = (e.side ?? '').toString().trim().toLowerCase()
+            // KEY: Übung + side (wenn side anders => eigene Card)
+            const k = `${e.exercise}||${side}`
+            if (!map.has(k)) map.set(k, [])
+            map.get(k)!.push(e)
+        }
+
+        const groups: CardioGroup[] = []
+        for (const [k, arr] of map.entries()) {
+            const sorted = [...arr].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+            const last = sorted[sorted.length - 1]
+
+            groups.push({
+                key: `${day}|cardio|${k}`,
+                entry: mergeCardioEntries(day, sorted),
+                editEntry: last,
+                entries: sorted,
+            })
+        }
+
+        // newest group first
+        groups.sort((a, b) => (b.editEntry.date || '').localeCompare(a.editEntry.date || ''))
+        return groups
+    }
+
+    const cardioDurationText = (e: WorkoutLike) =>
+        (e.durationMin != null && e.durationMin !== 0) ? `${e.durationMin} Min` : ''
+
+    const cardioRepsText = (e: WorkoutLike) => {
+        const sets = (typeof e.sets === 'number' && e.sets > 0) ? e.sets : null
+        const reps = (typeof e.reps === 'number' && e.reps > 0) ? e.reps : null
+
+        if (sets != null && reps != null) return `${sets}×${reps} Int`
+        if (sets != null) return `${sets} Int`
+        if (reps != null) return `${reps} Wdh`
+        return '—'
+    }
+
+    const nSum = (arr: number[]) => arr.reduce((a, b) => a + b, 0)
+    const nAvg2 = (arr: number[]) => arr.length ? (nSum(arr) / arr.length) : null
+
+    const formatPaceMinPerKm = (minPerKm: number) => {
+        if (!Number.isFinite(minPerKm) || minPerKm <= 0) return ''
+        const totalSec = Math.round(minPerKm * 60)
+        const m = Math.floor(totalSec / 60)
+        const s = totalSec % 60
+        return `${m}:${String(s).padStart(2, '0')}`
+    }
+
+    const cardioSummary = (entries: WorkoutLike[]) => {
+        const durations = entries.map(e => e.durationMin).filter((x): x is number => typeof x === 'number' && x > 0)
+        const dists = entries.map(e => e.distanceKm).filter((x): x is number => typeof x === 'number' && x > 0)
+
+        const hrs = entries.map(e => e.avgHr).filter((x): x is number => typeof x === 'number' && x > 0)
+        const kcals = entries.map(e => e.calories).filter((x): x is number => typeof x === 'number' && x > 0)
+
+        const setsArr = entries.map(e => e.sets).filter((x): x is number => typeof x === 'number' && x > 0)
+        const repsArr = entries.map(e => e.reps).filter((x): x is number => typeof x === 'number' && x > 0)
+
+        const durationSumRaw = durations.length ? nSum(durations) : 0
+        const durationSumMin = durationSumRaw > 0 ? Math.round(durationSumRaw) : 0
+
+        const distSumRaw = dists.length ? nSum(dists) : 0
+        const distanceSumKm =
+            distSumRaw > 0
+                ? (Number.isInteger(distSumRaw) ? distSumRaw : Number(distSumRaw.toFixed(1)))
+                : null
+
+        const avgHrAvgRaw = nAvg2(hrs)
+        const avgHrAvg = (avgHrAvgRaw != null) ? Math.round(avgHrAvgRaw) : null
+
+        const caloriesSumRaw = kcals.length ? nSum(kcals) : 0
+        const caloriesSum = caloriesSumRaw > 0 ? Math.round(caloriesSumRaw) : null
+
+        // total pace nur wenn total duration + total distance vorhanden
+        const paceTotal =
+            (distanceSumKm != null && distanceSumKm > 0 && durationSumMin > 0)
+                ? formatPaceMinPerKm(durationSumMin / distanceSumKm)
+                : ''
+
+        // intervals: zeig nur wenn wirklich genutzt (sonst spam)
+        const setsAvg = nAvg2(setsArr)
+        const repsAvg = nAvg2(repsArr)
+        const intervalsText =
+            (setsArr.length || repsArr.length)
+                ? `${Math.round(setsAvg ?? 0)}${(repsAvg != null && repsAvg > 0) ? `×${Math.round(repsAvg)}` : ''}`
+                : ''
+
+        return {
+            sessions: entries.length,
+            durationSumMin,
+            distanceSumKm,
+            paceTotal: paceTotal || '',
+            avgHrAvg,
+            caloriesSum,
+            intervalsText: intervalsText || '',
+        }
+    }
+
+    const abbrItemsForCardio = (entries: WorkoutLike[], e: WorkoutLike): AbbrItem[] => {
+        const base = abbrItemsForEntry(e)
+
+        const s = cardioSummary(entries)
+        const usesSigma = Boolean(
+            (s.durationSumMin ?? 0) > 0 ||
+            s.distanceSumKm != null ||
+            s.caloriesSum != null
+        )
+
+        if (usesSigma) {
+            // Erklärung nur dann, wenn Σ wirklich im UI vorkommt
+            base.unshift({ key: 'Σ', label: 'Summe (gesamt)' })
+        }
+
+        return base
+    }
+
+
+    const cardioSessionMidText = (e: WorkoutLike) => {
+        const dist = (typeof e.distanceKm === 'number' && e.distanceKm > 0) ? e.distanceKm : null
+        if (dist != null) return `${Number.isInteger(dist) ? dist : dist.toFixed(1)} km`
+
+        const sets = (typeof e.sets === 'number' && e.sets > 0) ? e.sets : null
+        const reps = (typeof e.reps === 'number' && e.reps > 0) ? e.reps : null
+        if (sets != null && reps != null) return `${sets}×${reps} Int`
+        if (sets != null) return `${sets} Int`
+        if (reps != null) return `${reps} Wdh`
+
+        return '—'
+    }
     const strengthForDay = (day: string) => {
         const items = entriesByDay.value.get(day) ?? []
         return items.filter(w => {
@@ -543,6 +1384,86 @@
     const stretchForDay = (day: string) => {
         const items = entriesByDay.value.get(day) ?? []
         return items.filter(w => (w.type ?? 'kraft') === 'dehnung')
+    }
+
+    type StrengthGroup = {
+        key: string
+        entry: WorkoutLike          // gemergter "Anzeige-Entry"
+        editEntry: WorkoutLike      // welches echte Entry beim Doppelklick editiert wird (latest)
+    }
+
+    const toSetDetails = (e: WorkoutLike) => {
+        // Wenn schon setDetails da sind -> nehmen
+        if ((e.setDetails?.length ?? 0) > 0) return e.setDetails!
+
+        // Sonst: aus reps/weight einen "Pseudo-Satz" bauen
+        const hasAny = (e.reps != null && e.reps !== 0) || (e.weight != null && e.weight !== 0)
+        if (!hasAny) return []
+        return [{ reps: e.reps ?? null, weight: e.weight ?? null }]
+    }
+
+    const mergeStrengthEntries = (day: string, entries: WorkoutLike[]): WorkoutLike => {
+        // Wichtig: Reihenfolge stabil (nach Zeit)
+        const sorted = [...entries].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+        const last = sorted[sorted.length - 1]
+
+        const mergedSets = sorted.flatMap(toSetDetails)
+
+        // Extras: “latest wins” (sonst wird’s schnell messy)
+        return {
+            planId: last.planId ?? null,
+            exercise: last.exercise,
+            date: `${day}T00:00:00`,
+            type: last.type ?? 'kraft',
+            note: last.note ?? null,
+
+            setDetails: mergedSets.length ? mergedSets : null,
+
+            tempo: last.tempo ?? null,
+            restSeconds: last.restSeconds ?? null,
+            isDropset: last.isDropset ?? null,
+            dropsets: last.dropsets ?? null,
+
+            // falls mal jemand nur single reps/weight nutzt (ohne setDetails), bleibt’s trotzdem ok
+            reps: last.reps ?? null,
+            weight: last.weight ?? null,
+        }
+    }
+
+    const strengthGroupsForDay = (day: string): StrengthGroup[] => {
+        const items = entriesByDay.value.get(day) ?? []
+        const strength = items.filter(w => {
+            const t = (w.type ?? 'kraft')
+            return t === 'kraft' || t === 'calisthenics'
+        })
+
+        const map = new Map<string, WorkoutLike[]>()
+
+        for (const e of strength) {
+            const t = (e.type ?? 'kraft')
+            // key: Übung + Typ (damit Calisthenics nicht mit Kraft fused)
+            const k = `${e.exercise}||${t}`
+            if (!map.has(k)) map.set(k, [])
+            map.get(k)!.push(e)
+        }
+
+        // Return: groups, sort by first occurrence time (oder latest, wie du willst)
+        const groups: StrengthGroup[] = []
+        for (const [k, arr] of map.entries()) {
+            const sorted = [...arr].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+            const last = sorted[sorted.length - 1]
+
+            const uiKey = `${day}|${k}` // stabil + unique pro Tag
+            groups.push({
+                key: uiKey,
+                entry: mergeStrengthEntries(day, sorted),
+                editEntry: last,
+            })
+        }
+
+        // Sort: neueste zuerst (passt zu deinem day sort vibe)
+        groups.sort((a, b) => (b.editEntry.date || '').localeCompare(a.editEntry.date || ''))
+        return groups
     }
 
     let endIO: IntersectionObserver | null = null
@@ -574,6 +1495,10 @@
             if (open) {
                 visibleDays.value = 7
                 expandedDays.value = new Set()
+                expandedEntryKeys.value = new Set()
+                viewMode.value = 'list'
+                selectedDay.value = null
+
                 nextTick(() => setupProgressIO())
             } else {
                 cleanupProgressIO()
@@ -704,8 +1629,59 @@
     .modal--progress {
         display: flex;
         flex-direction: column;
-        overflow: auto;
+        overflow-y: auto; /* oder: scroll, wenn du IMMER Platz reservieren willst */
+        overflow-x: hidden;
+        max-height: calc(100vh - 220px);
         min-height: 0;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        /* Firefox */
+        scrollbar-width: thin;
+        scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+    }
+
+        /* WebKit (Chrome/Edge/Safari) */
+        .modal--progress::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .modal--progress::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .modal--progress::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.45);
+            border: 3px solid transparent; /* macht's “slimmer” + nicer */
+            background-clip: content-box;
+        }
+
+            .modal--progress::-webkit-scrollbar-thumb:hover {
+                background: rgba(148, 163, 184, 0.65);
+                background-clip: content-box;
+            }
+
+    /* Darkmode polish */
+    html.dark-mode .modal--progress {
+        scrollbar-color: rgba(148, 163, 184, 0.50) transparent;
+    }
+
+        html.dark-mode .modal--progress::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.38);
+            background-clip: content-box;
+        }
+
+            html.dark-mode .modal--progress::-webkit-scrollbar-thumb:hover {
+                background: rgba(148, 163, 184, 0.58);
+                background-clip: content-box;
+            }
+
+
+    /* Mobile/modern browsers: besser als 100vh wegen Browser-UI */
+    @supports (height: 100dvh) {
+        .modal--progress {
+            max-height: calc(100dvh - 220px);
+        }
     }
 
     /* ===== Day Cards ===== */
@@ -870,6 +1846,9 @@
         overflow: hidden;
         isolation: isolate;
         transition: transform 140ms ease, border-color 160ms ease, box-shadow 180ms ease, filter 160ms ease;
+        display: flex;
+        flex-direction: column;
+        gap: .55rem;
     }
 
         /* kleines “status” highlight links -> besser scanbar */
@@ -904,13 +1883,6 @@
         }
 
     /* Kopf: Übung | Typ | Summary (alles in einer Linie) */
-    .entry-head {
-        display: grid;
-        grid-template-columns: 1fr auto auto;
-        align-items: center;
-        gap: .45rem .6rem;
-        padding-left: .65rem; /* Platz wegen Accent-Bar */
-    }
 
     .entry-exercise {
         font-weight: 850;
@@ -990,7 +1962,6 @@
         font-size: .86rem;
     }
 
-
     .sum-k {
         font-size: .72rem;
         font-weight: 850;
@@ -1000,19 +1971,21 @@
         color: var(--text-secondary);
     }
 
+    .sum-u {
+        font-size: .72rem;
+        font-weight: 850;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+        margin-left: .35rem;
+        color: var(--text-secondary);
+    }
+
     .exercise-header {
         font-weight: 800;
         margin: .25rem 0 .8rem;
     }
 
     /* Meta-Chips: kompakt + gut lesbar */
-    .chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: .4rem;
-        margin-top: .65rem;
-        padding-left: .65rem;
-    }
 
     .chip {
         font-size: .85rem;
@@ -1024,32 +1997,47 @@
         white-space: nowrap;
     }
 
-    /* Note wirkt wie “Footer” -> mehr Ordnung */
-    .note {
-        margin-top: .65rem;
-        padding-top: .55rem;
-        padding-left: .65rem;
-        border-top: 1px dashed rgba(148, 163, 184, 0.22);
-        color: var(--text-secondary);
-        font-size: .92rem;
-    }
-
-    /* Mobile: summary unter die Headline, bleibt aber sichtbar */
     @media (max-width: 520px) {
         .entry-head {
-            grid-template-columns: 1fr auto;
+            grid-template-columns: minmax(0, 1fr) auto;
             align-items: start;
         }
 
-        .entry-summary {
+        .entry-chips {
+            justify-self: end;
+        }
+
+        .entry-actions {
             grid-column: 1 / -1;
             justify-self: start;
             justify-content: flex-start;
-            width: fit-content;
             margin-top: .15rem;
         }
     }
 
+    .entry-chips {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        flex-wrap: wrap;
+        justify-self: start;
+    }
+
+    .entry-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        flex-wrap: wrap;
+        justify-self: end;
+        justify-content: flex-end;
+        min-width: 0;
+    }
+
+    @media (max-width: 520px) {
+        .entry-actions {
+            flex-wrap: wrap; /* nur mobile darf umbrechen */
+        }
+    }
 
     /* ===== Empty State (soll wie eine dezente Notice wirken, nicht wie eine "Card") ===== */
 
@@ -1182,5 +2170,354 @@
         max-width: max-content;
     }
 
+    .entry-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: .45rem .6rem;
+        padding-left: 1rem;
+    }
 
+
+    /* REPLACE */
+    .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem;
+        margin-top: .65rem;
+        padding-left: 1rem; /* align mit entry-head */
+    }
+
+    /* REPLACE */
+    .note {
+        margin-top: .65rem;
+        padding-top: .55rem;
+        padding-left: 1rem; /* align mit entry-head */
+        border-top: 1px dashed rgba(148, 163, 184, 0.22);
+        color: var(--text-secondary);
+        font-size: .92rem;
+    }
+
+    /* REPLACE */
+    .set-details {
+        margin-top: .6rem;
+        margin-left: 11px;
+        padding: .6rem .7rem;
+        padding-left: 0.65rem;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: linear-gradient(180deg, rgba(148, 163, 184, 0.06), rgba(148, 163, 184, 0.03));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        display: grid;
+        gap: .45rem;
+    }
+
+
+    /* REPLACE: set-idx */
+    .set-idx {
+        font-weight: 900;
+        color: var(--text-secondary);
+        font-size: .82rem;
+        text-align: center;
+        opacity: .9;
+    }
+
+
+    .set-weight {
+        font-weight: 900;
+        color: var(--text-primary);
+        font-size: .9rem;
+        justify-self: end;
+    }
+
+    /* Optional: dark-mode polish */
+    html.dark-mode .set-details {
+        border-color: rgba(148, 163, 184, 0.20);
+        background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    }
+
+    html.dark-mode .set-row {
+        border-color: rgba(148, 163, 184, 0.16);
+        background: rgba(255,255,255,0.03);
+    }
+
+    .extras-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem;
+    }
+
+    .extra-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .24rem .55rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        background: rgba(148, 163, 184, 0.08);
+        color: var(--text-primary);
+        white-space: nowrap;
+        max-width: 100%;
+    }
+
+    .set-list {
+        display: grid;
+        gap: .45rem;
+        margin-top: .55rem;
+    }
+
+    .extra-k {
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+
+    .extra-v {
+        font-size: .86rem;
+        font-weight: 850;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 24ch; /* damit's bei custom text nicht explodiert */
+    }
+
+    /* ADD: Core stats rows (Cardio/Dehnung) - same vibe as set-row */
+    .stat-list {
+        display: grid;
+        gap: .45rem;
+    }
+
+    .stat-row {
+        display: grid;
+        grid-template-columns: 1fr auto; /* label | value right */
+        gap: .6rem;
+        align-items: center;
+        padding: .45rem .6rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        background: rgba(148, 163, 184, 0.06);
+    }
+
+    .stat-k {
+        font-weight: 850;
+        color: var(--text-secondary);
+        font-size: .82rem;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+    }
+
+    .stat-v {
+        font-weight: 900;
+        color: var(--text-primary);
+        font-size: .9rem;
+        justify-self: end;
+    }
+
+    html.dark-mode .stat-row {
+        border-color: rgba(148, 163, 184, 0.16);
+        background: rgba(255,255,255,0.03);
+    }
+
+    /* REPLACE */
+    .set-row {
+        display: grid;
+        grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+        gap: .6rem;
+        align-items: center;
+        padding: .45rem .6rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        background: rgba(148, 163, 184, 0.06);
+    }
+
+    .set-reps {
+        font-weight: 850;
+        color: var(--text-primary);
+        font-size: .9rem;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        justify-self: center; /* sitzt in der Mitte der mittleren Spalte */
+        text-align: center; /* Text auch wirklich mittig */
+    }
+
+    /* REPLACE */
+    .set-right {
+        font-weight: 900;
+        color: var(--text-primary);
+        font-size: .9rem;
+        white-space: nowrap; /* duration bleibt immer rechts, eine Linie */
+        justify-self: end;
+        text-align: right;
+    }
+
+    .entry-footer {
+        margin-top: auto;
+        padding-top: .55rem;
+        padding-left: 1rem; /* align mit entry-head */
+        border-top: 1px dashed rgba(148, 163, 184, 0.18);
+        display: flex;
+        flex-wrap: wrap;
+        gap: .35rem .55rem;
+        color: var(--text-secondary);
+        font-size: .82rem;
+    }
+
+    .abbr-item {
+        display: inline-flex;
+        align-items: baseline;
+        gap: .25rem;
+    }
+
+    .abbr-k {
+        font-weight: 900;
+        letter-spacing: .02em;
+        color: var(--text-secondary);
+    }
+
+    .abbr-sep {
+        opacity: .8;
+    }
+
+    .abbr-v {
+        font-weight: 800;
+        color: var(--text-secondary);
+        opacity: .95;
+    }
+
+    .abbr-dot {
+        margin-left: .35rem;
+        opacity: .6;
+    }
+
+    .entry-summary--grid {
+        display: grid;
+        grid-template-columns: 1fr auto; /* Wdh | rechts */
+        align-items: center;
+        column-gap: .6rem;
+    }
+
+    .sum-pill--mid {
+        justify-self: start; /* früher center, jetzt links in der 1fr */
+    }
+
+    /* Sätze links */
+    .sum-pill--left {
+        justify-self: start;
+    }
+
+    .sum-right {
+        justify-self: end;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    /* ===== Cardio Summary: Kacheln statt Tabellen-Row ===== */
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .45rem;
+    }
+
+    @media (max-width: 520px) {
+        .metric-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .metric {
+        padding: .55rem .65rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        background: rgba(148, 163, 184, 0.06);
+        display: grid;
+        gap: .12rem;
+    }
+
+    html.dark-mode .metric {
+        border-color: rgba(148, 163, 184, 0.16);
+        background: rgba(255,255,255,0.03);
+    }
+
+    .metric-label {
+        font-weight: 900;
+        color: var(--text-secondary);
+        font-size: .72rem;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+    }
+
+    .metric-value {
+        font-weight: 950;
+        color: var(--text-primary);
+        font-size: .98rem;
+    }
+
+    .metric-u {
+        font-weight: 900;
+        font-size: .72rem;
+        color: var(--text-secondary);
+        margin-left: .25rem;
+    }
+
+    /* ===== Cardio Sessions: eine Zeile, kein 3-Spalten-Table-Look ===== */
+    .set-row--single {
+        grid-template-columns: 2.2rem minmax(0, 1fr);
+    }
+
+    .set-line {
+        min-width: 0;
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: .35rem;
+        align-items: baseline;
+    }
+
+    .set-main {
+        font-weight: 900;
+        color: var(--text-primary);
+        font-size: .9rem;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .set-sub {
+        font-weight: 850;
+        color: var(--text-secondary);
+        font-size: .82rem;
+        white-space: nowrap;
+    }
+
+    /* ===== Extras: eine Zeile scrollbar statt 5 Reihen Chaos ===== */
+    .extras-grid--scroll {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: .15rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .progress-topbar {
+        display: flex;
+        gap: .5rem;
+        margin-bottom: .75rem;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        padding: .25rem 0 .6rem;
+        background: linear-gradient(180deg, rgba(0,0,0,0.08), transparent);
+    }
+
+    .progress-btn--active {
+        border-color: rgba(129, 140, 248, 0.70);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22), 0 0 18px rgba(129, 140, 248, 0.10);
+        filter: brightness(1.03);
+    }
+
+  
 </style>

@@ -85,7 +85,6 @@
                                    @update:bmiHeight="val => (bmiHeight = val)"
                                    @calculate="calculateBMI"
                                    @copy="copyBMI"
-                                   @export="openDownloadPopup('bmi')"
                                    @reset="resetCalculator('bmi')"
                                    @invalid="onCalcInvalid" />
 
@@ -110,7 +109,6 @@
                                         @update:calorieGoal="v => calorieGoal = v"
                                         @calculate="calculateCalories"
                                         @copy="copyCalories"
-                                        @export="openDownloadPopup('calories')"
                                         @reset="resetCalculator('calories')"
                                         @invalid="onCalcInvalid" />
 
@@ -131,7 +129,6 @@
                                         @update:burnIntake="(v: number | null) => (burnIntake = v)"
                                         @calculate="calculateBurnRate"
                                         @copy="copyBurnRate"
-                                        @export="openDownloadPopup('burnRate')"
                                         @reset="resetCalculator('burnRate')"
                                         @invalid="onCalcInvalid" />
 
@@ -152,7 +149,6 @@
                                        @update:proteinMeals="v => proteinMeals = v"
                                        @calculate="calculateProtein"
                                        @copy="copyProtein"
-                                       @export="openDownloadPopup('protein')"
                                        @reset="resetCalculator('protein')"
                                        @invalid="onCalcInvalid" />
 
@@ -172,7 +168,6 @@
                                      @update:oneRmReps="v => oneRmReps = v"
                                      @calculate="calculateOneRm"
                                      @copy="copyOneRm"
-                                     @export="openDownloadPopup('oneRm')"
                                      @reset="resetCalculator('oneRm')"
                                      @invalid="onCalcInvalid" />
 
@@ -194,7 +189,6 @@
                                        @update:bodyFatHeight="v => bodyFatHeight = v"
                                        @calculate="calculateBodyFat"
                                        @copy="copyBodyFat"
-                                       @export="openDownloadPopup('bodyFat')"
                                        @reset="resetCalculator('bodyFat')"
                                        @invalid="onCalcInvalid" />
 
@@ -213,7 +207,6 @@
                                                 @update:cafStatus="v => cafStatus = v"
                                                 @calculate="calculateCaffeine"
                                                 @copy="copyCaffeine"
-                                                @export="openDownloadPopup('caffeine')"
                                                 @reset="onCafReset"
                                                 @invalid="onCalcInvalid" />
 
@@ -232,7 +225,6 @@
                                     @update:ffmiBodyFat="v => ffmiBodyFat = v"
                                     @calculate="calculateFFMI"
                                     @copy="copyFFMI"
-                                    @export="openDownloadPopup('ffmi')"
                                     @reset="resetCalculator('ffmi')"
                                     @invalid="onCalcInvalid" />
                     <!-- GL Favorit -->
@@ -253,7 +245,6 @@
                                             @update:glGi="v => glGi = v"
                                             @calculate="calculateGlyLoad"
                                             @copy="copyGlyLoad"
-                                            @export="openDownloadPopup('glyload')"
                                             @reset="resetCalculator('glyload')"
                                             @invalid="onCalcInvalid" />
 
@@ -273,7 +264,6 @@
                                      @update:waterClimate="v => waterClimate = v"
                                      @calculate="calculateWater"
                                      @copy="copyWater"
-                                     @export="openDownloadPopup('water')"
                                      @reset="resetCalculator('water')"
                                      @invalid="onCalcInvalid" />
                 </template>
@@ -296,7 +286,6 @@
                                @update:bmiHeight="val => (bmiHeight = val)"
                                @calculate="calculateBMI"
                                @copy="copyBMI"
-                               @export="openDownloadPopup('bmi')"
                                @reset="resetCalculator('bmi')"
                                @invalid="onCalcInvalid" />
 
@@ -321,7 +310,6 @@
                                     @update:calorieGoal="v => calorieGoal = v"
                                     @calculate="calculateCalories"
                                     @copy="copyCalories"
-                                    @export="openDownloadPopup('calories')"
                                     @reset="resetCalculator('calories')"
                                     @invalid="onCalcInvalid" />
 
@@ -342,7 +330,6 @@
                                     @update:burnIntake="(v: number | null) => (burnIntake = v)"
                                     @calculate="calculateBurnRate"
                                     @copy="copyBurnRate"
-                                    @export="openDownloadPopup('burnRate')"
                                     @reset="resetCalculator('burnRate')"
                                     @invalid="onCalcInvalid" />
 
@@ -362,7 +349,6 @@
                                    @update:proteinGoal="v => proteinGoal = v"
                                    @calculate="calculateProtein"
                                    @copy="copyProtein"
-                                   @export="openDownloadPopup('protein')"
                                    @reset="resetCalculator('protein')"
                                    @invalid="onCalcInvalid" />
 
@@ -382,7 +368,6 @@
                                  @update:oneRmReps="v => oneRmReps = v"
                                  @calculate="calculateOneRm"
                                  @copy="copyOneRm"
-                                 @export="openDownloadPopup('oneRm')"
                                  @reset="resetCalculator('oneRm')"
                                  @invalid="onCalcInvalid" />
                 <!-- Koffein Standard -->
@@ -400,7 +385,6 @@
                                             @update:cafStatus="v => cafStatus = v"
                                             @calculate="calculateCaffeine"
                                             @copy="copyCaffeine"
-                                            @export="openDownloadPopup('caffeine')"
                                             @reset="onCafReset"
                                             @invalid="onCalcInvalid" />
 
@@ -422,7 +406,6 @@
                                    @update:bodyFatHeight="v => bodyFatHeight = v"
                                    @calculate="calculateBodyFat"
                                    @copy="copyBodyFat"
-                                   @export="openDownloadPopup('bodyFat')"
                                    @reset="resetCalculator('bodyFat')"
                                    @invalid="onCalcInvalid" />
 
@@ -441,7 +424,6 @@
                                 @update:ffmiBodyFat="v => ffmiBodyFat = v"
                                 @calculate="calculateFFMI"
                                 @copy="copyFFMI"
-                                @export="openDownloadPopup('ffmi')"
                                 @reset="resetCalculator('ffmi')"
                                 @invalid="onCalcInvalid" />
                 <!-- GL Standard -->
@@ -462,7 +444,6 @@
                                         @update:glGi="v => glGi = v"
                                         @calculate="calculateGlyLoad"
                                         @copy="copyGlyLoad"
-                                        @export="openDownloadPopup('glyload')"
                                         @reset="resetCalculator('glyload')"
                                         @invalid="onCalcInvalid" />
 
@@ -482,7 +463,6 @@
                                  @update:waterClimate="v => waterClimate = v"
                                  @calculate="calculateWater"
                                  @copy="copyWater"
-                                 @export="openDownloadPopup('water')"
                                  @reset="resetCalculator('water')"
                                  @invalid="onCalcInvalid" />
             </div>
@@ -562,7 +542,9 @@
                            @download="onPlanProgressDownload"
                            @edit-day="editLatestEntryForDay"
                            @edit-entry="editEntryFromPlanView"
-                           @delete-day="deleteLatestEntryForDay" />
+                           @delete-day="deleteLatestEntryForDay"
+                           @delete-entries="deleteEntriesFromPlanView"
+                           @delete="deleteEntriesFromPlanView" />
 
         <ProgressEntryModal ref="progressEntryModalRef"
                             v-model:show="showProgressPopup"
@@ -2765,6 +2747,24 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const lastPlanId = ref<string | null>(null)
     const effectivePlanId = computed(() => currentPlanId.value ?? lastPlanId.value)
 
+
+    const deleteEntriesFromPlanView = (payload: { planId: string; entries: any[] }) => {
+        const planId = payload?.planId
+        const entries = payload?.entries ?? []
+        if (!planId || !entries.length) return
+
+        // wenn du mehrere löschst: nacheinander rausballern
+        for (const e of entries) {
+            const date = e?.date
+            if (date) deleteProgressEntry(planId, date)
+        }
+
+        showToast({
+            message: entries.length === 1 ? 'Eintrag gelöscht' : `${entries.length} Einträge gelöscht`,
+            type: 'success',
+        })
+    }
+
     // ===== Kebab -> ActionSelectPopup flow =====
     type PlanKebabAction = 'download' | 'edit' | 'delete'
 
@@ -2881,12 +2881,15 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }
 
     const openDownloadPopup = (calculator: string, planId?: string) => {
-        downloadCalculator.value = calculator;
-        downloadPlanId.value = planId || null;
-        downloadFormat.value = 'html';
-        showDownloadPopup.value = true;
-    };
+        const blocked = new Set(['bmi', 'calories', 'burnRate', 'oneRm', 'bodyFat', 'ffmi', 'water', 'protein', 'caffeine', 'glyload'])
+        if (blocked.has(calculator)) return
 
+        downloadCalculator.value = calculator
+        downloadPlanId.value = planId || null
+        downloadPlanDays.value = [] // wichtig: alte Day-Selection killen
+        downloadFormat.value = 'html'
+        showDownloadPopup.value = true
+    }
 
     const closeDownloadPopup = () => {
         showDownloadPopup.value = false;
@@ -2904,134 +2907,23 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         let type = '';
 
         switch (downloadCalculator.value) {
-            case 'bmi':
-                if (!bmiResult.value) { addToast('Kein BMI-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    gender: bmiGender.value,
-                    weight: bmiWeight.value,
-                    height: bmiHeight.value,
-                    bmi: bmiResult.value.value.toFixed(1),
-                    category: bmiResult.value.category,
-                };
-                filename = 'bmi_result';
-                break;
-
-            case 'calories':
-                if (!calorieResult.value) { addToast('Kein Kalorienbedarf-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    age: calorieAge.value,
-                    gender: calorieGender.value,
-                    weight: calorieWeight.value,
-                    height: calorieHeight.value,
-                    activity: calorieActivity.value,
-                    goal: calorieGoal.value,
-                    total: calorieResult.value.total.toFixed(0),
-                    macros: {
-                        carbs: calorieResult.value.macros.carbs.toFixed(0),
-                        protein: calorieResult.value.macros.protein.toFixed(0),
-                        fat: calorieResult.value.macros.fat.toFixed(0),
-                    },
-                };
-                filename = 'calorie_result';
-                break;
-
-            case 'burnRate':
-                if (!burnRateResult.value) { addToast('Kein Burn-Rate-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return }
-                data = {
-                    start_weight: burnStartWeight.value,
-                    goal_weight: burnGoalWeight.value,
-                    unit: unit.value,
-                    maintenance_kcal_per_day: burnMaintenance.value,
-                    intake_kcal_per_day: burnIntake.value,
-                    daily_delta_kcal: Math.round(burnRateResult.value.dailyDelta),
-                    weekly_change_kg: burnRateResult.value.weeklyChangeKg,
-                    weekly_change_display: burnRateResult.value.weeklyChangeDisplay,
-                    days_to_goal: burnRateResult.value.daysToGoal,
-                    note: burnRateResult.value.note ?? null,
-                }
-                filename = 'burn_rate_result'
-                break;
-
-            case 'oneRm':
-                if (!oneRmResult.value) { addToast('Kein 1RM-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    exercise: oneRmExercise.value,
-                    weight: oneRmWeight.value,
-                    reps: oneRmReps.value,
-                    oneRm: oneRmResult.value.toFixed(1),
-                };
-                filename = 'one_rm_result';
-                break;
-
-            case 'bodyFat':
-                if (!bodyFatResult.value) { addToast('Kein Körperfett-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    gender: bodyFatGender.value,
-                    waist: bodyFatWaist.value,
-                    neck: bodyFatNeck.value,
-                    hip: bodyFatHip.value,
-                    height: bodyFatHeight.value,
-                    bodyFat: bodyFatResult.value.toFixed(1),
-                };
-                filename = 'bodyFat_result';
-                break;
-
-            case 'ffmi':
-                if (!ffmiResult.value) { addToast('Kein FFMI-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    weight: ffmiWeight.value,
-                    height: ffmiHeight.value,
-                    bodyFat: ffmiBodyFat.value,
-                    ffmi: ffmiResult.value.value.toFixed(1),
-                    category: ffmiResult.value.category,
-                };
-                filename = 'ffmi_result';
-                break;
-
-            case 'water':
-                if (!waterResult.value) { addToast('Kein Wasserbedarf-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    weight: waterWeight.value,
-                    activity: waterActivity.value,
-                    climate: waterClimate.value,
-                    water: waterResult.value.toFixed(1),
-                };
-                filename = 'water_result';
-                break;
-
-            case 'protein':
-                if (!proteinResult.value) { addToast('Kein Protein-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    weight: proteinWeight.value,
-                    unit: unit.value,
-                    goal: proteinGoal.value,
-                    recommend_g_per_day: proteinResult.value.recommend.toFixed(0),
-                    range_g_per_day: proteinResult.value.min && proteinResult.value.max
-                        ? `${proteinResult.value.min.toFixed(0)}–${proteinResult.value.max.toFixed(0)}`
-                        : null,
-                    factor_g_per_kg: proteinResult.value.factor.toFixed(2),
-                };
-                filename = 'protein_result';
-                break;
-
-            case 'caffeine':
-                if (!cafResult.value) { addToast('Kein Koffein-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return }
-                data = {
-                    weight: cafWeight.value,
-                    unit: unit.value,
-                    sensitivity: cafSensitivity.value,
-                    status: cafStatus.value,
-                    per_dose_mg: cafResult.value.perDose,
-                    per_day_mg: cafResult.value.perDay,
-                }
-                filename = 'caffeine_result'
-                break
 
             case 'progress': {
                 if (!downloadPlanId.value) { addToast('Kein Plan ausgewählt', 'default'); closeDownloadPopup(); return; }
                 const plan = trainingPlans.value.find(p => p.id === downloadPlanId.value)
-                const progress = getProgressForPlan(downloadPlanId.value)
-                if (!progress.length) { addToast('Kein Fortschritt zum Herunterladen', 'default'); closeDownloadPopup(); return; }
+                const all = getProgressForPlan(downloadPlanId.value)
+
+                const selected = downloadPlanDays.value.length
+                    ? all.filter(e => downloadPlanDays.value.includes((e.date || '').slice(0, 10)))
+                    : all
+
+                if (!selected.length) {
+                    addToast('Kein Fortschritt zum Herunterladen', 'default')
+                    closeDownloadPopup()
+                    return
+                }
+
+                const progress = selected
 
                 data = {
                     planName: plan?.name || 'Unbekannter Plan',
@@ -3051,20 +2943,6 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
                 filename = `progress_${(plan?.name || 'plan').toLowerCase().replace(/\s+/g, '_')}`
                 break
             }
-
-            case 'glyload':
-                if (glResult.value == null) { addToast('Kein GL-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return }
-                data = {
-                    food: glFood.value,
-                    serving_g: glServing.value,
-                    carbs_per_100g_g: glCarbs100.value,
-                    gi: glGi.value,
-                    gl_per_serving: glResult.value.toFixed(1),
-                    category: glCategory.value,
-                }
-                filename = 'glycemic_load_result'
-                break
-
 
             case 'weightStats': {
                 if (!weightHistory.value.length) {

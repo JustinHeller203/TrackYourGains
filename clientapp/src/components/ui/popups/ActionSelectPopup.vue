@@ -4,6 +4,7 @@
                :title="title"
                :overlayClass="overlayClass"
                :variant="variant"
+               :zIndex="zIndex"
                :showActions="true"
                :showClose="true"
                @cancel="emitCancel">
@@ -96,6 +97,7 @@
 
         // wenn true: bei Multi darf Confirm auch ohne Auswahl (z.B. "Alle" an)
         allowEmptyConfirm?: boolean
+        zIndex?: number
 
         // optional: damit du per Use-case stylen kannst
         overlayClass?: string | string[] | Record<string, boolean>

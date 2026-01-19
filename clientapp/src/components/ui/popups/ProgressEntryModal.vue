@@ -212,14 +212,26 @@
                 <!-- Kraft & Calisthenics -->
                 <template v-if="inputType === 'kraft' || inputType === 'calisthenics'">
                     <div>
+                        <div class="label-with-info">
+                            <span class="label-text">Tempo</span>
+
+                            <ExplanationPopup title="Tempo im Krafttraining"
+                                              :zIndex="10100"
+                                              kicker="Kraft • Ausführung"
+                                              ariaOpen="Tempo erklären"
+                                              ariaClose="Schließen">
+                                <TempoExplain />
+                            </ExplanationPopup>
+                        </div>
+
                         <UiPopupInput id="extra-tempo"
-                                      label="Tempo"
+                                      label=""
                                       v-model="tempoLocal"
                                       placeholder="z. B. 3-1-1"
                                       :readonly="!hasExerciseSelected"
                                       @focus="!hasExerciseSelected && requireExercise('tempo')" />
-
                     </div>
+
                     <div>
                         <UiPopupInput id="extra-rest"
                                       label="Pausenzeit (Sek.)"
@@ -287,8 +299,20 @@
                     </div>
 
                     <div>
+                        <div class="label-with-info">
+                            <span class="label-text">Herzfrequenzzone</span>
+
+                            <ExplanationPopup title="Herzfrequenzzonen (1–5)"
+                                              :zIndex="10100"
+                                              kicker="Cardio • Intensität"
+                                              ariaOpen="Herzfrequenzzonen erklären"
+                                              ariaClose="Schließen">
+                                <HrZoneExplain />
+                            </ExplanationPopup>
+                        </div>
+
                         <UiPopupSelect id="extra-hrZone"
-                                       label="Herzfrequenzzone"
+                                       label=""
                                        placeholder="Herzfrequenzzone auswählen"
                                        v-model="hrZoneSelectLocal"
                                        :disabled="!hasExerciseSelected"
@@ -302,9 +326,21 @@
                     </div>
 
                     <div>
+                        <div class="label-with-info">
+                            <span class="label-text">Borg-Skala (6–20)</span>
+
+                            <ExplanationPopup title="Borg-Skala (6–20)"
+                                              :zIndex="10100"
+                                              kicker="Cardio • Belastung"
+                                              ariaOpen="Borg-Skala erklären"
+                                              ariaClose="Schließen">
+                                <BorgExplain />
+                            </ExplanationPopup>
+                        </div>
+
                         <UiPopupInput id="extra-borg"
                                       ref="borgInput"
-                                      label="Borg-Skala (6-20)"
+                                      label=""
                                       type="number"
                                       inputmode="numeric"
                                       min="6"
@@ -315,7 +351,6 @@
                                       :readonly="!hasExerciseSelected"
                                       @focus="onBorgFocus"
                                       @blur="onBorgBlur" />
-
                     </div>
                 </template>
 
@@ -333,19 +368,6 @@
                                       placeholder="z. B. 8"
                                       :readonly="!hasExerciseSelected"
                                       @focus="!hasExerciseSelected && requireExercise('painFree')" />
-                    </div>
-                    <div>
-                        <UiPopupInput id="extra-moveQuality"
-                                      label="Bewegungsqualität (1-10)"
-                                      type="number"
-                                      inputmode="numeric"
-                                      min="1"
-                                      max="10"
-                                      step="1"
-                                      v-model="movementQualityTextLocal"
-                                      placeholder="z. B. 7"
-                                      :readonly="!hasExerciseSelected"
-                                      @focus="!hasExerciseSelected && requireExercise('moveQuality')" />
                     </div>
 
                     <div>
@@ -443,6 +465,10 @@
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
     import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
+    import ExplanationPopup from '@/components/ui/popups/ExplanationPopup.vue'
+    import BorgExplain from '@/components/ui/explain/BorgExplain.vue'
+    import HrZoneExplain from '@/components/ui/explain/HrZoneExplain.vue'
+    import TempoExplain from '@/components/ui/explain/TempoExplain.vue'
 
     type Focusable = { focus: () => void }
 
@@ -481,7 +507,6 @@
 
         // stretch extras
         painFree?: number
-        movementQuality?: number
         equipment?: string
         equipmentCustom?: string
         side?: '' | 'links' | 'rechts' | 'beidseitig'
@@ -617,7 +642,6 @@
 
     /* stretch extras */
     const painFreeLocal = ref<number | null>(null)
-    const movementQualityLocal = ref<number | null>(null)
     const equipmentLocal = ref<string>('')
     const equipmentCustomLocal = ref<string>('')
     const sideLocal = ref<'' | 'links' | 'rechts' | 'beidseitig'>('')
@@ -696,10 +720,6 @@
         get: () => (painFreeLocal.value == null ? '' : String(painFreeLocal.value)),
         set: v => { painFreeLocal.value = toNumberOr(v, null) },
     })
-    const movementQualityTextLocal = computed({
-        get: () => (movementQualityLocal.value == null ? '' : String(movementQualityLocal.value)),
-        set: v => { movementQualityLocal.value = toNumberOr(v, null) },
-    })
     const hrZoneSelectLocal = computed<string>({
         get: () => (hrZoneLocal.value == null ? '' : String(hrZoneLocal.value)),
         set: v => {
@@ -766,7 +786,6 @@
         borgLocalNum.value = null
 
         painFreeLocal.value = null
-        movementQualityLocal.value = null
         equipmentLocal.value = ''
         equipmentCustomLocal.value = ''
         sideLocal.value = ''
@@ -804,7 +823,6 @@
         borgLocalNum.value = entry.borg ?? null
 
         painFreeLocal.value = entry.painFree ?? null
-        movementQualityLocal.value = entry.movementQuality ?? null
         equipmentLocal.value = entry.equipment ?? ''
         equipmentCustomLocal.value = entry.equipmentCustom ?? ''
         sideLocal.value = (entry.side as any) ?? ''
@@ -936,23 +954,36 @@
                 borg: borgLocalNum.value ?? undefined,
             }
         } else if (t === 'dehnung') {
+            const perSet = (setDetailsLocal.value ?? []).map(r => ({
+                weight: 0,
+                reps: r.reps ?? null,
+                durationSec: r.durationSec ?? null,
+            }))
+
+            const totalSec = perSet.reduce((sum, r) => sum + (typeof r.durationSec === 'number' ? r.durationSec : 0), 0)
+
             workout = {
                 planId,
                 exercise: exerciseLocal.value.trim(),
-                sets: Number(setsLocal.value) || 0,
+                sets: perSet.length || (Number(setsLocal.value) || 0),
                 weight: 0,
-                reps: repsLocal.value ?? 0,
+                reps: 0,
                 note: noteLocal.value?.trim() || undefined,
                 date: localEditingEntry.value?.date ?? new Date().toISOString(),
                 type: 'dehnung',
-                durationMin: durationLocal.value ?? undefined,
+
+                // wichtig: jetzt existiert’s auch im PlanProgressPopup
+                setDetails: perSet.length ? perSet : undefined,
+
+                durationMin: undefined,
+
                 painFree: painFreeLocal.value ?? undefined,
-                movementQuality: movementQualityLocal.value ?? undefined,
                 equipment: equipmentLocal.value || undefined,
                 equipmentCustom: equipmentCustomLocal.value || undefined,
                 side: sideLocal.value || undefined,
             }
-        } else {
+        }
+        else {
             const hasPerSet = (setDetailsLocal.value?.length ?? 0) > 0
             const perSet = hasPerSet
                 ? setDetailsLocal.value
@@ -1428,5 +1459,30 @@
 
     .note-input--extras {
         margin-top: 1.05rem; /* wenn noch mehr: 1.25rem */
+    }
+
+    .label-with-info {
+        /* wie normale UiPopupInput-Labels: block + sauberer Zeilenrhythmus */
+        display: flex;
+        align-items: center;
+        gap: .45rem;
+        margin: 0 0 .35rem;
+        min-height: 1.15rem; /* gleiche “Höhe” wie andere Labelzeilen */
+    }
+
+    .label-text {
+        /* Font/Line-Height an App-Text anlehnen */
+        font-family: inherit;
+        font-size: .95rem;
+        line-height: 1.15;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--text-secondary);
+    }
+
+    /* InfoButton soll nicht die Zeilenhöhe ziehen */
+    .label-with-info :global(.info-btn) {
+        align-self: center;
+        line-height: 1;
     }
 </style>

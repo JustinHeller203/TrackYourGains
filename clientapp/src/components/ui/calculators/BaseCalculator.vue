@@ -85,12 +85,6 @@
         <!-- Footer -->
         <div class="card-footer" v-if="showFooter">
             <div class="footer-actions">
-                <ExportButton v-if="showExport"
-                              class="calc-footer-btn"
-                              aria-label="Exportieren"
-                              data-short="Export"
-                              @click="$emit('export')" />
-
                 <ResetButton v-if="showReset"
                              class="calc-footer-btn"
                              aria-label="Zurücksetzen"
@@ -106,7 +100,6 @@
     import { useCalcJumpTo } from '@/composables/useCalcJumpTo'
     import ExplanationPopup from '@/components/ui/popups/ExplanationPopup.vue'
     import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
-    import ExportButton from '@/components/ui/buttons/ExportButton.vue'
     import ResetButton from '@/components/ui/buttons/ResetButton.vue'
     import CopyButton from '@/components/ui/buttons/CopyButton.vue'
     import CalculateButton from '@/components/ui/buttons/CalculateButton.vue'
@@ -141,7 +134,6 @@
         showCalculateButton?: boolean
         showCopyButton?: boolean
         showFooter?: boolean
-        showExport?: boolean
         showReset?: boolean
 
         /* Copy */
@@ -165,7 +157,6 @@
         showCalculateButton: true,
         showCopyButton: true,
         showFooter: true,
-        showExport: true,
         showReset: true,
 
         copyText: null,
@@ -390,32 +381,33 @@
         border-top: 1px solid var(--border-color);
         padding: .75rem 0 0;
         display: flex;
-        justify-content: flex-end;
-        margin-top: .75rem;
+        width: 100%;
+        justify-content: flex-end !important;
     }
+
     .footer-actions {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: .5rem;
+        display: flex;
         width: 100%;
-        max-width: 420px;
+        justify-content: flex-end;
     }
+
+    /* ADD */
     .calc-footer-btn {
-        width: 100%;
-        min-height: 44px;
+        margin-left: auto;
     }
 
     @media (max-width: 600px) {
         .card-footer {
-            justify-content: center;
+            border-top: 1px solid var(--border-color);
+            padding: .75rem 0 0;
+            display: flex;
+            width: 100%;
+            justify-content: flex-end !important;
         }
 
         .footer-actions {
             max-width: none;
         }
 
-        .calc-footer-btn {
-            padding: .5rem .6rem;
-        }
     }
 </style>

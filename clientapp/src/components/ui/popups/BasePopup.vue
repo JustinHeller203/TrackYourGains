@@ -6,6 +6,7 @@
             <div v-if="show"
                  class="popup-overlay"
                  :class="[overlayClass, variant]"
+                 :style="{ zIndex: String(zIndex) }"
                  role="dialog"
                  aria-modal="true"
                  @mousedown.self="$emit('cancel')">
@@ -49,10 +50,12 @@
         showClose?: boolean
         cancelText?: string
         saveText?: string
+        zIndex?: number
     }>(), {
         cancelText: 'Abbrechen',
         saveText: 'Speichern',
         showClose: true,
+        zIndex: 9999,
     })
 
     defineEmits<{ (e: 'cancel'): void; (e: 'save'): void }>()
@@ -67,7 +70,6 @@
         background: rgba(2, 6, 23, 0.55);
         display: grid;
         place-items: center;
-        z-index: 9999;
         padding: 1rem;
     }
 
