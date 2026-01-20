@@ -56,6 +56,13 @@
         confirmDeleteEnabled.value = enabled
     }
 
+    const onConfirm = () => {
+        // User will "Nicht mehr anzeigen" -> Confirm-Dialog künftig AUS
+        // (sonst bleibt er AN)
+        setConfirmDeleteEnabled(!dontShowAgain.value)
+
+        emit('confirm')
+    }
     const initializing = ref(true)
 
     onMounted(() => {

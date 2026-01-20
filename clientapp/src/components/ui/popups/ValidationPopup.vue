@@ -3,6 +3,7 @@
     <BasePopup :show="show"
                :title="title"
                overlayClass="validation-popup"
+               :zIndex="20000"
                @cancel="$emit('close')">
         <div class="validation-body">
             <div class="icon-wrap" aria-hidden="true">⚠️</div>

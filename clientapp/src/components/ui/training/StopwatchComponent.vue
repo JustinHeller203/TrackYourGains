@@ -1257,6 +1257,11 @@
         border: 1px solid rgba(148, 163, 184, 0.22);
         background: radial-gradient(circle at 18% 22%, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 60%), radial-gradient(circle at 85% 78%, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 70%), color-mix(in srgb, var(--bg-card) 92%, #020617 8%);
         box-shadow: 0 16px 38px rgba(15, 23, 42, 0.18);
+        /* NEW: Card bleibt stabil, Inhalt scrollt innen */
+        display: flex;
+        flex-direction: column;
+        max-height: clamp(260px, 46vh, 520px);
+        overflow: hidden;
     }
 
     html.dark-mode .laps-card {
@@ -1303,6 +1308,26 @@
         display: flex;
         flex-direction: column;
         gap: .5rem;
+        /* NEW: nur die Liste scrollt */
+        overflow-y: auto;
+        min-height: 0;
+        padding-right: 6px;
+    }
+
+        /* Scrollbar nur für die Liste, damit's nicht ugly ist */
+        .laps-list::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .laps-list::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            border: 3px solid transparent;
+            background-clip: padding-box;
+            background: rgba(148, 163, 184, 0.35);
+        }
+
+    html.dark-mode .laps-list::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.25);
     }
 
     .lap-row {

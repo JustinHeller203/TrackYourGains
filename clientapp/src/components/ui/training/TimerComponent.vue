@@ -470,6 +470,7 @@
 </script>
 
 <style scoped>
+
     .workout-list {
         margin-top: 0.5rem;
         width: 100%;
@@ -490,6 +491,7 @@
         width: 100%;
         max-width: 1200px;
         position: relative;
+        margin: 0 auto;
     }
 
     .plan-header {
@@ -528,6 +530,7 @@
         .drag-stack > .timer-card {
             width: 100%;
             max-width: 1200px;
+            margin: 0 auto;
         }
 
     .drag-ghost {
@@ -724,6 +727,10 @@
             -webkit-user-select: none;
             user-select: none;
         }
+    }
+
+    .timer-container {
+        margin: 0 auto 2.25rem; /* bottom space */
     }
 </style>
 

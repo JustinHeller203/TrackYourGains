@@ -1344,6 +1344,8 @@
             gap: .6rem 1rem;
         }
 
+
+
             /* REMOVE-Effekt: KEIN eigenes Grid pro Zelle -> verhindert Überlappung */
             .modal-grid.grid-2 > div {
                 display: block;
@@ -1485,4 +1487,34 @@
         align-self: center;
         line-height: 1;
     }
+
+    /* === Desktop soll genau wie Mobile (<620px) aussehen === */
+    @media (min-width: 621px) {
+        /* Haupt-Inputs: immer 1 Spalte */
+        .modal-grid.grid-2 {
+            grid-template-columns: 1fr !important;
+            gap: .75rem !important;
+            align-items: start !important;
+        }
+
+        /* Cardio grid: ebenfalls 1 Spalte */
+        .grid-cardio {
+            grid-template-columns: 1fr !important;
+            column-gap: unset !important;
+            align-items: start !important;
+        }
+
+        /* Extras: immer 1 Spalte */
+        .extras-section {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
+    /* Killt dein Desktop-Override ab 961px (nur Layout, nicht dein Styling) */
+    @media (min-width: 961px) {
+        .modal {
+            width: auto !important; /* NICHT zentrieren/verschieben */
+        }
+    }
+
 </style>

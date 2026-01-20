@@ -3727,7 +3727,7 @@
     }
 
     .stopwatch-top {
-        margin-top: 1.5rem; /* mehr Abstand zur Timer-Sektion drüber */
+        margin-top: 3rem;
         display: flex;
         flex-direction: column;
         align-items: center;
