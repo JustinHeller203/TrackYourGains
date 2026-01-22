@@ -325,7 +325,6 @@
         text-align: center;
     }
 
-    /* Nav + Chevron */
     .cal-nav {
         appearance: none;
         border: none;
@@ -409,7 +408,6 @@
         box-shadow: none; /* kill die fette Card-Shadow */
     }
 
-    /* Header / Title wie Popup-Text */
     html.dark-mode .cal-title {
         color: rgba(226, 232, 240, 0.95);
     }
@@ -418,7 +416,6 @@
         color: rgba(148, 163, 184, 0.95);
     }
 
-    /* Cells wie Popup Input-Felder */
     html.dark-mode .cal-cell {
         border: 1px solid rgba(148, 163, 184, 0.32);
         background: color-mix(in srgb, #020617 78%, var(--bg-card) 22%);
@@ -431,24 +428,20 @@
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 0 3px rgba(99, 102, 241, 0.18), 0 20px 58px rgba(0, 0, 0, 0.55);
         }
 
-        /* Out-of-month: stärker "disabled" */
         html.dark-mode .cal-cell.is-out {
             opacity: 0.22;
         }
 
-        /* has-entry: gleiche Accent-Logik wie Popups (subtil) */
         html.dark-mode .cal-cell.has-entry {
             border-color: rgba(129, 140, 248, 0.45);
             background: radial-gradient(circle at 18% 22%, rgba(129,140,248,0.14), transparent 62%), color-mix(in srgb, #020617 78%, var(--bg-card) 22%);
         }
 
-        /* Today: gleicher Focus-Ring */
         html.dark-mode .cal-cell.is-today {
             outline-color: rgba(99, 102, 241, 0.18);
             outline-width: 3px;
         }
 
-    /* Numbers / Dot wie Popup-Akzent */
     html.dark-mode .cal-num {
         color: rgba(226, 232, 240, 0.95);
     }

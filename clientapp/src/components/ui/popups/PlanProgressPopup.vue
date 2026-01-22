@@ -92,273 +92,320 @@
                             <div class="day-details">
                                 <!-- Kraft / Calisthenics -->
                                 <div v-if="strengthForDay(c.day).length" class="exercise-block">
-                                    <div class="exercise-header">Kraft</div>
-                                    <ul class="journal-entries">
-                                        <li v-for="g in strengthGroupsForDay(c.day)"
-                                            :key="g.key"
-                                            class="journal-entry">
-                                            <div class="entry-head"
-                                                 role="button"
-                                                 tabindex="0"
-                                                 @dblclick.stop.prevent="onEntryDblClick(g.editEntry)"
-                                                 @keydown.enter.stop.prevent="onEntryDblClick(g.editEntry)">
-                                                <span class="entry-exercise">{{ g.entry.exercise }}</span>
+                                    <div class="exercise-header-row">
+                                        <div class="exercise-header-left">
+                                            <div class="exercise-header">Kraft</div>
 
-                                                <span class="entry-chips">
-                                                    <span class="type-chip" :data-type="g.entry.type || 'kraft'">
-                                                        {{ g.entry.type === 'calisthenics' ? 'Calisthenics' : 'Kraft' }}
+                                            <button type="button"
+                                                    class="section-toggle"
+                                                    :aria-expanded="!isSectionCollapsed(c.day, 'strength')"
+                                                    :aria-controls="`sec-${c.day}-strength`"
+                                                    @click.stop="toggleSection(c.day, 'strength')">
+                                                <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'strength') }">^</span>
+                                                <span class="sr-only">
+                                                    {{ isSectionCollapsed(c.day, 'strength') ? 'Aufklappen' : 'Zuklappen' }}
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div :id="`sec-${c.day}-strength`" v-show="!isSectionCollapsed(c.day, 'strength')">
+                                        <ul class="journal-entries">
+                                            <li v-for="g in strengthGroupsForDay(c.day)"
+                                                :key="g.key"
+                                                class="journal-entry">
+                                                <div class="entry-head"
+                                                     role="button"
+                                                     tabindex="0"
+                                                     @dblclick.stop.prevent="onEntryDblClick(g.editEntry)"
+                                                     @keydown.enter.stop.prevent="onEntryDblClick(g.editEntry)">
+                                                    <span class="entry-exercise">{{ g.entry.exercise }}</span>
+
+                                                    <span class="entry-chips">
+                                                        <span class="type-chip" :data-type="g.entry.type || 'kraft'">
+                                                            {{ g.entry.type === 'calisthenics' ? 'Calisthenics' : 'Kraft' }}
+                                                        </span>
                                                     </span>
-                                                </span>
 
-                                                <span class="entry-actions">
-                                                    <template v-if="g.entry.setDetails?.length">
-                                                        <span v-if="setStats(g.entry).repsAvg != null" class="sum-pill">
-                                                            Ø {{ setStats(g.entry).repsAvg }} <span class="sum-u">Wdh</span>
-                                                        </span>
+                                                    <span class="entry-actions">
+                                                        <template v-if="g.entry.setDetails?.length">
+                                                            <span v-if="g.stats.repsAvg != null" class="sum-pill">
+                                                                Ø {{ g.stats.repsAvg }} <span class="sum-u">Wdh</span>
+                                                            </span>
 
-                                                        <span v-if="setStats(g.entry).weightAvg != null" class="sum-pill">
-                                                            Ø {{ setStats(g.entry).weightAvg }} <span class="sum-u">kg</span>
-                                                        </span>
-                                                    </template>
+                                                            <span v-if="g.stats.weightAvg != null" class="sum-pill">
+                                                                Ø {{ g.stats.weightAvg }} <span class="sum-u">kg</span>
+                                                            </span>
+                                                        </template>
 
-                                                    <template v-else>
-                                                        <span v-if="g.entry.reps" class="sum-pill">
-                                                            {{ g.entry.reps }} <span class="sum-u">Wdh</span>
-                                                        </span>
+                                                        <template v-else>
+                                                            <span v-if="g.entry.reps" class="sum-pill">
+                                                                {{ g.entry.reps }} <span class="sum-u">Wdh</span>
+                                                            </span>
 
-                                                        <span v-if="g.entry.weight != null" class="sum-pill">
-                                                            {{ g.entry.weight }} <span class="sum-u">kg</span>
-                                                        </span>
-                                                    </template>
+                                                            <span v-if="g.entry.weight != null" class="sum-pill">
+                                                                {{ g.entry.weight }} <span class="sum-u">kg</span>
+                                                            </span>
+                                                        </template>
 
-                                                    <button v-if="hasDetails(g.entry)"
-                                                            type="button"
-                                                            class="sum-pill sum-pill--ghost"
-                                                            @click.stop="toggleGroupSets(g.key)">
-                                                        {{ expandedEntryKeys.has(g.key) ? 'Weniger' : 'Details' }}
-                                                    </button>
-                                                </span>
-                                            </div>
-
-                                            <div v-if="expandedEntryKeys.has(g.key) && hasDetails(g.entry)"
-                                                 class="set-details"
-                                                 @click.stop>
-
-                                                <div v-if="extrasForEntry(g.entry).length" class="extras-grid">
-                                                    <span v-for="(x, xi) in extrasForEntry(g.entry)"
-                                                          :key="`xd-${xi}`"
-                                                          class="extra-chip">
-                                                        <span class="extra-k">{{ x.label }}</span>
-                                                        <span class="extra-v">{{ x.value }}</span>
+                                                        <button v-if="hasDetails(g.entry)"
+                                                                type="button"
+                                                                class="sum-pill sum-pill--ghost"
+                                                                @click.stop="toggleGroupSets(g.key)">
+                                                            {{ expandedEntryKeys.has(g.key) ? 'Weniger' : 'Details' }}
+                                                        </button>
                                                     </span>
                                                 </div>
 
-                                                <div v-if="g.entry.setDetails?.length" class="set-list">
-                                                    <div v-for="(s, idx) in g.entry.setDetails"
-                                                         :key="idx"
-                                                         class="set-row">
-                                                        <span class="set-idx">{{ idx + 1 }}S</span>
-                                                        <span class="set-reps">{{ s.reps ?? '–' }} Wdh</span>
-                                                        <span class="set-weight">{{ s.weight ?? '–' }} kg</span>
+                                                <div v-if="expandedEntryKeys.has(g.key) && hasDetails(g.entry)"
+                                                     class="set-details"
+                                                     @click.stop>
+
+                                                    <div v-if="extrasForEntry(g.entry).length" class="extras-grid">
+                                                        <span v-for="(x, xi) in extrasForEntry(g.entry)"
+                                                              :key="`xd-${xi}`"
+                                                              class="extra-chip">
+                                                            <span class="extra-k">{{ x.label }}</span>
+                                                            <span class="extra-v">{{ x.value }}</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <div v-if="g.entry.setDetails?.length" class="set-list">
+                                                        <div v-for="(s, idx) in g.entry.setDetails"
+                                                             :key="idx"
+                                                             class="set-row">
+                                                            <span class="set-idx">{{ idx + 1 }}S</span>
+                                                            <span class="set-reps">{{ s.reps ?? '–' }} Wdh</span>
+                                                            <span class="set-weight">{{ s.weight ?? '–' }} kg</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
 
-                                            <div v-if="g.entry.note" class="note">— {{ g.entry.note }}</div>
+                                                <div v-if="g.entry.note" class="note">— {{ g.entry.note }}</div>
 
-                                            <div v-if="abbrItemsForEntry(g.entry).length" class="entry-footer" @click.stop>
-                                                <span v-for="(it, idx) in abbrItemsForEntry(g.entry)"
-                                                      :key="it.key"
-                                                      class="abbr-item">
-                                                    <span class="abbr-k">{{ it.key }}</span>
-                                                    <span class="abbr-sep">=</span>
-                                                    <span class="abbr-v">{{ it.label }}</span>
-                                                    <span v-if="idx < abbrItemsForEntry(g.entry).length - 1" class="abbr-dot">·</span>
-                                                </span>
-                                            </div>
-                                        </li>
-                                    </ul>
+                                                <div v-if="abbrItemsForEntry(g.entry).length" class="entry-footer" @click.stop>
+                                                    <span v-for="(it, idx) in abbrItemsForEntry(g.entry)"
+                                                          :key="it.key"
+                                                          class="abbr-item">
+                                                        <span class="abbr-k">{{ it.key }}</span>
+                                                        <span class="abbr-sep">=</span>
+                                                        <span class="abbr-v">{{ it.label }}</span>
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
 
                                 <!-- Cardio (zeit-/distanzbasiert) -->
                                 <div v-if="cardioGroupsForDay(c.day).length" class="exercise-block">
-                                    <div class="exercise-header">Cardio</div>
-                                    <ul class="journal-entries">
-                                        <li v-for="g in cardioGroupsForDay(c.day)"
-                                            :key="g.key"
-                                            class="journal-entry">
-                                            <div class="entry-head"
-                                                 role="button"
-                                                 tabindex="0"
-                                                 @dblclick.stop.prevent="onEntryDblClick(g.editEntry)"
-                                                 @keydown.enter.stop.prevent="onEntryDblClick(g.editEntry)">
+                                    <div class="exercise-header-row">
+                                        <div class="exercise-header">Cardio</div>
 
-                                                <span class="entry-exercise">{{ g.entry.exercise }}</span>
-                                                <span class="type-chip" data-type="ausdauer">Cardio</span>
+                                        <button type="button"
+                                                class="section-toggle"
+                                                :aria-expanded="!isSectionCollapsed(c.day, 'cardio')"
+                                                :aria-controls="`sec-${c.day}-cardio`"
+                                                @click.stop="toggleSection(c.day, 'cardio')">
+                                            <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'cardio') }">^</span>
+                                            <span class="sr-only">
+                                                {{ isSectionCollapsed(c.day, 'cardio') ? 'Aufklappen' : 'Zuklappen' }}
+                                            </span>
+                                        </button>
+                                    </div>
 
-                                                <span class="entry-actions">
-                                                    <span v-if="cardioSummary(g.entries).durationSumMin > 0" class="sum-pill">
-                                                        Σ {{ cardioSummary(g.entries).durationSumMin }} <span class="sum-u">Min</span>
+                                    <div :id="`sec-${c.day}-cardio`" v-show="!isSectionCollapsed(c.day, 'cardio')">
+                                        <ul class="journal-entries">
+                                            <li v-for="g in cardioGroupsForDay(c.day)"
+                                                :key="g.key"
+                                                class="journal-entry">
+                                                <div class="entry-head"
+                                                     role="button"
+                                                     tabindex="0"
+                                                     @dblclick.stop.prevent="onEntryDblClick(g.editEntry)"
+                                                     @keydown.enter.stop.prevent="onEntryDblClick(g.editEntry)">
+
+                                                    <span class="entry-exercise">{{ g.entry.exercise }}</span>
+                                                    <span class="type-chip" data-type="ausdauer">Cardio</span>
+
+                                                    <span class="entry-actions">
+                                                        <span v-if="g.summary.durationSumMin > 0" class="sum-pill">
+                                                            Σ {{ g.summary.durationSumMin }} <span class="sum-u">Min</span>
+                                                        </span>
+
+                                                        <span v-if="g.summary.intervalsText" class="sum-pill">
+                                                            {{ g.summary.intervalsText }} <span class="sum-u">Int</span>
+                                                        </span>
+
+                                                        <button v-if="hasDetails(g.entry) || g.entries.length"
+                                                                type="button"
+                                                                class="sum-pill sum-pill--ghost"
+                                                                @click.stop="toggleGroupSets(g.key)">
+                                                            {{ expandedEntryKeys.has(g.key) ? 'Weniger' : 'Details' }}
+                                                        </button>
                                                     </span>
 
-                                                    <span v-if="cardioSummary(g.entries).intervalsText" class="sum-pill">
-                                                        {{ cardioSummary(g.entries).intervalsText }} <span class="sum-u">Int</span>
-                                                    </span>
+                                                </div>
 
-                                                    <button v-if="hasDetails(g.entry) || g.entries.length"
-                                                            type="button"
-                                                            class="sum-pill sum-pill--ghost"
-                                                            @click.stop="toggleGroupSets(g.key)">
-                                                        {{ expandedEntryKeys.has(g.key) ? 'Weniger' : 'Details' }}
-                                                    </button>
-                                                </span>
+                                                <div v-if="expandedEntryKeys.has(g.key) && (hasDetails(g.entry) || g.entries.length)"
+                                                     class="set-details"
+                                                     @click.stop>
 
-                                            </div>
+                                                    <!-- Summary (kommt immer zuerst) -->
+                                                    <div class="metric-grid">
+                                                        <div v-if="g.summary.durationSumMin > 0" class="metric">
+                                                            <div class="metric-label">Σ Dauer</div>
+                                                            <div class="metric-value">
+                                                                {{ g.summary.durationSumMin }} <span class="metric-u">Min</span>
+                                                            </div>
+                                                        </div>
 
-                                            <div v-if="expandedEntryKeys.has(g.key) && (hasDetails(g.entry) || g.entries.length)"
-                                                 class="set-details"
-                                                 @click.stop>
+                                                        <div v-if="g.summary.distanceSumKm != null" class="metric">
+                                                            <div class="metric-label">Σ Distanz</div>
+                                                            <div class="metric-value">
+                                                                {{ g.summary.distanceSumKm }} <span class="metric-u">km</span>
+                                                            </div>
+                                                        </div>
 
-                                                <!-- Summary (kommt immer zuerst) -->
-                                                <div class="metric-grid">
-                                                    <div v-if="cardioSummary(g.entries).durationSumMin > 0" class="metric">
-                                                        <div class="metric-label">Σ Dauer</div>
-                                                        <div class="metric-value">
-                                                            {{ cardioSummary(g.entries).durationSumMin }} <span class="metric-u">Min</span>
+                                                        <div v-if="g.summary.paceTotal" class="metric">
+                                                            <div class="metric-label">Pace</div>
+                                                            <div class="metric-value">
+                                                                {{ g.summary.paceTotal }} <span class="metric-u">/km</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div v-if="g.summary.avgHrAvg != null" class="metric">
+                                                            <div class="metric-label">Ø Puls</div>
+                                                            <div class="metric-value">
+                                                                {{ g.summary.avgHrAvg }}
+                                                            </div>
+                                                        </div>
+
+                                                        <div v-if="g.summary.caloriesSum != null" class="metric">
+                                                            <div class="metric-label">Σ kcal</div>
+                                                            <div class="metric-value">
+                                                                {{ g.summary.caloriesSum }}
+                                                            </div>
+                                                        </div>
+
+                                                        <div v-if="g.summary.intervalsText" class="metric">
+                                                            <div class="metric-label">Intervals</div>
+                                                            <div class="metric-value">
+                                                                {{ g.summary.intervalsText }}
+                                                            </div>
                                                         </div>
                                                     </div>
 
-                                                    <div v-if="cardioSummary(g.entries).distanceSumKm != null" class="metric">
-                                                        <div class="metric-label">Σ Distanz</div>
-                                                        <div class="metric-value">
-                                                            {{ cardioSummary(g.entries).distanceSumKm }} <span class="metric-u">km</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div v-if="cardioSummary(g.entries).paceTotal" class="metric">
-                                                        <div class="metric-label">Pace</div>
-                                                        <div class="metric-value">
-                                                            {{ cardioSummary(g.entries).paceTotal }} <span class="metric-u">/km</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div v-if="cardioSummary(g.entries).avgHrAvg != null" class="metric">
-                                                        <div class="metric-label">Ø Puls</div>
-                                                        <div class="metric-value">
-                                                            {{ cardioSummary(g.entries).avgHrAvg }}
-                                                        </div>
-                                                    </div>
-
-                                                    <div v-if="cardioSummary(g.entries).caloriesSum != null" class="metric">
-                                                        <div class="metric-label">Σ kcal</div>
-                                                        <div class="metric-value">
-                                                            {{ cardioSummary(g.entries).caloriesSum }}
-                                                        </div>
-                                                    </div>
-
-                                                    <div v-if="cardioSummary(g.entries).intervalsText" class="metric">
-                                                        <div class="metric-label">Intervals</div>
-                                                        <div class="metric-value">
-                                                            {{ cardioSummary(g.entries).intervalsText }}
-                                                        </div>
+                                                    <!-- Extras (aus gemergtem Entry) - bleibt da, aber kommt zuletzt -->
+                                                    <div v-if="extrasForEntry(g.entry).length" class="extras-grid extras-grid--scroll">
+                                                        <span v-for="(x, xi) in extrasForEntry(g.entry)"
+                                                              :key="`cxd-${xi}`"
+                                                              class="extra-chip">
+                                                            <span class="extra-k">{{ x.label }}</span>
+                                                            <span class="extra-v">{{ x.value }}</span>
+                                                        </span>
                                                     </div>
                                                 </div>
 
-                                                <!-- Extras (aus gemergtem Entry) - bleibt da, aber kommt zuletzt -->
-                                                <div v-if="extrasForEntry(g.entry).length" class="extras-grid extras-grid--scroll">
-                                                    <span v-for="(x, xi) in extrasForEntry(g.entry)"
-                                                          :key="`cxd-${xi}`"
-                                                          class="extra-chip">
-                                                        <span class="extra-k">{{ x.label }}</span>
-                                                        <span class="extra-v">{{ x.value }}</span>
+                                                <div v-if="g.entry.note" class="note">— {{ g.entry.note }}</div>
+
+                                                <div v-if="abbrItemsForCardio(g.entries, g.entry).length" class="entry-footer" @click.stop>
+                                                    <span v-for="it in abbrItemsForCardio(g.entries, g.entry)"
+                                                          :key="it.key"
+                                                          class="abbr-item">
+                                                        <span class="abbr-k">{{ it.key }}</span>
+                                                        <span class="abbr-sep">=</span>
+                                                        <span class="abbr-v">{{ it.label }}</span>
                                                     </span>
                                                 </div>
-                                            </div>
-
-                                            <div v-if="g.entry.note" class="note">— {{ g.entry.note }}</div>
-
-                                            <div v-if="abbrItemsForCardio(g.entries, g.entry).length" class="entry-footer" @click.stop>
-                                                <span v-for="(it, idx) in abbrItemsForCardio(g.entries, g.entry)"
-                                                      :key="it.key"
-                                                      class="abbr-item">
-                                                    <span class="abbr-k">{{ it.key }}</span>
-                                                    <span class="abbr-sep">=</span>
-                                                    <span class="abbr-v">{{ it.label }}</span>
-                                                    <span v-if="idx < abbrItemsForCardio(g.entries, g.entry).length - 1" class="abbr-dot">·</span>
-                                                </span>
-                                            </div>
-                                        </li>
-                                    </ul>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
 
                                 <!-- Dehnung (zeit-/satzbasiert) -->
                                 <div v-if="stretchForDay(c.day).length" class="exercise-block">
-                                    <div class="exercise-header">Dehnung</div>
-                                    <ul class="journal-entries">
-                                        <li v-for="(e, i) in stretchForDay(c.day)"
-                                            :key="'flex-'+e.date+'-'+i"
-                                            class="journal-entry">
-                                            <div class="entry-head"
-                                                 role="button"
-                                                 tabindex="0"
-                                                 @dblclick.stop.prevent="onEntryDblClick(e)"
-                                                 @keydown.enter.stop.prevent="onEntryDblClick(e)">
+                                    <div class="exercise-header-row">
+                                        <div class="exercise-header">Dehnung</div>
 
-                                                <span class="entry-exercise">{{ stretchTitle(e) }}</span>
-                                                <span class="type-chip" data-type="dehnung">Dehnung</span>
+                                        <button type="button"
+                                                class="section-toggle"
+                                                :aria-expanded="!isSectionCollapsed(c.day, 'stretch')"
+                                                :aria-controls="`sec-${c.day}-stretch`"
+                                                @click.stop="toggleSection(c.day, 'stretch')">
+                                            <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'stretch') }">^</span>
+                                            <span class="sr-only">
+                                                {{ isSectionCollapsed(c.day, 'stretch') ? 'Aufklappen' : 'Zuklappen' }}
+                                            </span>
+                                        </button>
+                                    </div>
 
-                                                <span class="entry-actions">
-                                                    <span v-if="stretchSummaryDuration(e)" class="sum-pill">
-                                                        Ø {{ stretchSummaryDuration(e) }} <span class="sum-u">sek</span>
+                                    <div :id="`sec-${c.day}-stretch`" v-show="!isSectionCollapsed(c.day, 'stretch')">
+                                        <ul class="journal-entries">
+                                            <li v-for="(e, i) in stretchForDay(c.day)"
+                                                :key="'flex-'+e.date+'-'+i"
+                                                class="journal-entry">
+                                                <div class="entry-head"
+                                                     role="button"
+                                                     tabindex="0"
+                                                     @dblclick.stop.prevent="onEntryDblClick(e)"
+                                                     @keydown.enter.stop.prevent="onEntryDblClick(e)">
+
+                                                    <span class="entry-exercise">{{ stretchTitle(e) }}</span>
+                                                    <span class="type-chip" data-type="dehnung">Dehnung</span>
+
+                                                    <span class="entry-actions">
+                                                        <span v-if="stretchSummaryDuration(e)" class="sum-pill">
+                                                            Ø {{ stretchSummaryDuration(e) }} <span class="sum-u">sek</span>
+                                                        </span>
+
+                                                        <button v-if="hasDetails(e)"
+                                                                type="button"
+                                                                class="sum-pill sum-pill--ghost"
+                                                                @click.stop="toggleEntrySets(e, i)">
+                                                            {{ expandedEntryKeys.has(entryKey(e, i)) ? 'Weniger' : 'Details' }}
+                                                        </button>
                                                     </span>
+                                                </div>
 
-                                                    <button v-if="hasDetails(e)"
-                                                            type="button"
-                                                            class="sum-pill sum-pill--ghost"
-                                                            @click.stop="toggleEntrySets(e, i)">
-                                                        {{ expandedEntryKeys.has(entryKey(e, i)) ? 'Weniger' : 'Details' }}
-                                                    </button>
-                                                </span>
-                                            </div>
+                                                <div v-if="expandedEntryKeys.has(entryKey(e, i)) && hasDetails(e)"
+                                                     class="set-details"
+                                                     @click.stop>
 
-                                            <div v-if="expandedEntryKeys.has(entryKey(e, i)) && hasDetails(e)"
-                                                 class="set-details"
-                                                 @click.stop>
+                                                    <div v-if="rowIndexes(e).length" class="set-list">
+                                                        <div v-for="idx in rowIndexes(e)"
+                                                             :key="`s-row-${idx}`"
+                                                             class="set-row">
+                                                            <span class="set-idx">{{ idx }}S</span>
+                                                            <span class="set-reps">{{ stretchRepsText(e, idx) }}</span>
+                                                            <span class="set-right">{{ stretchDurationText(e, idx) }}</span>
+                                                        </div>
+                                                    </div>
 
-                                                <div v-if="rowIndexes(e).length" class="set-list">
-                                                    <div v-for="idx in rowIndexes(e)"
-                                                         :key="`s-row-${idx}`"
-                                                         class="set-row">
-                                                        <span class="set-idx">{{ idx }}S</span>
-                                                        <span class="set-reps">{{ stretchRepsText(e, idx) }}</span>
-                                                        <span class="set-right">{{ stretchDurationText(e, idx) }}</span>
+                                                    <div v-if="extrasForEntry(e).length" class="extras-grid">
+                                                        <span v-for="(x, xi) in extrasForEntry(e)"
+                                                              :key="`sxd-${xi}`"
+                                                              class="extra-chip">
+                                                            <span class="extra-k">{{ x.label }}</span>
+                                                            <span class="extra-v">{{ x.value }}</span>
+                                                        </span>
                                                     </div>
                                                 </div>
 
-                                                <div v-if="extrasForEntry(e).length" class="extras-grid">
-                                                    <span v-for="(x, xi) in extrasForEntry(e)"
-                                                          :key="`sxd-${xi}`"
-                                                          class="extra-chip">
-                                                        <span class="extra-k">{{ x.label }}</span>
-                                                        <span class="extra-v">{{ x.value }}</span>
+                                                <div v-if="e.note" class="note">— {{ e.note }}</div>
+
+                                                <div v-if="abbrItemsForEntry(e).length" class="entry-footer" @click.stop>
+                                                    <span v-for="it in abbrItemsForEntry(e)"
+                                                          :key="it.key"
+                                                          class="abbr-item">
+                                                        <span class="abbr-k">{{ it.key }}</span>
+                                                        <span class="abbr-sep">=</span>
+                                                        <span class="abbr-v">{{ it.label }}</span>
                                                     </span>
                                                 </div>
-                                            </div>
-
-                                            <div v-if="e.note" class="note">— {{ e.note }}</div>
-
-                                            <div v-if="abbrItemsForEntry(e).length" class="entry-footer" @click.stop>
-                                                <span v-for="(it, idx) in abbrItemsForEntry(e)"
-                                                      :key="it.key"
-                                                      class="abbr-item">
-                                                    <span class="abbr-k">{{ it.key }}</span>
-                                                    <span class="abbr-sep">=</span>
-                                                    <span class="abbr-v">{{ it.label }}</span>
-                                                    <span v-if="idx < abbrItemsForEntry(e).length - 1" class="abbr-dot">·</span>
-                                                </span>
-                                            </div>
-                                        </li>
-                                    </ul>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -527,6 +574,21 @@
     const entryPickRows = ref<ActionSelectRow[]>([])
     const entryPickDay = ref<string | null>(null)
 
+    const collapsedSections = ref<Set<string>>(new Set())
+
+    const sectionKey = (day: string, section: 'strength' | 'cardio' | 'stretch') =>
+        `${day}||${section}`
+
+    const isSectionCollapsed = (day: string, section: 'strength' | 'cardio' | 'stretch') =>
+        collapsedSections.value.has(sectionKey(day, section))
+
+    const toggleSection = (day: string, section: 'strength' | 'cardio' | 'stretch') => {
+        const next = new Set(collapsedSections.value)
+        const k = sectionKey(day, section)
+        next.has(k) ? next.delete(k) : next.add(k)
+        collapsedSections.value = next
+    }
+
     // lookup: rowId -> alle echten entries + editEntry (latest)
     const entryPickMap = ref(new Map<string, { entries: WorkoutLike[]; editEntry: WorkoutLike; label: string; value: string }>())
 
@@ -635,11 +697,14 @@
         expandedDays.value = new Set([day])
         expandedEntryKeys.value = new Set()
 
+        collapsedSections.value = new Set()
+
         await nextTick()
     }
 
     const clearSelectedDay = () => {
         selectedDay.value = null
+        collapsedSections.value = new Set()
         expandedDays.value = new Set()
         expandedEntryKeys.value = new Set()
         visibleDays.value = 7
@@ -1172,6 +1237,7 @@
         entry: WorkoutLike          // gemergter Anzeige-Entry (Ø Werte)
         editEntry: WorkoutLike      // letzter echter Entry fürs Edit
         entries: WorkoutLike[]      // alle Sessions (für Details Rows)
+        summary: ReturnType<typeof cardioSummary>
     }
 
     const nAvg = (arr: number[]) => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : null
@@ -1260,6 +1326,7 @@
                 entry: mergeCardioEntries(day, sorted),
                 editEntry: last,
                 entries: sorted,
+                summary: cardioSummary(sorted),
             })
         }
 
@@ -1390,6 +1457,7 @@
         key: string
         entry: WorkoutLike          // gemergter "Anzeige-Entry"
         editEntry: WorkoutLike      // welches echte Entry beim Doppelklick editiert wird (latest)
+        stats: ReturnType<typeof setStats>
     }
 
     const toSetDetails = (e: WorkoutLike) => {
@@ -1453,11 +1521,14 @@
             const sorted = [...arr].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
             const last = sorted[sorted.length - 1]
 
+            const merged = mergeStrengthEntries(day, sorted)
+
             const uiKey = `${day}|${k}` // stabil + unique pro Tag
             groups.push({
                 key: uiKey,
-                entry: mergeStrengthEntries(day, sorted),
+                entry: merged,
                 editEntry: last,
+                stats: setStats(merged),
             })
         }
 
@@ -1498,6 +1569,7 @@
                 expandedEntryKeys.value = new Set()
                 viewMode.value = 'list'
                 selectedDay.value = null
+                collapsedSections.value = new Set()
 
                 nextTick(() => setupProgressIO())
             } else {
@@ -1660,6 +1732,32 @@
                 background: rgba(148, 163, 184, 0.65);
                 background-clip: content-box;
             }
+
+    .section-caret {
+        display: inline-block;
+        font-weight: 950;
+        line-height: 1;
+        transform: rotate(0deg);
+        transition: transform 160ms ease;
+        translate: 0 1px; /* optisch nicer */
+    }
+
+        .section-caret.open {
+            transform: rotate(180deg);
+        }
+
+    /* screen-reader only */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
 
     /* Darkmode polish */
     html.dark-mode .modal--progress {
@@ -1882,8 +1980,6 @@
             box-shadow: 0 24px 52px rgba(0, 0, 0, 0.74), 0 0 20px rgba(129, 140, 248, 0.10);
         }
 
-    /* Kopf: Übung | Typ | Summary (alles in einer Linie) */
-
     .entry-exercise {
         font-weight: 850;
         letter-spacing: -0.01em;
@@ -1941,7 +2037,6 @@
         white-space: nowrap;
     }
 
-    /* SetDetails darf NICHT one-line forced sein */
     .sum-pill--sets {
         white-space: normal;
     }
@@ -1984,8 +2079,6 @@
         font-weight: 800;
         margin: .25rem 0 .8rem;
     }
-
-    /* Meta-Chips: kompakt + gut lesbar */
 
     .chip {
         font-size: .85rem;
@@ -2035,11 +2128,9 @@
 
     @media (max-width: 520px) {
         .entry-actions {
-            flex-wrap: wrap; /* nur mobile darf umbrechen */
+            flex-wrap: wrap;
         }
     }
-
-    /* ===== Empty State (soll wie eine dezente Notice wirken, nicht wie eine "Card") ===== */
 
     .empty-state {
         position: relative;
@@ -2050,7 +2141,6 @@
         padding: 1rem 1.05rem;
         margin: .25rem 0 .6rem;
         border-radius: 18px;
-        /* cleaner: weniger “farbiger Nebel”, mehr glass */
         background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 92%, transparent), color-mix(in srgb, var(--bg-card) 80%, #020617 20%));
         border: 1px solid rgba(148, 163, 184, 0.28);
         box-shadow: 0 18px 40px rgba(15, 23, 42, 0.30);
@@ -2062,14 +2152,12 @@
             content: '';
             position: absolute;
             inset: 0;
-            /* ultra subtle highlight */
             background: radial-gradient(circle at 18% 28%, rgba(129, 140, 248, 0.10), transparent 62%);
             opacity: .75;
             pointer-events: none;
             z-index: 0;
         }
 
-        /* feiner inner-stroke -> wirkt sofort hochwertiger */
         .empty-state::after {
             content: '';
             position: absolute;
@@ -2133,7 +2221,6 @@
         color: var(--text-secondary);
     }
 
-    /* Mobile: Button unter den Text, aber rechts */
     @media (max-width: 520px) {
         .empty-state {
             grid-template-columns: 1fr;
@@ -2153,7 +2240,7 @@
         justify-self: end;
         display: flex;
         align-items: center;
-        padding-left: .25rem; /* minimal Luft zum Text */
+        padding-left: .25rem;
     }
 
     .empty-state {
@@ -2161,9 +2248,9 @@
     }
 
     .empty-cta-btn {
-        min-width: 9.5rem; /* <- Breite passt, wirkt wie echte Action */
-        height: 2.25rem; /* <- identisch zur popup-btn Höhe */
-        padding: 0 1rem; /* <- nicht zu fett */
+        min-width: 9.5rem;
+        height: 2.25rem;
+        padding: 0 1rem;
     }
 
     .empty-cta {
@@ -2178,27 +2265,69 @@
         padding-left: 1rem;
     }
 
-
-    /* REPLACE */
     .chips {
         display: flex;
         flex-wrap: wrap;
         gap: .4rem;
         margin-top: .65rem;
-        padding-left: 1rem; /* align mit entry-head */
+        padding-left: 1rem;
     }
 
-    /* REPLACE */
     .note {
         margin-top: .65rem;
         padding-top: .55rem;
-        padding-left: 1rem; /* align mit entry-head */
+        padding-left: 1rem;
         border-top: 1px dashed rgba(148, 163, 184, 0.22);
         color: var(--text-secondary);
         font-size: .92rem;
     }
 
-    /* REPLACE */
+    .exercise-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start; /* statt space-between */
+        gap: .75rem;
+        margin: .25rem 0 .8rem; /* spacing bleibt wie vorher */
+    }
+
+    .exercise-header-left {
+        display: inline-flex;
+        align-items: center;
+        gap: .55rem; /* Abstand Title <-> Toggle */
+        min-width: 0;
+    }
+
+    .exercise-header {
+        font-weight: 800;
+        margin: 0;
+        font-family: inherit; /* alle Titel gleiche Schriftart */
+        font-size: 1.05rem; /* optional: einheitlicher Look */
+        letter-spacing: -0.01em; /* passt zu deinem UI-Style */
+    }
+
+    .exercise-block + .exercise-block {
+        margin-top: 1rem;
+    }
+    .section-toggle {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        padding: .2rem .35rem;
+        border-radius: 10px;
+        cursor: pointer;
+        color: inherit;
+        line-height: 1;
+    }
+
+        .section-toggle:hover {
+            filter: none;
+        }
+
+        .section-toggle:active {
+            filter: none;
+        }
+
     .set-details {
         margin-top: .6rem;
         margin-left: 11px;
@@ -2212,8 +2341,6 @@
         gap: .45rem;
     }
 
-
-    /* REPLACE: set-idx */
     .set-idx {
         font-weight: 900;
         color: var(--text-secondary);
@@ -2230,7 +2357,6 @@
         justify-self: end;
     }
 
-    /* Optional: dark-mode polish */
     html.dark-mode .set-details {
         border-color: rgba(148, 163, 184, 0.20);
         background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
@@ -2526,6 +2652,4 @@
         box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22), 0 0 18px rgba(129, 140, 248, 0.10);
         filter: brightness(1.03);
     }
-
-  
 </style>
