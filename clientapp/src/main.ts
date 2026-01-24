@@ -7,6 +7,7 @@ import router from './router'
 import { createPinia } from 'pinia'
 import { useAuthStore } from '@/store/authStore'
 import { initTheme } from '@/composables/useTheme'
+import { initAuthObserver } from '@/services/authObserver'
 
 // ?? ganz fr�h anwenden (verhindert �Light-Flash� & sorgt f�rs Persistieren)
 initTheme();
@@ -36,5 +37,6 @@ ensureDailyAutoActivity();
     })
 
     app.use(router)
+    initAuthObserver(pinia, router)
     app.mount('#app')
 })()

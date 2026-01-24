@@ -1,8 +1,8 @@
 // src/store/authStore.ts
 import { defineStore } from "pinia";
 import { login, register, logout, changeEmail, changePassword, deleteAccount as svcDeleteAccount } from "@/services/auth";
-import { getToken } from "@/lib/api";
 import { LS_AUTH_EMAIL } from "@/constants/storageKeys";
+import { getToken, setToken } from "@/lib/api";
 
 type AuthResponseDto = { token: string; email: string };
 
@@ -29,6 +29,7 @@ export const useAuthStore = defineStore("auth", {
         async signIn(email: string, password: string) {
             const data: AuthResponseDto = await login(email, password);
             this.user = { email: data.email };
+            setToken(data.token);
             localStorage.setItem(LS_AUTH_EMAIL, data.email);
         },
 
@@ -36,6 +37,7 @@ export const useAuthStore = defineStore("auth", {
         async signUp(email: string, password: string, confirmPassword: string) {
             const data: AuthResponseDto = await register(email, password, confirmPassword);
             this.user = { email: data.email };
+            setToken(data.token);
             localStorage.setItem(LS_AUTH_EMAIL, data.email);
         },
 
@@ -43,12 +45,14 @@ export const useAuthStore = defineStore("auth", {
             await logout();
             this.user = null;
             localStorage.removeItem(LS_AUTH_EMAIL);
+            setToken(null);
         },
 
         async changeEmail(newEmail: string, password: string) {
             const data: AuthResponseDto = await changeEmail(newEmail, password);
             this.user = { email: data.email };
             localStorage.setItem(LS_AUTH_EMAIL, data.email);
+            setToken(data.token);
         },
 
         async changePassword(current: string, next: string) {
@@ -57,11 +61,11 @@ export const useAuthStore = defineStore("auth", {
             return data;
         },
 
-        /** ??? Konto l�schen + lokalen State s�ubern */
         async deleteAccount(password: string) {
             await svcDeleteAccount(password);
             this.user = null;
             localStorage.removeItem(LS_AUTH_EMAIL);
+            setToken(null);
         },
     },
 });

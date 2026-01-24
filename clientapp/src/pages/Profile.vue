@@ -1,3 +1,5 @@
+<!--pages/Profile.vue-->
+
 <template>
     <section class="profile">
         <!-- Header -->
@@ -1767,6 +1769,7 @@
         box-shadow: 0 4px 12px rgba(0,0,0,.15);
         overflow: hidden; /* Bild bleibt im Kreis */
     }
+
     .achievement-icon-img {
         width: 40px;
         height: 40px;
@@ -1775,6 +1778,7 @@
         border-radius: 10px;
         box-shadow: 0 3px 8px rgba(15, 23, 42, 0.55);
     }
+
     .title {
         font-size: 1.7rem;
         margin: 0 0 .2rem;
@@ -1794,7 +1798,7 @@
         flex-wrap: wrap;
         gap: .5rem;
     }
-      
+
     /* Buttons */
     .btn {
         border: 0;
@@ -2822,9 +2826,9 @@
     }
 
 
-        .name-edit-btn i {
-            font-size: .9rem;
-        }
+    .name-edit-btn i {
+        font-size: .9rem;
+    }
 
     /* auf sehr schmalen Screens etwas kompakter */
     @media (max-width: 360px) {
@@ -2928,7 +2932,6 @@
             transform: translateY(0) scale(1);
             opacity: 1;
         }
-        
     }
 
     /* Kleines Responsive-Finetuning */
@@ -2961,5 +2964,4 @@
         --hm-shadow-dark: 0 22px 55px rgba(0, 0, 0, 0.70);
         --hm-hover-dark: rgba(148, 163, 184, 0.16);
     }
-
 </style>

@@ -247,9 +247,7 @@
             </form>
         </div>
 
-
-
-        <div v-if="plans.length" class="workout-list">
+        <div v-if="auth.user && plans.length" class="workout-list">
             <h3 class="section-title">Deine Trainingspläne</h3>
 
             <UiSearch v-model="planSearch"
@@ -639,13 +637,15 @@
     import TimerComponent from '@/components/ui/training/TimerComponent.vue'
     import StopwatchComponent from '@/components/ui/training/StopwatchComponent.vue'
     import PlanMenu from '@/components/ui/menu/PlanMenu.vue'
-    import UiSearch from '@/components/ui/kits/UiSearch.vue';
-    import type { TimerInstance, StopwatchInstance } from '@/types/training'
-
+    import UiSearch from '@/components/ui/kits/UiSearch.vue'
+    import { useTrainingPlansStore } from "@/store/trainingPlansStore";
+    import { useAuthStore } from '@/store/authStore';
+    import type { TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlans";
+    import type { TimerInstance, StopwatchInstance } from '@/types/training';
     import {
+        LS_AUTH_TOKEN,
         LS_TRAINING_FOCUS_ID,
         LS_TRAINING_FOCUS_TYPE,
-        LS_TRAINING_DATA,
         LS_TRAINING_OPEN_PLAN_ID,
         LS_STICKY_TIMER_ENABLED,
         LS_STICKY_STOPWATCH_ENABLED,
@@ -661,11 +661,12 @@
         type?: 'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung';
     }
 
-    interface TrainingPlan {
+    type ViewPlan = {
         id: string;
         name: string;
+        isFavorite: boolean;
         exercises: PlanExercise[];
-    }
+    };
 
     type ToastType =
         | 'toast-default'
@@ -740,9 +741,76 @@
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer';
     type CustomExerciseType = Exclude<ExerciseType, 'ausdauer'>;
 
-    // Refs (bleiben größtenteils unverändert)
-    const plans = ref<TrainingPlan[]>([]);
-    const favoritePlans = ref<string[]>([]);
+    let onBeforeUnload: (() => void) | null = null
+    let onVisChange: (() => void) | null = null
+
+    const trainingPlansStore = useTrainingPlansStore();
+
+    const auth = useAuthStore()
+
+    const hardResetTrainingUi = () => {
+        // Pinia Store sofort leeren -> UI verschwindet direkt
+        try { trainingPlansStore.$reset() } catch { /* falls store kein $reset hat, siehe unten */ }
+
+        // lokale UI-States killen
+        closePlanMenu()
+        selectedPlan.value = null
+        selectedPlanExercises.value = []
+        planSearch.value = ''
+        editingPlanId.value = null
+        planName.value = ''
+        newExercise.value = ''
+        customPlanExercise.value = ''
+        newReps.value = null
+        newSets.value = null
+        newDuration.value = null
+        newDistance.value = null
+        selectedGoal.value = ''
+        rowHeights.value = []
+        showCustomExercises.value = false
+        customExercises.value = []
+    }
+
+    const LS_FAV_ORDER = "LS_TRAINING_FAV_ORDER_IDS";
+
+    const readFavOrder = (): string[] => {
+        try {
+            const raw = localStorage.getItem(LS_FAV_ORDER);
+            const arr = raw ? JSON.parse(raw) : [];
+            return Array.isArray(arr) ? arr.filter(x => typeof x === "string") : [];
+        } catch { return []; }
+    };
+
+    const writeFavOrder = (ids: string[]) => {
+        localStorage.setItem(LS_FAV_ORDER, JSON.stringify(ids));
+    };
+
+    const toPlanExercise = (ex: any): PlanExercise => ({
+        exercise: ex.name,
+        sets: ex.sets ?? 0,
+        reps: ex.reps ?? 0,
+        type: (ex.category === 3 ? "ausdauer" : ex.category === 2 ? "dehnung" : ex.category === 1 ? "calisthenics" : "kraft"),
+    });
+
+    const flattenDto = (p: TrainingPlanDto): ViewPlan => {
+        const flat: PlanExercise[] = [];
+        for (const d of (p.days ?? [])) {
+            for (const ex of (d.exercises ?? [])) flat.push(toPlanExercise(ex));
+        }
+        return { id: p.id, name: p.name, isFavorite: !!p.isFavorite, exercises: flat };
+    };
+
+    const plans = computed<ViewPlan[]>(() => trainingPlansStore.items.map(flattenDto));
+
+    const favoritePlans = computed<string[]>(() => {
+        const favIds = new Set(trainingPlansStore.items.filter(p => p.isFavorite).map(p => p.id));
+        const order = readFavOrder().filter(id => favIds.has(id));
+        const missing = Array.from(favIds).filter(id => !order.includes(id));
+        const next = [...order, ...missing];
+        writeFavOrder(next);
+        return next;
+    });
+
     const planName = ref('');
     const newExercise = ref('');
     const customPlanExercise = ref('');
@@ -1042,7 +1110,6 @@
         stickyTimerEnabled.value = readBoolLS(LS_STICKY_TIMER_ENABLED, true)
         stickyStopwatchEnabled.value = readBoolLS(LS_STICKY_STOPWATCH_ENABLED, true)
         nextTick(() => checkScroll())
-        stickyStopwatchEnabled.value = readBoolLS(LS_STICKY_STOPWATCH_ENABLED, true)
     }
 
     let mq: MediaQueryList | null = null
@@ -1074,14 +1141,13 @@
         }
     })
 
-    const favoritePlanItems = computed<TrainingPlan[]>({
+    const favoritePlanItems = computed<ViewPlan[]>({
         get() {
             const map = new Map(plans.value.map(p => [p.id, p]));
-            return favoritePlans.value.map(id => map.get(id)).filter(Boolean) as TrainingPlan[];
+            return favoritePlans.value.map(id => map.get(id)).filter(Boolean) as ViewPlan[];
         },
         set(newArr) {
-            favoritePlans.value = newArr.map(p => p.id);
-            saveToStorage();
+            writeFavOrder(newArr.map(p => p.id));
         }
     });
 
@@ -1092,16 +1158,12 @@
         return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     };
 
-    const otherPlanItems = computed<TrainingPlan[]>({
+    const otherPlanItems = computed<ViewPlan[]>({
         get() {
             const fav = new Set(favoritePlans.value);
             return plans.value.filter(p => !fav.has(p.id));
         },
-        set(newArr) {
-            const fav = new Set(favoritePlans.value);
-            const favs = plans.value.filter(p => fav.has(p.id));
-            plans.value = [...favs, ...newArr];
-            saveToStorage();
+        set(_) {
         }
     });
 
@@ -1332,58 +1394,150 @@
         });
     });
 
-    const loadFromStorage = () => {
+    const loadFromAccount = async (): Promise<true | false | 'error'> => {
         try {
-            const data = localStorage.getItem(LS_TRAINING_DATA);
+            const res = await apiFetch('/api/me/training-data', { method: 'GET' })
 
-            if (data) {
-                const parsed = JSON.parse(data) ?? {};
+            if (res.status === 204) return false
 
-                // Pläne & Favoriten wie gehabt
-                plans.value = Array.isArray(parsed.plans) ? parsed.plans : [];
-                favoritePlans.value = Array.isArray(parsed.favoritePlans) ? parsed.favoritePlans : [];
-
-                // Custom-Übungen: robust validieren & auf 'kraft' fallen, wenn Typ fehlt/ungültig
-                customExercises.value = Array.isArray(parsed.customExercises)
-                    ? parsed.customExercises
-                        .filter(
-                            (ex: any) =>
-                                ex &&
-                                typeof ex === 'object' &&
-                                typeof ex.name === 'string' &&
-                                typeof ex.muscle === 'string'
-                        )
-                        .map((ex: any) => {
-                            const t0 = normalizeTypeInput(ex.type) ?? 'kraft';
-                            const t: ExerciseType = (t0 === 'ausdauer') ? 'kraft' : t0; // Cardio bei Custom-Übungen verhindern
-                            return { name: ex.name, muscle: ex.muscle, type: t };
-                        })
-
-                    : [];
+            if (!res.ok) {
+                // Debug: Status + Body sehen (z.B. "Unauthorized", "Token expired", HTML error, etc.)
+                let body = ''
+                try { body = await res.text() } catch { }
+                console.error('GET /api/me/training-data failed', {
+                    status: res.status,
+                    statusText: res.statusText,
+                    body: body?.slice(0, 800),
+                    hasToken: !!getAuthToken(),
+                })
+                throw new Error(`GET training-data failed: ${res.status}`)
             }
-        } catch (e) {
-            console.error('Fehler beim Laden:', e);
-            plans.value = [];
-            favoritePlans.value = [];
-            customExercises.value = [];
-            addToast('Fehler beim Laden der Daten', 'delete');
-        }
-    };
 
+            const parsed = (await res.json()) ?? {}
+
+            plans.value = Array.isArray(parsed.plans) ? parsed.plans : []
+            favoritePlans.value = Array.isArray(parsed.favoritePlans) ? parsed.favoritePlans : []
+
+            customExercises.value = Array.isArray(parsed.customExercises)
+                ? parsed.customExercises
+                    .filter((ex: any) =>
+                        ex && typeof ex === 'object' &&
+                        typeof ex.name === 'string' &&
+                        typeof ex.muscle === 'string'
+                    )
+                    .map((ex: any) => {
+                        const t0 = normalizeTypeInput(ex.type) ?? 'kraft'
+                        const t: ExerciseType = (t0 === 'ausdauer') ? 'kraft' : t0
+                        return { name: ex.name, muscle: ex.muscle, type: t }
+                    })
+                : []
+
+            return true
+        } catch (e) {
+            console.error('Fehler beim Laden (Account):', e)
+            return 'error'
+        }
+    }
+
+    let saveAccountTimer: number | null = null
+
+    const getAuthToken = () => localStorage.getItem(LS_AUTH_TOKEN) || ''
+
+    const apiFetch = async (url: string, init?: RequestInit) => {
+        const token = getAuthToken()
+        const res = await fetch(url, {
+            ...(init || {}),
+            headers: {
+                'Content-Type': 'application/json',
+                ...(init?.headers || {}),
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+        })
+        return res
+    }
+
+    const queueSaveToAccount = () => {
+        // debounce damit du nicht bei jedem kleinen Watch 100 Requests ballerst
+        if (saveAccountTimer) window.clearTimeout(saveAccountTimer)
+        saveAccountTimer = window.setTimeout(async () => {
+            try {
+                const payload = {
+                    plans: plans.value,
+                    favoritePlans: favoritePlans.value,
+                    customExercises: customExercises.value,
+                }
+
+                const res = await apiFetch('/api/me/training-data', {
+                    method: 'PUT',
+                    body: JSON.stringify(payload),
+                })
+
+                if (!res.ok) throw new Error(`PUT training-data failed: ${res.status}`)
+            } catch (e) {
+                console.error('Fehler beim Speichern (Account):', e)
+                // kein Toast-Spam, nur wenn du willst:
+                // addToast('Account-Sync fehlgeschlagen (offline?)', 'delete')
+            }
+        }, 350)
+    }
 
     const saveToStorage = () => {
+        queueSaveToAccount()
+    }
+
+    const saveToAccountNow = async () => {
         try {
-            const data = {
+            if (saveAccountTimer) window.clearTimeout(saveAccountTimer)
+            saveAccountTimer = null
+
+            const payload = {
                 plans: plans.value,
                 favoritePlans: favoritePlans.value,
-                customExercises: customExercises.value
-            };
-            localStorage.setItem(LS_TRAINING_DATA, JSON.stringify(data));
+                customExercises: customExercises.value,
+            }
+
+            const res = await apiFetch('/api/me/training-data', {
+                method: 'PUT',
+                body: JSON.stringify(payload),
+            })
+
+            if (!res.ok) throw new Error(`PUT training-data failed: ${res.status}`)
+            return true
         } catch (e) {
-            console.error('Fehler beim Speichern:', e);
-            addToast('Fehler beim Speichern der Daten', 'delete');
+            console.error('Fehler beim Hard-Speichern (Account):', e)
+            return false
         }
-    };
+    }
+
+    // Flush beim Tab schließen / Reload (best-effort)
+    const flushPendingAccountSave = () => {
+        if (!saveAccountTimer) return
+        if (saveAccountTimer) window.clearTimeout(saveAccountTimer)
+        saveAccountTimer = null
+
+        try {
+            const token = getAuthToken()
+            if (!token) return
+
+            const payload = JSON.stringify({
+                plans: plans.value,
+                favoritePlans: favoritePlans.value,
+                customExercises: customExercises.value,
+            })
+
+            // sendBeacon ist perfekt für unload
+            const ok = navigator.sendBeacon?.(
+                '/api/me/training-data',
+                new Blob([payload], { type: 'application/json' })
+            )
+
+            // Falls sendBeacon fehlt/false -> egal, aber wir haben’s versucht
+            void ok
+        } catch (e) {
+            // no spam
+        }
+    }
+
 
     const toggleCustomExercises = () => {
         showCustomExercises.value = !showCustomExercises.value;
@@ -1516,88 +1670,93 @@
         validationErrorMessages.value = [];
     };
 
-    const toggleFavoritePlan = (planId: string) => {
-        const idx = favoritePlans.value.indexOf(planId);
-        if (idx !== -1) {
-            favoritePlans.value.splice(idx, 1);
-            addToast('Plan aus Favoriten entfernt', 'delete');
-        } else {
-            // Neueste Favoriten zuerst
-            favoritePlans.value = [planId, ...favoritePlans.value.filter(id => id !== planId)];
-            addToast('Plan zu Favoriten hinzugefügt', 'add');
-        }
-        saveToStorage();
+    const toggleFavoritePlan = async (planId: string) => {
+        const p = trainingPlansStore.items.find(x => x.id === planId);
+        if (!p) return;
+
+        const nextFav = !p.isFavorite;
+        await trainingPlansStore.toggleFavorite(planId);
+
+        const order = readFavOrder().filter(id => id !== planId);
+        if (nextFav) order.unshift(planId);
+        writeFavOrder(order);
+
+        addToast(nextFav ? "Plan zu Favoriten hinzugefügt" : "Plan aus Favoriten entfernt", nextFav ? "add" : "delete");
     };
 
-    const createOrUpdatePlan = () => {
-        const validatedPlanName = validatePlanName(planName.value);
+    const mapTypeToCategory = (t?: PlanExercise["type"]) => {
+        if (t === "calisthenics") return 1;
+        if (t === "dehnung") return 2;
+        if (t === "ausdauer") return 3;
+        return 0;
+    };
 
-        if (editingPlanId.value && selectedPlanExercises.value.length === 0) {
-            plans.value = plans.value.filter(p => p.id !== editingPlanId.value);
-            favoritePlans.value = favoritePlans.value.filter(id => id !== editingPlanId.value);
-            if (selectedPlan.value?.id === editingPlanId.value) {
-                selectedPlan.value = null;
-            }
-            saveToStorage();
-            addToast('Trainingsplan gelöscht, da keine Übungen vorhanden', 'delete');
-            planName.value = '';
-            newExercise.value = '';
-            customPlanExercise.value = '';
-            newReps.value = null;
-            newSets.value = null;
-            selectedGoal.value = '';
-            selectedPlanExercises.value = [];
-            rowHeights.value = [];
-            editingPlanId.value = null;
-            return;
-        }
+    const toUpsertPayload = (): TrainingPlanUpsert => ({
+        name: validatePlanName(planName.value) as string,
+        isFavorite: false,
+        days: [{
+            name: "Tag 1",
+            sortOrder: 0,
+            exercises: selectedPlanExercises.value.map((ex, i) => ({
+                name: ex.exercise,
+                category: mapTypeToCategory(ex.type),
+                sortOrder: i,
+                sets: ex.type === "ausdauer" ? null : ex.sets,
+                reps: ex.type === "ausdauer" ? null : ex.reps,
+                durationMin: ex.type === "ausdauer" ? ex.sets : null,
+                distanceKm: ex.type === "ausdauer" ? (ex.reps ? ex.reps : null) : null,
+            })),
+        }],
+    });
+
+    const resetBuilder = () => {
+        planName.value = "";
+        newExercise.value = "";
+        customPlanExercise.value = "";
+        newReps.value = null;
+        newSets.value = null;
+        selectedGoal.value = "";
+        selectedPlanExercises.value = [];
+        rowHeights.value = [];
+        editingPlanId.value = null;
+    };
+
+    const createOrUpdatePlan = async () => {
+        const validatedPlanName = validatePlanName(planName.value);
 
         if (validatedPlanName === false || (!editingPlanId.value && !selectedPlanExercises.value.length)) {
             const errors: string[] = [];
             if (validatedPlanName === false) {
                 errors.push(
                     planName.value.trim().length < 3
-                        ? 'Planname muss mindestens 3 Zeichen lang sein'
-                        : 'Planname darf maximal 20 Zeichen lang sein'
+                        ? "Planname muss mindestens 3 Zeichen lang sein"
+                        : "Planname darf maximal 20 Zeichen lang sein"
                 );
             }
-            if (!selectedPlanExercises.value.length) {
-                errors.push('Mindestens eine Übung ist erforderlich');
-            }
+            if (!selectedPlanExercises.value.length) errors.push("Mindestens eine Übung ist erforderlich");
             openValidationPopup(errors);
             return;
         }
 
-        const plan: TrainingPlan = {
-            id: editingPlanId.value || Date.now().toString(),
-            name: validatedPlanName,
-            exercises: [...selectedPlanExercises.value]
-        };
-        if (editingPlanId.value) {
-            const index = plans.value.findIndex(p => p.id === editingPlanId.value);
-            if (index !== -1) {
-                plans.value[index] = plan;
-                if (selectedPlan.value?.id === editingPlanId.value) {
-                    selectedPlan.value = { ...plan };
-                }
-                addToast('Plan gespeichert', 'save');
-                editingPlanId.value = null;
-            }
-        } else {
-            plans.value.push(plan);
-            addToast('Plan erstellt', 'add');
-        }
+        try {
+            const payload = toUpsertPayload();
 
-        planName.value = '';
-        newExercise.value = '';
-        customPlanExercise.value = '';
-        newReps.value = null;
-        newSets.value = null;
-        selectedGoal.value = '';
-        selectedPlanExercises.value = [];
-        rowHeights.value = [];
-        saveToStorage();
+            if (editingPlanId.value) {
+                const updated = await trainingPlansStore.update(editingPlanId.value, payload);
+                selectedPlan.value = flattenDto(updated);
+                addToast("Plan gespeichert", "save");
+            } else {
+                const created = await trainingPlansStore.create(payload);
+                selectedPlan.value = flattenDto(created);
+                addToast("Plan erstellt", "add");
+            }
+
+            resetBuilder();
+        } catch (e: any) {
+            openValidationPopup([e?.message ?? "Speichern fehlgeschlagen"]);
+        }
     };
+
 
     const addExerciseToPlan = () => {
         const errors = collectValidationErrors()
@@ -1672,40 +1831,50 @@
     };
 
     const editPlan = async (planId: string) => {
-        const plan = plans.value.find(p => p.id === planId);
-        if (plan) {
-            planName.value = plan.name;
-            selectedPlanExercises.value = [...plan.exercises];
-            editingPlanId.value = planId;
-            rowHeights.value = Array(plan.exercises.length).fill(40);
-            selectedPlan.value = { ...plan };
-            addToast('Plan wird bearbeitet', 'save');
+        try {
+            await trainingPlansStore.loadOne(planId);
+            const dto = trainingPlansStore.selected;
+            if (!dto) { addToast("Plan nicht gefunden", "delete"); return; }
 
-            await nextTick();   // DOM aktualisiert
-            scrollToBuilder();  // sanft nach oben + Highlight
-        } else {
-            addToast('Plan nicht gefunden', 'delete');
+            const view = flattenDto(dto);
+            planName.value = view.name;
+            selectedPlanExercises.value = [...view.exercises];
+            editingPlanId.value = planId;
+            rowHeights.value = Array(view.exercises.length).fill(40);
+            selectedPlan.value = view;
+
+            addToast("Plan wird bearbeitet", "save");
+            await nextTick();
+            scrollToBuilder();
+        } catch {
+            addToast("Plan konnte nicht geladen werden", "delete");
         }
     };
 
-    const deletePlan = (planId: string) => {
-        plans.value = plans.value.filter(p => p.id !== planId);
-        favoritePlans.value = favoritePlans.value.filter(id => id !== planId);
-        if (selectedPlan.value?.id === planId) selectedPlan.value = null;
-        saveToStorage();
-        addToast('Trainingsplan gelöscht', 'delete');
+    const deletePlan = async (planId: string) => {
+        try {
+            await trainingPlansStore.remove(planId);
+            writeFavOrder(readFavOrder().filter(id => id !== planId));
+            if (selectedPlan.value?.id === planId) selectedPlan.value = null;
+            addToast("Trainingsplan gelöscht", "delete");
+        } catch (e: any) {
+            addToast(e?.message ?? "Löschen fehlgeschlagen", "delete");
+        }
     };
 
-    const loadPlan = (planId: string) => {
-        closePlanMenu(); // NEU
-        const plan = plans.value.find(p => p.id === planId);
-        if (plan) {
-            selectedPlan.value = { ...plan };
-            rowHeights.value = Array(plan.exercises.length).fill(40);
+    const loadPlan = async (planId: string) => {
+        closePlanMenu();
+        try {
+            await trainingPlansStore.loadOne(planId);
+            const dto = trainingPlansStore.selected;
+            if (!dto) { addToast("Plan nicht gefunden", "delete"); return; }
+
+            selectedPlan.value = flattenDto(dto);
+            rowHeights.value = Array(selectedPlan.value.exercises.length).fill(40);
             columnWidths.value = [50, 25, 25];
-            addToast('Plan geladen', 'load');
-        } else {
-            addToast('Plan nicht gefunden', 'delete');
+            addToast("Plan geladen", "load");
+        } catch {
+            addToast("Plan konnte nicht geladen werden", "delete");
         }
     };
 
@@ -2790,10 +2959,6 @@
         nextTick(() => checkScroll());
     }, { deep: true });
 
-    watch(plans, () => {
-        saveToStorage();
-    }, { deep: true });
-
     watch(planSearch, () => closePlanMenu());
 
     const syncFullscreenClass = () => {
@@ -2833,14 +2998,37 @@
         if (val) nextTick(() => { initCustomResizeTable(); setupHeaderShorteningFallback(); });
     });
 
-    onMounted(() => {
-        loadFromStorage();
-        tryFocusFromStorage();
+    watch(() => auth.user, async (u) => {
+        if (!u) {
+            hardResetTrainingUi()
+            return
+        }
+        // login -> frisch neu laden
+        await trainingPlansStore.loadList()
+    }, { immediate: true })
 
-        document.addEventListener('click', onDocClick);
-        window.addEventListener('scroll', checkScroll);
-        window.addEventListener('keydown', handleKeydown);
-        document.addEventListener('fullscreenchange', syncFullscreenClass);
+    onMounted(async () => {
+        if (!auth.user) {
+            hardResetTrainingUi()
+            return
+        }
+        await trainingPlansStore.loadList();
+
+        tryFocusFromStorage()
+
+        document.addEventListener('click', onDocClick)
+        window.addEventListener('scroll', checkScroll)
+        window.addEventListener('keydown', handleKeydown)
+        document.addEventListener('fullscreenchange', syncFullscreenClass)
+        window.addEventListener('auth:logout', hardResetTrainingUi as EventListener)
+
+        onBeforeUnload = () => flushPendingAccountSave()
+        onVisChange = () => {
+            if (document.visibilityState === 'hidden') flushPendingAccountSave()
+        }
+
+        window.addEventListener('beforeunload', onBeforeUnload)
+        document.addEventListener('visibilitychange', onVisChange)
 
         syncFullscreenClass();
 
@@ -2854,11 +3042,19 @@
     });
 
     onUnmounted(() => {
-        document.removeEventListener('click', onDocClick);
-        window.removeEventListener('scroll', checkScroll);
-        window.removeEventListener('keydown', handleKeydown);
-        document.removeEventListener('fullscreenchange', syncFullscreenClass);
-        teardownHeaderShorteningFallback();
+        document.removeEventListener('click', onDocClick)
+        window.removeEventListener('scroll', checkScroll)
+        window.removeEventListener('keydown', handleKeydown)
+        document.removeEventListener('fullscreenchange', syncFullscreenClass)
+        window.removeEventListener('auth:logout', hardResetTrainingUi as EventListener)
+
+        if (onBeforeUnload) window.removeEventListener('beforeunload', onBeforeUnload)
+        if (onVisChange) document.removeEventListener('visibilitychange', onVisChange)
+
+        onBeforeUnload = null
+        onVisChange = null
+
+        teardownHeaderShorteningFallback()
     });
 
 </script>

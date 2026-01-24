@@ -15,6 +15,9 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<UserMeta> UserMetas => Set<UserMeta>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<GlycemicFood> GlycemicFoods => Set<GlycemicFood>();
+    public DbSet<TrainingPlan> TrainingPlans => Set<TrainingPlan>();
+    public DbSet<TrainingDay> TrainingDays => Set<TrainingDay>();
+    public DbSet<TrainingExercise> TrainingExercises => Set<TrainingExercise>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -135,6 +138,64 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
             e.HasIndex(x => x.Key).IsUnique();
             e.HasIndex(x => x.Label);
+        });
+
+        // -------- TrainingPlan / Day / Exercise --------
+        builder.Entity<TrainingPlan>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).IsRequired();
+
+            e.Property(x => x.Name)
+             .IsRequired()
+             .HasMaxLength(120);
+
+            e.Property(x => x.CreatedUtc).IsRequired();
+            e.Property(x => x.UpdatedUtc).IsRequired();
+
+            // pro User keine doppelten Plan-Namen (wenn du das nicht willst -> sag, dann mach ich’s nur als normaler Index)
+            e.HasIndex(x => new { x.UserId, x.Name }).IsUnique();
+
+            e.HasMany(x => x.Days)
+             .WithOne(x => x.Plan)
+             .HasForeignKey(x => x.PlanId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<TrainingDay>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Name)
+             .IsRequired()
+             .HasMaxLength(120);
+
+            e.HasIndex(x => new { x.PlanId, x.SortOrder });
+
+            e.HasMany(x => x.Exercises)
+             .WithOne(x => x.Day)
+             .HasForeignKey(x => x.DayId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<TrainingExercise>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Name)
+             .IsRequired()
+             .HasMaxLength(160);
+
+            e.Property(x => x.Notes)
+             .HasMaxLength(600);
+
+            // decimals sauber für Postgres
+            e.Property(x => x.TargetWeight).HasPrecision(6, 2);
+            e.Property(x => x.DistanceKm).HasPrecision(6, 2);
+
+            e.HasIndex(x => new { x.DayId, x.SortOrder });
+            e.HasIndex(x => x.Category);
         });
 
     }
