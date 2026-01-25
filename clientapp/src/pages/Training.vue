@@ -640,7 +640,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     import UiSearch from '@/components/ui/kits/UiSearch.vue'
     import { useTrainingPlansStore } from "@/store/trainingPlansStore";
     import { useAuthStore } from '@/store/authStore';
-    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "../types/trainingPlan";
+    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
     import type { TimerInstance, StopwatchInstance } from '@/types/training';
     import {
         LS_AUTH_TOKEN,
