@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan.ts";
+import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
 import { listTrainingPlans, getTrainingPlan, createTrainingPlan, updateTrainingPlan, deleteTrainingPlan, setTrainingPlanFavorite } from "@/services/trainingPlans";
 
 export const useTrainingPlansStore = defineStore("trainingPlans", {
@@ -11,8 +11,8 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
     }),
 
     getters: {
-        hasPlans: (s) => s.items.length > 0,
-        favorites: (s) => s.items.filter(p => p.isFavorite),
+        hasPlans: (s: { items: TrainingPlanDto[] }) => s.items.length > 0,
+        favorites: (s: { items: TrainingPlanDto[] }) => s.items.filter((p: TrainingPlanDto) => p.isFavorite),
     },
 
     actions: {

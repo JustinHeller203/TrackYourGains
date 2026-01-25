@@ -1679,7 +1679,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     };
 
     const toggleFavoritePlan = async (planId: string) => {
-        const p = trainingPlansStore.items.find(x => x.id === planId);
+        const p = trainingPlansStore.items.find((x: TrainingPlanDto) => x.id === planId);
         if (!p) return;
 
         const nextFav = !p.isFavorite;

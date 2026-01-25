@@ -33,10 +33,10 @@ export async function setTrainingPlanFavorite(id: string, isFavorite: boolean) {
     return updateTrainingPlan(id, {
         name: plan.name,
         isFavorite,
-        days: plan.days.map(d => ({
+        days: plan.days.map((d: TrainingPlanDto["days"][number]) => ({
             name: d.name,
             sortOrder: d.sortOrder,
-            exercises: d.exercises.map(x => ({
+            exercises: d.exercises.map((x: TrainingPlanDto["days"][number]["exercises"][number]) => ({
                 name: x.name,
                 category: x.category,
                 sortOrder: x.sortOrder,
