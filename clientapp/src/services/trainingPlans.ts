@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlans";
+import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
 
 export async function listTrainingPlans() {
     const { data } = await api.get<TrainingPlanDto[]>("/training-plans");

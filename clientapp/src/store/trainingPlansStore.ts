@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import type { TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlans";
+import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
 import { listTrainingPlans, getTrainingPlan, createTrainingPlan, updateTrainingPlan, deleteTrainingPlan, setTrainingPlanFavorite } from "@/services/trainingPlans";
 
 export const useTrainingPlansStore = defineStore("trainingPlans", {

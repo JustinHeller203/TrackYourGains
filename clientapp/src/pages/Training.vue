@@ -176,28 +176,28 @@
                                         </th>
                                         <th class="resizable" :style="{ width: previewColWidths[1] + '%' }">
                                             <span class="th-text">
-                                                {{ selectedPlanExercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                                                {{ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
                                             </span>
                                         </th>
                                         <th class="resizable th-wdh" :style="{ width: previewColWidths[2] + '%' }">
                                             <span class="th-text th-label">
                                                 <span class="full">
                                                     {{
-                    selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
                       ? 'Wdh. / km / s'
                       : 'Wiederholungen'
                                                     }}
                                                 </span>
                                                 <span class="mid">
                                                     {{
-                    selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
                       ? 'Wdh./km/s'
                       : 'Wiederhol...'
                                                     }}
                                                 </span>
                                                 <span class="short">
                                                     {{
-                    selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
                       ? 'W/km/s'
                       : 'Wdh.'
                                                     }}
@@ -432,28 +432,28 @@
                             </th>
                             <th class="resizable" :style="{ width: columnWidths[1] + '%' }">
                                 <span class="th-text">
-                                    {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                                    {{ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
                                 </span>
                             </th>
                             <th class="resizable th-wdh" :style="{ width: columnWidths[2] + '%' }">
                                 <span class="th-text th-label">
                                     <span class="full">
                                         {{
-        selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
           ? 'Wdh. / km / s'
           : 'Wiederholungen'
                                         }}
                                     </span>
                                     <span class="mid">
                                         {{
-        selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
           ? 'Wdh./km/s'
           : 'Wiederhol...'
                                         }}
                                     </span>
                                     <span class="short">
                                         {{
-        selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
           ? 'W/km/s'
           : 'Wdh.'
                                         }}
@@ -640,7 +640,7 @@
     import UiSearch from '@/components/ui/kits/UiSearch.vue'
     import { useTrainingPlansStore } from "@/store/trainingPlansStore";
     import { useAuthStore } from '@/store/authStore';
-    import type { TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlans";
+    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
     import type { TimerInstance, StopwatchInstance } from '@/types/training';
     import {
         LS_AUTH_TOKEN,
@@ -667,6 +667,8 @@
         isFavorite: boolean;
         exercises: PlanExercise[];
     };
+
+    type TrainingPlan = ViewPlan;
 
     type ToastType =
         | 'toast-default'
@@ -803,10 +805,14 @@
     const plans = computed<ViewPlan[]>(() => trainingPlansStore.items.map(flattenDto));
 
     const favoritePlans = computed<string[]>(() => {
-        const favIds = new Set(trainingPlansStore.items.filter(p => p.isFavorite).map(p => p.id));
-        const order = readFavOrder().filter(id => favIds.has(id));
-        const missing = Array.from(favIds).filter(id => !order.includes(id));
+        const items = trainingPlansStore.items as TrainingPlanDto[];
+
+        const favIds = new Set(items.filter((p) => !!p.isFavorite).map((p) => p.id));
+        const order = readFavOrder().filter((id) => favIds.has(id));
+
+        const missing = (Array.from(favIds) as string[]).filter((id) => !order.includes(id));
         const next = [...order, ...missing];
+
         writeFavOrder(next);
         return next;
     });
@@ -827,13 +833,13 @@
     const previewTable = ref<HTMLTableElement | null>(null);
     const editingPlanId = ref<string | null>(null);
     const selectedPlanExercises = ref<PlanExercise[]>([]);
-    const selectedPlan = ref<TrainingPlan | null>(null);
+    const selectedPlan = ref<ViewPlan | null>(null);
     const showDeletePopup = ref(false);
     const showEditPopup = ref(false);
     const showDownloadPopup = ref(false);
     const showValidationPopup = ref(false);
     const validationErrorMessages = ref<string[]>([]);
-    const downloadPlan = ref<TrainingPlan | null>(null);
+    const downloadPlan = ref<ViewPlan | null>(null);
     const downloadFormat = ref<'html' | 'pdf' | 'csv' | 'json' | 'txt'>('html');
     const customColWidths = ref([40, 30, 15, 15]); // Start: Name|Muskel|Typ|Aktion
     const customResizeTable = ref<HTMLTableElement | null>(null);
@@ -1326,7 +1332,7 @@
         return null;
     });
 
-    const planMatchesSearch = (plan: TrainingPlan) => {
+    const planMatchesSearch = (plan: ViewPlan) => {
         const q = planSearch.value.toLowerCase().trim();
         return !q
             || plan.name.toLowerCase().includes(q)
@@ -1415,8 +1421,10 @@
 
             const parsed = (await res.json()) ?? {}
 
-            plans.value = Array.isArray(parsed.plans) ? parsed.plans : []
-            favoritePlans.value = Array.isArray(parsed.favoritePlans) ? parsed.favoritePlans : []
+            const loadedPlans = Array.isArray(parsed.plans) ? parsed.plans : []
+            const loadedFavs = Array.isArray(parsed.favoritePlans) ? parsed.favoritePlans : []
+            void loadedPlans
+            void loadedFavs
 
             customExercises.value = Array.isArray(parsed.customExercises)
                 ? parsed.customExercises
@@ -1927,8 +1935,8 @@
         const plan = downloadPlan.value;
 
         // Header dynamisch wie im UI
-        const anyCardio = plan.exercises.some(ex => ex.type === 'ausdauer');
-        const anyStretch = plan.exercises.some(ex => ex.type === 'dehnung');
+        const anyCardio = plan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer');
+        const anyStretch = plan.exercises.some((ex: PlanExercise) => ex.type === 'dehnung');
 
         const setsHeader = anyCardio ? 'Sätze / Min' : 'Sätze';
         const repsHeader = (anyCardio || anyStretch) ? 'Wdh. / km / s' : 'Wiederholungen';
@@ -1941,7 +1949,7 @@
             return `${ex.reps}`;
         };
 
-        const uniqueGoal = [...new Set(plan.exercises.map(ex => ex.goal).filter(Boolean))][0] as string | undefined;
+        const uniqueGoal = [...new Set(plan.exercises.map((ex: PlanExercise) => ex.goal).filter(Boolean))][0] as string | undefined;
         const title = plan.name;
         const fileName = plan.name;
 
