@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
-import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
-import { listTrainingPlans, getTrainingPlan, createTrainingPlan, updateTrainingPlan, deleteTrainingPlan, setTrainingPlanFavorite } from "@/services/trainingPlans";
+import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "../types/trainingPlan";
+import { listTrainingPlans, getTrainingPlan, createTrainingPlan, updateTrainingPlan, deleteTrainingPlan, setTrainingPlanFavorite } from "../services/trainingPlans";
 
 export const useTrainingPlansStore = defineStore("trainingPlans", {
     state: () => ({
@@ -11,8 +11,8 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
     }),
 
     getters: {
-        hasPlans: (s: { items: TrainingPlanDto[] }) => s.items.length > 0,
-        favorites: (s: { items: TrainingPlanDto[] }) => s.items.filter((p: TrainingPlanDto) => p.isFavorite),
+        hasPlans: (s): boolean => s.items.length > 0,
+        favorites: (s) => s.items.filter((p: TrainingPlanDto) => p.isFavorite),
     },
 
     actions: {
@@ -61,7 +61,7 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
             this.error = null;
             try {
                 const updated = await updateTrainingPlan(id, payload);
-                this.items = this.items.map(p => (p.id === id ? updated : p));
+                this.items = this.items.map((p: TrainingPlanDto) => (p.id === id ? updated : p));
                 if (this.selected?.id === id) this.selected = updated;
                 return updated;
             } catch (e: any) {
@@ -77,7 +77,7 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
             this.error = null;
             try {
                 await deleteTrainingPlan(id);
-                this.items = this.items.filter(p => p.id !== id);
+                this.items = this.items.filter((p: TrainingPlanDto) => p.id !== id);
                 if (this.selected?.id === id) this.selected = null;
             } catch (e: any) {
                 this.error = e?.message ?? "TrainingPlan konnte nicht gelöscht werden.";
@@ -88,21 +88,21 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
         },
 
         async toggleFavorite(id: string) {
-            const plan = this.items.find(p => p.id === id);
+            const plan = this.items.find((p: TrainingPlanDto) => p.id === id);
             if (!plan) return;
 
             // optimistisch:
             const next = !plan.isFavorite;
-            this.items = this.items.map(p => (p.id === id ? { ...p, isFavorite: next } : p));
+            this.items = this.items.map((p: TrainingPlanDto) => (p.id === id ? { ...p, isFavorite: next } : p));
             if (this.selected?.id === id) this.selected = { ...this.selected, isFavorite: next };
 
             try {
                 const updated = await setTrainingPlanFavorite(id, next);
-                this.items = this.items.map(p => (p.id === id ? updated : p));
+                this.items = this.items.map((p: TrainingPlanDto) => (p.id === id ? updated : p));
                 if (this.selected?.id === id) this.selected = updated;
             } catch {
                 // rollback
-                this.items = this.items.map(p => (p.id === id ? { ...p, isFavorite: !next } : p));
+                this.items = this.items.map((p: TrainingPlanDto) => (p.id === id ? { ...p, isFavorite: !next } : p));
                 if (this.selected?.id === id) this.selected = { ...this.selected, isFavorite: !next };
             }
         },

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import type { Workout } from '@/types/Workout'
 import type { Meal } from '@/types/Meal'
-import type { TrainingPlan } from '@/types/trainingPlan'
+import type { TrainingPlan } from "../types/trainingPlan";
 
 interface GymState {
     workouts: Workout[]
