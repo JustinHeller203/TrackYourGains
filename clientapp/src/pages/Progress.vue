@@ -2559,8 +2559,24 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         // dein PlanProgressPopup Watcher kann bleiben (oder später über @closed lösen)
     }
 
-    const onProgressModalDelete = (payload: { planId: string; id: string }) => {
-        deleteProgressEntry(payload.planId, payload.id)
+    const onProgressModalDelete = (payload: { planId: string; id?: string; date?: string }) => {
+        const planId = payload.planId
+        let id = payload.id
+
+        if (!id && payload.date) {
+            const day = (payload.date || '').slice(0, 10)
+            const hit = workouts.value
+                .filter(w => w.planId === planId && (w.date || '').slice(0, 10) === day)
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+            id = hit?.id
+        }
+
+        if (!id) {
+            showToast({ message: "Fehler: Eintrag-ID fehlt (Delete nicht möglich).", type: "default" })
+            return
+        }
+
+        deleteProgressEntry(planId, id)
         showProgressPopup.value = false
     }
 
@@ -2752,7 +2768,12 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     const onProgressEntryDelete = () => {
         if (currentPlanId.value && editingEntry.value) {
-            deleteProgressEntry(currentPlanId.value, editingEntry.value.date)
+            const id = editingEntry.value.id
+            if (!id) {
+                showToast({ message: "Fehler: Eintrag-ID fehlt.", type: "default" })
+                return
+            }
+            deleteProgressEntry(currentPlanId.value, id)
         }
         editingEntry.value = null
         showProgressPopup.value = false
@@ -3734,22 +3755,6 @@ Notiz: ${e.note ?? '-'}\n`
 
             const trainingData = localStorage.getItem(LS_TRAINING_DATA);
             if (trainingData) {
-                try {
-                    const parsedTraining = JSON.parse(trainingData);
-                    if (parsedTraining && Array.isArray(parsedTraining.plans)) {
-                        trainingPlans.value = parsedTraining.plans;
-                        console.log(`Geladene Trainingspläne: ${trainingPlans.value.length}`);
-                    } else {
-                        console.warn("trainingData gefunden, aber 'plans' ist kein Array oder fehlt.");
-                        trainingPlans.value = [];
-                    }
-                } catch (e) {
-                    console.error('Error parsing trainingData:', e);
-                    trainingPlans.value = [];
-                }
-            } else {
-                console.log("Keine trainingData im localStorage gefunden.");
-                trainingPlans.value = [];
             }
         } catch (err) {
             console.error('Error loading from localStorage:', err);
