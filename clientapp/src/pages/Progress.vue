@@ -2405,9 +2405,12 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             : [],
     })
 
-    const trainingPlans = computed<ViewPlan[]>(() =>
-        trainingPlansStore.items.map(toViewPlan)
-    )
+    const localPlans = ref < ViewPlan[] > ([])
+
+    const trainingPlans = computed < ViewPlan[] > (() => {
+        const api = trainingPlansStore.items.map(toViewPlan)
+        return api.length ? api : localPlans.value
+    })
 
     const favoritePlans = computed(() =>
         trainingPlans.value.filter(p => p.isFavorite)
@@ -3758,7 +3761,6 @@ Notiz: ${e.note ?? '-'}\n`
             }
         } catch (err) {
             console.error('Error loading from localStorage:', err);
-            trainingPlans.value = [];
         }
     };
 
