@@ -18,6 +18,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<TrainingPlan> TrainingPlans => Set<TrainingPlan>();
     public DbSet<TrainingDay> TrainingDays => Set<TrainingDay>();
     public DbSet<TrainingExercise> TrainingExercises => Set<TrainingExercise>();
+    public DbSet<ProgressEntry> ProgressEntries => Set<ProgressEntry>();
+
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -196,6 +198,46 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
             e.HasIndex(x => new { x.DayId, x.SortOrder });
             e.HasIndex(x => x.Category);
+        });
+
+        // -------- ProgressEntry (Plan-Fortschritt) --------
+        builder.Entity<ProgressEntry>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).IsRequired();
+
+            e.Property(x => x.Date)
+             .HasColumnType("date");
+
+            e.Property(x => x.Exercise)
+             .IsRequired()
+             .HasMaxLength(160);
+
+            e.Property(x => x.Note)
+             .HasMaxLength(800);
+
+            e.Property(x => x.Tempo)
+             .HasMaxLength(40);
+
+            e.Property(x => x.WeightKg)
+             .HasPrecision(6, 2);
+
+            e.Property(x => x.DistanceKm)
+             .HasPrecision(6, 2);
+
+            // Enum als string speichern (lesbarer in DB)
+            e.Property(x => x.Type)
+             .HasConversion<string>()
+             .HasMaxLength(32);
+
+            e.HasOne(x => x.Plan)
+             .WithMany()
+             .HasForeignKey(x => x.PlanId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => new { x.UserId, x.PlanId, x.Date });
+            e.HasIndex(x => new { x.UserId, x.PlanId, x.Exercise });
         });
 
     }

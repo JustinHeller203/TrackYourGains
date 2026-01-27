@@ -483,7 +483,7 @@
                             <div v-for="plan in favoritePlans" :key="plan.id" class="list-item plan-item">
                                 <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
                                 <div class="list-item-actions">
-                                    <button class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
+                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
                             </div>
                         </div>
@@ -493,7 +493,7 @@
                             <div v-for="plan in otherPlans" :key="plan.id" class="list-item plan-item">
                                 <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
                                 <div class="list-item-actions">
-                                    <button class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
+                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
                             </div>
                         </div>
@@ -590,7 +590,7 @@
     import { useRouter } from 'vue-router'
     import Chart from 'chart.js/auto';
     import confetti from 'canvas-confetti';
-    import jsPDF from 'jspdf';
+    import { jsPDF } from 'jspdf';
     import { useUnits, KG_PER_LB } from '@/composables/useUnits'
     import Toast from '@/components/ui/Toast.vue'
     import DashboardCard from '@/components/ui/DashboardCard.vue'
@@ -615,6 +615,9 @@
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import PlanProgressPopup from '@/components/ui/popups/PlanProgressPopup.vue'
+    import { useProgressStore } from "@/store/progressStore"
+    import type { CreateProgressEntry, UpdateProgressEntry } from "@/types/Progress"
+    import { useTrainingPlansStore } from "@/store/trainingPlansStore"
 
     import { useRoute } from 'vue-router'
 
@@ -672,6 +675,7 @@
     }
 
     interface Workout {
+        id?: string
         exercise: string
         sets: number
         weight: number
@@ -725,6 +729,25 @@
         openEdit: (opts: { planId: string; entry: Workout }) => void
         submit?: () => void
     }
+
+    const trainingPlansStore = useTrainingPlansStore()
+
+    const activePlanId = computed(() => props.planId) // <- falls props.planId bei dir anders heißt, anpassen
+
+    const planExerciseOptions = computed < string[] > (() => {
+        const id = activePlanId.value
+        if (!id) return []
+
+        const dto = trainingPlansStore.items.find(p => p.id === id)
+        if (!dto || !Array.isArray(dto.days)) return []
+
+        const names = dto.days.flatMap(d =>
+            Array.isArray(d.exercises) ? d.exercises.map(x => String((x as any).name ?? "").trim()) : []
+        ).filter(Boolean)
+
+        // unique + sort
+        return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b, "de"))
+    })
 
     // ====== CHARTS UND COPY >>>>>>>>>>
 
@@ -1682,6 +1705,7 @@
 
     const route = useRoute()
     const router = useRouter()
+    const progressStore = useProgressStore()
 
     async function jumpToCalculatorsFromRoute() {
         const tab = String(route.query.tab || '')
@@ -2361,26 +2385,83 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     // ======== Pläne-Tab: State =======
 
-    const trainingPlans = ref<TrainingPlan[]>([]);
-    const favoritePlansIds = ref<string[]>([])
+    type ViewPlan = {
+        id: string
+        name: string
+        isFavorite: boolean
+        exercises: string[]
+    }
 
+    const toViewPlan = (dto: any): ViewPlan => ({
+        id: dto.id,
+        name: dto.name,
+        isFavorite: !!dto.isFavorite,
+        exercises: Array.isArray(dto.days)
+            ? dto.days.flatMap((d: any) =>
+                Array.isArray(d.exercises)
+                    ? d.exercises.map((x: any) => String(x.name ?? x.exercise ?? '').trim()).filter(Boolean)
+                    : []
+            )
+            : [],
+    })
 
-
-    // === Pläne-Tab: abgeleitete Listen ===
-    const favoritePlans = computed(() =>
-        trainingPlans.value.filter(p => favoritePlansIds.value.includes(p.id))
+    const trainingPlans = computed<ViewPlan[]>(() =>
+        trainingPlansStore.items.map(toViewPlan)
     )
+
+    const favoritePlans = computed(() =>
+        trainingPlans.value.filter(p => p.isFavorite)
+    )
+
     const otherPlans = computed(() =>
-        trainingPlans.value.filter(p => !favoritePlansIds.value.includes(p.id))
+        trainingPlans.value.filter(p => !p.isFavorite)
     )
 
     // ======= Pläne-Tab: Aktionen =======
 
-    const openPlanProgress = (planId: string) => {
+    const isGuid = (v: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+
+    const openPlanProgress = async (planId: string) => {
         currentPlanId.value = planId
         lastPlanId.value = planId
+
+        // Legacy/Local IDs blocken (keine Ghost-Pläne)
+        if (!isGuid(planId)) {
+            showToast({ message: "Dieser Plan ist lokal/alt und hat keinen Online-Fortschritt.", type: "default" })
+            return
+        }
+
+        await progressStore.load(planId, true)
+
+        const state = progressStore.byPlan[planId]
+        if (state?.error) {
+            showToast({ message: `Fortschritt konnte nicht geladen werden: ${state.error}`, type: "default" })
+            return
+        }
+
+        workouts.value = (state?.items ?? []).map((e) => ({
+            id: e.id,
+            planId: e.planId,
+            date: e.date,
+            exercise: e.exercise,
+            type: e.type as WorkoutType,
+
+            sets: e.sets ?? 0,
+            reps: e.reps ?? undefined,
+            weight: e.weightKg ?? 0,
+
+            durationMin: e.durationMin ?? undefined,
+            distanceKm: e.distanceKm ?? undefined,
+
+            note: e.note ?? undefined,
+            tempo: e.tempo ?? undefined,
+            restSeconds: e.restSeconds ?? undefined,
+        }))
+
         showPlanProgressPopup.value = true
     }
+
 
     const matchesPlanSearch = (name: string) => {
         if (!planSearchQuery.value) return true;
@@ -2389,24 +2470,14 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     // === Pläne-Tab: Initiales Laden aus localStorage ===
 
-    onMounted(() => {
+    onMounted(async () => {
         try {
-            const raw = localStorage.getItem(LS_TRAINING_DATA)
-            if (raw) {
-                const parsed = JSON.parse(raw)
-                trainingPlans.value = Array.isArray(parsed?.plans) ? parsed.plans : []
-                favoritePlansIds.value = Array.isArray(parsed?.favoritePlans) ? parsed.favoritePlans : []
-            } else {
-                const legacy = localStorage.getItem(LS_LEGACY_TRAINING_PLANS)
-                trainingPlans.value = legacy ? JSON.parse(legacy) : []
-                favoritePlansIds.value = []
-            }
+            await trainingPlansStore.loadList()
         } catch {
-            trainingPlans.value = []
-            favoritePlansIds.value = []
+            showToast({ message: "Pläne konnten nicht geladen werden.", type: "default" })
         }
-        jumpToCalculatorsFromRoute()
 
+        jumpToCalculatorsFromRoute()
     })
 
     watch(
@@ -2428,6 +2499,11 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         return workouts.value.filter((w: Workout) => w.planId === planId)
     }
 
+    const getExercisesForPlan = (planId: string | null): PlanExercise[] => {
+        if (!planId) return []
+        const names = trainingPlans.value.find(p => p.id === planId)?.exercises ?? []
+        return names.map(n => ({ exercise: n, sets: 0, reps: 0 }))
+    }
     const visibleDays = ref<number>(14)
 
     const entriesByDay = computed<Map<string, Workout[]>>(() => {
@@ -2483,15 +2559,61 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         // dein PlanProgressPopup Watcher kann bleiben (oder später über @closed lösen)
     }
 
-    // Delete aus Modal
-    const onProgressModalDelete = (payload: { planId: string; date: string }) => {
-        deleteProgressEntry(payload.planId, payload.date)
+    const onProgressModalDelete = (payload: { planId: string; id: string }) => {
+        deleteProgressEntry(payload.planId, payload.id)
         showProgressPopup.value = false
-        // PlanProgressPopup öffnet wie bisher über watcher oder dein Flow
+    }
+
+    const toApiWorkoutType = (t: WorkoutType) => {
+        switch (t) {
+            case 'kraft': return 'Kraft'
+            case 'ausdauer': return 'Ausdauer'
+            case 'dehnung': return 'Dehnung'
+            case 'calisthenics': return 'Calisthenics'
+            default: return 'Kraft'
+        }
+    }
+
+    const fromApiWorkoutType = (t: any): WorkoutType => {
+        switch (String(t ?? '')) {
+            case 'Kraft': return 'kraft'
+            case 'Ausdauer': return 'ausdauer'
+            case 'Dehnung': return 'dehnung'
+            case 'Calisthenics': return 'calisthenics'
+            default: return 'kraft'
+        }
+    }
+
+    const syncWorkoutsFromStore = (planId: string) => {
+        const items = progressStore.byPlan?.[planId]?.items ?? []
+
+        // alles für den Plan raus, dann frisch rein (keine Doppelten)
+        workouts.value = workouts.value.filter(w => w.planId !== planId)
+
+        for (const it of items) {
+            workouts.value.push({
+                id: it.id,
+                planId: it.planId,
+                date: typeof it.date === 'string' ? it.date : new Date(it.date as any).toISOString(),
+                exercise: it.exercise,
+                type: fromApiWorkoutType(it.type),
+
+                sets: it.sets ?? 0,
+                reps: it.reps ?? 0,
+                weight: it.weightKg ?? 0,
+
+                durationMin: it.durationMin ?? undefined,
+                distanceKm: it.distanceKm ?? undefined,
+
+                note: it.note ?? undefined,
+                tempo: it.tempo ?? undefined,
+                restSeconds: it.restSeconds ?? undefined,
+            } as any)
+        }
     }
 
     // Save aus Modal: Modal liefert fertigen Workout-Payload + optional BodyWeightKg
-    const onProgressModalSave = (payload: {
+    const onProgressModalSave = async (payload: {
         workout: Workout
         updatedBodyWeightKg?: number | null
         mode: 'create' | 'edit'
@@ -2499,7 +2621,6 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }) => {
 
         validationErrorMessages.value = []
-        showProgressPopup.value = false
         const { workout, updatedBodyWeightKg, mode, editingDate } = payload
 
         // optional: Körpergewicht-Update (wenn Modal sagt: changed)
@@ -2513,28 +2634,81 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             }
         }
 
-        if (mode === 'edit' && editingDate) {
-            const idx = workouts.value.findIndex(
-                w => w.planId === workout.planId && w.date === editingDate
-            )
-            if (idx !== -1) workouts.value[idx] = workout
+        const planId = workout.planId
+        if (!planId) return
 
-            showToast({ message: 'Fortschritt aktualisiert!', type: 'success', emoji: '✅' })
-
-            if (workout.type === 'kraft' || workout.type === 'calisthenics') {
-                checkMilestones(workout.planId, workout.exercise, workout.weight, workout.reps, workout.date)
+        if (mode === "edit") {
+            const id = workout.id
+            if (!id) {
+                addToast("Fehler: Eintrag-ID fehlt (Backend braucht id).", "default")
+                return
             }
+
+            const payload: UpdateProgressEntry = {
+                date: workout.date,
+                exercise: workout.exercise,
+                type: toApiWorkoutType(workout.type as WorkoutType) as any,
+
+                sets: workout.sets ?? null,
+                reps: workout.reps ?? null,
+                weightKg: workout.weight ?? null,
+
+                durationMin: workout.durationMin ?? null,
+                distanceKm: workout.distanceKm ?? null,
+
+                note: workout.note ?? null,
+                tempo: workout.tempo ?? null,
+                restSeconds: workout.restSeconds ?? null,
+            }
+
+            let updated
+            try {
+                updated = await progressStore.edit(planId, id, payload)
+            } catch (e: any) {
+                showToast({ message: e?.message ?? "Speichern fehlgeschlagen.", type: "default" })
+                return
+            }
+
+            await progressStore.load(planId, true)
+            syncWorkoutsFromStore(planId)
+
+            showToast({ message: "Fortschritt aktualisiert!", type: "success", emoji: "✅" })
+
         } else {
-            workouts.value.push(workout)
+            const payload: CreateProgressEntry = {
+                planId,
+                date: workout.date,
+                exercise: workout.exercise,
+                type: toApiWorkoutType(workout.type as WorkoutType) as any,
 
-            if (workout.type === 'kraft' || workout.type === 'calisthenics') {
-                checkMilestones(workout.planId, workout.exercise, workout.weight, workout.reps, workout.date)
+                sets: workout.sets ?? null,
+                reps: workout.reps ?? null,
+                weightKg: workout.weight ?? null,
+
+                durationMin: workout.durationMin ?? null,
+                distanceKm: workout.distanceKm ?? null,
+
+                note: workout.note ?? null,
+                tempo: workout.tempo ?? null,
+                restSeconds: workout.restSeconds ?? null,
             }
 
-            showToast({ message: 'Fortschritt gespeichert!', type: 'success', emoji: '✅' })
+            let created
+            try {
+                created = await progressStore.add(planId, payload)
+            } catch (e: any) {
+                showToast({ message: e?.message ?? "Speichern fehlgeschlagen.", type: "default" })
+                return
+            }
+
+            await progressStore.load(planId, true)
+            syncWorkoutsFromStore(planId)
+
+            showToast({ message: "Fortschritt gespeichert!", type: "success", emoji: "✅" })
+
+
         }
 
-        localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value))
         showProgressPopup.value = false
     }
     //Validation ProgressModalEntry
@@ -2706,11 +2880,11 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     })
 
-    const deleteProgressEntry = (planId: string, date: string) => {
-        workouts.value = workouts.value.filter(w => !(w.planId === planId && w.date === date));
-        localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value));
-        showToast({ message: 'Eintrag gelöscht!', type: 'success', emoji: '🗑️' });
-    };
+    const deleteProgressEntry = async (planId: string, id: string) => {
+        await progressStore.remove(planId, id)
+        workouts.value = workouts.value.filter(w => !(w.planId === planId && w.id === id))
+        showToast({ message: "Eintrag gelöscht!", type: "success", emoji: "🗑️" })
+    }
 
     function strengthExtrasFlags(entries: Workout[]): { tempo: boolean; rest: boolean } {
         const tempo = entries.some(e => (e.tempo || '').trim().length > 0)
@@ -2753,10 +2927,13 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         const entries = payload?.entries ?? []
         if (!planId || !entries.length) return
 
-        // wenn du mehrere löschst: nacheinander rausballern
         for (const e of entries) {
-            const date = e?.date
-            if (date) deleteProgressEntry(planId, date)
+            const id = e?.id
+            if (id) {
+                deleteProgressEntry(planId, id)
+            } else {
+                showToast({ message: 'Fehler: Eintrag-ID fehlt (kann nicht löschen)', type: 'default' })
+            }
         }
 
         showToast({
@@ -2857,7 +3034,12 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             showToast({ message: 'Kein Eintrag für diesen Tag', type: 'default' })
             return
         }
-        deleteProgressEntry(planId, items[0].date)
+        const id = items[0].id
+        if (!id) {
+            showToast({ message: 'Fehler: Eintrag-ID fehlt', type: 'default' })
+            return
+        }
+        deleteProgressEntry(planId, id)
         showToast({ message: 'Eintrag gelöscht', type: 'success' })
     }
 
@@ -3374,9 +3556,9 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    const currentWeight = computed(() =>
-        weightHistory.value.length ? weightHistory.value[0].weight.toString() : 'N/A'
-    );
+    const currentWeight = computed < number | null > (() =>
+        weightHistory.value.length ? weightHistory.value[0].weight : null
+    )
 
     const initialWeight = computed(() =>
         weightHistory.value.length ? weightHistory.value[weightHistory.value.length - 1].weight : null
@@ -3385,12 +3567,6 @@ Notiz: ${e.note ?? '-'}\n`
     const matchesSearch = (calculatorName: string) => {
         if (!searchQuery.value) return true;
         return calculatorName.toLowerCase().includes(searchQuery.value.toLowerCase());
-    };
-
-    const getExercisesForPlan = (planId: string | null) => {
-        if (!planId) return [];
-        const plan = trainingPlans.value.find((p) => p.id === planId);
-        return plan ? plan.exercises : [];
     };
 
     const formatDate = (isoString: string) => {
@@ -3419,8 +3595,8 @@ Notiz: ${e.note ?? '-'}\n`
             celebrateMilestone('Meilenstein: 10 Workouts erreicht! 🎉')
         }
 
-        if (initialWeight.value && typeof currentWeight.value === 'string') {
-            const weightChange = Math.abs(Number(currentWeight.value) - initialWeight.value)
+        if (initialWeight.value != null && currentWeight.value != null) {
+            const weightChange = Math.abs(currentWeight.value - initialWeight.value)
             if (weightChange >= 5) {
                 celebrateMilestone('Meilenstein: 5 kg Gewichtsveränderung! 🎉')
             }

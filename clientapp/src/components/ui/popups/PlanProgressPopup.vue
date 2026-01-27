@@ -488,10 +488,14 @@
     import ActionSelectPopup, { type ActionSelectRow } from '@/components/ui/popups/ActionSelectPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import Calender from '@/components/ui/kits/calender/Calender.vue'
+    import { useProgressStore } from "@/store/progressStore"
+    import type { ProgressEntry } from "@/types/Progress"
+    import { storeToRefs } from "pinia"
 
     type DayCard = { day: string; uniqueExercises: number }
 
     type WorkoutLike = {
+        id?: string | null
         planId?: string | null
         exercise: string
         date: string
@@ -553,6 +557,76 @@
     const modalEl = ref<HTMLElement | null>(null)
     defineExpose({ modalEl })
 
+    const progressStore = useProgressStore()
+    const { byPlan } = storeToRefs(progressStore)
+
+    const apiWorkouts = computed<WorkoutLike[]>(() => {
+        const planId = props.currentPlanId
+        if (!planId) return []
+
+        const state =
+            (byPlan.value instanceof Map)
+                ? byPlan.value.get(planId)
+                : (byPlan.value as any)?.[planId]
+
+        const rows: ProgressEntry[] = (state as any)?.items ?? []
+
+        const mapType = (t: any): WorkoutLike["type"] => {
+            const s = String(t ?? "").toLowerCase().trim()
+
+            // backend enums
+            if (s === "strength" || s === "kraft") return "kraft"
+            if (s === "cardio" || s === "ausdauer") return "ausdauer"
+            if (s === "stretch" || s === "dehnung") return "dehnung"
+            if (s === "calisthenics") return "calisthenics"
+
+            // falls dein backend schon "kraft/ausdauer/dehnung" zurückgibt
+            if (s === "kraft" || s === "calisthenics") return s as any
+            if (s === "ausdauer") return "ausdauer"
+            if (s === "dehnung") return "dehnung"
+
+            return "kraft"
+        }
+
+        return rows.map((x: any) => ({
+            id: x.id,
+            planId: x.planId,
+            exercise: x.exercise,
+            date: (x.date?.length === 10) ? `${x.date}T00:00:00` : x.date,
+            type: mapType(x.type),
+
+            // core
+            sets: x.sets ?? null,
+            reps: x.reps ?? null,
+            weight: (x.weightKg ?? x.weight ?? null),
+
+            // IMPORTANT: nimm setDetails vom API, sonst sind “Details” immer leer
+            setDetails: (Array.isArray(x.setDetails) ? x.setDetails : null),
+
+            // cardio
+            durationMin: x.durationMin ?? null,
+            distanceKm: x.distanceKm ?? null,
+            avgHr: x.avgHr ?? null,
+            calories: x.calories ?? null,
+            pace: x.pace ?? null,
+            hrZone: x.hrZone ?? null,
+            borg: x.borg ?? null,
+
+            // kraft extras
+            tempo: x.tempo ?? null,
+            restSeconds: x.restSeconds ?? null,
+            isDropset: x.isDropset ?? null,
+            dropsets: (Array.isArray(x.dropsets) ? x.dropsets : null),
+
+            // stretch extras
+            painFree: x.painFree ?? null,
+            equipment: x.equipment ?? null,
+            equipmentCustom: x.equipmentCustom ?? null,
+            side: x.side ?? null,
+
+            note: x.note ?? null,
+        }))
+    })
     const visibleDays = ref(7)
     const expandedDays = ref<Set<string>>(new Set())
 
@@ -1089,14 +1163,19 @@
         pendingDeleteEntries.value = []
     }
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         const planId = props.currentPlanId
         if (!planId) { cancelDelete(); return }
 
         const entries = pendingDeleteEntries.value
-        if (entries.length) {
-            emit('delete-entries', { planId, entries })
-            emit('delete', { planId, entries }) // Alias: falls Parent nur @delete nutzt
+        if (!entries.length) { cancelDelete(); return }
+
+        const ids = entries
+            .map(e => e.id)
+            .filter((x): x is string => typeof x === "string" && x.length > 0)
+
+        if (ids.length) {
+            await Promise.allSettled(ids.map(id => progressStore.remove(planId, id)))
         }
 
         cancelDelete()
@@ -1194,7 +1273,29 @@
     const planEntries = computed(() => {
         const planId = props.currentPlanId
         if (!planId) return []
-        return (props.workouts ?? []).filter(w => w.planId === planId)
+
+        const api = apiWorkouts.value
+        const local = (props.workouts ?? []).filter(w => w.planId === planId)
+
+        const out: WorkoutLike[] = []
+        const seen = new Set<string>()
+
+        const keyOf = (e: WorkoutLike) => {
+            if (e.id) return `id:${e.id}`
+            const d = (e.date ?? '').slice(0, 19)
+            const ex = (e.exercise ?? '').trim()
+            const t = (e.type ?? 'kraft') || 'kraft'
+            return `k:${d}|${ex}|${t}`
+        }
+
+        for (const e of [...api, ...local]) {
+            const k = keyOf(e)
+            if (seen.has(k)) continue
+            seen.add(k)
+            out.push(e)
+        }
+
+        return out
     })
 
     const entriesByDay = computed(() => {
@@ -1571,9 +1672,24 @@
                 selectedDay.value = null
                 collapsedSections.value = new Set()
 
+                const planId = props.currentPlanId
+                if (planId) {
+                    progressStore.load(planId).catch(() => { })
+                }
+
                 nextTick(() => setupProgressIO())
             } else {
                 cleanupProgressIO()
+            }
+        }
+    )
+
+    // zusätzlich: wenn PlanId wechselt während Popup offen ist
+    watch(
+        () => [props.show, props.currentPlanId] as const,
+        ([open, planId]) => {
+            if (open && planId) {
+                progressStore.load(planId).catch(() => { })
             }
         }
     )

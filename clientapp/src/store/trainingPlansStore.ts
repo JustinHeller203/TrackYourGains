@@ -39,7 +39,18 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
             this.loading = true;
             this.error = null;
             try {
-                this.selected = await getTrainingPlan(id);
+                const full = await getTrainingPlan(id);
+                this.selected = full;
+
+                // WICHTIG: items updaten, damit überall (z.B. ProgressEntryModal) days/exercises verfügbar sind
+                const idx = this.items.findIndex((p: TrainingPlanDto) => p.id === id);
+                if (idx >= 0) {
+                    // replace
+                    this.items = this.items.map((p: TrainingPlanDto) => (p.id === id ? full : p));
+                } else {
+                    // insert
+                    this.items = [full, ...this.items];
+                }
             } catch (e: any) {
                 this.error = e?.message ?? "TrainingPlan konnte nicht geladen werden.";
             } finally {

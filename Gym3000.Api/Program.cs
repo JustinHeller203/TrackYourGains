@@ -212,8 +212,13 @@ builder.Services.AddRateLimiter(opt =>
             }));
 });
 
-builder.Services.AddControllers();          // nur Controller-Attribute, kein Minimal-API-Mix
-builder.Services.AddEndpointsApiExplorer();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    }); builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Gym3000.Api", Version = "v1" });

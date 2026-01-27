@@ -12,7 +12,7 @@
                            label="Übung"
                            placeholder="Übung wählen"
                            v-model="exerciseLocal"
-                           :options="exercises.map(e => ({ label: e.exercise, value: e.exercise }))" />
+                           :options="exerciseOptions" />
 
             <div class="exercise-gap"></div>
 
@@ -469,6 +469,7 @@
     import BorgExplain from '@/components/ui/explain/BorgExplain.vue'
     import HrZoneExplain from '@/components/ui/explain/HrZoneExplain.vue'
     import TempoExplain from '@/components/ui/explain/TempoExplain.vue'
+    import { useTrainingPlansStore } from "@/store/trainingPlansStore"
 
     type Focusable = { focus: () => void }
 
@@ -521,10 +522,28 @@
         latestBodyWeightDisplay?: number | null
     }>()
 
-    const showProxy = computed({
-        get: () => props.show,
-        set: (v: boolean) => emit('update:show', v),
-    })
+    watch(
+        () => props.show,
+        async (v) => {
+            if (!v) return
+
+            const id = props.planId
+            if (!id) return
+
+            // Wenn Liste leer: erstmal Liste holen (optional)
+            if (!trainingPlansStore.items?.length) {
+                try { await trainingPlansStore.loadList() } catch { /* no toast hier */ }
+            }
+
+            // Wenn Plan in items keine days hat -> Full-Plan nachladen
+            const dto: any = trainingPlansStore.items.find((p: any) => p.id === id)
+            const hasDays = dto && Array.isArray(dto.days) && dto.days.length > 0
+            if (!hasDays) {
+                try { await trainingPlansStore.loadOne(id) } catch { /* silent */ }
+            }
+        },
+        { immediate: true }
+    )
 
     function closePopup() {
         showExtrasLocal.value = false
@@ -544,6 +563,67 @@
         }): void
         (e: 'delete', payload: { planId: string; date: string }): void
     }>()
+
+    const trainingPlansStore = useTrainingPlansStore()
+
+    const exercisesResolved = computed<PlanExercise[]>(() => {
+        const id = props.planId
+        const dto = id ? trainingPlansStore.items.find((p: any) => p.id === id) : null
+
+        const fromApi: PlanExercise[] =
+            dto && Array.isArray((dto as any).days)
+                ? (dto as any).days
+                    .flatMap((d: any) =>
+                        Array.isArray(d.exercises)
+                            ? d.exercises.map((x: any) => ({
+                                exercise: String(x.name ?? x.exercise ?? '').trim(),
+                                sets: 0,
+                                reps: 0,
+                            }))
+                            : []
+                    )
+                    .filter((e: any) => e.exercise)
+                : []
+
+        const fallback: PlanExercise[] = Array.isArray(props.exercises) ? props.exercises : []
+
+        const names = new Set<string>()
+        const merged = [...fromApi, ...fallback].filter(e => {
+            const n = (e?.exercise ?? '').trim()
+            if (!n) return false
+            if (names.has(n)) return false
+            names.add(n)
+            return true
+        })
+
+        merged.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
+        return merged
+    })
+
+    const exerciseOptions = computed(() =>
+        exercisesResolved.value.map(e => ({ label: e.exercise, value: e.exercise }))
+    )
+
+    watch(
+        () => [props.show, props.planId, props.exercises?.length, trainingPlansStore.items?.length],
+        ([show, pid, exLen, storeLen]) => {
+            console.log('[ProgressEntryModal] show=', show, 'planId=', pid, 'props.exercises=', exLen, 'store.items=', storeLen)
+        },
+        { immediate: true }
+    )
+
+    watch(
+        () => exerciseOptions.value,
+        (opts) => {
+            console.log('[ProgressEntryModal] exerciseOptions=', opts.length, opts.slice(0, 5))
+        },
+        { immediate: true }
+    )
+
+    const showProxy = computed({
+        get: () => props.show,
+        set: (v: boolean) => emit('update:show', v),
+    })
 
     /* helpers */
     const toStr = (v: unknown) => (v == null ? '' : String(v))

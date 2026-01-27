@@ -1126,7 +1126,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     }
 
     onMounted(() => {
-
         syncStickyPrefsFromStorage()
         document.addEventListener('visibilitychange', syncStickyPrefsFromStorage)
         window.addEventListener('storage', syncStickyPrefsFromStorage)
