@@ -732,7 +732,7 @@
 
     const trainingPlansStore = useTrainingPlansStore()
 
-    const activePlanId = computed(() => props.planId) // <- falls props.planId bei dir anders heißt, anpassen
+    const activePlanId = computed(() => effectivePlanId.value)
 
     const planExerciseOptions = computed < string[] > (() => {
         const id = activePlanId.value
