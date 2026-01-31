@@ -695,7 +695,7 @@
     .settings {
         max-width: 800px;
         margin: 0 auto;
-        padding: clamp(1.4rem, 3vw, 2.4rem) 0;
+        padding: clamp(1.4rem, 3vw, 2.4rem) clamp(0.9rem, 4vw, 1.6rem);
         background: transparent;
     }
 
@@ -755,6 +755,8 @@
         box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
         transition: background 180ms ease-out, border-color 180ms ease-out, box-shadow 200ms ease-out, transform 160ms ease-out;
         overflow: hidden;
+        box-sizing: border-box;
+        max-width: 100%;
     }
 
         /* Glow-Overlay statt nur Top-Strich */
@@ -832,6 +834,7 @@
         display: flex;
         align-items: center;
         gap: 0.75rem;
+        min-width: 0;
     }
 
     /* Toast-Arten: Pills/Chips statt hässlicher Switch-Liste */
@@ -913,9 +916,15 @@
         font-size: 1rem;
         cursor: pointer;
         transition: all 0.3s ease;
-        min-width: 160px;
     }
 
+    @media (max-width: 640px) {
+        .unit-select {
+            min-width: 0;
+            width: 100%;
+            max-width: 100%;
+        }
+    }
     html.dark-mode .unit-select {
         background: #0d1117;
         color: #ffffff;
@@ -1060,6 +1069,8 @@
         justify-content: space-between;
         gap: 1rem;
         transition: transform 160ms ease-out, box-shadow 200ms ease-out, border-color 180ms ease-out;
+        box-sizing: border-box;
+        max-width: 100%;
     }
 
         .group-head:hover {
@@ -1432,22 +1443,110 @@
         }
     }
 
-    /* Extra: super kleine Phones, damit nix “cramped” wirkt */
-    @media (max-width: 420px) {
+    @media (max-width: 444px) {
+        .settings {
+            /* vorher: horizontal 0 -> sorgt optisch für “rausgucken” */
+            padding-left: 0.9rem;
+            padding-right: 0.9rem;
+            /* falls irgendwas minimal overflow produziert (shadows / transforms) */
+            overflow-x: hidden;
+        }
+
+        .settings-grid {
+            justify-items: stretch;
+        }
+
+        .settings-group {
+            width: 100%;
+        }
+
+        /* Header-Card + Setting-Cards dürfen NIE breiter als Viewport sein */
+        .group-head,
         .setting-card {
-            grid-template-columns: 52px 1fr;
-            padding: 1.05rem 0.95rem;
-            gap: 0.8rem 0.9rem;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Sicherheit: Grid-Kinder dürfen schrumpfen (gegen min-content overflow) */
+        .group-left,
+        .setting-content,
+        .setting-control {
+            min-width: 0;
+        }
+
+        /* Select kann sonst “drücken” */
+        .unit-select {
+            max-width: 100%;
+        }
+    }
+
+    /* ✅ WRAP/STACK: unter 640px darf nix mehr horizontal sprengen */
+    @media (max-width: 640px) {
+        /* Card bleibt grid, aber Control wird IMMER in neue Zeile gezwungen */
+        .setting-card {
+            grid-template-columns: 56px 1fr;
+            grid-template-areas:
+                "icon content"
+                "control control";
+            align-items: start;
         }
 
         .setting-icon {
-            width: 44px;
-            height: 44px;
-            font-size: 1.35rem;
+            grid-area: icon;
+        }
+
+        .setting-content {
+            grid-area: content;
+            min-width: 0;
         }
 
         .setting-control {
-            padding-top: 0.65rem;
+            grid-area: control;
+            width: 100%;
+            justify-content: flex-end;
+            flex-wrap: wrap; /* <- WRAP falls doch mal zu eng */
+            min-width: 0;
+        }
+
+        /* Select immer full width, damit nix schiebt */
+        .unit-select {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        /* Dieses AN/AUS Label frisst Platz -> auf klein weg */
+        .toggle-label {
+            display: none;
+        }
+
+        /* Switch kleiner (und translate passend) */
+        .toggle-switch {
+            width: 56px;
+            height: 32px;
+        }
+
+            .toggle-switch::before {
+                width: 28px;
+                height: 28px;
+            }
+
+            .toggle-switch:checked::before {
+                transform: translateX(24px);
+            }
+
+        /* Gruppen-Header: Text darf umbrechen statt zu drücken */
+        .group-left {
+            min-width: 0;
+        }
+
+        .group-sub {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: unset;
         }
     }
 
