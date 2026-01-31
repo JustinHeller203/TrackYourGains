@@ -980,25 +980,6 @@
         gap: 0.6rem;
     }
 
-    @media (max-width: 768px) {
-        .setting-card {
-            grid-template-columns: 1fr;
-            text-align: center;
-            padding: 1.5rem;
-        }
-
-        .setting-content {
-            text-align: center;
-        }
-
-        .setting-control {
-            justify-content: center;
-        }
-
-        .settings {
-            padding: 1rem;
-        }
-    }
 
     .toast-types-summary {
         width: 100%;
@@ -1198,19 +1179,6 @@
         gap: 1.25rem;
     }
 
-    @media (max-width: 768px) {
-        .group-sub {
-            display: none;
-        }
-
-        .group-head {
-            padding: 0.95rem 1rem;
-        }
-
-        .group-body {
-            gap: 1rem;
-        }
-    }
 
     /* Collapse Animation für Settings-Gruppen (SMOOTH & HEAVY) */
     .sg-collapse-enter-active,
@@ -1371,4 +1339,117 @@
         display: inline-block;
         position: relative;
     }
+
+    /* ✅ Settings Cards: clean mobile layout ab 640px */
+    @media (max-width: 640px) {
+        .setting-card {
+            /* statt “alles in einer Zeile”: 2 Zeilen, klar getrennt */
+            grid-template-columns: 56px 1fr;
+            grid-template-areas:
+                "icon content"
+                "control control";
+            align-items: start;
+            gap: 0.85rem 0.95rem;
+            padding: 1.15rem 1.1rem;
+            border-radius: 16px;
+        }
+
+        .setting-icon {
+            grid-area: icon;
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            font-size: 1.5rem;
+            margin-top: 0.1rem; /* optisch besser aligned */
+        }
+
+        .setting-content {
+            grid-area: content;
+            min-width: 0;
+        }
+
+        .setting-title {
+            font-size: 1.12rem;
+            margin: 0 0 0.25rem 0;
+            line-height: 1.15;
+        }
+
+        .setting-description {
+            font-size: 0.95rem;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        /* Control-Zeile: “eigener Bereich” -> sieht sofort aufgeräumt aus */
+        .setting-control {
+            grid-area: control;
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.25rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(148, 163, 184, 0.22);
+        }
+
+        html.dark-mode .setting-control {
+            border-top-color: rgba(148, 163, 184, 0.22);
+        }
+
+        /* Selects werden auf Mobile fast immer nicer als full width */
+        .unit-select {
+            width: 100%;
+            min-width: 0;
+            max-width: 360px; /* nicht zu riesig auf phablets */
+        }
+
+        /* Toggle minimal kleiner und “tight” */
+        .toggle-switch {
+            width: 64px;
+            height: 34px;
+        }
+
+            .toggle-switch::before {
+                width: 30px;
+                height: 30px;
+            }
+
+            .toggle-switch:checked::before {
+                transform: translateX(30px);
+            }
+
+        /* Toast Manage Button: full width => wirkt wie “Action Row” */
+        .toast-types-summary {
+            width: 100%;
+            justify-content: stretch;
+        }
+
+        .manage-btn {
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+        }
+    }
+
+    /* Extra: super kleine Phones, damit nix “cramped” wirkt */
+    @media (max-width: 420px) {
+        .setting-card {
+            grid-template-columns: 52px 1fr;
+            padding: 1.05rem 0.95rem;
+            gap: 0.8rem 0.9rem;
+        }
+
+        .setting-icon {
+            width: 44px;
+            height: 44px;
+            font-size: 1.35rem;
+        }
+
+        .setting-control {
+            padding-top: 0.65rem;
+        }
+    }
+
+
 </style>
