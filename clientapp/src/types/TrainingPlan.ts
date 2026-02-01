@@ -1,4 +1,4 @@
-export type TrainingCategory = number;
+﻿export type TrainingCategory = number;
 
 export interface TrainingExercise {
     id: string;
@@ -27,8 +27,11 @@ export interface TrainingPlan {
     isFavorite: boolean;
     createdUtc: string;
     updatedUtc: string;
-    days: TrainingDay[];
+    code?: string;
+    exerciseCount?: number;
+    days?: TrainingDay[];
 }
+
 
 export type TrainingPlanUpsert = {
     name: string;

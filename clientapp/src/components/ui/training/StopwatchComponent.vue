@@ -12,8 +12,8 @@
                    ghost-class="drag-ghost"
                    chosen-class="drag-chosen"
                    drag-class="dragging"
-                   :force-fallback="true"
-                   :animation="0"
+                   :force-fallback="false"
+                   :animation="180"
                    direction="vertical"
                    easing="cubic-bezier(0.16,1,0.3,1)"
                    :delay="dragDelay"
@@ -22,12 +22,14 @@
                    :fallback-tolerance="3"
                    :fallback-on-body="true"
                    :scroll="true"
-                   :scroll-sensitivity="40"
-                   :scroll-speed="12"
-                   :swap-threshold="0.3"
+                   :scroll-sensitivity="70"
+                   :scroll-speed="18"
+                   :swap-threshold="0.65"
+                   @start="onDragStart"
+                   @end="onDragEnd"
                    tag="div"
                    class="drag-stack"
-                   @update:modelValue="(list) => emit('reorder', list)">
+                   @update:modelValue="onDragUpdate">
             <template #item="{ element: stopwatch }">
                 <div class="timer-card"
                      :data-running="stopwatch.isRunning"
@@ -278,7 +280,7 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, watch, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+    import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
     import Draggable from 'vuedraggable'
     import type { StopwatchInstance as StopwatchInstanceBase, LapEntry } from '@/types/stopwatch'
     import AddButton from '@/components/ui/buttons/AddButton.vue'
@@ -293,6 +295,7 @@
     import KebabButton from '@/components/ui/buttons/KebabButton.vue'
     import KebabMenu, { type KebabMenuItem } from '@/components/ui/menu/KebabMenu.vue'
     import ActionSelectPopup, { type ActionSelectRow } from '@/components/ui/popups/ActionSelectPopup.vue'
+    import { useStopwatchesStore, effectiveElapsedMs } from '@/store/stopwatchesStore'
 
     type ToastKind = 'delete' | 'add' | 'save' | 'timer' | 'load'
 
@@ -314,22 +317,62 @@
     type LapsPickAction = 'copy' | 'delete' | 'edit'
 
     const props = defineProps<{
-        stopwatches: StopwatchInstance[]
         dragDelay: number
-
-        toggleStopwatch: (sw: StopwatchInstance) => void
-        resetStopwatch: (sw: StopwatchInstance) => void
-
+        stickyEnabled?: boolean
         addToast: (message: string, type?: ToastKind) => void
     }>()
 
     const emit = defineEmits<{
-        (e: 'reorder', list: StopwatchInstance[]): void
-        (e: 'add-stopwatch', stopwatch: StopwatchInstance): void
-        (e: 'remove-stopwatch', id: string): void
         (e: 'validation', errors: string[]): void
-        (e: 'open-menu', id: string): void
     }>()
+
+    const store = useStopwatchesStore()
+
+    type UiStopwatch = StopwatchInstanceBase & {
+        time: number // seconds
+        interval: number | null // bleibt legacy, aber harmless
+        isFavorite: boolean
+        lapMode?: 'min' | 'max' | 'const' | 'none'
+        targetSeconds?: number
+    }
+
+    const metaById = ref<Record<string, Pick<UiStopwatch, 'isFavorite' | 'lapMode' | 'targetSeconds'>>>({})
+
+    function getMeta(id: string) {
+        if (!metaById.value[id]) {
+            metaById.value[id] = { isFavorite: false, lapMode: 'min', targetSeconds: undefined }
+        }
+        return metaById.value[id]
+    }
+
+    // Re-render-Tick für laufende Stoppuhren (damit Anzeige live läuft)
+    const nowTick = ref(0)
+    let tickTimer: number | null = null
+
+    const stopwatches = computed<UiStopwatch[]>(() => {
+        // tick-only dependency:
+        void nowTick.value
+
+        return store.items
+            .slice()
+            .sort((a, b) => {
+                const af = getMeta(a.id).isFavorite ? 1 : 0
+                const bf = getMeta(b.id).isFavorite ? 1 : 0
+                if (af !== bf) return bf - af // Favoriten zuerst
+                return (a.sortIndex ?? 0) - (b.sortIndex ?? 0) // danach normal
+            })
+            .map((s) => {
+                const meta = getMeta(s.id)
+                return {
+                    ...s,
+                    time: effectiveElapsedMs(s) / 1000,
+                    interval: null,
+                    isFavorite: meta.isFavorite,
+                    lapMode: meta.lapMode,
+                    targetSeconds: meta.targetSeconds,
+                }
+            })
+    })
 
     const showLapsMenu = ref(false)
     const lapsMenuAnchor = ref<HTMLElement | null>(null)
@@ -354,12 +397,12 @@
     const editingTargetInitialValue = ref('')
 
     const openTargetTimeEdit = (swId: string) => {
-        const sw = props.stopwatches.find(s => s.id === swId)
+        const sw = stopwatches.value.find(s => s.id === swId)
         if (!sw) return
 
         editingTargetStopwatchId.value = swId
 
-        const t = sw.targetSeconds
+        const t = getMeta(swId).targetSeconds
         const hasTarget = typeof t === 'number' && t > 0
         editingTargetValue.value = hasTarget ? String(t.toFixed(2)) : ''
         editingTargetInitialValue.value = editingTargetValue.value.trim()
@@ -369,27 +412,32 @@
 
     const targetConfirmText = computed(() => {
         const swId = editingTargetStopwatchId.value
-        const sw = swId ? props.stopwatches.find(s => s.id === swId) : null
-        if (!sw) return 'Speichern'
+        if (!swId) return 'Speichern'
 
-        const hasTarget = typeof sw.targetSeconds === 'number' && sw.targetSeconds > 0
+        const meta = getMeta(swId)
+        const hasTarget = typeof meta.targetSeconds === 'number' && meta.targetSeconds > 0
         if (!hasTarget) return 'Speichern'
 
         const curRaw = (editingTargetValue.value ?? '').trim()
-
-        // leer -> wird gelöscht -> Button soll "Entfernen" zeigen
         if (!curRaw) return 'Entfernen'
 
-        // robust: format-unabhängig vergleichen (12 / 12.00 / 0:12.00)
         const curSeconds = parseTargetSeconds(curRaw)
         if (curSeconds === null) return 'Speichern'
 
         const curFixed = Number(curSeconds.toFixed(2))
-        const targetFixed = Number((sw.targetSeconds ?? 0).toFixed(2))
+        const targetFixed = Number((meta.targetSeconds ?? 0).toFixed(2))
 
         return curFixed === targetFixed ? 'Entfernen' : 'Speichern'
     })
 
+    const isDragging = ref(false)
+
+    const onDragStart = () => {
+        isDragging.value = true
+    }
+    const onDragEnd = () => {
+        isDragging.value = false
+    }
 
     const parseTargetSeconds = (raw: string): number | null => {
         const s = (raw ?? '').trim()
@@ -412,43 +460,39 @@
 
     const saveTargetTime = (val: string) => {
         const swId = editingTargetStopwatchId.value
-        const sw = swId ? props.stopwatches.find(s => s.id === swId) : null
-        if (!sw) { showTargetEditPopup.value = false; return }
+        if (!swId) { showTargetEditPopup.value = false; return }
 
-        const hasTarget = typeof sw.targetSeconds === 'number' && sw.targetSeconds > 0
+        const meta = getMeta(swId)
+        const hasTarget = typeof meta.targetSeconds === 'number' && meta.targetSeconds > 0
         const trimmed = (val ?? '').trim()
         const init = (editingTargetInitialValue.value ?? '').trim()
 
-        // CASE 1: Ziel war gesetzt + User hat NICHTS geändert -> Entfernen statt Speichern
         if (hasTarget && init && trimmed === init) {
-            sw.targetSeconds = undefined
+            meta.targetSeconds = undefined
             props.addToast('Zielzeit entfernt', 'save')
             showTargetEditPopup.value = false
             return
         }
 
-        // CASE 2: Input leer -> Ziel löschen (oder einfach schließen wenn keins gesetzt war)
         if (!trimmed) {
             if (hasTarget) {
-                sw.targetSeconds = undefined
+                meta.targetSeconds = undefined
                 props.addToast('Zielzeit entfernt', 'save')
             }
             showTargetEditPopup.value = false
             return
         }
 
-        // CASE 3: Speichern (neu/changed)
         const seconds = parseTargetSeconds(trimmed)
         if (seconds === null) {
             emit('validation', ['Ungültige Zielzeit. Beispiel: 12.00 oder 0:12.00'])
             return
         }
 
-        sw.targetSeconds = Number(seconds.toFixed(2))
-        props.addToast(`Zielzeit gesetzt: ${formatLapTime(sw.targetSeconds)}`, 'save')
+        meta.targetSeconds = Number(seconds.toFixed(2))
+        props.addToast(`Zielzeit gesetzt: ${formatLapTime(meta.targetSeconds)}`, 'save')
         showTargetEditPopup.value = false
     }
-
 
     const isLapUnderTarget = (sw: StopwatchInstance, lapSeconds: number) => {
         const t = sw.targetSeconds
@@ -493,7 +537,7 @@
         const base = baseRaw || 'Stoppuhr'
 
         const existing = new Set(
-            props.stopwatches
+            stopwatches.value
                 .filter(sw => !excludeId || sw.id !== excludeId)
                 .map(sw => (sw.name || 'Stoppuhr').trim().toLowerCase())
         )
@@ -705,7 +749,7 @@
         newStopwatchName.value = ''
     }
 
-    const saveStopwatch = () => {
+    const saveStopwatch = async () => {
         const validated = validateStopwatchName(newStopwatchName.value)
         if (validated === false) {
             emit('validation', ['Stoppuhr darf maximal 30 Zeichen lang sein'])
@@ -714,67 +758,83 @@
 
         const uniqueName = makeUniqueStopwatchName(validated)
 
-        const sw: StopwatchInstance = {
-            id: makeId(),
-            name: uniqueName,
-            time: 0,
-            isRunning: false,
-            interval: null,
-            laps: [],
-            isFavorite: false,
-            isVisible: true,
-            shouldStaySticky: false,
-            targetSeconds: undefined
-        }
+        try {
+            const created = await store.create(uniqueName)
+            // lokale meta defaults anlegen
+            getMeta(created.id)
 
-        emit('add-stopwatch', sw)
-        props.addToast('Stoppuhr hinzugefügt', 'add')
-        closeAddStopwatchPopup()
+            props.addToast('Stoppuhr hinzugefügt', 'add')
+            closeAddStopwatchPopup()
+        } catch {
+            emit('validation', ['Stoppuhr konnte nicht erstellt werden.'])
+        }
+    }
+
+    const toggleStopwatch = async (sw: UiStopwatch) => {
+        try {
+            if (sw.isRunning) await store.stop(sw.id)
+            else await store.start(sw.id)
+        } catch {
+            emit('validation', ['Stoppuhr konnte nicht aktualisiert werden.'])
+        }
+    }
+
+    const resetStopwatch = async (sw: UiStopwatch) => {
+        try {
+            await store.reset(sw.id)
+            props.addToast('Reset ✅', 'timer')
+        } catch {
+            emit('validation', ['Reset fehlgeschlagen.'])
+        }
     }
 
     const toggleFavorite = (id: string) => {
-        const sw = props.stopwatches.find(x => x.id === id)
-        if (!sw) return
-
-        sw.isFavorite = !sw.isFavorite
-
-        const favs = props.stopwatches.filter(x => x.isFavorite)
-        const others = props.stopwatches.filter(x => !x.isFavorite)
-
-        emit('reorder', [...favs, ...others])
+        const meta = getMeta(id)
+        meta.isFavorite = !meta.isFavorite
 
         props.addToast(
-            sw.isFavorite ? 'Stoppuhr zu Favoriten hinzugefügt' : 'Stoppuhr aus Favoriten entfernt',
-            sw.isFavorite ? 'add' : 'delete'
+            meta.isFavorite ? 'Stoppuhr zu Favoriten hinzugefügt' : 'Stoppuhr aus Favoriten entfernt',
+            meta.isFavorite ? 'add' : 'delete'
         )
     }
 
-    const addLapTime = (stopwatch: StopwatchInstance) => {
+    const addLapTime = async (stopwatch: StopwatchInstance) => {
         if (!stopwatch.isRunning) return
 
-        stopwatch.laps = stopwatch.laps || []
+        const base = store.items.find(x => x.id === stopwatch.id)
+        if (!base) return
+
+        // sicherstellen, dass laps im Store existiert (nicht nur in UI-Kopie)
+        base.laps = base.laps ?? []
 
         // Lap-Dauer = aktuelle Gesamtzeit - Summe der bisherigen Lap-Dauern
-        const elapsedByLaps = (stopwatch.laps || []).reduce<number>((sum, lap) => sum + toLapObj(lap).time, 0)
+        const elapsedByLaps = base.laps.reduce<number>((sum, lap) => sum + toLapObj(lap).time, 0)
         const lapDuration = Math.max(0, stopwatch.time - elapsedByLaps)
 
-        stopwatch.laps.push({ time: lapDuration, name: '' })
-        props.addToast('Runde aufgezeichnet', 'timer')
+        base.laps.push({ time: lapDuration, name: '' })
+        base.laps = [...base.laps]
+
+        try {
+            await store.update(base.id, { laps: base.laps } as any)
+            props.addToast('Runde aufgezeichnet', 'timer')
+        } catch {
+            emit('validation', ['Runde konnte nicht gespeichert werden.'])
+        }
     }
 
     const openStopwatchNameEdit = (id: string) => {
-        const sw = props.stopwatches.find(x => x.id === id)
+        const sw = stopwatches.value.find(x => x.id === id)
         if (!sw) return
         editingStopwatchId.value = id
         editingStopwatchValue.value = sw.name || ''
         showNameEditPopup.value = true
     }
 
-    const saveStopwatchName = (val: string) => {
+    const saveStopwatchName = async (val: string) => {
         const id = editingStopwatchId.value
         if (!id) { showNameEditPopup.value = false; return }
 
-        const sw = props.stopwatches.find(x => x.id === id)
+        const sw = stopwatches.value.find(x => x.id === id)
         if (!sw) { showNameEditPopup.value = false; return }
 
         const validated = validateStopwatchName(val)
@@ -783,9 +843,15 @@
             return
         }
 
-        sw.name = makeUniqueStopwatchName(validated, sw.id)
-        props.addToast('Stoppuhrname aktualisiert', 'timer')
-        showNameEditPopup.value = false
+        const nextName = makeUniqueStopwatchName(validated, sw.id)
+
+        try {
+            await store.update(id, { name: nextName })
+            props.addToast('Stoppuhrname aktualisiert', 'timer')
+            showNameEditPopup.value = false
+        } catch {
+            emit('validation', ['Name konnte nicht gespeichert werden.'])
+        }
     }
 
     const saveLapName = (val: string) => {
@@ -793,10 +859,10 @@
         const idx = editingLapIndex.value
         if (!swId || idx === null) { showLapNameEditPopup.value = false; return }
 
-        const sw = props.stopwatches.find(s => s.id === swId)
-        if (!sw) { showLapNameEditPopup.value = false; return }
+        const base = store.items.find(x => x.id === swId)
+        if (!base) { showLapNameEditPopup.value = false; return }
 
-        const laps = sw.laps || []
+        const laps = base.laps ?? []
         if (idx < 0 || idx >= laps.length) { showLapNameEditPopup.value = false; return }
 
         const trimmed = (val ?? '').trim()
@@ -805,18 +871,24 @@
             return
         }
 
-        const uniqueName = makeUniqueLapName(sw, trimmed, idx)
+        const uniqueName = makeUniqueLapName(base as any, trimmed, idx)
 
         const o = toLapObj(laps[idx])
         laps[idx] = { time: o.time, name: uniqueName }
-        sw.laps = laps
+
+        // reactivity + persist
+        base.laps = [...laps]
+
+        store.update(swId, { laps: base.laps } as any).catch(() => {
+            emit('validation', ['Rundenname konnte nicht gespeichert werden.'])
+        })
 
         props.addToast('Rundenname aktualisiert', 'save')
         showLapNameEditPopup.value = false
     }
 
     const openLapNameEdit = (swId: string, idx: number) => {
-        const sw = props.stopwatches.find(s => s.id === swId)
+        const sw = stopwatches.value.find(s => s.id === swId)
         if (!sw) return
 
         const laps = sw.laps || []
@@ -847,10 +919,9 @@
         }
     }
 
-    // REPLACE: onLapsMenuSelect(...)
     const onLapsMenuSelect = async (id: string) => {
         const swId = lapsMenuStopwatchId.value
-        const sw = swId ? props.stopwatches.find(s => s.id === swId) : null
+        const sw = swId ? stopwatches.value.find(s => s.id === swId) : null
         if (!sw) return
 
         const laps = sw.laps || []
@@ -880,8 +951,8 @@
     }
 
     const requestDelete = (id: string) => {
-        if (props.stopwatches.length <= 1) {
-            emit('validation', ['Mindestens eine Stoppuhr muss geöffnet bleiben'])
+        if (store.items.length <= 1) {
+            emit('validation', ['Mindestens eine Stoppuhr muss bleiben'])
             return
         }
         pendingDeleteId.value = id
@@ -925,11 +996,10 @@
 
     const onLapModeConfirm = (payload: { all: boolean; ids: string[] }) => {
         const swId = lapModeStopwatchId.value
-        const sw = swId ? props.stopwatches.find(s => s.id === swId) : null
-        if (!sw) return
+        if (!swId) return
 
         const picked = (payload.ids?.[0] ?? 'min') as StopwatchInstance['lapMode']
-        sw.lapMode = picked
+        getMeta(swId).lapMode = picked
 
         const label =
             picked === 'min' ? 'Zeit minimieren' :
@@ -968,7 +1038,7 @@
 
     const onLapsPickConfirm = async (payload: { all: boolean; ids: string[] }) => {
         const swId = lapsPickStopwatchId.value
-        const sw = swId ? props.stopwatches.find(s => s.id === swId) : null
+        const sw = swId ? stopwatches.value.find(s => s.id === swId) : null
         if (!sw) return
 
         const laps = sw.laps || []
@@ -989,8 +1059,15 @@
 
         // DELETE
         if (lapsPickAction.value === 'delete') {
+            const base = store.items.find(x => x.id === swId)
+            if (!base) return
+
             const kill = new Set(idx)
-            sw.laps = laps.filter((_, i) => !kill.has(i))
+            base.laps = (base.laps ?? []).filter((_, i) => !kill.has(i))
+            base.laps = [...base.laps]
+
+            await store.update(swId, { laps: base.laps } as any)
+
             props.addToast('Runden gelöscht', 'delete')
             closeLapsPickPopup()
             return
@@ -1012,20 +1089,54 @@
         pendingDeleteId.value = null
     }
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         const id = pendingDeleteId.value
         if (!id) { cancelDelete(); return }
 
-        const sw = props.stopwatches.find(x => x.id === id)
-        if (sw?.isRunning) {
-            // Parent-Logik steckt in toggleStopwatch – wir triggern nur
-            props.toggleStopwatch(sw)
+        const sw = store.items.find(x => x.id === id)
+        try {
+            if (sw?.isRunning) {
+                await store.stop(id)
+            }
+            await store.remove(id)
+
+            // lokale meta aufräumen (optional)
+            const { [id]: _, ...rest } = metaById.value
+            metaById.value = rest
+
+            props.addToast('Stoppuhr gelöscht', 'delete')
+        } catch (e: any) {
+            // Backend kann "mindestens eine muss bleiben" schicken
+            emit('validation', [e?.response?.data?.message ?? 'Löschen fehlgeschlagen.'])
+        } finally {
+            cancelDelete()
+        }
+    }
+
+    const onDragUpdate = async (list: UiStopwatch[]) => {
+        try {
+            const orderedIds = list.map(x => x.id)
+            await store.reorder(orderedIds)
+        } catch {
+            emit('validation', ['Reihenfolge konnte nicht gespeichert werden.'])
+        }
+    }
+    onMounted(async () => {
+        try {
+            await store.load()
+        } catch {
+            emit('validation', ['Stopuhren konnten nicht geladen werden (Backend/Auth?).'])
         }
 
-        emit('remove-stopwatch', id)
-        props.addToast('Stoppuhr gelöscht', 'delete')
-        cancelDelete()
-    }
+        tickTimer = window.setInterval(() => {
+            if (isDragging.value) return
+            nowTick.value++
+        }, 100)
+    })
+    onBeforeUnmount(() => {
+        if (tickTimer) window.clearInterval(tickTimer)
+        tickTimer = null
+    })
 
     watch(showLapNameEditPopup, (open) => {
         if (open) return
@@ -1452,6 +1563,7 @@
         justify-content: flex-end;
         gap: .5rem;
     }
+
     .lap-delta {
         font-size: .72rem;
         line-height: 1;
@@ -1680,6 +1792,4 @@
             display: inline-flex;
         }
     }
-
-
 </style>

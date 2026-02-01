@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Gym3000.Api.Entities;
+using TimerEntity = Gym3000.Api.Entities.Time.Timer;
+using StopwatchEntity = Gym3000.Api.Entities.Time.Stopwatch;
 
 namespace Gym3000.Api.Data;
 
@@ -19,6 +21,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<TrainingDay> TrainingDays => Set<TrainingDay>();
     public DbSet<TrainingExercise> TrainingExercises => Set<TrainingExercise>();
     public DbSet<ProgressEntry> ProgressEntries => Set<ProgressEntry>();
+    public DbSet<TimerEntity> Timers => Set<TimerEntity>();
+    public DbSet<StopwatchEntity> Stopwatches => Set<StopwatchEntity>();
 
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -153,6 +157,12 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
              .IsRequired()
              .HasMaxLength(120);
 
+            e.Property(x => x.Code)
+             .IsRequired()
+             .HasMaxLength(12);
+
+            e.HasIndex(x => x.Code).IsUnique();
+
             e.Property(x => x.CreatedUtc).IsRequired();
             e.Property(x => x.UpdatedUtc).IsRequired();
 
@@ -238,6 +248,49 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
             e.HasIndex(x => new { x.UserId, x.PlanId, x.Date });
             e.HasIndex(x => new { x.UserId, x.PlanId, x.Exercise });
+        });
+
+        // -------- Timers (Satzpausen-Timer) --------
+        builder.Entity<TimerEntity>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).IsRequired();
+
+            e.Property(x => x.Name)
+             .IsRequired()
+             .HasMaxLength(64);
+
+            e.Property(x => x.SecondsPreset)
+             .IsRequired()
+             .HasMaxLength(16);
+
+            e.Property(x => x.Sound)
+             .IsRequired()
+             .HasMaxLength(32);
+
+            e.Property(x => x.CreatedUtc).IsRequired();
+            e.Property(x => x.UpdatedUtc).IsRequired();
+
+            e.HasIndex(x => new { x.UserId, x.SortIndex });
+            e.HasIndex(x => new { x.UserId, x.IsFavorite });
+        });
+        builder.Entity<StopwatchEntity>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).IsRequired();
+
+            e.Property(x => x.Name)
+             .IsRequired()
+             .HasMaxLength(64);
+
+            e.Property(x => x.CreatedUtc).IsRequired();
+            e.Property(x => x.UpdatedUtc).IsRequired();
+
+            e.HasIndex(x => new { x.UserId, x.SortIndex });
+            e.HasIndex(x => new { x.UserId, x.ShouldStaySticky });
+            e.HasIndex(x => new { x.UserId, x.IsVisible });
         });
 
     }

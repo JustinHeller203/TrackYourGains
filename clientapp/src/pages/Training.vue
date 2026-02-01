@@ -3,251 +3,15 @@
     <div class="training">
         <h2 class="page-title">💪 Training</h2>
         <!-- Trainingsplan Formular -->
-        <div class="workout-list builder-section" ref="builderSection">
-            <h3 class="section-title">Trainingsplan erstellen/bearbeiten</h3>
+        <TrainingPlanBuilder ref="builderRef"
+                             :openEditPopup="openEditPopup"
+                             :addToast="addToast"
+                             :openValidationPopup="openValidationPopup"
+                             :openDeletePopup="openDeletePopup"
+                             v-model:customExercises="customExercises"
+                             :saveToStorage="saveToStorage" />
 
-            <form @submit.prevent="createOrUpdatePlan" class="form-card builder-grid">
-                <!-- LEFT: Builder -->
-                <div class="builder-left">
-                    <!-- Kopf: Planname + Typ (Segmented) + Extras rechts -->
-                    <div class="builder-head">
-                        <!-- NEU: Planname mit Überschrift -->
-                        <div class="plan-block">
-                            <label for="plan-name" class="field-label">Planname</label>
-                            <input id="plan-name"
-                                   v-model="planName"
-                                   class="plan-name-input slim"
-                                   placeholder="Planname (z. B. Push Day)"
-                                   required />
-                        </div>
-
-                        <!-- Trainingstyp (Desktop: Segmented + Überschrift) -->
-                        <div class="type-block desktop-only">
-                            <span class="type-heading field-label">Trainingstyp</span>
-                            <div class="segmented seg-type">
-                                <button type="button" :class="{ on: trainingType==='kraft' }" @click="trainingType='kraft'">Kraft</button>
-                                <button type="button" :class="{ on: trainingType==='calisthenics' }" @click="trainingType='calisthenics'">Calisthenics</button>
-                                <button type="button" :class="{ on: trainingType==='ausdauer' }" @click="trainingType='ausdauer'">Ausdauer</button>
-                                <button type="button" :class="{ on: trainingType==='dehnung' }" @click="trainingType='dehnung'">Dehnung</button>
-                            </div>
-                        </div>
-
-                        <!-- Trainingstyp (Mobile ≤560px: Label + Dropdown) -->
-                        <div class="type-block mobile-only">
-                            <label class="type-heading field-label" for="training-type">Trainingstyp</label>
-                            <UiSelect v-model="trainingTypeSafe"
-                                      id="training-type"
-                                      aria-label="Trainingstyp wählen"
-                                      placeholder="Trainingstyp wählen"
-                                      :options="[
-            { value: 'kraft',        label: 'Kraft' },
-            { value: 'calisthenics', label: 'Calisthenics' },
-            { value: 'ausdauer',     label: 'Ausdauer' },
-            { value: 'dehnung',      label: 'Dehnung' }
-          ]" />
-                        </div>
-
-                        <!-- Extras-Button rechtsbündig (unverändert) -->
-                        <ExtrasToggleButton :extraClass="['action-btn','extras-cta']"
-                                            :toggled="showExtras"
-                                            :title="showExtras ? 'Extras ausblenden' : 'Extras einblenden'"
-                                            :aria-label="showExtras ? 'Extras ausblenden' : 'Extras einblenden'"
-                                            @click="toggleExtras" />
-                    </div>
-
-                    <div v-show="showExtras" class="goal-row">
-                        <label class="field-label">Trainingsziel</label>
-                        <div class="field-row">
-                            <UiSelect v-model="selectedGoalSafe"
-                                      class="goal-select"
-                                      placeholder="Trainingsziel"
-                                      :options="trainingGoals" />
-                        </div>
-                    </div>
-
-                    <!-- Filter -->
-                    <div class="field-block" v-if="trainingType !== 'ausdauer'">
-                        <label class="field-label">Muskelgruppe</label>
-                        <div class="field-row">
-                            <input class="filter-input"
-                                   v-model="exerciseFilter"
-                                   placeholder="z. B. Brust, Oberkörper, Push" />
-                        </div>
-                    </div>
-
-                    <!-- Übungsauswahl -->
-                    <div class="field-block" v-if="trainingType !== 'ausdauer'">
-                        <label class="field-label">Übung</label>
-                        <div class="field-row">
-                            <UiSelect v-model="newExerciseSafe"
-                                      placeholder="Übung wählen"
-                                      :options="[
-    ...filteredExercises,
-    { value: 'custom', label: 'Eigene Übung hinzufügen…', isCustom: true }
-  ]" />
-
-                            <input v-show="newExercise === 'custom'"
-                                   v-model="customPlanExercise"
-                                   placeholder="Eigene Übung eingeben" />
-                        </div>
-                    </div>
-
-                    <!-- Cardio -->
-                    <div class="field-block" v-else>
-                        <label class="field-label">Cardio-Art</label>
-                        <div class="field-row">
-                            <UiSelect v-model="cardioExerciseSafe"
-                                      placeholder="Cardio-Art"
-                                      :options="filteredExercises" />
-                        </div>
-                    </div>
-
-                    <!-- Parameter -->
-                    <div class="field-grid" v-if="trainingType === 'kraft' || trainingType === 'calisthenics'">
-                        <div class="field">
-                            <label>Sätze</label>
-                            <input v-model.number="newSets" type="number" min="1" placeholder="z. B. 4" />
-                        </div>
-                        <div class="field">
-                            <label>Wiederholungen</label>
-                            <input v-model.number="newReps" type="number" min="1" placeholder="z. B. 8–12" />
-                        </div>
-                    </div>
-
-                    <div class="field-grid" v-else-if="trainingType === 'dehnung'">
-                        <div class="field">
-                            <label>Holds</label>
-                            <input v-model.number="newSets" type="number" min="1" placeholder="z. B. 3" />
-                        </div>
-                        <div class="field">
-                            <label>Sekunden pro Hold</label>
-                            <input v-model.number="newReps" type="number" min="1" placeholder="z. B. 30" />
-                        </div>
-                    </div>
-
-                    <div class="field-grid" v-else>
-                        <div class="field">
-                            <label>Dauer (Min)</label>
-                            <input v-model.number="newDuration" type="number" min="1" placeholder="z. B. 25" />
-                        </div>
-                        <div class="field">
-                            <label>Distanz (km, optional)</label>
-                            <input v-model.number="newDistance" type="number" min="0" step="0.1" placeholder="z. B. 5" />
-                        </div>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="actions-row stack">
-                        <div class="button-group">
-                            <div class="btn-cell">
-                                <AddExerciseButton class="action-btn add-exercise-btn block"
-                                                   title="Übung hinzufügen"
-                                                   @click="addExerciseToPlan" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <PlanSubmitButton class="action-btn"
-                                      :isEditing="!!editingPlanId"
-                                      :disabled="validatePlanName(planName) === false"
-                                      createLabel="Plan erstellen"
-                                      saveLabel="Plan speichern" />
-                </div>
-
-                <!-- RIGHT: Live Preview (sticky) -->
-                <div class="builder-right">
-                    <div class="preview-card">
-                        <div class="preview-head">
-                            <h4>Live-Preview</h4>
-                            <span v-if="selectedPlanExercises.length" class="muted">
-                                {{ selectedPlanExercises.length }} Übung{{ selectedPlanExercises.length===1?'':'en' }}
-                            </span>
-                        </div>
-
-                        <Table v-if="selectedPlanExercises.length"
-                               class="exercise-table full-width compact"
-                               density="compact">
-                            <table ref="previewTable" data-cols="4">
-                                <thead>
-                                    <tr>
-                                        <!-- 3 resizable Spalten -->
-                                        <th class="resizable" :style="{ width: previewColWidths[0] + '%' }">
-                                            <span class="th-text">Übung</span>
-                                        </th>
-                                        <th class="resizable" :style="{ width: previewColWidths[1] + '%' }">
-                                            <span class="th-text">
-                                                {{ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
-                                            </span>
-                                        </th>
-                                        <th class="resizable th-wdh" :style="{ width: previewColWidths[2] + '%' }">
-                                            <span class="th-text th-label">
-                                                <span class="full">
-                                                    {{
-selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                      ? 'Wdh. / km / s'
-                      : 'Wiederholungen'
-                                                    }}
-                                                </span>
-                                                <span class="mid">
-                                                    {{
-selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                      ? 'Wdh./km/s'
-                      : 'Wiederhol...'
-                                                    }}
-                                                </span>
-                                                <span class="short">
-                                                    {{
-selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                      ? 'W/km/s'
-                      : 'Wdh.'
-                                                    }}
-                                                </span>
-                                            </span>
-                                        </th>
-
-                                        <!-- Aktion NICHT resizable, bekommt eigene feste Breite -->
-                                        <th :style="{ width: previewColWidths[3] + '%' }">Aktion</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    <tr v-for="(ex, index) in selectedPlanExercises"
-                                        :key="index"
-                                        @dblclick="openEditPopup('table', index, $event)">
-                                        <td :style="{ width: previewColWidths[0] + '%' }">{{ ex.exercise }}</td>
-                                        <td :style="{ width: previewColWidths[1] + '%' }">
-                                            {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
-                                        </td>
-                                        <td :style="{ width: previewColWidths[2] + '%' }">
-                                            <template v-if="ex.type === 'ausdauer'">
-                                                {{ ex.reps ? `${ex.reps} km` : '-' }}
-                                            </template>
-                                            <template v-else-if="ex.type === 'dehnung'">
-                                                {{ ex.reps }} s
-                                            </template>
-                                            <template v-else>
-                                                {{ ex.reps }}
-                                            </template>
-                                        </td>
-                                        <td class="action-cell">
-                                            <DeleteButton class="table-delete-btn"
-                                                          title="Übung entfernen"
-                                                          @click="removeExerciseFromPlan(index)" />
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </Table>
-
-                        <div v-else class="empty-preview">
-                            <span>Noch keine Übung hinzugefügt.</span>
-                        </div>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <div v-if="auth.user && plans.length" class="workout-list">
+        <div v-if="auth.user" class="workout-list plans-section">
             <h3 class="section-title">Deine Trainingspläne</h3>
 
             <UiSearch v-model="planSearch"
@@ -256,7 +20,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                       class="plan-search" />
 
             <!-- Favoriten sortieren -->
-            <Draggable v-if="favoritePlanItems.length"
+            <Draggable v-if="plans.length && favoritePlanItems.length"
                        v-model="favoritePlanItems"
                        item-key="id"
                        :handle="isMobile ? undefined : '.plan-drag-handle'"
@@ -294,7 +58,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                                   @click="loadPlan(plan.id)"
                                   @dblclick="openEditPopup('planName', plan.id)">
                                 <span class="plan-name-scroll">{{ plan.name }}</span>
-                                <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
+                                <span class="plan-count">({{ plan.exerciseCount }} Übungen)</span>
                             </span>
 
                             <div class="plan-right">
@@ -336,7 +100,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             </Draggable>
 
             <!-- Nicht-Favoriten sortieren -->
-            <Draggable v-model="otherPlanItems"
+            <Draggable v-if="plans.length"
+                       v-model="otherPlanItems"
                        item-key="id"
                        :handle="isMobile ? undefined : '.plan-drag-handle'"
                        ghost-class="drag-ghost"
@@ -373,7 +138,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                                   @click="loadPlan(plan.id)"
                                   @dblclick="openEditPopup('planName', plan.id)">
                                 <span class="plan-name-scroll">{{ plan.name }}</span>
-                                <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
+                                <span class="plan-count">({{ (plan.exerciseCount ?? plan.exercises?.length ?? 0) }} Übungen)</span>
                             </span>
 
                             <div class="plan-right">
@@ -419,7 +184,17 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         <div v-if="selectedPlan" class="workout-list">
             <div class="plan-header">
                 <h3 class="section-title" @dblclick="openEditPopup('selectedPlanName', selectedPlan.id)">
-                    Trainingsplan: {{ selectedPlan.name }}
+                    <span class="plan-title-main">
+                        Trainingsplan: {{ selectedPlan.name }}
+                    </span>
+
+                    <div v-if="selectedPlan.code" class="plan-code-row">
+                        <span class="plan-code-badge"
+                              :title="`${selectedPlan.code} (Doppelklick zum Kopieren)`"
+                              @dblclick.stop="copyPlanCode(selectedPlan.code)">
+                            Code: {{ middleEllipsis(selectedPlan.code, 14) }}
+                        </span>
+                    </div>
                 </h3>
                 <CloseButton title="Plan schließen" @click="closePlan" />
             </div>
@@ -525,16 +300,14 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 
                         <tbody>
                             <tr v-for="(ex, i) in customExercises" :key="i">
-                                <td :style="{ width: customColWidths[0] + '%' }" @dblclick="openEditPopup('customExerciseName', i)">
-                                    <input v-if="exerciseEditIndex === i && exerciseEditField === 'name'"
-                                           v-model="ex.name" @blur="finishEdit" @keyup.enter="finishEdit" />
-                                    <span v-else>{{ ex.name }}</span>
+                                <td :style="{ width: customColWidths[0] + '%' }"
+                                    @dblclick="openEditPopup('customExerciseName', i)">
+                                    <span>{{ ex.name }}</span>
                                 </td>
-
-                                <td class="v-stack" :style="{ width: customColWidths[1] + '%' }" @dblclick="openEditPopup('customExerciseMuscle', i)">
-                                    <input v-if="exerciseEditIndex === i && exerciseEditField === 'muscle'"
-                                           v-model="ex.muscle" @blur="finishEdit" @keyup.enter="finishEdit" />
-                                    <span v-else>{{ ex.muscle }}</span>
+                                <td class="v-stack"
+                                    :style="{ width: customColWidths[1] + '%' }"
+                                    @dblclick="openEditPopup('customExerciseMuscle', i)">
+                                    <span>{{ ex.muscle }}</span>
                                 </td>
 
                                 <td :style="{ width: customColWidths[2] + '%' }" @dblclick="openEditPopup('customExerciseType', i)">
@@ -553,29 +326,18 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             </div>
         </div>
         <!-- Satzpausen-Timer -->
-        <TimerComponent :timers="props.timers"
-                        :dragDelay="dragDelay"
-                        :startTimer="props.startTimer"
-                        :stopTimer="props.stopTimer"
-                        :resetTimer="props.resetTimer"
+        <TimerComponent :dragDelay="dragDelay"
+                        :startTimer="startTimer"
+                        :stopTimer="stopTimer"
+                        :resetTimer="resetTimer"
                         :openEditPopup="openEditPopup"
                         :addToast="addToast"
-                        :dismissToast="dismissToast"
-                        :stickyEnabled="stickyTimerEnabled"
-                        @add-timer="onAddTimerFromChild"
-                        @remove-timer="onRemoveTimerFromChild"
-                        @reorder-timers="onReorderTimers" />
+                        :dismissToast="dismissToast" />
 
         <!-- Übungs-Stoppuhr -->
-        <StopwatchComponent :stopwatches="props.stopwatches"
-                            :dragDelay="dragDelay"
-                            :toggleStopwatch="props.toggleStopwatch"
-                            :resetStopwatch="props.resetStopwatch"
+        <StopwatchComponent :dragDelay="dragDelay"
                             :addToast="addToast"
                             :stickyEnabled="stickyStopwatchEnabled"
-                            @reorder="onReorderStopwatches"
-                            @add-stopwatch="onAddStopwatchFromChild"
-                            @remove-stopwatch="onRemoveStopwatchFromChild"
                             @validation="openValidationPopup" />
 
         <!-- Pop-up für Bearbeitung -->
@@ -616,7 +378,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 </template>
 
 <script setup lang="ts">
-    import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+    import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
     import { jsPDF } from 'jspdf';
     import Draggable from 'vuedraggable';
     import Toast from '@/components/ui/Toast.vue'
@@ -627,21 +389,19 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
     import OpenButton from '@/components/ui/buttons/OpenButton.vue'
     import CloseButton from '@/components/ui/buttons/CloseButton.vue'
-    import AddExerciseButton from '@/components/ui/buttons/AddExerciseButton.vue'
-    import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue'
-    import PlanSubmitButton from '@/components/ui/buttons/PlanSubmitButton.vue'
     import ExportPopup from '@/components/ui/popups/ExportPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
-    import UiSelect from '@/components/ui/kits/UiSelect.vue'
     import TimerComponent from '@/components/ui/training/TimerComponent.vue'
     import StopwatchComponent from '@/components/ui/training/StopwatchComponent.vue'
     import PlanMenu from '@/components/ui/menu/PlanMenu.vue'
-    import UiSearch from '@/components/ui/kits/UiSearch.vue'
+    import UiSearch from '@/components/ui/kits/UiSearch.vue';
+    import TrainingPlanBuilder from '@/components/ui/training/TrainingPlanBuilder.vue'
+
     import { useTrainingPlansStore } from "@/store/trainingPlansStore";
     import { useAuthStore } from '@/store/authStore';
     import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan";
-    import type { TimerInstance, StopwatchInstance } from '@/types/training';
+    import type { TimerInstance } from '@/types/training';
     import {
         LS_AUTH_TOKEN,
         LS_TRAINING_FOCUS_ID,
@@ -665,7 +425,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         id: string;
         name: string;
         isFavorite: boolean;
+        code?: string | null;
         exercises: PlanExercise[];
+        exerciseCount: number; 
     };
 
     type TrainingPlan = ViewPlan;
@@ -690,24 +452,18 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 
     const props = defineProps<{
         timers: TimerInstance[]
-        stopwatches: StopwatchInstance[]
         startTimer: (timer: TimerInstance) => void
         stopTimer: (timer: TimerInstance) => void
         resetTimer: (timer: TimerInstance) => void
-        toggleStopwatch: (sw: StopwatchInstance) => void
-        resetStopwatch: (sw: StopwatchInstance) => void
         removeTimer: (id: string) => void
-        removeStopwatch: (id: string) => void
     }>();
 
     const emit = defineEmits<{
         (e: 'remove-timer', id: string): void;
-        (e: 'remove-stopwatch', id: string): void;
         (e: 'add-timer', timer: TimerInstance): void;
-        (e: 'add-stopwatch', stopwatch: StopwatchInstance): void;
         (e: 'reorder-timers', list: TimerInstance[]): void;
-        (e: 'reorder-stopwatches', list: StopwatchInstance[]): void;
     }>();
+
     const dismissToast = (immediate = false) => {
         if (!toast.value) return;
         clearToastTimer();
@@ -731,13 +487,11 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             toast.value = null
         }
     }
+    const builderRef = ref<InstanceType<typeof TrainingPlanBuilder> | null>(null)
 
     const onReorderTimers = (list: TimerInstance[]) => emit('reorder-timers', list);
     const onAddTimerFromChild = (timer: TimerInstance) => emit('add-timer', timer)
-    const onAddStopwatchFromChild = (sw: StopwatchInstance) => emit('add-stopwatch', sw)
-    const onRemoveStopwatchFromChild = (id: string) => emit('remove-stopwatch', id)
     const onRemoveTimerFromChild = (id: string) => emit('remove-timer', id)
-    const onReorderStopwatches = (list: StopwatchInstance[]) => emit('reorder-stopwatches', list);
 
     // NEU: gemeinsamer Typ für Übungskategorien
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer';
@@ -751,26 +505,19 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     const auth = useAuthStore()
 
     const hardResetTrainingUi = () => {
-        // Pinia Store sofort leeren -> UI verschwindet direkt
-        try { trainingPlansStore.$reset() } catch { /* falls store kein $reset hat, siehe unten */ }
+        // Store leeren -> UI direkt clean
+        try { trainingPlansStore.$reset() } catch { }
 
-        // lokale UI-States killen
         closePlanMenu()
         selectedPlan.value = null
-        selectedPlanExercises.value = []
         planSearch.value = ''
-        editingPlanId.value = null
-        planName.value = ''
-        newExercise.value = ''
-        customPlanExercise.value = ''
-        newReps.value = null
-        newSets.value = null
-        newDuration.value = null
-        newDistance.value = null
-        selectedGoal.value = ''
         rowHeights.value = []
         showCustomExercises.value = false
         customExercises.value = []
+
+        // Builder sauber resetten (weil der State jetzt dort lebt)
+        builderRef.value?.clearEditMode?.()
+        builderRef.value?.resetBuilder?.()
     }
 
     const LS_FAV_ORDER = "LS_TRAINING_FAV_ORDER_IDS";
@@ -799,8 +546,34 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         for (const d of (p.days ?? [])) {
             for (const ex of (d.exercises ?? [])) flat.push(toPlanExercise(ex));
         }
-        return { id: p.id, name: p.name, isFavorite: !!p.isFavorite, exercises: flat };
+
+        // ✅ Falls loadList keine days liefert: nimm Count-Feld aus DTO (wenn vorhanden)
+        const fallbackCount =
+            Number((p as any)?.exerciseCount ?? (p as any)?.exercisesCount ?? (p as any)?.exercise_count ?? 0) || 0;
+
+        const count = flat.length > 0 ? flat.length : fallbackCount;
+
+        return {
+            id: p.id,
+            name: p.name,
+            isFavorite: !!p.isFavorite,
+            code: (p as any)?.code ?? null,
+            exercises: flat,
+            exerciseCount: count,
+        };
     };
+
+    const copyPlanCode = async (code?: string | null) => {
+        const c = (code ?? '').trim()
+        if (!c) { addToast('Kein Code vorhanden', 'delete'); return }
+
+        try {
+            await navigator.clipboard.writeText(c)
+            addToast('Code kopiert', 'save')
+        } catch {
+            addToast('Kopieren fehlgeschlagen', 'delete')
+        }
+    }
 
     const plans = computed<ViewPlan[]>(() => trainingPlansStore.items.map(flattenDto));
 
@@ -817,22 +590,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         return next;
     });
 
-    const planName = ref('');
-    const newExercise = ref('');
-    const customPlanExercise = ref('');
-    const newReps = ref<number | null>(null);
-    const newSets = ref<number | null>(null);
-    const trainingType = ref<'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung'>('kraft')
-    const cardioTypes = ref([
-        'Laufen', 'Radfahren', 'Rudern', 'Crosstrainer', 'Seilspringen', 'Treppensteigen', 'Schwimmen'
-    ])
-    const cardioExercise = ref('')
-    const newDuration = ref<number | null>(null)
-    const newDistance = ref<number | null>(null)
-    const previewColWidths = ref([50, 25, 19, 6]); // Summe 100% (Übung | Sätze | Wdh | Aktion)
-    const previewTable = ref<HTMLTableElement | null>(null);
-    const editingPlanId = ref<string | null>(null);
-    const selectedPlanExercises = ref<PlanExercise[]>([]);
     const selectedPlan = ref<ViewPlan | null>(null);
     const showDeletePopup = ref(false);
     const showEditPopup = ref(false);
@@ -844,129 +601,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     const customColWidths = ref([40, 30, 15, 15]); // Start: Name|Muskel|Typ|Aktion
     const customResizeTable = ref<HTMLTableElement | null>(null);
     const deleteAction = ref<(() => void) | null>(null);
-    // Alias → Kanonische Gruppen
-    const muscleGroupAliases: Record<string, string[]> = {
-        // deutsch
-        'brust': ['Brust'],
-        'rücken': ['Rücken'], 'ruecken': ['Rücken'],
-        'schulter': ['Schultern'], 'schultern': ['Schultern'],
-        'arme': ['Arme'], 'arm': ['Arme'],
-        'beine': ['Beine'], 'bein': ['Beine'], 'unterkörper': ['Beine', 'Bauch'], 'unterkoerper': ['Beine', 'Bauch'],
-        'bauch': ['Bauch'], 'core': ['Bauch'],
-        'oberkörper': ['Brust', 'Rücken', 'Schultern', 'Arme'], 'oberkoerper': ['Brust', 'Rücken', 'Schultern', 'Arme'],
-        'po': ['Beine'], 'gesäß': ['Beine'], 'gluteus': ['Beine'],
-        // Bewegungsmuster (Push/Pull) + Synonyme
-        'push': ['Brust', 'Schultern', 'Arme'],
-        'pull': ['Rücken', 'Arme'],
-        'drücken': ['Brust', 'Schultern', 'Arme'],
-        'ziehen': ['Rücken', 'Arme'],
-        'push day': ['Brust', 'Schultern', 'Arme'],
-        'pull day': ['Rücken', 'Arme'],
-        'pushday': ['Brust', 'Schultern', 'Arme'],
-        'pullday': ['Rücken', 'Arme'],
 
-        // ein paar Untergruppen → Obergruppe (hilft auch Custom)
-        'trizeps': ['Arme'],
-        'bizeps': ['Arme'],
-        'lat': ['Rücken'], 'lats': ['Rücken'], 'latissimus': ['Rücken'],
-
-        // englische Synonyme, falls mal genutzt
-        'chest': ['Brust'],
-        'back': ['Rücken'],
-        'shoulder': ['Schultern'], 'shoulders': ['Schultern'],
-        'arms': ['Arme'], 'biceps': ['Arme'], 'triceps': ['Arme'],
-        'legs': ['Beine'], 'lower body': ['Beine', 'Bauch'],
-        'abs': ['Bauch'], 'core ': ['Bauch'], // core mit Space, um "core " Matches robust zu machen
-        'upper body': ['Brust', 'Rücken', 'Schultern', 'Arme'],
-    };
-
-    // Calisthenics nach Muskelgruppen
-    const calisthenicsByGroup: Record<string, string[]> = {
-        Brust: ['Liegestütze', 'Archer Push-up', 'Dips'],
-        Rücken: ['Klimmzüge', 'Australian Pull-up', 'Archer Pull-up'],
-        Schultern: ['Handstand Push-up', 'Archer Push-up'],
-        Arme: ['Dips', 'Klimmzüge', 'Archer Pull-up'],
-        Bauch: ['L-Sit', 'Dragon Flag', 'Hollow Hold', 'Toes to Bar'],
-        Beine: ['Pistol Squat'],
-    };
-
-    // Dehnübungen nach Muskelgruppen
-    const stretchingByGroup: Record<string, string[]> = {
-        Brust: ['Brust-Dehnung'],
-        Rücken: ['Rücken-Dehnung'],
-        Schultern: ['Schulter-Dehnung', 'Trizeps-Dehnung'],
-        Arme: ['Trizeps-Dehnung'],
-        Bauch: [],
-        Beine: ['Hamstring-Dehnung', 'Waden-Dehnung', 'Quadrizeps-Dehnung', 'Adduktoren-Dehnung'],
-    };
-
-    // ADD in Training.vue (Refs für Custom-Dropdown)
-    const exerciseDropdownOpen = ref(false)
-
-    const newExerciseLabel = computed(() => {
-        if (!newExercise.value) return 'Übung wählen'
-        if (newExercise.value === 'custom') {
-            return customPlanExercise.value || 'Eigene Übung hinzufügen…'
-        }
-        return newExercise.value
-    })
-
-    const selectExercise = (value: string) => {
-        newExercise.value = value
-        if (value !== 'custom') {
-            customPlanExercise.value = ''
-        }
-        exerciseDropdownOpen.value = false
-    }
-
-    const newExerciseSafe = computed({
-        get: () => newExercise.value,
-        set: (val) => {
-            // blockt Placeholder / leere Auswahl
-            if (!val) return
-            newExercise.value = val
-        },
-    })
-
-    const cardioExerciseSafe = computed({
-        get: () => cardioExercise.value,
-        set: (val) => {
-            if (!val) return
-            cardioExercise.value = val
-        },
-    })
-
-    const trainingTypeSafe = computed({
-        get: () => trainingType.value,
-        set: (val) => {
-            if (!val) return              // kein „leerer“ Trainingstyp
-            trainingType.value = val
-        },
-    })
-
-    const selectedGoal = ref('');
-
-    const selectedGoalSafe = computed({
-        get: () => selectedGoal.value,
-        set: (val) => {
-            if (!val) return              // kein leeres Trainingsziel
-            selectedGoal.value = val
-        },
-    })
-    // Hilfsfunktionen
-    const resolveGroups = (q: string): string[] => {
-        const key = (q || '').trim().toLowerCase();
-        return muscleGroupAliases[key] || [];
-    };
-    const uniq = <T,>(arr: T[]) => Array.from(new Set(arr));
-
-    // Nur Calisthenics-Übungen
-    const calisthenicsExercises = ref([
-        'Klimmzüge', 'Liegestütze', 'Dips', 'Muscle-Up', 'Handstand Push-up',
-        'L-Sit', 'Dragon Flag', 'Pistol Squat', 'Hollow Hold', 'Superman Hold',
-        'Archer Pull-up', 'Archer Push-up', 'Australian Pull-up', 'Toes to Bar',
-    ])
-    // Menü-Status (Kebab)
     const planMenuOpenId = ref<string | null>(null);
 
     const togglePlanMenu = (id: string) => {
@@ -986,38 +621,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         // Klicks innerhalb des Toasts sollen das Menü NICHT schließen
         if (el.closest('.toast') || el.closest('.toast-container') || el.closest('[data-toast-root]')) return;
 
-        // Custom-Exercise-Dropdown schließen, wenn außerhalb geklickt wird
-        if (!el.closest('.exercise-select-wrapper')) {
-            exerciseDropdownOpen.value = false;
-        }
-
         closePlanMenu();
     };
 
-    // Basis-Dehnübungen (kannst du erweitern)
-    const stretchingExercises = ref([
-        'Brust-Dehnung', 'Hüftbeuger-Dehnung', 'Hamstring-Dehnung',
-        'Waden-Dehnung', 'Schulter-Dehnung', 'Trizeps-Dehnung',
-        'Rücken-Dehnung', 'Quadrizeps-Dehnung', 'Adduktoren-Dehnung',
-    ])
-
-    const predefinedExercises = ref([
-        'Bankdrücken', 'Kniebeugen', 'Kreuzheben', 'Schulterdrücken', 'Liegestütze', 'Klimmzüge', 'Latzug', 'Rudern',
-        'Bizepscurls', 'Trizepsdrücken', 'Beinpresse', 'Ausfallschritte', 'Butterfly', 'Seitheben', 'Wadenheben',
-        'Bauchpresse', 'Rückenstrecker', 'Beinstrecker', 'Beinbeuger', 'Brustpresse', 'Dips'
-    ]);
-    const muscleGroups = ref({
-        Brust: ['Bankdrücken', 'Liegestütze', 'Butterfly', 'Brustpresse'],
-        Rücken: ['Klimmzüge', 'Latzug', 'Rudern', 'Rückenstrecker'],
-        Beine: ['Kniebeugen', 'Kreuzheben', 'Beinpresse', 'Ausfallschritte', 'Wadenheben'],
-        Schultern: ['Schulterdrücken', 'Seitheben'],
-        Arme: ['Bizepscurls', 'Trizepsdrücken', 'Dips'],
-        Bauch: ['Bauchpresse']
-    });
-    const exerciseFilter = ref('');
-    const trainingGoals = ref(['Muskelaufbau', 'Abnehmen', 'Ausdauer', 'Kraft']);
-
-    const showExtras = ref(false);
     const columnWidths = ref([50, 25, 25]);
     const rowHeights = ref<number[]>([]);
     const planSearch = ref('');
@@ -1027,7 +633,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         | 'selectedPlan'
         | 'planName'
         | 'selectedPlanName'
-        | 'timerName'
         | 'customExerciseName'
         | 'customExerciseMuscle'
         | 'customExerciseType'
@@ -1035,8 +640,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     const editIndex = ref<number | string | null>(null);
     const editCellIndex = ref<number | null>(null);
     const showCustomExercises = ref(false);
-    const exerciseEditIndex = ref<number | null>(null);
-    const exerciseEditField = ref<'name' | 'muscle' | null>(null);
     const customExercises = ref<Array<{ name: string; muscle: string; type: CustomExerciseType }>>([]);
     const toast = ref<AppToast | null>(null);
     let toastId = 0;
@@ -1172,165 +775,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     });
 
-    const filteredFavoritePlans = computed(() => {
-        const q = planSearch.value.toLowerCase().trim();
-        return favoritePlanItems.value.filter(p =>
-            p.name.toLowerCase().includes(q) || p.exercises.some(ex => (ex.goal ?? '').toLowerCase().includes(q))
-        );
-    });
-    const filteredOtherPlans = computed(() => {
-        const q = planSearch.value.toLowerCase().trim();
-        return otherPlanItems.value.filter(p =>
-            p.name.toLowerCase().includes(q) || p.exercises.some(ex => (ex.goal ?? '').toLowerCase().includes(q))
-        );
-    });
-
-    // Computed properties (unverändert)
-    const filteredPlans = computed(() => {
-        const searchTerm = planSearch.value.toLowerCase();
-        return sortedPlans.value.filter(plan => {
-            const planNameMatch = plan.name.toLowerCase().includes(searchTerm);
-            const goalMatch = plan.exercises.some(ex => ex.goal?.toLowerCase().includes(searchTerm));
-            return planNameMatch || goalMatch;
-        });
-    });
-
-    const filteredExercises = computed(() => {
-        const filter = exerciseFilter.value.trim().toLowerCase();
-        const groups = resolveGroups(filter);
-        const isPush = ['push', 'drücken', 'push day', 'pushday'].includes(filter);
-        const isPull = ['pull', 'ziehen', 'pull day', 'pullday'].includes(filter);
-
-        // Ausdauer
-        if (trainingType.value === 'ausdauer') {
-            return cardioTypes.value;
-        }
-
-        // Calisthenics
-        if (trainingType.value === 'calisthenics') {
-            const nameMatches = calisthenicsExercises.value.filter(x =>
-                x.toLowerCase().includes(filter)
-            );
-
-            const groupMatches = groups.length
-                ? groups.flatMap(g => (calisthenicsByGroup[g] || []))
-                : [];
-
-            const custom = customExercises.value
-                .filter(ex =>
-                    ex.type === 'calisthenics' &&
-                    (
-                        ex.name.toLowerCase().includes(filter) ||
-                        ex.muscle.toLowerCase().includes(filter) ||
-                        (groups.length && groups.some(g => ex.muscle.toLowerCase() === g.toLowerCase()))
-                    )
-                )
-                .map(ex => ex.name);
-
-            let list = uniq([...nameMatches, ...groupMatches, ...custom]);
-
-            // 👉 Push/Pull-Feinfilter (nur sinnvolle Bewegungen anzeigen)
-            if (isPush) {
-                const allow = new Set(['Liegestütze', 'Archer Push-up', 'Dips', 'Handstand Push-up']);
-                list = list.filter(x => allow.has(x));
-            } else if (isPull) {
-                const allow = new Set(['Klimmzüge', 'Australian Pull-up', 'Archer Pull-up']);
-                list = list.filter(x => allow.has(x));
-            }
-
-            return list;
-        }
-
-        // Dehnung
-        if (trainingType.value === 'dehnung') {
-            // ❗ Push/Pull (und Synonyme) sollen NICHT greifen
-            const isPushPull = [
-                'push', 'pull', 'drücken', 'ziehen', 'push day', 'pushday', 'pull day', 'pullday'
-            ].includes(filter)
-
-            // Gruppen nur auflösen, wenn NICHT Push/Pull
-            const groups = isPushPull ? [] : resolveGroups(filter)
-
-            // 1) Namens-Treffer in der Basisliste
-            const nameMatches = stretchingExercises.value.filter(x =>
-                !filter || x.toLowerCase().includes(filter)
-            )
-
-            // 2) Gruppen-Treffer über Mapping (z.B. Oberkörper/Unterkörper)
-            const groupMatches = groups.length
-                ? groups.flatMap(g => stretchingByGroup[g] || [])
-                : []
-
-            // 3) Custom-Stretches per Name/Muskel oder Gruppen-Match
-            const custom = customExercises.value
-                .filter(ex =>
-                    ex.type === 'dehnung' && (
-                        ex.name.toLowerCase().includes(filter) ||
-                        ex.muscle.toLowerCase().includes(filter) ||
-                        (groups.length && groups.some(g => ex.muscle.toLowerCase() === g.toLowerCase()))
-                    )
-                )
-                .map(ex => ex.name)
-
-            // 4) Einzigartige Liste zurückgeben
-            return Array.from(new Set([...nameMatches, ...groupMatches, ...custom]))
-        }
-
-
-        // Kraft (default)
-        const caliSet = new Set(calisthenicsExercises.value.map(x => x.toLowerCase()));
-
-        const fromGroups = groups.length
-            ? groups.flatMap(g => ((muscleGroups.value as unknown as Record<string, string[]>)[g] || []))
-            : [];
-
-        const byName = predefinedExercises.value.filter(ex =>
-            ex.toLowerCase().includes(filter)
-        );
-
-        let grouped = uniq([...fromGroups, ...byName]).filter(ex =>
-            !caliSet.has(ex.toLowerCase())
-        );
-
-        const custom = customExercises.value
-            .filter(ex =>
-                ex.type === 'kraft' &&
-                (
-                    ex.name.toLowerCase().includes(filter) ||
-                    ex.muscle.toLowerCase().includes(filter) ||
-                    (groups.length && groups.some(g => ex.muscle.toLowerCase() === g.toLowerCase()))
-                )
-            )
-            .map(ex => ex.name);
-
-        let result = uniq([...grouped, ...custom]);
-
-        // 👉 Push/Pull-Feinfilter
-        if (isPush) {
-            const allow = new Set([
-                'Bankdrücken', 'Schulterdrücken', 'Liegestütze', 'Butterfly',
-                'Brustpresse', 'Dips', 'Seitheben', 'Trizepsdrücken'
-            ]);
-            result = result.filter(x => allow.has(x));
-        } else if (isPull) {
-            const allow = new Set([
-                'Klimmzüge', 'Latzug', 'Rudern', 'Bizepscurls', 'Rückenstrecker'
-            ]);
-            result = result.filter(x => allow.has(x));
-        }
-
-        return result;
-    });
-
-
-    const selectedPlanGoal = computed(() => {
-        if (selectedPlan.value?.exercises.length) {
-            const goals = new Set(selectedPlan.value.exercises.map(ex => ex.goal).filter(g => g));
-            return goals.size === 1 ? goals.values().next().value : null;
-        }
-        return null;
-    });
-
     const planMatchesSearch = (plan: ViewPlan) => {
         const q = planSearch.value.toLowerCase().trim();
         return !q
@@ -1341,7 +785,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     const editPopupTitle = computed(() => {
         if (editType.value === 'customExerciseType') return 'Übungstyp bearbeiten';
         if (editType.value === 'planName' || editType.value === 'selectedPlanName') return 'Planname bearbeiten';
-        if (editType.value === 'timerName') return 'Timername bearbeiten';
         if (editType.value === 'customExerciseName') return 'Übungsname bearbeiten';
         if (editType.value === 'customExerciseMuscle') return 'Muskelgruppe bearbeiten';
         if (editCellIndex.value === 0) return 'Übung bearbeiten';
@@ -1377,26 +820,12 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     const editPlaceholder = computed(() => {
         if (editType.value === 'customExerciseType') return 'Typ: kraft | calisthenics | dehnung';
         if (editType.value === 'planName' || editType.value === 'selectedPlanName') return 'Neuer Planname (3-20 Zeichen)';
-        if (editType.value === 'timerName') return 'Neuer Timername';
         if (editType.value === 'customExerciseName') return 'Neuer Übungsname (max. 50 Zeichen)';
         if (editType.value === 'customExerciseMuscle') return 'Neue Muskelgruppe (max. 50 Zeichen)';
         if (editCellIndex.value === 0) return 'Neue Übung';
         if (editCellIndex.value === 1) return 'Neue Sätze (1-20)';
         if (editCellIndex.value === 2) return 'Neue Wiederholungen (1-50)';
         return 'Neuer Wert';
-    });
-
-
-    const sortedPlans = computed(() => {
-        const order = new Map(favoritePlans.value.map((id, i) => [id, i]));
-        return [...plans.value].sort((a, b) => {
-            const aFav = order.has(a.id);
-            const bFav = order.has(b.id);
-            if (aFav && !bFav) return -1;
-            if (!aFav && bFav) return 1;
-            if (aFav && bFav) return order.get(a.id)! - order.get(b.id)!;
-            return a.name.localeCompare(b.name);
-        });
     });
 
     const loadFromAccount = async (): Promise<true | false | 'error'> => {
@@ -1545,18 +974,8 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
 
-
     const toggleCustomExercises = () => {
         showCustomExercises.value = !showCustomExercises.value;
-    };
-
-    const editCell = (index: number, field: 'name' | 'muscle') => {
-        openEditPopup(`customExercise${field.charAt(0).toUpperCase() + field.slice(1)}` as 'customExerciseName' | 'customExerciseMuscle', index);
-    };
-
-    const finishEdit = () => {
-        exerciseEditIndex.value = null;
-        exerciseEditField.value = null;
     };
 
     const validateReps = (reps: number | null | undefined) => {
@@ -1630,42 +1049,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         return null
     }
 
-    const collectValidationErrors = () => {
-        const errors: string[] = []
-
-        if (trainingType.value === 'ausdauer') {
-            if (!cardioExercise.value) errors.push('Cardio-Art wählen')
-            const dErr = validateDurationMin(newDuration.value); if (dErr) errors.push(dErr)
-            const kErr = validateDistanceKm(newDistance.value); if (kErr) errors.push(kErr)
-            return errors
-        }
-
-        // Kraft / Calisthenics / Dehnung
-        const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value
-        if (!exerciseToAdd) errors.push('Übung auswählen oder benutzerdefinierte Übung eingeben')
-        else if (selectedPlanExercises.value.some(ex => ex.exercise.toLowerCase() === exerciseToAdd.toLowerCase())) {
-            errors.push('Übung bereits im Plan vorhanden')
-        }
-
-        // Dehnung nutzt deine vorhandenen Felder: newSets = Holds, newReps = Sekunden/Hold
-        const setsError = validateSets(newSets.value); if (setsError) errors.push(setsError)
-        const repsError = validateReps(newReps.value); if (repsError) errors.push(repsError)
-
-        if (newExercise.value === 'custom' && customPlanExercise.value) {
-            const muscleGroup = exerciseFilter.value || ''
-            const validated = validateCustomExercise(
-                customPlanExercise.value,
-                muscleGroup,
-                trainingType.value, // 👈 wichtig: 'kraft' | 'calisthenics' | 'dehnung'
-            )
-            if (typeof validated === 'string') errors.push(validated)
-        }
-
-
-        return errors
-    }
-
-
     const openValidationPopup = (errors: string[]) => {
         validationErrorMessages.value = Array.isArray(errors) ? errors : [String(errors)];
         showValidationPopup.value = true;
@@ -1698,126 +1081,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         return 0;
     };
 
-    const toUpsertPayload = (): TrainingPlanUpsert => ({
-        name: validatePlanName(planName.value) as string,
-        isFavorite: false,
-        days: [{
-            name: "Tag 1",
-            sortOrder: 0,
-            exercises: selectedPlanExercises.value.map((ex, i) => ({
-                name: ex.exercise,
-                category: mapTypeToCategory(ex.type),
-                sortOrder: i,
-                sets: ex.type === "ausdauer" ? null : ex.sets,
-                reps: ex.type === "ausdauer" ? null : ex.reps,
-                durationMin: ex.type === "ausdauer" ? ex.sets : null,
-                distanceKm: ex.type === "ausdauer" ? (ex.reps ? ex.reps : null) : null,
-            })),
-        }],
-    });
-
-    const resetBuilder = () => {
-        planName.value = "";
-        newExercise.value = "";
-        customPlanExercise.value = "";
-        newReps.value = null;
-        newSets.value = null;
-        selectedGoal.value = "";
-        selectedPlanExercises.value = [];
-        rowHeights.value = [];
-        editingPlanId.value = null;
-    };
-
-    const createOrUpdatePlan = async () => {
-        const validatedPlanName = validatePlanName(planName.value);
-
-        if (validatedPlanName === false || (!editingPlanId.value && !selectedPlanExercises.value.length)) {
-            const errors: string[] = [];
-            if (validatedPlanName === false) {
-                errors.push(
-                    planName.value.trim().length < 3
-                        ? "Planname muss mindestens 3 Zeichen lang sein"
-                        : "Planname darf maximal 20 Zeichen lang sein"
-                );
-            }
-            if (!selectedPlanExercises.value.length) errors.push("Mindestens eine Übung ist erforderlich");
-            openValidationPopup(errors);
-            return;
-        }
-
-        try {
-            const payload = toUpsertPayload();
-
-            if (editingPlanId.value) {
-                const updated = await trainingPlansStore.update(editingPlanId.value, payload);
-                selectedPlan.value = flattenDto(updated);
-                addToast("Plan gespeichert", "save");
-            } else {
-                const created = await trainingPlansStore.create(payload);
-                selectedPlan.value = flattenDto(created);
-                addToast("Plan erstellt", "add");
-            }
-
-            resetBuilder();
-        } catch (e: any) {
-            openValidationPopup([e?.message ?? "Speichern fehlgeschlagen"]);
-        }
-    };
-
-
-    const addExerciseToPlan = () => {
-        const errors = collectValidationErrors()
-        if (errors.length > 0) { openValidationPopup(errors); return }
-
-        if (trainingType.value === 'ausdauer') {
-            selectedPlanExercises.value.push({
-                exercise: cardioExercise.value,
-                sets: newDuration.value!,                                   // Minuten
-                reps: newDistance.value ? Number(newDistance.value) : 0,    // km (optional)
-                goal: selectedGoal.value || undefined,
-                type: 'ausdauer'
-            })
-            rowHeights.value.push(40)
-            addToast('Cardio hinzugefügt', 'add')
-            cardioExercise.value = ''
-            newDuration.value = null
-            newDistance.value = null
-            selectedGoal.value = ''
-            return
-        }
-
-        // Kraft / Calisthenics / Dehnung
-        const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value
-        if (newExercise.value === 'custom' && customPlanExercise.value) {
-            const muscleGroup = exerciseFilter.value || ''
-            const validated = validateCustomExercise(customPlanExercise.value, muscleGroup, trainingType.value)
-            if (typeof validated !== 'string') {
-                customExercises.value.push({ name: validated.name, muscle: validated.muscle, type: validated.type })
-                saveToStorage()
-                addToast('Benutzerdefinierte Übung gespeichert', 'add')
-            } else {
-                openValidationPopup([validated])
-                return
-            }
-        }
-        selectedPlanExercises.value.push({
-            exercise: exerciseToAdd,
-            sets: newSets.value!,
-            reps: newReps.value!,
-            goal: selectedGoal.value || undefined,
-            type: trainingType.value // 'kraft' | 'calisthenics' | 'dehnung'
-        })
-        rowHeights.value.push(40)
-        addToast('Übung hinzugefügt', 'add')
-
-        newExercise.value = ''
-        customPlanExercise.value = ''
-        newReps.value = null
-        newSets.value = null
-        selectedGoal.value = ''
-    }
-
-
     const removeExerciseFromPlan = (index: number) => {
         if (index < 0 || index >= selectedPlanExercises.value.length) {
             addToast('Ungültiger Übungsindex', 'delete');
@@ -1839,24 +1102,30 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 
     const editPlan = async (planId: string) => {
         try {
-            await trainingPlansStore.loadOne(planId);
-            const dto = trainingPlansStore.selected;
-            if (!dto) { addToast("Plan nicht gefunden", "delete"); return; }
+            await trainingPlansStore.loadOne(planId)
+            const dto = trainingPlansStore.selected
+            if (!dto) { addToast("Plan nicht gefunden", "delete"); return }
 
-            const view = flattenDto(dto);
-            planName.value = view.name;
-            selectedPlanExercises.value = [...view.exercises];
-            editingPlanId.value = planId;
-            rowHeights.value = Array(view.exercises.length).fill(40);
-            selectedPlan.value = view;
+            const view = flattenDto(dto)
 
-            addToast("Plan wird bearbeitet", "save");
-            await nextTick();
-            scrollToBuilder();
+            // ✅ Builder übernimmt Edit-State komplett
+            builderRef.value?.setEditMode({
+                planId,
+                name: view.name,
+                exercises: [...view.exercises],
+            })
+
+            // optional: du willst den Plan trotzdem unten „geöffnet“ lassen
+            selectedPlan.value = view
+            rowHeights.value = Array(view.exercises.length).fill(40)
+
+            addToast("Plan wird bearbeitet", "save")
+            await nextTick()
+            builderRef.value?.scrollToBuilder()
         } catch {
-            addToast("Plan konnte nicht geladen werden", "delete");
+            addToast("Plan konnte nicht geladen werden", "delete")
         }
-    };
+    }
 
     const deletePlan = async (planId: string) => {
         try {
@@ -2062,28 +1331,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         closeDownloadPopup();
     };
 
-    const toggleExtras = () => {
-        showExtras.value = !showExtras.value;
-    };
-
-    const makeUniqueTimerName = (rawName: string, excludeId?: string): string => {
-        const base = (rawName || '').trim() || 'Timer';
-        const existing = new Set(
-            props.timers
-                .filter(t => !excludeId || t.id !== excludeId)
-                .map(t => (t.name || 'Timer').trim().toLowerCase())
-        );
-
-        if (!existing.has(base.toLowerCase())) return base;
-
-        let i = 2;
-        // Timer, Timer (2), Timer (3) ...
-        while (existing.has(`${base} (${i})`.toLowerCase())) {
-            i++;
-        }
-        return `${base} (${i})`;
-    };
-
     const openDeletePopup = (action: () => void) => {
         deleteAction.value = action;
         showDeletePopup.value = true;
@@ -2139,6 +1386,11 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         autoDismissRemainingMs = 0;
     };
 
+    const stopwatchesProxy = computed({
+        get: () => props.stopwatches,
+        set: (list: StopwatchInstance[]) => emit('reorder-stopwatches', list),
+    })
+
     const openEditPopup = (
         type:
             | 'table'
@@ -2169,14 +1421,15 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             editCellIndex.value = Array.from(target.parentElement!.children).indexOf(target);
             if (editCellIndex.value < 0 || editCellIndex.value > 2) return;
 
-            const exercise = (type === 'table'
-                ? selectedPlanExercises.value[index as number]
-                : selectedPlan.value?.exercises[index as number]);
+            const exercise =
+                (type === 'table'
+                    ? (builderRef.value?.getPreviewExercise?.(index as number) ?? null)
+                    : (selectedPlan.value?.exercises[index as number] ?? null))
 
             if (!exercise) {
-                console.error('Übung nicht gefunden für Index:', index);
-                openValidationPopup(['Übung nicht gefunden']);
-                return;
+                console.error('Übung nicht gefunden für Index:', index)
+                openValidationPopup(['Übung nicht gefunden'])
+                return
             }
 
             if (editCellIndex.value === 0) editValue.value = exercise.exercise;
@@ -2189,10 +1442,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         } else if (type === 'selectedPlanName') {
             if (!selectedPlan.value) { openValidationPopup(['Kein ausgewählter Plan']); return; }
             editValue.value = selectedPlan.value.name;
-        } else if (type === 'timerName') {
-            const timer = props.timers.find(t => t.id === index);
-            if (!timer) { openValidationPopup(['Timer nicht gefunden']); return; }
-            editValue.value = timer.name || '';
         } else if (type === 'customExerciseName') {
             const exercise = customExercises.value[index as number];
             if (!exercise) { openValidationPopup(['Übung nicht gefunden']); return; }
@@ -2232,59 +1481,66 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     const saveEdit = () => {
         console.log('saveEdit aufgerufen mit:', { editType: editType.value, editValue: editValue.value });
 
-        // === 1) Tabelle "Auswahl" oben ============================================
         if (editType.value === 'table' && typeof editIndex.value === 'number') {
-            const exercise = selectedPlanExercises.value[editIndex.value];
-            if (!exercise) return;
+            const i = editIndex.value
+            const ex = builderRef.value?.getPreviewExercise?.(i)
+            if (!ex) return
 
+            // Name edit
             if (editCellIndex.value === 0 && editValue.value) {
-                const newName = editValue.value.trim();
-                if (selectedPlanExercises.value.some(ex => ex.exercise.toLowerCase() === newName.toLowerCase() && ex !== exercise)) {
-                    openValidationPopup(['Übung existiert bereits im Plan']);
-                    return;
-                }
-                exercise.exercise = newName;
-                addToast('Übung aktualisiert', 'save');
-                closeEditPopup();
-                return;
+                const newName = editValue.value.trim()
+
+                const list = builderRef.value?.getPreviewExercises?.() ?? []
+                const dup = list.some((x: any, idx: number) =>
+                    idx !== i && (x.exercise || '').toLowerCase() === newName.toLowerCase()
+                )
+                if (dup) { openValidationPopup(['Übung existiert bereits im Plan']); return }
+
+                builderRef.value?.updatePreviewExercise?.(i, { exercise: newName })
+                addToast('Übung aktualisiert', 'save')
+                closeEditPopup()
+                return
             }
 
-            if (exercise.type === 'ausdauer') {
+            // Ausdauer: sets=min, reps=km
+            if (ex.type === 'ausdauer') {
                 if (editCellIndex.value === 1) {
-                    const mins = Number(editValue.value);
-                    const err = validateDurationMin(mins);
-                    if (err) { openValidationPopup([err]); return; }
-                    exercise.sets = mins;
-                    addToast('Dauer aktualisiert', 'save');
+                    const mins = Number(editValue.value)
+                    const err = validateDurationMin(mins)
+                    if (err) { openValidationPopup([err]); return }
+                    builderRef.value?.updatePreviewExercise?.(i, { sets: mins })
+                    addToast('Dauer aktualisiert', 'save')
                 } else if (editCellIndex.value === 2) {
-                    const kmRaw = Number(editValue.value);
-                    const km = isNaN(kmRaw) ? 0 : kmRaw;
-                    const err = validateDistanceKm(km);
-                    if (err) { openValidationPopup([err]); return; }
-                    exercise.reps = km;
-                    addToast('Distanz aktualisiert', 'save');
+                    const kmRaw = Number(editValue.value)
+                    const km = isNaN(kmRaw) ? 0 : kmRaw
+                    const err = validateDistanceKm(km)
+                    if (err) { openValidationPopup([err]); return }
+                    builderRef.value?.updatePreviewExercise?.(i, { reps: km })
+                    addToast('Distanz aktualisiert', 'save')
                 }
-                closeEditPopup();
-                return;
+                closeEditPopup()
+                return
             }
 
+            // Kraft/Calisthenics/Dehnung
             if (editCellIndex.value === 1) {
-                const sets = Number(editValue.value);
-                const setsError = validateSets(sets);
-                if (setsError) { openValidationPopup([setsError]); return; }
-                exercise.sets = sets;
-                addToast('Sätze aktualisiert', 'save');
+                const sets = Number(editValue.value)
+                const setsError = validateSets(sets)
+                if (setsError) { openValidationPopup([setsError]); return }
+                builderRef.value?.updatePreviewExercise?.(i, { sets })
+                addToast('Sätze aktualisiert', 'save')
             } else if (editCellIndex.value === 2) {
-                const reps = Number(editValue.value);
-                const repsError = validateReps(reps);
-                if (repsError) { openValidationPopup([repsError]); return; }
-                exercise.reps = reps;
-                addToast(exercise.type === 'dehnung' ? 'Sekunden aktualisiert' : 'Wiederholungen aktualisiert', 'save');
+                const reps = Number(editValue.value)
+                const repsError = validateReps(reps)
+                if (repsError) { openValidationPopup([repsError]); return }
+                builderRef.value?.updatePreviewExercise?.(i, { reps })
+                addToast(ex.type === 'dehnung' ? 'Sekunden aktualisiert' : 'Wiederholungen aktualisiert', 'save')
             }
 
-            closeEditPopup();
-            return;
+            closeEditPopup()
+            return
         }
+
 
         // === 2) Tabelle im geöffneten Plan (selectedPlan) ==========================
         if (editType.value === 'selectedPlan' && typeof editIndex.value === 'number' && selectedPlan.value) {
@@ -2356,12 +1612,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
                 ]);
                 return;
             }
-            const plan = plans.value.find(p => p.id === editIndex.value);
-            if (plan) {
-                plan.name = validatedName;
-                saveToStorage();
-                addToast('Planname aktualisiert', 'save');
-            }
+
+            setPlanNameInStore(editIndex.value, validatedName);
+            addToast('Planname aktualisiert', 'save');
         } else if (editType.value === 'selectedPlanName' && selectedPlan.value) {
             const validatedName = validatePlanName(editValue.value);
             if (validatedName === false) {
@@ -2372,17 +1625,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
                 ]);
                 return;
             }
-            selectedPlan.value.name = validatedName;
-            updatePlanInStorage();
+
+            setPlanNameInStore(selectedPlan.value.id, validatedName);
             addToast('Planname aktualisiert', 'save');
-        } else if (editType.value === 'timerName' && typeof editIndex.value === 'string') {
-            const timer = props.timers.find(t => t.id === editIndex.value);
-            if (timer) {
-                const uniqueName = makeUniqueTimerName(editValue.value, timer.id);
-                timer.name = uniqueName;
-                saveToStorage();
-                addToast('Timername aktualisiert', 'timer');
-            }
         }
 
         // === NEU: Typ einer benutzerdefinierten Übung ==============================
@@ -2451,15 +1696,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 
         closeEditPopup();
     };
-    // Menü offen? → Toast-Timer hart pausieren/resumieren (zusätzlich zum Sammel-Watch)
-    watch(planMenuOpenId, () => {
-        // Kein Parent-Timer mehr → nichts zu tun
-    });
 
-    // unter deinen anderen imports/refs:
     const onTrainingFocus = (e: Event) => {
         const { type, id } = (e as CustomEvent<{ type: 'timer' | 'stopwatch'; id: string }>).detail
-        // dieselbe Logik wie beim initialen Fokus
         localStorage.setItem(LS_TRAINING_FOCUS_TYPE, type)
         localStorage.setItem(LS_TRAINING_FOCUS_ID, id)
         nextTick(() => tryFocusFromStorage())
@@ -2476,25 +1715,54 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     })
 
     const updatePlanInStorage = () => {
-        if (selectedPlan.value) {
-            const index = plans.value.findIndex(p => p.id === selectedPlan.value!.id);
-            if (index !== -1) {
-                plans.value[index] = { ...selectedPlan.value };
-                saveToStorage();
+        saveToStorage();
+    };
+
+    const persistPlanName = async (planId: string, newName: string) => {
+        try {
+            const p = trainingPlansStore.items.find((x: TrainingPlanDto) => x.id === planId);
+            const isFavorite = !!p?.isFavorite;
+
+            const res = await apiFetch(`/api/plans/${planId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    name: newName,
+                    isFavorite,
+                }),
+            });
+
+            if (!res.ok) {
+                let body = '';
+                try { body = await res.text(); } catch { }
+                console.error('PUT /api/plans/{id} failed', { status: res.status, body: body?.slice(0, 500) });
+                return;
             }
+
+            await trainingPlansStore.loadList();
+        } catch (e) {
+            console.error('persistPlanName error', e);
         }
     };
-    // REPLACE in Training.vue (exerciseSelectSize)
-    const exerciseSelectSize = computed(() => {
-        const total = filteredExercises.value.length;   // Anzahl der Einträge im Dropdown
 
-        // Bis 4 Einträge: normales Dropdown (keine Liste, keine Scrollbar)
-        if (total <= 4) return 1;
 
-        // Ab 5+ Einträgen: kompakte Liste mit nur 3 sichtbaren Zeilen → Scrollbar kommt schnell
-        return 3;
-    });
+    const setPlanNameInStore = (planId: string, newName: string) => {
+        const dto = trainingPlansStore.items.find((p: TrainingPlanDto) => p.id === planId);
+        if (dto) dto.name = newName;
 
+        if (trainingPlansStore.selected?.id === planId) {
+            (trainingPlansStore.selected as any).name = newName;
+        }
+
+        if (selectedPlan.value?.id === planId) {
+            selectedPlan.value.name = newName;
+        }
+
+        // ✅ WICHTIG: Server persistieren (damit Refresh stimmt)
+        void persistPlanName(planId, newName);
+
+        // dein bisheriger Account-Sync kann bleiben
+        saveToStorage();
+    };
     const removeCustomExercise = (index: number) => {
         customExercises.value.splice(index, 1);
         if (customExercises.value.length === 0) showCustomExercises.value = false;
@@ -2508,15 +1776,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         editType.value = 'table';
         editIndex.value = null;
         editCellIndex.value = null;
-    };
-
-    const handleOverlayClick = (event: MouseEvent) => {
-        if (event.target === event.currentTarget) {
-            closeEditPopup()
-            closeDeletePopup()
-            closeDownloadPopup()
-            closeValidationPopup()
-        }
     };
 
     const handleKeydown = (event: KeyboardEvent) => {
@@ -2752,100 +2011,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         });
     };
 
-    const normalizeToTotal = (arr: number[], total = 100, pinIndex = 0) => {
-        const out = arr.map(v => Math.max(0, Number.parseFloat((+v).toFixed(4))));
-        const sum = out.reduce((a, b) => a + b, 0);
-        if (!sum || !Number.isFinite(sum)) return out;
-        const i = Math.max(0, Math.min(pinIndex, out.length - 1));
-        const diff = Number.parseFloat((total - sum).toFixed(4));
-        out[i] = Number.parseFloat((out[i] + diff).toFixed(4));
-        return out;
-    };
-
-    // PREVIEW: Aktion (Index 3) kann jetzt über den Griff an Spalte 2 mitverändert werden
-    const initPreviewResizeTable = () => {
-        const table = previewTable.value;
-        if (!table) return;
-
-        table.querySelectorAll('.resizer').forEach(el => el.remove());
-
-        const MIN_PX_BY_COL = [16, 16, 16, 44]; // Übung | Sätze | Wdh. | Aktion
-        const ths = Array.from(table.querySelectorAll('thead th')) as HTMLElement[]; // <-- alle THs
-        const lastIdx = ths.length - 1;
-
-        ths.forEach((th, colIndex) => {
-            th.style.position = 'relative';
-            const isLast = colIndex === lastIdx;
-
-            const makeResizer = (side: 'right' | 'left') => {
-                const resizer = document.createElement('div');
-                resizer.className = `resizer resizer-${side}`;
-                th.appendChild(resizer);
-                if (side === 'right') { resizer.style.right = '0'; resizer.style.left = 'auto'; }
-                else { resizer.style.left = '0'; resizer.style.right = 'auto'; }
-
-                let startX = 0;
-                let start = [...previewColWidths.value];
-
-                const onMove = (e: PointerEvent) => {
-                    requestAnimationFrame(() => {
-                        const tw = table.getBoundingClientRect().width || 1;
-                        const raw = e.clientX - startX;
-                        const dir = (isLast && side === 'left') ? -1 : 1;
-                        const dxRaw = dir * raw;
-
-                        const partnerIndex = isLast ? colIndex - 1 : colIndex + 1;
-                        if (partnerIndex < 0 || partnerIndex >= start.length) return;
-
-                        const currPx = (start[colIndex] / 100) * tw;
-                        const partnerPx = (start[partnerIndex] / 100) * tw;
-
-                        const minCurr = MIN_PX_BY_COL[colIndex] ?? 16;
-                        const minPartner = MIN_PX_BY_COL[partnerIndex] ?? 16;
-
-                        const maxDxRight = partnerPx - minPartner;
-                        const maxDxLeft = -(currPx - minCurr);
-                        const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight));
-
-                        const newCurrPx = currPx + dx;
-                        const newPartnerPx = partnerPx - dx;
-
-                        const next = [...start];
-                        next[colIndex] = +(newCurrPx / tw * 100).toFixed(4);
-                        next[partnerIndex] = +(newPartnerPx / tw * 100).toFixed(4);
-
-                        previewColWidths.value = normalizeStrictTo100(next, table, MIN_PX_BY_COL, partnerIndex);
-                    });
-                };
-
-                const onUp = (e: PointerEvent) => {
-                    window.removeEventListener('pointermove', onMove);
-                    window.removeEventListener('pointerup', onUp);
-                    resizer.classList.remove('is-active');
-                    document.body.classList.remove('is-resizing-col');
-                    try { (resizer as any).releasePointerCapture?.(e.pointerId); } catch { }
-                };
-
-                const onDown = (e: PointerEvent) => {
-                    e.preventDefault(); e.stopPropagation();
-                    startX = e.clientX;
-                    start = [...previewColWidths.value];
-                    try { (resizer as any).setPointerCapture?.(e.pointerId); } catch { }
-                    resizer.classList.add('is-active');
-                    document.body.classList.add('is-resizing-col');
-                    window.addEventListener('pointermove', onMove);
-                    window.addEventListener('pointerup', onUp);
-                };
-
-                resizer.addEventListener('pointerdown', onDown);
-            };
-
-            if (isLast) { makeResizer('left'); makeResizer('right'); }
-            else { makeResizer('right'); }
-        });
-
-    };
-
     const initCustomResizeTable = () => {
         const table = customResizeTable.value;
         if (!table) return;
@@ -2962,7 +2127,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     }
 
     watch(() => [props.timers, props.stopwatches], () => {
-        console.log('timers oder stopwatches geändert:', { timers: props.timers, stopwatches: props.stopwatches });
         nextTick(() => checkScroll());
     }, { deep: true });
 
@@ -2972,14 +2136,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         const isFs = !!document.fullscreenElement;
         document.documentElement.classList.toggle('is-fullscreen', isFs);
     };
-    // Live-Preview: bei jeder Änderung an den Übungen
-    watch(selectedPlanExercises, () => {
-        nextTick(() => {
-            initPreviewResizeTable();
-            setupHeaderShorteningFallback();
-        });
-    }, { deep: true });
-
     // Eigene Übungen: bei Datenänderungen und wenn sichtbar
     watch(customExercises, () => {
         if (showCustomExercises.value) {
@@ -3039,9 +2195,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 
         syncFullscreenClass();
 
-        // Tabellen zuerst
         initResizeTable();
-        initPreviewResizeTable();
         if (showCustomExercises.value) initCustomResizeTable();
 
         setupHeaderShorteningFallback();
@@ -3072,8 +2226,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         --control-height: 48px;
         --control-font-size: 0.95rem;
         --control-padding-x: 1.5rem;
-        --extras-toggle-ch: 18;
-        --extras-toggle-w: calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
         --custom-toggle-ch: 38;
         --custom-toggle-w: calc(var(--custom-toggle-ch) * 1ch + 2 * var(--control-padding-x));
         padding: 1rem;
@@ -3134,21 +2286,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
                 width: 100%;
                 margin: 0 auto;
             }
-
-            .training .form-card.builder-grid {
-                width: 100%;
-                max-width: 100%;
-                margin-inline: 0;
-                box-sizing: border-box;
-            }
-    }
-
-    @media (min-width: 900px) {
-        .form-card.builder-grid {
-            /* rechte Spalte spürbar schmaler */
-            grid-template-columns: minmax(0, 1fr) clamp(240px, 28vw, 360px);
-            align-items: start;
-        }
     }
 
     .section-title {
@@ -3156,23 +2293,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         font-weight: 700;
         color: var(--text-primary);
         text-align: center;
-    }
-    /* Smooth landing highlight when jumping to the builder */
-    @keyframes builderPop {
-        0% {
-            transform: translateY(-6px);
-            box-shadow: 0 0 0 rgba(99,102,241,0);
-        }
-
-        40% {
-            transform: translateY(0);
-            box-shadow: 0 8px 32px rgba(99,102,241,.20);
-        }
-
-        100% {
-            transform: translateY(0);
-            box-shadow: 0 0 0 rgba(99,102,241,0);
-        }
     }
 
     .plan-search {
@@ -3189,142 +2309,35 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         color: #ffffff;
     }
 
-
     .plan-header {
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr; /* links spacer | mitte title | rechts close */
         align-items: center;
         width: 100%;
         position: relative;
     }
 
+        .plan-header > .section-title {
+            grid-column: 2;
+            justify-self: center;
+            text-align: center;
+        }
+
+        .plan-header > :not(.section-title) {
+            grid-column: 3;
+            justify-self: end;
+        }
+
     .drag-ghost {
         opacity: 0.6;
     }
 
-    .segmented.seg-type {
-        display: flex;
-        gap: .5rem;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: .3rem;
-        align-items: center;
-    }
-
-        .segmented.seg-type > button {
-            background: transparent;
-            border: 1px solid transparent;
-            border-radius: 10px;
-            padding: .45rem .9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all .15s ease;
-            color: var(--text-primary);
-        }
-
-            .segmented.seg-type > button.on {
-                background: var(--bg-card);
-                border-color: var(--border-color);
-                box-shadow: 0 1px 2px rgba(0,0,0,.06);
-            }
-
-    .filter-input {
-        border-radius: 999px;
-        padding-left: 2.25rem; /* Platz fürs Icon */
-        background: var(--bg-secondary);
-        position: relative;
-    }
-
-        .filter-input::placeholder {
-            opacity: .8;
-        }
-
-    .builder-left,
-    .builder-head,
-    .builder-head > * {
-        min-width: 0;
-    }
-
-    .builder-left {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        min-width: 0; /* verhindert Overflow in Grids */
-    }
-
-    .builder-right {
-        min-width: 0; /* wichtig für Tables/Overflow */
-    }
-
-    /* Feldblöcke */
-    .field-block {
-        display: flex;
-        flex-direction: column;
-        gap: .5rem;
-    }
-
-    .field-label {
-        font-weight: 600;
-        font-size: .92rem;
-        color: var(--text-primary);
-    }
-
-    .field-row {
-        display: flex;
-        gap: .75rem;
-        align-items: stretch;
-        flex-wrap: wrap;
-    }
     /* Zelle wird selbst Container → reagiert auf ihre eigene Breite */
     .v-stack {
         container-type: inline-size;
         white-space: normal;
         word-break: break-word;
         hyphens: auto;
-    }
-
-
-    .field-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: .75rem;
-    }
-
-    @media (max-width: 600px) {
-        .field-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .field {
-        display: flex;
-        flex-direction: column;
-        gap: .4rem;
-    }
-
-    .actions-row.stack {
-        display: flex;
-        flex-direction: column;
-        gap: .75rem;
-        align-items: stretch; /* Kinder dürfen volle Breite nutzen */
-    }
-
-
-    /* Hover wie stat-card / feature-card */
-    @media (hover: hover) {
-        .preview-card:hover {
-            transform: translateY(-3px) scale(1.01);
-            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
-            border-color: rgba(129, 140, 248, 0.55);
-        }
-    }
-
-    /* Dark-Mode-Variante im gleichen Stil wie Landingpage-Karten */
-    html.dark-mode .preview-card {
-        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
-        border-color: rgba(148, 163, 184, 0.45);
-        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
     /* Stelle sicher: mittlere Spalte darf schrumpfen */
@@ -3355,161 +2368,18 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         white-space: nowrap; /* kein Umbruch in den Actions */
     }
 
-    .form-card.builder-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1rem;
-        width: 100%;
-        box-sizing: border-box; /* damit Padding mitgerechnet wird */
-    }
-
-    @media (max-width: 900px) {
-        .builder-head {
-            grid-template-columns: 1fr;
-            grid-template-areas:
-                "plan"
-                "type"
-                "extras";
-        }
-
-            .builder-head .extras-cta {
-                justify-self: start;
-                white-space: nowrap;
-                box-sizing: border-box;
-                inline-size: min(var(--extras-toggle-w), 100%);
-                min-inline-size: min(var(--extras-toggle-w), 100%);
-                max-inline-size: min(var(--extras-toggle-w), 100%);
-            }
-    }
-
-    @media (max-width: 1200px) {
-        .segmented.seg-type {
-            flex-wrap: wrap;
-            row-gap: .35rem;
-        }
-    }
-
-    .form-card {
-        box-sizing: border-box;
-    }
 
     @media (max-width: 1240px) {
         .training {
             overflow-x: visible; /* lässt Inhalt sauber raus, ohne Scrollbars zu blocken */
         }
 
-        .workout-list,
-        .form-card.builder-grid {
+        .workout-list {
             max-width: 100%;
             min-width: 0;
             width: 100%;
         }
     }
-
-    /* === Live-Preview: Card im Stil von form-card/timer-card === */
-
-    .preview-card {
-        position: sticky;
-        top: .75rem;
-        contain: inline-size;
-        overflow-x: visible;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        border-radius: 20px;
-        padding: 1.35rem 1.55rem;
-        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
-        border: 1px solid rgba(148, 163, 184, 0.26);
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-    }
-
-    /* Kopf: dezentes Label + Counter rechts */
-    .preview-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0.15rem;
-    }
-
-        .preview-head h4 {
-            margin: 0;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.14em;
-            font-weight: 600;
-            opacity: 0.9;
-        }
-
-    .preview-card .muted {
-        font-size: 0.78rem;
-        padding: 0.1rem 0.7rem;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--bg-card) 88%, #0f172a 12%);
-        border: 1px solid rgba(148, 163, 184, 0.5);
-    }
-
-    .empty-preview {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        text-align: center;
-        min-height: 150px;
-        border-radius: 14px;
-        padding: 1.25rem 1.5rem;
-        /* kein eigener grauer Kasten mehr → zeigt direkt den lila/blauen Preview-Hintergrund */
-        background: transparent;
-        /* Rahmen im Accent-Look statt langweiligem Grau */
-        border: 1px dashed color-mix(in srgb, var(--accent-primary) 55%, rgba(148, 163, 184, 0.5) 45%);
-        box-shadow: none;
-        color: var(--text-secondary);
-        font-size: 0.9rem;
-    }
-    /* Mobile: kompakter + kleinere min-width */
-    @media (max-width: 560px) {
-        .preview-card {
-            position: static;
-            top: auto;
-            padding: 1.05rem 1.05rem;
-            border-radius: 16px;
-        }
-    }
-
-    .actions-row .button-group .btn-cell > *:not(.add-exercise-btn) {
-        height: var(--control-height);
-    }
-
-    .field-row .filter-input {
-        flex: 1 1 320px;
-        min-width: 220px;
-    }
-
-    .button-group:has(.add-exercise-btn) {
-        --btn-width: 100%;
-    }
-
-    .button-group .btn-cell:has(.add-exercise-btn) {
-        flex: 1 1 100%;
-    }
-
-    .button-group .btn-cell > .add-exercise-btn {
-        width: 100%;
-    }
-
-    .filter-input {
-        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%23888' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: .75rem center;
-        background-size: 16px 16px;
-    }
-
-    html.dark-mode .filter-input {
-        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%239aa3ab' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-    }
-
 
     .list-item {
         background: var(--bg-card);
@@ -3521,7 +2391,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         align-items: center;
         transition: transform 0.2s;
     }
-
 
     html.dark-mode .list-item {
         background: #1c2526;
@@ -3535,7 +2404,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     .plan-item {
         cursor: pointer;
     }
-    /* ganz unten im <style scoped> ergänzen */
+
     @supports not (overflow: clip) {
         .training,
         .workout-list {
@@ -3543,18 +2412,16 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
 
-    /* falls du in manchen Containern knapp clippen willst */
     :root {
         --clip-margin: 8px;
     }
-    /* === Planname: nur der Name horizontal scrollbar, Rest bleibt fix === */
+
     .plan-title {
         display: inline-flex;
         align-items: center;
         gap: .35rem;
         min-width: 0;
         max-width: 100%;
-        /* alte Effekte sicher neutralisieren */
         -webkit-mask-image: none;
         mask-image: none;
         text-overflow: clip;
@@ -3580,90 +2447,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             white-space: nowrap;
         }
 
-    .form-card {
-        position: relative;
-        width: 100%;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1.1rem;
-        padding: 1.75rem 1.9rem;
-        border-radius: 18px;
-        box-sizing: border-box;
-        /* ⇓ exakt im Stil der Landing-Karten (stat-card/feature-card) ⇓ */
-        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
-        border: 1px solid rgba(148, 163, 184, 0.26);
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
-        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-    }
-
-    /* Hover-Verhalten wie bei .stat-card/.feature-card */
-    @media (hover: hover) {
-        .form-card:hover {
-            transform: translateY(-3px) scale(1.01);
-            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
-            border-color: rgba(129, 140, 248, 0.55);
-        }
-    }
-
-    /* Dark Mode: gleiche Farbwelt, etwas satter und näher am Page-Gradient */
-    html.dark-mode .form-card {
-        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
-        border-color: rgba(148, 163, 184, 0.45);
-        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
-    }
-
-    /* Fallback für alte Browser ohne backdrop-filter / color-mix */
-    @supports not (backdrop-filter: blur(10px)) or not (color-mix(in srgb, black 10%, white 90%)) {
-        .form-card {
-            background: var(--bg-card);
-            box-shadow: 0 12px 32px rgba(15,23,42,0.45);
-        }
-    }
-
-    .form-card input,
-    .form-card select,
-    .form-card .exercise-select-trigger {
-        height: var(--control-height);
-        font-size: var(--control-font-size);
-        padding: 0.75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        flex: 1;
-        min-width: 120px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-
-    html.dark-mode .form-card input,
-    html.dark-mode .form-card select,
-    html.dark-mode .form-card .exercise-select-trigger {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
-    }
-
-    .form-card input:focus,
-    .form-card select:focus,
-    .form-card .exercise-select-trigger:focus-visible {
-        border-color: #4B6CB7;
-        box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
-        outline: none;
-    }
-
-    .desktop-only {
-        display: initial;
-    }
-
-    .mobile-only {
-        display: none;
-    }
-
-    .form-card button[type="submit"] {
-        width: 100%;
-    }
-
     @media (max-width: 560px) {
         .plan-drag-handle {
             display: none;
@@ -3681,8 +2464,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             width: 100%;
         }
 
-
-    /* Dark-Mode Kontrast (optional feiner abstimmen) */
     html.dark-mode .training {
         --resize-color: #64748b; /* slate-500 */
         --resize-color-hover: #3b82f6; /* blue-500 */
@@ -3776,28 +2557,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             border-color: rgba(148, 163, 184, 0.28);
         }
 
-
-    @media (max-width: 600px) {
-        .form-card {
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .exercise-input-group {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .form-card input,
-        .form-card select {
-            width: 100%;
-        }
-
-        .extras-button-group {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-    }
     /* Karte selbst darf über Nachbarn stehen */
     .plan-item {
         position: relative;
@@ -3817,29 +2576,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         z-index: 1000;
     }
 
-    .button-group {
-        display: flex;
-        gap: 0.75rem;
-        align-items: stretch;
-        flex-wrap: nowrap;
-        width: 100%; /* volle Breite der Spalte */
-        margin-left: 0; /* NICHT nach rechts wegschieben */
-    }
-
-    @media (max-width: 600px) {
-        .button-group {
-            margin-left: 0;
-            flex-wrap: wrap;
-            width: 100%;
-        }
-    }
-
-    @media (min-width: 601px) {
-        .button-group .btn-cell:last-child {
-            margin-top: 0px;
-        }
-    }
-
     .exercise-table.full-width th,
     .exercise-table.full-width td {
         padding: 1.5rem;
@@ -3849,19 +2585,11 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         white-space: nowrap;
     }
 
-    .button-group .btn-cell > *:not(.add-exercise-btn) {
-        width: 100%;
-        height: var(--btn-height);
-        padding-left: var(--btn-pad-x);
-        padding-right: var(--btn-pad-x);
-    }
-
     .custom-toggle-btn {
         margin-left: auto;
         margin-right: auto;
     }
 
-    /* nicer Chevron-Icon (SVG mask) – wirkt wie echtes UI */
     .custom-toggle-arrow {
         width: 1.05rem;
         height: 1.05rem;
@@ -3872,7 +2600,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         filter: drop-shadow(0 1px 0 rgba(0,0,0,.10));
     }
 
-    /* Modern: benutze currentColor als "Fill" über Mask */
     @supports (mask-image: url("")) or (-webkit-mask-image: url("")) {
         .custom-toggle-arrow {
             background: currentColor;
@@ -3887,7 +2614,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
 
-    /* Fallback: falls Mask nicht geht */
     @supports not (mask-image: url("")) and not (-webkit-mask-image: url("")) {
         .custom-toggle-arrow {
             border-right: 2px solid currentColor;
@@ -3904,43 +2630,11 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         opacity: 1;
     }
 
-    .button-group .btn-cell > .action-btn.add-exercise-btn {
-        display: inline-flex; /* saubere vertikale Zentrierung */
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: calc(var(--control-height) - 4px); /* 48px → 44px */
-        padding-top: 0;
-        padding-bottom: 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-
     .action-btn.plan-submit-btn {
         height: calc(var(--control-height) - 4px);
     }
 
-    @media (max-width: 600px) {
-        .button-group {
-            margin-left: 0;
-            flex-wrap: wrap;
-            width: 100%;
-            --btn-width: 100%;
-        }
-    }
-
-    .stopwatch-top {
-        margin-top: 3rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
-        max-width: 1200px;
-        position: relative;
-    }
-
     @media (max-width:560px) {
-        /* Plan-Card Layout auf Reihe statt Grid zwingen */
         .plan-item {
             display: flex !important;
         }
@@ -3953,7 +2647,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             width: 100%;
         }
 
-        /* Titel: ellipsize + Platz geben */
         .plan-title {
             min-width: 0;
             overflow: hidden;
@@ -3961,7 +2654,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             white-space: nowrap;
         }
 
-        /* Actions rechts: kompakt inline */
         .plan-right {
             display: inline-flex;
             align-items: center;
@@ -3969,7 +2661,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             flex-wrap: nowrap;
         }
 
-        /* Icons sichtbar halten, Kebab auf schmal weg */
         .inline-actions {
             display: inline-flex !important;
             gap: .25rem;
@@ -3979,7 +2670,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             display: none !important;
         }
 
-        /* Open-Button bleibt rechts in der Reihe */
         .desktop-open {
             display: inline-flex !important;
         }
@@ -3988,7 +2678,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             display: none !important;
         }
 
-        /* Menü-Overlay sicherheitshalber oberhalb halten */
         .plan-menu {
             z-index: 1000;
         }
@@ -4004,13 +2693,10 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         white-space: nowrap;
     }
 
-    /* Inline-Action-Buttons (Edit/Löschen/Download) sind standardmäßig sichtbar */
     .inline-actions {
         display: inline-flex;
         gap: .4rem;
     }
-    /* Kebab standardmäßig verstecken – wird erst ab schmaler Breite angezeigt */
-
 
     @media (max-width:1024px) {
         .inline-actions {
@@ -4022,7 +2708,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
 
-    /* ≤560px: weiterhin eine Zeile; mobile Zeile komplett aus */
     @media (max-width:560px) {
         .plan-row2 {
             display: none !important;
@@ -4036,7 +2721,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             display: inline-flex !important;
         }
     }
-    /* Open-Button auch in einer Linie (Desktop) */
+
     .desktop-open {
         display: inline-flex;
     }
@@ -4054,20 +2739,17 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             gap: .5rem;
         }
 
-        /* Inline-Aktionen ausblenden, Kebab einblenden */
         .inline-actions {
             display: none;
         }
-
-        /* Open-Button in eigener Zeile */
         .desktop-open {
             display: inline-flex !important;
         }
-        /* war: none */
+
         .mobile-open {
             display: none !important;
         }
-        /* war: inline-flex */
+
         .plan-row2 {
             display: none;
         }
@@ -4109,215 +2791,19 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         box-shadow: 0 22px 60px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(255,255,255,0.05);
     }
 
-    .timer-display:hover {
-        transform: scale(1.02);
-        box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-
     .plan-drag-handle {
         cursor: grab;
         margin-right: .5rem;
         user-select: none;
     }
 
-    .timer-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        align-items: center;
-        width: 100%;
-    }
-
-    html.dark-mode .timer-select,
-    html.dark-mode .timer-input {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
-    }
-
-    .timer-select:focus,
-    .timer-input:focus {
-        border-color: #4B6CB7;
-        box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
-        outline: none;
-    }
-
-    .builder-head .plan-block .field-label {
-        display: block;
-        margin-bottom: .6rem; /* Abstand Titel ↔ Input */
-    }
-
-    .builder-head .plan-block .plan-name-input {
-        width: 100%;
-    }
-
-    .type-block .type-heading {
-        display: block;
-        margin-bottom: .6rem;
-    }
-
-    .goal-row {
-        display: grid;
-        gap: .55rem; /* Abstand Titel ↔ Select */
-    }
-
-    .builder-head .segmented.seg-type {
-        gap: .45rem; /* etwas mehr Luft zwischen Buttons */
-        padding: .26rem .35rem; /* minimal höhere/lebhaftere Fläche */
-        border-radius: 10px;
-    }
-
-        .builder-head .segmented.seg-type > button {
-            padding: .42rem .72rem; /* + ~2–3px in beide Richtungen */
-            font-size: .89rem; /* vorher ~.86rem */
-            border-radius: 9px;
-        }
-
-    .builder-head .plan-name-input.slim {
-        flex: 1 1 320px;
-        min-width: 180px;
-    }
-
-    @media (max-width: 1100px) {
-        .builder-head .segmented.seg-type {
-            gap: .28rem;
-        }
-
-            .builder-head .segmented.seg-type > button {
-                padding: .28rem .5rem;
-                font-size: .82rem;
-            }
-    }
-
-    @media (max-width: 520px) {
-        .builder-head {
-            grid-template-columns: 1fr;
-            grid-template-areas:
-                "plan"
-                "type"
-                "extras";
-        }
-
-            .builder-head .extras-cta {
-                justify-self: start;
-                white-space: nowrap;
-                box-sizing: border-box;
-                inline-size: min(var(--extras-toggle-w), 100%);
-                min-inline-size: min(var(--extras-toggle-w), 100%);
-                max-inline-size: min(var(--extras-toggle-w), 100%);
-            }
-
-        .segmented.seg-type {
-            flex-wrap: wrap;
-            row-gap: .35rem;
-        }
-    }
-
     @media (max-width: 560px) {
-        .desktop-only {
-            display: none;
-        }
 
-        .builder-head .plan-block {
-            grid-area: plan; /* spannt über "plan plan" = beide Spalten */
-            width: 100%;
-            min-width: 0; /* verhindert Einquetschen durch Intrinsic-Width */
-        }
-
-            .builder-head .plan-block .plan-name-input {
-                width: 100% !important;
-                max-width: none !important;
-                min-width: 0;
-                box-sizing: border-box;
-            }
-
-        .mobile-only {
-            display: block;
-        }
-
-        .builder-head .type-block.desktop-only {
-            display: none !important;
-        }
-
-        .builder-head .type-block.mobile-only {
-            display: block;
-        }
-
-        .builder-head {
-            display: grid !important;
-            grid-template-columns: minmax(0, 1fr) var(--control-height) !important; /* 2. Spalte exakt Icon-Breite */
-            grid-template-areas:
-                "plan plan"
-                "type extras" !important;
-            align-items: start; /* nicht mittig zwischen den Zeilen hängen */
-            row-gap: .6rem;
-            column-gap: .75rem;
-        }
-
-            .builder-head .plan-name-input.slim {
-                grid-area: plan;
-                width: 100%; /* volle Breite */
-            }
-
-            .builder-head .type-block.mobile-only {
-                grid-area: type;
-            }
-
-            .builder-head .seg-type-select {
-                height: var(--control-height);
-                font-size: var(--control-font-size);
-                width: 100%;
-            }
-
-        .extras-label {
-            display: none;
-        }
-
-        .extras-icon {
-            margin-right: 0;
-        }
-
-        .builder-head .extras-cta {
-            grid-area: extras;
-            justify-self: end !important;
-            align-self: end; /* am unteren Rand der Zeile → Höhe vom Label ignorieren */
-            inline-size: var(--control-height) !important; /* quadratisch */
-            min-inline-size: var(--control-height) !important;
-            max-inline-size: var(--control-height) !important;
-            padding-inline: 0 !important;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Kleinkram */
-        .seg-type-select {
-            height: var(--control-height);
-            font-size: var(--control-font-size);
-            width: 100%;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-secondary);
-            color: var(--text-color);
-            padding: 0 .75rem;
-        }
-
-
-        .preview-card {
-            position: static;
-            top: auto;
-        }
-
-        .list-item-actions,
-        .timer-buttons,
-        .timer-input-group {
+        .list-item-actions {
             flex-wrap: wrap;
         }
 
-        .workout-list,
-        .form-card.builder-grid,
-        .builder-left,
-        .builder-right {
+        .workout-list {
             max-width: 100%;
             min-width: 0;
         }
@@ -4325,71 +2811,13 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         .workout-list {
             padding: 0 .5rem;
         }
-
-        .form-card {
-            padding: 1rem;
-        }
     }
 
-    .workout-list,
-    .timer-container,
-    .stopwatch-top {
+    .workout-list{
         width: 100%;
         max-width: var(--section-max);
         margin-inline: auto !important;
     }
-
-    .button-group .btn-cell > * {
-        margin-top: 0 !important;
-        width: 100%;
-        height: var(--control-height);
-        padding-left: var(--control-padding-x);
-        padding-right: var(--control-padding-x);
-    }
-
-    @media (min-width: 960px) {
-        .builder-head .extras-cta {
-            flex: 0 0 var(--extras-toggle-w);
-            white-space: nowrap;
-        }
-    }
-
-    .builder-head {
-        display: grid;
-        grid-template-columns: 1fr var(--extras-toggle-w);
-        grid-template-rows: auto auto;
-        grid-template-areas:
-            "plan plan"
-            "type extras";
-        align-items: center;
-        gap: .75rem 1rem;
-    }
-
-        .builder-head .plan-name-input.slim {
-            grid-area: plan;
-            width: 100%;
-        }
-
-        .builder-head .segmented.seg-type {
-            grid-area: type;
-            justify-self: start;
-            margin-left: 0;
-        }
-
-        .builder-head .extras-cta {
-            grid-area: extras;
-            justify-self: end;
-            white-space: nowrap;
-            box-sizing: border-box;
-            inline-size: min(var(--extras-toggle-w), 100%);
-            min-inline-size: min(var(--extras-toggle-w), 100%);
-            max-inline-size: min(var(--extras-toggle-w), 100%);
-        }
-
-        .builder-head .extras-cta {
-            box-sizing: border-box;
-            inline-size: min(var(--extras-toggle-w), 100%);
-        }
 
     @media (max-width: 420px) {
         .training {
@@ -4401,31 +2829,12 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             padding: 0 .5rem;
         }
 
-        .form-card {
-            padding: 1rem;
-        }
-
         .page-title {
             font-size: 1.9rem;
         }
 
-        .builder-head .segmented.seg-type {
-            padding: .2rem;
-            gap: .25rem;
-        }
-
-            .builder-head .segmented.seg-type > button {
-                padding: .25rem .45rem;
-                font-size: .8rem;
-            }
-
         .timer-display {
             font-size: 2.4rem;
-        }
-
-        .timer-select,
-        .timer-input {
-            width: 120px;
         }
 
         .custom-toggle-btn {
@@ -4434,221 +2843,14 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     }
 
     .training,
-    .workout-list,
-    .form-card {
+    .workout-list {
         max-width: 100%;
-        overflow-x: visible; /* globale Layout-Breite bleibt, aber Schatten werden nicht abgeschnitten */
+        overflow-x: visible;
     }
 
     @media (max-width: 360px) {
         .page-title {
             font-size: 1.75rem;
-        }
-    }
-
-    @media (min-width: 561px) {
-        .builder-head {
-            display: grid;
-            grid-template-columns: 1fr var(--extras-toggle-w);
-            grid-template-areas:
-                "plan plan"
-                "type extras";
-            gap: .75rem 1.55rem;
-        }
-
-            .builder-head .type-block.desktop-only .segmented.seg-type {
-                height: var(--control-height); /* fixe Zielhöhe, z. B. 48px */
-                padding-block: .25rem; /* etwas schlanker innen, damit’s nicht zu fett wirkt */
-                align-items: stretch; /* Buttons füllen die volle Höhe */
-            }
-
-                .builder-head .type-block.desktop-only .segmented.seg-type > button {
-                    display: inline-flex; /* Text vertikal mittig */
-                    align-items: center;
-                    justify-content: center;
-                }
-
-            .builder-head .plan-block {
-                grid-area: plan;
-                min-width: 0; /* verhindert Overflow */
-            }
-
-                .builder-head .plan-block .plan-name-input {
-                    width: 100%;
-                    max-width: none;
-                    min-width: 0;
-                    box-sizing: border-box;
-                }
-
-            .builder-head .type-block.desktop-only {
-                display: block;
-            }
-
-            .builder-head .type-block.mobile-only {
-                display: none !important;
-            }
-
-            .builder-head .extras-cta {
-                grid-area: extras;
-                justify-self: end;
-                white-space: nowrap;
-                align-self: end;
-            }
-
-            .builder-head .plan-name-input.slim {
-                grid-area: auto;
-            }
-
-            .builder-head .segmented.seg-type {
-                grid-area: auto;
-            }
-    }
-
-    @media (max-width: 960px) {
-        .builder-head .type-block.desktop-only {
-            display: none !important;
-        }
-
-        .builder-head .type-block.mobile-only {
-            display: block !important;
-        }
-
-        /* Extras-Button bleibt voll (Icon + Text) */
-        .builder-head .extras-cta {
-            inline-size: var(--extras-toggle-w);
-            min-inline-size: var(--extras-toggle-w);
-            max-inline-size: var(--extras-toggle-w);
-            padding-inline: var(--control-padding-x);
-            justify-self: end;
-        }
-
-        .extras-label {
-            display: inline;
-        }
-    }
-
-    @media (min-width: 561px) and (max-width: 960px) {
-        .type-block.desktop-only {
-            display: none !important;
-        }
-
-        .type-block.mobile-only {
-            display: block !important;
-        }
-
-        .builder-head {
-            /* kein Scroll-Container -> Dropdown verhält sich wie deine anderen Selects */
-            overflow: visible !important;
-            /* rechts ist (bei dir <=960px) sowieso Icon-only -> exakt control-height */
-            grid-template-columns: minmax(0, 1fr) var(--control-height) !important;
-            grid-template-areas: "plan plan" "type extras" !important;
-            column-gap: .85rem;
-            align-items: end;
-            min-width: 0;
-        }
-
-            .builder-head .extras-cta {
-                inline-size: var(--control-height) !important;
-                min-inline-size: var(--control-height) !important;
-                max-inline-size: var(--control-height) !important;
-                padding-inline: 0 !important;
-                justify-content: center;
-            }
-
-        .extras-label {
-            display: none !important;
-        }
-
-        .builder-head .seg-type-select {
-            width: 100% !important;
-        }
-    }
-
-    @media (max-width: 560px) {
-        .builder-head .extras-cta {
-            inline-size: var(--control-height);
-            min-inline-size: var(--control-height);
-            max-inline-size: var(--control-height);
-            padding-inline: 0;
-            display: inline-flex;
-            justify-content: center;
-        }
-    }
-
-    @media (max-width: 960px) {
-        .builder-head .extras-cta {
-            inline-size: var(--control-height) !important;
-            min-inline-size: var(--control-height) !important;
-            max-inline-size: var(--control-height) !important;
-            padding-inline: 0 !important;
-            justify-content: center;
-        }
-
-        .extras-label {
-            display: none !important;
-        }
-        /* nur Icon zeigen */
-    }
-
-    @media (min-width: 961px) {
-        .builder-head {
-            grid-template-columns: minmax(0, 1fr) auto !important;
-        }
-
-            .builder-head .extras-cta {
-                inline-size: auto !important;
-                min-inline-size: auto !important;
-                max-inline-size: clamp(180px, 24ch, 320px) !important; /* genug Platz für Label */
-                padding-inline: var(--control-padding-x) !important;
-                white-space: nowrap; /* Label bleibt einzeilig */
-            }
-
-        .extras-label {
-            display: inline !important;
-        }
-    }
-
-    .builder-head {
-        grid-template-columns: minmax(0, 1fr) auto !important; /* linke Spalte flexibel, rechts Content-breite */
-    }
-
-        .builder-head .extras-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: .45rem;
-            height: var(--control-height);
-            padding-inline: var(--control-padding-x);
-            border-radius: 8px;
-            /* Overflow-Schutz */
-            white-space: nowrap;
-            min-width: 0;
-            width: auto;
-            max-inline-size: clamp(180px, 26ch, 360px); /* 26ch reicht für „Extras ausblenden“ */
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-    @media (max-width: 560px) {
-        .builder-head {
-            grid-template-columns: minmax(0, 1fr) var(--control-height) !important;
-        }
-
-            .builder-head .extras-cta {
-                inline-size: var(--control-height) !important;
-                max-inline-size: var(--control-height) !important;
-                padding-inline: 0 !important;
-                justify-content: center;
-            }
-
-        .extras-label {
-            display: none !important;
-        }
-    }
-
-    /* Ab 561px immer mit Text */
-    @media (min-width: 561px) {
-        .extras-label {
-            display: inline !important;
         }
     }
 
@@ -4666,7 +2868,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         white-space: nowrap;
     }
 
-    /* Öffnen */
     .plan-row1 > .inline-actions {
         display: inline-flex;
         gap: .4rem;
@@ -4696,7 +2897,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             margin-left: auto;
         }
     }
-    /* NEU: gilt für alle Breakpoints */
+
     .plan-menu {
         position: absolute;
         right: .5rem;
@@ -4715,7 +2916,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             inline-size: auto;
         }
 
-    /* === canonical layout for plan rows: drag | centered title | actions right === */
     .plan-item > .plan-row1 {
         display: grid !important;
         grid-template-columns: auto 1fr auto;
@@ -4749,7 +2949,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             order: 3;
         }
 
-    /* Responsive: wir behalten eine Zeile bei und blenden ggf. inline-actions aus */
     @media (max-width:1024px) {
         .plan-item > .plan-row1 .inline-actions {
             display: none !important;
@@ -4760,21 +2959,19 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
 
-    /* Mobile: keine zweite Zeile nötig */
     @media (max-width:560px) {
         .plan-row2, .mobile-open {
             display: none !important;
         }
     }
-    /* FIX 1: Plan-Karte ist kein Flex-Container mehr */
+
     .plan-item {
-        display: block; /* überschreibt .list-item { display:flex } */
+        display: block; 
     }
 
-        /* FIX 2: Eine Reihe: drag | Titel zentriert | rechts Aktionen */
         .plan-item > .plan-row1 {
             display: grid !important;
-            grid-template-columns: auto 1fr auto; /* Drag | Titel | rechts */
+            grid-template-columns: auto 1fr auto;
             align-items: center;
             width: 100%;
         }
@@ -4795,12 +2992,10 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
                 gap: .5rem;
             }
 
-    /* FIX 3: Die mobile Zusatzzeile standardmäßig weg */
     .plan-row2 {
         display: none;
     }
 
-    /* Nur auf sehr schmalen Screens (optional) die mobile Zeile reaktivieren */
     @media (max-width:560px) {
         .plan-row2 {
             display: block;
@@ -4809,13 +3004,12 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         .mobile-open {
             display: inline-flex !important;
         }
-        /* mobiler Open-Button sichtbar */
+
         .desktop-open {
             display: none !important;
         }
     }
 
-    /* Desktop-Default: Inline-Actions sichtbar, Kebab-Wrapper versteckt */
     .inline-actions {
         display: inline-flex;
         gap: .4rem;
@@ -4825,7 +3019,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         display: none;
     }
 
-    /* Ab hier „verschieben“ sich deine Buttons → Inline-Actions aus, Kebab an */
     @media (max-width: 1024px) {
         .inline-actions {
             display: none !important;
@@ -4836,7 +3029,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
 
-    /* NEU: Resizer hängt an .th-text (nicht am TH) */
     th .th-text > .resizer {
         position: absolute;
         top: 0;
@@ -4851,7 +3043,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         background: transparent;
     }
 
-        /* Sichtbare Linie im Griff */
         th .th-text > .resizer::before {
             content: "";
             width: var(--resize-line, 1px);
@@ -4865,21 +3056,20 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         th .th-text > .resizer.is-active::before {
             background: var(--resize-color-hover, #60a5fa);
             opacity: 1;
-            transform: scaleX(2); /* optisch dicker beim Hover/Drag */
+            transform: scaleX(2);
         }
 
     .list-item.plan-item {
         position: relative;
-        padding: 1.35rem 1.6rem; /* etwas „cardiger“ als die Default-List-Items */
+        padding: 1.35rem 1.6rem; 
         border-radius: 18px;
         background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
         border: 1px solid rgba(148, 163, 184, 0.26);
         box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
-        display: block; /* explizit, falls irgendwo noch flex reingrätscht */
+        display: block; 
         transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
     }
 
-    /* Hover-Effekt wie bei .form-card/.preview-card */
     @media (hover: hover) {
         .list-item.plan-item:hover {
             transform: translateY(-3px) scale(1.01);
@@ -4888,31 +3078,28 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
 
-    /* Dark-Mode-Variante analog zu deinen anderen Karten */
     html.dark-mode .list-item.plan-item {
         background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60% ), #020617;
         border-color: rgba(148, 163, 184, 0.45);
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
-    /* Smoother Touch-Drag auf Mobile */
+
     .plan-drag-stack .plan-item {
         touch-action: pan-y;
         -webkit-tap-highlight-color: transparent;
         will-change: transform;
     }
 
-    /* Weniger Text-Selection/Jank beim Drag */
     .sortable-chosen {
         user-select: none;
     }
 
-    /* Ghost optisch stabil + minimaler Scale für „Grip“-Feeling */
     .sortable-ghost,
     .drag-ghost {
         opacity: .85;
         transform: scale(.98);
     }
-    /* Drag Performance: folgt der Maus, keine Lags */
+
     .drag-chosen,
     .dragging,
     .sortable-chosen,
@@ -4938,44 +3125,65 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         will-change: transform;
     }
 
-    /* während Drag keine Hover-Animationen stören */
     .dragging .list-item.plan-item {
         transform: none !important;
     }
 
+    .plan-code-badge {
+        margin-left: .5rem;
+        padding: .15rem .45rem;
+        border-radius: 999px;
+        font-size: .8rem;
+        opacity: .9;
+        border: 1px solid rgba(255,255,255,.18);
+    }
 
-    .exercise-select-trigger {
-        width: 100%;
+    .plan-code-copy {
+        margin-left: .35rem;
+    }
+
+    /* Planname oben, Code immer drunter (ohne Wrap) */
+    .plan-header .section-title {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: space-between;
-        cursor: pointer;
-        font: inherit;
-        gap: 0.5rem;
-        /* WICHTIG: keine eigenen Abstände/Farben/Borders mehr */
-        padding: 0;
-        border: none;
-        border-radius: 0;
-        background: transparent;
-        color: inherit;
-        box-sizing: border-box;
-        box-shadow: none !important;
-        outline: none !important;
-        background-image: none !important;
+        gap: .35rem;
+        min-width: 0;
     }
 
-    /* nur das, was der Button zusätzlich braucht */
-    .training .field-row .exercise-select-trigger {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        cursor: pointer !important;
-        gap: 0.5rem !important;
-        /* kein extra padding hier – kommt aus der gemeinsamen Regel oben */
+    .plan-title-main {
+        max-width: 100%;
+        min-width: 0;
+        white-space: nowrap; /* kein Wrap */
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    .training .exercise-select-trigger:focus-visible {
-        outline: 2px solid #5b8cff !important;
-        outline-offset: 2px !important;
+    .plan-code-row {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .35rem;
+        white-space: nowrap; /* kein Wrap */
+        max-width: 100%;
     }
+    .plan-code-badge {
+        cursor: copy;
+        user-select: none;
+    }
+
+    /* mehr Luft zwischen Plan-Liste und Satzpausen-Timer */
+    .plans-section {
+        margin-top: 2.25rem;
+        margin-bottom: 2.25rem;
+    }
+
+    /* optional: auf Mobile etwas weniger */
+    @media (max-width: 560px) {
+        .plans-section {
+            margin-top: 1.75rem;
+            margin-bottom: 1.75rem;
+        }
+    }
+
 </style>

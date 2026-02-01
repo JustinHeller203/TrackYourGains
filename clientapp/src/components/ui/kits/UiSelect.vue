@@ -139,9 +139,13 @@ onBeforeUnmount(() => {
     .ui-select-wrapper {
         position: relative;
         width: 100%;
+        max-width: 100%;
+        min-width: 0; /* BIG: verhindert overflow in flex/grid */
+        flex: 1 1 0; /* KEY: darf schrumpfen -> endet exakt wie Inputs */
+        box-sizing: border-box;
     }
 
-    /* sichtbarer „Input“ */
+
     .ui-select-trigger {
         width: 100%;
         display: flex;
@@ -150,18 +154,24 @@ onBeforeUnmount(() => {
         gap: 0.5rem;
         height: var(--control-height, 48px);
         font-size: var(--control-font-size, 0.95rem);
-        padding: 0.75rem var(--control-padding-x, 1.5rem);
-        border-radius: 8px;
-        border: 1px solid var(--border-color, #e5e7eb);
-        background: var(--bg-secondary, #f3f4f6);
-        color: var(--text-color, #111827);
+        min-width: 0;
+        padding: 0 .9rem;
+        border-radius: 12px;
         cursor: pointer;
         box-sizing: border-box;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.15s ease, transform 0.05s ease;
+        border: 2px solid color-mix(in srgb, var(--accent-primary) 42%, var(--border-color, #e5e7eb) 58%);
+        background: radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 58%), color-mix(in srgb, var(--bg-secondary, #f3f4f6) 86%, transparent);
+        color: var(--text-primary, #111827);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent) inset, 0 0 0 4px color-mix(in srgb, var(--accent-primary) 7%, transparent);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
     }
 
+
         .ui-select-trigger:hover {
-            background-color: #e5e7eb;
+            border-color: color-mix(in srgb, var(--accent-primary) 56%, var(--border-color, #e5e7eb) 44%);
+            box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 30%, transparent) inset, 0 0 0 5px color-mix(in srgb, var(--accent-primary) 10%, transparent);
         }
 
         .ui-select-trigger:focus {
@@ -169,9 +179,9 @@ onBeforeUnmount(() => {
         }
 
         .ui-select-trigger:focus-visible {
-            outline: 2px solid #4b6cb7;
-            outline-offset: 2px;
-            box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
+            outline: none;
+            border-color: color-mix(in srgb, var(--accent-primary) 78%, var(--border-color, #e5e7eb) 22%);
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 28%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 32%, transparent) inset, 0 16px 34px rgba(15, 23, 42, 0.18);
         }
 
         .ui-select-trigger:disabled {
@@ -197,14 +207,16 @@ onBeforeUnmount(() => {
     .ui-select-menu {
         position: absolute;
         inset-inline: 0;
-        margin-top: 2px;
-        padding: 4px 0;
-        background: var(--bg-card, #ffffff);
-        border-radius: 8px;
-        border: 1px solid var(--border-color, #e5e7eb);
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35);
+        margin-top: 6px;
+        padding: 6px 0;
+        border-radius: 12px;
+        border: 2px solid color-mix(in srgb, var(--accent-primary) 34%, var(--border-color, #e5e7eb) 66%);
+        background: radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card, #ffffff) 92%, transparent);
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.28);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
         z-index: 50;
-        max-height: 200px;
+        max-height: 220px;
         overflow-y: auto;
         box-sizing: border-box;
     }
@@ -245,19 +257,21 @@ onBeforeUnmount(() => {
     /* Dark Mode */
     :root.dark .ui-select-trigger,
     html.dark-mode .ui-select-trigger {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
+        border-color: color-mix(in srgb, rgba(129, 140, 248, 0.85) 52%, rgba(148, 163, 184, 0.35) 48%);
+        background: radial-gradient(circle at 14% 18%, rgba(99, 102, 241, 0.14), transparent 58%), rgba(2, 6, 23, 0.48);
+        color: #fff;
+        box-shadow: 0 12px 26px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(129, 140, 248, 0.22) inset, 0 0 0 5px rgba(129, 140, 248, 0.10);
     }
 
     :root.dark .ui-select-menu,
     html.dark-mode .ui-select-menu {
-        background: #0d1117;
-        border-color: #30363d;
+        border-color: color-mix(in srgb, rgba(129, 140, 248, 0.70) 38%, rgba(148, 163, 184, 0.28) 62%);
+        border-width: 2px;
+        border-style: solid;
     }
 
     :root.dark .ui-select-option:hover,
     html.dark-mode .ui-select-option:hover {
-        background: #1f2933;
+        background: rgba(99, 102, 241, 0.14);
     }
 </style>

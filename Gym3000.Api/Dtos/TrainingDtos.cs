@@ -6,6 +6,8 @@ public record TrainingPlanListItemDto(
     Guid Id,
     string Name,
     bool IsFavorite,
+    string Code,
+    int ExerciseCount,
     DateTime CreatedUtc,
     DateTime UpdatedUtc
 );
@@ -35,6 +37,7 @@ public record TrainingPlanDto(
     Guid Id,
     string Name,
     bool IsFavorite,
+    string Code,
     DateTime CreatedUtc,
     DateTime UpdatedUtc,
     List<TrainingDayDto> Days
@@ -44,6 +47,7 @@ public record TrainingPlanDto(
         p.Id,
         p.Name,
         p.IsFavorite,
+        p.Code,
         p.CreatedUtc,
         p.UpdatedUtc,
         p.Days
@@ -95,5 +99,6 @@ public record UpsertTrainingDayDto(
 public record UpsertTrainingPlanDto(
     string Name,
     bool IsFavorite,
-    List<UpsertTrainingDayDto> Days
+    List<UpsertTrainingDayDto> Days,
+    string? Code = null
 );

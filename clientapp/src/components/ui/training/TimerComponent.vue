@@ -12,8 +12,8 @@
                    ghost-class="drag-ghost"
                    chosen-class="drag-chosen"
                    drag-class="dragging"
-                   :force-fallback="true"
-                   :animation="0"
+                   :force-fallback="false"
+                   :animation="180"
                    direction="vertical"
                    easing="cubic-bezier(0.16,1,0.3,1)"
                    :delay="resolvedDragDelay"
@@ -22,9 +22,11 @@
                    :fallback-tolerance="3"
                    :fallback-on-body="true"
                    :scroll="true"
-                   :scroll-sensitivity="40"
-                   :scroll-speed="12"
-                   :swap-threshold="0.3"
+                   :scroll-sensitivity="70"
+                   :scroll-speed="18"
+                   :swap-threshold="0.65"
+                   @start="onDragStart"
+                   @end="onDragEnd"
                    tag="div"
                    class="drag-stack"
                    @update:modelValue="onReorderTimers">
@@ -37,7 +39,7 @@
                     <div class="timer-header">
                         <span class="timer-drag-handle" title="Ziehen zum Verschieben">⠿</span>
 
-                        <span class="timer-name" @click="openTimerNameEdit(timer.id)">
+                        <span class="timer-name" @dblclick="openRenameTimerPopup(timer.id)">
                             {{ timer.name || 'Timer' }}
                         </span>
 
@@ -54,27 +56,106 @@
                         <span class="timer-display">{{ formatTimerDisplay(timer.time) }}</span>
 
                         <div class="timer-input-group">
-                            <select :value="timer.seconds ?? ''"
-                                    class="timer-select"
-                                    @change="onSecondsChange(timer.id, $event)">
+                            <TimerSelect :modelValue="String((timer as any).secondsPreset ?? (timer as any).seconds ?? '')"
+                                         @change="onSecondsChange(timer.id, $event)">
                                 <option value="" disabled>Satzpause wählen</option>
                                 <option value="60">60 Sekunden</option>
                                 <option value="90">90 Sekunden</option>
                                 <option value="120">120 Sekunden</option>
                                 <option value="custom">Benutzerdefiniert</option>
-                            </select>
+                            </TimerSelect>
 
-                            <input v-if="timer.seconds === 'custom'"
-                                   :value="timer.customSeconds ?? ''"
-                                   @input="onCustomSecondsInput(timer.id, $event)"
-                                   placeholder="Sekunden"
-                                   type="number"
-                                   min="1"
-                                   class="timer-input" />
+                            <UiTimerInput v-if="String((timer as any).secondsPreset ?? (timer as any).seconds ?? '') === 'custom'"
+                                          :modelValue="timer.customSeconds ?? ''"
+                                          @input="onCustomSecondsInput(timer.id, $event)"
+                                          placeholder="Sekunden"
+                                          type="number"
+                                          min="1" />
 
-                            <select :value="timer.sound"
-                                    class="timer-select"
-                                    @change="onSoundChange(timer.id, $event)">
+                            <!-- ruhig: Smart als optionaler Button -->
+                            <button type="button"
+                                    class="mini-toggle"
+                                    :class="getMeta(timer.id).smartOpen ? 'is-open' : ''"
+                                    @click="toggleSmart(timer.id)">
+                                ✨ Smart
+                            </button>
+
+                            <!-- ruhig: Sound in „Erweitert“ -->
+                            <button type="button"
+                                    class="mini-toggle"
+                                    :class="getMeta(timer.id).advancedOpen ? 'is-open' : ''"
+                                    @click="toggleAdvanced(timer.id)">
+                                ⚙️ Erweitert
+                            </button>
+                        </div>
+
+                        <!-- Smart Presets: standardmäßig zu -->
+                        <div v-if="getMeta(timer.id).smartOpen" class="smart-panel">
+                            <TimerSelect full
+                                         :modelValue="getMeta(timer.id).exerciseKey"
+                                         @change="onExerciseChange(timer.id, $event)">
+                                <option value="">Übung wählen (optional)</option>
+                                <option v-for="ex in EXERCISES" :key="ex.key" :value="ex.key">
+                                    {{ ex.label }}
+                                </option>
+                            </TimerSelect>
+                            <div class="smart-goals" role="group" aria-label="Trainingsziel">
+                                <button type="button"
+                                        class="smart-goal"
+                                        :class="getMeta(timer.id).goal === 'hypertrophy' ? 'is-active' : ''"
+                                        :aria-pressed="getMeta(timer.id).goal === 'hypertrophy'"
+                                        @click="setGoal(timer.id, 'hypertrophy')">
+                                    Hypertrophie
+                                </button>
+                                <button type="button"
+                                        class="smart-goal"
+                                        :class="getMeta(timer.id).goal === 'strength' ? 'is-active' : ''"
+                                        :aria-pressed="getMeta(timer.id).goal === 'strength'"
+                                        @click="setGoal(timer.id, 'strength')">
+                                    Kraft
+                                </button>
+                                <button type="button"
+                                        class="smart-goal"
+                                        :class="getMeta(timer.id).goal === 'isolation' ? 'is-active' : ''"
+                                        :aria-pressed="getMeta(timer.id).goal === 'isolation'"
+                                        @click="setGoal(timer.id, 'isolation')">
+                                    Isolation
+                                </button>
+                            </div>
+
+                            <div class="smart-summary" v-if="getMeta(timer.id).goal">
+                                <span class="smart-text">
+                                    Empfehlung: <b>{{ formatSeconds(getSuggestion(timer.id).mid) }}</b>
+                                </span>
+
+                                <button type="button"
+                                        class="smart-apply"
+                                        @click="applySuggested(timer.id, 'mid')">
+                                    Übernehmen
+                                </button>
+
+                                <button type="button"
+                                        class="smart-more"
+                                        :class="getMeta(timer.id).smartMore ? 'is-open' : ''"
+                                        @click="toggleSmartMore(timer.id)">
+                                    mehr
+                                </button>
+                            </div>
+
+                            <div class="smart-chips" v-if="getMeta(timer.id).goal && getMeta(timer.id).smartMore">
+                                <button type="button" class="smart-chip" @click="applySuggested(timer.id, 'low')">
+                                    {{ formatSeconds(getSuggestion(timer.id).low) }}
+                                </button>
+                                <button type="button" class="smart-chip" @click="applySuggested(timer.id, 'high')">
+                                    {{ formatSeconds(getSuggestion(timer.id).high) }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Erweitert: Sound hier rein -->
+                        <div v-if="getMeta(timer.id).advancedOpen" class="advanced-panel">
+                            <TimerSelect :modelValue="soundUiValue(timer.id, timer.sound)"
+                                         @change="onSoundChange(timer.id, $event)">
                                 <option value="" disabled>Sound wählen</option>
                                 <option value="nothing">Keine</option>
                                 <option value="standard">Standard</option>
@@ -82,7 +163,7 @@
                                 <option value="beep">Piep</option>
                                 <option value="dong">Dong</option>
                                 <option value="decide">One Way Out</option>
-                            </select>
+                            </TimerSelect>
                         </div>
 
                         <div class="timer-buttons">
@@ -106,13 +187,13 @@
                @cancel="closeTimerPopup" />
 
     <!-- Pop-up für neuen Timer -->
-    <NamePromptPopup :show="showAddTimerPopup"
-                     v-model="newTimerName"
-                     title="Neuen Timer hinzufügen"
-                     placeholder="Timer Name (optional)"
+    <NamePromptPopup :show="showNamePopup"
+                     v-model="namePopupValue"
+                     :title="namePopupMode === 'rename' ? 'Timer umbenennen' : 'Neuen Timer hinzufügen'"
+                     :placeholder="namePopupMode === 'rename' ? 'Neuer Timer Name' : 'Timer Name (optional)'"
                      overlayClass="timer-popup"
-                     @save="addTimer"
-                     @cancel="closeAddTimerPopup" />
+                     @save="saveNamePopup"
+                     @cancel="closeNamePopup" />
 
     <!-- Pop-up für Löschbestätigung (nur Timer) -->
     <DeleteConfirmPopup :show="showDeletePopup" @confirm="confirmDeleteAction" @cancel="closeDeletePopup" />
@@ -131,7 +212,7 @@
 <script setup lang="ts">
     import { ref, computed, onMounted, nextTick, watch } from 'vue'
     import Draggable from 'vuedraggable'
-
+    import UiTimerInput from '@/components/ui/kits/inputs/UiTimerInput.vue'
     import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
     import CloseButton from '@/components/ui/buttons/CloseButton.vue'
     import AddButton from '@/components/ui/buttons/AddButton.vue'
@@ -142,11 +223,15 @@
     import InfoPopup from '@/components/ui/popups/InfoPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
+    import TimerSelect from '@/components/ui/kits/selects/UiTimerSelect.vue'
+    import { useTimersStore } from '@/store/timersStore'
+    import type { UpsertTimerDto } from '@/services/timers'
 
     interface TimerInstance {
         id: string
         name?: string
-        seconds: string | null
+        secondsPreset: string | null
+        seconds?: string | null
         customSeconds: number | null
         time: number
         isRunning: boolean
@@ -163,33 +248,188 @@
     }
 
     const props = defineProps<{
-        timers: TimerInstance[]
         startTimer: (timer: TimerInstance) => void
         stopTimer: (timer: TimerInstance) => void
         resetTimer: (timer: TimerInstance) => void
 
         dragDelay?: number
-
-        // damit es 1:1 dein existierendes EditPopup nutzt
-        openEditPopup?: (...args: any[]) => void
-
-        // damit Toast weiter in Training.vue gerendert wird
         addToast?: (message: string, type?: 'delete' | 'add' | 'save' | 'timer' | 'load') => void
         dismissToast?: (immediate?: boolean) => void
     }>()
 
-    const emit = defineEmits<{
-        (e: 'add-timer', timer: TimerInstance): void
-        (e: 'remove-timer', id: string): void
-        (e: 'reorder-timers', list: TimerInstance[]): void
-    }>()
+    const showNamePopup = ref(false)
+    const namePopupMode = ref<'add' | 'rename'>('add')
+    const namePopupValue = ref('')
+    const editingTimerId = ref<string | null>(null)
 
-    const timers = computed(() => props.timers)
+    const timersStore = useTimersStore()
+    const timers = computed(() => timersStore.items)
+
     const resolvedDragDelay = computed(() => props.dragDelay ?? 0)
 
-    const showTimerPopup = ref(false)
-    const showAddTimerPopup = ref(false)
-    const newTimerName = ref('')
+    const isDragging = ref(false)
+
+    const onDragStart = () => {
+        isDragging.value = true
+    }
+
+    const onDragEnd = () => {
+        isDragging.value = false
+    }
+
+    // =========================
+    // Smart Presets (local meta)
+    // =========================
+    type SmartGoal = 'hypertrophy' | 'strength' | 'isolation'
+
+    type ExerciseKind = 'big_compound' | 'medium_compound' | 'isolation'
+
+    const EXERCISES = [
+        { key: 'bench_press', label: 'Bankdrücken', kind: 'big_compound' as const },
+        { key: 'squat', label: 'Kniebeuge', kind: 'big_compound' as const },
+        { key: 'deadlift', label: 'Kreuzheben', kind: 'big_compound' as const },
+        { key: 'ohp', label: 'Schulterdrücken (OHP)', kind: 'medium_compound' as const },
+        { key: 'row', label: 'Rudern', kind: 'medium_compound' as const },
+        { key: 'lat_pulldown', label: 'Latziehen', kind: 'medium_compound' as const },
+        { key: 'leg_press', label: 'Beinpresse', kind: 'medium_compound' as const },
+
+        { key: 'lateral_raise', label: 'Seitheben', kind: 'isolation' as const },
+        { key: 'biceps_curl', label: 'Bizepscurls', kind: 'isolation' as const },
+        { key: 'triceps_pushdown', label: 'Trizepsdrücken', kind: 'isolation' as const },
+        { key: 'calf_raise', label: 'Wadenheben', kind: 'isolation' as const },
+    ] as const
+
+    type SmartMeta = {
+        exerciseKey: string
+        goal: SmartGoal | null
+        smartOpen: boolean
+        smartMore: boolean
+        advancedOpen: boolean
+        soundTouched: boolean
+    }
+
+    const metaById = ref<Record<string, SmartMeta>>({})
+
+    function getMeta(id: string): SmartMeta {
+        if (!metaById.value[id]) {
+            metaById.value[id] = {
+                exerciseKey: '',
+                goal: null,
+                smartOpen: false,
+                smartMore: false,
+                advancedOpen: false,
+                soundTouched: false,
+            }
+        }
+        return metaById.value[id]
+    }
+
+    const soundUiValue = (id: string, sound: any) => {
+        const m = getMeta(id)
+        const v = String(sound ?? '')
+
+        // solange User nix ausgewählt hat: "standard" (Default) wie "nicht gesetzt" behandeln
+        if (!m.soundTouched && (v === '' || v === 'standard')) return ''
+        return v
+    }
+    const toggleSmart = (id: string) => {
+        const m = getMeta(id)
+        m.smartOpen = !m.smartOpen
+        if (!m.smartOpen) m.smartMore = false
+    }
+
+    const toggleSmartMore = (id: string) => {
+        const m = getMeta(id)
+        m.smartMore = !m.smartMore
+    }
+
+    const toggleAdvanced = (id: string) => {
+        const m = getMeta(id)
+        m.advancedOpen = !m.advancedOpen
+    }
+
+    const onExerciseChange = (id: string, e: Event) => {
+        const value = (e.target as HTMLSelectElement | null)?.value ?? ''
+        getMeta(id).exerciseKey = value
+    }
+
+    const setGoal = (id: string, goal: SmartGoal) => {
+        getMeta(id).goal = goal
+    }
+
+    const exerciseKindOf = (exerciseKey: string): ExerciseKind => {
+        const ex = EXERCISES.find(x => x.key === exerciseKey)
+        return (ex?.kind ?? 'medium_compound') as ExerciseKind
+    }
+
+    const goalBaseRange = (goal: SmartGoal) => {
+        // seconds
+        if (goal === 'strength') return { low: 180, high: 300 }       // 3–5 min
+        if (goal === 'isolation') return { low: 45, high: 90 }        // 45–90s
+        return { low: 60, high: 120 }                                 // hypertrophy 60–120s
+    }
+
+    const kindFactor = (kind: ExerciseKind) => {
+        // wirkt auf die Range: big ↑, iso ↓
+        if (kind === 'big_compound') return 1.25
+        if (kind === 'isolation') return 0.85
+        return 1.0
+    }
+
+    const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n))
+
+    const roundToNice = (sec: number) => {
+        // “nice” steps: unter 120s -> 15s steps, sonst 30s steps
+        const step = sec < 120 ? 15 : 30
+        return Math.max(step, Math.round(sec / step) * step)
+    }
+
+    const getSuggestion = (id: string) => {
+        const { exerciseKey, goal } = getMeta(id)
+        if (!goal) return { low: 60, mid: 90, high: 120 }
+
+        const base = goalBaseRange(goal)
+        const factor = kindFactor(exerciseKindOf(exerciseKey))
+
+        // wir skalieren die base-range, aber halten sie in sinnvollen Grenzen pro Ziel
+        const scaledLow = base.low * factor
+        const scaledHigh = base.high * factor
+
+        // harte Limits, damit es nicht ausartet
+        const hard =
+            goal === 'strength' ? { min: 120, max: 420 } :
+                goal === 'isolation' ? { min: 30, max: 150 } :
+                    { min: 45, max: 240 }
+
+        const low = roundToNice(clamp(scaledLow, hard.min, hard.max))
+        const high = roundToNice(clamp(scaledHigh, hard.min, hard.max))
+        const mid = roundToNice((low + high) / 2)
+
+        return { low, mid, high }
+    }
+
+    const formatSeconds = (sec: number) => {
+        if (sec >= 60) {
+            const m = Math.floor(sec / 60)
+            const s = sec % 60
+            return s ? `${m}m ${s}s` : `${m}m`
+        }
+        return `${sec}s`
+    }
+
+    const formatSmartSuggestion = (id: string) => {
+        const s = getSuggestion(id)
+        return `${formatSeconds(s.mid)} (Range ${formatSeconds(s.low)}–${formatSeconds(s.high)})`
+    }
+
+    const applySuggested = async (id: string, which: 'low' | 'mid' | 'high') => {
+        const s = getSuggestion(id)
+        const sec = which === 'low' ? s.low : which === 'high' ? s.high : s.mid
+
+        // setzt Timer direkt auf custom mit sec
+        await patchTimer(id, { secondsPreset: 'custom', seconds: 'custom', customSeconds: sec })
+        props.addToast?.(`Pause gesetzt: ${formatSeconds(sec)}`, 'save')
+    }
 
     // local Confirm/Validation nur für Timer, damit der Block komplett out ist
     const showDeletePopup = ref(false)
@@ -228,7 +468,7 @@
     const makeUniqueTimerName = (rawName: string, excludeId?: string): string => {
         const base = (rawName || '').trim() || 'Timer'
         const existing = new Set(
-            props.timers
+            timers.value
                 .filter(t => !excludeId || t.id !== excludeId)
                 .map(t => (t.name || 'Timer').trim().toLowerCase())
         )
@@ -246,124 +486,143 @@
         return `${minutes}:${seconds.toString().padStart(2, '0')}`
     }
 
-    const openTimerNameEdit = (id: string) => {
-        props.openEditPopup?.('timerName', id)
+    const onReorderTimers = async (list: TimerInstance[]) => {
+        const orderedIds = list.map(t => t.id)
+        await timersStore.reorder(orderedIds)
     }
-
-    const onReorderTimers = (list: TimerInstance[]) => emit('reorder-timers', list)
 
     const openAddTimerPopup = () => {
-        newTimerName.value = ''
-        showAddTimerPopup.value = true
-    }
-    const closeAddTimerPopup = () => {
-        showAddTimerPopup.value = false
-        newTimerName.value = ''
+        namePopupMode.value = 'add'
+        editingTimerId.value = null
+        namePopupValue.value = ''
+        showNamePopup.value = true
     }
 
-    const addTimer = async () => {
-        const uniqueName = makeUniqueTimerName(newTimerName.value)
-
-        const newTimer: TimerInstance = {
-            id: makeId(),
-            name: uniqueName,
-            seconds: '60',
-            customSeconds: null,
-            time: 60,
-            isRunning: false,
-            interval: null,
-            isFavorite: false,
-            sound: 'standard',
-            isVisible: true,
-            shouldStaySticky: false,
+    const openRenameTimerPopup = (id: string) => {
+        const t = timers.value.find(x => x.id === id)
+        if (!t) {
+            props.addToast?.('Timer nicht gefunden', 'delete')
+            return
         }
 
-        emit('add-timer', newTimer)
-        props.addToast?.('Timer hinzugefügt', 'add')
-        closeAddTimerPopup()
-        await nextTick()
+        namePopupMode.value = 'rename'
+        editingTimerId.value = id
+        namePopupValue.value = (t.name || 'Timer').trim()
+        showNamePopup.value = true
+    }
+
+    const closeNamePopup = () => {
+        showNamePopup.value = false
+        namePopupValue.value = ''
+        editingTimerId.value = null
+        namePopupMode.value = 'add'
+    }
+
+    const saveNamePopup = async () => {
+        if (namePopupMode.value === 'add') {
+            const uniqueName = makeUniqueTimerName(namePopupValue.value)
+            await timersStore.create(uniqueName)
+            props.addToast?.('Timer hinzugefügt', 'add')
+            closeNamePopup()
+            await nextTick()
+            return
+        }
+
+        const id = editingTimerId.value
+        if (!id) return
+
+        const uniqueName = makeUniqueTimerName(namePopupValue.value, id)
+        await timersStore.update(id, { name: uniqueName } as any)
+        props.addToast?.('Timername aktualisiert', 'timer')
+        closeNamePopup()
     }
 
     const openDeleteTimerPopup = (id: string) => {
-        if (props.timers.length <= 1) {
+        if (timers.value.length <= 1) {
             openValidationPopup(['Mindestens ein Timer muss geöffnet bleiben'])
             return
         }
 
         openDeletePopup(async () => {
             nextTick(() => closeTimerPopup())
-            emit('remove-timer', id)
+            await timersStore.remove(id)
             props.addToast?.('Timer gelöscht', 'delete')
             await nextTick()
         })
     }
 
-    const toggleFavoriteTimer = (id: string) => {
-        const updated = props.timers.map(t =>
-            t.id === id ? { ...t, isFavorite: !t.isFavorite } : t
-        )
+    const toggleFavoriteTimer = async (id: string) => {
+        const cur = timers.value.find(t => t.id === id)
+        if (!cur) return
+        const nextFav = !cur.isFavorite
 
-        const changed = updated.find(t => t.id === id)
-        if (!changed) return
-
-        const favs = updated.filter(t => t.isFavorite)
-        const others = updated.filter(t => !t.isFavorite)
-        emit('reorder-timers', [...favs, ...others])
+        await timersStore.update(id, { isFavorite: nextFav })
 
         props.addToast?.(
-            changed.isFavorite ? 'Timer zu Favoriten hinzugefügt' : 'Timer aus Favoriten entfernt',
-            changed.isFavorite ? 'add' : 'delete'
+            nextFav ? 'Timer zu Favoriten hinzugefügt' : 'Timer aus Favoriten entfernt',
+            nextFav ? 'add' : 'delete'
         )
     }
 
-    const patchTimer = (id: string, patch: Partial<TimerInstance>) => {
-        const next = props.timers.map(t => (t.id === id ? { ...t, ...patch } : t))
-        emit('reorder-timers', next) // gleiche Reihenfolge, nur updated values
+    const patchTimer = async (id: string, patch: {
+        name?: string | null
+        // wir schicken BEIDES, weil wir nicht 100% wissen ob Store/DTO "seconds" oder "secondsPreset" nutzt
+        secondsPreset?: string | null
+        seconds?: string | null
+        customSeconds?: number | null
+        sound?: string | null
+        isFavorite?: boolean | null
+        isVisible?: boolean | null
+        shouldStaySticky?: boolean | null
+    }) => {
+        await timersStore.update(id, patch as any)
     }
 
-    const onSecondsChange = (id: string, e: Event) => {
+    const onSecondsChange = async (id: string, e: Event) => {
         const value = (e.target as HTMLSelectElement | null)?.value ?? ''
         if (!value) return
 
         if (value === 'custom') {
-            const current = props.timers.find(t => t.id === id)
-            const cs = current?.customSeconds ?? null
-            patchTimer(id, {
+            const current = timers.value.find(t => t.id === id)
+            const cs = current?.customSeconds ?? current?.time ?? 60
+
+            await patchTimer(id, {
+                secondsPreset: 'custom',
                 seconds: 'custom',
-                time: cs && cs > 0 ? cs : (current?.time ?? 60),
+                customSeconds: Math.max(1, cs),
             })
             return
         }
 
-        const secs = Number(value)
-        patchTimer(id, {
+        // 60/90/120 -> selected + custom input aus
+        await patchTimer(id, {
+            secondsPreset: value,
             seconds: value,
             customSeconds: null,
-            time: Number.isFinite(secs) && secs > 0 ? secs : 60,
         })
     }
 
-    const onCustomSecondsInput = (id: string, e: Event) => {
+    const onCustomSecondsInput = async (id: string, e: Event) => {
         const raw = (e.target as HTMLInputElement | null)?.value ?? ''
         if (!raw) {
-            patchTimer(id, { customSeconds: null })
+            await patchTimer(id, { secondsPreset: 'custom', seconds: 'custom', customSeconds: null })
             return
         }
 
         const num = Math.floor(Number(raw))
         if (!Number.isFinite(num) || num <= 0) return
 
-        patchTimer(id, {
-            seconds: 'custom',
-            customSeconds: num,
-            time: num,
-        })
+        await patchTimer(id, { secondsPreset: 'custom', seconds: 'custom', customSeconds: num })
     }
 
-    const onSoundChange = (id: string, e: Event) => {
+    const onSoundChange = async (id: string, e: Event) => {
         const value = (e.target as HTMLSelectElement | null)?.value ?? ''
         if (!value) return
-        patchTimer(id, { sound: value })
+
+        // ab jetzt soll es NICHT mehr als Placeholder wirken
+        getMeta(id).soundTouched = true
+
+        await patchTimer(id, { sound: value })
     }
 
     const closeTimerPopup = () => {
@@ -432,7 +691,7 @@
     const finishedOnce = new Set<string>()
 
     watch(
-        () => props.timers.map(t => ({ id: t.id, time: t.time, sound: t.sound })),
+        () => timers.value.map(t => ({ id: t.id, time: t.time, sound: t.sound })),
         (now) => {
             for (const { id, time, sound } of now) {
                 const prev = prevTimes.get(id)
@@ -449,7 +708,7 @@
                     sendNotification('Timer fertig', 'Deine Satzpause ist vorbei 💪')
                     props.dismissToast?.(true)
 
-                    const timer = props.timers.find(t => t.id === id)
+                    const timer = timers.value.find(t => t.id === id)
                     if (timer && timer.isRunning) props.stopTimer(timer)
                 }
 
@@ -463,10 +722,12 @@
         { deep: true }
     )
 
-    onMounted(() => {
+    onMounted(async () => {
         requestNotificationPermission()
         initAudioElements()
+        await timersStore.load()
     })
+
 </script>
 
 <style scoped>
@@ -647,6 +908,7 @@
         border-color: rgba(148, 163, 184, 0.20);
         box-shadow: 0 20px 46px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
+
     .timer-controls {
         display: flex;
         flex-direction: column;
@@ -662,41 +924,119 @@
         justify-content: center;
     }
 
-    .timer-select,
-    .timer-input {
-        padding: 0.7rem 0.85rem;
-        border-radius: 14px;
-        background: color-mix(in srgb, var(--bg-card) 70%, transparent);
-        border: 1px solid rgba(148, 163, 184, 0.22);
-        color: var(--text-primary);
-        font-size: 0.92rem;
-        width: 165px;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    html.dark-mode .timer-select,
-    html.dark-mode .timer-input {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
-    }
-
-    .timer-select:focus,
-    .timer-input:focus {
-        outline: none;
-        border-color: color-mix(in srgb, var(--accent-primary) 55%, rgba(129, 140, 248, 0.55));
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 22%, transparent), 0 10px 24px rgba(15, 23, 42, 0.18);
-        transform: translateY(-1px);
-    }
-
     .timer-buttons {
         display: flex;
         gap: 0.5rem;
         justify-content: center;
     }
+
+    /* ===== Smart Presets UI ===== */
+    .smart-presets {
+        width: 100%;
+        max-width: 520px;
+        display: flex;
+        flex-direction: column;
+        gap: .65rem;
+        margin-top: .15rem;
+    }
+
+    .smart-goals {
+        display: flex;
+        gap: .5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .smart-goal {
+        border: 1px solid rgba(148, 163, 184, 0.20);
+        background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+        color: var(--text-primary);
+        border-radius: 999px;
+        padding: .45rem .75rem;
+        font-weight: 900;
+        font-size: .85rem;
+        cursor: pointer;
+        user-select: none;
+        transition: transform .15s ease, opacity .15s ease, border-color .15s ease, box-shadow .15s ease;
+        opacity: .85;
+    }
+
+        .smart-goal:hover {
+            opacity: 1;
+            transform: translateY(-1px);
+            border-color: rgba(148, 163, 184, 0.32);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+        }
+
+        .smart-goal.is-active {
+            opacity: 1;
+            border-color: color-mix(in srgb, var(--accent-primary) 45%, rgba(148, 163, 184, 0.22));
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+            transform: translateY(-1px);
+        }
+
+    .smart-suggest {
+        display: flex;
+        flex-direction: column;
+        gap: .55rem;
+        align-items: center;
+    }
+
+    .smart-line {
+        display: inline-flex;
+        align-items: baseline;
+        gap: .5rem;
+        opacity: .9;
+        font-weight: 900;
+        font-size: .85rem;
+        text-align: center;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .smart-label {
+        opacity: .75;
+        font-weight: 900;
+    }
+
+    .smart-value {
+        font-family: 'Roboto Mono', monospace;
+        letter-spacing: 0.02em;
+    }
+
+    .smart-chips {
+        display: flex;
+        gap: .5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .smart-chip {
+        border: 1px solid rgba(148, 163, 184, 0.20);
+        background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+        color: var(--text-primary);
+        border-radius: 999px;
+        padding: .4rem .7rem;
+        font-weight: 950;
+        font-size: .85rem;
+        cursor: pointer;
+        user-select: none;
+        transition: transform .15s ease, opacity .15s ease, border-color .15s ease, box-shadow .15s ease;
+        opacity: .9;
+    }
+
+        .smart-chip:hover {
+            opacity: 1;
+            transform: translateY(-1px);
+            border-color: rgba(148, 163, 184, 0.32);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+        }
+
+        .smart-chip.is-primary {
+            border-color: color-mix(in srgb, var(--accent-primary) 55%, rgba(148, 163, 184, 0.22));
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+            opacity: 1;
+        }
 
     @media (max-width: 560px) {
         .timer-drag-handle {
@@ -717,11 +1057,6 @@
             font-size: 2.4rem;
         }
 
-        .timer-select,
-        .timer-input {
-            width: 120px;
-        }
-
         .drag-stack > .timer-card {
             touch-action: pan-y; /* Scroll weiter möglich, Drag wird sauber erkannt */
             -webkit-user-select: none;
@@ -731,6 +1066,122 @@
 
     .timer-container {
         margin: 0 auto 2.25rem; /* bottom space */
+    }
+
+    /* Drag feel */
+    .drag-chosen {
+        transform: scale(1.01);
+        cursor: grabbing;
+    }
+
+    .dragging {
+        cursor: grabbing;
+    }
+
+    .drag-ghost {
+        opacity: 0.35;
+        transform: scale(0.98);
+    }
+
+    /* verhindert Textauswahl + weird highlight beim Ziehen */
+    .timer-card,
+    .timer-card * {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+
+    /* ===== Quiet UI Toggles ===== */
+    .mini-toggle {
+        border: 1px solid rgba(148, 163, 184, 0.20);
+        background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+        color: var(--text-primary);
+        border-radius: 999px;
+        padding: .55rem .8rem;
+        font-weight: 900;
+        font-size: .85rem;
+        cursor: pointer;
+        opacity: .9;
+        transition: transform .15s ease, opacity .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+
+        .mini-toggle:hover {
+            opacity: 1;
+            transform: translateY(-1px);
+            border-color: rgba(148, 163, 184, 0.32);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+        }
+
+        .mini-toggle.is-open {
+            opacity: 1;
+            border-color: color-mix(in srgb, var(--accent-primary) 45%, rgba(148, 163, 184, 0.22));
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+        }
+
+    .smart-panel,
+    .advanced-panel {
+        width: 100%;
+        max-width: 520px;
+        display: flex;
+        flex-direction: column;
+        gap: .6rem;
+        padding: .75rem .85rem;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 58%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 92%, #020617 8%);
+        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    html.dark-mode .smart-panel,
+    html.dark-mode .advanced-panel {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 12%, transparent), transparent 58%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 9%, transparent), transparent 62%), #020617;
+        border-color: rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.72);
+    }
+
+
+    .smart-summary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .6rem;
+        flex-wrap: wrap;
+    }
+
+    .smart-text {
+        font-size: .9rem;
+        opacity: .92;
+    }
+
+    .smart-apply,
+    .smart-more {
+        border: 1px solid rgba(148, 163, 184, 0.20);
+        background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+        color: var(--text-primary);
+        border-radius: 999px;
+        padding: .45rem .75rem;
+        font-weight: 950;
+        font-size: .85rem;
+        cursor: pointer;
+        transition: transform .15s ease, opacity .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .smart-apply {
+        border-color: color-mix(in srgb, var(--accent-primary) 55%, rgba(148, 163, 184, 0.22));
+    }
+
+        .smart-apply:hover,
+        .smart-more:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+        }
+
+    @media (max-width: 560px) {
+        .mini-toggle {
+            padding: .5rem .75rem;
+        }
     }
 </style>
 

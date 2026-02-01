@@ -3,6 +3,7 @@ using System;
 using Gym3000.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gym3000.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260129223017_AddTrainingPlanCode")]
+    partial class AddTrainingPlanCode
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -276,112 +279,6 @@ namespace Gym3000.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("RefreshTokens");
-                });
-
-            modelBuilder.Entity("Gym3000.Api.Entities.Time.Stopwatch", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("ElapsedMs")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("IsRunning")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsVisible")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<bool>("ShouldStaySticky")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("SortIndex")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("StartedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "IsVisible");
-
-                    b.HasIndex("UserId", "ShouldStaySticky");
-
-                    b.HasIndex("UserId", "SortIndex");
-
-                    b.ToTable("Stopwatches");
-                });
-
-            modelBuilder.Entity("Gym3000.Api.Entities.Time.Timer", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("CustomSeconds")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsFavorite")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsVisible")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("SecondsPreset")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
-
-                    b.Property<bool>("ShouldStaySticky")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("SortIndex")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Sound")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "IsFavorite");
-
-                    b.HasIndex("UserId", "SortIndex");
-
-                    b.ToTable("Timers");
                 });
 
             modelBuilder.Entity("Gym3000.Api.Entities.TrainingDay", b =>
