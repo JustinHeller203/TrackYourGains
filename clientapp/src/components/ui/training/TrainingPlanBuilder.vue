@@ -276,7 +276,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     import UiTrainingInput from '@/components/ui/kits/inputs/UiTrainingInput.vue'
     import { useTrainingPlansStore } from "@/store/trainingPlansStore";
 
-    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan"
+    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan"
 
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
     type CustomExerciseType = Exclude<ExerciseType, 'ausdauer'>
