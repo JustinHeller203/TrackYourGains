@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
+import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan";
 import {
     listTrainingPlans,
     getTrainingPlan,
