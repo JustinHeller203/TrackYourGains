@@ -53,7 +53,7 @@
         <div v-if="menuOpen" class="nav-overlay" @click="closeMenu"></div>
 
         <!-- ✅ Sticky Timer -->
-        <StickyTimerCard v-for="timer in (stickyTimersEnabled ? timers.filter(t => t.shouldStaySticky) : [])"
+        <StickyTimerCard v-for="timer in (stickyTimersEnabled ? timers.filter((t: AppTimer) => t.shouldStaySticky) : [])"
                          :key="'timer-' + timer.id"
                          :timer="timer"
                          :sticky-enabled="stickyTimersEnabled"
@@ -66,7 +66,7 @@
                          @apply-style-all="onApplyStyleAll" />
 
         <!-- ✅ Sticky Stopwatch -->
-        <StickyStopwatchCard v-for="sw in (stickyStopwatchesEnabled ? stopwatches.filter(sw => sw.shouldStaySticky) : [])"
+        <StickyStopwatchCard v-for="sw in (stickyStopwatchesEnabled ? stopwatches.filter((sw: AppStopwatch) => sw.shouldStaySticky) : [])"
                              :key="'sw-' + sw.id"
                              :stopwatch="sw"
                              :sticky-enabled="stickyStopwatchesEnabled"
@@ -145,18 +145,10 @@
         closeMenu()
     }
 
-    interface TimerInstance {
-        id: string
-        name: string
-        seconds: string
-        customSeconds: number | null
-        time: number
-        isRunning: boolean
-        interval: number | null
-        isFavorite: boolean
-        sound: string
-        isVisible: boolean
-        shouldStaySticky: boolean
+    import type { TimerInstance as BaseTimer, StopwatchInstance as BaseStopwatch } from '@/types/training'
+
+
+    type StickyStyle = {
         bgColor?: string | null
         btnColor?: string | null
         timeColor?: string | null
@@ -165,36 +157,29 @@
         height?: number
         left?: number
         top?: number
+        zIndex?: number
+    }
+
+    type AppTimer = BaseTimer & StickyStyle & {
+        // legacy/runtime
         endAt?: number | null
-        startedAtMs?: number | null
-        endsAtMs?: number | null
-        pausedRemaining?: number | null
-        zIndex?: number
+
+        // runtime-only (niemals persistieren)
+        interval?: number | null
+
+        _w?: number
+        _h?: number
+        offsetX?: number
+        offsetY?: number
     }
 
-    interface StopwatchInstance {
-        id: string
-        name: string
-        time: number
-        isRunning: boolean
-        interval: number | null
-        laps: number[]
-        isFavorite: boolean
-        isVisible: boolean
-        shouldStaySticky: boolean
-        bgColor?: string | null
-        btnColor?: string | null
-        timeColor?: string | null
-        shape?: 'square' | 'rounded' | 'oval' | null
-        width?: number
-        height?: number
-        left?: number
-        top?: number
-        startedAt?: number | null
-        offsetSec?: number
-        zIndex?: number
+    type AppStopwatch = BaseStopwatch & StickyStyle & {
+        // runtime helpers (nur App.vue)
+        _w?: number
+        _h?: number
+        offsetX?: number
+        offsetY?: number
     }
-
     // App.vue | ADD helper: eindeutige Namen erzwingen
     function getUniqueName(base: string, used: string[]): string {
         const lowerUsed = used.map(n => n.toLowerCase())
@@ -215,8 +200,9 @@
     const menuOpen = ref(false)
     const dragging = ref(false)
     const dragTarget = ref<any>(null)
-    const timers = ref<TimerInstance[]>([])
-    const stopwatches = ref<StopwatchInstance[]>([])
+    const timers = ref<AppTimer[]>([])
+    const stopwatches = ref<AppStopwatch[]>([])
+
     const route = useRoute()
     const navRef = ref<HTMLElement | null>(null)
     const router = useRouter()
@@ -303,19 +289,21 @@
     }
 
     function clampAllSticky() {
-        timers.value.filter(t => t.shouldStaySticky)
-            .forEach(t => clampObjToViewport(t, (t as any)._w, (t as any)._h))
-        stopwatches.value.filter(s => s.shouldStaySticky)
-            .forEach(s => clampObjToViewport(s, (s as any)._w, (s as any)._h))
+        timers.value
+            .filter((t: AppTimer) => t.shouldStaySticky)
+            .forEach((t: AppTimer) => clampObjToViewport(t, (t as any)._w, (t as any)._h))
+
+        stopwatches.value
+            .filter((s: AppStopwatch) => s.shouldStaySticky)
+            .forEach((s: AppStopwatch) => clampObjToViewport(s, (s as any)._w, (s as any)._h))
     }
 
     function saveAll() {
-        const t = timers.value.map(({ interval, ...rest }) => rest)
-        const s = stopwatches.value.map(({ interval, ...rest }) => rest)
+        const t = timers.value.map(({ interval: _interval, ...rest }: AppTimer) => rest)
+        const s = stopwatches.value.map(({ interval: _interval, ...rest }: AppStopwatch) => rest)
         localStorage.setItem(TIMER_KEY, JSON.stringify(t))
         localStorage.setItem(STOPWATCH_KEY, JSON.stringify(s))
     }
-
     function readBool(key: string, fallback = true) {
         try {
             const v = localStorage.getItem(key)
@@ -488,7 +476,7 @@
         target.src = 'https://via.placeholder.com/56?text=Logo'
     }
 
-    const addTimer = async (timer: TimerInstance) => {
+    const addTimer = async (timer: AppTimer) => {
         // Name hart normalisieren: niemals leer lassen
         const rawName = (timer.name ?? '').trim()
         timer.name = rawName || 'Timer'
@@ -504,7 +492,7 @@
         await nextTick()
     }
 
-    const addStopwatch = async (stopwatch: StopwatchInstance) => {
+    const addStopwatch = async (stopwatch: AppStopwatch) => {
         const rawName = (stopwatch.name ?? '').trim() || 'Stoppuhr'
         const existingNames = stopwatches.value.map(sw => sw.name)
         stopwatch.name = getUniqueName(rawName, existingNames)
@@ -520,34 +508,36 @@
     }
 
     const removeTimer = async (id: string) => {
-        const idx = timers.value.findIndex(t => t.id === id)
+        const idx = timers.value.findIndex((t: AppTimer) => t.id === id)
+
         if (idx !== -1) {
             const t = timers.value[idx]
             t.shouldStaySticky = false
             t.isRunning = false
             if (t.interval) { clearInterval(t.interval); t.interval = null }
-            timers.value = timers.value.filter(x => x.id !== id)
+            timers.value = timers.value.filter((x: AppTimer) => x.id !== id)
             await nextTick()
             saveAll() // ⬅️ hinzufügen
         }
     }
 
     const removeStopwatch = async (id: string) => {
-        const idx = stopwatches.value.findIndex(sw => sw.id === id)
+        const idx = stopwatches.value.findIndex((sw: AppStopwatch) => sw.id === id)
+
         if (idx !== -1) {
             const sw = stopwatches.value[idx]
             sw.shouldStaySticky = false
             sw.isRunning = false
             if (sw.interval) { clearInterval(sw.interval); sw.interval = null }
-            stopwatches.value = stopwatches.value.filter(s => s.id !== id)
+            stopwatches.value = stopwatches.value.filter((s: AppStopwatch) => s.id !== id)
             await nextTick()
             saveAll() // ⬅️ hinzufügen
         }
     }
 
-    function startTimer(timer: TimerInstance) {
-        // optional: Limit gleichzeitiger Timer
-        const running = timers.value.filter(t => t.isRunning)
+    function startTimer(timer: AppTimer) {
+        const running = timers.value.filter((t: AppTimer) => t.isRunning)
+
         if (running.length >= 3) {
             openValidationPopup(['Maximal 3 Timer dürfen gleichzeitig laufen!'])
             return
@@ -578,34 +568,38 @@
         saveAll()
     }
 
-    function stopTimer(timer: TimerInstance) {
+    function stopTimer(timer: AppTimer) {
         if (timer.interval) clearInterval(timer.interval)
         timer.interval = null
+
         if (timer.endAt) {
             const left = Math.ceil((timer.endAt - Date.now()) / 1000)
             timer.time = Math.max(0, left)
         }
+
         timer.isRunning = false
         timer.endAt = null
         saveAll()
     }
 
-    function resetTimer(timer: TimerInstance) {
+    function resetTimer(timer: AppTimer) {
         if (timer.interval) clearInterval(timer.interval)
         timer.interval = null
+
         timer.isRunning = false
         timer.endAt = null
+
         const base = timer.seconds === 'custom'
             ? (timer.customSeconds ?? 60)
             : Number(timer.seconds ?? 60) || 60
+
         timer.time = Math.max(1, base)
         timer.shouldStaySticky = false
         saveAll()
     }
 
-    // App.vue | REPLACE toggleStopwatch
-    function toggleStopwatch(sw: StopwatchInstance) {
-        // ❗ Fallback: Niemals namenlose Stoppuhr zulassen
+    function toggleStopwatch(sw: AppStopwatch) {
+
         const rawName = (sw.name ?? '').trim()
         if (!rawName) {
             sw.name = 'Stoppuhr'
@@ -619,47 +613,45 @@
             }
 
             sw.isRunning = true
-            sw.startedAt = Date.now()
-            sw.offsetSec = sw.offsetSec ?? sw.time ?? 0
+            sw.startedAtMs = Date.now()
+            sw.offsetMs = sw.offsetMs ?? (sw.time ? sw.time * 1000 : 0)
             sw.shouldStaySticky = true
             if (sw.left === undefined) sw.left = 20
             if (sw.top === undefined) sw.top = 140
 
             if (sw.interval) clearInterval(sw.interval)
             sw.interval = window.setInterval(() => {
-                const elapsed = (Date.now() - (sw.startedAt ?? Date.now())) / 1000
-                sw.time = (sw.offsetSec ?? 0) + elapsed
+                const elapsedMs = Date.now() - (sw.startedAtMs ?? Date.now())
+                const totalMs = (sw.offsetMs ?? 0) + elapsedMs
+                sw.time = totalMs / 1000
             }, 100)
-
             saveAll()
         } else {
             if (sw.interval) clearInterval(sw.interval)
             sw.interval = null
-            const elapsed = (Date.now() - (sw.startedAt ?? Date.now())) / 1000
-            sw.offsetSec = (sw.offsetSec ?? 0) + elapsed
-            sw.time = sw.offsetSec
-            sw.isRunning = false
-            sw.startedAt = null
+            const elapsedMs = Date.now() - (sw.startedAtMs ?? Date.now())
+            sw.offsetMs = (sw.offsetMs ?? 0) + elapsedMs
+            sw.time = (sw.offsetMs ?? 0) / 1000
+            sw.startedAtMs = undefined
             saveAll()
         }
     }
 
-
-    function resetStopwatch(sw: StopwatchInstance) {
+    function resetStopwatch(sw: AppStopwatch) {
         if (sw.interval) clearInterval(sw.interval)
         sw.interval = null
         sw.isRunning = false
-        sw.startedAt = null
-        sw.offsetSec = 0
+        sw.startedAtMs = undefined
+        sw.offsetMs = 0
         sw.time = 0
         sw.laps = []
         sw.shouldStaySticky = false
         saveAll()
     }
 
-    const addLap = (sw: StopwatchInstance) => {
+    const addLap = (sw: AppStopwatch) => {
         if (!sw.laps) sw.laps = []
-        sw.laps.push(sw.time)
+        sw.laps.push(sw.time ?? 0)
     }
 
     // === startDrag anpassen ===
@@ -837,20 +829,19 @@
             }
         })
 
-        // Stopwatches rehydrieren
-        stopwatches.value.forEach(sw => {
-            if (sw.isRunning && sw.startedAt != null) {
-                const elapsed = (Date.now() - sw.startedAt) / 1000
-                sw.offsetSec = sw.offsetSec ?? 0
-                sw.time = (sw.offsetSec ?? 0) + elapsed
+        stopwatches.value.forEach((sw: AppStopwatch) => {
+            if (sw.isRunning && sw.startedAtMs != null) {
+                const elapsedMs = Date.now() - sw.startedAtMs
+                sw.offsetMs = sw.offsetMs ?? 0
+                sw.time = (sw.offsetMs + elapsedMs) / 1000
+
                 if (sw.interval) clearInterval(sw.interval)
                 sw.interval = window.setInterval(() => {
-                    const e = (Date.now() - (sw.startedAt ?? Date.now())) / 1000
-                    sw.time = (sw.offsetSec ?? 0) + e
+                    const eMs = Date.now() - (sw.startedAtMs ?? Date.now())
+                    sw.time = ((sw.offsetMs ?? 0) + eMs) / 1000
                 }, 100)
             }
         })
-
         saveAll()
         window.addEventListener('keydown', handleKeydown, { capture: true })
 

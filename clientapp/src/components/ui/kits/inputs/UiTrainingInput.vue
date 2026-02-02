@@ -103,7 +103,7 @@ const props = withDefaults(
     name?: string;
     placeholder?: string;
 
-    inputmode?: string;
+      inputmode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
     autocomplete?: string;
 
     min?: number | string;
@@ -225,9 +225,9 @@ const onInput = (e: Event) => {
         transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
     }
 
-    ti-control.slim {
-        height: calc(var(--control-height, 48px) - 6px + var(--ti-height-bump, 4px));
-    }
+        .ti-control.slim {
+            height: calc(var(--control-height, 48px) - 6px + var(--ti-height-bump, 4px));
+        }
 
 
     .ti-textarea {

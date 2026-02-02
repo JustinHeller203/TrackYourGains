@@ -1038,6 +1038,8 @@
 
     const onLapsPickConfirm = async (payload: { all: boolean; ids: string[] }) => {
         const swId = lapsPickStopwatchId.value
+        if (!swId) return
+
         const sw = swId ? stopwatches.value.find(s => s.id === swId) : null
         if (!sw) return
 

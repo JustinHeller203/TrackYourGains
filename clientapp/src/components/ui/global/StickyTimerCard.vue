@@ -200,6 +200,7 @@
 
     import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount, toRef } from 'vue'
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
+    import type { TimerInstance as BaseTimer } from '@/types/training'
 
     // ADD inline time edit (double click)
     const isEditingTime = ref(false)
@@ -891,41 +892,41 @@
         { flush: 'post' }
     )
 
-    interface TimerInstance {
-        id: string
-        name: string
-        seconds: string
-        customSeconds: number | null
-        time: number
-        isRunning: boolean
-        interval: number | null
-        isFavorite: boolean
-        sound: string
-        isVisible: boolean
-        shouldStaySticky: boolean
+    type StickyTimer = BaseTimer & {
+        // sticky positioning / size
+        left?: number
+        top?: number
+        width?: number
+        height?: number
+        zIndex?: number
+
+        // style
         bgColor?: string | null
         btnColor?: string | null
         timeColor?: string | null
         shape?: 'square' | 'rounded' | 'oval' | null
-        width?: number
-        height?: number
-        left?: number
-        top?: number
-        endAt?: number | null
+
+        // runtime flags (werden im Parent genutzt)
+        shouldStaySticky?: boolean
+        isVisible?: boolean
+
+        // engine fields (werden hier gesetzt)
         startedAtMs?: number | null
         endsAtMs?: number | null
         pausedRemaining?: number | null
-        zIndex?: number
+
+        // legacy (falls irgendwo genutzt)
+        endAt?: number | null
     }
 
     const props = defineProps<{
-        timer: TimerInstance
+        timer: StickyTimer
         stickyEnabled: boolean
         formatTimer: (time: number) => string
-        startTimer: (timer: TimerInstance) => void
-        stopTimer: (timer: TimerInstance) => void
-        resetTimer: (timer: TimerInstance) => void
-        startDrag: (e: MouseEvent, timer: TimerInstance) => void
+        startTimer: (timer: BaseTimer) => void
+        stopTimer: (timer: BaseTimer) => void
+        resetTimer: (timer: BaseTimer) => void
+        startDrag: (e: MouseEvent, timer: BaseTimer) => void
         focusInTraining: (type: 'timer' | 'stopwatch', id: string) => void
     }>()
 

@@ -400,7 +400,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 
     import { useTrainingPlansStore } from "@/store/trainingPlansStore";
     import { useAuthStore } from '@/store/authStore';
-    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan";
+    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
     import type { TimerInstance } from '@/types/training';
     import {
         LS_AUTH_TOKEN,
@@ -456,12 +456,14 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         stopTimer: (timer: TimerInstance) => void
         resetTimer: (timer: TimerInstance) => void
         removeTimer: (id: string) => void
+        stopwatches?: any[]
     }>();
 
     const emit = defineEmits<{
         (e: 'remove-timer', id: string): void;
         (e: 'add-timer', timer: TimerInstance): void;
         (e: 'reorder-timers', list: TimerInstance[]): void;
+        (e: 'reorder-stopwatches', list: any[]): void;
     }>();
 
     const dismissToast = (immediate = false) => {
@@ -633,6 +635,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         | 'selectedPlan'
         | 'planName'
         | 'selectedPlanName'
+        | 'timerName'
         | 'customExerciseName'
         | 'customExerciseMuscle'
         | 'customExerciseType'
@@ -1082,24 +1085,24 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     };
 
     const removeExerciseFromPlan = (index: number) => {
-        if (index < 0 || index >= selectedPlanExercises.value.length) {
+        if (!selectedPlan.value) {
+            addToast('Kein Plan geöffnet', 'delete');
+            return;
+        }
+
+        if (index < 0 || index >= selectedPlan.value.exercises.length) {
             addToast('Ungültiger Übungsindex', 'delete');
             return;
         }
+
         openDeletePopup(() => {
-            selectedPlanExercises.value.splice(index, 1);
+            selectedPlan.value!.exercises.splice(index, 1);
             rowHeights.value.splice(index, 1);
-            if (editingPlanId.value) {
-                const planIndex = plans.value.findIndex(p => p.id === editingPlanId.value);
-                if (planIndex !== -1) {
-                    plans.value[planIndex].exercises = [...selectedPlanExercises.value];
-                    saveToStorage();
-                }
-            }
+
+            updatePlanInStorage(); // nutzt saveToStorage() -> Account Sync
             addToast('Übung gelöscht', 'delete');
         });
     };
-
     const editPlan = async (planId: string) => {
         try {
             await trainingPlansStore.loadOne(planId)
@@ -1385,11 +1388,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         // Auto-Dismiss ausschließlich von <Toast/> steuern lassen
         autoDismissRemainingMs = 0;
     };
-
-    const stopwatchesProxy = computed({
-        get: () => props.stopwatches,
-        set: (list: StopwatchInstance[]) => emit('reorder-stopwatches', list),
-    })
 
     const openEditPopup = (
         type:
@@ -1825,7 +1823,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         if (!stickyStopwatchEnabled.value) {
             isStopwatchSticky.value = false
         } else {
-            const stickyStopwatches = props.stopwatches.filter(sw => sw.shouldStaySticky)
+            const stickyStopwatches = (props.stopwatches ?? []).filter((sw: any) => sw.shouldStaySticky)
             let visibleStopwatchFound = false
 
             for (const sw of stickyStopwatches) {

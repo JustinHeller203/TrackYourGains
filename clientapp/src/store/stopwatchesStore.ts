@@ -3,6 +3,7 @@
 import { defineStore } from 'pinia'
 import { stopwatchesApi } from '@/services/stopwatches'
 import type { StopwatchDto, StopwatchInstance, UpsertStopwatchDto } from '@/types/stopwatch'
+export type { StopwatchInstance } from '@/types/stopwatch'
 
 function clampMs(v: unknown): number {
     const n = typeof v === 'number' ? v : Number(v)

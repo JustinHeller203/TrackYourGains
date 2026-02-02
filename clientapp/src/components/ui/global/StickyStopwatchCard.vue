@@ -209,28 +209,55 @@
         bumpZ(stopwatch)
         startDrag(ev, stopwatch)
     }
+    type LapEntryObj = {
+        [key: string]: any
+
+        // ✅ neues Format (seconds)
+        time: number
+        name?: string
+
+        // ✅ legacy Format (ms)
+        ms?: number
+        splitMs?: number
+        atMs?: number
+        label?: string
+    }
+
+    type LapEntry = number | LapEntryObj
+
     interface StopwatchInstance {
+        [key: string]: any
+
         id: string
         name: string
         time: number
         isRunning: boolean
         interval: number | null
-        laps: number[]
+
+        // ✅ FIX: erlaubt number ODER Objekt
+        laps: LapEntry[]
+
         isFavorite: boolean
         isVisible: boolean
         shouldStaySticky: boolean
+
         bgColor?: string | null
         btnColor?: string | null
         timeColor?: string | null
         shape?: 'square' | 'rounded' | 'oval' | null
+
         width?: number
         height?: number
         left?: number
         top?: number
-        startedAt?: number | null
-        offsetSec?: number
+
+        // ✅ an App.vue angepasst
+        startedAtMs?: number | null
+        offsetMs?: number
+
         zIndex?: number
     }
+
 
     const props = defineProps<{
         stopwatch: StopwatchInstance

@@ -56,7 +56,7 @@
                         <span class="timer-display">{{ formatTimerDisplay(timer.time) }}</span>
 
                         <div class="timer-input-group">
-                            <TimerSelect :modelValue="String((timer as any).secondsPreset ?? (timer as any).seconds ?? '')"
+                            <TimerSelect :modelValue="String(timer.seconds ?? '')"
                                          @change="onSecondsChange(timer.id, $event)">
                                 <option value="" disabled>Satzpause wählen</option>
                                 <option value="60">60 Sekunden</option>
@@ -226,26 +226,7 @@
     import TimerSelect from '@/components/ui/kits/selects/UiTimerSelect.vue'
     import { useTimersStore } from '@/store/timersStore'
     import type { UpsertTimerDto } from '@/services/timers'
-
-    interface TimerInstance {
-        id: string
-        name?: string
-        secondsPreset: string | null
-        seconds?: string | null
-        customSeconds: number | null
-        time: number
-        isRunning: boolean
-        interval: number | null
-        isFavorite: boolean
-        sound: string
-        isVisible: boolean
-        shouldStaySticky: boolean
-        left?: number
-        top?: number
-        startedAtMs?: number
-        endsAtMs?: number
-        pausedRemaining?: number
-    }
+    import type { TimerInstance } from '@/types/training'
 
     const props = defineProps<{
         startTimer: (timer: TimerInstance) => void
@@ -261,6 +242,7 @@
     const namePopupMode = ref<'add' | 'rename'>('add')
     const namePopupValue = ref('')
     const editingTimerId = ref<string | null>(null)
+    const showTimerPopup = ref(false)
 
     const timersStore = useTimersStore()
     const timers = computed(() => timersStore.items)
@@ -308,6 +290,12 @@
         soundTouched: boolean
     }
 
+    type ChangeEventLike = Event & { target: { value: string } }
+    const eventValue = (e: Event) => {
+        const t = (e as any)?.target
+        return typeof t?.value === 'string' ? t.value : ''
+    }
+
     const metaById = ref<Record<string, SmartMeta>>({})
 
     function getMeta(id: string): SmartMeta {
@@ -349,7 +337,7 @@
     }
 
     const onExerciseChange = (id: string, e: Event) => {
-        const value = (e.target as HTMLSelectElement | null)?.value ?? ''
+        const value = eventValue(e)
         getMeta(id).exerciseKey = value
     }
 
@@ -579,7 +567,7 @@
     }
 
     const onSecondsChange = async (id: string, e: Event) => {
-        const value = (e.target as HTMLSelectElement | null)?.value ?? ''
+        const value = eventValue(e)
         if (!value) return
 
         if (value === 'custom') {
@@ -616,7 +604,7 @@
     }
 
     const onSoundChange = async (id: string, e: Event) => {
-        const value = (e.target as HTMLSelectElement | null)?.value ?? ''
+        const value = eventValue(e)
         if (!value) return
 
         // ab jetzt soll es NICHT mehr als Placeholder wirken

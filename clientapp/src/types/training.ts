@@ -1,7 +1,7 @@
 ﻿export interface TimerInstance {
-    [key: string]: any
     id: string
-    name?: string
+    name: string
+
     seconds: string | null
     customSeconds: number | null
     time: number
@@ -11,11 +11,16 @@
     sound: string
     isVisible: boolean
     shouldStaySticky: boolean
+    sortIndex: number
+    createdUtc?: string
+    updatedUtc?: string
+
     left?: number
     top?: number
-    startedAtMs?: number
-    endsAtMs?: number
-    pausedRemaining?: number
+
+    startedAtMs?: number | null
+    endsAtMs?: number | null
+    pausedRemaining?: number | null
 }
 
 export type LapEntryObj = {
@@ -34,20 +39,24 @@ export type LapEntryObj = {
 
 export type LapEntry = number | LapEntryObj
 
-
 export interface StopwatchInstance {
     [key: string]: any
+
     id: string
-    name?: string
+    name: string
+
     time: number
     isRunning: boolean
     interval: number | null
     laps: LapEntry[]
+
     isFavorite: boolean
     isVisible: boolean
     shouldStaySticky: boolean
+
     left?: number
     top?: number
-    startedAtMs?: number
+
+    startedAtMs?: number | null
     offsetMs?: number
 }

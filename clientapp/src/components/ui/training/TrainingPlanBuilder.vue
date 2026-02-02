@@ -67,7 +67,8 @@
                 <div class="field-block" v-if="trainingType !== 'ausdauer'">
                     <label class="field-label">Muskelgruppe</label>
                     <div class="field-row">
-                        <UiTrainingInput class="filter-input"
+                        <UiTrainingInput id="exercise-filter"
+                                         class="filter-input"
                                          v-model="exerciseFilter"
                                          placeholder="z. B. Brust, Oberkörper, Push" />
                     </div>
@@ -85,6 +86,7 @@
 ]" />
 
                         <UiTrainingInput v-if="newExercise === 'custom'"
+                                         id="custom-exercise"
                                          v-model="customPlanExercise"
                                          placeholder="Eigene Übung eingeben" />
                     </div>
@@ -104,34 +106,53 @@
                 <div class="field-grid" v-if="trainingType === 'kraft' || trainingType === 'calisthenics'">
                     <div class="field">
                         <label>Sätze</label>
-                        <UiTrainingInput v-model.number="newSets" type="number" min="1" placeholder="z. B. 4" />
-                    </div>
+                        <UiTrainingInput id="strength-sets"
+                                         v-model.number="newSets"
+                                         type="number"
+                                         min="1"
+                                         placeholder="z. B. 4" />                    </div>
                     <div class="field">
                         <label>Wiederholungen</label>
-                        <UiTrainingInput v-model.number="newReps" type="number" min="1" placeholder="z. B. 8–12" />
-                    </div>
+                        <UiTrainingInput id="strength-reps"
+                                         v-model.number="newReps"
+                                         type="number"
+                                         min="1"
+                                         placeholder="z. B. 8–12" />                    </div>
                 </div>
 
                 <div class="field-grid" v-else-if="trainingType === 'dehnung'">
                     <div class="field">
                         <label>Holds</label>
-                        <UiTrainingInput v-model.number="newSets" type="number" min="1" placeholder="z. B. 3" />
-                    </div>
+                        <UiTrainingInput id="stretch-holds"
+                                         v-model.number="newSets"
+                                         type="number"
+                                         min="1"
+                                         placeholder="z. B. 3" />                    </div>
                     <div class="field">
                         <label>Sekunden pro Hold</label>
-                        <UiTrainingInput v-model.number="newReps" type="number" min="1" placeholder="z. B. 30" />
-                    </div>
+                        <UiTrainingInput id="stretch-seconds"
+                                         v-model.number="newReps"
+                                         type="number"
+                                         min="1"
+                                         placeholder="z. B. 30" />                    </div>
                 </div>
 
                 <div class="field-grid" v-else>
                     <div class="field">
                         <label>Dauer (Min)</label>
-                        <UiTrainingInput v-model.number="newDuration" type="number" min="1" placeholder="z. B. 25" />
-                    </div>
+                        <UiTrainingInput id="cardio-duration"
+                                         v-model.number="newDuration"
+                                         type="number"
+                                         min="1"
+                                         placeholder="z. B. 25" />                    </div>
                     <div class="field">
                         <label>Distanz (km, optional)</label>
-                        <UiTrainingInput v-model.number="newDistance" type="number" min="0" step="0.1" placeholder="z. B. 5" />
-                    </div>
+                        <UiTrainingInput id="cardio-distance"
+                                         v-model.number="newDistance"
+                                         type="number"
+                                         min="0"
+                                         step="0.1"
+                                         placeholder="z. B. 5" />                    </div>
                 </div>
 
                 <!-- Actions -->
@@ -254,8 +275,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     import Table from '@/components/ui/kits/UiTable.vue'
     import UiTrainingInput from '@/components/ui/kits/inputs/UiTrainingInput.vue'
     import { useTrainingPlansStore } from "@/store/trainingPlansStore";
-    
-    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan"
+
+    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan"
 
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
     type CustomExerciseType = Exclude<ExerciseType, 'ausdauer'>
@@ -307,7 +328,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         name: string;
         isFavorite: boolean;
         exercises: PlanExercise[];
-        exerciseCount: number; 
+        exerciseCount: number;
     };
 
     type TrainingPlan = ViewPlan;
@@ -715,7 +736,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         for (const d of (p.days ?? [])) {
             for (const ex of (d.exercises ?? [])) flat.push(toPlanExercise(ex))
         }
-        return { id: p.id, name: p.name, isFavorite: !!p.isFavorite, exercises: flat }
+        return { id: p.id, name: p.name, isFavorite: !!p.isFavorite, exercises: flat, exerciseCount: flat.length }
     }
 
     const mapTypeToCategory = (t?: PlanExercise["type"]) => {
@@ -768,7 +789,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         return shuffle(chars).join("")
     }
 
-    const toUpsertPayload = (): TrainingPlanUpsertWithCode => ({
+    const toUpsertPayload = (): TrainingPlanUpsert => ({
         name: validatePlanName(planName.value) as string,
         isFavorite: false,
 
@@ -988,9 +1009,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
             const makeResizer = (side: 'right' | 'left') => {
                 const resizer = document.createElement('div')
-                resizer.className = `resizer resizer-${side}`
-
-                    (th.querySelector('.th-text') ?? th).appendChild(resizer)
+                resizer.className = `resizer resizer-${side}`;
+                (th.querySelector('.th-text') ?? th).appendChild(resizer)
 
                 if (side === 'right') { resizer.style.right = '0'; resizer.style.left = 'auto' }
                 else { resizer.style.left = '0'; resizer.style.right = 'auto' }
@@ -1082,7 +1102,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         ths.forEach(th => {
             applyHeaderState(th)
             headerRO!.observe(th)
-        })    }
+        })
+    }
 
     function teardownHeaderShorteningFallback() {
         headerRO?.disconnect()
@@ -1188,9 +1209,9 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 box-shadow: 0 1px 2px rgba(0,0,0,.06);
             }
 
-        .filter-input::placeholder {
-            opacity: .8;
-        }
+    .filter-input::placeholder {
+        opacity: .8;
+    }
 
     .builder-left,
     .builder-head,
@@ -2048,19 +2069,19 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         }
     }
 
-        .preview-card .exercise-table-wrap {
-            width: 100%;
-            max-width: 100%;
-            min-width: 0;
-            overflow-x: auto;
-            overflow-y: hidden;
-            -webkit-overflow-scrolling: touch;
-        }
+    .preview-card .exercise-table-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
 
-        .preview-card .exercise-table.full-width {
-            width: 100%;
-            min-width: 0; /* WICHTIG: kein erzwungenes Überlaufen */
-        }
+    .preview-card .exercise-table.full-width {
+        width: 100%;
+        min-width: 0; /* WICHTIG: kein erzwungenes Überlaufen */
+    }
 
     .th-label .full {
         display: inline;
@@ -2075,13 +2096,13 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     @container (max-width: 360px) {
         .th-label .full {
             display: none;
-        }         
+        }
 
         .th-label .mid {
             display: inline;
         }
     }
-     
+
     @container (max-width: 280px) {
         .th-label .mid {
             display: none;
@@ -2103,6 +2124,4 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         .field-row-stack > * {
             width: 100%;
         }
-
-
 </style>

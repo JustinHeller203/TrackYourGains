@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan";
+import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
 
 export async function listTrainingPlans() {
     const { data } = await api.get<TrainingPlanDto[]>("/training-plans");
@@ -33,10 +33,10 @@ export async function setTrainingPlanFavorite(id: string, isFavorite: boolean) {
     return updateTrainingPlan(id, {
         name: plan.name,
         isFavorite,
-        days: plan.days.map((d: TrainingPlanDto["days"][number]) => ({
+        days: (plan.days ?? []).map((d: NonNullable<TrainingPlanDto["days"]>[number]) => ({
             name: d.name,
             sortOrder: d.sortOrder,
-            exercises: d.exercises.map((x: TrainingPlanDto["days"][number]["exercises"][number]) => ({
+            exercises: (d.exercises ?? []).map((x: NonNullable<NonNullable<TrainingPlanDto["days"]>[number]["exercises"]>[number]) => ({
                 name: x.name,
                 category: x.category,
                 sortOrder: x.sortOrder,

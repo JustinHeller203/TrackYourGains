@@ -1,6 +1,7 @@
 <template>
     <input :value="modelValue ?? ''"
            :class="inputClass"
+           :inputmode="resolvedInputmode"
            v-bind="forwardedAttrs"
            @input="onInput" />
 </template>
@@ -25,6 +26,24 @@
     const forwardedAttrs = computed(() => {
         const { class: _c, style: _s, ...rest } = attrs as Record<string, any>
         return rest
+    })
+
+    type InputMode =
+        | 'none'
+        | 'text'
+        | 'tel'
+        | 'url'
+        | 'email'
+        | 'numeric'
+        | 'decimal'
+        | 'search'
+
+    const resolvedInputmode = computed<InputMode | undefined>(() => {
+        const v = (attrs as any)?.inputmode
+        if (!v) return undefined
+        // akzeptiere nur gültige Werte, sonst lieber undefined als TS/DOM-Ärger
+        const allowed: InputMode[] = ['none', 'text', 'tel', 'url', 'email', 'numeric', 'decimal', 'search']
+        return allowed.includes(String(v) as InputMode) ? (String(v) as InputMode) : undefined
     })
 
     const inputClass = computed(() => {

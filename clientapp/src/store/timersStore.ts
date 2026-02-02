@@ -1,23 +1,7 @@
 // src/stores/timersStore.ts
 import { defineStore } from 'pinia'
 import { timersApi, type TimerDto, type UpsertTimerDto } from '@/services/timers'
-
-export interface TimerInstance {
-    id: string
-    name?: string
-    seconds: string | null
-    customSeconds: number | null
-    time: number
-    isRunning: boolean
-    interval: number | null
-    isFavorite: boolean
-    sound: string
-    isVisible: boolean
-    shouldStaySticky: boolean
-    sortIndex: number
-    createdUtc?: string
-    updatedUtc?: string
-}
+import type { TimerInstance } from '@/types/training'
 
 function dtoToTimer(t: TimerDto): TimerInstance {
     const preset = (t.secondsPreset || '60').toString()

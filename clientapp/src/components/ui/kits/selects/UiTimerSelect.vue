@@ -60,9 +60,11 @@ import { computed, ref, useAttrs, useSlots, onMounted, onBeforeUnmount, nextTick
         full?: boolean
     }>()
 
+    type ChangeEventLike = Event & { target: { value: string } }
+
     const emit = defineEmits<{
         (e: 'update:modelValue', v: string): void
-        (e: 'change', ev: Event): void
+        (e: 'change', ev: ChangeEventLike): void
     }>()
 
     const attrs = useAttrs()
@@ -157,15 +159,22 @@ import { computed, ref, useAttrs, useSlots, onMounted, onBeforeUnmount, nextTick
     })
 
     const forwardedAttrs = computed(() => {
-        const { class: _c, style: _s, disabled: _d, ...rest } = attrs as Record<string, any>
+        const {
+            class: _c,
+            style: _s,
+            disabled: _d,
+            'aria-haspopup': _ah,
+            'aria-expanded': _ae,
+            ...rest
+        } = attrs as Record<string, any>
+
         return rest
     })
 
     const buttonAttrs = computed(() => ({
         ...forwardedAttrs.value,
-        // wichtig: wir sind jetzt ein Button, also keine select-only attrs
-        'aria-haspopup': 'listbox',
-        'aria-expanded': isOpen.value ? 'true' : 'false',
+        'aria-haspopup': 'listbox' as const,
+        'aria-expanded': isOpen.value,
     }))
 
     const open = async () => {
@@ -236,8 +245,7 @@ import { computed, ref, useAttrs, useSlots, onMounted, onBeforeUnmount, nextTick
         if (disabled.value) return
         emit('update:modelValue', value)
 
-        // Event-like object, damit dein bestehendes onXChange weiter (target.value) lesen kann
-        emit('change', { target: { value } } as any)
+        emit('change', { target: { value } } as unknown as ChangeEventLike)
 
         close()
     }
