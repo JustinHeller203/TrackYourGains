@@ -992,6 +992,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         }
         return clamped
     }
+    let activeDragCleanup: null | (() => void) = null
 
     const initPreviewResizeTable = () => {
         const table = previewTable.value
@@ -1049,26 +1050,43 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                     })
                 }
 
-                const onUp = (e: PointerEvent) => {
+                const cleanupDrag = (e?: PointerEvent) => {
                     window.removeEventListener('pointermove', onMove)
                     window.removeEventListener('pointerup', onUp)
                     resizer.classList.remove('is-active')
                     builderSection.value?.classList.remove('is-resizing-col')
-                    try { (resizer as any).releasePointerCapture?.(e.pointerId) } catch { }
+                    if (e) {
+                        try { (resizer as any).releasePointerCapture?.(e.pointerId) } catch { }
+                    }
+                    if (activeDragCleanup === cleanupDrag) activeDragCleanup = null
+                }
+
+                const onUp = (e: PointerEvent) => {
+                    cleanupDrag(e)
                 }
 
                 const onDown = (e: PointerEvent) => {
-                    e.preventDefault(); e.stopPropagation()
+                    e.preventDefault()
+                    e.stopPropagation()
+
                     startX = e.clientX
                     start = [...previewColWidths.value]
+
                     try { (resizer as any).setPointerCapture?.(e.pointerId) } catch { }
+
                     resizer.classList.add('is-active')
                     builderSection.value?.classList.add('is-resizing-col')
+
+                    // falls noch irgendwas hängt, erst clean
+                    activeDragCleanup?.()
+                    activeDragCleanup = cleanupDrag
+
                     window.addEventListener('pointermove', onMove)
                     window.addEventListener('pointerup', onUp)
                 }
 
                 resizer.addEventListener('pointerdown', onDown)
+
             }
 
             if (isLast) { makeResizer('left'); makeResizer('right') }
@@ -1126,6 +1144,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     })
 
     onUnmounted(() => {
+        activeDragCleanup?.()
+        activeDragCleanup = null
         teardownHeaderShorteningFallback()
     })
 </script>
