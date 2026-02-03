@@ -1907,9 +1907,40 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         // Alle relevanten THs aus beiden Tabellen (Wdh + Muskel)
         const ths = Array.from(document.querySelectorAll('th.th-wdh, th.th-muskel')) as HTMLElement[];
         ths.forEach(th => {
-            applyHeaderState(th);     // Initial
-            headerRO!.observe(th);    // Beobachten
-        });
+            applyHeaderState(th)      // Initial
+            headerRO?.observe(th)     // Beobachten (safe)
+        })
+    }
+    // ===== Crash Guard (zeigt Fehler statt Whitescreen) =====
+    let crashGuardInstalled = false
+    let lastCrashToastAt = 0
+
+    const showCrashToast = (msg: string) => {
+        const now = Date.now()
+        // nicht spammen
+        if (now - lastCrashToastAt < 2000) return
+        lastCrashToastAt = now
+        try {
+            addToast(msg, 'delete')
+        } catch {
+            // falls addToast selbst kaputt ist -> wenigstens console
+        }
+    }
+
+    const installCrashGuard = () => {
+        if (crashGuardInstalled) return
+        crashGuardInstalled = true
+
+        window.addEventListener('error', (ev) => {
+            const err = (ev as ErrorEvent).error
+            console.error('[Training.vue] window.error:', ev.message, err)
+            showCrashToast('Training: Fehler (Details in Console)')
+        })
+
+        window.addEventListener('unhandledrejection', (ev) => {
+            console.error('[Training.vue] unhandledrejection:', ev.reason)
+            showCrashToast('Training: Promise-Fehler (Details in Console)')
+        })
     }
 
     function teardownHeaderShorteningFallback() {
@@ -2182,26 +2213,36 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     watch(customExercises, () => {
         if (showCustomExercises.value) {
             nextTick(() => {
-                initCustomResizeTable();
-                setupHeaderShorteningFallback();
-            });
+                safeRun('initCustomResizeTable', () => initCustomResizeTable())
+                safeRun('setupHeaderShorteningFallback', () => setupHeaderShorteningFallback())
+            })
         }
     }, { deep: true });
 
     watch(
-        () => selectedPlan.value?.exercises.map(e => `${e.exercise}|${e.sets}|${e.reps}|${e.type}`).join(';'),
-        () => nextTick(() => initResizeTable())
+        () => nextTick(() => safeRun('initResizeTable', () => initResizeTable()))
+
     )
     // wenn der ausgewählte Plan geladen/geschlossen wird → Tabelle wechselt
     watch(selectedPlan, (val) => {
-        if (val) nextTick(() => { initResizeTable(); setupHeaderShorteningFallback(); });
-        else nextTick(() => setupHeaderShorteningFallback());
-    });
+        if (val) {
+            nextTick(() => {
+                safeRun('initResizeTable', () => initResizeTable())
+                safeRun('setupHeaderShorteningFallback', () => setupHeaderShorteningFallback())
+            })
+        } else {
+            nextTick(() => safeRun('setupHeaderShorteningFallback', () => setupHeaderShorteningFallback()))
+        }
+    })
 
     // wenn die Custom-Übungen eingeblendet werden → Tabelle erscheint
     watch(showCustomExercises, (val) => {
-        if (val) nextTick(() => { initCustomResizeTable(); setupHeaderShorteningFallback(); });
-    });
+        if (!val) return
+        nextTick(() => {
+            safeRun('initCustomResizeTable', () => initCustomResizeTable())
+            safeRun('setupHeaderShorteningFallback', () => setupHeaderShorteningFallback())
+        })
+    })
 
     watch(() => auth.user, async (u) => {
         if (isResettingTrainingUi) return
@@ -2226,7 +2267,17 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }, { immediate: false })
 
+    const safeRun = (label: string, fn: () => void) => {
+        try {
+            fn()
+        } catch (e) {
+            console.error(`[Training.vue] ${label} crashed:`, e)
+            showCrashToast(`Training: ${label} hat geknallt (Console)`)
+        }
+    }
+
     onMounted(async () => {
+        installCrashGuard()
         if (!auth.user) {
             hardResetTrainingUi()
             return
@@ -2266,11 +2317,12 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 
         syncFullscreenClass();
 
-        initResizeTable();
-        if (showCustomExercises.value) initCustomResizeTable();
+        safeRun('initResizeTable', () => initResizeTable())
+        if (showCustomExercises.value) safeRun('initCustomResizeTable', () => initCustomResizeTable())
 
-        setupHeaderShorteningFallback();
-        tryOpenPlanFromStorage();
+        safeRun('setupHeaderShorteningFallback', () => setupHeaderShorteningFallback())
+        safeRun('tryOpenPlanFromStorage', () => tryOpenPlanFromStorage())
+
     });
 
     onUnmounted(() => {
