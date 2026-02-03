@@ -2,7 +2,18 @@
     <div class="legal-page">
         <h1>FAQ</h1>
 
-        <section class="faq-section">
+        <nav class="faq-filter">
+            <button v-for="cat in categories"
+                    :key="cat.key"
+                    type="button"
+                    class="faq-filter-button"
+                    :class="{ active: activeCategory === cat.key }"
+                    @click="activeCategory = cat.key">
+                {{ cat.label }}
+            </button>
+        </nav>
+
+        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'landing'">
             <h2>Landingpage & Start</h2>
 
             <details>
@@ -93,7 +104,7 @@
                 </p>
             </details>
         </section>
-        <section class="faq-section">
+        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'nutrition'">
             <h2>Ernährung</h2>
 
             <details>
@@ -195,7 +206,7 @@
                 </p>
             </details>
         </section>
-        <section class="faq-section">
+        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'training'">
             <h2>Training</h2>
 
             <details>
@@ -291,10 +302,188 @@
                     und über Geräte hinweg verfügbar ist.
                 </p>
             </details>
+            <details>
+                <summary>Warum gibt es so viele Bereiche auf der Trainingsseite?</summary>
+                <p>
+                    Die Trainingsseite ist bewusst in mehrere Bereiche aufgeteilt: Übersicht, aktive Workouts,
+                    Detailansicht, ggf. Vorlagen und Einstellungen. So kannst du schnell zwischen Planen,
+                    Ausführen und Analysieren springen, ohne dass alles in einer überladenen Ansicht landet.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was sehe ich in der Trainingsübersicht ganz oben?</summary>
+                <p>
+                    Oben bekommst du meist einen schnellen Überblick: aktive Pläne, anstehende Workouts und
+                    eventuell eine kurze Zusammenfassung deiner letzten Einheiten. Dieser Bereich soll dir zeigen:
+                    „Was steht als Nächstes an?“ und „Was habe ich zuletzt gemacht?“.
+                </p>
+            </details>
+
+            <details>
+                <summary>Warum sind manche Workouts farblich hervorgehoben?</summary>
+                <p>
+                    Hervorgehobene Workouts sind z.&nbsp;B. für heute geplante Einheiten, besonders wichtige
+                    Sessions (z.&nbsp;B. schwerer Tag im Plan) oder zuletzt aktive Workouts. Die Farben helfen dir,
+                    auf einen Blick zu erkennen, worauf du dich jetzt konzentrieren solltest.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich mir nur bestimmte Workouts anzeigen lassen (z.&nbsp;B. Push, Pull, Beine)?</summary>
+                <p>
+                    Ja, über Filter wie „Alle“, „Push“, „Pull“, „Beine“, „Oberkörper“, „Unterkörper“ oder ähnliche
+                    Kategorien kannst du die Liste eingrenzen. So musst du nicht durch alle Einheiten scrollen,
+                    sondern siehst nur das, was du heute trainieren willst.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wie funktioniert das Duplizieren eines Workouts oder Plans?</summary>
+                <p>
+                    Über eine Duplizieren-Option kannst du einen bestehenden Plan oder ein Workout kopieren,
+                    anpassen und als neue Version speichern. Perfekt, wenn du z.&nbsp;B. deinen 3er-Split leicht
+                    verändern willst, ohne alles noch einmal von null aufzubauen.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich die Reihenfolge der Übungen in einem Workout ändern?</summary>
+                <p>
+                    Ja. In der Regel kannst du die Übungen innerhalb eines Workouts per Drag-and-drop oder über
+                    Pfeile nach oben/unten umsortieren. So passt du die Reihenfolge deinem echten Training an,
+                    zum Beispiel wenn Geräte im Gym gerade besetzt sind.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wie gehe ich mit Aufwärm- und Aufbaut-Sätzen um?</summary>
+                <p>
+                    Du kannst Aufwärm- oder Aufbaut-Sätze entweder als eigene Sätze mit leichterem Gewicht
+                    eintragen oder – je nach Aufbau – getrennt von deinen Hauptsätzen dokumentieren. Wichtig ist,
+                    dass du für dich ein klares System nutzt, damit du später genau weißt, was Arbeitsgewicht und
+                    was Warm-up war.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was bedeutet RPE/RIR und warum kann ich das eintragen?</summary>
+                <p>
+                    RPE (Rate of Perceived Exertion) und RIR (Reps in Reserve) helfen dir einzuschätzen, wie
+                    anstrengend ein Satz war. Trägst du diese Werte ein, kannst du später besser erkennen, ob du
+                    wirklich hart genug trainierst oder ob noch Luft nach oben war, ohne dich nur aufs Gewicht
+                    zu verlassen.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wie kann ich Supersätze oder Zirkeltraining abbilden?</summary>
+                <p>
+                    Supersätze kannst du abbilden, indem du zwei Übungen direkt nacheinander ohne Pause einträgst
+                    und sie ggf. mit demselben Satz-Index oder einer Notiz markierst. Für Zirkel kannst du mehrere
+                    Übungen mit einer gemeinsamen Rundenanzahl versehen. So bleibt trotzdem nachvollziehbar, was
+                    du genau gemacht hast.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was passiert, wenn ich ein Workout anfange, aber nicht fertig mache?</summary>
+                <p>
+                    Unfertige Workouts bleiben entweder als „in Bearbeitung“ markiert oder werden als abgebrochene
+                    Einheit gespeichert. Du kannst später entscheiden, ob du sie löschen, nachbearbeiten oder als
+                    Trainingsrealität akzeptieren willst – niemand trainiert immer perfekt nach Plan.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich meine alten Workouts später noch einsehen?</summary>
+                <p>
+                    Ja, du kannst über eine Verlauf- oder Historienansicht deine vergangenen Einheiten einsehen.
+                    So erkennst du z.&nbsp;B., wie sich dein Gewicht bei bestimmten Übungen entwickelt hat oder
+                    wie regelmäßig du in den letzten Wochen trainiert hast.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wie hilft mir die Trainingsseite konkret beim Muskelaufbau?</summary>
+                <p>
+                    Die Seite sorgt dafür, dass du strukturiert trainierst: feste Pläne, klare Übungen, dokumentierte
+                    Gewichte und Sätze. Damit kannst du Progression planen, also Gewicht, Volumen oder Intensität
+                    Schritt für Schritt steigern – genau das ist der Kern von effektivem Muskelaufbau.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich zwischen kg und lbs wechseln?</summary>
+                <p>
+                    Je nach Einstellung kannst du das Gewichtssystem auf Kilogramm oder Pfund umstellen. Die
+                    Trainingsseite sorgt im Hintergrund dafür, dass die Werte konsistent bleiben, damit du immer
+                    mit der Einheit arbeiten kannst, die für dich oder dein Gym üblich ist.
+                </p>
+            </details>
+
+            <details>
+                <summary>Funktioniert die Trainingsseite auch für Home-Workouts ohne Geräte?</summary>
+                <p>
+                    Ja. Du kannst auch reine Körpergewichtsübungen, Bänder, Kurzhanteln oder sonstiges Equipment
+                    eintragen. Gewicht kann dabei optional sein. Wichtig ist nur, dass du festhältst, was du tust
+                    (z.&nbsp;B. „Liegestütze, 4×12“), damit du dich beim nächsten Mal steigern kannst.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich meinen Trainingsplan exportieren oder ausdrucken?</summary>
+                <p>
+                    Über eine Export-Funktion kannst du deinen Plan z.&nbsp;B. als Datei herunterladen, um ihn zu
+                    sichern, auszudrucken oder mit einem Coach zu teilen. So hast du deine Struktur auch dann dabei,
+                    wenn du mal nicht direkt in TrackYourGains drin bist.
+                </p>
+            </details>
+
+            <details>
+                <summary>Werden geplante und absolvierte Workouts unterschiedlich angezeigt?</summary>
+                <p>
+                    Ja, geplante Workouts und absolvierte Einheiten werden optisch getrennt dargestellt
+                    (z.&nbsp;B. durch Badges, Icons oder Statuslabels). Dadurch erkennst du sofort, was noch ansteht
+                    und was du bereits erledigt hast.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was passiert, wenn ich meinen Trainingsplan komplett ändere?</summary>
+                <p>
+                    Wenn du deinen Plan stark umstellst, bleiben alte Einheiten in der Historie trotzdem erhalten.
+                    So kannst du später immer noch sehen, wie du früher trainiert hast, auch wenn du aktuell einem
+                    ganz anderen System folgst.
+                </p>
+            </details>
+
+            <details>
+                <summary>Ist die Trainingsseite schon final oder wird sie noch erweitert?</summary>
+                <p>
+                    Aktuell ist die Trainingsseite eine frühe, aber funktionsfähige Basis: Planen, Workouts anlegen
+                    und Einheiten dokumentieren stehen im Fokus. Später können zusätzliche Features wie detaillierte
+                    Auswertungen, automatische Vorschläge oder stärkere Verknüpfung mit Ernährung und Fortschritt
+                    dazukommen.
+                </p>
+            </details>
+
         </section>
 
     </div>
 </template>
+<script setup>
+import { ref } from 'vue'
+
+const categories = [
+    { key: 'all', label: 'Alle' },
+    { key: 'landing', label: 'Landingpage & Start' },
+    { key: 'nutrition', label: 'Ernährung' },
+    { key: 'training', label: 'Training' }
+]
+
+const activeCategory = ref('all')
+</script>
 
 <style scoped>
     .legal-page {
@@ -336,4 +525,33 @@
             margin-top: 0.5rem;
             line-height: 1.5;
         }
+
+    .faq-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1rem 0 1.5rem;
+    }
+
+    .faq-filter-button {
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 0.4rem 0.9rem;
+        font-size: 0.9rem;
+        background: rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.05s ease, border-color 0.15s ease;
+    }
+
+        .faq-filter-button:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .faq-filter-button.active {
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+        }
+
 </style>
