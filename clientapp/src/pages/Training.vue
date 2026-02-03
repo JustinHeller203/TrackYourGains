@@ -380,7 +380,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 </template>
 
 <script setup lang="ts">
-    import { ref, computed, nextTick, watch, onMounted, onUnmounted, withDefaults } from 'vue'
+    import { ref, computed, nextTick, watch, watchEffect, onMounted, onUnmounted, withDefaults } from 'vue'
     import { jsPDF } from 'jspdf';
     import Draggable from 'vuedraggable';
     import Toast from '@/components/ui/Toast.vue'
@@ -2219,10 +2219,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }, { deep: true });
 
-    watch(
-        () => nextTick(() => safeRun('initResizeTable', () => initResizeTable()))
-
-    )
+    watchEffect(() => {
+        nextTick(() => safeRun('initResizeTable', () => initResizeTable()))
+    })
     // wenn der ausgewählte Plan geladen/geschlossen wird → Tabelle wechselt
     watch(selectedPlan, (val) => {
         if (val) {
