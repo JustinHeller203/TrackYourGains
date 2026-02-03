@@ -2185,8 +2185,22 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             hardResetTrainingUi()
             return
         }
-        // login -> frisch neu laden
-        await trainingPlansStore.loadList()
+
+        // ✅ wenn Auth "true" ist aber Token fehlt -> UI nicht crashen
+        if (!getAuthToken()) {
+            console.warn('auth.user vorhanden, aber kein Token -> reset training ui')
+            hardResetTrainingUi()
+            return
+        }
+
+        // login -> frisch neu laden (ohne Route zu killen)
+        try {
+            await trainingPlansStore.loadList()
+        } catch (e) {
+            console.error('loadList failed in auth watcher', e)
+            addToast('Trainingspläne konnten nicht geladen werden', 'delete')
+            hardResetTrainingUi()
+        }
     }, { immediate: true })
 
     onMounted(async () => {
@@ -2194,7 +2208,22 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             hardResetTrainingUi()
             return
         }
-        await trainingPlansStore.loadList();
+
+        // ✅ Token-Guard + try/catch, sonst crasht die Seite beim Betreten
+        if (!getAuthToken()) {
+            console.warn('auth.user vorhanden, aber kein Token -> reset training ui')
+            hardResetTrainingUi()
+            return
+        }
+
+        try {
+            await trainingPlansStore.loadList()
+        } catch (e) {
+            console.error('loadList failed onMounted', e)
+            addToast('Trainingspläne konnten nicht geladen werden', 'delete')
+            hardResetTrainingUi()
+            return
+        }
 
         tryFocusFromStorage()
 
