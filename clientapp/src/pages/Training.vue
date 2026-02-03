@@ -452,8 +452,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         durationMs?: number
     }
 
-    const noopTimer = (_: TimerInstance) => { }
-
     const props = withDefaults(defineProps<{
         timers?: TimerInstance[]
         startTimer: (timer: TimerInstance) => void
@@ -464,9 +462,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     }>(), {
         timers: () => [],
         stopwatches: () => [],
-        startTimer: () => noopTimer,
-        stopTimer: () => noopTimer,
-        resetTimer: () => noopTimer,
+        startTimer: () => ((_: TimerInstance) => { }),
+        stopTimer: () => ((_: TimerInstance) => { }),
+        resetTimer: () => ((_: TimerInstance) => { }),
     })
 
     const emit = defineEmits<{
