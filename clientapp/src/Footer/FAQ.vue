@@ -1,4 +1,5 @@
-﻿<template>
+﻿<!-- src/Footer/FAQ.vue -->
+<template>
     <div class="legal-page">
         <header ref="headerEl" class="faq-header" :class="{ 'is-fixed': isFixed }">
             <div class="faq-header__inner">
@@ -22,15 +23,24 @@
             </div>
         </header>
 
-
-
         <p class="faq-no-results" v-if="searchQuery.trim().length && matchCount === 0">
             Keine passenden Fragen gefunden. Versuch ein anderes Keyword (z.B. „Plan“, „Timer“, „Toasts“, „Export“).
         </p>
 
+        <nav class="faq-filter">
+            <button v-for="cat in categories"
+                    :key="cat.key"
+                    type="button"
+                    class="faq-filter-button"
+                    :class="{ active: activeCategory === cat.key }"
+                    @click="activeCategory = cat.key">
+                {{ cat.label }}
+            </button>
+        </nav>
 
-        <section class="faq-section">
-            <h2>Landingpage & Start</h2>
+        <!-- Landing -->
+        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'landing'">
+            <h2>Landingpage &amp; Start</h2>
 
             <details>
                 <summary>Was bedeuten die Zahlen bei „Deine Erfolge 🏆“?</summary>
@@ -104,7 +114,8 @@
             </details>
         </section>
 
-        <section class="faq-section">
+        <!-- Training -->
+        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'training'">
             <h2>Training</h2>
 
             <details>
@@ -130,7 +141,7 @@
                 <summary>Wie erstelle ich einen neuen Trainingsplan oder ein neues Workout?</summary>
                 <p>
                     Über die Buttons wie „Trainingsplan erstellen“ oder „+ Neues Workout“ startest du den Prozess.
-                    Du gibst Name, Ziel (z.&nbsp;B. Muskelaufbau) und ggf. Trainingstage an und kannst anschließend
+                    Du gibst Name, Ziel (z.&nbsp;z. B. Muskelaufbau) und ggf. Trainingstage an und kannst anschließend
                     Übungen hinzufügen. Sobald du speicherst, erscheint der Plan in der Übersicht.
                 </p>
             </details>
@@ -173,35 +184,6 @@
             </details>
 
             <details>
-                <summary>Gibt es Filter oder Kategorien für meine Workouts?</summary>
-                <p>
-                    Du kannst deine Workouts nach Kriterien wie Trainingstag, Muskelfokus oder Plan filtern
-                    (z.&nbsp;B. „Oberkörper“, „Unterkörper“, „Push“, „Pull“). Dadurch findest du schneller die
-                    Einheit, die du heute trainieren willst, ohne dich durch alles durchklicken zu müssen.
-                </p>
-            </details>
-
-            <details>
-                <summary>Sehe ich irgendwo meinen Fortschritt im Training?</summary>
-                <p>
-                    In der Trainingsübersicht kannst du erkennen, welche Workouts du in letzter Zeit gemacht hast
-                    und wie deine Einheiten aufgebaut sind. Je nach späterer Ausbaustufe können hier zusätzliche
-                    Auswertungen dazukommen (z.&nbsp;B. Trainingshäufigkeit pro Woche oder Fortschritt bei
-                    bestimmten Übungen).
-                </p>
-            </details>
-
-            <details>
-                <summary>Werden meine Trainingsdaten schon dauerhaft gespeichert?</summary>
-                <p>
-                    In dieser frühzeitigen Version steht vor allem die Funktionalität und der Ablauf im Vordergrund.
-                    Je nachdem, wie die finale Login- und Speicherlösung aussieht, können Daten aktuell noch beim
-                    Neuladen verloren gehen. Geplant ist, dass deine Trainingshistorie später zuverlässig gesichert
-                    und über Geräte hinweg verfügbar ist.
-                </p>
-            </details>
-
-            <details>
                 <summary>Welche Trainingsarten gibt es (Kraft, Calisthenics, Ausdauer, Dehnung) – und was ändert sich?</summary>
                 <p>
                     Du wählst oben den Trainingstyp. Je nach Typ ändern sich die Eingabefelder:
@@ -219,7 +201,7 @@
             </details>
 
             <details>
-                <summary>Welche Regeln gelten für Planname, Sätze, Wiederholungen & Cardio-Dauer?</summary>
+                <summary>Welche Regeln gelten für Planname, Sätze, Wiederholungen &amp; Cardio-Dauer?</summary>
                 <p>
                     Planname: 3–20 Zeichen.<br>
                     Sätze/Holds: 1–20 (Ganzzahl).<br>
@@ -253,36 +235,18 @@
             </details>
 
             <details>
-                <summary>Was bringt die Suche bei „Deine Trainingspläne“?</summary>
+                <summary>Wie funktionieren Favoriten &amp; Sortieren per Drag-&amp;-Drop?</summary>
                 <p>
-                    Die Suche filtert nach Planname und nach Trainingsziel (falls bei Übungen ein Ziel gesetzt ist).
-                    Während du suchst, ist Drag-&-Drop zum Sortieren deaktiviert – damit nix aus Versehen verrutscht.
-                </p>
-            </details>
-
-            <details>
-                <summary>Wie funktionieren Favoriten & Sortieren per Drag-&-Drop?</summary>
-                <p>
-                    Favoriten landen oben und lassen sich separat sortieren. Du kannst Pläne per Drag-&-Drop umsortieren
+                    Favoriten landen oben und lassen sich separat sortieren. Du kannst Pläne per Drag-&amp;-Drop umsortieren
                     (am Griff ⠿). Wenn du suchst, ist das Sortieren bewusst gesperrt.
                 </p>
             </details>
 
             <details>
-                <summary>Was sind „Eigene Übungen“ – und warum gibt’s da keinen Ausdauer-Typ?</summary>
+                <summary>Was bringt die Suche bei „Deine Trainingspläne“?</summary>
                 <p>
-                    Eigene Übungen sind deine selbst angelegten Übungen mit Name + Muskelgruppe + Typ.
-                    Erlaubt sind Kraft, Calisthenics und Dehnung. Ausdauer ist absichtlich gesperrt,
-                    weil Cardio über „Cardio-Art + Minuten + km“ läuft und nicht wie klassische Übungen gespeichert wird.
-                </p>
-            </details>
-
-            <details>
-                <summary>Wie funktioniert der Muskelgruppen-Filter (z.&nbsp;B. „Push“, „Pull“, „Oberkörper“)?</summary>
-                <p>
-                    Du kannst nach Muskelgruppen (Brust, Rücken, Schultern, Arme, Beine, Bauch) oder nach Synonymen filtern.
-                    „Push“ zeigt z.&nbsp;B. eher Drück-Übungen, „Pull“ eher Zug-Übungen. Bei Dehnung wird Push/Pull ignoriert,
-                    weil das dort keinen Sinn macht.
+                    Die Suche filtert nach Planname und nach Trainingsziel (falls bei Übungen ein Ziel gesetzt ist).
+                    Während du suchst, ist Drag-&amp;-Drop zum Sortieren deaktiviert – damit nix aus Versehen verrutscht.
                 </p>
             </details>
 
@@ -303,10 +267,11 @@
                     Später kann das mit Login/Sync erweitert werden.
                 </p>
             </details>
-
         </section>
-        <section class="faq-section">
-            <h2>Timer & Stopwatch</h2>
+
+        <!-- Timer & Stopwatch -->
+        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'timers'">
+            <h2>Timer &amp; Stopwatch</h2>
 
             <details>
                 <summary>Wofür sind der Satzpausen-Timer und die Übungs-Stoppuhr?</summary>
@@ -383,51 +348,6 @@
             </details>
 
             <details>
-                <summary>Stoppuhr: Was ist „Rundenwertung“ (Zeit minimieren / maximieren / Konstanz / neutral)?</summary>
-                <p>
-                    Du kannst wählen, wie „Best/Worst“ bewertet wird:
-                    <br>• Zeit minimieren: kürzer = besser (🏆 schnellste Runde)
-                    <br>• Zeit maximieren: länger = besser
-                    <br>• Konstanz: am nächsten am Durchschnitt = best, größte Abweichung = worst
-                    <br>• Neutral: keine Best/Worst-Auswertung
-                </p>
-            </details>
-
-            <details>
-                <summary>Stoppuhr: Was bedeutet der „Trend“ bei Runden?</summary>
-                <p>
-                    Der Trend schaut auf die letzten Runden (Fenster) und berechnet den Durchschnitt der Zeit-Deltas.
-                    Wenn die letzten Laps im Schnitt kürzer werden → „wird schneller“, wenn länger → „wird langsamer“,
-                    sonst „stabil“.
-                </p>
-            </details>
-
-            <details>
-                <summary>Stoppuhr: Was ist die Zielzeit 🎯 und wofür sind ✅/❌?</summary>
-                <p>
-                    Du kannst eine Zielzeit setzen (z.&nbsp;B. 12.00 oder 0:12.00).
-                    Jede Runde bekommt dann ein ✅ wenn sie unter/gleich Ziel ist, sonst ❌ plus die Abweichung.
-                    Ideal für Pace/Intervalle/Tempo-Holds.
-                </p>
-            </details>
-
-            <details>
-                <summary>Stoppuhr: Welche Eingabeformate akzeptiert die Zielzeit?</summary>
-                <p>
-                    Erlaubt sind Sekunden als Zahl (z.&nbsp;B. 12.34) oder Minute:Sekunde (z.&nbsp;B. 0:12.34 / 1:02.50).
-                    Sekunden müssen &lt; 60 sein, Werte müssen &gt; 0 sein – sonst kommt ein Validierungsfehler.
-                </p>
-            </details>
-
-            <details>
-                <summary>Warum steht beim Zielzeit-Popup manchmal „Entfernen“ statt „Speichern“?</summary>
-                <p>
-                    Wenn bereits eine Zielzeit gesetzt ist und du nichts änderst (oder leer machst),
-                    interpretiert die App das als „Zielzeit entfernen“.
-                </p>
-            </details>
-
-            <details>
                 <summary>Was bedeutet „Sticky“ bei Timer/Stoppuhr?</summary>
                 <p>
                     Sticky heißt: Wenn du scrollst und die Card nicht mehr sichtbar ist, kann sie als Sticky-Card sichtbar bleiben.
@@ -444,7 +364,8 @@
             </details>
         </section>
 
-        <section class="faq-section">
+        <!-- Ernährung -->
+        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'nutrition'">
             <h2>Ernährung</h2>
 
             <details>
@@ -465,9 +386,27 @@
                 </p>
             </details>
 
+            <details>
+                <summary>Kann ich meine Ernährungsdaten exportieren?</summary>
+                <p>
+                    Ja, über den Button „Exportieren“ kannst du deine Daten in verschiedene Formate herunterladen,
+                    zum Beispiel um sie zu sichern, mit einem Coach zu teilen oder in anderen Tools weiterzunutzen.
+                    Die Datei wird lokal auf deinem Gerät gespeichert.
+                </p>
+            </details>
+
+            <details>
+                <summary>Werden meine Einträge schon dauerhaft gespeichert?</summary>
+                <p>
+                    In der aktuellen Version ist der Ernährungsbereich vor allem als Vorschau gedacht. Deine Daten
+                    werden noch nicht dauerhaft gespeichert und können beim Neuladen verloren gehen. Geplant ist,
+                    dass in einer späteren Version deine Einträge zuverlässig gesichert werden.
+                </p>
+            </details>
         </section>
 
-        <section class="faq-section">
+        <!-- Tutorials -->
+        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'tutorials'">
             <h2>Übungstutorials</h2>
 
             <details>
@@ -509,7 +448,8 @@
             </details>
         </section>
 
-        <section class="faq-section">
+        <!-- Einstellungen -->
+        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'settings'">
             <h2>Einstellungen</h2>
 
             <details>
@@ -544,33 +484,10 @@
             </details>
 
             <details>
-                <summary>Was macht der „Scroll-Hoch Button“?</summary>
-                <p>
-                    Wenn aktiv, bekommst du einen Button/Shortcut, der dich schnell wieder nach oben bringt.
-                </p>
-            </details>
-
-            <details>
                 <summary>Was heißt „Sticky Timer / Sticky Stoppuhr“?</summary>
                 <p>
                     Wenn aktiv, dürfen Timer/Stoppuhren als Sticky-Card sichtbar bleiben, auch wenn du scrollst.
                     Wenn du’s ausmachst, werden Sticky-Elemente komplett unterdrückt.
-                </p>
-            </details>
-
-            <details>
-                <summary>Was ist „Auto-Berechnung“ bei Rechnern?</summary>
-                <p>
-                    Wenn aktiv, rechnen Rechner automatisch und der „Berechnen“-Button wird ausgeblendet.
-                    Wenn aus, musst du bewusst auf „Berechnen“ drücken.
-                </p>
-            </details>
-
-            <details>
-                <summary>Was bringt „Löschen bestätigen“?</summary>
-                <p>
-                    Dann kommt vor dem Löschen nochmal eine Sicherheitsabfrage.
-                    Das schützt vor „aus Versehen gekillt“ bei Plänen, Timern, Stoppuhren usw.
                 </p>
             </details>
 
@@ -581,33 +498,32 @@
                     Du kannst sie komplett deaktivieren oder die Dauer anpassen.
                 </p>
             </details>
-
-            <details>
-                <summary>Was macht „Toast-Arten verwalten“?</summary>
-                <p>
-                    Du kannst einzelne Toast-Kategorien gezielt an/aus schalten (z.B. Save/Add/Delete/Timer).
-                    Es gibt auch eine Vorschau, damit du sofort checkst, wie es wirkt.
-                </p>
-            </details>
-
-            <details>
-                <summary>Warum kommt manchmal der Hinweis „unten noch speichern“?</summary>
-                <p>
-                    Wenn du z.B. Toast-Arten änderst, erinnert dich die App gelegentlich daran,
-                    dass du die Änderung erst mit „Einstellungen speichern“ fest übernimmst.
-                </p>
-            </details>
         </section>
-
     </div>
 </template>
+
 <script setup lang="ts">
     import { onMounted, onUnmounted, ref, watch, nextTick } from "vue";
     import UiSearch from "@/components/ui/kits/UiSearch.vue";
 
+    type CatKey = "all" | "landing" | "training" | "timers" | "nutrition" | "tutorials" | "settings";
+
+    const categories: { key: CatKey; label: string }[] = [
+        { key: "all", label: "Alle" },
+        { key: "landing", label: "Landing" },
+        { key: "training", label: "Training" },
+        { key: "timers", label: "Timer & Stopwatch" },
+        { key: "nutrition", label: "Ernährung" },
+        { key: "tutorials", label: "Tutorials" },
+        { key: "settings", label: "Einstellungen" },
+    ];
+
+    const activeCategory = ref < CatKey > ("all");
+
     const searchQuery = ref("");
     const matchCount = ref(0);
-    const headerEl = ref<HTMLElement | null>(null);
+
+    const headerEl = ref < HTMLElement | null > (null);
     const isFixed = ref(false);
     const triggerY = ref(0);
 
@@ -623,8 +539,6 @@
 
         const offset = getOffset();
 
-        // Trigger-Position nur dann (neu) setzen, wenn Header NICHT fixed ist
-        // -> sonst misst du die "fixed"-Position und killst die Logik.
         if (!isFixed.value) {
             const rect = el.getBoundingClientRect();
             triggerY.value = window.scrollY + rect.top - offset;
@@ -642,10 +556,9 @@
         }
     };
 
-
     const onScroll = () => updateHeaderState();
+
     const onResize = () => {
-        // einmal kurz "unfix" simulieren, damit wir die echte Position neu messen
         const wasFixed = isFixed.value;
         isFixed.value = false;
         updateHeaderState();
@@ -653,17 +566,6 @@
         updateHeaderState();
     };
 
-    onMounted(async () => {
-        await nextTick();
-        updateHeaderState();
-        window.addEventListener("scroll", onScroll, { passive: true });
-        window.addEventListener("resize", onResize, { passive: true });
-    });
-
-    onUnmounted(() => {
-        window.removeEventListener("scroll", onScroll);
-        window.removeEventListener("resize", onResize);
-    });
     const norm = (s: string) => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
     const escapeHtml = (s: string) =>
@@ -702,13 +604,9 @@
         ].filter(Boolean) as HTMLElement[];
 
         targets.forEach((el) => {
-            // Original-Text einmal merken (damit wir bei leerer Suche sauber resetten)
-            if (!el.dataset.origText) {
-                el.dataset.origText = el.textContent ?? "";
-            }
+            if (!el.dataset.origText) el.dataset.origText = el.textContent ?? "";
 
             if (!q) {
-                // reset
                 el.textContent = el.dataset.origText ?? "";
                 return;
             }
@@ -734,38 +632,40 @@
 
             const isMatch = !q || hay.includes(q);
 
-            // show/hide
             (d as HTMLElement).style.display = isMatch ? "" : "none";
 
-            // auto-open matches while searching
             if (q) d.open = isMatch;
             else d.open = false;
 
             if (isMatch && q) matches += 1;
 
-            // highlight (immer updaten, auch wenn versteckt → beim nächsten Anzeigen passt es)
             applyHighlights(d, q);
         });
 
         matchCount.value = q ? matches : 0;
 
-        // hide empty sections while searching
         const sections = Array.from(root.querySelectorAll(".faq-section")) as HTMLElement[];
         sections.forEach((sec) => {
             if (!q) {
                 sec.style.display = "";
                 return;
             }
-            const visible = Array.from(sec.querySelectorAll("details")).some((d) => {
-                return (d as HTMLElement).style.display !== "none";
-            });
+            const visible = Array.from(sec.querySelectorAll("details")).some((d) => (d as HTMLElement).style.display !== "none");
             sec.style.display = visible ? "" : "none";
         });
     };
 
-
-    onMounted(() => {
+    onMounted(async () => {
+        await nextTick();
+        updateHeaderState();
         applyFaqFilter();
+        window.addEventListener("scroll", onScroll, { passive: true });
+        window.addEventListener("resize", onResize, { passive: true });
+    });
+
+    onUnmounted(() => {
+        window.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", onResize);
     });
 
     watch(searchQuery, () => {
@@ -779,7 +679,95 @@
         margin: 4rem auto;
         padding: 1.5rem;
         overflow: visible;
+        /* Platz kompensieren wenn Header fixed wird */
+        padding-top: calc(1.5rem + var(--faq-header-h, 0px));
     }
+
+    .faq-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .faq-header__inner {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    .faq-header.is-fixed {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: var(--app-header-height, 0px);
+        z-index: 50;
+    }
+
+    .faq-title {
+        margin: 0;
+        line-height: 1.1;
+    }
+
+    .faq-subtitle {
+        margin: 0;
+        opacity: 0.82;
+        line-height: 1.4;
+    }
+
+    .faq-search {
+        margin: 1rem 0 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .faq-search__meta {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 1rem;
+        opacity: 0.85;
+        font-size: 0.95rem;
+    }
+
+    .faq-no-results {
+        margin: 0 0 1.25rem;
+        padding: 0.9rem 1rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+        line-height: 1.4;
+    }
+
+    .faq-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1rem 0 1.5rem;
+    }
+
+    .faq-filter-button {
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 0.4rem 0.9rem;
+        font-size: 0.9rem;
+        background: rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.05s ease, border-color 0.15s ease;
+    }
+
+        .faq-filter-button:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .faq-filter-button.active {
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+        }
+
     .faq-section {
         display: flex;
         flex-direction: column;
@@ -814,79 +802,10 @@
             line-height: 1.5;
         }
 
-    .faq-search {
-        margin: 1rem 0 1.25rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.65rem;
-    }
-
-    .faq-search__meta {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        opacity: 0.85;
-        font-size: 0.95rem;
-    }
-
-    .faq-search__meta {
-        justify-content: flex-start;
-    }
-
-    .faq-no-results {
-        margin: 0 0 1.25rem;
-        padding: 0.9rem 1rem;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.03);
-        line-height: 1.4;
-    }
-
-    .faq-header {
-        display: flex;
-        flex-direction: column;
-        gap: 0.65rem;
-        margin-bottom: 1.25rem;
-    }
-
-    .faq-title {
-        margin: 0;
-        line-height: 1.1;
-    }
-
-    .faq-subtitle {
-        margin: 0;
-        opacity: 0.82;
-        line-height: 1.4;
-    }
-
-    /* Platz kompensieren wenn Header fixed wird */
-    .legal-page {
-        padding-top: calc(1.5rem + var(--faq-header-h, 0px));
-    }
-
-    /* Innerer Wrapper für "fixed full width, content centered" */
-    .faq-header__inner {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 0 1.5rem;
-    }
-
-    /* Fallback: fixed klebt immer, egal welcher Scroll-Container nervt */
-    .faq-header.is-fixed {
-        position: fixed;
-        left: 0;
-        right: 0;
-        top: var(--app-header-height, 0px);
-        z-index: 50;
-    }
-
     :global(.faq-hit) {
         display: inline-block;
         padding: 0 0.18em;
         border-radius: 6px;
         background: rgba(255, 214, 10, 0.28);
     }
-
 </style>
