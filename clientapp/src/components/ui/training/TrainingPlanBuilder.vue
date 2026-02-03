@@ -1128,18 +1128,29 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         headerRO = null
     }
 
-    // REPLACE watch(selectedPlanExercises...)
-    watch(selectedPlanExercises, () => {
-        nextTick(() => {
-            initPreviewResizeTable()
-            setupHeaderShorteningFallback()
-        })
-    }, { deep: true })
+    watch(
+        selectedPlanExercises,
+        () => {
+            nextTick(() => {
+                try {
+                    initPreviewResizeTable()
+                    setupHeaderShorteningFallback()
+                } catch (err) {
+                    console.error('[TrainingPlanBuilder] preview init crashed:', err)
+                }
+            })
+        },
+        { deep: true }
+    )
 
     onMounted(() => {
         nextTick(() => {
-            initPreviewResizeTable()
-            setupHeaderShorteningFallback()
+            try {
+                initPreviewResizeTable()
+                setupHeaderShorteningFallback()
+            } catch (err) {
+                console.error('[TrainingPlanBuilder] onMounted init crashed:', err)
+            }
         })
     })
 
