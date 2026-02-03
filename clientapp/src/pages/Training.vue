@@ -896,8 +896,13 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     }
 
     const queueSaveToAccount = () => {
-        // debounce damit du nicht bei jedem kleinen Watch 100 Requests ballerst
+        // ✅ kein Konto / kein Token => NICHT syncen (sonst 401/Crash-Risiko)
+        if (!auth.user) return
+        const token = getAuthToken()
+        if (!token) return
+
         if (saveAccountTimer) window.clearTimeout(saveAccountTimer)
+
         saveAccountTimer = window.setTimeout(async () => {
             try {
                 const payload = {
@@ -911,21 +916,37 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
                     body: JSON.stringify(payload),
                 })
 
-                if (!res.ok) throw new Error(`PUT training-data failed: ${res.status}`)
+                if (!res.ok) {
+                    let body = ''
+                    try { body = await res.text() } catch { }
+                    console.error('PUT /api/me/training-data failed', {
+                        status: res.status,
+                        body: body?.slice(0, 800),
+                        hasUser: !!auth.user,
+                        hasToken: !!token,
+                    })
+                    return
+                }
             } catch (e) {
                 console.error('Fehler beim Speichern (Account):', e)
-                // kein Toast-Spam, nur wenn du willst:
-                // addToast('Account-Sync fehlgeschlagen (offline?)', 'delete')
             }
         }, 350)
     }
 
+    // Training.vue — REPLACE saveToStorage
     const saveToStorage = () => {
+        // ✅ Gäste: kein Account-Sync
+        if (!auth.user || !getAuthToken()) return
         queueSaveToAccount()
     }
 
     const saveToAccountNow = async () => {
         try {
+            if (!auth.user) return false
+            const token = getAuthToken()
+            if (!token) return false
+
+
             if (saveAccountTimer) window.clearTimeout(saveAccountTimer)
             saveAccountTimer = null
 
