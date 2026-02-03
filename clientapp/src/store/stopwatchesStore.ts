@@ -5,6 +5,12 @@ import { stopwatchesApi } from '@/services/stopwatches'
 import type { StopwatchDto, StopwatchInstance, UpsertStopwatchDto } from '@/types/stopwatch'
 export type { StopwatchInstance } from '@/types/stopwatch'
 
+import { useAuthStore } from '@/store/authStore'
+
+function is401(e: any): boolean {
+    const status = e?.response?.status ?? e?.status
+    return status === 401
+}
 function clampMs(v: unknown): number {
     const n = typeof v === 'number' ? v : Number(v)
     if (!Number.isFinite(n)) return 0
@@ -44,18 +50,37 @@ export const useStopwatchesStore = defineStore('stopwatches', {
 
     actions: {
         async load() {
+            const auth = useAuthStore()
+            if (!auth.isAuthenticated) {
+                this.items = []
+                return
+            }
+
             this.isLoading = true
             try {
                 const list = await stopwatchesApi.list()
                 this.items = list
                     .map(dtoToStopwatch)
                     .sort((a, b) => a.sortIndex - b.sortIndex)
+            } catch (e: any) {
+                if (is401(e)) {
+                    this.items = []
+                    return
+                }
+                throw e
             } finally {
                 this.isLoading = false
             }
         },
 
+        ensureAuthOrThrow() {
+            const auth = useAuthStore()
+            if (!auth.isAuthenticated) throw new Error('AUTH_REQUIRED')
+        },
         async create(name?: string) {
+
+            this.ensureAuthOrThrow()
+
             const dto: UpsertStopwatchDto = { name: name?.trim() || 'Stoppuhr' }
             const created = await stopwatchesApi.create(dto)
             const mapped = dtoToStopwatch(created)
@@ -65,7 +90,7 @@ export const useStopwatchesStore = defineStore('stopwatches', {
         },
 
         async update(id: string, patch: UpsertStopwatchDto) {
-            // optimistic
+            this.ensureAuthOrThrow()
             const idx = this.items.findIndex(x => x.id === id)
             if (idx >= 0) {
                 const cur = this.items[idx]
@@ -94,12 +119,14 @@ export const useStopwatchesStore = defineStore('stopwatches', {
         },
 
         async remove(id: string) {
+            this.ensureAuthOrThrow()
+
             await stopwatchesApi.remove(id)
             this.items = this.items.filter(x => x.id !== id)
         },
 
         async reorder(orderedIds: string[]) {
-            // optimistic
+            this.ensureAuthOrThrow()
             const map = new Map(this.items.map(s => [s.id, s]))
             const reordered = orderedIds.map(id => map.get(id)).filter(Boolean) as StopwatchInstance[]
             this.items = reordered.map((s, i) => ({ ...s, sortIndex: i }))
@@ -110,6 +137,8 @@ export const useStopwatchesStore = defineStore('stopwatches', {
         // ---- Convenience Actions (für dein Component-Life einfacher) ----
 
         async start(id: string) {
+            this.ensureAuthOrThrow()
+
             const sw = this.items.find(x => x.id === id)
             if (!sw || sw.isRunning) return
 
@@ -120,6 +149,8 @@ export const useStopwatchesStore = defineStore('stopwatches', {
         },
 
         async stop(id: string) {
+            this.ensureAuthOrThrow()
+
             const sw = this.items.find(x => x.id === id)
             if (!sw || !sw.isRunning) return
 
@@ -132,6 +163,8 @@ export const useStopwatchesStore = defineStore('stopwatches', {
         },
 
         async reset(id: string) {
+            this.ensureAuthOrThrow()
+
             const sw = this.items.find(x => x.id === id)
             if (!sw) return
 

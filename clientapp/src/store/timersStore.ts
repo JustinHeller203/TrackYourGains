@@ -3,6 +3,12 @@ import { defineStore } from 'pinia'
 import { timersApi, type TimerDto, type UpsertTimerDto } from '@/services/timers'
 import type { TimerInstance } from '@/types/training'
 
+import { useAuthStore } from '@/store/authStore'
+
+function is401(e: any): boolean {
+    const status = e?.response?.status ?? e?.status
+    return status === 401
+}
 function dtoToTimer(t: TimerDto): TimerInstance {
     const preset = (t.secondsPreset || '60').toString()
     const time =
@@ -36,18 +42,36 @@ export const useTimersStore = defineStore('timers', {
 
     actions: {
         async load() {
+            const auth = useAuthStore()
+            if (!auth.isAuthenticated) {
+                this.items = []
+                return
+            }
+
             this.isLoading = true
             try {
                 const list = await timersApi.list()
                 this.items = list
                     .map(dtoToTimer)
                     .sort((a, b) => (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0) || a.sortIndex - b.sortIndex)
+            } catch (e: any) {
+                if (is401(e)) {
+                    this.items = []
+                    return
+                }
+                throw e
             } finally {
                 this.isLoading = false
             }
         },
 
+        ensureAuthOrThrow() {
+            const auth = useAuthStore()
+            if (!auth.isAuthenticated) throw new Error('AUTH_REQUIRED')
+        },
         async create(name?: string) {
+            this.ensureAuthOrThrow()
+
             const dto: UpsertTimerDto = { name: name?.trim() || 'Timer' }
             const created = await timersApi.create(dto)
             const mapped = dtoToTimer(created)
@@ -57,7 +81,7 @@ export const useTimersStore = defineStore('timers', {
         },
 
         async update(id: string, patch: UpsertTimerDto) {
-            // optimistic UI
+            this.ensureAuthOrThrow()
             const idx = this.items.findIndex(x => x.id === id)
             if (idx >= 0) {
                 const cur = this.items[idx]
@@ -95,12 +119,15 @@ export const useTimersStore = defineStore('timers', {
         },
 
         async remove(id: string) {
+
+            this.ensureAuthOrThrow()
+
             await timersApi.remove(id)
             this.items = this.items.filter(x => x.id !== id)
         },
 
         async reorder(orderedIds: string[]) {
-            // optimistic
+            this.ensureAuthOrThrow()
             const map = new Map(this.items.map(t => [t.id, t]))
             const reordered = orderedIds.map(id => map.get(id)).filter(Boolean) as TimerInstance[]
             this.items = reordered.map((t, i) => ({ ...t, sortIndex: i }))

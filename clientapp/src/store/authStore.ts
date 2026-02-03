@@ -22,7 +22,15 @@ export const useAuthStore = defineStore("auth", {
         async init() {
             const token = getToken();
             const email = localStorage.getItem(LS_AUTH_EMAIL);
-            this.user = token && email ? { email } : null;
+
+            if (token && email) {
+                this.user = { email };
+            } else {
+                this.user = null;
+                // wichtig: kein "Ghost-Token" im API Layer
+                setToken(null);
+            }
+
             this.loading = false;
         },
 
@@ -42,11 +50,17 @@ export const useAuthStore = defineStore("auth", {
         },
 
         async signOut() {
-            await logout();
-            this.user = null;
-            localStorage.removeItem(LS_AUTH_EMAIL);
-            setToken(null);
+            try {
+                await logout();
+            } catch {
+                // egal — lokal muss trotzdem sauber werden
+            } finally {
+                this.user = null;
+                localStorage.removeItem(LS_AUTH_EMAIL);
+                setToken(null);
+            }
         },
+
 
         async changeEmail(newEmail: string, password: string) {
             const data: AuthResponseDto = await changeEmail(newEmail, password);
@@ -62,10 +76,13 @@ export const useAuthStore = defineStore("auth", {
         },
 
         async deleteAccount(password: string) {
-            await svcDeleteAccount(password);
-            this.user = null;
-            localStorage.removeItem(LS_AUTH_EMAIL);
-            setToken(null);
+            try {
+                await svcDeleteAccount(password);
+            } finally {
+                this.user = null;
+                localStorage.removeItem(LS_AUTH_EMAIL);
+                setToken(null);
+            }
         },
     },
 });

@@ -1,4 +1,7 @@
+//store/trainingPlanStore.ts
+
 import { defineStore } from "pinia";
+import { useAuthStore } from "@/store/authStore";
 import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan";
 import {
     listTrainingPlans,
@@ -24,11 +27,28 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
 
     actions: {
         async loadList() {
+            const auth = useAuthStore();
+            if (!auth.isAuthenticated) {
+                // guest-mode: nix laden, nix failen
+                this.items = [];
+                this.selected = null;
+                this.error = null;
+                return;
+            }
+
             this.loading = true;
             this.error = null;
+
             try {
                 this.items = await listTrainingPlans();
             } catch (e: any) {
+                if (is401(e)) {
+                    // token ist kaputt/abgelaufen -> ruhig bleiben und UI clean halten
+                    this.items = [];
+                    this.selected = null;
+                    this.error = null;
+                    return;
+                }
                 this.error = e?.message ?? "TrainingPlans konnten nicht geladen werden.";
             } finally {
                 this.loading = false;
@@ -36,22 +56,32 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
         },
 
         async loadOne(id: string) {
+            const auth = useAuthStore();
+            if (!auth.isAuthenticated) {
+                this.selected = null;
+                this.error = null;
+                return;
+            }
+
             this.loading = true;
             this.error = null;
+
             try {
                 const full = await getTrainingPlan(id);
                 this.selected = full;
 
-                // WICHTIG: items updaten, damit überall (z.B. ProgressEntryModal) days/exercises verfügbar sind
                 const idx = this.items.findIndex((p: TrainingPlanDto) => p.id === id);
                 if (idx >= 0) {
-                    // replace
                     this.items = this.items.map((p: TrainingPlanDto) => (p.id === id ? full : p));
                 } else {
-                    // insert
                     this.items = [full, ...this.items];
                 }
             } catch (e: any) {
+                if (is401(e)) {
+                    this.selected = null;
+                    this.error = null;
+                    return;
+                }
                 this.error = e?.message ?? "TrainingPlan konnte nicht geladen werden.";
             } finally {
                 this.loading = false;

@@ -1,4 +1,6 @@
-﻿export interface TimerInstance {
+﻿//types/training.ts
+
+export interface TimerInstance {
     id: string
     name: string
 

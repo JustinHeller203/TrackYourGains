@@ -378,7 +378,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 </template>
 
 <script setup lang="ts">
-    import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+    import { ref, computed, nextTick, watch, onMounted, onUnmounted, withDefaults } from 'vue'
     import { jsPDF } from 'jspdf';
     import Draggable from 'vuedraggable';
     import Toast from '@/components/ui/Toast.vue'
@@ -450,14 +450,17 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         durationMs?: number
     }
 
-    const props = defineProps<{
-        timers: TimerInstance[]
-        startTimer: (timer: TimerInstance) => void
-        stopTimer: (timer: TimerInstance) => void
-        resetTimer: (timer: TimerInstance) => void
-        removeTimer: (id: string) => void
+    const props = withDefaults(defineProps<{
+        timers?: TimerInstance[]
+        startTimer?: (timer: TimerInstance) => void
+        stopTimer?: (timer: TimerInstance) => void
+        resetTimer?: (timer: TimerInstance) => void
+        removeTimer?: (id: string) => void
         stopwatches?: any[]
-    }>();
+    }>(), {
+        timers: () => [],
+        stopwatches: () => [],
+    })
 
     const emit = defineEmits<{
         (e: 'remove-timer', id: string): void;
@@ -507,20 +510,29 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     const auth = useAuthStore()
 
     const hardResetTrainingUi = () => {
-        // Store leeren -> UI direkt clean
-        try { trainingPlansStore.$reset() } catch { }
+        if (isResettingTrainingUi) return
+        isResettingTrainingUi = true
 
-        closePlanMenu()
-        selectedPlan.value = null
-        planSearch.value = ''
-        rowHeights.value = []
-        showCustomExercises.value = false
-        customExercises.value = []
+        try {
+            // Store leeren -> UI direkt clean
+            try { trainingPlansStore.$reset() } catch { }
 
-        // Builder sauber resetten (weil der State jetzt dort lebt)
-        builderRef.value?.clearEditMode?.()
-        builderRef.value?.resetBuilder?.()
+            closePlanMenu()
+            selectedPlan.value = null
+            planSearch.value = ''
+            rowHeights.value = []
+            showCustomExercises.value = false
+            customExercises.value = []
+
+            // Builder sauber resetten (weil der State jetzt dort lebt)
+            builderRef.value?.clearEditMode?.()
+            builderRef.value?.resetBuilder?.()
+        } finally {
+            // erst nach dem Tick wieder freigeben (verhindert Reset-Kaskaden)
+            queueMicrotask(() => { isResettingTrainingUi = false })
+        }
     }
+
 
     const LS_FAV_ORDER = "LS_TRAINING_FAV_ORDER_IDS";
 
@@ -2135,6 +2147,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         return clamped;
     }
 
+    let isResettingTrainingUi = false
 
     // Öffnet ggf. einen von außerhalb gewählten Plan
     const tryOpenPlanFromStorage = () => {
@@ -2181,19 +2194,19 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     });
 
     watch(() => auth.user, async (u) => {
+        if (isResettingTrainingUi) return
+
         if (!u) {
             hardResetTrainingUi()
             return
         }
 
-        // ✅ wenn Auth "true" ist aber Token fehlt -> UI nicht crashen
         if (!getAuthToken()) {
             console.warn('auth.user vorhanden, aber kein Token -> reset training ui')
             hardResetTrainingUi()
             return
         }
 
-        // login -> frisch neu laden (ohne Route zu killen)
         try {
             await trainingPlansStore.loadList()
         } catch (e) {
@@ -2201,7 +2214,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             addToast('Trainingspläne konnten nicht geladen werden', 'delete')
             hardResetTrainingUi()
         }
-    }, { immediate: true })
+    }, { immediate: false })
 
     onMounted(async () => {
         if (!auth.user) {

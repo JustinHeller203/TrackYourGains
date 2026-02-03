@@ -22,13 +22,8 @@
                 <!-- Links -->
                 <ul id="mobile-nav-links" class="nav-links" :class="{ open: menuOpen }">
                     <li><router-link to="/" class="nav-link" @click="closeMenu"><i class="fas fa-home"></i> Home</router-link></li>
-                    <li>
-                        <a href="#"
-                           class="nav-link"
-                           @click.prevent="blockTrainingNav">
-                            <i class="fas fa-dumbbell"></i> Training
-                        </a>
-                    </li>                    <li><router-link to="/nutrition" class="nav-link" @click="closeMenu"><i class="fas fa-utensils"></i> Ernährung</router-link></li>
+                    <li><router-link to="/training" class="nav-link" @click="closeMenu"><i class="fas fa-dumbbell"></i> Training</router-link></li>
+                    <li><router-link to="/nutrition" class="nav-link" @click="closeMenu"><i class="fas fa-utensils"></i> Ernährung</router-link></li>
                     <li><router-link to="/progress" class="nav-link" @click="closeMenu"><i class="fas fa-chart-line"></i> Fortschritt</router-link></li>
                     <li><router-link to="/tutorials" class="nav-link" @click="closeMenu"><i class="fas fa-video"></i> Tutorials</router-link></li>
                     <li><router-link to="/settings" class="nav-link" @click="closeMenu"><i class="fas fa-cog"></i> Einstellungen</router-link></li>
@@ -225,17 +220,12 @@
         localStorage.setItem(LS_TRAINING_FOCUS_TYPE, type)
         localStorage.setItem(LS_TRAINING_FOCUS_ID, id)
 
-        // Training komplett blocken, damit nix abschmiert
-        blockTrainingNav()
-    }
-
-    function blockTrainingNav() {
-        closeMenu()
-        openValidationPopup([
-            '⚠️ Training ist gerade in Bearbeitung.',
-            'Bitte geh kurz auf eine andere Seite (z.B. Home / Tutorials).',
-            'Sonst kann die App aktuell abstürzen.'
-        ])
+        if (router.currentRoute.value.path === '/training') {
+            // Schon dort → fokussieren ohne Route neu zu laden
+            window.dispatchEvent(new CustomEvent('training:focus', { detail: { type, id } }))
+        } else {
+            router.push('/training')
+        }
     }
 
     const NEWS_VERSION = '2025-12-17' // <- ändere das bei jedem Release/Update
