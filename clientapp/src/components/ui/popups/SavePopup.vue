@@ -14,20 +14,20 @@
         </div>
 
         <template #actions>
-            <PopupCancelButton :aria-label="cancelText" @click="$emit('cancel')">
+            <PopupActionButton variant="ghost" :aria-label="cancelText" @click="$emit('cancel')">
                 {{ cancelText }}
-            </PopupCancelButton>
-            <PopupSaveButton :aria-label="saveText" @click="$emit('confirm')">
+            </PopupActionButton>
+
+            <PopupActionButton autofocus :aria-label="saveText" @click="$emit('confirm')">
                 {{ saveText }}
-            </PopupSaveButton>
+            </PopupActionButton>
         </template>
     </BasePopup>
 </template>
 
 <script setup lang="ts">
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
-    import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
-    import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
     withDefaults(defineProps<{
         show: boolean

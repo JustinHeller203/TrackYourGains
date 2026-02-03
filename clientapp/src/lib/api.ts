@@ -1,8 +1,7 @@
 // src/lib/api.ts
 import axios, { AxiosError, type AxiosRequestConfig } from "axios";
+import { LS_AUTH_TOKEN } from "../constants/storageKeys";
 import type { AxiosRequestHeaders } from "axios";
-
-const TOKEN_KEY = "auth_token";
 
 function buildBaseUrl(): string {
     // .env(.local/.production):
@@ -26,17 +25,17 @@ let memoryToken: string | null = null;
 export function setToken(token: string | null) {
     memoryToken = token;
     if (token) {
-        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(LS_AUTH_TOKEN, token);
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     } else {
-        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(LS_AUTH_TOKEN);
         delete api.defaults.headers.common["Authorization"];
     }
 }
 
 export function getToken(): string | null {
     if (memoryToken) return memoryToken;
-    const t = localStorage.getItem(TOKEN_KEY);
+    const t = localStorage.getItem(LS_AUTH_TOKEN);
     if (t) {
         memoryToken = t;
         api.defaults.headers.common["Authorization"] = `Bearer ${t}`;

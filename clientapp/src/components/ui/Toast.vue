@@ -1,11 +1,11 @@
-<!--Toast.vue-->
+<!--Pfad: components/ui/Toast.vue-->
 <template>
     <div class="toast-container" :class="[positionClass, { 'pe-auto': showMenu || repositionMode }]" :style="containerDragStyle">
         <div v-if="toast"
              v-show="localVisible"
              class="toast"
              ref="toastEl"
-             :class="[toast.type, { 'toast-exit': toast.exiting, 'is-reposition': repositionMode }]"
+             :class="[toast.type, { 'toast-exit': toast.exiting, 'is-reposition': repositionMode, 'has-menu': showMenu }]"
              :style="toastInlineStyle"
              role="status"
              aria-live="polite"
@@ -43,18 +43,22 @@
             </div>
 
             <!-- Kontextmenü bei Long-Press -->
-            <HoldMenu v-if="showMenu"
-                      :menu-style="menuStyle">
-                <button type="button" @click="disableAllToasts">
-                    Toast Nachrichten deaktivieren
-                </button>
-                <button type="button" @click="disableThisType">
-                    Diese Art deaktivieren
-                </button>
-                <button type="button" @click="startReposition">
-                    Verschieben
-                </button>
-            </HoldMenu>
+            <Teleport to="body">
+                <HoldMenu v-if="showMenu"
+                          class="toast-menu-host"
+                          :menu-style="menuStyle"
+                          :trigger="menuTrigger">
+                    <button type="button" @click="disableAllToasts">
+                        Toast Nachrichten deaktivieren
+                    </button>
+                    <button type="button" @click="disableThisType">
+                        Diese Art deaktivieren
+                    </button>
+                    <button type="button" @click="startReposition">
+                        Verschieben
+                    </button>
+                </HoldMenu>
+            </Teleport>
 
             <!-- Controls beim Verschieben -->
             <div v-if="repositionMode" class="reposition-controls">
@@ -78,11 +82,18 @@
     import { computed, ref, watch, onBeforeUnmount, nextTick, onMounted } from 'vue'
     import type { Toast as ToastModel } from '@/types/toast'
     import { useToastPaused, pauseToasts, resumeToasts } from '@/utils/toastBus'
-    import vAutoFlip from '@/directives/autoFlip';
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
+    import {
+        LS_TOAST_PREFS,
+        LS_TOAST_TYPE_ENABLED,
+        LS_TOAST_DISABLED_TYPES,
+        LS_TOASTS_ENABLED,
+        LS_TOAST_DURATION_MS,
+    } from '@/constants/storageKeys'
 
     const toastPaused = useToastPaused()
     const finishedWhileFrozen = ref(false)
+    const menuTrigger = ref<HTMLElement | null>(null)
 
     const props = defineProps<{
         toast: ToastModel | null
@@ -103,7 +114,7 @@
     }
     type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
-    const PREF_KEY = 'tyg_toast_prefs'
+    const PREF_KEY = LS_TOAST_PREFS
     type ToastPrefs = {
         enabled: boolean;
         disabledTypes: string[];
@@ -116,6 +127,49 @@
     function savePrefs(p: ToastPrefs) { localStorage.setItem(PREF_KEY, JSON.stringify(p)) }
 
     const prefs = ref<ToastPrefs>(loadPrefs())
+
+    // Settings.vue speichert Toast-Typen hier:
+    const TYPE_ENABLED_KEY = LS_TOAST_TYPE_ENABLED
+    const TYPE_DISABLED_KEY = LS_TOAST_DISABLED_TYPES
+
+    function readDisabledTypesFromSettingsStorage(): string[] {
+        // 1) enabled-map bevorzugen
+        const rawMap = localStorage.getItem(TYPE_ENABLED_KEY)
+        if (rawMap) {
+            try {
+                const map = JSON.parse(rawMap) as Record<string, unknown>
+                return Object.keys(map).filter((k) => map[k] === false)
+            } catch { /* ignore */ }
+        }
+
+        // 2) fallback: disabled-array
+        const rawArr = localStorage.getItem(TYPE_DISABLED_KEY)
+        if (rawArr) {
+            try {
+                const arr = JSON.parse(rawArr) as unknown
+                if (Array.isArray(arr)) return arr.filter((x) => typeof x === 'string') as string[]
+            } catch { /* ignore */ }
+        }
+
+        return []
+    }
+
+    function syncDisabledTypesFromSettings() {
+        const disabled = readDisabledTypesFromSettingsStorage()
+        prefs.value.disabledTypes = Array.from(new Set(disabled)) // auch [] sauber setzen
+        savePrefs(prefs.value)
+    }
+
+    function onToastTypesChanged(_e: CustomEvent<unknown>) {
+        // Quelle der Wahrheit ist localStorage (egal ob Event full-map oder partial war)
+        syncDisabledTypesFromSettings()
+        // disabled-array immer spiegeln, damit alte Pfade stabil bleiben
+        localStorage.setItem(TYPE_DISABLED_KEY, JSON.stringify(prefs.value.disabledTypes))
+    }
+
+    // initial einmal syncen (damit Settings-Werte gelten, auch ohne Reload)
+    syncDisabledTypesFromSettings()
+
     const userPosition = ref<Corner | null>(prefs.value.position ?? null)
     const savedPos = ref<{ x: number; y: number } | null>(prefs.value.posPx ?? null)
 
@@ -215,15 +269,33 @@
         startedAt.value = Date.now()
         dismissTimerId.value = window.setTimeout(doDismiss, remainingMs.value) as unknown as number
     }
-    const storedEnabled = localStorage.getItem('toastsEnabled')
+
+    const storedEnabled = localStorage.getItem(LS_TOASTS_ENABLED)
     if (storedEnabled !== null) {
         prefs.value.enabled = storedEnabled === 'true'
         savePrefs(prefs.value)
     }
+
     function onToastsEnabledChanged(e: CustomEvent<boolean>) {
         prefs.value.enabled = !!e.detail
         savePrefs(prefs.value)
     }
+
+    const DEFAULT_TOAST_MS = 2500
+    const globalToastDurationMs = ref<number>(DEFAULT_TOAST_MS)
+
+    // Initial aus Settings laden
+    const storedToastDur = Number(localStorage.getItem(LS_TOAST_DURATION_MS))
+    if (Number.isFinite(storedToastDur) && storedToastDur > 0) {
+        globalToastDurationMs.value = storedToastDur
+    }
+
+    function onToastDurationChanged(e: CustomEvent<number>) {
+        const n = Number(e.detail)
+        if (!Number.isFinite(n) || n <= 0) return
+        globalToastDurationMs.value = n
+    }
+
     const menuStyle = ref<Record<string, string>>({})
 
     const onGlobalFreeze = (e: CustomEvent<boolean>) => {
@@ -247,15 +319,6 @@
         } else {
             menuStyle.value = {}
         }
-    })
-    onMounted(() => {
-        window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
-        // Kein JS-Countdown mehr: CSS-Animation + @animationend ist die Wahrheit
-    })
-
-    onBeforeUnmount(() => {
-        window.removeEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
-        clearFallbackTimer()
     })
 
     function doDismiss() {
@@ -285,6 +348,7 @@
         window.dispatchEvent(new CustomEvent('toast-global-freeze', { detail: true }))
 
         await nextTick()
+        menuTrigger.value = toastEl.value
         requestAnimationFrame(() => { ignoreNextAnim.value = false })
     }
 
@@ -294,7 +358,7 @@
         savePrefs(prefs.value)
 
         // 2) Auch die globale Settings-Persistenz spiegeln
-        localStorage.setItem('toastsEnabled', 'false')
+        localStorage.setItem(LS_TOASTS_ENABLED, 'false')
         window.dispatchEvent(new CustomEvent('toasts-enabled-changed', { detail: false }))
 
         // 3) Menü schließen und aktuellen Toast sofort ausblenden
@@ -466,10 +530,30 @@
     function disableThisType() {
         const t = props.toast?.type
         if (!t) return
+
         if (!prefs.value.disabledTypes.includes(t)) {
             prefs.value.disabledTypes.push(t)
             savePrefs(prefs.value)
         }
+
+        // Settings-Keys ebenfalls updaten
+        localStorage.setItem(TYPE_DISABLED_KEY, JSON.stringify(prefs.value.disabledTypes))
+
+        // Wenn enabled-map existiert, dort auch spiegeln + Event feuern
+        try {
+            const raw = localStorage.getItem(TYPE_ENABLED_KEY)
+            if (raw) {
+                const map = JSON.parse(raw) as Record<string, unknown>
+                map[t] = false
+                localStorage.setItem(TYPE_ENABLED_KEY, JSON.stringify(map))
+                window.dispatchEvent(new CustomEvent('toast-types-changed', { detail: { [t]: false } }))
+            } else {
+                window.dispatchEvent(new CustomEvent('toast-types-changed', { detail: { [t]: false } }))
+            }
+        } catch {
+            window.dispatchEvent(new CustomEvent('toast-types-changed', { detail: { [t]: false } }))
+        }
+
         showMenu.value = false
         if (props.toast) {
             localVisible.value = false
@@ -495,10 +579,11 @@
             default: return 'pos-bottom-right'
         }
     })
+
     const progressMs = computed(() => {
         const t = props.toast as any
-        const base = (t?.durationMs ?? t?.duration ?? t?.timeout ?? 1800) as number
-        return Math.max(600, base)
+        const base = Number(t?.durationMs ?? t?.duration ?? t?.timeout ?? globalToastDurationMs.value)
+        return Math.max(600, Number.isFinite(base) ? base : globalToastDurationMs.value)
     })
 
     const accentColor = computed(() => {
@@ -578,8 +663,7 @@
         const toast = toastEl.value
         const target = e.target as HTMLElement
 
-        // Klicks direkt im Menü ignorieren
-        if (target.closest('.toast-menu')) return
+        if (target.closest('.hold-menu')) return
         if (toast && toast.contains(target)) return
 
         // Menü schließen, aber jegliche weitere Handler blocken,
@@ -605,6 +689,7 @@
         isHolding.value = false
         if (!repositionMode.value) resumeToasts()
         window.dispatchEvent(new CustomEvent('toast-global-freeze', { detail: false }))   // global
+        menuTrigger.value = null
         if (!isFrozen.value && !toastPaused.value && finishedWhileFrozen.value) {
             finishedWhileFrozen.value = false
             tryDismissAfterProgress()
@@ -615,14 +700,20 @@
 
     onMounted(() => {
         window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+        window.addEventListener('toast-duration-changed', onToastDurationChanged as EventListener)
+        window.addEventListener('toast-types-changed', onToastTypesChanged as EventListener)
         window.addEventListener('toast-global-freeze', onGlobalFreeze as EventListener)
     })
 
     onBeforeUnmount(() => {
         window.removeEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
+        window.removeEventListener('toast-duration-changed', onToastDurationChanged as EventListener)
+        window.removeEventListener('toast-types-changed', onToastTypesChanged as EventListener)
         window.removeEventListener('toast-global-freeze', onGlobalFreeze as EventListener)
         clearFallbackTimer()
     })
+
+
     watch(toastPaused, (paused) => {
         if (!paused && finishedWhileFrozen.value && !isFrozen.value) {
             finishedWhileFrozen.value = false
@@ -636,36 +727,48 @@
         clearAfterSaveTimer()
         clearDismissTimer()
     })
-    watch(() => props.toast?.id, () => {
-        localVisible.value = true
-        autoClosing.value = false
-        closedOnce.value = false
-        showMenu.value = false
+    watch(
+        () => [props.toast?.id, props.toast?.message, props.toast?.type, props.toast?.emoji],
+        () => {
+            // Reset UI-State damit ein neuer Toast nie "unsichtbar festhängt"
+            localVisible.value = true
+            autoClosing.value = false
+            closedOnce.value = false
+            showMenu.value = false
 
-        clearDismissTimer()
-        clearFallbackTimer()
-        stopRaf()
+            repositionMode.value = false
+            dragPos.value = null
+            dragOffset.value = null
 
-        const t = props.toast
+            finishedWhileFrozen.value = false
+            remainingMs.value = 0
 
-        if (!prefs.value.enabled && t) {
-            localVisible.value = false
-            requestAnimationFrame(() => emit('dismiss', t.id))
-            return
-        }
+            clearDismissTimer()
+            clearFallbackTimer()
+            stopRaf()
 
-        if (t?.type && prefs.value.disabledTypes.includes(t.type)) {
-            localVisible.value = false
-            requestAnimationFrame(() => emit('dismiss', t.id))
-            return
-        }
+            const t = props.toast
+            if (!t) return
 
-        if (t && props.autoDismiss !== false) {
-            // JS-Fallback-Timer synchron zur Progress-Linie starten
-            // (pausiert/fortgesetzt über pause/resumeDismissTimer)
-            startDismissTimer(progressMs.value)
-        }
-    }, { immediate: true })
+            // Wenn global deaktiviert oder Typ deaktiviert → sofort dismiss (wie bisher)
+            if (!prefs.value.enabled) {
+                localVisible.value = false
+                requestAnimationFrame(() => emit('dismiss', t.id))
+                return
+            }
+
+            if (t.type && prefs.value.disabledTypes.includes(t.type)) {
+                localVisible.value = false
+                requestAnimationFrame(() => emit('dismiss', t.id))
+                return
+            }
+
+            if (props.autoDismiss !== false) {
+                startDismissTimer(progressMs.value)
+            }
+        },
+        { immediate: true }
+    )
     watch(isActuallyPaused, (paused) => {
         if (paused) {
             pauseDismissTimer()
@@ -734,25 +837,31 @@
     /* ===== Toast Box ===== */
     .toast {
         pointer-events: auto;
-        background: var(--bg-card);
-        padding: .9rem 1rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.2);
+        position: relative;
+        overflow: hidden;
         display: inline-flex;
         align-items: center;
-        gap: .5rem;
+        gap: .55rem;
+        padding: .9rem 1rem;
+        border-radius: 14px;
+        /* clean surface (less color-mush) */
+        background: color-mix(in srgb, var(--bg-card) 92%, #0b1220 8%);
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        box-shadow: 0 16px 38px rgba(15, 23, 42, 0.22);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         font-size: .9rem;
-        animation: toast-enter .3s ease;
-        max-width: min(80vw, 420px);
         line-height: 1.35;
         color: var(--text-primary);
-        position: relative;
-        overflow: visible;
+        animation: toast-enter .22s ease-out;
+        max-width: min(86vw, 460px);
     }
 
     html.dark-mode .toast {
-        background: #1c2526;
-        color: #c9d1d9;
+        background: rgba(2, 6, 23, 0.82);
+        border-color: rgba(148, 163, 184, 0.40);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+        color: #f0f6fc;
     }
 
     .toast-emoji {
@@ -769,18 +878,6 @@
         animation-play-state: var(--toast-play, running);
     }
 
-    /* Typen */
-    .toast-default {
-        border-left: 4px solid #4B6CB7;
-    }
-
-    .toast-add {
-        border-left: 4px solid #10b981;
-    }
-
-    .toast-delete {
-        border-left: 4px solid #ef4444;
-    }
     @media (hover: none) and (pointer: coarse), (max-width: 1024px) {
         .toast {
             /* keine Browser-Long-Press-Aktionen, kein Double-Tap-Zoom-Highlight */
@@ -794,18 +891,35 @@
                 -webkit-touch-callout: none;
             }
     }
+    /* Typen: nur Accent-Variable, kein border-left */
+    .toast-default {
+        --toast-accent: #4B6CB7;
+    }
+
+    .toast-add {
+        --toast-accent: #10b981;
+    }
+
+    .toast-delete {
+        --toast-accent: #ef4444;
+    }
+
     .toast-save {
-        border-left: 4px solid #F59E0B;
+        --toast-accent: #F59E0B;
     }
 
     .toast-timer {
-        border-left: 4px solid #6b7280;
+        --toast-accent: #6b7280;
     }
 
     .toast-reset {
-        border-left: 4px solid #ef4444;
+        --toast-accent: #ef4444;
     }
 
+    /* dezente Accent-Edge wie Landingpage-Glow */
+    .toast::before {
+        content: none;
+    }
     /* Close-Button */
     .toast-close {
         appearance: none;
@@ -857,16 +971,26 @@
 
     .toast-progress {
         position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        left: 10px;
+        right: 10px;
+        bottom: 8px;
         height: 3px;
-        background: var(--toast-accent, #4B6CB7);
-        opacity: .95;
+        border-radius: 999px;
+        background: linear-gradient( 90deg, color-mix(in srgb, var(--toast-accent, var(--accent-primary)) 90%, #fff 10%), var(--toast-accent, var(--accent-secondary)) );
+        opacity: .75;
         transform-origin: left;
         animation: toast-progress-shrink var(--toast-duration, 3000ms) linear forwards;
         pointer-events: none;
+        bottom: 10px;
         animation-play-state: var(--toast-play, running);
+    }
+
+    @media (hover: hover) {
+        .toast:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.55);
+        }
     }
 
     @keyframes toast-progress-shrink {
@@ -883,7 +1007,7 @@
         opacity: .9;
     }
 
-    
+
     .toast-action {
         appearance: none;
         border: 0;
@@ -892,7 +1016,7 @@
         border-radius: 6px;
         font-weight: 700;
         cursor: pointer;
-        color: var(--accent-primary, #4B6CB7);
+        color: var(--toast-accent, var(--accent-primary, #4B6CB7));
         text-decoration: none;
         text-underline-offset: 2px;
         transition: background .15s, text-decoration-color .15s, color .15s;
@@ -934,4 +1058,13 @@
     .pe-auto {
         pointer-events: auto;
     }
+    .toast.has-menu {
+        overflow: visible;
+    }
+
+    /* Root vom HoldMenu nach vorne ziehen (scoped-safe, weil class am Component-root hängt) */
+    .toast-menu-host {
+        z-index: calc(var(--z-toast, 2147483647) + 1);
+    }
+
 </style>

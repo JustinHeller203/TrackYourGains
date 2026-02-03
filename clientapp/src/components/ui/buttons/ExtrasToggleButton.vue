@@ -1,26 +1,23 @@
-<!-- ExtrasToggleButton.vue -->
+<!--Pfad: components/ui/buttons/ExtrasToggleButton.vue-->
 <template>
-    <BaseButton v-bind="$attrs"                     
-    :type="type"
-    :title="computedTitle"
-    :aria-label="ariaLabel || computedTitle"
-    :disabled="disabled"
-    :extraClass="mergedClass"         
-    :aria-pressed="toggled ? 'true' : 'false'"
-    @click="$emit('click', $event)"
-  >
-    <span class="extras-icon" :class="{ rotated: toggled }" aria-hidden="true">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M4 7h12M4 17h16M16 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm-8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-        />
-      </svg>
-    </span>
-    <span class="extras-label">
-      {{ toggled ? 'Extras ausblenden' : 'Extras einblenden' }}
-    </span>
-  </BaseButton>
+    <BaseButton v-bind="$attrs"
+                :type="type"
+                :title="computedTitle"
+                :aria-label="ariaLabel || computedTitle"
+                :disabled="disabled"
+                :extraClass="mergedClass"
+                :aria-pressed="toggled ? 'true' : 'false'"
+                @click="$emit('click', $event)">
+        <span class="extras-icon" :class="{ rotated: toggled }" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M4 7h12M4 17h16M16 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm-8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </span>
+        <span class="extras-label">
+            {{ toggled ? 'Extras ausblenden' : 'Extras einblenden' }}
+        </span>
+    </BaseButton>
 </template>
 
 <script setup lang="ts">
@@ -125,5 +122,6 @@
             margin-right: 0;
         }
     }
+
 
 </style>

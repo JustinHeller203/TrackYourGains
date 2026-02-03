@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -210,18 +212,76 @@ builder.Services.AddRateLimiter(opt =>
             }));
 });
 
-builder.Services.AddControllers();          // nur Controller-Attribute, kein Minimal-API-Mix
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    }); builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Gym3000.Api", Version = "v1" });
+
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\""
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var app = builder.Build();
+
+// ========================== DB migrate + seed ==========================
+using (var scope = app.Services.CreateScope())
+{
+    var sp = scope.ServiceProvider;
+    var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+
+    try
+    {
+        var db = sp.GetRequiredService<ApplicationDbContext>();
+
+        // 1) Migrationen anwenden (Railway DB bekommt sonst keine neuen Tabellen)
+        await db.Database.MigrateAsync();
+
+        // 2) Seed laden (nur wenn noch leer)
+        await Gym3000.Api.Data.Seed.GlycemicFoodsSeeder.SeedAsync(db, logger);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Startup migrate/seed failed");
+        // optional: throw;  // wenn du willst dass App hart failt statt "halb kaputt" läuft
+    }
+}
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
+var swaggerEnabled = app.Environment.IsDevelopment()
+    || string.Equals(Environment.GetEnvironmentVariable("ENABLE_SWAGGER"), "true", StringComparison.OrdinalIgnoreCase);
 
-if (app.Environment.IsDevelopment())
+if (swaggerEnabled)
 {
     app.UseSwagger();
     app.UseSwaggerUI();

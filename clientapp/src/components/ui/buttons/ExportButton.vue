@@ -1,12 +1,13 @@
-﻿<template>
-    <button class="btn-ghost" type="button" @click="$emit('click')">
+﻿<!--Pfad: components/ui/buttons/ExportButton.vue-->
+<template>
+    <button class="btn-ghost" type="button" title="Exportieren" @click="$emit('click')">
         <span class="btn-icon">⬇️</span>
         <span class="btn-label"><slot>Exportieren</slot></span>
     </button>
 </template>
 
 <script setup lang="ts">
-defineEmits<{ (e: 'click'): void }>()
+    defineEmits<{ (e: 'click'): void }>()
 </script>
 
 <style scoped>
@@ -20,6 +21,7 @@ defineEmits<{ (e: 'click'): void }>()
         font-size: .9rem;
         transition: border-color .2s, color .2s, transform .1s;
     }
+
     @media (max-width: 600px) {
         .btn-label {
             display: none;
@@ -41,17 +43,18 @@ defineEmits<{ (e: 'click'): void }>()
         }
         /* Icon zentriert neben Kurzlabel */
     }
-        .btn-ghost:hover {
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-            transform: translateY(-1px);
-        }
 
-        .btn-ghost.mini {
-            padding: .35rem .6rem;
-            font-size: .8rem;
-            border-radius: 6px;
-        }
+    .btn-ghost:hover {
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+        transform: translateY(-1px);
+    }
+
+    .btn-ghost.mini {
+        padding: .35rem .6rem;
+        font-size: .8rem;
+        border-radius: 6px;
+    }
 
     .btn-icon {
         margin-right: .4rem;
@@ -80,5 +83,4 @@ defineEmits<{ (e: 'click'): void }>()
             font-size: 1.1rem;
         }
     }
-
 </style>

@@ -1,3 +1,5 @@
+<!--Pfad: components/ui/popups/ExportPopup.vue-->
+
 <template>
     <BasePopup :show="show"
                title="Daten exportieren"
@@ -5,21 +7,28 @@
                @cancel="$emit('cancel')">
         <template #default>
             <div class="input-group">
-                <label class="downloaddistance">Download-Format wählen:</label>
-                <select ref="sel"
-                        v-model="proxy"
-                        class="edit-input">
-                    <option value="html">HTML</option>
-                    <option value="pdf">PDF</option>
-                    <option value="csv">CSV</option>
-                    <option value="json">JSON</option>
-                    <option value="txt">TXT</option>
-                </select>
+                <UiPopupSelect id="export-format"
+                               ref="sel"
+                               label="Download-Format wählen:"
+                               placeholder="Format auswählen"
+                               v-model="proxy"
+                               :options="[
+        { label: 'HTML', value: 'html' },
+        { label: 'PDF', value: 'pdf' },
+        { label: 'CSV', value: 'csv' },
+        { label: 'JSON', value: 'json' },
+        { label: 'TXT', value: 'txt' },
+      ]" />
             </div>
         </template>
         <template #actions>
-            <PopupSaveButton @click="$emit('confirm')">Download</PopupSaveButton>
-            <PopupCancelButton @click="$emit('cancel')">Abbrechen</PopupCancelButton>
+            <PopupActionButton variant="ghost" @click="$emit('cancel')">
+                Abbrechen
+            </PopupActionButton>
+
+            <PopupActionButton autofocus @click="$emit('confirm')">
+                Download
+            </PopupActionButton>
         </template>
     </BasePopup>
 </template>
@@ -27,8 +36,10 @@
 <script setup lang="ts">
     import { computed, nextTick, ref, watch } from 'vue'
     import BasePopup from './BasePopup.vue'
-    import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
-    import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
+    import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
+
+    type Focusable = { focus: () => void }
 
     type Fmt = 'html' | 'pdf' | 'csv' | 'json' | 'txt'
 
@@ -48,6 +59,11 @@
         set: (v) => emit('update:modelValue', v as Fmt)
     })
 
-    const sel = ref<HTMLSelectElement | null>(null)
-    watch(() => props.show, async (open) => { if (open) { await nextTick(); sel.value?.focus() } })
+    const sel = ref<Focusable | null>(null)
+    watch(() => props.show, async (open) => {
+        if (open) {
+            await nextTick()
+            sel.value?.focus()
+        }
+    })
 </script>

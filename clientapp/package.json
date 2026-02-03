@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
+    "build:vercel-debug": "node -v && npm -v && vue-tsc --noEmit --pretty false || (echo VUE_TSC_FAILED && exit 2) && vite build --debug --logLevel info",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit"
   },

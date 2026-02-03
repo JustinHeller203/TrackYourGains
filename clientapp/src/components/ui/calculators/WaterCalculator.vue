@@ -1,94 +1,274 @@
 <!-- src/components/ui/calculators/WaterCalculator.vue -->
 <template>
-    <div class="calculator-card">
-        <div class="card-header">
-            <h3 class="card-title">
-                {{ title || 'Wasserbedarfsrechner' }}
-                <InfoHover :text="headerInfoText" />
-            </h3>
+    <BaseCalculator :title="title || 'Wasserbedarfsrechner'"
+                    :showInfo="true"
+                    infoTitle="Wasserbedarf"
+                    infoKicker="Rechner erklärt"
+                    ariaOpen="Wasser Erklärung öffnen"
+                    ariaClose="Schließen"
+                    :info="infoText"
+                    :autoCalcEnabled="autoCalcEnabled"
+                    :validate="validateWater"
+                    :isFavorite="isFavorite"
+                    :showCalculateButton="!autoCalcEnabled"
+                    :showCopyButton="waterResult != null"
+                    :copyText="copyText"
+                    @toggleFavorite="$emit('toggleFavorite')"
+                    @calculate="$emit('calculate')"
+                    @copy="$emit('copy')"
+                    @export="$emit('export')"
+                    @reset="$emit('reset')"
+                    @invalid="(errors) => $emit('invalid', errors)">
 
-            <FavoriteButton :active="isFavorite"
-                            :titleActive="'Aus Favoriten entfernen'"
-                            :titleInactive="'Zu Favoriten hinzufügen'"
-                            @toggle="$emit('toggleFavorite')" />
-        </div>
+        <!-- Graphic -->
+        <template #graphic="{ jumpTo }">
+            <div class="calc-hero" role="img" aria-label="Wasser Kurzkarte">
+                <div class="calc-hero-top">
+                    <span class="calc-hero-title">💧 Wie viel Wasser brauchst du?</span>
+                </div>
 
-        <div class="input-group">
-            <label>
-                Körpergewicht ({{ unit === 'kg' ? 'kg' : 'lbs' }})
-            </label>
-            <input :value="weightInputValue"
-                   @input="onWeightInput"
-                   type="number"
-                   :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
-                   class="edit-input"
-                   step="any"
-                   min="0" />
-        </div>
+                <div class="calc-hero-sub">
+                    Richtwert für deinen Tag – kein medizinisches Urteil.
+                </div>
 
-        <div class="input-group">
-            <label class="label-with-info">
-                Aktivitätslevel
-                <InfoHover :text="activityInfoText" />
-            </label>
-            <select :value="activity" @change="onActivityChange" class="edit-input">
-                <option value="low">Niedrig (kein Sport)</option>
-                <option value="moderate">Moderat (1-3x/Woche)</option>
-                <option value="high">Hoch (4-7x/Woche)</option>
-            </select>
-        </div>
-
-        <div class="input-group">
-            <label class="label-with-info">
-                Klima
-                <InfoHover :text="climateInfoText" />
-            </label>
-            <select :value="climate" @change="onClimateChange" class="edit-input">
-                <option value="temperate">Gemäßigt</option>
-                <option value="hot">Heiß</option>
-                <option value="very_hot">Sehr heiß</option>
-            </select>
-        </div>
-
-        <CalculateButton v-if="!autoCalcEnabled" @click="$emit('calculate')" />
-
-        <div v-if="result !== null" class="result">
-            <div class="result-header">
-                <p><strong>Täglicher Wasserbedarf:</strong> {{ result!.toFixed(1) }} Liter</p>
-                <CopyButton @click="$emit('copy')" />
+                <div class="calc-hero-pills" aria-label="Schnellnavigation">
+                    <button class="calc-chip" type="button" @click="jumpTo('calc_formula')">⚙️ So wird’s geschätzt</button>
+                    <button class="calc-chip" type="button" @click="jumpTo('calc_factors')">📌 Was beeinflusst das?</button>
+                    <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('calc_limits')">⚠️ Grenzen</button>
+                </div>
             </div>
-        </div>
+        </template>
 
-        <div class="card-footer">
-            <div class="footer-actions">
-                <ExportButton class="calc-footer-btn"
-                              title="Exportieren"
-                              aria-label="Exportieren"
-                              data-short="Export"
-                              @click="$emit('export')" />
-                <ResetButton class="calc-footer-btn"
-                             title="Zurücksetzen"
-                             aria-label="Zurücksetzen"
-                             data-short="Reset"
-                             @click="$emit('reset')" />
+        <!-- Popup -->
+        <template #popup="{ jumpTo, activeTargetId, onCopy }">
+            <div class="calc-scan">
+                <div v-if="waterResult != null"
+                     id="calc_you"
+                     class="calc-callout calc-callout--tldr"
+                     :class="{ 'calc-target': activeTargetId === 'calc_you' }"
+                     tabindex="-1">
+                    <div class="calc-callout-title">✅ Dein Ergebnis</div>
+                    <div class="calc-callout-text">
+                        <div>
+                            <strong>Täglicher Wasserbedarf:</strong> {{ waterResult!.toFixed(1) }} Liter
+                        </div>
+
+                        <div class="calc-note calc-note--tight">
+                            Tipp: Verteile das über den Tag, nicht „alles auf einmal“.
+                        </div>
+
+                        <div class="calc-actions">
+                            <button class="calc-chip" type="button" @click="jumpTo('calc_next')">👉 Was heißt das?</button>
+                            <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('calc_limits')">⚠️ Grenzen</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="calc-chips" aria-label="Kurzüberblick">
+                    <button class="calc-chip" type="button" @click="jumpTo('calc_formula')">⚙️ Formel</button>
+                    <button class="calc-chip" type="button" @click="jumpTo('calc_example')">📐 Beispiel</button>
+                    <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('calc_factors')">📌 Faktoren</button>
+                    <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('calc_limits')">⚠️ Grenzen</button>
+
+                    <button class="calc-chip"
+                            type="button"
+                            :disabled="waterResult == null"
+                            :aria-disabled="waterResult == null"
+                            :class="{ 'is-disabled': waterResult == null }"
+                            :title="waterResult == null ? 'Erst berechnen, dann kopieren' : 'Kopieren'"
+                            @click="() => { onCopy?.(); jumpTo('calc_you') }">
+                        📋 Copy
+                    </button>
+                </div>
+
+                <div id="calc_tldr"
+                     class="calc-callout calc-callout--tldr"
+                     :class="{ 'calc-target': activeTargetId === 'calc_tldr' }"
+                     tabindex="-1">
+                    <div class="calc-callout-title">📌 Kurzfassung</div>
+                    <div class="calc-callout-text">
+                        <div>
+                            Der Rechner schätzt deinen Bedarf aus <strong>Gewicht</strong>, <strong>Aktivität</strong> und <strong>Klima</strong>.
+                        </div>
+
+                        <ul class="calc-list calc-list--spaced">
+                            <li><strong>Gut:</strong> einfache Orientierung für deinen Alltag</li>
+                            <li><strong>Wichtig:</strong> Durst + Urinfarbe + Trainingstage zählen mit</li>
+                            <li><strong>Merke:</strong> bei Hitze/Schweiß brauchst du spürbar mehr</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="calc_next"
+                     class="calc-callout"
+                     :class="{ 'calc-target': activeTargetId === 'calc_next' }"
+                     tabindex="-1">
+                    <div class="calc-callout-title">👉 Was heißt das jetzt?</div>
+                    <ul class="calc-list">
+                        <li><strong>Wenn du oft Kopfweh/müde bist:</strong> check zuerst Wasser + Schlaf</li>
+                        <li><strong>Wenn du viel schwitzt:</strong> mehr trinken + ggf. Elektrolyte</li>
+                        <li><strong>Wenn du selten Durst hast:</strong> feste Trink-Routinen bauen</li>
+                    </ul>
+                </div>
+
+                <div class="calc-grid">
+                    <section class="calc-card">
+                        <h4 class="calc-h">👥 Für wen ist das sinnvoll?</h4>
+                        <ul class="calc-list">
+                            <li>✅ Alltag / Fitness / grobe Richtwerte</li>
+                            <li>⚠️ Viel Schwitzen / lange Ausdauer → eher höher ansetzen</li>
+                            <li>❌ Medizinische Sonderfälle → Arzt/Ärztin fragen</li>
+                        </ul>
+                    </section>
+
+                    <section id="calc_factors"
+                             class="calc-card"
+                             :class="{ 'calc-target': activeTargetId === 'calc_factors' }"
+                             tabindex="-1">
+                        <h4 class="calc-h">📌 Was beeinflusst den Bedarf?</h4>
+                        <ul class="calc-list">
+                            <li><strong>Gewicht:</strong> mehr Körpermasse → mehr Grundbedarf</li>
+                            <li><strong>Aktivität:</strong> Schweiß/Atmung → Extra-Flüssigkeit</li>
+                            <li><strong>Klima:</strong> Hitze/trockene Luft → höhere Verluste</li>
+                        </ul>
+                    </section>
+
+                    <section id="calc_formula"
+                             class="calc-card"
+                             :class="{ 'calc-target': activeTargetId === 'calc_formula' }"
+                             tabindex="-1">
+                        <h4 class="calc-h">⚙️ Formel (vereinfacht)</h4>
+                        <div class="calc-formula">
+                            <span class="calc-formula-k">Wasser</span>
+                            <span class="calc-formula-eq">≈</span>
+                            <span class="calc-formula-v">Gewicht × Basisfaktor + Zuschläge (Aktivität/Klima)</span>
+                        </div>
+                        <div class="calc-note">
+                            Richtwert. Flüssigkeit aus Essen zählt auch (z.B. Obst, Suppe).
+                        </div>
+                    </section>
+
+                    <section id="calc_example"
+                             class="calc-card"
+                             :class="{ 'calc-target': activeTargetId === 'calc_example' }"
+                             tabindex="-1">
+                        <h4 class="calc-h">📐 Beispiel</h4>
+                        <div class="calc-example">
+                            <div class="calc-example-row">
+                                <span>75&nbsp;kg, moderat aktiv, gemäßigt</span>
+                                <span class="calc-example-strong">≈ 2,5–3,0&nbsp;L</span>
+                            </div>
+                            <div class="calc-example-sub">
+                                Bei heißem Klima oder viel Schweiß: eher Richtung <strong>oberes Ende</strong>.
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="calc_ignore"
+                     class="calc-callout"
+                     :class="{ 'calc-target': activeTargetId === 'calc_ignore' }"
+                     tabindex="-1">
+                    <div class="calc-callout-title">🧠 Wann du den Wasserbedarfsrechner locker ignorieren darfst</div>
+                    <ul class="calc-list">
+                        <li>Du hast <strong>normalen Durst</strong> und trinkst über den Tag verteilt</li>
+                        <li>Dein Urin ist meist <strong>hellgelb</strong></li>
+                        <li>Du bist <strong>leistungsfähig</strong> ohne Dehydrierungs-Symptome</li>
+                        <li>Keine <strong>medizinischen Sonderfälle</strong> (Herz/Niere etc.)</li>
+                    </ul>
+                </div>
+
+                <div id="calc_limits"
+                     class="calc-callout calc-callout--warn"
+                     :class="{ 'calc-target': activeTargetId === 'calc_limits' }"
+                     tabindex="-1">
+                    <div class="calc-callout-title">⚠️ Wichtig (damit du’s richtig nutzt)</div>
+                    <ul class="calc-list">
+                        <li><strong>Zu viel auf einmal</strong> bringt nix → über den Tag verteilen</li>
+                        <li><strong>Sehr viel Training/Hitze</strong> → Elektrolyte können relevant sein</li>
+                        <li><strong>Medikamente/Erkrankungen</strong> → Bedarf kann abweichen</li>
+                    </ul>
+                </div>
+
+                <section class="calc-card">
+                    <h4 class="calc-h">❓ Häufige Fragen</h4>
+                    <ul class="calc-list">
+                        <li><strong>„Zählt Kaffee?“</strong> → ja, aber Wasser bleibt King.</li>
+                        <li><strong>„Woran merke ich zu wenig?“</strong> → Durst, dunkler Urin, Leistung droppt.</li>
+                        <li><strong>„Ab wann ist Wasser giftig?“</strong> → „zu viel, zu schnell“ kann gefährlich werden (Natrium wird verdünnt).</li>
+                        <li><strong>„Kann ich zu viel trinken?“</strong> → ja, selten – passiert eher bei „zu viel, zu schnell“.</li>
+                    </ul>
+                </section>
             </div>
-        </div>
-    </div>
+        </template>
+
+        <!-- Mini -->
+        <template #mini>
+            <div class="calc-mini">
+                <div class="calc-mini-title">Reality-Check ✅</div>
+                <div class="calc-mini-text">
+                    Trink so, dass du dich stabil fühlst: <strong>Durst</strong>, <strong>Urinfarbe</strong>, <strong>Training</strong> = die echten Marker.
+                </div>
+            </div>
+        </template>
+
+        <!-- Inputs -->
+        <template #inputs="{ maybeAutoCalc, normalizeNumberInput }">
+            <UiCalculatorInput :modelValue="weightInputValue"
+                               :label="`Körpergewicht (${unitNormalized === 'kg' ? 'kg' : 'lbs'})`"
+                               type="text"
+                               inputmode="decimal"
+                               autocomplete="off"
+                               :placeholder="unitNormalized === 'kg' ? 'z.B. 70' : 'z.B. 155'"
+                               @update:modelValue="(v) => { onWeightInputValue(v, normalizeNumberInput); maybeAutoCalc() }" />
+
+            <UiCalculatorInput :modelValue="activity"
+                               as="select"
+                               label="Aktivitätslevel"
+                               @update:modelValue="(v) => { emit('update:waterActivity', String(v) as Activity); maybeAutoCalc() }"
+                               :options="[
+        { label: 'Niedrig (kein Sport)', value: 'low' },
+        { label: 'Moderat (1-3x/Woche)', value: 'moderate' },
+        { label: 'Hoch (4-7x/Woche)', value: 'high' },
+    ]" />
+
+            <UiCalculatorInput :modelValue="climate"
+                               as="select"
+                               label="Klima"
+                               @update:modelValue="(v) => { emit('update:waterClimate', String(v) as Climate); maybeAutoCalc() }"
+                               :options="[
+        { label: 'Gemäßigt', value: 'temperate' },
+        { label: 'Heiß', value: 'hot' },
+        { label: 'Sehr heiß', value: 'very_hot' },
+    ]" />
+
+        </template>
+
+        <!-- Result -->
+        <template #result>
+            <div v-if="waterResult != null">
+                <p><strong>Täglicher Wasserbedarf:</strong> {{ waterResult!.toFixed(1) }} Liter</p>
+            </div>
+        </template>
+
+    </BaseCalculator>
 </template>
 
 <script setup lang="ts">
-    import { computed } from 'vue'
-    import InfoHover from '@/components/ui/InfoHover.vue'
-    import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
-    import ExportButton from '@/components/ui/buttons/ExportButton.vue'
-    import ResetButton from '@/components/ui/buttons/ResetButton.vue'
-    import CopyButton from '@/components/ui/buttons/CopyButton.vue'
-    import CalculateButton from '@/components/ui/buttons/CalculateButton.vue'
+    import { computed, onMounted, watch } from 'vue'
+    import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
+    import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
+    import { LS_PROGRESS_WATER_INPUTS_V1 } from '@/constants/storageKeys'
 
     type Unit = 'kg' | 'lb' | 'lbs' | string
     type Activity = 'low' | 'moderate' | 'high'
     type Climate = 'temperate' | 'hot' | 'very_hot'
+    type NormalizeFn = (raw: string) => string
 
+    const unitNormalized = computed<'kg' | 'lbs'>(() => {
+        const u = String(props.unit || 'kg').toLowerCase()
+        return u === 'lb' || u === 'lbs' ? 'lbs' : 'kg'
+    })
     const props = defineProps<{
         unit: Unit
         autoCalcEnabled: boolean
@@ -98,7 +278,6 @@
         waterResult: number | null
         isFavorite: boolean
         title?: string
-        /** Optional: �berschreibt den Standardtext im Header-InfoHover */
         info?: string
     }>()
 
@@ -111,153 +290,102 @@
         (e: 'copy'): void
         (e: 'export'): void
         (e: 'reset'): void
+        (e: 'invalid', errors: string[]): void
     }>()
 
-    const weight = computed(() => props.waterWeight)
     const activity = computed(() => props.waterActivity)
     const climate = computed(() => props.waterClimate)
-    const result = computed(() => props.waterResult)
+
+    const waterResult = computed(() => props.waterResult)
+
+    const defaultInfo =
+        'Schätzt deinen täglichen Wasserbedarf aus Gewicht, Aktivität und Klima. Richtwerte, keine medizinische Beratung.'
+
+    const infoText = computed(() => props.info ?? defaultInfo)
 
     const weightInputValue = computed(() =>
-        weight.value === null || Number.isNaN(weight.value) ? '' : String(weight.value)
+        props.waterWeight == null || Number.isNaN(props.waterWeight) ? '' : String(props.waterWeight)
     )
 
-    /** InfoHover-Texte (Header & Feld-Hilfen) � Header kann via prop.info �berschrieben werden */
-    const headerInfoText = computed(
-        () =>
-            props.info ??
-            'Schätzt den täglichen Wasserbedarf basierend auf Gewicht, Aktivität und Klima. Richtwerte, keine medizinische Beratung.'
+    const copyText = computed<string | null>(() => {
+        if (props.waterResult == null) return null
+
+        const parts: string[] = []
+        if (props.waterWeight != null) parts.push(`Gewicht: ${props.waterWeight} ${unitNormalized.value === 'kg' ? 'kg' : 'lbs'}`)
+        if (props.waterActivity) parts.push(`Aktivität: ${props.waterActivity}`)
+        if (props.waterClimate) parts.push(`Klima: ${props.waterClimate}`)
+        parts.push(`Wasserbedarf: ${props.waterResult.toFixed(1)} L/Tag`)
+
+        return parts.join(' | ')
+    })
+
+    function onWeightInputValue(v: string | number, normalize?: NormalizeFn) {
+        const raw0 = String(v ?? '')
+        const raw = normalize ? normalize(raw0) : raw0.trim().replace(',', '.')
+        if (raw === '') {
+            emit('update:waterWeight', null)
+            return
+        }
+        const n = Number(raw)
+        if (Number.isFinite(n)) emit('update:waterWeight', n)
+    }
+
+    function validateWater(): string[] {
+        const errors: string[] = []
+
+        const weightLabel = `Körpergewicht (${unitNormalized.value === 'kg' ? 'kg' : 'lbs'})`
+
+        const w = props.waterWeight
+        if (w == null || Number.isNaN(w)) {
+            errors.push(`Bitte gib dein ${weightLabel} ein.`)
+            return errors
+        }
+        if (w <= 0) errors.push(`${weightLabel} muss größer als 0 sein.`)
+        else if (unitNormalized.value === 'kg' && w > 400) errors.push(`${weightLabel} wirkt unrealistisch hoch.`)
+        else if (unitNormalized.value === 'lbs' && w > 900) errors.push(`${weightLabel} wirkt unrealistisch hoch.`)
+
+        const a = props.waterActivity
+        if (a !== 'low' && a !== 'moderate' && a !== 'high') {
+            errors.push('Bitte wähle dein Aktivitätslevel.')
+        }
+
+        const c = props.waterClimate
+        if (c !== 'temperate' && c !== 'hot' && c !== 'very_hot') {
+            errors.push('Bitte wähle dein Klima.')
+        }
+
+        return errors
+    }
+
+    const LS_KEY = LS_PROGRESS_WATER_INPUTS_V1
+
+    onMounted(() => {
+        try {
+            const raw = localStorage.getItem(LS_KEY)
+            if (!raw) return
+            const data = JSON.parse(raw)
+
+            if (props.waterWeight == null && Number.isFinite(data.weight)) emit('update:waterWeight', data.weight)
+
+            if (data.activity === 'low' || data.activity === 'moderate' || data.activity === 'high') {
+                emit('update:waterActivity', data.activity)
+            }
+            if (data.climate === 'temperate' || data.climate === 'hot' || data.climate === 'very_hot') {
+                emit('update:waterClimate', data.climate)
+            }
+        } catch { }
+    })
+
+    watch(
+        () => [props.waterWeight, props.waterActivity, props.waterClimate],
+        ([w, a, c]) => {
+            try {
+                localStorage.setItem(LS_KEY, JSON.stringify({ weight: w, activity: a, climate: c }))
+            } catch { }
+        },
+        { deep: false }
     )
-    const activityInfoText =
-        'Mehr Aktivität ? h�herer Bedarf (Schweißverluste). W�hle dein typisches Wochenpensum.'
-    const climateInfoText =
-        'Heiß/Sehr heiß ? mehr trinken (höhere Verdunstung/Schweiß). Gemäßigt für normale Bedingungen.'
-
-    function maybeAutoCalc() {
-        if (props.autoCalcEnabled) emit('calculate')
-    }
-
-    function onWeightInput(e: Event) {
-        const raw = (e.target as HTMLInputElement).value
-        const n = raw === '' ? null : Number(raw)
-        emit('update:waterWeight', raw === '' || Number.isNaN(n) ? null : n)
-        maybeAutoCalc()
-    }
-    function onActivityChange(e: Event) {
-        emit('update:waterActivity', (e.target as HTMLSelectElement).value as Activity)
-        maybeAutoCalc()
-    }
-    function onClimateChange(e: Event) {
-        emit('update:waterClimate', (e.target as HTMLSelectElement).value as Climate)
-        maybeAutoCalc()
-    }
 </script>
 
 <style scoped>
-    /* Minimal � gemeinsame Card/Form-Styles kommen global */
-    .calculator-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 16px;
-        box-shadow: var(--shadow);
-        border: 1px solid var(--border-color);
-        transition: transform .3s, box-shadow .3s, border-color .3s;
-        color: var(--text-primary);
-    }
-
-        .calculator-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-hover);
-            border-color: var(--accent-primary);
-        }
-
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .card-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: .5rem;
-    }
-
-    .input-group {
-        margin-bottom: 1rem;
-    }
-
-    .label-with-info {
-        display: inline-flex;
-        align-items: center;
-        gap: .4rem;
-    }
-
-    .edit-input {
-        width: 100%;
-        padding: .75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        font-size: .9rem;
-        transition: border-color .3s, box-shadow .3s;
-    }
-
-        .edit-input:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99,102,241,.5);
-            outline: none;
-        }
-
-    .result {
-        margin-top: 1rem;
-        padding: 1rem;
-        background: var(--bg-secondary);
-        border-radius: 8px;
-    }
-
-    .result-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-        margin-bottom: .35rem;
-    }
-
-    .card-footer {
-        border-top: 1px solid var(--border-color);
-        padding: .75rem 1rem 0;
-        display: flex;
-        justify-content: flex-end;
-        gap: .75rem;
-        margin-top: .75rem;
-    }
-
-    .footer-spacer {
-        flex: 1;
-    }
-
-    .footer-actions {
-        display: flex;
-        gap: .5rem;
-        flex-wrap: wrap;
-    }
-
-    @media (max-width: 600px) {
-        .footer-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr; /* zwei gleich breite Buttons */
-            gap: .5rem;
-            width: 100%;
-        }
-
-        .calc-footer-btn {
-            min-height: 44px; /* gutes Touch-Target */
-            padding: .5rem .6rem;
-        }
-    }
 </style>

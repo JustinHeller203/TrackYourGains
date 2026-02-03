@@ -12,29 +12,29 @@
         </template>
 
         <template #actions>
-            <PopupSaveButton @click="$emit('ok')">
+            <PopupActionButton autofocus @click="$emit('ok')">
                 {{ okText || 'OK' }}
-            </PopupSaveButton>
+            </PopupActionButton>
         </template>
     </BasePopup>
 </template>
 
 <script setup lang="ts">
-import BasePopup from './BasePopup.vue'
-import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
+    import BasePopup from './BasePopup.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
-defineProps<{
-  show: boolean
-  title: string
-  message: string
-  overlayClass?: string | string[]
-  okText?: string
-}>()
+    defineProps<{
+        show: boolean
+        title: string
+        message: string
+        overlayClass?: string | string[]
+        okText?: string
+    }>()
 
-defineEmits<{
-  (e: 'ok'): void
-  (e: 'cancel'): void
-}>()
+    defineEmits<{
+        (e: 'ok'): void
+        (e: 'cancel'): void
+    }>()
 </script>
 
 <style scoped>

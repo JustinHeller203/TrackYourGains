@@ -1,12 +1,17 @@
+<!--Pfad: components/ui/buttons/ResetButton.vue-->
 <template>
-    <button class="btn-danger-ghost" type="button" @click="$emit('click')">
+    <button class="btn-danger-ghost"
+            type="button"
+            title="Zurücksetzen"
+            aria-label="Zurücksetzen"
+            @click="$emit('click')">
         <span class="btn-icon">🔄️</span>
         <span class="btn-label"><slot>Zurücksetzen</slot></span>
     </button>
 </template>
 
 <script setup lang="ts">
-defineEmits<{ (e: 'click'): void }>()
+    defineEmits<{ (e: 'click'): void }>()
 </script>
 
 <style scoped>
@@ -19,7 +24,9 @@ defineEmits<{ (e: 'click'): void }>()
         color: #b91c1c;
         font-size: .9rem;
         transition: border-color .2s, color .2s, transform .1s;
+
     }
+
     @media (max-width: 600px) {
         .btn-label {
             display: none;
@@ -40,11 +47,12 @@ defineEmits<{ (e: 'click'): void }>()
             margin-right: 0;
         }
     }
-        .btn-danger-ghost:hover {
-            border-color: #b91c1c;
-            color: #7f1d1d;
-            transform: translateY(-1px);
-        }
+
+    .btn-danger-ghost:hover {
+        border-color: #b91c1c;
+        color: #7f1d1d;
+        transform: translateY(-1px);
+    }
 
     .btn-icon {
         margin-right: .4rem;
@@ -73,5 +81,4 @@ defineEmits<{ (e: 'click'): void }>()
             font-size: 1.1rem;
         }
     }
-
 </style>

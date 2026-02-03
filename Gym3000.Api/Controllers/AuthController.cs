@@ -304,7 +304,9 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Logout()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+           ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
 
         var raw = Request.Cookies["rt"];
         if (!string.IsNullOrWhiteSpace(raw))
@@ -329,9 +331,12 @@ public class AuthController : ControllerBase
     [HttpGet("sessions")]
     public async Task<IActionResult> GetSessions()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+           ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized(new { message = "Nicht eingeloggt." });
+
 
         // rohes Cookie (kann null sein)
         var currentRaw = Request.Cookies["rt"];
@@ -360,7 +365,9 @@ public class AuthController : ControllerBase
     [HttpPost("sessions/revoke")]
     public async Task<IActionResult> RevokeSession([FromBody] RevokeSessionDto dto)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+           ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized(new { message = "Nicht eingeloggt." });
 
@@ -394,7 +401,9 @@ public class AuthController : ControllerBase
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+           ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized(new { message = "Nicht eingeloggt." });
 

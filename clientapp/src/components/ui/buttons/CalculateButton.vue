@@ -1,5 +1,6 @@
+<!--Pfad: components/ui/buttons/CalculateButton.vue-->
 <template>
-    <button class="popup-btn save-btn"
+    <button class="calc-btn"
             type="button"
             @click="$emit('click')">
         Berechnen
@@ -13,16 +14,8 @@
 </script>
 
 <style scoped>
-    .popup-btn {
-        padding: .75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: .9rem;
-        transition: background .2s, transform .1s;
-    }
-
-    .save-btn {
+    /* REPLACE styles */
+    .calc-btn {
         background: transparent;
         border: 1px solid var(--accent-primary);
         color: var(--accent-primary);
@@ -31,13 +24,17 @@
         font-size: .9rem;
         font-weight: 500;
         cursor: pointer;
-        transition: border-color .2s, color .2s, transform .1s;
+        transition: border-color .2s, color .2s, transform .1s, background-color .2s;
+        align-self: flex-start;
+        width: fit-content;
+        display: inline-flex;
     }
 
-        .save-btn:hover {
+        .calc-btn:hover {
             border-color: #3b82f6;
             color: #3b82f6;
             background-color: rgba(59,130,246,.1);
             transform: translateY(-2px);
         }
+
 </style>

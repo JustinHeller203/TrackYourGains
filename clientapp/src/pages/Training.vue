@@ -3,264 +3,24 @@
     <div class="training">
         <h2 class="page-title">💪 Training</h2>
         <!-- Trainingsplan Formular -->
-        <div class="workout-list builder-section" ref="builderSection">
-            <h3 class="section-title">Trainingsplan erstellen/bearbeiten</h3>
+        <TrainingPlanBuilder ref="builderRef"
+                             :openEditPopup="openEditPopup"
+                             :addToast="addToast"
+                             :openValidationPopup="openValidationPopup"
+                             :openDeletePopup="openDeletePopup"
+                             v-model:customExercises="customExercises"
+                             :saveToStorage="saveToStorage" />
 
-            <form @submit.prevent="createOrUpdatePlan" class="form-card builder-grid">
-                <!-- LEFT: Builder -->
-                <div class="builder-left">
-                    <!-- Kopf: Planname + Typ (Segmented) + Extras rechts -->
-                    <div class="builder-head">
-                        <!-- NEU: Planname mit Überschrift -->
-                        <div class="plan-block">
-                            <label for="plan-name" class="field-label">Planname</label>
-                            <input id="plan-name"
-                                   v-model="planName"
-                                   class="plan-name-input slim"
-                                   placeholder="Planname (z. B. Push Day)"
-                                   required />
-                        </div>
-
-                        <!-- Trainingstyp (Desktop: Segmented + Überschrift) -->
-                        <div class="type-block desktop-only">
-                            <span class="type-heading field-label">Trainingstyp</span>
-                            <div class="segmented seg-type">
-                                <button type="button" :class="{ on: trainingType==='kraft' }" @click="trainingType='kraft'">Kraft</button>
-                                <button type="button" :class="{ on: trainingType==='calisthenics' }" @click="trainingType='calisthenics'">Calisthenics</button>
-                                <button type="button" :class="{ on: trainingType==='ausdauer' }" @click="trainingType='ausdauer'">Ausdauer</button>
-                                <button type="button" :class="{ on: trainingType==='dehnung' }" @click="trainingType='dehnung'">Dehnung</button>
-                            </div>
-                        </div>
-
-                        <!-- Trainingstyp (Mobile ≤560px: Label + Dropdown) -->
-                        <div class="type-block mobile-only">
-                            <label class="type-heading field-label" for="training-type">Trainingstyp</label>
-                            <select v-model="trainingType"
-                                    id="training-type"
-                                    class="seg-type-select"
-                                    aria-label="Trainingstyp wählen">
-                                <option value="" disabled>Trainingstyp wählen</option>
-                                <option value="kraft">Kraft</option>
-                                <option value="calisthenics">Calisthenics</option>
-                                <option value="ausdauer">Ausdauer</option>
-                                <option value="dehnung">Dehnung</option>
-                            </select>
-                        </div>
-
-                        <!-- Extras-Button rechtsbündig (unverändert) -->
-                        <ExtrasToggleButton :extraClass="['action-btn','extras-cta']"
-                                            :toggled="showExtras"
-                                            :title="showExtras ? 'Extras ausblenden' : 'Extras einblenden'"
-                                            :aria-label="showExtras ? 'Extras ausblenden' : 'Extras einblenden'"
-                                            @click="toggleExtras" />
-                    </div>
-
-
-
-                    <!-- NEU: kein reservierter Platz, drückt nur bei Aktivierung -->
-                    <div v-show="showExtras" class="goal-row">
-                        <label class="field-label">Trainingsziel</label>
-                        <div class="field-row">
-                            <select v-model="selectedGoal" class="goal-select">
-                                <option value="" disabled>Trainingsziel</option>
-                                <option v-for="goal in trainingGoals" :key="goal" :value="goal">{{ goal }}</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Filter -->
-                    <div class="field-block" v-if="trainingType !== 'ausdauer'">
-                        <label class="field-label">Muskelgruppe</label>
-                        <div class="field-row">
-                            <input class="filter-input"
-                                   v-model="exerciseFilter"
-                                   placeholder="z. B. Brust, Oberkörper, Push" />
-                        </div>
-                    </div>
-
-                    <!-- Übungsauswahl -->
-                    <div class="field-block" v-if="trainingType !== 'ausdauer'">
-                        <label class="field-label">Übung</label>
-                        <div class="field-row">
-                            <select v-model="newExercise">
-                                <option value="" disabled>Übung wählen</option>
-                                <option v-for="ex in filteredExercises" :key="ex" :value="ex">{{ ex }}</option>
-                                <option value="custom">Eigene Übung hinzufügen…</option>
-                            </select>
-                            <input v-show="newExercise === 'custom'"
-                                   v-model="customPlanExercise"
-                                   placeholder="Eigene Übung eingeben" />
-                        </div>
-                    </div>
-
-                    <!-- Cardio -->
-                    <div class="field-block" v-else>
-                        <label class="field-label">Cardio-Art</label>
-                        <div class="field-row">
-                            <select v-model="cardioExercise">
-                                <option value="" disabled>Cardio-Art</option>
-                                <option v-for="ex in filteredExercises" :key="ex" :value="ex">{{ ex }}</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Parameter -->
-                    <div class="field-grid" v-if="trainingType === 'kraft' || trainingType === 'calisthenics'">
-                        <div class="field">
-                            <label>Sätze</label>
-                            <input v-model.number="newSets" type="number" min="1" placeholder="z. B. 4" />
-                        </div>
-                        <div class="field">
-                            <label>Wiederholungen</label>
-                            <input v-model.number="newReps" type="number" min="1" placeholder="z. B. 8–12" />
-                        </div>
-                    </div>
-
-                    <div class="field-grid" v-else-if="trainingType === 'dehnung'">
-                        <div class="field">
-                            <label>Holds</label>
-                            <input v-model.number="newSets" type="number" min="1" placeholder="z. B. 3" />
-                        </div>
-                        <div class="field">
-                            <label>Sekunden pro Hold</label>
-                            <input v-model.number="newReps" type="number" min="1" placeholder="z. B. 30" />
-                        </div>
-                    </div>
-
-                    <div class="field-grid" v-else>
-                        <div class="field">
-                            <label>Dauer (Min)</label>
-                            <input v-model.number="newDuration" type="number" min="1" placeholder="z. B. 25" />
-                        </div>
-                        <div class="field">
-                            <label>Distanz (km, optional)</label>
-                            <input v-model.number="newDistance" type="number" min="0" step="0.1" placeholder="z. B. 5" />
-                        </div>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="actions-row stack">
-                        <div class="button-group">
-                            <div class="btn-cell">
-                                <AddExerciseButton class="action-btn add-exercise-btn block"
-                                                   title="Übung hinzufügen"
-                                                   @click="addExerciseToPlan" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <PlanSubmitButton class="action-btn"
-                                      :isEditing="!!editingPlanId"
-                                      :disabled="validatePlanName(planName) === false"
-                                      createLabel="Plan erstellen"
-                                      saveLabel="Plan speichern" />
-                </div>
-
-                <!-- RIGHT: Live Preview (sticky) -->
-                <div class="builder-right">
-                    <div class="preview-card">
-                        <div class="preview-head">
-                            <h4>Live-Preview</h4>
-                            <span v-if="selectedPlanExercises.length" class="muted">
-                                {{ selectedPlanExercises.length }} Übung{{ selectedPlanExercises.length===1?'':'en' }}
-                            </span>
-                        </div>
-
-                        <div v-if="selectedPlanExercises.length" class="exercise-table full-width compact">
-                            <div class="table-scroll">
-                                <table ref="previewTable" data-cols="4">
-                                    <thead>
-                                        <tr>
-                                            <!-- 3 resizable Spalten -->
-                                            <th class="resizable" :style="{ width: previewColWidths[0] + '%' }">
-                                                <span class="th-text">Übung</span>
-                                            </th>
-                                            <th class="resizable" :style="{ width: previewColWidths[1] + '%' }">
-                                                <span class="th-text">
-                                                    {{ selectedPlanExercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
-                                                </span>
-                                            </th>
-                                            <th class="resizable th-wdh" :style="{ width: previewColWidths[2] + '%' }">
-                                                <span class="th-text th-label">
-                                                    <span class="full">
-                                                        {{
-                    selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                      ? 'Wdh. / km / s'
-                      : 'Wiederholungen'
-                                                        }}
-                                                    </span>
-                                                    <span class="mid">
-                                                        {{
-                    selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                      ? 'Wdh./km/s'
-                      : 'Wiederhol...'
-                                                        }}
-                                                    </span>
-                                                    <span class="short">
-                                                        {{
-                    selectedPlanExercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                      ? 'W/km/s'
-                      : 'Wdh.'
-                                                        }}
-                                                    </span>
-                                                </span>
-                                            </th>
-
-                                            <!-- Aktion NICHT resizable, bekommt eigene feste Breite -->
-                                            <th :style="{ width: previewColWidths[3] + '%' }">Aktion</th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        <tr v-for="(ex, index) in selectedPlanExercises"
-                                            :key="index"
-                                            @dblclick="openEditPopup('table', index, $event)">
-                                            <td :style="{ width: previewColWidths[0] + '%' }">{{ ex.exercise }}</td>
-                                            <td :style="{ width: previewColWidths[1] + '%' }">
-                                                {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
-                                            </td>
-                                            <td :style="{ width: previewColWidths[2] + '%' }">
-                                                <template v-if="ex.type === 'ausdauer'">
-                                                    {{ ex.reps ? `${ex.reps} km` : '-' }}
-                                                </template>
-                                                <template v-else-if="ex.type === 'dehnung'">
-                                                    {{ ex.reps }} s
-                                                </template>
-                                                <template v-else>
-                                                    {{ ex.reps }}
-                                                </template>
-                                            </td>
-                                            <td class="action-cell">
-                                                <DeleteButton class="table-delete-btn"
-                                                              title="Übung entfernen"
-                                                              @click="removeExerciseFromPlan(index)" />
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div v-else class="empty-preview">
-                            <span>Noch keine Übung hinzugefügt.</span>
-                        </div>
-                    </div>
-                </div>
-
-            </form>
-        </div>
-
-
-
-        <div v-if="plans.length" class="workout-list">
+        <div v-if="auth.user" class="workout-list plans-section">
             <h3 class="section-title">Deine Trainingspläne</h3>
 
-            <div class="search-container">
-                <input v-model="planSearch" placeholder="Nach Planname oder Trainingsziel suchen" class="plan-search-input" />
-            </div>
+            <UiSearch v-model="planSearch"
+                      placeholder="Nach Planname oder Trainingsziel suchen"
+                      aria-label="Trainingspläne durchsuchen"
+                      class="plan-search" />
 
             <!-- Favoriten sortieren -->
-            <Draggable v-if="favoritePlanItems.length"
+            <Draggable v-if="plans.length && favoritePlanItems.length"
                        v-model="favoritePlanItems"
                        item-key="id"
                        :handle="isMobile ? undefined : '.plan-drag-handle'"
@@ -298,7 +58,7 @@
                                   @click="loadPlan(plan.id)"
                                   @dblclick="openEditPopup('planName', plan.id)">
                                 <span class="plan-name-scroll">{{ plan.name }}</span>
-                                <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
+                                <span class="plan-count">({{ plan.exerciseCount }} Übungen)</span>
                             </span>
 
                             <div class="plan-right">
@@ -323,13 +83,10 @@
                                 <OpenButton class="primary-open desktop-open" title="Öffnen" @click="loadPlan(plan.id)" />
                             </div>
 
-                            <div v-if="planMenuOpenId === plan.id" class="plan-menu" @click.stop>
-                                <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
-                                <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
-                                <ActionIconButton title="Download"
-                                                  aria-label="Trainingsplan herunterladen"
-                                                  @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
-                            </div>
+                            <PlanMenu v-if="planMenuOpenId === plan.id"
+                                      @edit="editPlan(plan.id)"
+                                      @delete="openDeletePopup(() => deletePlan(plan.id))"
+                                      @download="openDownloadPopup(plan)" />
                         </div>
 
 
@@ -343,7 +100,8 @@
             </Draggable>
 
             <!-- Nicht-Favoriten sortieren -->
-            <Draggable v-model="otherPlanItems"
+            <Draggable v-if="plans.length"
+                       v-model="otherPlanItems"
                        item-key="id"
                        :handle="isMobile ? undefined : '.plan-drag-handle'"
                        ghost-class="drag-ghost"
@@ -380,7 +138,7 @@
                                   @click="loadPlan(plan.id)"
                                   @dblclick="openEditPopup('planName', plan.id)">
                                 <span class="plan-name-scroll">{{ plan.name }}</span>
-                                <span class="plan-count">({{ plan.exercises.length }} Übungen)</span>
+                                <span class="plan-count">({{ (plan.exerciseCount ?? plan.exercises?.length ?? 0) }} Übungen)</span>
                             </span>
 
                             <div class="plan-right">
@@ -406,15 +164,11 @@
                                 <OpenButton class="primary-open desktop-open" title="Öffnen" @click="loadPlan(plan.id)" />
                             </div>
 
-                            <div v-if="planMenuOpenId === plan.id" class="plan-menu" @click.stop>
-                                <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
-                                <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
-                                <ActionIconButton title="Download"
-                                                  aria-label="Trainingsplan herunterladen"
-                                                  @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
-                            </div>
+                            <PlanMenu v-if="planMenuOpenId === plan.id"
+                                      @edit="editPlan(plan.id)"
+                                      @delete="openDeletePopup(() => deletePlan(plan.id))"
+                                      @download="openDownloadPopup(plan)" />
                         </div>
-
 
                         <!-- Open-Button bleibt im schmalen Layout sichtbar (eigene Zeile) -->
                         <div class="plan-row2">
@@ -430,299 +184,161 @@
         <div v-if="selectedPlan" class="workout-list">
             <div class="plan-header">
                 <h3 class="section-title" @dblclick="openEditPopup('selectedPlanName', selectedPlan.id)">
-                    Trainingsplan: {{ selectedPlan.name }}
+                    <span class="plan-title-main">
+                        Trainingsplan: {{ selectedPlan.name }}
+                    </span>
+
+                    <div v-if="selectedPlan.code" class="plan-code-row">
+                        <span class="plan-code-badge"
+                              :title="`${selectedPlan.code} (Doppelklick zum Kopieren)`"
+                              @dblclick.stop="copyPlanCode(selectedPlan.code)">
+                            Code: {{ middleEllipsis(selectedPlan.code, 14) }}
+                        </span>
+                    </div>
                 </h3>
                 <CloseButton title="Plan schließen" @click="closePlan" />
             </div>
-            <div class="exercise-table full-width narrow">
-                <div class="table-scroll">
-                    <table ref="resizeTable" data-cols="3">
-                        <thead>
-                            <tr>
-                                <th class="resizable" :style="{ width: columnWidths[0] + '%' }">
-                                    <span class="th-text">Übung</span>
-                                </th>
-                                <th class="resizable" :style="{ width: columnWidths[1] + '%' }">
-                                    <span class="th-text">
-                                        {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
-                                    </span>
-                                </th>
-                                <th class="resizable th-wdh" :style="{ width: columnWidths[2] + '%' }">
-                                    <span class="th-text th-label">
-                                        <span class="full">
-                                            {{
-        selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+            <Table class="exercise-table full-width narrow" variant="narrow">
+                <table ref="resizeTable" data-cols="3">
+                    <thead>
+                        <tr>
+                            <th class="resizable" :style="{ width: columnWidths[0] + '%' }">
+                                <span class="th-text">Übung</span>
+                            </th>
+                            <th class="resizable" :style="{ width: columnWidths[1] + '%' }">
+                                <span class="th-text">
+                                    {{ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                                </span>
+                            </th>
+                            <th class="resizable th-wdh" :style="{ width: columnWidths[2] + '%' }">
+                                <span class="th-text th-label">
+                                    <span class="full">
+                                        {{
+selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
           ? 'Wdh. / km / s'
           : 'Wiederholungen'
-                                            }}
-                                        </span>
-                                        <span class="mid">
-                                            {{
-        selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+                                        }}
+                                    </span>
+                                    <span class="mid">
+                                        {{
+selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
           ? 'Wdh./km/s'
           : 'Wiederhol...'
-                                            }}
-                                        </span>
-                                        <span class="short">
-                                            {{
-        selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
+                                        }}
+                                    </span>
+                                    <span class="short">
+                                        {{
+selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
           ? 'W/km/s'
           : 'Wdh.'
-                                            }}
-                                        </span>
+                                        }}
+                                    </span>
+                                </span>
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr v-for="(ex, index) in selectedPlan.exercises" :key="index" class="resizable-row" :style="{ height: rowHeights[index] + 'px' }" @dblclick="openEditPopup('selectedPlan', index, $event)">
+                            <td :style="{ width: columnWidths[0] + '%' }">{{ ex.exercise }}</td>
+
+                            <!-- Sätze/Min -->
+                            <td :style="{ width: columnWidths[1] + '%' }">
+                                {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
+                            </td>
+
+                            <!-- Wdh./km/s -->
+                            <td :style="{ width: columnWidths[2] + '%' }">
+                                <template v-if="ex.type === 'ausdauer'">
+                                    {{ ex.reps ? `${ex.reps} km` : '-' }}
+                                </template>
+                                <template v-else-if="ex.type === 'dehnung'">
+                                    {{ ex.reps }} s
+                                </template>
+                                <template v-else>
+                                    {{ ex.reps }}
+                                </template>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </Table>
+
+            <button v-if="customExercises.length > 0"
+                    type="button"
+                    class="custom-toggle-btn"
+                    :class="{ on: showCustomExercises }"
+                    :aria-expanded="showCustomExercises"
+                    @click="toggleCustomExercises">
+                <span class="custom-toggle-text">
+                    {{ showCustomExercises ? 'Benutzerdefinierte Übungen ausblenden' : 'Benutzerdefinierte Übungen anzeigen' }}
+                </span>
+                <span class="custom-toggle-arrow" aria-hidden="true"></span>
+            </button>
+            <div v-if="showCustomExercises">
+                <h3 class="section-title">Eigene Übungen</h3>
+                <Table class="exercise-table full-width narrow" variant="narrow">
+                    <table ref="customResizeTable" data-cols="4">
+                        <thead>
+                            <tr>
+                                <th class="resizable" :style="{ width: customColWidths[0] + '%' }">
+                                    <span class="th-text">Name</span>
+                                </th>
+                                <th class="resizable th-muskel" :style="{ width: customColWidths[1] + '%' }">
+                                    <span class="th-text th-label">
+                                        <span class="full">Muskelgruppe</span>
+                                        <span class="mid">Muskelgr...</span>
+                                        <span class="short">Muskel...</span>
                                     </span>
                                 </th>
+                                <th class="resizable" :style="{ width: customColWidths[2] + '%' }">
+                                    <span class="th-text">Typ</span>
+                                </th>
+                                <th :style="{ width: customColWidths[3] + '%' }">Aktion</th>
                             </tr>
                         </thead>
 
                         <tbody>
-                            <tr v-for="(ex, index) in selectedPlan.exercises" :key="index" class="resizable-row" :style="{ height: rowHeights[index] + 'px' }" @dblclick="openEditPopup('selectedPlan', index, $event)">
-                                <td :style="{ width: columnWidths[0] + '%' }">{{ ex.exercise }}</td>
-
-                                <!-- Sätze/Min -->
-                                <td :style="{ width: columnWidths[1] + '%' }">
-                                    {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
+                            <tr v-for="(ex, i) in customExercises" :key="i">
+                                <td :style="{ width: customColWidths[0] + '%' }"
+                                    @dblclick="openEditPopup('customExerciseName', i)">
+                                    <span>{{ ex.name }}</span>
+                                </td>
+                                <td class="v-stack"
+                                    :style="{ width: customColWidths[1] + '%' }"
+                                    @dblclick="openEditPopup('customExerciseMuscle', i)">
+                                    <span>{{ ex.muscle }}</span>
                                 </td>
 
-                                <!-- Wdh./km/s -->
-                                <td :style="{ width: columnWidths[2] + '%' }">
-                                    <template v-if="ex.type === 'ausdauer'">
-                                        {{ ex.reps ? `${ex.reps} km` : '-' }}
-                                    </template>
-                                    <template v-else-if="ex.type === 'dehnung'">
-                                        {{ ex.reps }} s
-                                    </template>
-                                    <template v-else>
-                                        {{ ex.reps }}
-                                    </template>
+                                <td :style="{ width: customColWidths[2] + '%' }" @dblclick="openEditPopup('customExerciseType', i)">
+                                    {{ typeLabel(ex.type) }}
+                                </td>
+
+                                <td class="action-cell">
+                                    <DeleteButton class="table-delete-btn"
+                                                  title="Benutzerdefinierte Übung entfernen"
+                                                  @click="removeCustomExercise(i)" />
                                 </td>
                             </tr>
                         </tbody>
                     </table>
-                </div>
-            </div>
-
-            <button @click="toggleCustomExercises" class="custom-toggle-btn" v-if="customExercises.length > 0">
-                {{ showCustomExercises ? ' Benutzerdefinierte Übungen ausblenden' : ' Benutzerdefinierte Übungen anzeigen' }}
-            </button>
-            <div v-if="showCustomExercises">
-                <h3 class="section-title">Eigene Übungen</h3>
-                <div class="exercise-table full-width narrow">
-                    <div class="table-scroll">
-                        <table ref="customResizeTable" data-cols="4">
-                            <thead>
-                                <tr>
-                                    <th class="resizable" :style="{ width: customColWidths[0] + '%' }">
-                                        <span class="th-text">Name</span>
-                                    </th>
-                                    <th class="resizable th-muskel" :style="{ width: customColWidths[1] + '%' }">
-                                        <span class="th-text th-label">
-                                            <span class="full">Muskelgruppe</span>
-                                            <span class="mid">Muskelgr...</span>
-                                            <span class="short">Muskel...</span>
-                                        </span>
-                                    </th>
-                                    <th class="resizable" :style="{ width: customColWidths[2] + '%' }">
-                                        <span class="th-text">Typ</span>
-                                    </th>
-                                    <th :style="{ width: customColWidths[3] + '%' }">Aktion</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                <tr v-for="(ex, i) in customExercises" :key="i">
-                                    <td :style="{ width: customColWidths[0] + '%' }" @dblclick="openEditPopup('customExerciseName', i)">
-                                        <input v-if="exerciseEditIndex === i && exerciseEditField === 'name'"
-                                               v-model="ex.name" @blur="finishEdit" @keyup.enter="finishEdit" />
-                                        <span v-else>{{ ex.name }}</span>
-                                    </td>
-
-                                    <td class="v-stack" :style="{ width: customColWidths[1] + '%' }" @dblclick="openEditPopup('customExerciseMuscle', i)">
-                                        <input v-if="exerciseEditIndex === i && exerciseEditField === 'muscle'"
-                                               v-model="ex.muscle" @blur="finishEdit" @keyup.enter="finishEdit" />
-                                        <span v-else>{{ ex.muscle }}</span>
-                                    </td>
-
-                                    <td :style="{ width: customColWidths[2] + '%' }" @dblclick="openEditPopup('customExerciseType', i)">
-                                        {{ typeLabel(ex.type) }}
-                                    </td>
-
-                                    <td class="action-cell">
-                                        <DeleteButton class="table-delete-btn"
-                                                      title="Benutzerdefinierte Übung entfernen"
-                                                      @click="removeCustomExercise(i)" />
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <!-- /Benutzerdefinierte Übungen -->
+                </Table>
             </div>
         </div>
         <!-- Satzpausen-Timer -->
-        <div class="workout-list timer-container">
-            <div class="plan-header">
-                <h3 class="section-title">Satzpausen-Timer</h3>
-                <AddButton title="Neuen Timer hinzufügen" @click="openAddTimerPopup" />
-            </div>
-
-            <Draggable :modelValue="props.timers"
-                       item-key="id"
-                       :handle="isMobile ? undefined : '.timer-drag-handle'"
-                       ghost-class="drag-ghost"
-                       chosen-class="drag-chosen"
-                       drag-class="dragging"
-                       :force-fallback="true"
-                       :animation="0"
-                       direction="vertical"
-                       easing="cubic-bezier(0.16,1,0.3,1)"
-                       :delay="dragDelay"
-                       :delay-on-touch-only="true"
-                       :touch-start-threshold="8"
-                       :fallback-tolerance="3"
-                       :fallback-on-body="true"
-                       :scroll="true"
-                       :scroll-sensitivity="40"
-                       :scroll-speed="12"
-                       :swap-threshold="0.3"
-                       :filter="isMobile ? dragFilter : undefined"
-                       tag="div"
-                       class="drag-stack"
-                       @update:modelValue="onReorderTimers">
-
-                <template #item="{ element: timer }">
-                    <div class="timer-card" :key="timer.id" :data-timer-id="timer.id" data-type="timer">
-                        <div class="timer-header">
-                            <span class="timer-drag-handle" title="Ziehen zum Verschieben">⠿</span>
-                            <span class="timer-name" @click="openEditPopup('timerName', timer.id)">
-                                {{ timer.name || 'Timer' }}
-                            </span>
-                            <div class="timer-actions">
-                                <FavoriteButton :active="timer.isFavorite"
-                                                :titleActive="'Aus Favoriten entfernen'"
-                                                :titleInactive="'Zu Favoriten hinzufügen'"
-                                                @toggle="toggleFavoriteTimer(timer.id)" />
-                                <CloseButton title="Timer löschen" variant="timer" @click="openDeleteTimerPopup(timer.id)" />
-
-                            </div>
-                        </div>
-
-                        <div class="timer-controls">
-                            <span class="timer-display">{{ formatTimerDisplay(timer.time) }}</span>
-                            <div class="timer-input-group">
-                                <select v-model="timer.seconds" class="timer-select" @change="resetCustomSeconds(timer)">
-                                    <option value="" disabled>Satzpause wählen</option>
-                                    <option value="60">60 Sekunden</option>
-                                    <option value="90">90 Sekunden</option>
-                                    <option value="120">120 Sekunden</option>
-                                    <option value="custom">Benutzerdefiniert</option>
-                                </select>
-                                <input v-if="timer.seconds === 'custom'"
-                                       v-model.number="timer.customSeconds"
-                                       @input="updateCustomSeconds(timer)"
-                                       placeholder="Sekunden"
-                                       type="number"
-                                       min="1"
-                                       class="timer-input" />
-                                <select v-model="timer.sound" class="timer-select">
-                                    <option value="" disabled>Sound wählen</option>
-                                    <option value="nothing">Keine</option>
-                                    <option value="standard">Standard</option>
-                                    <option value="alarm">Alarm</option>
-                                    <option value="beep">Piep</option>
-                                    <option value="dong">Dong</option>
-                                    <option value="decide">One Way Out</option>
-                                </select>
-                            </div>
-
-                            <div class="timer-buttons">
-                                <StartButton title="Start" @click="startTimer(timer)" :disabled="timer.isRunning" />
-                                <StopButton title="Stop" @click="stopTimer(timer)" :disabled="!timer.isRunning" />
-                                <ResetControlButton title="Reset" @click="resetTimer(timer)" />
-                            </div>
-                        </div>
-                    </div>
-                </template>
-            </Draggable>
-
-        </div>
+        <TimerComponent :dragDelay="dragDelay"
+                        :startTimer="startTimer"
+                        :stopTimer="stopTimer"
+                        :resetTimer="resetTimer"
+                        :openEditPopup="openEditPopup"
+                        :addToast="addToast"
+                        :dismissToast="dismissToast" />
 
         <!-- Übungs-Stoppuhr -->
-        <div class="workout-list stopwatch-top">
-            <div class="plan-header">
-                <h3 class="section-title">Übungs-Stoppuhr</h3>
-                <AddButton title="Neue Stoppuhr hinzufügen" @click="openAddStopwatchPopup" />
-            </div>
-
-            <Draggable :modelValue="props.stopwatches"
-                       item-key="id"
-                       :handle="isMobile ? undefined : '.stopwatch-drag-handle'"
-                       ghost-class="drag-ghost"
-                       chosen-class="drag-chosen"
-                       drag-class="dragging"
-                       :force-fallback="true"
-                       :animation="0"
-                       direction="vertical"
-                       easing="cubic-bezier(0.16,1,0.3,1)"
-                       :delay="dragDelay"
-                       :delay-on-touch-only="true"
-                       :touch-start-threshold="8"
-                       :fallback-tolerance="3"
-                       :fallback-on-body="true"
-                       :scroll="true"
-                       :scroll-sensitivity="40"
-                       :scroll-speed="12"
-                       :swap-threshold="0.3"
-                       :filter="isMobile ? dragFilter : undefined"
-                       tag="div"
-                       class="drag-stack"
-                       @update:modelValue="onReorderStopwatches">
-
-                <template #item="{ element: stopwatch }">
-                    <div class="timer-card" :key="stopwatch.id" :data-stopwatch-id="stopwatch.id" data-type="stopwatch">
-                        <div class="timer-header">
-                            <span class="stopwatch-drag-handle" title="Ziehen zum Verschieben">⠿</span>
-                            <span class="timer-name" @click.stop="openEditPopup('stopwatchName', stopwatch.id)">
-                                {{ stopwatch.name || 'Stoppuhr' }}
-                            </span>
-
-                            <div class="timer-actions">
-                                <FavoriteButton :active="stopwatch.isFavorite"
-                                                :titleActive="'Aus Favoriten entfernen'"
-                                                :titleInactive="'Zu Favoriten hinzufügen'"
-                                                @toggle="toggleFavoriteStopwatch(stopwatch.id)" />
-                                <CloseButton title="Stoppuhr löschen" variant="stopwatch" @click="openDeleteStopwatchPopup(stopwatch.id)" />
-                            </div>
-                        </div>
-
-                        <div class="timer-controls">
-                            <span class="timer-display">{{ formatStopwatchDisplay(stopwatch.time) }}</span>
-                            <div class="timer-buttons">
-                                <StartButton :title="stopwatch.isRunning ? 'Pause' : 'Start'"
-                                             @click="toggleStopwatch(stopwatch)">
-                                    {{ stopwatch.isRunning ? 'Pause' : 'Start' }}
-                                </StartButton>
-                                <ResetControlButton title="Reset" @click="resetStopwatch(stopwatch)" />
-                                <RoundButton title="Runde"
-                                             :disabled="!stopwatch.isRunning"
-                                             @click="addLapTime(stopwatch)" />
-                            </div>
-                        </div>
-
-                        <div v-if="stopwatch.laps.length" class="laps-container">
-                            <h4>Runden</h4>
-                            <div class="laps-list">
-                                <div v-for="(lap, index) in stopwatch.laps" :key="index" class="lap-item">
-                                    <span>Runde {{ index + 1 }}</span>
-                                    <span>{{ formatLapTime(lap) }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-            </Draggable>
-        </div>
+        <StopwatchComponent :dragDelay="dragDelay"
+                            :addToast="addToast"
+                            :stickyEnabled="stickyStopwatchEnabled"
+                            @validation="openValidationPopup" />
 
         <!-- Pop-up für Bearbeitung -->
         <EditPopup v-model="showEditPopup"
@@ -739,33 +355,6 @@
                             @confirm="confirmDeleteAction"
                             @cancel="closeDeletePopup" />
 
-        <!-- Pop-up für Timer -->
-        <InfoPopup :show="showTimerPopup"
-                   title="Satzpause beendet!"
-                   message="Deine Pause ist vorbei. Bereit für den nächsten Satz? 💪"
-                   overlayClass="timer-popup"
-                   okText="OK"
-                   @ok="closeTimerPopup"
-                   @cancel="closeTimerPopup" />
-
-        <!-- Pop-up für neuen Timer -->
-        <NamePromptPopup :show="showAddTimerPopup"
-                         v-model="newTimerName"
-                         title="Neuen Timer hinzufügen"
-                         placeholder="Timer Name (optional)"
-                         overlayClass="timer-popup"
-                         @save="addTimer"
-                         @cancel="closeAddTimerPopup" />
-
-        <!-- Pop-up für neue Stoppuhr -->
-        <NamePromptPopup :show="showAddStopwatchPopup"
-                         v-model="newStopwatchName"
-                         title="Neue Stoppuhr hinzufügen"
-                         placeholder="Stoppuhr Name (optional)"
-                         overlayClass="stopwatch-popup"
-                         @save="addStopwatch"
-                         @cancel="closeAddStopwatchPopup" />
-
         <!-- Pop-up für Download -->
         <ExportPopup :show="showDownloadPopup"
                      v-model="downloadFormat"
@@ -777,12 +366,7 @@
                          :errors="validationErrorMessages"
                          @close="closeValidationPopup" />
 
-        <!-- Audio-Elemente für Timer-Sounds -->
-        <audio id="audio-standard" preload="auto"></audio>
-        <audio id="audio-alarm" preload="auto"></audio>
-        <audio id="audio-beep" preload="auto"></audio>
-        <audio id="audio-dong" preload="auto"></audio>
-        <audio id="audio-decide" preload="auto"></audio>
+
         <!-- Toast-Benachrichtigungen -->
         <Toast v-if="toast"
                :toast="toast"
@@ -794,7 +378,7 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+    import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
     import { jsPDF } from 'jspdf';
     import Draggable from 'vuedraggable';
     import Toast from '@/components/ui/Toast.vue'
@@ -805,19 +389,28 @@
     import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
     import OpenButton from '@/components/ui/buttons/OpenButton.vue'
     import CloseButton from '@/components/ui/buttons/CloseButton.vue'
-    import AddButton from '@/components/ui/buttons/AddButton.vue'
-    import StartButton from '@/components/ui/buttons/StartButton.vue'
-    import StopButton from '@/components/ui/buttons/StopButton.vue'
-    import ResetControlButton from '@/components/ui/buttons/ResetControlButton.vue'
-    import RoundButton from '@/components/ui/buttons/RoundButton.vue'
-    import AddExerciseButton from '@/components/ui/buttons/AddExerciseButton.vue'
-    import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue'
-    import PlanSubmitButton from '@/components/ui/buttons/PlanSubmitButton.vue'
     import ExportPopup from '@/components/ui/popups/ExportPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
-    import NamePromptPopup from '@/components/ui/popups/NamePromptPopup.vue'
-    import InfoPopup from '@/components/ui/popups/InfoPopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
+    import TimerComponent from '@/components/ui/training/TimerComponent.vue'
+    import StopwatchComponent from '@/components/ui/training/StopwatchComponent.vue'
+    import PlanMenu from '@/components/ui/menu/PlanMenu.vue'
+    import UiSearch from '@/components/ui/kits/UiSearch.vue';
+    import TrainingPlanBuilder from '@/components/ui/training/TrainingPlanBuilder.vue'
+
+    import { useTrainingPlansStore } from "@/store/trainingPlansStore";
+    import { useAuthStore } from '@/store/authStore';
+    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan";
+    import type { TimerInstance } from '@/types/training';
+    import {
+        LS_AUTH_TOKEN,
+        LS_TRAINING_FOCUS_ID,
+        LS_TRAINING_FOCUS_TYPE,
+        LS_TRAINING_OPEN_PLAN_ID,
+        LS_STICKY_TIMER_ENABLED,
+        LS_STICKY_STOPWATCH_ENABLED,
+    } from '@/constants/storageKeys'
+    import Table from '@/components/ui/kits/UiTable.vue'
 
     // Typ-Definitionen (bleiben unverändert)
     interface PlanExercise {
@@ -828,11 +421,16 @@
         type?: 'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung';
     }
 
-    interface TrainingPlan {
+    type ViewPlan = {
         id: string;
         name: string;
+        isFavorite: boolean;
+        code?: string | null;
         exercises: PlanExercise[];
-    }
+        exerciseCount: number; 
+    };
+
+    type TrainingPlan = ViewPlan;
 
     type ToastType =
         | 'toast-default'
@@ -852,62 +450,22 @@
         durationMs?: number
     }
 
-
-    interface TimerInstance {
-        id: string
-        name?: string
-        seconds: string | null
-        customSeconds: number | null
-        time: number
-        isRunning: boolean
-        interval: number | null
-        isFavorite: boolean
-        sound: string
-        isVisible: boolean
-        shouldStaySticky: boolean
-        left?: number
-        top?: number
-        startedAtMs?: number;
-        endsAtMs?: number;
-        pausedRemaining?: number;
-    }
-
-    interface StopwatchInstance {
-        id: string
-        name?: string
-        time: number
-        isRunning: boolean
-        interval: number | null
-        laps?: number[]
-        isFavorite: boolean
-        isVisible: boolean
-        shouldStaySticky: boolean
-        left?: number
-        top?: number
-        startedAtMs?: number;
-        offsetMs?: number;
-    }
-
     const props = defineProps<{
         timers: TimerInstance[]
-        stopwatches: StopwatchInstance[]
         startTimer: (timer: TimerInstance) => void
         stopTimer: (timer: TimerInstance) => void
         resetTimer: (timer: TimerInstance) => void
-        toggleStopwatch: (sw: StopwatchInstance) => void
-        resetStopwatch: (sw: StopwatchInstance) => void
         removeTimer: (id: string) => void
-        removeStopwatch: (id: string) => void
+        stopwatches?: any[]
     }>();
 
     const emit = defineEmits<{
         (e: 'remove-timer', id: string): void;
-        (e: 'remove-stopwatch', id: string): void;
         (e: 'add-timer', timer: TimerInstance): void;
-        (e: 'add-stopwatch', stopwatch: StopwatchInstance): void;
         (e: 'reorder-timers', list: TimerInstance[]): void;
-        (e: 'reorder-stopwatches', list: StopwatchInstance[]): void;
+        (e: 'reorder-stopwatches', list: any[]): void;
     }>();
+
     const dismissToast = (immediate = false) => {
         if (!toast.value) return;
         clearToastTimer();
@@ -924,162 +482,128 @@
             autoDismissRemainingMs = 0;
         }, 300);
     };
-    const favoriteTimerItems = computed<TimerInstance[]>({
-        get() {
-            return props.timers.filter(t => t.isFavorite);
-        },
-        set(newFavs) {
-            const others = props.timers.filter(t => !t.isFavorite);
-            emit('reorder-timers', [...newFavs, ...others]);
-        }
-    });
     const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
 
-    const otherTimerItems = computed<TimerInstance[]>({
-        get() {
-            return props.timers.filter(t => !t.isFavorite);
-        },
-        set(newOthers) {
-            const favs = props.timers.filter(t => t.isFavorite);
-            emit('reorder-timers', [...favs, ...newOthers]);
-        }
-    });
     function onToastDismiss(id: number) {
         if (toast.value?.id === id) {
             toast.value = null
         }
     }
-    const favoriteStopwatchItems = computed<StopwatchInstance[]>({
-        get() {
-            return props.stopwatches.filter(s => s.isFavorite);
-        },
-        set(newFavs) {
-            const others = props.stopwatches.filter(s => !s.isFavorite);
-            emit('reorder-stopwatches', [...newFavs, ...others]);
-        }
-    });
+    const builderRef = ref<InstanceType<typeof TrainingPlanBuilder> | null>(null)
 
-    const otherStopwatchItems = computed<StopwatchInstance[]>({
-        get() {
-            return props.stopwatches.filter(s => !s.isFavorite);
-        },
-        set(newOthers) {
-            const favs = props.stopwatches.filter(s => s.isFavorite);
-            emit('reorder-stopwatches', [...favs, ...newOthers]);
-        }
-    });
     const onReorderTimers = (list: TimerInstance[]) => emit('reorder-timers', list);
-    const onReorderStopwatches = (list: StopwatchInstance[]) => emit('reorder-stopwatches', list);
+    const onAddTimerFromChild = (timer: TimerInstance) => emit('add-timer', timer)
+    const onRemoveTimerFromChild = (id: string) => emit('remove-timer', id)
 
     // NEU: gemeinsamer Typ für Übungskategorien
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer';
     type CustomExerciseType = Exclude<ExerciseType, 'ausdauer'>;
 
-    // Refs (bleiben größtenteils unverändert)
-    const plans = ref<TrainingPlan[]>([]);
-    const favoritePlans = ref<string[]>([]);
-    const planName = ref('');
-    const newExercise = ref('');
-    const customPlanExercise = ref('');
-    const newReps = ref<number | null>(null);
-    const newSets = ref<number | null>(null);
-    const trainingType = ref<'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung'>('kraft')
-    const cardioTypes = ref([
-        'Laufen', 'Radfahren', 'Rudern', 'Crosstrainer', 'Seilspringen', 'Treppensteigen', 'Schwimmen'
-    ])
-    const cardioExercise = ref('')
-    const newDuration = ref<number | null>(null)
-    const newDistance = ref<number | null>(null)
-    const previewColWidths = ref([50, 25, 19, 6]); // Summe 100% (Übung | Sätze | Wdh | Aktion)
-    const previewTable = ref<HTMLTableElement | null>(null);
-    const editingPlanId = ref<string | null>(null);
-    const selectedPlanExercises = ref<PlanExercise[]>([]);
-    const selectedPlan = ref<TrainingPlan | null>(null);
-    const showTimerPopup = ref(false);
+    let onBeforeUnload: (() => void) | null = null
+    let onVisChange: (() => void) | null = null
+
+    const trainingPlansStore = useTrainingPlansStore();
+
+    const auth = useAuthStore()
+
+    const hardResetTrainingUi = () => {
+        // Store leeren -> UI direkt clean
+        try { trainingPlansStore.$reset() } catch { }
+
+        closePlanMenu()
+        selectedPlan.value = null
+        planSearch.value = ''
+        rowHeights.value = []
+        showCustomExercises.value = false
+        customExercises.value = []
+
+        // Builder sauber resetten (weil der State jetzt dort lebt)
+        builderRef.value?.clearEditMode?.()
+        builderRef.value?.resetBuilder?.()
+    }
+
+    const LS_FAV_ORDER = "LS_TRAINING_FAV_ORDER_IDS";
+
+    const readFavOrder = (): string[] => {
+        try {
+            const raw = localStorage.getItem(LS_FAV_ORDER);
+            const arr = raw ? JSON.parse(raw) : [];
+            return Array.isArray(arr) ? arr.filter(x => typeof x === "string") : [];
+        } catch { return []; }
+    };
+
+    const writeFavOrder = (ids: string[]) => {
+        localStorage.setItem(LS_FAV_ORDER, JSON.stringify(ids));
+    };
+
+    const toPlanExercise = (ex: any): PlanExercise => ({
+        exercise: ex.name,
+        sets: ex.sets ?? 0,
+        reps: ex.reps ?? 0,
+        type: (ex.category === 3 ? "ausdauer" : ex.category === 2 ? "dehnung" : ex.category === 1 ? "calisthenics" : "kraft"),
+    });
+
+    const flattenDto = (p: TrainingPlanDto): ViewPlan => {
+        const flat: PlanExercise[] = [];
+        for (const d of (p.days ?? [])) {
+            for (const ex of (d.exercises ?? [])) flat.push(toPlanExercise(ex));
+        }
+
+        // ✅ Falls loadList keine days liefert: nimm Count-Feld aus DTO (wenn vorhanden)
+        const fallbackCount =
+            Number((p as any)?.exerciseCount ?? (p as any)?.exercisesCount ?? (p as any)?.exercise_count ?? 0) || 0;
+
+        const count = flat.length > 0 ? flat.length : fallbackCount;
+
+        return {
+            id: p.id,
+            name: p.name,
+            isFavorite: !!p.isFavorite,
+            code: (p as any)?.code ?? null,
+            exercises: flat,
+            exerciseCount: count,
+        };
+    };
+
+    const copyPlanCode = async (code?: string | null) => {
+        const c = (code ?? '').trim()
+        if (!c) { addToast('Kein Code vorhanden', 'delete'); return }
+
+        try {
+            await navigator.clipboard.writeText(c)
+            addToast('Code kopiert', 'save')
+        } catch {
+            addToast('Kopieren fehlgeschlagen', 'delete')
+        }
+    }
+
+    const plans = computed<ViewPlan[]>(() => trainingPlansStore.items.map(flattenDto));
+
+    const favoritePlans = computed<string[]>(() => {
+        const items = trainingPlansStore.items as TrainingPlanDto[];
+
+        const favIds = new Set(items.filter((p) => !!p.isFavorite).map((p) => p.id));
+        const order = readFavOrder().filter((id) => favIds.has(id));
+
+        const missing = (Array.from(favIds) as string[]).filter((id) => !order.includes(id));
+        const next = [...order, ...missing];
+
+        writeFavOrder(next);
+        return next;
+    });
+
+    const selectedPlan = ref<ViewPlan | null>(null);
     const showDeletePopup = ref(false);
     const showEditPopup = ref(false);
-    const showAddTimerPopup = ref(false);
-    const showAddStopwatchPopup = ref(false);
     const showDownloadPopup = ref(false);
     const showValidationPopup = ref(false);
     const validationErrorMessages = ref<string[]>([]);
-    const downloadPlan = ref<TrainingPlan | null>(null);
+    const downloadPlan = ref<ViewPlan | null>(null);
     const downloadFormat = ref<'html' | 'pdf' | 'csv' | 'json' | 'txt'>('html');
-    const newTimerName = ref('');
-    const newStopwatchName = ref('');
     const customColWidths = ref([40, 30, 15, 15]); // Start: Name|Muskel|Typ|Aktion
     const customResizeTable = ref<HTMLTableElement | null>(null);
     const deleteAction = ref<(() => void) | null>(null);
-    // Alias → Kanonische Gruppen
-    const muscleGroupAliases: Record<string, string[]> = {
-        // deutsch
-        'brust': ['Brust'],
-        'rücken': ['Rücken'], 'ruecken': ['Rücken'],
-        'schulter': ['Schultern'], 'schultern': ['Schultern'],
-        'arme': ['Arme'], 'arm': ['Arme'],
-        'beine': ['Beine'], 'bein': ['Beine'], 'unterkörper': ['Beine', 'Bauch'], 'unterkoerper': ['Beine', 'Bauch'],
-        'bauch': ['Bauch'], 'core': ['Bauch'],
-        'oberkörper': ['Brust', 'Rücken', 'Schultern', 'Arme'], 'oberkoerper': ['Brust', 'Rücken', 'Schultern', 'Arme'],
-        'po': ['Beine'], 'gesäß': ['Beine'], 'gluteus': ['Beine'],
-        // Bewegungsmuster (Push/Pull) + Synonyme
-        'push': ['Brust', 'Schultern', 'Arme'],
-        'pull': ['Rücken', 'Arme'],
-        'drücken': ['Brust', 'Schultern', 'Arme'],
-        'ziehen': ['Rücken', 'Arme'],
-        'push day': ['Brust', 'Schultern', 'Arme'],
-        'pull day': ['Rücken', 'Arme'],
-        'pushday': ['Brust', 'Schultern', 'Arme'],
-        'pullday': ['Rücken', 'Arme'],
 
-        // ein paar Untergruppen → Obergruppe (hilft auch Custom)
-        'trizeps': ['Arme'],
-        'bizeps': ['Arme'],
-        'lat': ['Rücken'], 'lats': ['Rücken'], 'latissimus': ['Rücken'],
-
-        // englische Synonyme, falls mal genutzt
-        'chest': ['Brust'],
-        'back': ['Rücken'],
-        'shoulder': ['Schultern'], 'shoulders': ['Schultern'],
-        'arms': ['Arme'], 'biceps': ['Arme'], 'triceps': ['Arme'],
-        'legs': ['Beine'], 'lower body': ['Beine', 'Bauch'],
-        'abs': ['Bauch'], 'core ': ['Bauch'], // core mit Space, um "core " Matches robust zu machen
-        'upper body': ['Brust', 'Rücken', 'Schultern', 'Arme'],
-    };
-
-    // Calisthenics nach Muskelgruppen
-    const calisthenicsByGroup: Record<string, string[]> = {
-        Brust: ['Liegestütze', 'Archer Push-up', 'Dips'],
-        Rücken: ['Klimmzüge', 'Australian Pull-up', 'Archer Pull-up'],
-        Schultern: ['Handstand Push-up', 'Archer Push-up'],
-        Arme: ['Dips', 'Klimmzüge', 'Archer Pull-up'],
-        Bauch: ['L-Sit', 'Dragon Flag', 'Hollow Hold', 'Toes to Bar'],
-        Beine: ['Pistol Squat'],
-    };
-
-    // Dehnübungen nach Muskelgruppen
-    const stretchingByGroup: Record<string, string[]> = {
-        Brust: ['Brust-Dehnung'],
-        Rücken: ['Rücken-Dehnung'],
-        Schultern: ['Schulter-Dehnung', 'Trizeps-Dehnung'],
-        Arme: ['Trizeps-Dehnung'],
-        Bauch: [],
-        Beine: ['Hamstring-Dehnung', 'Waden-Dehnung', 'Quadrizeps-Dehnung', 'Adduktoren-Dehnung'],
-    };
-
-    // Hilfsfunktionen
-    const resolveGroups = (q: string): string[] => {
-        const key = (q || '').trim().toLowerCase();
-        return muscleGroupAliases[key] || [];
-    };
-    const uniq = <T,>(arr: T[]) => Array.from(new Set(arr));
-
-    // Nur Calisthenics-Übungen
-    const calisthenicsExercises = ref([
-        'Klimmzüge', 'Liegestütze', 'Dips', 'Muscle-Up', 'Handstand Push-up',
-        'L-Sit', 'Dragon Flag', 'Pistol Squat', 'Hollow Hold', 'Superman Hold',
-        'Archer Pull-up', 'Archer Push-up', 'Australian Pull-up', 'Toes to Bar',
-    ])
-    // Menü-Status (Kebab)
     const planMenuOpenId = ref<string | null>(null);
 
     const togglePlanMenu = (id: string) => {
@@ -1094,50 +618,31 @@
         const el = e.target as HTMLElement | null;
         if (!el) return;
 
-        // Menü & Kebab weiterhin offen lassen
         if (el.closest('.plan-menu') || el.closest('.kebab-wrap')) return;
 
-        // NEU: Klicks innerhalb des Toasts sollen das Menü NICHT schließen
-        // Passe die Selektoren ggf. auf deine Toast-Root-Klasse/Attr an.
+        // Klicks innerhalb des Toasts sollen das Menü NICHT schließen
         if (el.closest('.toast') || el.closest('.toast-container') || el.closest('[data-toast-root]')) return;
 
         closePlanMenu();
     };
 
-    // Basis-Dehnübungen (kannst du erweitern)
-    const stretchingExercises = ref([
-        'Brust-Dehnung', 'Hüftbeuger-Dehnung', 'Hamstring-Dehnung',
-        'Waden-Dehnung', 'Schulter-Dehnung', 'Trizeps-Dehnung',
-        'Rücken-Dehnung', 'Quadrizeps-Dehnung', 'Adduktoren-Dehnung',
-    ])
-
-    const predefinedExercises = ref([
-        'Bankdrücken', 'Kniebeugen', 'Kreuzheben', 'Schulterdrücken', 'Liegestütze', 'Klimmzüge', 'Latzug', 'Rudern',
-        'Bizepscurls', 'Trizepsdrücken', 'Beinpresse', 'Ausfallschritte', 'Butterfly', 'Seitheben', 'Wadenheben',
-        'Bauchpresse', 'Rückenstrecker', 'Beinstrecker', 'Beinbeuger', 'Brustpresse', 'Dips'
-    ]);
-    const muscleGroups = ref({
-        Brust: ['Bankdrücken', 'Liegestütze', 'Butterfly', 'Brustpresse'],
-        Rücken: ['Klimmzüge', 'Latzug', 'Rudern', 'Rückenstrecker'],
-        Beine: ['Kniebeugen', 'Kreuzheben', 'Beinpresse', 'Ausfallschritte', 'Wadenheben'],
-        Schultern: ['Schulterdrücken', 'Seitheben'],
-        Arme: ['Bizepscurls', 'Trizepsdrücken', 'Dips'],
-        Bauch: ['Bauchpresse']
-    });
-    const exerciseFilter = ref('');
-    const trainingGoals = ref(['Muskelaufbau', 'Abnehmen', 'Ausdauer', 'Kraft']);
-    const selectedGoal = ref('');
-    const showExtras = ref(false);
     const columnWidths = ref([50, 25, 25]);
     const rowHeights = ref<number[]>([]);
     const planSearch = ref('');
     const editValue = ref('');
-    const editType = ref<'table' | 'selectedPlan' | 'planName' | 'selectedPlanName' | 'timerName' | 'stopwatchName' | 'customExerciseName' | 'customExerciseMuscle' | 'customExerciseType'>('table');
+    const editType = ref<
+        'table'
+        | 'selectedPlan'
+        | 'planName'
+        | 'selectedPlanName'
+        | 'timerName'
+        | 'customExerciseName'
+        | 'customExerciseMuscle'
+        | 'customExerciseType'
+    >('table');
     const editIndex = ref<number | string | null>(null);
     const editCellIndex = ref<number | null>(null);
     const showCustomExercises = ref(false);
-    const exerciseEditIndex = ref<number | null>(null);
-    const exerciseEditField = ref<'name' | 'muscle' | null>(null);
     const customExercises = ref<Array<{ name: string; muscle: string; type: CustomExerciseType }>>([]);
     const toast = ref<AppToast | null>(null);
     let toastId = 0;
@@ -1148,17 +653,8 @@
     const isTimerSticky = ref(false); // Hinzugefügt für Sticky-Logik
     const isStopwatchSticky = ref(false); // Hinzugefügt für Sticky-Logik
     const resizeTable = ref<HTMLTableElement | null>(null);
-    const prevTimes = new Map<string, number>();
-    const finishedOnce = new Set<string>();
     const typeLabel = (t: ExerciseType) =>
         ({ kraft: 'Kraft', calisthenics: 'Calisthenics', dehnung: 'Dehnung', ausdauer: 'Ausdauer' } as const)[t];
-    const audioPaths = {
-        standard: '/sounds/standard.mp3',
-        alarm: '/sounds/alarm.mp3',
-        beep: '/sounds/beep.mp3',
-        dong: '/sounds/dong.mp3',
-        decide: '/sounds/decide.mp3'
-    };
 
     // Funktionen (weitgehend unverändert, nur relevante Änderungen)
     // zeigt Anfang + Ende, mittig „…“ (breitenunabhängig, super simpel)
@@ -1176,17 +672,9 @@
         }
     };
 
-    const sendNotification = (title: string, body: string) => {
-        if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(title, { body });
-            if ('vibrate' in navigator) {
-                navigator.vibrate([300, 100, 300]);
-            }
-        }
-    };
     function tryFocusFromStorage() {
-        const type = localStorage.getItem('trainingFocusType')
-        const id = localStorage.getItem('trainingFocusId')
+        const type = localStorage.getItem(LS_TRAINING_FOCUS_TYPE)
+        const id = localStorage.getItem(LS_TRAINING_FOCUS_ID)
         if (!type || !id) return
 
         const selector = type === 'timer'
@@ -1200,8 +688,8 @@
                 el.classList.add('flash-focus')
                 setTimeout(() => el.classList.remove('flash-focus'), 1500)
                 // Flags weg
-                localStorage.removeItem('trainingFocusType')
-                localStorage.removeItem('trainingFocusId')
+                localStorage.removeItem(LS_TRAINING_FOCUS_TYPE)
+                localStorage.removeItem(LS_TRAINING_FOCUS_ID)
             } else if (attempts < 20) {
                 // UI ist noch nicht gemountet → kurz retry
                 requestAnimationFrame(() => focusIt(attempts + 1))
@@ -1212,20 +700,29 @@
         nextTick(() => focusIt())
     }
 
-    const requestNotificationPermission = () => {
-        if ('Notification' in window && Notification.permission !== 'granted') {
-            Notification.requestPermission().then((permission) => {
-                if (permission === 'granted') {
-                    console.log('🔔 Benachrichtigungen aktiviert!');
-                }
-            });
-        }
-    };
     const isMobile = ref(false)
-    const dragDelay = computed(() => (isMobile.value ? 180 : 0))
+    const dragDelay = computed(() => 0)
     const dragFilter =
         '.inline-actions, .inline-actions *, .kebab-wrap, .kebab-wrap *, .timer-actions, .timer-actions *, button, select, input, textarea, a'
 
+
+    const stickyTimerEnabled = ref(true)
+    const stickyStopwatchEnabled = ref(true)
+
+    const readBoolLS = (key: string, fallback = true) => {
+        const raw = localStorage.getItem(key)
+        if (raw == null) return fallback
+        const v = raw.trim().toLowerCase()
+        if (v === 'true' || v === '1' || v === 'yes' || v === 'on') return true
+        if (v === 'false' || v === '0' || v === 'no' || v === 'off') return false
+        return fallback
+    }
+
+    const syncStickyPrefsFromStorage = () => {
+        stickyTimerEnabled.value = readBoolLS(LS_STICKY_TIMER_ENABLED, true)
+        stickyStopwatchEnabled.value = readBoolLS(LS_STICKY_STOPWATCH_ENABLED, true)
+        nextTick(() => checkScroll())
+    }
 
     let mq: MediaQueryList | null = null
     const onMedia = (e: MediaQueryListEvent | MediaQueryList) => {
@@ -1235,6 +732,10 @@
     }
 
     onMounted(() => {
+        syncStickyPrefsFromStorage()
+        document.addEventListener('visibilitychange', syncStickyPrefsFromStorage)
+        window.addEventListener('storage', syncStickyPrefsFromStorage)
+
         if (typeof window !== 'undefined') {
             mq = window.matchMedia('(max-width: 560px)')
             onMedia(mq)
@@ -1243,195 +744,41 @@
     })
 
     onUnmounted(() => {
+        document.removeEventListener('visibilitychange', syncStickyPrefsFromStorage)
+        window.removeEventListener('storage', syncStickyPrefsFromStorage)
+
         if (mq) {
             try { mq.removeEventListener('change', onMedia as any) } catch { mq.removeListener(onMedia as any) }
         }
     })
 
-    const favoritePlanItems = computed<TrainingPlan[]>({
+    const favoritePlanItems = computed<ViewPlan[]>({
         get() {
             const map = new Map(plans.value.map(p => [p.id, p]));
-            return favoritePlans.value.map(id => map.get(id)).filter(Boolean) as TrainingPlan[];
+            return favoritePlans.value.map(id => map.get(id)).filter(Boolean) as ViewPlan[];
         },
         set(newArr) {
-            favoritePlans.value = newArr.map(p => p.id);
-            saveToStorage();
+            writeFavOrder(newArr.map(p => p.id));
         }
     });
 
-    const otherPlanItems = computed<TrainingPlan[]>({
+    const makeId = () => {
+        if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+            return crypto.randomUUID();
+        }
+        return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    };
+
+    const otherPlanItems = computed<ViewPlan[]>({
         get() {
             const fav = new Set(favoritePlans.value);
             return plans.value.filter(p => !fav.has(p.id));
         },
-        set(newArr) {
-            const fav = new Set(favoritePlans.value);
-            const favs = plans.value.filter(p => fav.has(p.id));
-            plans.value = [...favs, ...newArr];
-            saveToStorage();
+        set(_) {
         }
     });
 
-    const filteredFavoritePlans = computed(() => {
-        const q = planSearch.value.toLowerCase().trim();
-        return favoritePlanItems.value.filter(p =>
-            p.name.toLowerCase().includes(q) || p.exercises.some(ex => (ex.goal ?? '').toLowerCase().includes(q))
-        );
-    });
-    const filteredOtherPlans = computed(() => {
-        const q = planSearch.value.toLowerCase().trim();
-        return otherPlanItems.value.filter(p =>
-            p.name.toLowerCase().includes(q) || p.exercises.some(ex => (ex.goal ?? '').toLowerCase().includes(q))
-        );
-    });
-
-    // Computed properties (unverändert)
-    const filteredPlans = computed(() => {
-        const searchTerm = planSearch.value.toLowerCase();
-        return sortedPlans.value.filter(plan => {
-            const planNameMatch = plan.name.toLowerCase().includes(searchTerm);
-            const goalMatch = plan.exercises.some(ex => ex.goal?.toLowerCase().includes(searchTerm));
-            return planNameMatch || goalMatch;
-        });
-    });
-
-    const filteredExercises = computed(() => {
-        const filter = exerciseFilter.value.trim().toLowerCase();
-        const groups = resolveGroups(filter);
-        const isPush = ['push', 'drücken', 'push day', 'pushday'].includes(filter);
-        const isPull = ['pull', 'ziehen', 'pull day', 'pullday'].includes(filter);
-
-        // Ausdauer
-        if (trainingType.value === 'ausdauer') {
-            return cardioTypes.value;
-        }
-
-        // Calisthenics
-        if (trainingType.value === 'calisthenics') {
-            const nameMatches = calisthenicsExercises.value.filter(x =>
-                x.toLowerCase().includes(filter)
-            );
-
-            const groupMatches = groups.length
-                ? groups.flatMap(g => (calisthenicsByGroup[g] || []))
-                : [];
-
-            const custom = customExercises.value
-                .filter(ex =>
-                    ex.type === 'calisthenics' &&
-                    (
-                        ex.name.toLowerCase().includes(filter) ||
-                        ex.muscle.toLowerCase().includes(filter) ||
-                        (groups.length && groups.some(g => ex.muscle.toLowerCase() === g.toLowerCase()))
-                    )
-                )
-                .map(ex => ex.name);
-
-            let list = uniq([...nameMatches, ...groupMatches, ...custom]);
-
-            // 👉 Push/Pull-Feinfilter (nur sinnvolle Bewegungen anzeigen)
-            if (isPush) {
-                const allow = new Set(['Liegestütze', 'Archer Push-up', 'Dips', 'Handstand Push-up']);
-                list = list.filter(x => allow.has(x));
-            } else if (isPull) {
-                const allow = new Set(['Klimmzüge', 'Australian Pull-up', 'Archer Pull-up']);
-                list = list.filter(x => allow.has(x));
-            }
-
-            return list;
-        }
-
-        // Dehnung
-        if (trainingType.value === 'dehnung') {
-            // ❗ Push/Pull (und Synonyme) sollen NICHT greifen
-            const isPushPull = [
-                'push', 'pull', 'drücken', 'ziehen', 'push day', 'pushday', 'pull day', 'pullday'
-            ].includes(filter)
-
-            // Gruppen nur auflösen, wenn NICHT Push/Pull
-            const groups = isPushPull ? [] : resolveGroups(filter)
-
-            // 1) Namens-Treffer in der Basisliste
-            const nameMatches = stretchingExercises.value.filter(x =>
-                !filter || x.toLowerCase().includes(filter)
-            )
-
-            // 2) Gruppen-Treffer über Mapping (z.B. Oberkörper/Unterkörper)
-            const groupMatches = groups.length
-                ? groups.flatMap(g => stretchingByGroup[g] || [])
-                : []
-
-            // 3) Custom-Stretches per Name/Muskel oder Gruppen-Match
-            const custom = customExercises.value
-                .filter(ex =>
-                    ex.type === 'dehnung' && (
-                        ex.name.toLowerCase().includes(filter) ||
-                        ex.muscle.toLowerCase().includes(filter) ||
-                        (groups.length && groups.some(g => ex.muscle.toLowerCase() === g.toLowerCase()))
-                    )
-                )
-                .map(ex => ex.name)
-
-            // 4) Einzigartige Liste zurückgeben
-            return Array.from(new Set([...nameMatches, ...groupMatches, ...custom]))
-        }
-
-
-        // Kraft (default)
-        const caliSet = new Set(calisthenicsExercises.value.map(x => x.toLowerCase()));
-
-        const fromGroups = groups.length
-            ? groups.flatMap(g => ((muscleGroups.value as unknown as Record<string, string[]>)[g] || []))
-            : [];
-
-        const byName = predefinedExercises.value.filter(ex =>
-            ex.toLowerCase().includes(filter)
-        );
-
-        let grouped = uniq([...fromGroups, ...byName]).filter(ex =>
-            !caliSet.has(ex.toLowerCase())
-        );
-
-        const custom = customExercises.value
-            .filter(ex =>
-                ex.type === 'kraft' &&
-                (
-                    ex.name.toLowerCase().includes(filter) ||
-                    ex.muscle.toLowerCase().includes(filter) ||
-                    (groups.length && groups.some(g => ex.muscle.toLowerCase() === g.toLowerCase()))
-                )
-            )
-            .map(ex => ex.name);
-
-        let result = uniq([...grouped, ...custom]);
-
-        // 👉 Push/Pull-Feinfilter
-        if (isPush) {
-            const allow = new Set([
-                'Bankdrücken', 'Schulterdrücken', 'Liegestütze', 'Butterfly',
-                'Brustpresse', 'Dips', 'Seitheben', 'Trizepsdrücken'
-            ]);
-            result = result.filter(x => allow.has(x));
-        } else if (isPull) {
-            const allow = new Set([
-                'Klimmzüge', 'Latzug', 'Rudern', 'Bizepscurls', 'Rückenstrecker'
-            ]);
-            result = result.filter(x => allow.has(x));
-        }
-
-        return result;
-    });
-
-
-    const selectedPlanGoal = computed(() => {
-        if (selectedPlan.value?.exercises.length) {
-            const goals = new Set(selectedPlan.value.exercises.map(ex => ex.goal).filter(g => g));
-            return goals.size === 1 ? goals.values().next().value : null;
-        }
-        return null;
-    });
-
-    const planMatchesSearch = (plan: TrainingPlan) => {
+    const planMatchesSearch = (plan: ViewPlan) => {
         const q = planSearch.value.toLowerCase().trim();
         return !q
             || plan.name.toLowerCase().includes(q)
@@ -1441,8 +788,6 @@
     const editPopupTitle = computed(() => {
         if (editType.value === 'customExerciseType') return 'Übungstyp bearbeiten';
         if (editType.value === 'planName' || editType.value === 'selectedPlanName') return 'Planname bearbeiten';
-        if (editType.value === 'timerName') return 'Timername bearbeiten';
-        if (editType.value === 'stopwatchName') return 'Stoppuhrname bearbeiten';
         if (editType.value === 'customExerciseName') return 'Übungsname bearbeiten';
         if (editType.value === 'customExerciseMuscle') return 'Muskelgruppe bearbeiten';
         if (editCellIndex.value === 0) return 'Übung bearbeiten';
@@ -1468,7 +813,6 @@
             editType.value === 'planName' ||
             editType.value === 'selectedPlanName' ||
             editType.value === 'timerName' ||
-            editType.value === 'stopwatchName' ||
             editType.value === 'customExerciseName' ||
             editType.value === 'customExerciseMuscle'
         ) return 'text';
@@ -1479,8 +823,6 @@
     const editPlaceholder = computed(() => {
         if (editType.value === 'customExerciseType') return 'Typ: kraft | calisthenics | dehnung';
         if (editType.value === 'planName' || editType.value === 'selectedPlanName') return 'Neuer Planname (3-20 Zeichen)';
-        if (editType.value === 'timerName') return 'Neuer Timername';
-        if (editType.value === 'stopwatchName') return 'Neuer Stoppuhrname (max. 30 Zeichen)';
         if (editType.value === 'customExerciseName') return 'Neuer Übungsname (max. 50 Zeichen)';
         if (editType.value === 'customExerciseMuscle') return 'Neue Muskelgruppe (max. 50 Zeichen)';
         if (editCellIndex.value === 0) return 'Neue Übung';
@@ -1489,115 +831,154 @@
         return 'Neuer Wert';
     });
 
-
-    const sortedPlans = computed(() => {
-        const order = new Map(favoritePlans.value.map((id, i) => [id, i]));
-        return [...plans.value].sort((a, b) => {
-            const aFav = order.has(a.id);
-            const bFav = order.has(b.id);
-            if (aFav && !bFav) return -1;
-            if (!aFav && bFav) return 1;
-            if (aFav && bFav) return order.get(a.id)! - order.get(b.id)!;
-            return a.name.localeCompare(b.name);
-        });
-    });
-
-    const sortedTimers = computed(() => {
-        return [...props.timers].sort((a, b) => {
-            if (a.isFavorite && !b.isFavorite) return -1;
-            if (!a.isFavorite && b.isFavorite) return 1;
-            return (a.name || '').localeCompare(b.name || '');
-        });
-    });
-
-    // Stoppuhren sortieren: Favoriten zuerst, dann Name
-    const sortedStopwatches = computed(() => {
-        return [...props.stopwatches].sort((a, b) => {
-            if (a.isFavorite && !b.isFavorite) return -1;
-            if (!a.isFavorite && b.isFavorite) return 1;
-            return (a.name || '').localeCompare(b.name || '');
-        });
-    });
-
-    const formatTimerDisplay = (time: number) => {
-        const minutes = Math.floor(time / 60);
-        const seconds = time % 60;
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    };
-
-    const formatStopwatchDisplay = (time: number) => {
-        const minutes = Math.floor(time / 60);
-        const seconds = Math.floor(time % 60);
-        const milliseconds = Math.floor((time % 1) * 100);
-        return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
-    };
-
-    const formatLapTime = (lapTime: number) => formatStopwatchDisplay(lapTime);
-
-    const loadFromStorage = () => {
+    const loadFromAccount = async (): Promise<true | false | 'error'> => {
         try {
-            const data = localStorage.getItem('trainingData');
+            const res = await apiFetch('/api/me/training-data', { method: 'GET' })
 
-            if (data) {
-                const parsed = JSON.parse(data) ?? {};
+            if (res.status === 204) return false
 
-                // Pläne & Favoriten wie gehabt
-                plans.value = Array.isArray(parsed.plans) ? parsed.plans : [];
-                favoritePlans.value = Array.isArray(parsed.favoritePlans) ? parsed.favoritePlans : [];
-
-                // Custom-Übungen: robust validieren & auf 'kraft' fallen, wenn Typ fehlt/ungültig
-                customExercises.value = Array.isArray(parsed.customExercises)
-                    ? parsed.customExercises
-                        .filter(
-                            (ex: any) =>
-                                ex &&
-                                typeof ex === 'object' &&
-                                typeof ex.name === 'string' &&
-                                typeof ex.muscle === 'string'
-                        )
-                        .map((ex: any) => {
-                            const t0 = normalizeTypeInput(ex.type) ?? 'kraft';
-                            const t: ExerciseType = (t0 === 'ausdauer') ? 'kraft' : t0; // Cardio bei Custom-Übungen verhindern
-                            return { name: ex.name, muscle: ex.muscle, type: t };
-                        })
-
-                    : [];
+            if (!res.ok) {
+                // Debug: Status + Body sehen (z.B. "Unauthorized", "Token expired", HTML error, etc.)
+                let body = ''
+                try { body = await res.text() } catch { }
+                console.error('GET /api/me/training-data failed', {
+                    status: res.status,
+                    statusText: res.statusText,
+                    body: body?.slice(0, 800),
+                    hasToken: !!getAuthToken(),
+                })
+                throw new Error(`GET training-data failed: ${res.status}`)
             }
-        } catch (e) {
-            console.error('Fehler beim Laden:', e);
-            plans.value = [];
-            favoritePlans.value = [];
-            customExercises.value = [];
-            addToast('Fehler beim Laden der Daten', 'delete');
-        }
-    };
 
+            const parsed = (await res.json()) ?? {}
+
+            const loadedPlans = Array.isArray(parsed.plans) ? parsed.plans : []
+            const loadedFavs = Array.isArray(parsed.favoritePlans) ? parsed.favoritePlans : []
+            void loadedPlans
+            void loadedFavs
+
+            customExercises.value = Array.isArray(parsed.customExercises)
+                ? parsed.customExercises
+                    .filter((ex: any) =>
+                        ex && typeof ex === 'object' &&
+                        typeof ex.name === 'string' &&
+                        typeof ex.muscle === 'string'
+                    )
+                    .map((ex: any) => {
+                        const t0 = normalizeTypeInput(ex.type) ?? 'kraft'
+                        const t: ExerciseType = (t0 === 'ausdauer') ? 'kraft' : t0
+                        return { name: ex.name, muscle: ex.muscle, type: t }
+                    })
+                : []
+
+            return true
+        } catch (e) {
+            console.error('Fehler beim Laden (Account):', e)
+            return 'error'
+        }
+    }
+
+    let saveAccountTimer: number | null = null
+
+    const getAuthToken = () => localStorage.getItem(LS_AUTH_TOKEN) || ''
+
+    const apiFetch = async (url: string, init?: RequestInit) => {
+        const token = getAuthToken()
+        const res = await fetch(url, {
+            ...(init || {}),
+            headers: {
+                'Content-Type': 'application/json',
+                ...(init?.headers || {}),
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+        })
+        return res
+    }
+
+    const queueSaveToAccount = () => {
+        // debounce damit du nicht bei jedem kleinen Watch 100 Requests ballerst
+        if (saveAccountTimer) window.clearTimeout(saveAccountTimer)
+        saveAccountTimer = window.setTimeout(async () => {
+            try {
+                const payload = {
+                    plans: plans.value,
+                    favoritePlans: favoritePlans.value,
+                    customExercises: customExercises.value,
+                }
+
+                const res = await apiFetch('/api/me/training-data', {
+                    method: 'PUT',
+                    body: JSON.stringify(payload),
+                })
+
+                if (!res.ok) throw new Error(`PUT training-data failed: ${res.status}`)
+            } catch (e) {
+                console.error('Fehler beim Speichern (Account):', e)
+                // kein Toast-Spam, nur wenn du willst:
+                // addToast('Account-Sync fehlgeschlagen (offline?)', 'delete')
+            }
+        }, 350)
+    }
 
     const saveToStorage = () => {
+        queueSaveToAccount()
+    }
+
+    const saveToAccountNow = async () => {
         try {
-            const data = {
+            if (saveAccountTimer) window.clearTimeout(saveAccountTimer)
+            saveAccountTimer = null
+
+            const payload = {
                 plans: plans.value,
                 favoritePlans: favoritePlans.value,
-                customExercises: customExercises.value
-            };
-            localStorage.setItem('trainingData', JSON.stringify(data));
+                customExercises: customExercises.value,
+            }
+
+            const res = await apiFetch('/api/me/training-data', {
+                method: 'PUT',
+                body: JSON.stringify(payload),
+            })
+
+            if (!res.ok) throw new Error(`PUT training-data failed: ${res.status}`)
+            return true
         } catch (e) {
-            console.error('Fehler beim Speichern:', e);
-            addToast('Fehler beim Speichern der Daten', 'delete');
+            console.error('Fehler beim Hard-Speichern (Account):', e)
+            return false
         }
-    };
+    }
+
+    // Flush beim Tab schließen / Reload (best-effort)
+    const flushPendingAccountSave = () => {
+        if (!saveAccountTimer) return
+        if (saveAccountTimer) window.clearTimeout(saveAccountTimer)
+        saveAccountTimer = null
+
+        try {
+            const token = getAuthToken()
+            if (!token) return
+
+            const payload = JSON.stringify({
+                plans: plans.value,
+                favoritePlans: favoritePlans.value,
+                customExercises: customExercises.value,
+            })
+
+            // sendBeacon ist perfekt für unload
+            const ok = navigator.sendBeacon?.(
+                '/api/me/training-data',
+                new Blob([payload], { type: 'application/json' })
+            )
+
+            // Falls sendBeacon fehlt/false -> egal, aber wir haben’s versucht
+            void ok
+        } catch (e) {
+            // no spam
+        }
+    }
 
     const toggleCustomExercises = () => {
         showCustomExercises.value = !showCustomExercises.value;
-    };
-
-    const editCell = (index: number, field: 'name' | 'muscle') => {
-        openEditPopup(`customExercise${field.charAt(0).toUpperCase() + field.slice(1)}` as 'customExerciseName' | 'customExerciseMuscle', index);
-    };
-
-    const finishEdit = () => {
-        exerciseEditIndex.value = null;
-        exerciseEditField.value = null;
     };
 
     const validateReps = (reps: number | null | undefined) => {
@@ -1659,12 +1040,6 @@
         return trimmedName;
     };
 
-    const validateStopwatchName = (name: string): string | false => {
-        const trimmed = name.trim();
-        if (trimmed.length > 30) return false;
-        return trimmed || 'Stoppuhr';
-    };
-
     const validateDurationMin = (val: number | null | undefined) => {
         if (val == null || isNaN(val)) return 'Dauer (Minuten) muss eine Zahl sein'
         if (!Number.isInteger(val)) return 'Dauer (Minuten) muss eine Ganzzahl sein'
@@ -1677,42 +1052,6 @@
         return null
     }
 
-    const collectValidationErrors = () => {
-        const errors: string[] = []
-
-        if (trainingType.value === 'ausdauer') {
-            if (!cardioExercise.value) errors.push('Cardio-Art wählen')
-            const dErr = validateDurationMin(newDuration.value); if (dErr) errors.push(dErr)
-            const kErr = validateDistanceKm(newDistance.value); if (kErr) errors.push(kErr)
-            return errors
-        }
-
-        // Kraft / Calisthenics / Dehnung
-        const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value
-        if (!exerciseToAdd) errors.push('Übung auswählen oder benutzerdefinierte Übung eingeben')
-        else if (selectedPlanExercises.value.some(ex => ex.exercise.toLowerCase() === exerciseToAdd.toLowerCase())) {
-            errors.push('Übung bereits im Plan vorhanden')
-        }
-
-        // Dehnung nutzt deine vorhandenen Felder: newSets = Holds, newReps = Sekunden/Hold
-        const setsError = validateSets(newSets.value); if (setsError) errors.push(setsError)
-        const repsError = validateReps(newReps.value); if (repsError) errors.push(repsError)
-
-        if (newExercise.value === 'custom' && customPlanExercise.value) {
-            const muscleGroup = exerciseFilter.value || ''
-            const validated = validateCustomExercise(
-                customPlanExercise.value,
-                muscleGroup,
-                trainingType.value, // 👈 wichtig: 'kraft' | 'calisthenics' | 'dehnung'
-            )
-            if (typeof validated === 'string') errors.push(validated)
-        }
-
-
-        return errors
-    }
-
-
     const openValidationPopup = (errors: string[]) => {
         validationErrorMessages.value = Array.isArray(errors) ? errors : [String(errors)];
         showValidationPopup.value = true;
@@ -1724,196 +1063,97 @@
         validationErrorMessages.value = [];
     };
 
-    const toggleFavoritePlan = (planId: string) => {
-        const idx = favoritePlans.value.indexOf(planId);
-        if (idx !== -1) {
-            favoritePlans.value.splice(idx, 1);
-            addToast('Plan aus Favoriten entfernt', 'delete');
-        } else {
-            // Neueste Favoriten zuerst
-            favoritePlans.value = [planId, ...favoritePlans.value.filter(id => id !== planId)];
-            addToast('Plan zu Favoriten hinzugefügt', 'add');
-        }
-        saveToStorage();
+    const toggleFavoritePlan = async (planId: string) => {
+        const p = trainingPlansStore.items.find((x: TrainingPlanDto) => x.id === planId);
+        if (!p) return;
+
+        const nextFav = !p.isFavorite;
+        await trainingPlansStore.toggleFavorite(planId);
+
+        const order = readFavOrder().filter(id => id !== planId);
+        if (nextFav) order.unshift(planId);
+        writeFavOrder(order);
+
+        addToast(nextFav ? "Plan zu Favoriten hinzugefügt" : "Plan aus Favoriten entfernt", nextFav ? "add" : "delete");
     };
 
-    const createOrUpdatePlan = () => {
-        const validatedPlanName = validatePlanName(planName.value);
-
-        if (editingPlanId.value && selectedPlanExercises.value.length === 0) {
-            plans.value = plans.value.filter(p => p.id !== editingPlanId.value);
-            favoritePlans.value = favoritePlans.value.filter(id => id !== editingPlanId.value);
-            if (selectedPlan.value?.id === editingPlanId.value) {
-                selectedPlan.value = null;
-            }
-            saveToStorage();
-            addToast('Trainingsplan gelöscht, da keine Übungen vorhanden', 'delete');
-            planName.value = '';
-            newExercise.value = '';
-            customPlanExercise.value = '';
-            newReps.value = null;
-            newSets.value = null;
-            selectedGoal.value = '';
-            selectedPlanExercises.value = [];
-            rowHeights.value = [];
-            editingPlanId.value = null;
-            return;
-        }
-
-        if (validatedPlanName === false || (!editingPlanId.value && !selectedPlanExercises.value.length)) {
-            const errors: string[] = [];
-            if (validatedPlanName === false) {
-                errors.push(
-                    planName.value.trim().length < 3
-                        ? 'Planname muss mindestens 3 Zeichen lang sein'
-                        : 'Planname darf maximal 20 Zeichen lang sein'
-                );
-            }
-            if (!selectedPlanExercises.value.length) {
-                errors.push('Mindestens eine Übung ist erforderlich');
-            }
-            openValidationPopup(errors);
-            return;
-        }
-
-        const plan: TrainingPlan = {
-            id: editingPlanId.value || Date.now().toString(),
-            name: validatedPlanName,
-            exercises: [...selectedPlanExercises.value]
-        };
-        if (editingPlanId.value) {
-            const index = plans.value.findIndex(p => p.id === editingPlanId.value);
-            if (index !== -1) {
-                plans.value[index] = plan;
-                if (selectedPlan.value?.id === editingPlanId.value) {
-                    selectedPlan.value = { ...plan };
-                }
-                addToast('Plan gespeichert', 'save');
-                editingPlanId.value = null;
-            }
-        } else {
-            plans.value.push(plan);
-            addToast('Plan erstellt', 'add');
-        }
-
-        planName.value = '';
-        newExercise.value = '';
-        customPlanExercise.value = '';
-        newReps.value = null;
-        newSets.value = null;
-        selectedGoal.value = '';
-        selectedPlanExercises.value = [];
-        rowHeights.value = [];
-        saveToStorage();
+    const mapTypeToCategory = (t?: PlanExercise["type"]) => {
+        if (t === "calisthenics") return 1;
+        if (t === "dehnung") return 2;
+        if (t === "ausdauer") return 3;
+        return 0;
     };
-
-    const addExerciseToPlan = () => {
-        const errors = collectValidationErrors()
-        if (errors.length > 0) { openValidationPopup(errors); return }
-
-        if (trainingType.value === 'ausdauer') {
-            selectedPlanExercises.value.push({
-                exercise: cardioExercise.value,
-                sets: newDuration.value!,                                   // Minuten
-                reps: newDistance.value ? Number(newDistance.value) : 0,    // km (optional)
-                goal: selectedGoal.value || undefined,
-                type: 'ausdauer'
-            })
-            rowHeights.value.push(40)
-            addToast('Cardio hinzugefügt', 'add')
-            cardioExercise.value = ''
-            newDuration.value = null
-            newDistance.value = null
-            selectedGoal.value = ''
-            return
-        }
-
-        // Kraft / Calisthenics / Dehnung
-        const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value
-        if (newExercise.value === 'custom' && customPlanExercise.value) {
-            const muscleGroup = exerciseFilter.value || ''
-            const validated = validateCustomExercise(customPlanExercise.value, muscleGroup, trainingType.value)
-            if (typeof validated !== 'string') {
-                customExercises.value.push({ name: validated.name, muscle: validated.muscle, type: validated.type })
-                saveToStorage()
-                addToast('Benutzerdefinierte Übung gespeichert', 'add')
-            } else {
-                openValidationPopup([validated])
-                return
-            }
-        }
-        selectedPlanExercises.value.push({
-            exercise: exerciseToAdd,
-            sets: newSets.value!,
-            reps: newReps.value!,
-            goal: selectedGoal.value || undefined,
-            type: trainingType.value // 'kraft' | 'calisthenics' | 'dehnung'
-        })
-        rowHeights.value.push(40)
-        addToast('Übung hinzugefügt', 'add')
-
-        newExercise.value = ''
-        customPlanExercise.value = ''
-        newReps.value = null
-        newSets.value = null
-        selectedGoal.value = ''
-    }
-
 
     const removeExerciseFromPlan = (index: number) => {
-        if (index < 0 || index >= selectedPlanExercises.value.length) {
+        if (!selectedPlan.value) {
+            addToast('Kein Plan geöffnet', 'delete');
+            return;
+        }
+
+        if (index < 0 || index >= selectedPlan.value.exercises.length) {
             addToast('Ungültiger Übungsindex', 'delete');
             return;
         }
+
         openDeletePopup(() => {
-            selectedPlanExercises.value.splice(index, 1);
+            selectedPlan.value!.exercises.splice(index, 1);
             rowHeights.value.splice(index, 1);
-            if (editingPlanId.value) {
-                const planIndex = plans.value.findIndex(p => p.id === editingPlanId.value);
-                if (planIndex !== -1) {
-                    plans.value[planIndex].exercises = [...selectedPlanExercises.value];
-                    saveToStorage();
-                }
-            }
+
+            updatePlanInStorage(); // nutzt saveToStorage() -> Account Sync
             addToast('Übung gelöscht', 'delete');
         });
     };
-
     const editPlan = async (planId: string) => {
-        const plan = plans.value.find(p => p.id === planId);
-        if (plan) {
-            planName.value = plan.name;
-            selectedPlanExercises.value = [...plan.exercises];
-            editingPlanId.value = planId;
-            rowHeights.value = Array(plan.exercises.length).fill(40);
-            selectedPlan.value = { ...plan };
-            addToast('Plan wird bearbeitet', 'save');
+        try {
+            await trainingPlansStore.loadOne(planId)
+            const dto = trainingPlansStore.selected
+            if (!dto) { addToast("Plan nicht gefunden", "delete"); return }
 
-            await nextTick();   // DOM aktualisiert
-            scrollToBuilder();  // sanft nach oben + Highlight
-        } else {
-            addToast('Plan nicht gefunden', 'delete');
+            const view = flattenDto(dto)
+
+            // ✅ Builder übernimmt Edit-State komplett
+            builderRef.value?.setEditMode({
+                planId,
+                name: view.name,
+                exercises: [...view.exercises],
+            })
+
+            // optional: du willst den Plan trotzdem unten „geöffnet“ lassen
+            selectedPlan.value = view
+            rowHeights.value = Array(view.exercises.length).fill(40)
+
+            addToast("Plan wird bearbeitet", "save")
+            await nextTick()
+            builderRef.value?.scrollToBuilder()
+        } catch {
+            addToast("Plan konnte nicht geladen werden", "delete")
+        }
+    }
+
+    const deletePlan = async (planId: string) => {
+        try {
+            await trainingPlansStore.remove(planId);
+            writeFavOrder(readFavOrder().filter(id => id !== planId));
+            if (selectedPlan.value?.id === planId) selectedPlan.value = null;
+            addToast("Trainingsplan gelöscht", "delete");
+        } catch (e: any) {
+            addToast(e?.message ?? "Löschen fehlgeschlagen", "delete");
         }
     };
 
-    const deletePlan = (planId: string) => {
-        plans.value = plans.value.filter(p => p.id !== planId);
-        favoritePlans.value = favoritePlans.value.filter(id => id !== planId);
-        if (selectedPlan.value?.id === planId) selectedPlan.value = null;
-        saveToStorage();
-        addToast('Trainingsplan gelöscht', 'delete');
-    };
+    const loadPlan = async (planId: string) => {
+        closePlanMenu();
+        try {
+            await trainingPlansStore.loadOne(planId);
+            const dto = trainingPlansStore.selected;
+            if (!dto) { addToast("Plan nicht gefunden", "delete"); return; }
 
-    const loadPlan = (planId: string) => {
-        closePlanMenu(); // NEU
-        const plan = plans.value.find(p => p.id === planId);
-        if (plan) {
-            selectedPlan.value = { ...plan };
-            rowHeights.value = Array(plan.exercises.length).fill(40);
+            selectedPlan.value = flattenDto(dto);
+            rowHeights.value = Array(selectedPlan.value.exercises.length).fill(40);
             columnWidths.value = [50, 25, 25];
-            addToast('Plan geladen', 'load');
-        } else {
-            addToast('Plan nicht gefunden', 'delete');
+            addToast("Plan geladen", "load");
+        } catch {
+            addToast("Plan konnte nicht geladen werden", "delete");
         }
     };
 
@@ -1966,8 +1206,8 @@
         const plan = downloadPlan.value;
 
         // Header dynamisch wie im UI
-        const anyCardio = plan.exercises.some(ex => ex.type === 'ausdauer');
-        const anyStretch = plan.exercises.some(ex => ex.type === 'dehnung');
+        const anyCardio = plan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer');
+        const anyStretch = plan.exercises.some((ex: PlanExercise) => ex.type === 'dehnung');
 
         const setsHeader = anyCardio ? 'Sätze / Min' : 'Sätze';
         const repsHeader = (anyCardio || anyStretch) ? 'Wdh. / km / s' : 'Wiederholungen';
@@ -1980,7 +1220,7 @@
             return `${ex.reps}`;
         };
 
-        const uniqueGoal = [...new Set(plan.exercises.map(ex => ex.goal).filter(Boolean))][0] as string | undefined;
+        const uniqueGoal = [...new Set(plan.exercises.map((ex: PlanExercise) => ex.goal).filter(Boolean))][0] as string | undefined;
         const title = plan.name;
         const fileName = plan.name;
 
@@ -2094,189 +1334,6 @@
         closeDownloadPopup();
     };
 
-
-    const toggleExtras = () => {
-        showExtras.value = !showExtras.value;
-    };
-
-    const openAddTimerPopup = () => {
-        newTimerName.value = ''
-        showAddTimerPopup.value = true
-    }
-
-    const closeAddTimerPopup = () => {
-        showAddTimerPopup.value = false;
-        newTimerName.value = '';
-    };
-
-    const addTimer = async () => {
-        console.log('addTimer aufgerufen mit Name:', newTimerName.value);
-        const newTimer: TimerInstance = {
-            id: Date.now().toString(),
-            name: newTimerName.value.trim() || 'Timer',
-            seconds: '60',
-            customSeconds: null,
-            time: 60,
-            isRunning: false,
-            interval: null,
-            isFavorite: false,
-            sound: 'standard',
-            isVisible: true,
-            shouldStaySticky: false
-        };
-        emit('add-timer', newTimer);
-        addToast('Timer hinzugefügt', 'add');
-        closeAddTimerPopup();
-        await nextTick();
-        console.log('Nach addTimer, aktuelle timers:', props.timers);
-    };
-
-    const openDeleteTimerPopup = (id: string) => {
-        console.log('openDeleteTimerPopup aufgerufen mit ID:', id);
-        if (props.timers.length <= 1) {
-            openValidationPopup(['Mindestens ein Timer muss geöffnet bleiben']);
-            return;
-        }
-        openDeletePopup(async () => {
-            console.log('Löschaktion ausführen für Timer ID:', id);
-            const timer = props.timers.find(t => t.id === id);
-            nextTick(() => closeTimerPopup()); // direkt auto-schließen, kein OK-Klick nötig
-
-            emit('remove-timer', id);
-
-            addToast('Timer gelöscht', 'delete');
-            await nextTick();
-            console.log('Nach removeTimer, aktuelle timers:', props.timers);
-        });
-    };
-
-    const toggleFavoriteTimer = (id: string) => {
-        const timer = props.timers.find(t => t.id === id);
-        if (!timer) return;
-        timer.isFavorite = !timer.isFavorite;
-
-        const others = props.timers.filter(t => !t.isFavorite);
-        const favs = props.timers.filter(t => t.isFavorite && t.id !== id);
-
-        const ordered = timer.isFavorite
-            ? [timer, ...favs, ...others]   // neu favorisiert → ganz nach oben
-            : [...favs, timer, ...others];  // entfavorisiert → direkt hinter Fav-Bereich
-
-        emit('reorder-timers', ordered);
-        addToast(timer.isFavorite ? 'Timer zu Favoriten hinzugefügt' : 'Timer aus Favoriten entfernt', timer.isFavorite ? 'add' : 'delete');
-    };
-
-    const openAddStopwatchPopup = () => {
-        newStopwatchName.value = ''
-        showAddStopwatchPopup.value = true
-    };
-
-    const closeAddStopwatchPopup = () => {
-        showAddStopwatchPopup.value = false;
-        newStopwatchName.value = '';
-    };
-
-    const addStopwatch = async () => {
-        const validatedName = validateStopwatchName(newStopwatchName.value);
-        if (validatedName === false) {
-            openValidationPopup(['Stoppuhr darf maximal 30 Zeichen lang sein']);
-            return;
-        }
-
-        const newStopwatch: StopwatchInstance = {
-            id: Date.now().toString(),
-            name: validatedName,
-            time: 0,
-            isRunning: false,
-            interval: null,
-            laps: [],
-            isFavorite: false,
-            isVisible: true,
-            shouldStaySticky: false
-        };
-
-        emit('add-stopwatch', newStopwatch);
-        addToast('Stoppuhr hinzugefügt', 'add');
-        closeAddStopwatchPopup();
-        await nextTick();
-        console.log('Nach addStopwatch, aktuelle stopwatches:', props.stopwatches);
-    };
-
-    const openDeleteStopwatchPopup = (id: string) => {
-        if (props.stopwatches.length <= 1) {
-            openValidationPopup(['Mindestens eine Stoppuhr muss geöffnet bleiben']);
-            return;
-        }
-        openDeletePopup(async () => {
-            const sw = props.stopwatches.find(x => x.id === id);
-            if (sw) {
-                sw.shouldStaySticky = false; // optional; rein UI-Flag
-                if (sw.isRunning) {
-                    // ⏸ Parent pausiert/stoppt – keine lokale Interval-Logik hier
-                    props.toggleStopwatch(sw);
-                }
-            }
-            emit('remove-stopwatch', id);
-            addToast('Stoppuhr gelöscht', 'delete');
-            await nextTick();
-        });
-    };
-
-    const TOAST_DURATION = 3200; // ms
-
-    const toggleFavoriteStopwatch = (id: string) => {
-        const sw = props.stopwatches.find(x => x.id === id);
-        if (!sw) return;
-        sw.isFavorite = !sw.isFavorite;
-
-        const others = props.stopwatches.filter(x => !x.isFavorite);
-        const favs = props.stopwatches.filter(x => x.isFavorite && x.id !== id);
-
-        const ordered = sw.isFavorite
-            ? [sw, ...favs, ...others]
-            : [...favs, sw, ...others];
-
-        emit('reorder-stopwatches', ordered);
-        addToast(sw.isFavorite ? 'Stoppuhr zu Favoriten hinzugefügt' : 'Stoppuhr aus Favoriten entfernt', sw.isFavorite ? 'add' : 'delete');
-    };
-
-
-    const updateCustomSeconds = (timer: TimerInstance) => {
-        if (timer.customSeconds != null && !isNaN(timer.customSeconds) && timer.customSeconds > 0) {
-            timer.seconds = 'custom';
-            timer.time = timer.customSeconds;
-        }
-    };
-
-
-    const playTimerSound = (sound: string) => {
-        const audio = document.getElementById(`audio-${sound}`) as HTMLAudioElement;
-        if (audio && audio.src) {
-            try {
-                audio.currentTime = 0;
-                audio.play();
-            } catch (e) {
-                console.error('Fehler beim Abspielen des Sounds:', e);
-                addToast('Sound konnte nicht abgespielt werden', 'delete');
-            }
-        }
-    };
-
-    const addLapTime = (stopwatch: StopwatchInstance) => {
-        if (stopwatch.isRunning) {
-            stopwatch.laps = stopwatch.laps || [];
-            stopwatch.laps.push(stopwatch.time);
-            addToast('Runde aufgezeichnet', 'timer');
-        }
-    };
-
-    const resetCustomSeconds = (timer: TimerInstance) => {
-        if (timer.seconds !== 'custom') {
-            timer.customSeconds = null;
-            timer.time = Number(timer.seconds) || 60;
-        }
-    };
-
     const openDeletePopup = (action: () => void) => {
         deleteAction.value = action;
         showDeletePopup.value = true;
@@ -2326,7 +1383,6 @@
             type: types[type],
             exiting: false,
             createdAtMs: performance.now(),
-            durationMs: TOAST_DURATION
         };
 
         // Auto-Dismiss ausschließlich von <Toast/> steuern lassen
@@ -2340,7 +1396,6 @@
             | 'planName'
             | 'selectedPlanName'
             | 'timerName'
-            | 'stopwatchName'
             | 'customExerciseName'
             | 'customExerciseMuscle'
             | 'customExerciseType',
@@ -2364,14 +1419,15 @@
             editCellIndex.value = Array.from(target.parentElement!.children).indexOf(target);
             if (editCellIndex.value < 0 || editCellIndex.value > 2) return;
 
-            const exercise = (type === 'table'
-                ? selectedPlanExercises.value[index as number]
-                : selectedPlan.value?.exercises[index as number]);
+            const exercise =
+                (type === 'table'
+                    ? (builderRef.value?.getPreviewExercise?.(index as number) ?? null)
+                    : (selectedPlan.value?.exercises[index as number] ?? null))
 
             if (!exercise) {
-                console.error('Übung nicht gefunden für Index:', index);
-                openValidationPopup(['Übung nicht gefunden']);
-                return;
+                console.error('Übung nicht gefunden für Index:', index)
+                openValidationPopup(['Übung nicht gefunden'])
+                return
             }
 
             if (editCellIndex.value === 0) editValue.value = exercise.exercise;
@@ -2384,14 +1440,6 @@
         } else if (type === 'selectedPlanName') {
             if (!selectedPlan.value) { openValidationPopup(['Kein ausgewählter Plan']); return; }
             editValue.value = selectedPlan.value.name;
-        } else if (type === 'timerName') {
-            const timer = props.timers.find(t => t.id === index);
-            if (!timer) { openValidationPopup(['Timer nicht gefunden']); return; }
-            editValue.value = timer.name || '';
-        } else if (type === 'stopwatchName') {
-            const stopwatch = props.stopwatches.find(s => s.id === index);
-            if (!stopwatch) { openValidationPopup(['Stoppuhr nicht gefunden']); return; }
-            editValue.value = stopwatch.name || '';
         } else if (type === 'customExerciseName') {
             const exercise = customExercises.value[index as number];
             if (!exercise) { openValidationPopup(['Übung nicht gefunden']); return; }
@@ -2400,9 +1448,7 @@
             const exercise = customExercises.value[index as number];
             if (!exercise) { openValidationPopup(['Muskelgruppe nicht gefunden']); return; }
             editValue.value = exercise.muscle;
-        }
-        // NEU
-        else if (type === 'customExerciseType') {
+        } else if (type === 'customExerciseType') {
             const exercise = customExercises.value[index as number];
             if (!exercise) { openValidationPopup(['Übung nicht gefunden']); return; }
             editValue.value = exercise.type;
@@ -2433,59 +1479,66 @@
     const saveEdit = () => {
         console.log('saveEdit aufgerufen mit:', { editType: editType.value, editValue: editValue.value });
 
-        // === 1) Tabelle "Auswahl" oben ============================================
         if (editType.value === 'table' && typeof editIndex.value === 'number') {
-            const exercise = selectedPlanExercises.value[editIndex.value];
-            if (!exercise) return;
+            const i = editIndex.value
+            const ex = builderRef.value?.getPreviewExercise?.(i)
+            if (!ex) return
 
+            // Name edit
             if (editCellIndex.value === 0 && editValue.value) {
-                const newName = editValue.value.trim();
-                if (selectedPlanExercises.value.some(ex => ex.exercise.toLowerCase() === newName.toLowerCase() && ex !== exercise)) {
-                    openValidationPopup(['Übung existiert bereits im Plan']);
-                    return;
-                }
-                exercise.exercise = newName;
-                addToast('Übung aktualisiert', 'save');
-                closeEditPopup();
-                return;
+                const newName = editValue.value.trim()
+
+                const list = builderRef.value?.getPreviewExercises?.() ?? []
+                const dup = list.some((x: any, idx: number) =>
+                    idx !== i && (x.exercise || '').toLowerCase() === newName.toLowerCase()
+                )
+                if (dup) { openValidationPopup(['Übung existiert bereits im Plan']); return }
+
+                builderRef.value?.updatePreviewExercise?.(i, { exercise: newName })
+                addToast('Übung aktualisiert', 'save')
+                closeEditPopup()
+                return
             }
 
-            if (exercise.type === 'ausdauer') {
+            // Ausdauer: sets=min, reps=km
+            if (ex.type === 'ausdauer') {
                 if (editCellIndex.value === 1) {
-                    const mins = Number(editValue.value);
-                    const err = validateDurationMin(mins);
-                    if (err) { openValidationPopup([err]); return; }
-                    exercise.sets = mins;
-                    addToast('Dauer aktualisiert', 'save');
+                    const mins = Number(editValue.value)
+                    const err = validateDurationMin(mins)
+                    if (err) { openValidationPopup([err]); return }
+                    builderRef.value?.updatePreviewExercise?.(i, { sets: mins })
+                    addToast('Dauer aktualisiert', 'save')
                 } else if (editCellIndex.value === 2) {
-                    const kmRaw = Number(editValue.value);
-                    const km = isNaN(kmRaw) ? 0 : kmRaw;
-                    const err = validateDistanceKm(km);
-                    if (err) { openValidationPopup([err]); return; }
-                    exercise.reps = km;
-                    addToast('Distanz aktualisiert', 'save');
+                    const kmRaw = Number(editValue.value)
+                    const km = isNaN(kmRaw) ? 0 : kmRaw
+                    const err = validateDistanceKm(km)
+                    if (err) { openValidationPopup([err]); return }
+                    builderRef.value?.updatePreviewExercise?.(i, { reps: km })
+                    addToast('Distanz aktualisiert', 'save')
                 }
-                closeEditPopup();
-                return;
+                closeEditPopup()
+                return
             }
 
+            // Kraft/Calisthenics/Dehnung
             if (editCellIndex.value === 1) {
-                const sets = Number(editValue.value);
-                const setsError = validateSets(sets);
-                if (setsError) { openValidationPopup([setsError]); return; }
-                exercise.sets = sets;
-                addToast('Sätze aktualisiert', 'save');
+                const sets = Number(editValue.value)
+                const setsError = validateSets(sets)
+                if (setsError) { openValidationPopup([setsError]); return }
+                builderRef.value?.updatePreviewExercise?.(i, { sets })
+                addToast('Sätze aktualisiert', 'save')
             } else if (editCellIndex.value === 2) {
-                const reps = Number(editValue.value);
-                const repsError = validateReps(reps);
-                if (repsError) { openValidationPopup([repsError]); return; }
-                exercise.reps = reps;
-                addToast(exercise.type === 'dehnung' ? 'Sekunden aktualisiert' : 'Wiederholungen aktualisiert', 'save');
+                const reps = Number(editValue.value)
+                const repsError = validateReps(reps)
+                if (repsError) { openValidationPopup([repsError]); return }
+                builderRef.value?.updatePreviewExercise?.(i, { reps })
+                addToast(ex.type === 'dehnung' ? 'Sekunden aktualisiert' : 'Wiederholungen aktualisiert', 'save')
             }
 
-            closeEditPopup();
-            return;
+            closeEditPopup()
+            return
         }
+
 
         // === 2) Tabelle im geöffneten Plan (selectedPlan) ==========================
         if (editType.value === 'selectedPlan' && typeof editIndex.value === 'number' && selectedPlan.value) {
@@ -2557,12 +1610,9 @@
                 ]);
                 return;
             }
-            const plan = plans.value.find(p => p.id === editIndex.value);
-            if (plan) {
-                plan.name = validatedName;
-                saveToStorage();
-                addToast('Planname aktualisiert', 'save');
-            }
+
+            setPlanNameInStore(editIndex.value, validatedName);
+            addToast('Planname aktualisiert', 'save');
         } else if (editType.value === 'selectedPlanName' && selectedPlan.value) {
             const validatedName = validatePlanName(editValue.value);
             if (validatedName === false) {
@@ -2573,28 +1623,9 @@
                 ]);
                 return;
             }
-            selectedPlan.value.name = validatedName;
-            updatePlanInStorage();
+
+            setPlanNameInStore(selectedPlan.value.id, validatedName);
             addToast('Planname aktualisiert', 'save');
-        } else if (editType.value === 'timerName' && typeof editIndex.value === 'string') {
-            const timer = props.timers.find(t => t.id === editIndex.value);
-            if (timer) {
-                timer.name = editValue.value.trim();
-                saveToStorage();
-                addToast('Timername aktualisiert', 'timer');
-            }
-        } else if (editType.value === 'stopwatchName' && typeof editIndex.value === 'string') {
-            const validatedName = validateStopwatchName(editValue.value);
-            if (validatedName === false) {
-                openValidationPopup(['Stoppuhr darf maximal 30 Zeichen lang sein']);
-                return;
-            }
-            const stopwatch = props.stopwatches.find(s => s.id === editIndex.value);
-            if (stopwatch) {
-                stopwatch.name = validatedName;
-                saveToStorage();
-                addToast('Stoppuhrname aktualisiert', 'timer');
-            }
         }
 
         // === NEU: Typ einer benutzerdefinierten Übung ==============================
@@ -2663,17 +1694,11 @@
 
         closeEditPopup();
     };
-    // Menü offen? → Toast-Timer hart pausieren/resumieren (zusätzlich zum Sammel-Watch)
-    watch(planMenuOpenId, () => {
-        // Kein Parent-Timer mehr → nichts zu tun
-    });
 
-    // unter deinen anderen imports/refs:
     const onTrainingFocus = (e: Event) => {
         const { type, id } = (e as CustomEvent<{ type: 'timer' | 'stopwatch'; id: string }>).detail
-        // dieselbe Logik wie beim initialen Fokus
-        localStorage.setItem('trainingFocusType', type)
-        localStorage.setItem('trainingFocusId', id)
+        localStorage.setItem(LS_TRAINING_FOCUS_TYPE, type)
+        localStorage.setItem(LS_TRAINING_FOCUS_ID, id)
         nextTick(() => tryFocusFromStorage())
     }
 
@@ -2688,15 +1713,54 @@
     })
 
     const updatePlanInStorage = () => {
-        if (selectedPlan.value) {
-            const index = plans.value.findIndex(p => p.id === selectedPlan.value!.id);
-            if (index !== -1) {
-                plans.value[index] = { ...selectedPlan.value };
-                saveToStorage();
+        saveToStorage();
+    };
+
+    const persistPlanName = async (planId: string, newName: string) => {
+        try {
+            const p = trainingPlansStore.items.find((x: TrainingPlanDto) => x.id === planId);
+            const isFavorite = !!p?.isFavorite;
+
+            const res = await apiFetch(`/api/plans/${planId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    name: newName,
+                    isFavorite,
+                }),
+            });
+
+            if (!res.ok) {
+                let body = '';
+                try { body = await res.text(); } catch { }
+                console.error('PUT /api/plans/{id} failed', { status: res.status, body: body?.slice(0, 500) });
+                return;
             }
+
+            await trainingPlansStore.loadList();
+        } catch (e) {
+            console.error('persistPlanName error', e);
         }
     };
 
+
+    const setPlanNameInStore = (planId: string, newName: string) => {
+        const dto = trainingPlansStore.items.find((p: TrainingPlanDto) => p.id === planId);
+        if (dto) dto.name = newName;
+
+        if (trainingPlansStore.selected?.id === planId) {
+            (trainingPlansStore.selected as any).name = newName;
+        }
+
+        if (selectedPlan.value?.id === planId) {
+            selectedPlan.value.name = newName;
+        }
+
+        // ✅ WICHTIG: Server persistieren (damit Refresh stimmt)
+        void persistPlanName(planId, newName);
+
+        // dein bisheriger Account-Sync kann bleiben
+        saveToStorage();
+    };
     const removeCustomExercise = (index: number) => {
         customExercises.value.splice(index, 1);
         if (customExercises.value.length === 0) showCustomExercises.value = false;
@@ -2712,22 +1776,6 @@
         editCellIndex.value = null;
     };
 
-    const closeTimerPopup = () => {
-        showTimerPopup.value = false;
-    };
-
-    const handleOverlayClick = (event: MouseEvent) => {
-        if (event.target === event.currentTarget) {
-            closeEditPopup();
-            closeDeletePopup();
-            closeTimerPopup();
-            closeAddTimerPopup();
-            closeAddStopwatchPopup();
-            closeDownloadPopup();
-            closeValidationPopup();
-        }
-    };
-
     const handleKeydown = (event: KeyboardEvent) => {
         // Wenn das Edit-Popup offen ist, handled es Enter/Escape selbst
         if (showEditPopup.value) return;
@@ -2736,66 +1784,61 @@
             if (showValidationPopup.value) {
                 closeValidationPopup();
             } else {
-                // NEU: Kebab-Menü schließen
                 closePlanMenu();
 
                 closeEditPopup();
                 closeDeletePopup();
-                closeTimerPopup();
-                closeAddTimerPopup();
-                closeAddStopwatchPopup();
-                closeDownloadPopup();
             }
         } else if (event.key === 'Enter') {
             if (showValidationPopup.value) {
-                event.preventDefault();
-                closeValidationPopup();
+                event.preventDefault()
+                closeValidationPopup()
             } else if (showDeletePopup.value) {
-                event.preventDefault();
-                confirmDeleteAction();
-            } else if (showAddTimerPopup.value) {
-                event.preventDefault();
-                addTimer();
-            } else if (showAddStopwatchPopup.value) {
-                event.preventDefault();
-                addStopwatch();
+                event.preventDefault()
+                confirmDeleteAction()
             }
         }
     };
-
-
 
     const checkScroll = () => {
-        // Timer
-        const stickyTimers = props.timers.filter(t => t.shouldStaySticky);
-        let visibleTimerFound = false;
-        for (const t of stickyTimers) {
-            const el = document.querySelector(`.timer-card[data-timer-id="${t.id}"]`);
-            if (el) {
-                const rect = el.getBoundingClientRect();
-                if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
-                    visibleTimerFound = true;
-                    break;
-                }
-            }
-        }
-        isTimerSticky.value = stickyTimers.length > 0 && !visibleTimerFound;
+        // ✅ Prefs respektieren: wenn disabled -> niemals sticky anzeigen
+        if (!stickyTimerEnabled.value) {
+            isTimerSticky.value = false
+        } else {
+            const stickyTimers = props.timers.filter(t => t.shouldStaySticky)
+            let visibleTimerFound = false
 
-        // Stoppuhren
-        const stickyStopwatches = props.stopwatches.filter(sw => sw.shouldStaySticky);
-        let visibleStopwatchFound = false;
-        for (const sw of stickyStopwatches) {
-            const el = document.querySelector(`.timer-card[data-stopwatch-id="${sw.id}"]`);
-            if (el) {
-                const rect = el.getBoundingClientRect();
+            for (const t of stickyTimers) {
+                const el = document.querySelector(`.timer-card[data-timer-id="${t.id}"]`) as HTMLElement | null
+                if (!el) continue
+                const rect = el.getBoundingClientRect()
                 if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
-                    visibleStopwatchFound = true;
-                    break;
+                    visibleTimerFound = true
+                    break
                 }
             }
+            isTimerSticky.value = stickyTimers.length > 0 && !visibleTimerFound
         }
-        isStopwatchSticky.value = stickyStopwatches.length > 0 && !visibleStopwatchFound;
-    };
+
+        if (!stickyStopwatchEnabled.value) {
+            isStopwatchSticky.value = false
+        } else {
+            const stickyStopwatches = (props.stopwatches ?? []).filter((sw: any) => sw.shouldStaySticky)
+            let visibleStopwatchFound = false
+
+            for (const sw of stickyStopwatches) {
+                const el = document.querySelector(`.timer-card[data-stopwatch-id="${sw.id}"]`) as HTMLElement | null
+                if (!el) continue
+                const rect = el.getBoundingClientRect()
+                if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
+                    visibleStopwatchFound = true
+                    break
+                }
+            }
+            isStopwatchSticky.value = stickyStopwatches.length > 0 && !visibleStopwatchFound
+        }
+    }
+
 
     let headerRO: ResizeObserver | null = null;
 
@@ -2966,107 +2009,6 @@
         });
     };
 
-    const normalizeToTotal = (arr: number[], total = 100, pinIndex = 0) => {
-        const out = arr.map(v => Math.max(0, Number.parseFloat((+v).toFixed(4))));
-        const sum = out.reduce((a, b) => a + b, 0);
-        if (!sum || !Number.isFinite(sum)) return out;
-        const i = Math.max(0, Math.min(pinIndex, out.length - 1));
-        const diff = Number.parseFloat((total - sum).toFixed(4));
-        out[i] = Number.parseFloat((out[i] + diff).toFixed(4));
-        return out;
-    };
-
-    // PREVIEW: Aktion (Index 3) kann jetzt über den Griff an Spalte 2 mitverändert werden
-    const initPreviewResizeTable = () => {
-        const table = previewTable.value;
-        if (!table) return;
-
-        table.querySelectorAll('.resizer').forEach(el => el.remove());
-
-        const MIN_PX_BY_COL = [16, 16, 16, 44]; // Übung | Sätze | Wdh. | Aktion
-        const ths = Array.from(table.querySelectorAll('thead th')) as HTMLElement[]; // <-- alle THs
-        const lastIdx = ths.length - 1;
-
-        ths.forEach((th, colIndex) => {
-            th.style.position = 'relative';
-            const isLast = colIndex === lastIdx;
-
-            const makeResizer = (side: 'right' | 'left') => {
-                const resizer = document.createElement('div');
-                resizer.className = `resizer resizer-${side}`;
-                th.appendChild(resizer);
-                if (side === 'right') { resizer.style.right = '0'; resizer.style.left = 'auto'; }
-                else { resizer.style.left = '0'; resizer.style.right = 'auto'; }
-
-                let startX = 0;
-                let start = [...previewColWidths.value];
-
-                const onMove = (e: PointerEvent) => {
-                    requestAnimationFrame(() => {
-                        const tw = table.getBoundingClientRect().width || 1;
-                        const raw = e.clientX - startX;
-                        const dir = (isLast && side === 'left') ? -1 : 1;
-                        const dxRaw = dir * raw;
-
-                        const partnerIndex = isLast ? colIndex - 1 : colIndex + 1;
-                        if (partnerIndex < 0 || partnerIndex >= start.length) return;
-
-                        const currPx = (start[colIndex] / 100) * tw;
-                        const partnerPx = (start[partnerIndex] / 100) * tw;
-
-                        const minCurr = MIN_PX_BY_COL[colIndex] ?? 16;
-                        const minPartner = MIN_PX_BY_COL[partnerIndex] ?? 16;
-
-                        const maxDxRight = partnerPx - minPartner;
-                        const maxDxLeft = -(currPx - minCurr);
-                        const dx = Math.max(maxDxLeft, Math.min(dxRaw, maxDxRight));
-
-                        const newCurrPx = currPx + dx;
-                        const newPartnerPx = partnerPx - dx;
-
-                        const next = [...start];
-                        next[colIndex] = +(newCurrPx / tw * 100).toFixed(4);
-                        next[partnerIndex] = +(newPartnerPx / tw * 100).toFixed(4);
-
-                        previewColWidths.value = normalizeStrictTo100(next, table, MIN_PX_BY_COL, partnerIndex);
-                    });
-                };
-
-                const onUp = (e: PointerEvent) => {
-                    window.removeEventListener('pointermove', onMove);
-                    window.removeEventListener('pointerup', onUp);
-                    resizer.classList.remove('is-active');
-                    document.body.classList.remove('is-resizing-col');
-                    try { (resizer as any).releasePointerCapture?.(e.pointerId); } catch { }
-                };
-
-                const onDown = (e: PointerEvent) => {
-                    e.preventDefault(); e.stopPropagation();
-                    startX = e.clientX;
-                    start = [...previewColWidths.value];
-                    try { (resizer as any).setPointerCapture?.(e.pointerId); } catch { }
-                    resizer.classList.add('is-active');
-                    document.body.classList.add('is-resizing-col');
-                    window.addEventListener('pointermove', onMove);
-                    window.addEventListener('pointerup', onUp);
-                };
-
-                resizer.addEventListener('pointerdown', onDown);
-            };
-
-            if (isLast) { makeResizer('left'); makeResizer('right'); }
-            else { makeResizer('right'); }
-        });
-
-    };
-
-    const initAudioElements = () => {
-        Object.entries(audioPaths).forEach(([key, path]) => {
-            const audio = document.getElementById(`audio-${key}`) as HTMLAudioElement;
-            if (audio) audio.src = path;
-        });
-    };
-
     const initCustomResizeTable = () => {
         const table = customResizeTable.value;
         if (!table) return;
@@ -3175,70 +2117,23 @@
 
     // Öffnet ggf. einen von außerhalb gewählten Plan
     const tryOpenPlanFromStorage = () => {
-        const id = localStorage.getItem('trainingOpenPlanId')
+        const id = localStorage.getItem(LS_TRAINING_OPEN_PLAN_ID)
         if (id) {
             loadPlan(id)
-            localStorage.removeItem('trainingOpenPlanId')
+            localStorage.removeItem(LS_TRAINING_OPEN_PLAN_ID)
         }
     }
 
     watch(() => [props.timers, props.stopwatches], () => {
-        console.log('timers oder stopwatches geändert:', { timers: props.timers, stopwatches: props.stopwatches });
         nextTick(() => checkScroll());
     }, { deep: true });
 
-    watch(plans, () => {
-        saveToStorage();
-    }, { deep: true });
-    watch(
-        () => props.timers.map(t => ({ id: t.id, time: t.time, sound: t.sound })),
-        (now) => {
-            for (const { id, time, sound } of now) {
-                const prev = prevTimes.get(id);
-
-                if (prev === undefined) {
-                    prevTimes.set(id, time);
-                    continue;
-                }
-
-                // Wechsel von >0 auf <=0 → Timer fertig
-                if (prev > 0 && time <= 0 && !finishedOnce.has(id)) {
-                    finishedOnce.add(id);
-                    showTimerPopup.value = true;
-                    playTimerSound(sound || 'standard');
-                    sendNotification('Timer fertig', 'Deine Satzpause ist vorbei 💪');
-                    dismissToast(true);
-
-                    const timer = props.timers.find(t => t.id === id);
-                    if (timer && timer.isRunning) {
-                        props.stopTimer(timer);
-                    }
-                }
-
-                // Reset, wenn wieder >0
-                if (time > 0 && finishedOnce.has(id)) {
-                    finishedOnce.delete(id);
-                }
-
-                prevTimes.set(id, time);
-            }
-        },
-        { deep: true }
-    );
     watch(planSearch, () => closePlanMenu());
 
     const syncFullscreenClass = () => {
         const isFs = !!document.fullscreenElement;
         document.documentElement.classList.toggle('is-fullscreen', isFs);
     };
-    // Live-Preview: bei jeder Änderung an den Übungen
-    watch(selectedPlanExercises, () => {
-        nextTick(() => {
-            initPreviewResizeTable();
-            setupHeaderShorteningFallback();
-        });
-    }, { deep: true });
-
     // Eigene Übungen: bei Datenänderungen und wenn sichtbar
     watch(customExercises, () => {
         if (showCustomExercises.value) {
@@ -3264,22 +2159,41 @@
         if (val) nextTick(() => { initCustomResizeTable(); setupHeaderShorteningFallback(); });
     });
 
-    onMounted(() => {
-        loadFromStorage();
-        tryFocusFromStorage();
-        requestNotificationPermission();
+    watch(() => auth.user, async (u) => {
+        if (!u) {
+            hardResetTrainingUi()
+            return
+        }
+        // login -> frisch neu laden
+        await trainingPlansStore.loadList()
+    }, { immediate: true })
 
-        document.addEventListener('click', onDocClick);
-        window.addEventListener('scroll', checkScroll);
-        window.addEventListener('keydown', handleKeydown);
-        document.addEventListener('fullscreenchange', syncFullscreenClass);
+    onMounted(async () => {
+        if (!auth.user) {
+            hardResetTrainingUi()
+            return
+        }
+        await trainingPlansStore.loadList();
+
+        tryFocusFromStorage()
+
+        document.addEventListener('click', onDocClick)
+        window.addEventListener('scroll', checkScroll)
+        window.addEventListener('keydown', handleKeydown)
+        document.addEventListener('fullscreenchange', syncFullscreenClass)
+        window.addEventListener('auth:logout', hardResetTrainingUi as EventListener)
+
+        onBeforeUnload = () => flushPendingAccountSave()
+        onVisChange = () => {
+            if (document.visibilityState === 'hidden') flushPendingAccountSave()
+        }
+
+        window.addEventListener('beforeunload', onBeforeUnload)
+        document.addEventListener('visibilitychange', onVisChange)
 
         syncFullscreenClass();
-        initAudioElements();
 
-        // Tabellen zuerst
         initResizeTable();
-        initPreviewResizeTable();
         if (showCustomExercises.value) initCustomResizeTable();
 
         setupHeaderShorteningFallback();
@@ -3287,30 +2201,35 @@
     });
 
     onUnmounted(() => {
-        document.removeEventListener('click', onDocClick);
-        window.removeEventListener('scroll', checkScroll);
-        window.removeEventListener('keydown', handleKeydown);
-        document.removeEventListener('fullscreenchange', syncFullscreenClass);
-        teardownHeaderShorteningFallback();
+        document.removeEventListener('click', onDocClick)
+        window.removeEventListener('scroll', checkScroll)
+        window.removeEventListener('keydown', handleKeydown)
+        document.removeEventListener('fullscreenchange', syncFullscreenClass)
+        window.removeEventListener('auth:logout', hardResetTrainingUi as EventListener)
+
+        if (onBeforeUnload) window.removeEventListener('beforeunload', onBeforeUnload)
+        if (onVisChange) document.removeEventListener('visibilitychange', onVisChange)
+
+        onBeforeUnload = null
+        onVisChange = null
+
+        teardownHeaderShorteningFallback()
     });
 
 </script>
 
 <style scoped>
-
     .training {
         --section-max: 1200px;
         --control-height: 48px;
         --control-font-size: 0.95rem;
         --control-padding-x: 1.5rem;
-        --extras-toggle-ch: 18;
-        --extras-toggle-w: calc(var(--extras-toggle-ch) * 1ch + 2 * var(--control-padding-x));
         --custom-toggle-ch: 38;
         --custom-toggle-w: calc(var(--custom-toggle-ch) * 1ch + 2 * var(--control-padding-x));
         padding: 1rem;
-        background: var(--bg-primary);
+        background: transparent; /* globale Fläche (Landing-Gradient) scheint durch */
         width: 100%;
-        max-width: 100%; /* ← FIX: verhindert Overflow */
+        max-width: 100%; /* verhindert Overflow */
         margin: 0 auto;
         display: flex;
         flex-direction: column;
@@ -3318,12 +2237,12 @@
         margin-top: 0;
         min-height: 100dvh;
         margin-inline: auto;
-        overflow-x: clip; /* ← WICHTIG */
+        overflow-x: visible; /* keine abgeschnittenen Glows/Outlines */
         box-sizing: border-box;
     }
 
     html.dark-mode .training {
-        background: #161b22;
+        background: transparent; /* Dark-Gradient vom Layout bleibt sichtbar */
     }
 
     .page-title {
@@ -3342,9 +2261,9 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        padding: 0 0.5rem; /* ← reduziert von 1rem */
+        padding: 0 0.5rem; /* reduziert von 1rem */
         box-sizing: border-box;
-        overflow-x: clip; /* ← NEU */
+        overflow-x: visible; /* keine abgeschnittenen Schatten/Tables */
     }
 
     @media (max-width: 1240px) {
@@ -3365,23 +2284,7 @@
                 width: 100%;
                 margin: 0 auto;
             }
-
-            .training .form-card.builder-grid {
-                width: 100%;
-                max-width: 100%;
-                margin-inline: 0;
-                box-sizing: border-box;
-            }
     }
-
-    @media (min-width: 900px) {
-        .form-card.builder-grid {
-            /* rechte Spalte spürbar schmaler */
-            grid-template-columns: minmax(0, 1fr) clamp(240px, 28vw, 360px);
-            align-items: start;
-        }
-    }
-
 
     .section-title {
         font-size: 1.5rem;
@@ -3389,27 +2292,9 @@
         color: var(--text-primary);
         text-align: center;
     }
-    /* Smooth landing highlight when jumping to the builder */
-    @keyframes builderPop {
-        0% {
-            transform: translateY(-6px);
-            box-shadow: 0 0 0 rgba(99,102,241,0);
-        }
 
-        40% {
-            transform: translateY(0);
-            box-shadow: 0 8px 32px rgba(99,102,241,.20);
-        }
-
-        100% {
-            transform: translateY(0);
-            box-shadow: 0 0 0 rgba(99,102,241,0);
-        }
-    }
-
-    .builder-landing {
-        animation: builderPop .6s cubic-bezier(.2,.8,.2,1);
-        background-image: radial-gradient(1200px 120px at 50% -20px, rgba(99,102,241,.08), transparent 70%);
+    .plan-search {
+        margin-bottom: 1rem;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -3422,109 +2307,29 @@
         color: #ffffff;
     }
 
-    .timer-container .plan-header,
-    .stopwatch-top .plan-header {
-        justify-content: center;
-    }
-
     .plan-header {
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr; /* links spacer | mitte title | rechts close */
         align-items: center;
         width: 100%;
         position: relative;
     }
 
-    .drag-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem; /* Abstand zwischen den Cards wie vorher */
-        width: 100%;
-    }
+        .plan-header > .section-title {
+            grid-column: 2;
+            justify-self: center;
+            text-align: center;
+        }
 
-        .drag-stack > .timer-card {
-            width: 100%;
-            max-width: 1200px;
+        .plan-header > :not(.section-title) {
+            grid-column: 3;
+            justify-self: end;
         }
 
     .drag-ghost {
         opacity: 0.6;
     }
 
-    .segmented.seg-type {
-        display: flex;
-        gap: .5rem;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: .3rem;
-        align-items: center;
-    }
-
-        .segmented.seg-type > button {
-            background: transparent;
-            border: 1px solid transparent;
-            border-radius: 10px;
-            padding: .45rem .9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all .15s ease;
-            color: var(--text-primary);
-        }
-
-            .segmented.seg-type > button.on {
-                background: var(--bg-card);
-                border-color: var(--border-color);
-                box-shadow: 0 1px 2px rgba(0,0,0,.06);
-            }
-
-    .filter-input {
-        border-radius: 999px;
-        padding-left: 2.25rem; /* Platz fürs Icon */
-        background: var(--bg-secondary);
-        position: relative;
-    }
-
-        .filter-input::placeholder {
-            opacity: .8;
-        }
-
-    .builder-left,
-    .builder-head,
-    .builder-head > * {
-        min-width: 0;
-    }
-
-    .builder-left {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        min-width: 0; /* verhindert Overflow in Grids */
-    }
-
-    .builder-right {
-        min-width: 0; /* wichtig für Tables/Overflow */
-    }
-
-    /* Feldblöcke */
-    .field-block {
-        display: flex;
-        flex-direction: column;
-        gap: .5rem;
-    }
-
-    .field-label {
-        font-weight: 600;
-        font-size: .92rem;
-        color: var(--text-primary);
-    }
-
-    .field-row {
-        display: flex;
-        gap: .75rem;
-        align-items: stretch;
-        flex-wrap: wrap;
-    }
     /* Zelle wird selbst Container → reagiert auf ihre eigene Breite */
     .v-stack {
         container-type: inline-size;
@@ -3532,93 +2337,7 @@
         word-break: break-word;
         hyphens: auto;
     }
-    /* Letzte Spalte (Aktion) – nicht unter 44px */
-    .custom-exercises-table th:last-child,
-    .custom-exercises-table td:last-child,
-    .exercise-table.full-width.compact th:last-child,
-    .exercise-table.full-width.compact td:last-child {
-        min-width: 44px !important; /* Platz fürs Icon */
-        white-space: nowrap;
-        overflow: visible;
-        text-overflow: clip;
-    }
 
-    /* Icon-Größe fix, damit nichts clippt */
-    .table-delete-btn {
-        width: 32px;
-        height: 32px;
-        line-height: 1;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .field-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: .75rem;
-    }
-
-    @media (max-width: 600px) {
-        .field-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .field {
-        display: flex;
-        flex-direction: column;
-        gap: .4rem;
-    }
-
-    .actions-row.stack {
-        display: flex;
-        flex-direction: column;
-        gap: .75rem;
-        align-items: stretch; /* Kinder dürfen volle Breite nutzen */
-    }
-
-    .preview-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,.06);
-        position: sticky;
-        top: .75rem; /* bleibt beim Scrollen sichtbar */
-        contain: inline-size; /* Inhalt beeinflusst keine äußere Breite */
-        overflow-x: visible;
-    }
-
-    .preview-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: .5rem;
-    }
-
-        .preview-head h4 {
-            margin: 0;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-    .preview-card .muted {
-        color: var(--text-secondary);
-        font-size: .85rem;
-    }
-
-    .empty-preview {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 160px;
-        background: var(--bg-secondary);
-        border: 1px dashed var(--border-color);
-        color: var(--text-secondary);
-        border-radius: 10px;
-    }
     /* Stelle sicher: mittlere Spalte darf schrumpfen */
     .plan-item > .plan-row1 {
         display: grid !important;
@@ -3647,131 +2366,18 @@
         white-space: nowrap; /* kein Umbruch in den Actions */
     }
 
-    .form-card.builder-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1rem;
-        width: 100%;
-        box-sizing: border-box; /* damit Padding mitgerechnet wird */
-    }
-
-    @media (max-width: 900px) {
-        .builder-head {
-            grid-template-columns: 1fr;
-            grid-template-areas:
-                "plan"
-                "type"
-                "extras";
-        }
-
-            .builder-head .extras-cta {
-                justify-self: start;
-                white-space: nowrap;
-                box-sizing: border-box;
-                inline-size: min(var(--extras-toggle-w), 100%);
-                min-inline-size: min(var(--extras-toggle-w), 100%);
-                max-inline-size: min(var(--extras-toggle-w), 100%);
-            }
-    }
-
-    @media (max-width: 1200px) {
-        .segmented.seg-type {
-            flex-wrap: wrap;
-            row-gap: .35rem;
-        }
-    }
-
-    .form-card {
-        box-sizing: border-box;
-    }
 
     @media (max-width: 1240px) {
         .training {
-            overflow-x: hidden;
+            overflow-x: visible; /* lässt Inhalt sauber raus, ohne Scrollbars zu blocken */
         }
 
-        .workout-list,
-        .form-card.builder-grid {
+        .workout-list {
             max-width: 100%;
             min-width: 0;
             width: 100%;
         }
     }
-
-    .custom-exercises-table {
-        display: block;
-        inline-size: 100%;
-        max-inline-size: 100%;
-        contain: layout inline-size;
-        overflow-x: hidden;
-        overflow-x: clip; /* moderne Browser */
-    }
-
-        .custom-exercises-table th,
-        .custom-exercises-table td {
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap; /* bleibt kompakt */
-        }
-
-        .custom-exercises-table table {
-            width: 100%;
-            max-width: 100%;
-            table-layout: fixed;
-            min-width: 100%;
-        }
-
-    .exercise-table.full-width.compact table {
-        width: 100%;
-    }
-
-    .exercise-table.full-width.compact th,
-    .exercise-table.full-width.compact td {
-        padding: .75rem;
-        font-size: .92rem;
-    }
-
-    .exercise-table.full-width.compact thead th {
-        background: #f1f5f9;
-    }
-
-    html.dark-mode .exercise-table.full-width.compact thead th {
-        background: #0d1117;
-    }
-
-    .actions-row .button-group .btn-cell > *:not(.add-exercise-btn) {
-        height: var(--control-height);
-    }
-
-    .field-row .filter-input {
-        flex: 1 1 320px;
-        min-width: 220px;
-    }
-
-    .button-group:has(.add-exercise-btn) {
-        --btn-width: 100%;
-    }
-
-    .button-group .btn-cell:has(.add-exercise-btn) {
-        flex: 1 1 100%;
-    }
-
-    .button-group .btn-cell > .add-exercise-btn {
-        width: 100%;
-    }
-
-    .filter-input {
-        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%23888' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: .75rem center;
-        background-size: 16px 16px;
-    }
-
-    html.dark-mode .filter-input {
-        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 19a8 8 0 1 1 5.293-14.707A8 8 0 0 1 11 19Zm9.707 1.293-4.2-4.2' stroke='%239aa3ab' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-    }
-
 
     .list-item {
         background: var(--bg-card);
@@ -3782,94 +2388,6 @@
         justify-content: space-between;
         align-items: center;
         transition: transform 0.2s;
-    }
-
-    /* Aktion-Spalte: keine Ellipsis, Icon zentriert + Mindestbreite */
-    .custom-exercises-table td:last-child,
-    .custom-exercises-table th:last-child,
-    .exercise-table.full-width.compact td:last-child,
-    .exercise-table.full-width.compact th:last-child {
-        overflow: visible; /* verhindert "…" */
-        text-overflow: clip;
-        white-space: nowrap;
-        min-width: 44px; /* genug Platz für das 🗑️-Icon */
-    }
-
-    .custom-exercises-table table tbody td:last-child .table-delete-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px !important;
-        height: 32px !important;
-        margin: 0 auto !important;
-        line-height: 1; /* keine Typo-Überhänge */
-    }
-    /* Zeilen-inhalt vertikal mittig ausrichten (alle Zellen) */
-    .custom-exercises-table td,
-    .custom-exercises-table th {
-        vertical-align: middle;
-    }
-
-        /* Falls das Emoji optisch nicht exakt zentriert wirkt: minimaler Nudge */
-        .custom-exercises-table td.action-cell .table-delete-btn {
-            transform: translateY(-0.5px);
-        }
-
-    /* Schlanke, aber normal lesbare Tabelle nur für den ausgewählten Plan */
-    .exercise-table.full-width.narrow {
-        position: relative;
-        max-inline-size: 100%;
-        margin-inline: auto;
-        overflow-x: visible; /* nicht clippen, der Scroll-Container übernimmt */
-        table-layout: fixed; /* stabilisiert Spaltenbreiten */
-    }
-    /* ADD: eigener Scroll-Container für Tabellen-Inhalte */
-    .table-scroll {
-        overflow-x: auto; /* ⇐ Scrollbar bleibt */
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior-x: contain;
-        background: var(--bg-card);
-        border-radius: 8px; /* wirkt wie „innen“ statt „außerhalb“ */
-    }
-
-        /* Mindestbreiten, damit rechte Spalten nicht „außerhalb“ wirken */
-        .table-scroll > table {
-            min-width: 640px; /* kannst du anpassen (z.B. 560px) */
-        }
-
-    /* Sicherheit: Header & letzte Spalte wirken sauber innen */
-    .exercise-table.full-width thead th,
-    .custom-exercises-table thead th {
-        background-clip: padding-box;
-    }
-
-    /* Mobile bleibt voll breit */
-    @media (max-width: 720px) {
-        .exercise-table.full-width.narrow {
-            max-inline-size: 100%;
-        }
-    }
-
-    /* Optional: Nur die erste Spalte darf (falls nötig) auf zwei Zeilen umbrechen,
-     damit lange Übungsnamen nicht alles sprengen — ohne Mini-Schrift. */
-    .exercise-table.full-width.narrow td:first-child,
-    .exercise-table.full-width.narrow th:first-child {
-        white-space: normal;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Icon selbst: nicht gestaucht/abgeschnitten */
-    .table-delete-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1; /* verhindert Emoji-/SVG-Clipping */
-        width: 32px;
-        height: 32px;
-        padding: 0;
-        position: relative;
-        z-index: 1; /* falls irgendwas darüberliegt */
     }
 
     html.dark-mode .list-item {
@@ -3884,27 +2402,24 @@
     .plan-item {
         cursor: pointer;
     }
-    /* ganz unten im <style scoped> ergänzen */
+
     @supports not (overflow: clip) {
         .training,
-        .workout-list,
-        .custom-exercises-table {
-            overflow-x: hidden;
+        .workout-list {
+            overflow-x: visible; /* auch in älteren Browsern keine abgeschnittenen Effekte */
         }
     }
 
-    /* falls du in manchen Containern knapp clippen willst */
     :root {
         --clip-margin: 8px;
     }
-    /* === Planname: nur der Name horizontal scrollbar, Rest bleibt fix === */
+
     .plan-title {
         display: inline-flex;
         align-items: center;
         gap: .35rem;
         min-width: 0;
         max-width: 100%;
-        /* alte Effekte sicher neutralisieren */
         -webkit-mask-image: none;
         mask-image: none;
         text-overflow: clip;
@@ -3930,180 +2445,10 @@
             white-space: nowrap;
         }
 
-    .custom-exercises-table,
-    .exercise-table.full-width {
-        overflow-clip-margin: var(--clip-margin);
-    }
-
-    .form-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        width: 100%;
-    }
-
-    .search-container {
-        margin-bottom: 1rem;
-        width: 100%;
-    }
-
-    .plan-search-input {
-        padding: 0.75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        width: 100%;
-        font-size: 0.9rem;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    html.dark-mode .plan-search-input {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
-    }
-
-    .plan-search-input:focus {
-        border-color: #4B6CB7;
-        box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
-        outline: none;
-    }
-
-    html.dark-mode .form-card {
-        background: #1c2526;
-    }
-
-    .form-card input,
-    .form-card select {
-        height: var(--control-height);
-        font-size: var(--control-font-size);
-        padding: 0.75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        flex: 1;
-        min-width: 120px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-
-    html.dark-mode .form-card input,
-    html.dark-mode .form-card select {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
-    }
-
-    .form-card input:focus,
-    .form-card select:focus {
-        border-color: #4B6CB7;
-        box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
-        outline: none;
-    }
-
-    .form-card .action-btn:not(.add-exercise-btn):not(.toggle-exercise-btn):not(.plan-submit-btn):not(.table-delete-btn) {
-        background: var(--bg-secondary);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        transition: background .2s, transform .2s;
-    }
-
-        .form-card .action-btn:not(.add-exercise-btn):not(.toggle-exercise-btn):not(.plan-submit-btn):not(.table-delete-btn):hover {
-            background: #f3f4f6;
-            transform: none;
-        }
-
-    /* Aktion-Spalte: Button sauber zentriert, überschreibt frühere grid-Regeln */
-    /* gleiche Zellenlogik wie der Rest der Tabelle */
-    .exercise-table.full-width td.action-cell,
-    .custom-exercises-table td.action-cell {
-        display: table-cell; /* zurück auf echtes Table-Cell-Layout */
-        padding: 1rem; /* identisch zu deinen anderen <td>s */
-        text-align: center;
-        vertical-align: middle;
-    }
-
-        /* Button sauber in der Mitte, ohne Layout zu beeinflussen */
-        .exercise-table.full-width td.action-cell .table-delete-btn,
-        .custom-exercises-table td.action-cell .table-delete-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            margin: 0 auto;
-            line-height: 1;
-            transform: none;
-        }
-
-    .custom-exercises-table th,
-    .custom-exercises-table td,
-    .exercise-table.full-width th,
-    .exercise-table.full-width td {
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .extras-container {
-        transition: max-height 0.3s ease, opacity 0.3s ease;
-        max-height: 0;
-        opacity: 0;
-        overflow: hidden;
-        width: 100%;
-    }
-
-    .desktop-only {
-        display: initial;
-    }
-
-    .mobile-only {
-        display: none;
-    }
-
-    .extras-container.show {
-        max-height: 250px;
-        opacity: 1;
-        margin-top: 0.75rem; /* 👉 größerer Abstand */
-    }
-
-
-    .timer-drag-handle {
-        cursor: grab;
-        user-select: none;
-        margin-right: .5rem;
-    }
-
-    .extras-content {
-        display: flex;
-        gap: 1.5rem;
-        align-items: center;
-        flex-wrap: wrap;
-        margin-bottom: 0.5rem;
-    }
-
-    .form-card button[type="submit"] {
-        width: 100%;
-    }
     @media (max-width: 560px) {
-        .plan-drag-handle,
-        .timer-drag-handle,
-        .stopwatch-drag-handle {
+        .plan-drag-handle {
             display: none;
         }
-    }
-
-    .extras-button-group {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        align-items: center;
     }
 
     .plan-drag-stack {
@@ -4116,249 +2461,100 @@
         .plan-drag-stack > .plan-item {
             width: 100%;
         }
-    /* ===== sichtbare Griffe/Linien für Spalten ===== */
-    :root {
-        --resize-hit: 10px; /* Klickfläche */
-        --resize-line: 1px; /* Linienstärke normal */
-        --resize-line-hover: 2px; /* Linienstärke Hover/Active */
-        --resize-color: #94a3b8; /* Slate-400/500 */
-        --resize-color-hover: #60a5fa; /* Accent bei Hover/Active */
-    }
 
-    /* Cursor & Selection während Drag */
-    body.is-resizing-col {
-        cursor: col-resize;
-        user-select: none;
-    }
-
-    body.is-resizing-row {
-        cursor: row-resize;
-        user-select: none;
-    }
-
-    .exercise-table.full-width th.resizable,
-    .custom-exercises-table th.resizable {
-        position: relative;
-        overflow: hidden; /* vorher: visible */
-    }
-
-        /* 2) Resizer-Handle bleibt *in* der Zelle */
-        .exercise-table.full-width th.resizable > .resizer,
-        .custom-exercises-table th.resizable > .resizer {
-            right: 0 !important; /* NIE negativ */
-            width: var(--resize-hit, 10px);
-        }
-
-    .exercise-table.full-width table {
-        table-layout: fixed;
-        border-collapse: collapse;
-    }
-    /* ganz unten im <style scoped> ergänzen */
-    .custom-exercises-table th:last-child,
-    .custom-exercises-table td:last-child {
-        min-width: 44px !important;
-    }
-
-    /* ===== sichtbarer Griff für Zeilen ===== */
-    .exercise-table.full-width tr.resizable-row {
-        position: relative;
-    }
-
-        .exercise-table.full-width tr.resizable-row > .row-resizer {
-            position: absolute;
-            left: 0;
-            bottom: -4px;
-            width: 100%;
-            height: var(--resize-hit);
-            cursor: row-resize;
-            z-index: 3;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            background: transparent;
-        }
-
-            .exercise-table.full-width tr.resizable-row > .row-resizer::before {
-                content: "";
-                display: block;
-                height: var(--resize-line);
-                width: 60%;
-                background: var(--resize-color);
-                opacity: .7;
-                transition: height .12s ease, background-color .12s ease, opacity .12s ease;
-                border-radius: 1px;
-            }
-
-            .exercise-table.full-width tr.resizable-row > .row-resizer:hover::before,
-            .exercise-table.full-width tr.resizable-row > .row-resizer.is-active::before {
-                height: var(--resize-line-hover);
-                background: var(--resize-color-hover);
-                opacity: 1;
-            }
-
-    /* Dark-Mode Kontrast (optional feiner abstimmen) */
-    html.dark-mode :root {
+    html.dark-mode .training {
         --resize-color: #64748b; /* slate-500 */
         --resize-color-hover: #3b82f6; /* blue-500 */
     }
 
-    .list-item-actions {
-        display: flex;
-        gap: 0.6rem;
-        align-items: center; /* <— NEU */
+    .list-item-actions .action-btn {
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
-
-        .list-item-actions .action-btn {
-            line-height: 1;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
 
     .custom-toggle-btn {
         margin-top: 1rem;
-        padding: 0.6rem 1.2rem;
-        background: var(--bg-secondary);
-        color: #1f2937;
-        border-radius: 0.5rem;
-        border: none;
+        height: var(--control-height);
+        padding: 0 var(--control-padding-x);
+        border-radius: 999px;
+        width: fit-content;
+        max-width: 100%;
+        inline-size: min(var(--custom-toggle-w), 100%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .55rem;
+        font-weight: 700;
+        font-size: .92rem;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
         cursor: pointer;
-        font-size: 0.95rem;
-        transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        user-select: none;
+        background: radial-gradient(circle at 18% 35%, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 58%), radial-gradient(circle at 85% 70%, color-mix(in srgb, var(--accent-secondary) 10%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 92%, #020617 8%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, filter .15s ease;
     }
 
-        .custom-toggle-btn:hover {
-            background-color: #f3f4f6;
-            border-color: #4B6CB7;
+        .custom-toggle-btn .custom-toggle-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.6rem;
+            height: 1.6rem;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--bg-card) 86%, #0f172a 14%);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            flex: 0 0 auto;
         }
+
+        .custom-toggle-btn .custom-toggle-text {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+    @media (hover: hover) {
+        .custom-toggle-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22);
+            border-color: rgba(129, 140, 248, 0.55);
+            filter: brightness(1.02);
+        }
+    }
+
+    .custom-toggle-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+    }
+
+    .custom-toggle-btn:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 22%, transparent), 0 16px 36px rgba(15, 23, 42, 0.22);
+    }
+
+    /* „On“-State: etwas satter + tiny glow */
+    .custom-toggle-btn.on {
+        border-color: rgba(129, 140, 248, 0.62);
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
+    }
 
     html.dark-mode .custom-toggle-btn {
-        background-color: #1f2937;
-        color: #fff;
-        border: 1px solid #30363d;
+        background: radial-gradient(circle at 18% 35%, color-mix(in srgb, #6366f1 18%, transparent), transparent 58%), radial-gradient(circle at 85% 70%, color-mix(in srgb, #22c55e 12%, transparent), transparent 62%), rgba(2, 6, 23, 0.72);
+        border-color: rgba(148, 163, 184, 0.34);
+        box-shadow: 0 16px 42px rgba(0, 0, 0, 0.55);
     }
 
-        html.dark-mode .custom-toggle-btn:hover {
-            background-color: #374151;
-            border-color: #4B6CB7;
+        html.dark-mode .custom-toggle-btn .custom-toggle-icon {
+            background: rgba(2, 6, 23, 0.6);
+            border-color: rgba(148, 163, 184, 0.28);
         }
 
-    .custom-ex-title {
-        font-size: 1.1rem;
-        margin: 1rem 0 0.5rem;
-        color: #111827;
-    }
-    /* Header-THs können auf Breite reagieren */
-    .exercise-table.full-width th,
-    .custom-exercises-table th {
-        container-type: inline-size;
-    }
-
-    /* Abkürzungs-Logik für Wiederholungen */
-    /* Header-Kürzung: zeigt je nach Klasse genau EINS der Labels */
-    .th-label .full,
-    .th-label .mid,
-    .th-label .short {
-        display: none;
-    }
-
-    .th-label.is-full .full {
-        display: inline;
-    }
-
-    .th-label.is-mid .mid {
-        display: inline;
-    }
-
-    .th-label.is-short .short {
-        display: inline;
-    }
-
-
-    .custom-exercises-table .exercise-table {
-        width: 100%;
-        border-collapse: collapse;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-        .custom-exercises-table .exercise-table th,
-        .custom-exercises-table .exercise-table td {
-            border-bottom: 1px solid var(--border-color);
-            border-right: 1px solid var(--border-color);
-        }
-
-            .custom-exercises-table .exercise-table th:last-child,
-            .custom-exercises-table .exercise-table td:last-child {
-                border-right: 0;
-            }
-
-    .custom-exercises-table th,
-    .custom-exercises-table td {
-        padding: 0.75rem;
-        text-align: center;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    .custom-exercises-table th {
-        background-color: #e5e7eb;
-        font-weight: 600;
-        font-size: 0.95rem;
-        color: #1f2937;
-    }
-
-    .custom-exercises-table td {
-        font-size: 0.92rem;
-        color: #374151;
-    }
-
-        .custom-exercises-table td input {
-            width: 90%;
-            padding: 0.3rem 0.5rem;
-            font-size: 0.9rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.4rem;
-            outline: none;
-        }
-
-            .custom-exercises-table td input:focus {
-                border-color: #3b82f6;
-                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-            }
-
-    .delete-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1.1rem;
-        color: #ef4444;
-        transition: transform 0.2s ease;
-    }
-
-
-    @media (max-width: 600px) {
-        .form-card {
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .exercise-input-group {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .form-card input,
-        .form-card select {
-            width: 100%;
-        }
-
-        .extras-button-group {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-    }
     /* Karte selbst darf über Nachbarn stehen */
     .plan-item {
         position: relative;
@@ -4378,166 +2574,6 @@
         z-index: 1000;
     }
 
-    .edit-btn,
-    .delete-btn,
-    .download-btn,
-    .open-btn,
-    .table-delete-btn,
-    .close-plan-btn,
-    .close-timer-btn,
-    .add-timer-btn {
-        background: none;
-        border: none;
-        font-size: 1.2rem;
-        cursor: pointer;
-        padding: 0.5rem;
-        color: #6b7280;
-        border-radius: 8px;
-        transition: color 0.2s, text-shadow 0.2s, transform 0.1s;
-    }
-
-
-    .exercise-input-group {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        width: 100%;
-        align-items: stretch; /* 👉 NEU: gleiche Höhe in der Zeile */
-    }
-
-    .button-group {
-        display: flex;
-        gap: 0.75rem;
-        align-items: stretch;
-        flex-wrap: nowrap;
-        width: 100%; /* volle Breite der Spalte */
-        margin-left: 0; /* NICHT nach rechts wegschieben */
-    }
-
-    @media (max-width: 600px) {
-        .button-group {
-            margin-left: 0;
-            flex-wrap: wrap;
-            width: 100%;
-        }
-    }
-
-    @media (min-width: 601px) {
-        .button-group .btn-cell:last-child {
-            margin-top: 0px;
-        }
-    }
-
-    .exercise-table {
-        margin-top: 1rem;
-        width: 100%;
-        border-collapse: collapse;
-        background: var(--bg-card);
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        table-layout: fixed;
-    }
-
-    html.dark-mode .exercise-table {
-        background: #1c2526;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    .exercise-table th,
-    .exercise-table td {
-        padding: 1rem;
-        text-align: center;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .exercise-table th {
-        background: #f1f5f9;
-    }
-
-    html.dark-mode .exercise-table th {
-        background: #0d1117;
-        color: #ffffff;
-    }
-
-    .exercise-table tr:nth-child(even) {
-        background: #f9fafb;
-    }
-
-    html.dark-mode .exercise-table tr:nth-child(even) {
-        background: #21262d;
-    }
-
-    .exercise-table tr:hover {
-        background: #d1d5db;
-    }
-
-    html.dark-mode .exercise-table tr:hover {
-        background: #2d333b;
-    }
-
-    .exercise-table.full-width {
-        table-layout: fixed;
-        width: 100%;
-        margin: 0 auto;
-        position: relative;
-    }
-        /* Fix: keine Hairline-Gaps & sauberes Clipping in allen Tabellen */
-        .exercise-table.full-width table,
-        .custom-exercises-table table {
-            border-collapse: separate !important;
-            border-spacing: 0 !important;
-        }
-
-        .exercise-table.full-width thead th,
-        .exercise-table.full-width tbody td,
-        .custom-exercises-table thead th,
-        .custom-exercises-table tbody td {
-            background-clip: padding-box; /* verhindert Farbabbruch an den Rändern */
-            overflow: hidden;
-        }
-
-    .exercise-table th,
-    .exercise-table td,
-    .custom-exercises-table th,
-    .custom-exercises-table td {
-        min-width: 0;
-    }
-
-        .exercise-table th:last-child,
-        .exercise-table td:last-child,
-        .custom-exercises-table th:last-child,
-        .custom-exercises-table td:last-child {
-            min-width: 44px !important;
-            white-space: nowrap;
-        }
-
-    /* Header reagieren auf Breite */
-    .exercise-table th,
-    .custom-exercises-table th {
-        container-type: inline-size;
-    }
-
-    /* Wrapper für Header-Text */
-    .th-text {
-        display: inline-block;
-        white-space: nowrap;
-        line-height: 1;
-    }
-
-    /* Body-Zellen bleiben horizontal, hart abkürzen */
-    .exercise-table td,
-    .custom-exercises-table td {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .exercise-table.full-width table {
-        width: 100%;
-        table-layout: fixed; /* ← WICHTIG: stabilisiert Spaltenbreiten beim Drag */
-    }
-
     .exercise-table.full-width th,
     .exercise-table.full-width td {
         padding: 1.5rem;
@@ -4547,162 +2583,56 @@
         white-space: nowrap;
     }
 
-    html.dark-mode .exercise-table.full-width th,
-    html.dark-mode .exercise-table.full-width td {
-        border-bottom: 1px solid #30363d;
+    .custom-toggle-btn {
+        margin-left: auto;
+        margin-right: auto;
     }
 
-    .exercise-table.full-width th {
-        background: #f1f5f9;
-        color: var(--text-primary);
-        font-weight: 600;
-        position: relative;
+    .custom-toggle-arrow {
+        width: 1.05rem;
+        height: 1.05rem;
+        flex: 0 0 auto;
+        opacity: .92;
+        transform: rotate(0deg);
+        transition: transform .18s ease, opacity .18s ease, filter .18s ease;
+        filter: drop-shadow(0 1px 0 rgba(0,0,0,.10));
     }
 
-    html.dark-mode .exercise-table.full-width th {
-        background: #0d1117;
-        color: #ffffff;
+    @supports (mask-image: url("")) or (-webkit-mask-image: url("")) {
+        .custom-toggle-arrow {
+            background: currentColor;
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.7 9.3a1 1 0 0 1 1.4 0L12 13.2l3.9-3.9a1 1 0 1 1 1.4 1.4l-4.6 4.6a1 1 0 0 1-1.4 0l-4.6-4.6a1 1 0 0 1 0-1.4z'/%3E%3C/svg%3E");
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+            -webkit-mask-size: 100% 100%;
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.7 9.3a1 1 0 0 1 1.4 0L12 13.2l3.9-3.9a1 1 0 1 1 1.4 1.4l-4.6 4.6a1 1 0 0 1-1.4 0l-4.6-4.6a1 1 0 0 1 0-1.4z'/%3E%3C/svg%3E");
+            mask-repeat: no-repeat;
+            mask-position: center;
+            mask-size: 100% 100%;
+        }
     }
 
-    .button-group .btn-cell > *:not(.add-exercise-btn) {
-        width: 100%;
-        height: var(--btn-height);
-        padding-left: var(--btn-pad-x);
-        padding-right: var(--btn-pad-x);
+    @supports not (mask-image: url("")) and not (-webkit-mask-image: url("")) {
+        .custom-toggle-arrow {
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            width: .6rem;
+            height: .6rem;
+            transform: rotate(45deg);
+            filter: none;
+        }
     }
 
-    .button-group .btn-cell > .action-btn.add-exercise-btn {
-        display: inline-flex; /* saubere vertikale Zentrierung */
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: calc(var(--control-height) - 4px); /* 48px → 44px */
-        padding-top: 0;
-        padding-bottom: 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    /* Basis: nur "full" sichtbar */
-    .th-label .mid,
-    .th-label .short {
-        display: none;
-    }
-
-    /* Wenn per JS "mid" gesetzt wurde */
-    .th-label.is-mid .full {
-        display: none;
-    }
-
-    .th-label.is-mid .mid {
-        display: inline;
-    }
-
-    .th-label.is-mid .short {
-        display: none;
-    }
-
-    /* Wenn per JS "short" gesetzt wurde */
-    .th-label.is-short .full,
-    .th-label.is-short .mid {
-        display: none;
-    }
-
-    .th-label.is-short .short {
-        display: inline;
+    .custom-toggle-btn.on .custom-toggle-arrow {
+        transform: rotate(180deg);
+        opacity: 1;
     }
 
     .action-btn.plan-submit-btn {
         height: calc(var(--control-height) - 4px);
     }
 
-    @media (max-width: 600px) {
-        .button-group {
-            margin-left: 0;
-            flex-wrap: wrap;
-            width: 100%;
-            --btn-width: 100%;
-        }
-    }
-
-    .flash-focus {
-        outline: 2px solid var(--accent-primary);
-        box-shadow: 0 0 0 3px var(--accent-primary), 0 0 18px var(--accent-hover);
-        transition: box-shadow .3s ease;
-    }
-
-    .exercise-table.full-width tr:hover {
-        background: #d1d5db;
-    }
-
-    html.dark-mode .exercise-table.full-width tr:hover {
-        background: #2d333b;
-    }
-
-    .exercise-table.full-width td {
-        color: var(--text-secondary);
-    }
-
-    html.dark-mode .exercise-table.full-width td {
-        color: #c9d1d9;
-    }
-
-    .timer-container,
-    .stopwatch-top {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
-        max-width: 1200px;
-        position: relative;
-    }
-
-    .timer-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        align-items: center;
-        width: 100%;
-        max-width: 1200px;
-        transition: box-shadow 0.2s;
-    }
-
-    html.dark-mode .timer-card {
-        background: #1c2526;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    .timer-card:hover {
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-    }
-
-    .timer-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-    }
-
-    .custom-exercise-list .delete-btn {
-        background: none;
-        border: none;
-        color: #ef4444;
-        cursor: pointer;
-        margin-left: 0.5rem;
-        font-size: 1rem;
-    }
-
-    .custom-exercise-list li {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 4px 0;
-    }
     @media (max-width:560px) {
-        /* Plan-Card Layout auf Reihe statt Grid zwingen */
         .plan-item {
             display: flex !important;
         }
@@ -4715,7 +2645,6 @@
             width: 100%;
         }
 
-        /* Titel: ellipsize + Platz geben */
         .plan-title {
             min-width: 0;
             overflow: hidden;
@@ -4723,7 +2652,6 @@
             white-space: nowrap;
         }
 
-        /* Actions rechts: kompakt inline */
         .plan-right {
             display: inline-flex;
             align-items: center;
@@ -4731,7 +2659,6 @@
             flex-wrap: nowrap;
         }
 
-        /* Icons sichtbar halten, Kebab auf schmal weg */
         .inline-actions {
             display: inline-flex !important;
             gap: .25rem;
@@ -4741,7 +2668,6 @@
             display: none !important;
         }
 
-        /* Open-Button bleibt rechts in der Reihe */
         .desktop-open {
             display: inline-flex !important;
         }
@@ -4750,47 +2676,11 @@
             display: none !important;
         }
 
-        /* Menü-Overlay sicherheitshalber oberhalb halten */
         .plan-menu {
             z-index: 1000;
         }
     }
-    .timer-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
 
-    .timer-name {
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 1.2rem;
-        text-align: left;
-        pointer-events: auto;
-    }
-
-    .timer-display,
-    .timer {
-        font-size: 3rem;
-        font-weight: 800;
-        color: var(--text-primary);
-        width: 100%;
-        max-width: 400px;
-        text-align: center;
-        font-family: 'Roboto Mono', monospace;
-        background: linear-gradient(45deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.1));
-        padding: 0.75rem;
-        border-radius: 4px;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s, box-shadow 0.2s;
-        margin: 0 auto;
-    }
-
-    html.dark-mode .timer-display,
-    html.dark-mode .timer {
-        color: #ffffff;
-        background: linear-gradient(45deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1));
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
     /* ========== Desktop/ab deinem Original-Breakpoint: alles in EINER Reihe ========== */
 
     .plan-title {
@@ -4801,13 +2691,10 @@
         white-space: nowrap;
     }
 
-    /* Inline-Action-Buttons (Edit/Löschen/Download) sind standardmäßig sichtbar */
     .inline-actions {
         display: inline-flex;
         gap: .4rem;
     }
-    /* Kebab standardmäßig verstecken – wird erst ab schmaler Breite angezeigt */
-
 
     @media (max-width:1024px) {
         .inline-actions {
@@ -4819,7 +2706,6 @@
         }
     }
 
-    /* ≤560px: weiterhin eine Zeile; mobile Zeile komplett aus */
     @media (max-width:560px) {
         .plan-row2 {
             display: none !important;
@@ -4833,7 +2719,7 @@
             display: inline-flex !important;
         }
     }
-    /* Open-Button auch in einer Linie (Desktop) */
+
     .desktop-open {
         display: inline-flex;
     }
@@ -4851,20 +2737,17 @@
             gap: .5rem;
         }
 
-        /* Inline-Aktionen ausblenden, Kebab einblenden */
         .inline-actions {
             display: none;
         }
-
-        /* Open-Button in eigener Zeile */
         .desktop-open {
             display: inline-flex !important;
         }
-        /* war: none */
+
         .mobile-open {
             display: none !important;
         }
-        /* war: inline-flex */
+
         .plan-row2 {
             display: none;
         }
@@ -4882,46 +2765,28 @@
         .plan-menu {
             position: absolute;
             right: .5rem;
-            top: calc(100% - 2.25rem);
+            top: calc(100% + .55rem);
             display: flex;
-            gap: .3rem;
-            padding: .4rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            box-shadow: var(--shadow, 0 6px 18px rgba(0,0,0,.15));
-            z-index: 30;
+            gap: .35rem;
+            padding: .5rem;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            background: radial-gradient(circle at 18% 30%, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 62%), radial-gradient(circle at 85% 75%, color-mix(in srgb, var(--accent-secondary) 12%, transparent), transparent 70%), color-mix(in srgb, var(--bg-card) 88%, white 12%);
+            box-shadow: 0 18px 44px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255,255,255,0.08);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            z-index: 1200;
         }
 
             .plan-menu > * {
                 inline-size: auto;
             }
-
-        .exercise-table.full-width.narrow th,
-        .exercise-table.full-width.narrow td {
-            min-width: 0;
-            white-space: normal;
-            word-break: break-word;
-            text-overflow: clip;
-            padding: .6rem;
-            font-size: .9rem;
-        }
     }
 
-    .exercise-table.full-width.narrow th.resizable > .resizer {
-        right: 0 !important;
-        width: var(--resize-hit, 10px);
-    }
-
-    .exercise-table.full-width th.resizable > .resizer::before,
-    .custom-exercises-table th.resizable > .resizer::before {
-        transform: none; /* vorher: translateX(1px) */
-    }
-
-    .timer-display:hover,
-    .timer:hover {
-        transform: scale(1.02);
-        box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.2);
+    html.dark-mode .plan-menu {
+        border-color: rgba(148, 163, 184, 0.34);
+        background: radial-gradient(circle at 18% 30%, color-mix(in srgb, #6366f1 18%, transparent), transparent 62%), radial-gradient(circle at 85% 75%, color-mix(in srgb, #22c55e 12%, transparent), transparent 70%), rgba(2, 6, 23, 0.78);
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(255,255,255,0.05);
     }
 
     .plan-drag-handle {
@@ -4930,371 +2795,13 @@
         user-select: none;
     }
 
-    .timer-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        align-items: center;
-        width: 100%;
-    }
-
-    .timer-input-group {
-        display: flex;
-        gap: 0.5rem;
-        width: 100%;
-        justify-content: center;
-    }
-
-    .timer-select,
-    .timer-input {
-        padding: 0.5rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-        font-size: 0.9rem;
-        width: 150px;
-    }
-
-    .exercise-table.full-width th.resizable,
-    .custom-exercises-table th.resizable {
-        position: relative;
-        overflow: hidden;
-    }
-
-        .exercise-table.full-width th.resizable > .resizer,
-        .custom-exercises-table th.resizable > .resizer {
-            right: 0 !important;
-            width: 10px;
-        }
-
-    .exercise-table.full-width table,
-    .custom-exercises-table table {
-        border-collapse: separate !important;
-        border-spacing: 0 !important;
-    }
-
-    .exercise-table.full-width thead th,
-    .custom-exercises-table thead th {
-        background-clip: padding-box;
-    }
-
-    html.dark-mode .timer-select,
-    html.dark-mode .timer-input {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
-    }
-
-    .timer-select:focus,
-    .timer-input:focus {
-        border-color: #4B6CB7;
-        box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
-        outline: none;
-    }
-
-    .timer-buttons {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: center;
-    }
-
-    .builder-head .plan-block .field-label {
-        display: block;
-        margin-bottom: .6rem; /* Abstand Titel ↔ Input */
-    }
-
-    .builder-head .plan-block .plan-name-input {
-        width: 100%;
-    }
-
-    .type-block .type-heading {
-        display: block;
-        margin-bottom: .6rem;
-    }
-
-    .goal-row {
-        display: grid;
-        gap: .55rem; /* Abstand Titel ↔ Select */
-    }
-
-    .lap-btn {
-        background: #4B6CB7;
-        color: #ffffff;
-    }
-
-        .lap-btn:hover {
-            background: #3b5ca8;
-            transform: scale(1.05);
-        }
-
-    .timer-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .laps-container {
-        width: 100%;
-        max-width: 400px;
-        margin-top: 1rem;
-    }
-
-        .laps-container h4 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            text-align: center;
-        }
-
-    .laps-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .lap-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 0.5rem;
-        background: var(--bg-secondary);
-        border-radius: 8px;
-    }
-
-    html.dark-mode .lap-item {
-        background: #0d1117;
-    }
-
-    .edit-input {
-        padding: 0.75rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        width: 100%;
-        font-size: 0.9rem;
-        background: var(--bg-secondary);
-        color: var(--text-color);
-    }
-
-    html.dark-mode .edit-input {
-        background: #0d1117;
-        border-color: #30363d;
-        color: #ffffff;
-    }
-
-    .edit-input:focus {
-        border-color: #4B6CB7;
-        box-shadow: 0 0 5px rgba(75, 108, 183, 0.5);
-        outline: none;
-    }
-
-    .save-btn {
-        background: #10b981;
-        color: #ffffff;
-    }
-
-        .save-btn:hover {
-            background: #064e3b;
-            transform: scale(1.05);
-        }
-
-    .cancel-btn {
-        background: #6b7280;
-        color: #ffffff;
-    }
-
-        .cancel-btn:hover {
-            background: #4b5563;
-            transform: scale(1.05);
-        }
-
-    .delete-confirm-btn {
-        background: #ef4444;
-        color: #ffffff;
-    }
-
-        .delete-confirm-btn:hover {
-            background: #b91c1c;
-            transform: scale(1.05);
-        }
-
-
-    .custom-exercises-table table {
-        width: 100%;
-        max-width: 100%;
-        table-layout: fixed;
-        min-width: 100%; /* verhindert Schrumpfen */
-    }
-
-    .builder-head .segmented.seg-type {
-        gap: .45rem; /* etwas mehr Luft zwischen Buttons */
-        padding: .26rem .35rem; /* minimal höhere/lebhaftere Fläche */
-        border-radius: 10px;
-    }
-
-        .builder-head .segmented.seg-type > button {
-            padding: .42rem .72rem; /* + ~2–3px in beide Richtungen */
-            font-size: .89rem; /* vorher ~.86rem */
-            border-radius: 9px;
-        }
-
-
-    .builder-head .plan-name-input.slim {
-        flex: 1 1 320px;
-        min-width: 180px;
-    }
-
-
-    @media (max-width: 1100px) {
-        .builder-head .segmented.seg-type {
-            gap: .28rem;
-        }
-
-            .builder-head .segmented.seg-type > button {
-                padding: .28rem .5rem;
-                font-size: .82rem;
-            }
-    }
-
-    @media (max-width: 520px) {
-        .builder-head {
-            grid-template-columns: 1fr;
-            grid-template-areas:
-                "plan"
-                "type"
-                "extras";
-        }
-
-            .builder-head .extras-cta {
-                justify-self: start;
-                white-space: nowrap;
-                box-sizing: border-box;
-                inline-size: min(var(--extras-toggle-w), 100%);
-                min-inline-size: min(var(--extras-toggle-w), 100%);
-                max-inline-size: min(var(--extras-toggle-w), 100%);
-            }
-
-        .segmented.seg-type {
-            flex-wrap: wrap;
-            row-gap: .35rem;
-        }
-    }
-
     @media (max-width: 560px) {
-        .desktop-only {
-            display: none;
-        }
 
-        .builder-head .plan-block {
-            grid-area: plan; /* spannt über "plan plan" = beide Spalten */
-            width: 100%;
-            min-width: 0; /* verhindert Einquetschen durch Intrinsic-Width */
-        }
-
-            .builder-head .plan-block .plan-name-input {
-                width: 100% !important;
-                max-width: none !important;
-                min-width: 0;
-                box-sizing: border-box;
-            }
-
-        .mobile-only {
-            display: block;
-        }
-
-        .builder-head .type-block.desktop-only {
-            display: none !important;
-        }
-
-        .builder-head .type-block.mobile-only {
-            display: block;
-        }
-
-        .builder-head {
-            display: grid !important;
-            grid-template-columns: minmax(0, 1fr) var(--control-height) !important; /* 2. Spalte exakt Icon-Breite */
-            grid-template-areas:
-                "plan plan"
-                "type extras" !important;
-            align-items: start; /* nicht mittig zwischen den Zeilen hängen */
-            row-gap: .6rem;
-            column-gap: .75rem;
-        }
-
-            .builder-head .plan-name-input.slim {
-                grid-area: plan;
-                width: 100%; /* volle Breite */
-            }
-
-            .builder-head .type-block.mobile-only {
-                grid-area: type;
-            }
-
-            .builder-head .seg-type-select {
-                height: var(--control-height);
-                font-size: var(--control-font-size);
-                width: 100%;
-            }
-
-        .extras-label {
-            display: none;
-        }
-
-        .extras-icon {
-            margin-right: 0;
-        }
-
-        .builder-head .extras-cta {
-            grid-area: extras;
-            justify-self: end !important;
-            align-self: end; /* am unteren Rand der Zeile → Höhe vom Label ignorieren */
-            inline-size: var(--control-height) !important; /* quadratisch */
-            min-inline-size: var(--control-height) !important;
-            max-inline-size: var(--control-height) !important;
-            padding-inline: 0 !important;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Kleinkram */
-        .seg-type-select {
-            height: var(--control-height);
-            font-size: var(--control-font-size);
-            width: 100%;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-secondary);
-            color: var(--text-color);
-            padding: 0 .75rem;
-        }
-
-        .exercise-table.full-width th,
-        .exercise-table.full-width td,
-        .custom-exercises-table th,
-        .custom-exercises-table td {
-            min-width: 0;
-            white-space: normal;
-            word-break: break-word;
-            text-overflow: clip;
-            padding: .6rem;
-            font-size: .9rem;
-        }
-
-        .preview-card {
-            position: static;
-            top: auto;
-        }
-
-        .list-item-actions,
-        .timer-buttons,
-        .timer-input-group {
+        .list-item-actions {
             flex-wrap: wrap;
         }
 
-        .workout-list,
-        .form-card.builder-grid,
-        .builder-left,
-        .builder-right {
+        .workout-list {
             max-width: 100%;
             min-width: 0;
         }
@@ -5302,101 +2809,12 @@
         .workout-list {
             padding: 0 .5rem;
         }
-
-        .form-card {
-            padding: 1rem;
-        }
     }
 
-    .workout-list,
-    .timer-container,
-    .stopwatch-top {
+    .workout-list{
         width: 100%;
         max-width: var(--section-max);
         margin-inline: auto !important;
-    }
-
-    .button-group .btn-cell > * {
-        margin-top: 0 !important;
-        width: 100%;
-        height: var(--control-height);
-        padding-left: var(--control-padding-x);
-        padding-right: var(--control-padding-x);
-    }
-
-    @media (min-width: 960px) {
-        .builder-head .extras-cta {
-            flex: 0 0 var(--extras-toggle-w);
-            white-space: nowrap;
-        }
-    }
-
-    .builder-head {
-        display: grid;
-        grid-template-columns: 1fr var(--extras-toggle-w);
-        grid-template-rows: auto auto;
-        grid-template-areas:
-            "plan plan"
-            "type extras";
-        align-items: center;
-        gap: .75rem 1rem;
-    }
-
-        .builder-head .plan-name-input.slim {
-            grid-area: plan;
-            width: 100%;
-        }
-
-        .builder-head .segmented.seg-type {
-            grid-area: type;
-            justify-self: start;
-            margin-left: 0;
-        }
-
-        .builder-head .extras-cta {
-            grid-area: extras;
-            justify-self: end;
-            white-space: nowrap;
-            box-sizing: border-box;
-            inline-size: min(var(--extras-toggle-w), 100%);
-            min-inline-size: min(var(--extras-toggle-w), 100%);
-            max-inline-size: min(var(--extras-toggle-w), 100%);
-        }
-
-        .builder-head .extras-cta {
-            box-sizing: border-box;
-            inline-size: min(var(--extras-toggle-w), 100%);
-        }
-    /* Wrapper zeigt eine horizontale Scrollbar nur bei Bedarf */
-    .table-scroll {
-        overflow-x: auto;
-        overflow-y: hidden;
-        max-width: 100%;
-        -webkit-overflow-scrolling: touch;
-    }
-
-        /* Tabelle darf breiter als der Container sein → dann erscheint die Scrollbar */
-        .table-scroll > table {
-            width: 100%;
-            table-layout: fixed; /* lässt deine Resizer unverändert funktionieren */
-        }
-
-            /* Minimal sinnvolle Breite pro Tabellentyp, damit nichts mikroskopisch wird.
-    → Scrollbar erscheint erst, wenn der Viewport kleiner ist. */
-            .table-scroll > table[data-cols="3"] {
-                min-width: 560px;
-            }
-            /* Übung | Sätze | Wdh. */
-            .table-scroll > table[data-cols="4"] {
-                min-width: 720px;
-            }
-    /* + Aktion/weitere Spalte */
-
-    /* Falls zuvor irgendwo "clip/hidden" gesetzt wurde: das Scrollen im Wrapper nicht wegklemmen */
-    .exercise-table.full-width.narrow,
-    .exercise-table.full-width.compact,
-    .custom-exercises-table {
-        overflow-x: visible; /* der eigentliche Scroll passiert im .table-scroll */
     }
 
     @media (max-width: 420px) {
@@ -5409,37 +2827,12 @@
             padding: 0 .5rem;
         }
 
-        .form-card {
-            padding: 1rem;
-        }
-
         .page-title {
             font-size: 1.9rem;
         }
 
-        .builder-head .segmented.seg-type {
-            padding: .2rem;
-            gap: .25rem;
-        }
-
-            .builder-head .segmented.seg-type > button {
-                padding: .25rem .45rem;
-                font-size: .8rem;
-            }
-
-        .exercise-table.full-width th,
-        .exercise-table.full-width td {
-            padding: .5rem;
-            font-size: .85rem;
-        }
-
         .timer-display {
             font-size: 2.4rem;
-        }
-
-        .timer-select,
-        .timer-input {
-            width: 120px;
         }
 
         .custom-toggle-btn {
@@ -5448,223 +2841,14 @@
     }
 
     .training,
-    .workout-list,
-    .form-card,
-    .exercise-table.full-width,
-    .custom-exercises-table {
+    .workout-list {
         max-width: 100%;
-        overflow-x: clip;
+        overflow-x: visible;
     }
 
     @media (max-width: 360px) {
         .page-title {
             font-size: 1.75rem;
-        }
-
-        .exercise-table.full-width th,
-        .exercise-table.full-width td {
-            font-size: .82rem;
-        }
-    }
-
-    @media (min-width: 561px) {
-        .builder-head {
-            display: grid;
-            grid-template-columns: 1fr var(--extras-toggle-w);
-            grid-template-areas:
-                "plan plan"
-                "type extras";
-            gap: .75rem 1.55rem;
-        }
-
-            .builder-head .type-block.desktop-only .segmented.seg-type {
-                height: var(--control-height); /* fixe Zielhöhe, z. B. 48px */
-                padding-block: .25rem; /* etwas schlanker innen, damit’s nicht zu fett wirkt */
-                align-items: stretch; /* Buttons füllen die volle Höhe */
-            }
-
-                .builder-head .type-block.desktop-only .segmented.seg-type > button {
-                    display: inline-flex; /* Text vertikal mittig */
-                    align-items: center;
-                    justify-content: center;
-                }
-
-            .builder-head .plan-block {
-                grid-area: plan;
-                min-width: 0; /* verhindert Overflow */
-            }
-
-                .builder-head .plan-block .plan-name-input {
-                    width: 100%;
-                    max-width: none;
-                    min-width: 0;
-                    box-sizing: border-box;
-                }
-
-            .builder-head .type-block.desktop-only {
-                display: block;
-            }
-
-            .builder-head .type-block.mobile-only {
-                display: none !important;
-            }
-
-            .builder-head .extras-cta {
-                grid-area: extras;
-                justify-self: end;
-                white-space: nowrap;
-                align-self: end;
-            }
-
-            .builder-head .plan-name-input.slim {
-                grid-area: auto;
-            }
-
-            .builder-head .segmented.seg-type {
-                grid-area: auto;
-            }
-    }
-
-    @media (max-width: 960px) {
-        .builder-head .type-block.desktop-only {
-            display: none !important;
-        }
-
-        .builder-head .type-block.mobile-only {
-            display: block !important;
-        }
-
-        /* Extras-Button bleibt voll (Icon + Text) */
-        .builder-head .extras-cta {
-            inline-size: var(--extras-toggle-w);
-            min-inline-size: var(--extras-toggle-w);
-            max-inline-size: var(--extras-toggle-w);
-            padding-inline: var(--control-padding-x);
-            justify-self: end;
-        }
-
-        .extras-label {
-            display: inline;
-        }
-    }
-
-    @media (min-width: 561px) and (max-width: 960px) {
-        .type-block.desktop-only {
-            display: none !important;
-        }
-
-        .type-block.mobile-only {
-            display: block !important;
-        }
-
-        .builder-head {
-            /* 1) Links flexibel, rechts Spalte so breit wie der Button (kein calc, kein sbw) */
-            grid-template-columns: minmax(0, 1fr) auto !important;
-            grid-template-areas: "plan plan" "type extras" !important;
-            column-gap: .85rem;
-            align-items: end;
-            min-width: 0;
-            overflow: clip; /* falls ein Rundungs-Pixel entsteht: kein horizontaler Scroll */
-        }
-
-            .builder-head .extras-cta {
-                width: auto !important;
-                inline-size: auto !important;
-                max-width: none !important;
-                white-space: nowrap; /* Label bleibt in einer Zeile */
-                padding-inline: var(--control-padding-x); /* wie vorher */
-            }
-
-            .builder-head .seg-type-select {
-                width: 100% !important;
-            }
-    }
-
-    @media (max-width: 560px) {
-        .builder-head .extras-cta {
-            inline-size: var(--control-height);
-            min-inline-size: var(--control-height);
-            max-inline-size: var(--control-height);
-            padding-inline: 0;
-            display: inline-flex;
-            justify-content: center;
-        }
-    }
-
-    @media (max-width: 960px) {
-        .builder-head .extras-cta {
-            inline-size: var(--control-height) !important;
-            min-inline-size: var(--control-height) !important;
-            max-inline-size: var(--control-height) !important;
-            padding-inline: 0 !important;
-            justify-content: center;
-        }
-
-        .extras-label {
-            display: none !important;
-        }
-        /* nur Icon zeigen */
-    }
-
-    @media (min-width: 961px) {
-        .builder-head {
-            grid-template-columns: minmax(0, 1fr) auto !important;
-        }
-
-            .builder-head .extras-cta {
-                inline-size: auto !important;
-                min-inline-size: auto !important;
-                max-inline-size: clamp(180px, 24ch, 320px) !important; /* genug Platz für Label */
-                padding-inline: var(--control-padding-x) !important;
-                white-space: nowrap; /* Label bleibt einzeilig */
-            }
-
-        .extras-label {
-            display: inline !important;
-        }
-    }
-
-    .builder-head {
-        grid-template-columns: minmax(0, 1fr) auto !important; /* linke Spalte flexibel, rechts Content-breite */
-    }
-
-        .builder-head .extras-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: .45rem;
-            height: var(--control-height);
-            padding-inline: var(--control-padding-x);
-            border-radius: 8px;
-            /* Overflow-Schutz */
-            white-space: nowrap;
-            min-width: 0;
-            width: auto;
-            max-inline-size: clamp(180px, 26ch, 360px); /* 26ch reicht für „Extras ausblenden“ */
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-    @media (max-width: 560px) {
-        .builder-head {
-            grid-template-columns: minmax(0, 1fr) var(--control-height) !important;
-        }
-
-            .builder-head .extras-cta {
-                inline-size: var(--control-height) !important;
-                max-inline-size: var(--control-height) !important;
-                padding-inline: 0 !important;
-                justify-content: center;
-            }
-
-        .extras-label {
-            display: none !important;
-        }
-    }
-
-    /* Ab 561px immer mit Text */
-    @media (min-width: 561px) {
-        .extras-label {
-            display: inline !important;
         }
     }
 
@@ -5682,7 +2866,6 @@
         white-space: nowrap;
     }
 
-    /* Öffnen */
     .plan-row1 > .inline-actions {
         display: inline-flex;
         gap: .4rem;
@@ -5712,7 +2895,7 @@
             margin-left: auto;
         }
     }
-    /* NEU: gilt für alle Breakpoints */
+
     .plan-menu {
         position: absolute;
         right: .5rem;
@@ -5731,7 +2914,6 @@
             inline-size: auto;
         }
 
-    /* === canonical layout for plan rows: drag | centered title | actions right === */
     .plan-item > .plan-row1 {
         display: grid !important;
         grid-template-columns: auto 1fr auto;
@@ -5765,7 +2947,6 @@
             order: 3;
         }
 
-    /* Responsive: wir behalten eine Zeile bei und blenden ggf. inline-actions aus */
     @media (max-width:1024px) {
         .plan-item > .plan-row1 .inline-actions {
             display: none !important;
@@ -5776,21 +2957,19 @@
         }
     }
 
-    /* Mobile: keine zweite Zeile nötig */
     @media (max-width:560px) {
         .plan-row2, .mobile-open {
             display: none !important;
         }
     }
-    /* FIX 1: Plan-Karte ist kein Flex-Container mehr */
+
     .plan-item {
-        display: block; /* überschreibt .list-item { display:flex } */
+        display: block; 
     }
 
-        /* FIX 2: Eine Reihe: drag | Titel zentriert | rechts Aktionen */
         .plan-item > .plan-row1 {
             display: grid !important;
-            grid-template-columns: auto 1fr auto; /* Drag | Titel | rechts */
+            grid-template-columns: auto 1fr auto;
             align-items: center;
             width: 100%;
         }
@@ -5811,12 +2990,10 @@
                 gap: .5rem;
             }
 
-    /* FIX 3: Die mobile Zusatzzeile standardmäßig weg */
     .plan-row2 {
         display: none;
     }
 
-    /* Nur auf sehr schmalen Screens (optional) die mobile Zeile reaktivieren */
     @media (max-width:560px) {
         .plan-row2 {
             display: block;
@@ -5825,13 +3002,12 @@
         .mobile-open {
             display: inline-flex !important;
         }
-        /* mobiler Open-Button sichtbar */
+
         .desktop-open {
             display: none !important;
         }
     }
 
-    /* Desktop-Default: Inline-Actions sichtbar, Kebab-Wrapper versteckt */
     .inline-actions {
         display: inline-flex;
         gap: .4rem;
@@ -5841,7 +3017,6 @@
         display: none;
     }
 
-    /* Ab hier „verschieben“ sich deine Buttons → Inline-Actions aus, Kebab an */
     @media (max-width: 1024px) {
         .inline-actions {
             display: none !important;
@@ -5852,73 +3027,6 @@
         }
     }
 
-    /* Der Button selbst: fixes Quadrat und auto-zentriert */
-    .table-delete-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        margin: 0 auto; /* falls text-align greifen sollte */
-        line-height: 1;
-    }
-
-    /* Öffneter Plan – Table darf die Seite NICHT verbreitern */
-    .exercise-table.full-width.narrow {
-        display: block; /* wichtig: nicht als Table-Wrapper mit auto-breiten Kindern */
-        max-inline-size: 100%;
-        overflow-x: clip; /* oder: hidden; (clip ist moderner) */
-        contain: inline-size; /* Kinder beeinflussen die Außenbreite nicht */
-    }
-
-        /* Sicherheitshalber die Tabelle fix einbremsen */
-        .exercise-table.full-width.narrow > table {
-            table-layout: fixed;
-            width: 100%;
-            max-width: 100%;
-        }
-
-    /* === Geöffneter Trainingsplan: identischer Rahmen wie alle anderen === */
-    .exercise-table.full-width.narrow {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.06);
-        overflow: hidden; /* Ecken sauber, nichts „blankes“ */
-    }
-
-        /* Keine künstlichen Rand-Gutters links/rechts */
-        .exercise-table.full-width.narrow .table-scroll {
-            scrollbar-gutter: auto;
-        }
-
-            /* Tabelle selbst bündig ohne Spalt bis an den Rahmen */
-            .exercise-table.full-width.narrow .table-scroll > table {
-                width: 100%;
-                table-layout: fixed;
-                border-collapse: collapse; /* entfernt die seitlichen Gaps */
-            }
-
-        /* Optional: vertikale Trennlinien wie bei den anderen (falls gewünscht) */
-        .exercise-table.full-width.narrow th,
-        .exercise-table.full-width.narrow td {
-            border-right: 1px solid var(--border-color);
-        }
-
-            .exercise-table.full-width.narrow th:last-child,
-            .exercise-table.full-width.narrow td:last-child {
-                border-right: 0;
-            }
-    /* Host im TH: wird Clip-Container für den Resizer */
-    .exercise-table.full-width th .th-text,
-    .custom-exercises-table th .th-text {
-        position: relative;
-        display: block;
-        overflow: hidden; /* ← Wichtig: hier wird geklippt */
-        padding-right: 8px; /* etwas Raum neben dem Text */
-    }
-
-    /* NEU: Resizer hängt an .th-text (nicht am TH) */
     th .th-text > .resizer {
         position: absolute;
         top: 0;
@@ -5933,7 +3041,6 @@
         background: transparent;
     }
 
-        /* Sichtbare Linie im Griff */
         th .th-text > .resizer::before {
             content: "";
             width: var(--resize-line, 1px);
@@ -5947,196 +3054,50 @@
         th .th-text > .resizer.is-active::before {
             background: var(--resize-color-hover, #60a5fa);
             opacity: 1;
-            transform: scaleX(2); /* optisch dicker beim Hover/Drag */
+            transform: scaleX(2);
         }
 
-    /* Header-Kürzung (Fallback) – zeigt je nach Klassenstatus genau EINS der Labels */
-    .th-label .full,
-    .th-label .mid,
-    .th-label .short {
-        display: none;
+    .list-item.plan-item {
+        position: relative;
+        padding: 1.35rem 1.6rem; 
+        border-radius: 18px;
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        display: block; 
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
     }
 
-    .th-label.is-full .full {
-        display: inline;
-    }
-
-    .th-label.is-mid .mid {
-        display: inline;
-    }
-
-    .th-label.is-short .short {
-        display: inline;
-    }
-    /* Sichtbare, schlanke Linie am Spaltenrand + größere Klickfläche */
-    .exercise-table.full-width th.resizable > .resizer::after,
-    .custom-exercises-table th.resizable > .resizer::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        right: 4px; /* Linie sitzt innen */
-        width: 1px;
-        background: var(--resize-color);
-        opacity: .7;
-        transition: width .12s ease, background-color .12s ease, opacity .12s ease;
-    }
-
-    .exercise-table.full-width th.resizable > .resizer:hover::after,
-    .exercise-table.full-width th.resizable > .resizer.is-active::after,
-    .custom-exercises-table th.resizable > .resizer:hover::after,
-    .custom-exercises-table th.resizable > .resizer.is-active::after {
-        width: 2px;
-        background: var(--resize-color-hover);
-        opacity: 1;
-    }
-
-    /* sanfter Fokusrahmen, wenn via tryFocusFromStorage gescrollt wurde */
-    .flash-focus {
-        outline: 2px solid #60a5fa;
-        box-shadow: 0 0 0 4px rgba(96,165,250,.25);
-        transition: outline-color .3s ease, box-shadow .3s ease;
-    }
-    /* Live-Preview: vertikale Spaltentrenner wie bei den anderen Tabellen */
-    .preview-card .exercise-table.full-width.compact .table-scroll > table {
-        border-collapse: separate !important;
-        border-spacing: 0 !important;
-    }
-
-        .preview-card .exercise-table.full-width.compact .table-scroll > table th,
-        .preview-card .exercise-table.full-width.compact .table-scroll > table td {
-            border-right: 1px solid var(--border-color);
-        }
-
-            .preview-card .exercise-table.full-width.compact .table-scroll > table th:last-child,
-            .preview-card .exercise-table.full-width.compact .table-scroll > table td:last-child {
-                border-right: 0;
-            }
-    /* Default: volle Beschriftung sichtbar */
-    .th-label .full {
-        display: inline;
-    }
-
-    .th-label .mid, .th-label .short {
-        display: none;
-    }
-
-    /* Wenn per JS verkürzt wird */
-    .th-label.is-mid .full {
-        display: none;
-    }
-
-    .th-label.is-mid .mid {
-        display: inline;
-    }
-
-    .th-label.is-short .full,
-    .th-label.is-short .mid {
-        display: none;
-    }
-
-    .th-label.is-short .short {
-        display: inline;
-    }
-    /* Live-Preview: kompaktere Zellen */
-    /* Live-Preview: wieder höher + keine abgeschnittenen Diakritika */
-    .preview-card .exercise-table.full-width.compact th,
-    .preview-card .exercise-table.full-width.compact td {
-        /* mehr Höhe über Padding-Block, horizontal bleibt schlank */
-        padding: 1.0rem 0.4rem; /* vorher .5rem .6rem */
-        font-size: .9rem; /* minimal größer als .88rem */
-        line-height: 1.25; /* verhindert Ü/Ä/Ö-Clipping */
-    }
-
-    /* Header-Text in der Live-Preview: überschreibt dein globales .th-text { line-height: 1; } */
-    .preview-card .exercise-table.full-width.compact .th-text {
-        line-height: 1.25;
-    }
-    /* Trainingsplan (geöffneter Plan): mehr vertikale Luft + saubere Umlaute */
-    .exercise-table.full-width.narrow th,
-    .exercise-table.full-width.narrow td,
-    .custom-exercises-table th,
-    .custom-exercises-table td {
-        padding: 1.5rem .5rem; /* vertikal höher, horizontal schlank */
-        font-size: .94rem;
-        line-height: 1.3; /* verhindert Ü/Ä/Ö-Clipping */
-    }
-
-    .exercise-table.full-width.narrow .th-text,
-    .custom-exercises-table .th-text {
-        line-height: 1.3;
-    }
-
-    /* Live-Preview: Tabelle nutzt nur so viel Platz wie nötig */
-    .preview-card .table-scroll > table {
-        width: max-content;
-        max-width: 100%;
-        min-width: 540px; /* leicht erhöht, damit vertikale Luft nicht „zu gedrungen“ wirkt */
-    }
-
-    /* Mobile: ebenfalls etwas höher, aber kompakt */
-    @media (max-width: 560px) {
-        .preview-card .exercise-table.full-width.compact th,
-        .preview-card .exercise-table.full-width.compact td {
-            padding: .9rem .5rem; /* vorher .45rem .5rem */
-            font-size: .88rem;
-            line-height: 1.25;
-        }
-
-        .preview-card .table-scroll > table {
-            min-width: 500px; /* optional: 480–500px nach Gefühl */
-        }
-
-        .exercise-table.full-width.narrow th,
-        .exercise-table.full-width.narrow td,
-        .custom-exercises-table th,
-        .custom-exercises-table td {
-            padding: 1.4rem .5rem;
-            font-size: .9rem;
-            line-height: 1.28;
-        }
-
-        .plan-drag-stack > .plan-item,
-        .drag-stack > .timer-card {
-            touch-action: pan-y; /* Scroll weiter möglich, Drag wird sauber erkannt */
-            -webkit-user-select: none;
-            user-select: none;
+    @media (hover: hover) {
+        .list-item.plan-item:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.55);
         }
     }
-    /* Griff für *alle* THs (nicht nur .resizable), inkl. ganz rechts */
-    .exercise-table.full-width thead th > .resizer,
-    .custom-exercises-table thead th > .resizer {
-        position: absolute;
-        top: 0;
-        right: 0; /* sitzt an der *rechten* Tabellenlinie */
-        height: 100%;
-        width: var(--resize-hit, 10px);
-        cursor: col-resize;
-        z-index: 5;
-        background: transparent;
-        touch-action: none;
+
+    html.dark-mode .list-item.plan-item {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60% ), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
-    /* Smoother Touch-Drag auf Mobile */
-    .plan-drag-stack .plan-item,
-    .drag-stack .timer-card {
+    .plan-drag-stack .plan-item {
         touch-action: pan-y;
         -webkit-tap-highlight-color: transparent;
         will-change: transform;
     }
 
-    /* Weniger Text-Selection/Jank beim Drag */
     .sortable-chosen {
         user-select: none;
     }
 
-    /* Ghost optisch stabil + minimaler Scale für „Grip“-Feeling */
     .sortable-ghost,
     .drag-ghost {
         opacity: .85;
         transform: scale(.98);
     }
-    /* Drag Performance: folgt der Maus, keine Lags */
+
     .drag-chosen,
     .dragging,
     .sortable-chosen,
@@ -6154,19 +3115,73 @@
     .drag-ghost,
     .sortable-ghost {
         opacity: .4 !important;
-    } 
+    }
 
     .plan-drag-stack > *,
     .drag-stack > *,
-    .list-item.plan-item,
-    .timer-card {
+    .list-item.plan-item {
         will-change: transform;
     }
 
-    /* während Drag keine Hover-Animationen stören */
-    .dragging .list-item.plan-item,
-    .dragging .timer-card {
+    .dragging .list-item.plan-item {
         transform: none !important;
+    }
+
+    .plan-code-badge {
+        margin-left: .5rem;
+        padding: .15rem .45rem;
+        border-radius: 999px;
+        font-size: .8rem;
+        opacity: .9;
+        border: 1px solid rgba(255,255,255,.18);
+    }
+
+    .plan-code-copy {
+        margin-left: .35rem;
+    }
+
+    /* Planname oben, Code immer drunter (ohne Wrap) */
+    .plan-header .section-title {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: .35rem;
+        min-width: 0;
+    }
+
+    .plan-title-main {
+        max-width: 100%;
+        min-width: 0;
+        white-space: nowrap; /* kein Wrap */
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .plan-code-row {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .35rem;
+        white-space: nowrap; /* kein Wrap */
+        max-width: 100%;
+    }
+    .plan-code-badge {
+        cursor: copy;
+        user-select: none;
+    }
+
+    /* mehr Luft zwischen Plan-Liste und Satzpausen-Timer */
+    .plans-section {
+        margin-top: 2.25rem;
+        margin-bottom: 2.25rem;
+    }
+
+    /* optional: auf Mobile etwas weniger */
+    @media (max-width: 560px) {
+        .plans-section {
+            margin-top: 1.75rem;
+            margin-bottom: 1.75rem;
+        }
     }
 
 </style>

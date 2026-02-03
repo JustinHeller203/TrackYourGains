@@ -1,4 +1,4 @@
-
+/*toast.ts*/
 export type ToastType =
     | 'toast-default'
     | 'toast-save'
@@ -14,6 +14,7 @@ export interface Toast {
     type: ToastType;
     exiting: boolean;
     action?: ToastAction;
+    durationMs?: number;
 }
 export interface ToastAction {
     label: string;

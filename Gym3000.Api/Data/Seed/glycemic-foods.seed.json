@@ -1,0 +1,97 @@
+[
+	{
+		"key": "banana",
+		"label": "Banane",
+		"category": "fruit",
+		"gi": 55,
+		"carbs100": 23.0,
+		"note": "Reife schwankt"
+	},
+	{
+		"key": "apple",
+		"label": "Apfel",
+		"category": "fruit",
+		"gi": 36,
+		"carbs100": 14.0
+	},
+	{
+		"key": "oats",
+		"label": "Haferflocken",
+		"category": "grain",
+		"gi": 55,
+		"carbs100": 60.0,
+		"note": "je nach Zubereitung"
+	},
+	{
+		"key": "white_rice_cooked",
+		"label": "Reis (weiß, gekocht)",
+		"category": "grain",
+		"gi": 73,
+		"carbs100": 28.0,
+		"note": "Sorte schwankt"
+	},
+	{
+		"key": "basmati_cooked",
+		"label": "Basmati (gekocht)",
+		"category": "grain",
+		"gi": 55,
+		"carbs100": 25.0
+	},
+	{
+		"key": "pasta_al_dente",
+		"label": "Pasta (al dente)",
+		"category": "grain",
+		"gi": 50,
+		"carbs100": 30.0
+	},
+	{
+		"key": "white_bread",
+		"label": "Weißbrot",
+		"category": "grain",
+		"gi": 75,
+		"carbs100": 49.0
+	},
+	{
+		"key": "rye_bread",
+		"label": "Roggenbrot",
+		"category": "grain",
+		"gi": 55,
+		"carbs100": 48.0
+	},
+	{
+		"key": "potato_boiled",
+		"label": "Kartoffeln (gekocht)",
+		"category": "veg",
+		"gi": 80,
+		"carbs100": 17.0,
+		"note": "abgekühlt oft niedriger"
+	},
+	{
+		"key": "sweet_potato_boiled",
+		"label": "Süßkartoffel (gekocht)",
+		"category": "veg",
+		"gi": 60,
+		"carbs100": 20.0
+	},
+	{
+		"key": "cornflakes",
+		"label": "Cornflakes",
+		"category": "grain",
+		"gi": 81,
+		"carbs100": 84.0
+	},
+	{
+		"key": "milk",
+		"label": "Milch",
+		"category": "dairy",
+		"gi": 30,
+		"carbs100": 5.0
+	},
+	{
+		"key": "yogurt_natural",
+		"label": "Joghurt (natur)",
+		"category": "dairy",
+		"gi": 35,
+		"carbs100": 5.0
+	}
+]

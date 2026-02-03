@@ -1,13 +1,21 @@
+<!--BasePopup.vue-->
+
 <template>
     <teleport to="body">
         <transition name="fade">
             <div v-if="show"
                  class="popup-overlay"
                  :class="[overlayClass, variant]"
+                 :style="{ zIndex: String(zIndex) }"
                  role="dialog"
                  aria-modal="true"
                  @mousedown.self="$emit('cancel')">
                 <div class="popup" @click.stop>
+                    <XButton v-if="showClose"
+                             class="popup-x"
+                             aria-label="Schließen"
+                             @click="$emit('cancel')" />
+
                     <h3 v-if="title" class="popup-title">{{ title }}</h3>
 
                     <div class="popup-body">
@@ -31,18 +39,25 @@
 </template>
 
 <script setup lang="ts">
+    import XButton from '@/components/ui/buttons/popup/XButton.vue'
+
     withDefaults(defineProps<{
         show: boolean
         title?: string
         overlayClass?: string | string[] | Record<string, boolean>
         variant?: string
         showActions?: boolean
+        showClose?: boolean
         cancelText?: string
         saveText?: string
+        zIndex?: number
     }>(), {
         cancelText: 'Abbrechen',
         saveText: 'Speichern',
+        showClose: true,
+        zIndex: 9999,
     })
+
     defineEmits<{ (e: 'cancel'): void; (e: 'save'): void }>()
 </script>
 
@@ -52,77 +67,81 @@
     .popup-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.55);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 2000;
+        background: rgba(2, 6, 23, 0.55);
+        display: grid;
+        place-items: center;
+        padding: 1rem;
     }
 
-    .popup {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-        max-width: 420px;
-        width: 90%;
-        text-align: center;
-        /* <-- globale Popup-Schrift */
-        font-family: var(--popup-font-family, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
-    }
-
-    /* Titel � vorher war das 0.25rem (!) */
     .popup-title {
         font-size: var(--popup-title-size, 1.25rem);
         line-height: 1.25;
         font-weight: 700;
         color: var(--text-primary);
-        margin-bottom: 1rem;
+        text-align: center;
+        /* mehr Luft oben */
+        padding: 2rem 1rem;
+        margin: 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
     }
 
-    /* Body � Grundschriftgr��e */
+    .popup {
+        position: relative;
+    }
+
+    .popup-x {
+        position: absolute;
+        top: 0.85rem;
+        right: 0.85rem;
+        z-index: 2;
+    }
+
     .popup-body {
         font-size: var(--popup-body-size, 1rem);
+        padding: 1rem 1.1rem;
+        /* WICHTIG: erlaubt korrektes Scroll-Layout */
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    .popup-overlay.explanation-popup .popup-body {
+        padding-right: 0;
     }
 
-        /* === Body (slotted content styling) === */
-        .popup-body :deep(.input-group) {
-            margin-bottom: 1rem;
-        }
-
-        .popup-body :deep(label) {
-            display: block;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.35rem;
-        }
-
-        .popup-body :deep(.edit-input) {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-secondary);
-            color: var(--text-color);
-            font-size: 0.95rem;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        .popup-body :deep(.edit-input:focus) {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 5px rgba(99,102,241,.5);
-            outline: none;
-        }
-
-    /* Varianten-Abst�nde (Beispiele) */
-    .popup-overlay.weight-goal-popup :deep(.edit-input) {
-        margin-bottom: 1.25rem;
+    .popup-overlay.weight-goal-popup .popup {
+        width: min(560px, 94vw); /* optional: wirkt weniger "fett" */
     }
 
-    .popup-overlay.export-popup :deep(.edit-input) {
-        margin-bottom: 0.5rem;
+    .popup-overlay.weight-goal-popup .popup-body {
+        flex: 1;
+        justify-content: center; /* vertikal im Body */
     }
+
+        /* Optional: Input-Wrapper nicht ganz am Rand kleben */
+        .popup-overlay.weight-goal-popup .popup-body > * {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+    /* BasePopup.vue — REPLACE: alte edit-input Regeln raus, neue UiPopupInput Regeln rein */
+
+    .popup-body :deep(.popinp) {
+        margin-bottom: 0.95rem;
+    }
+
+    /* letzter Input im Popup: kein extra Abstand */
+    .popup-body :deep(.popinp:last-child) {
+        margin-bottom: 0;
+    }
+
+    /* Varianten: wenn du spezielle Abstände brauchst */
+    .popup-overlay.weight-goal-popup :deep(.popinp) {
+        margin-bottom: 0; /* sonst hängt das Ding optisch zu weit oben */
+    }
+
+    .popup-overlay.export-popup :deep(.popinp) {
+        margin-bottom: 0.6rem;
+    }
+
 
     .popup-body :deep(.downloaddistance) {
         margin-bottom: 0.5rem;
@@ -131,12 +150,14 @@
 
     /* === Actions === */
     .popup-actions {
+        padding: 1rem 1.1rem;
         display: flex;
-        gap: 0.5rem;
-        justify-content: center;
-        margin-top: 1rem;
+        justify-content: flex-end;
+        gap: 0.6rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.18);
+        background: transparent;
+        margin-top: 0; /* kill old spacing */
     }
-
     /* Fade */
     .fade-enter-active, .fade-leave-active {
         transition: opacity .18s ease;
@@ -145,4 +166,66 @@
     .fade-enter-from, .fade-leave-to {
         opacity: 0;
     }
+    .popup {
+        width: min(620px, 94vw);
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+        text-align: left;
+        font-family: var(--popup-font-family, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
+        padding: 0; /* wichtig: wie modal-card */
+    }
+
+    .popup-overlay.weight-goal-popup .popup-body {
+        flex: 1; /* nimmt den Platz zwischen Title und Actions */
+        justify-content: center; /* vertikal mittig */
+    }
+    html.dark-mode .popup-overlay .popup {
+        background: #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        box-shadow: 0 34px 90px rgba(0, 0, 0, 0.7);
+    }
+    .popup-overlay.email-change-popup .popup {
+        padding: 1.4rem 1.5rem 1.1rem;
+    }
+
+    /* Titel an Cards angleichen */
+    .popup-overlay.email-change-popup .popup-title {
+        text-align: left;
+        font-size: 1.3rem;
+        margin-bottom: 1.1rem;
+    }
+
+    /* Body & Actions eher wie Card */
+    .popup-overlay.email-change-popup .popup-body {
+        text-align: left;
+        margin-bottom: 0.8rem;
+    }
+
+    .popup-overlay.email-change-popup .popup-actions {
+        justify-content: flex-end;
+        margin-top: 1.1rem;
+    }
+
+
+    /* Titel an Cards angleichen */
+    .popup-overlay.email-change-popup .popup-title {
+        text-align: left;
+        font-size: 1.3rem;
+        margin-bottom: 1.1rem;
+    }
+
+    /* Body & Actions eher wie Card, nicht „Modal von 2012“ */
+    .popup-overlay.email-change-popup .popup-body {
+        text-align: left;
+        margin-bottom: 0.8rem;
+    }
+
+    .popup-overlay.email-change-popup .popup-actions {
+        justify-content: flex-end;
+        margin-top: 1.1rem;
+    }
+
 </style>

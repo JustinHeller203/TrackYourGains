@@ -18,7 +18,6 @@
 
                 <DashboardCard title="Kalorien heute"
                                :info="totalCalories + ' / 2500 kcal'"
-                               :muted="totalCalories === 0"
                                :compact="compactCards" />
 
                 <DashboardCard title="Letztes Training"
@@ -28,7 +27,6 @@
 
                 <DashboardCard title="Zielgewicht"
                                :info="goal ? formatWeight(goal, 1) : 'Kein Ziel gesetzt'"
-                               :muted="true"
                                :compact="compactCards"
                                clickable
                                @click="openGoalPopup" />
@@ -38,8 +36,10 @@
             <TabsBar v-model:modelValue="activeTab"
                      :searchQuery="searchQuery"
                      :planSearchQuery="planSearchQuery"
+                     :calcCategory="calcCategory"
                      @update:searchQuery="val => (searchQuery = val)"
-                     @update:planSearchQuery="val => (planSearchQuery = val)" />
+                     @update:planSearchQuery="val => (planSearchQuery = val)"
+                     @update:calcCategory="val => (calcCategory = val)" />
 
             <!-- ===================== STATISTIKEN TAB ===================== -->
             <div v-show="activeTab === 'stats'" class="progress-charts">
@@ -61,18 +61,6 @@
                     </template>
                     <canvas id="workoutChart" class="chart-canvas"></canvas>
                 </ChartCard>
-            </div>
-
-            <!-- ======= FILTER-LEISTE (nur für Rechner) ======= -->
-            <div v-show="activeTab === 'calculators'" class="calc-filterbar">
-                <label class="calc-filterlabel">Kategorie</label>
-                <select v-model="calcCategory" class="calc-filterselect">
-                    <option value="alle">Alle</option>
-                    <option value="gesundheit">Gesundheit</option>
-                    <option value="kraft">Kraft</option>
-                    <option value="ernaehrung">Ernährung</option>
-                    <option value="alltag">Alltag</option>
-                </select>
             </div>
 
             <!-- ===================== CALCULATORS TAB ===================== -->
@@ -97,8 +85,8 @@
                                    @update:bmiHeight="val => (bmiHeight = val)"
                                    @calculate="calculateBMI"
                                    @copy="copyBMI"
-                                   @export="openDownloadPopup('bmi')"
-                                   @reset="resetCalculator('bmi')" />
+                                   @reset="resetCalculator('bmi')"
+                                   @invalid="onCalcInvalid" />
 
                     <!-- Kalorien Favorit -->
                     <CaloriesCalculator v-if="isFavorite('Kalorienbedarf') && matchesCalc('Kalorienbedarf')"
@@ -121,8 +109,29 @@
                                         @update:calorieGoal="v => calorieGoal = v"
                                         @calculate="calculateCalories"
                                         @copy="copyCalories"
-                                        @export="openDownloadPopup('calories')"
-                                        @reset="resetCalculator('calories')" />
+                                        @reset="resetCalculator('calories')"
+                                        @invalid="onCalcInvalid" />
+
+                    <!-- Burn Rate Favorit -->
+                    <BurnRateCalculator v-if="isFavorite('Burn Rate') && matchesCalc('Burn Rate')"
+                                        :unit="unit"
+                                        :autoCalcEnabled="autoCalcEnabled"
+                                        :burnStartWeight="burnStartWeight"
+                                        :burnGoalWeight="burnGoalWeight"
+                                        :burnMaintenance="burnMaintenance"
+                                        :burnIntake="burnIntake"
+                                        :burnResult="burnRateResult"
+                                        :isFavorite="true"
+                                        @toggleFavorite="() => toggleFavorite('Burn Rate')"
+                                        @update:burnStartWeight="(v: number | null) => (burnStartWeight = v)"
+                                        @update:burnGoalWeight="(v: number | null) => (burnGoalWeight = v)"
+                                        @update:burnMaintenance="(v: number | null) => (burnMaintenance = v)"
+                                        @update:burnIntake="(v: number | null) => (burnIntake = v)"
+                                        @calculate="calculateBurnRate"
+                                        @copy="copyBurnRate"
+                                        @reset="resetCalculator('burnRate')"
+                                        @invalid="onCalcInvalid" />
+
                     <!-- Protein Favorit -->
                     <ProteinCalculator v-if="isFavorite('Proteinbedarf') && matchesCalc('Proteinbedarf')"
                                        :unit="unit"
@@ -140,8 +149,8 @@
                                        @update:proteinMeals="v => proteinMeals = v"
                                        @calculate="calculateProtein"
                                        @copy="copyProtein"
-                                       @export="openDownloadPopup('protein')"
-                                       @reset="resetCalculator('protein')" />
+                                       @reset="resetCalculator('protein')"
+                                       @invalid="onCalcInvalid" />
 
                     <!-- 1RM Favorit -->
                     <OneRmCalculator v-if="isFavorite('1RM') && matchesCalc('1RM')"
@@ -159,8 +168,8 @@
                                      @update:oneRmReps="v => oneRmReps = v"
                                      @calculate="calculateOneRm"
                                      @copy="copyOneRm"
-                                     @export="openDownloadPopup('oneRm')"
-                                     @reset="resetCalculator('oneRm')" />
+                                     @reset="resetCalculator('oneRm')"
+                                     @invalid="onCalcInvalid" />
 
                     <!-- Körperfett Favorit -->
                     <BodyFatCalculator v-if="isFavorite('Körperfett') && matchesCalc('Körperfett')"
@@ -180,8 +189,8 @@
                                        @update:bodyFatHeight="v => bodyFatHeight = v"
                                        @calculate="calculateBodyFat"
                                        @copy="copyBodyFat"
-                                       @export="openDownloadPopup('bodyFat')"
-                                       @reset="resetCalculator('bodyFat')" />
+                                       @reset="resetCalculator('bodyFat')"
+                                       @invalid="onCalcInvalid" />
 
                     <!-- Koffein Favorit -->
                     <CaffeineSafeDoseCalculator v-if="isFavorite('Koffein') && matchesCalc('Koffein')"
@@ -198,8 +207,8 @@
                                                 @update:cafStatus="v => cafStatus = v"
                                                 @calculate="calculateCaffeine"
                                                 @copy="copyCaffeine"
-                                                @export="openDownloadPopup('caffeine')"
-                                                @reset="resetCalculator('caffeine')" />
+                                                @reset="onCafReset"
+                                                @invalid="onCalcInvalid" />
 
                     <!-- FFMI Favorit -->
                     <FfmiCalculator v-if="isFavorite('FFMI') && matchesCalc('FFMI')"
@@ -216,8 +225,8 @@
                                     @update:ffmiBodyFat="v => ffmiBodyFat = v"
                                     @calculate="calculateFFMI"
                                     @copy="copyFFMI"
-                                    @export="openDownloadPopup('ffmi')"
-                                    @reset="resetCalculator('ffmi')" />
+                                    @reset="resetCalculator('ffmi')"
+                                    @invalid="onCalcInvalid" />
                     <!-- GL Favorit -->
                     <GlycemicLoadCalculator v-if="isFavorite('Glykämische Last') && matchesCalc('Glykämische Last')"
                                             :autoCalcEnabled="autoCalcEnabled"
@@ -230,12 +239,14 @@
                                             :glCategory="glCategory"
                                             :isFavorite="true"
                                             @toggleFavorite="() => toggleFavorite('Glykämische Last')"
+                                            @update:glFood="v => glFood = v"
+                                            @update:glServing="v => glServing = v"
+                                            @update:glCarbs100="v => glCarbs100 = v"
                                             @update:glGi="v => glGi = v"
-                                            @update:glCarbs="v => glCarbs = v"
                                             @calculate="calculateGlyLoad"
                                             @copy="copyGlyLoad"
-                                            @export="openDownloadPopup('glyload')"
-                                            @reset="resetCalculator('glyload')" />
+                                            @reset="resetCalculator('glyload')"
+                                            @invalid="onCalcInvalid" />
 
 
                     <!-- Wasser Favorit -->
@@ -253,8 +264,8 @@
                                      @update:waterClimate="v => waterClimate = v"
                                      @calculate="calculateWater"
                                      @copy="copyWater"
-                                     @export="openDownloadPopup('water')"
-                                     @reset="resetCalculator('water')" />
+                                     @reset="resetCalculator('water')"
+                                     @invalid="onCalcInvalid" />
                 </template>
 
 
@@ -275,8 +286,8 @@
                                @update:bmiHeight="val => (bmiHeight = val)"
                                @calculate="calculateBMI"
                                @copy="copyBMI"
-                               @export="openDownloadPopup('bmi')"
-                               @reset="resetCalculator('bmi')" />
+                               @reset="resetCalculator('bmi')"
+                               @invalid="onCalcInvalid" />
 
                 <!-- ========== Kalorienbedarfsrechner ========== -->
                 <CaloriesCalculator v-if="matchesCalc('Kalorienbedarf') && !isFavorite('Kalorienbedarf')"
@@ -299,8 +310,28 @@
                                     @update:calorieGoal="v => calorieGoal = v"
                                     @calculate="calculateCalories"
                                     @copy="copyCalories"
-                                    @export="openDownloadPopup('calories')"
-                                    @reset="resetCalculator('calories')" />
+                                    @reset="resetCalculator('calories')"
+                                    @invalid="onCalcInvalid" />
+
+                <!-- Burn Rate Standard -->
+                <BurnRateCalculator v-if="matchesCalc('Burn Rate') && !isFavorite('Burn Rate')"
+                                    :unit="unit"
+                                    :autoCalcEnabled="autoCalcEnabled"
+                                    :burnStartWeight="burnStartWeight"
+                                    :burnGoalWeight="burnGoalWeight"
+                                    :burnMaintenance="burnMaintenance"
+                                    :burnIntake="burnIntake"
+                                    :burnResult="burnRateResult"
+                                    :isFavorite="isFavorite('Burn Rate')"
+                                    @toggleFavorite="() => toggleFavorite('Burn Rate')"
+                                    @update:burnStartWeight="(v: number | null) => (burnStartWeight = v)"
+                                    @update:burnGoalWeight="(v: number | null) => (burnGoalWeight = v)"
+                                    @update:burnMaintenance="(v: number | null) => (burnMaintenance = v)"
+                                    @update:burnIntake="(v: number | null) => (burnIntake = v)"
+                                    @calculate="calculateBurnRate"
+                                    @copy="copyBurnRate"
+                                    @reset="resetCalculator('burnRate')"
+                                    @invalid="onCalcInvalid" />
 
                 <ProteinCalculator v-if="matchesCalc('Proteinbedarf') && !isFavorite('Proteinbedarf')"
                                    :unit="unit"
@@ -318,8 +349,8 @@
                                    @update:proteinGoal="v => proteinGoal = v"
                                    @calculate="calculateProtein"
                                    @copy="copyProtein"
-                                   @export="openDownloadPopup('protein')"
-                                   @reset="resetCalculator('protein')" />
+                                   @reset="resetCalculator('protein')"
+                                   @invalid="onCalcInvalid" />
 
                 <!-- ========== 1RM Rechner ========== -->
                 <OneRmCalculator v-if="matchesCalc('1RM') && !isFavorite('1RM')"
@@ -337,8 +368,8 @@
                                  @update:oneRmReps="v => oneRmReps = v"
                                  @calculate="calculateOneRm"
                                  @copy="copyOneRm"
-                                 @export="openDownloadPopup('oneRm')"
-                                 @reset="resetCalculator('oneRm')" />
+                                 @reset="resetCalculator('oneRm')"
+                                 @invalid="onCalcInvalid" />
                 <!-- Koffein Standard -->
                 <CaffeineSafeDoseCalculator v-if="matchesCalc('Koffein') && !isFavorite('Koffein')"
                                             :unit="unit"
@@ -354,8 +385,8 @@
                                             @update:cafStatus="v => cafStatus = v"
                                             @calculate="calculateCaffeine"
                                             @copy="copyCaffeine"
-                                            @export="openDownloadPopup('caffeine')"
-                                            @reset="resetCalculator('caffeine')" />
+                                            @reset="onCafReset"
+                                            @invalid="onCalcInvalid" />
 
                 <!-- ========== Körperfett Rechner ========== -->
                 <BodyFatCalculator v-if="matchesCalc('Körperfett') && !isFavorite('Körperfett')"
@@ -375,8 +406,8 @@
                                    @update:bodyFatHeight="v => bodyFatHeight = v"
                                    @calculate="calculateBodyFat"
                                    @copy="copyBodyFat"
-                                   @export="openDownloadPopup('bodyFat')"
-                                   @reset="resetCalculator('bodyFat')" />
+                                   @reset="resetCalculator('bodyFat')"
+                                   @invalid="onCalcInvalid" />
 
                 <!-- ========== FFMI Rechner ========== -->
                 <FfmiCalculator v-if="matchesCalc('FFMI') && !isFavorite('FFMI')"
@@ -393,8 +424,8 @@
                                 @update:ffmiBodyFat="v => ffmiBodyFat = v"
                                 @calculate="calculateFFMI"
                                 @copy="copyFFMI"
-                                @export="openDownloadPopup('ffmi')"
-                                @reset="resetCalculator('ffmi')" />
+                                @reset="resetCalculator('ffmi')"
+                                @invalid="onCalcInvalid" />
                 <!-- GL Standard -->
                 <GlycemicLoadCalculator v-if="matchesCalc('Glykämische Last') && !isFavorite('Glykämische Last')"
                                         :autoCalcEnabled="autoCalcEnabled"
@@ -407,12 +438,14 @@
                                         :glCategory="glCategory"
                                         :isFavorite="isFavorite('Glykämische Last')"
                                         @toggleFavorite="() => toggleFavorite('Glykämische Last')"
+                                        @update:glFood="v => glFood = v"
+                                        @update:glServing="v => glServing = v"
+                                        @update:glCarbs100="v => glCarbs100 = v"
                                         @update:glGi="v => glGi = v"
-                                        @update:glCarbs="v => glCarbs = v"
                                         @calculate="calculateGlyLoad"
                                         @copy="copyGlyLoad"
-                                        @export="openDownloadPopup('glyload')"
-                                        @reset="resetCalculator('glyload')" />
+                                        @reset="resetCalculator('glyload')"
+                                        @invalid="onCalcInvalid" />
 
 
                 <!-- ========== Wasserbedarfsrechner ========== -->
@@ -430,11 +463,9 @@
                                  @update:waterClimate="v => waterClimate = v"
                                  @calculate="calculateWater"
                                  @copy="copyWater"
-                                 @export="openDownloadPopup('water')"
-                                 @reset="resetCalculator('water')" />
-
+                                 @reset="resetCalculator('water')"
+                                 @invalid="onCalcInvalid" />
             </div>
-
 
             <!-- ===================== PLÄNE TAB ===================== -->
             <div v-show="activeTab === 'plans'" class="plans-section">
@@ -452,7 +483,7 @@
                             <div v-for="plan in favoritePlans" :key="plan.id" class="list-item plan-item">
                                 <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
                                 <div class="list-item-actions">
-                                    <button class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
+                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
                             </div>
                         </div>
@@ -462,13 +493,12 @@
                             <div v-for="plan in otherPlans" :key="plan.id" class="list-item plan-item">
                                 <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
                                 <div class="list-item-actions">
-                                    <button class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
+                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
                             </div>
                         </div>
                     </template>
                 </div>
-
 
                 <div class="plan-card" v-if="matchesPlanSearch('Ernährungsplan')">
                     <div class="card-header">
@@ -501,167 +531,33 @@
                    @save="saveGoal"
                    @cancel="closeGoalPopup" />
 
+        <!-- Fortschritt ansehen (Cards je Tag) — OHNE Teleport -->
+        <PlanProgressPopup :show="showPlanProgressPopup"
+                           :currentPlanId="currentPlanId"
+                           :currentPlanName="currentPlanName"
+                           :workouts="workouts"
+                           :formatDayLong="formatDayLong"
+                           @close="closePlanProgressPopup"
+                           @add-entry="(p) => addEntryFromPlanView(p)"
+                           @download="onPlanProgressDownload"
+                           @edit-day="editLatestEntryForDay"
+                           @edit-entry="editEntryFromPlanView"
+                           @delete-day="deleteLatestEntryForDay"
+                           @delete-entries="deleteEntriesFromPlanView"
+                           @delete="deleteEntriesFromPlanView" />
+
         <ProgressEntryModal ref="progressEntryModalRef"
                             v-model:show="showProgressPopup"
-                            :isEditing="Boolean(editingEntry)"
-                            @delete="() => {
-    if (currentPlanId && editingEntry) {
-      deleteProgressEntry(currentPlanId, editingEntry.date)
-      editingEntry = null
-      showProgressPopup = false
-      if (reopenPlanProgressAfterSave) {
-        showPlanProgressPopup = true
-        reopenPlanProgressAfterSave = false
-      }
-    }
-  }"
-                            v-model:showExtras="showProgressExtras"
                             :unit="unit"
-                            :exercises="getExercisesForPlan(currentPlanId)"
-                            v-model:exercise="currentExercise"
-                            v-model:sets="newProgressSets"
-                            v-model:weight="newProgressWeight"
-                            v-model:reps="newProgressReps"
-                            v-model:note="newProgressNote"
-                            :inputType="detectedInputType"
-                            v-model:duration="newProgressDuration"
-                            v-model:distance="newProgressDistance"
+                            :exercises="getExercisesForPlan(effectivePlanId)"
                             :errors="validationErrorMessages"
-                            @save="saveProgress"
-                            @cancel="cancelProgressEdit"
+                            :planId="effectivePlanId"
+                            :latestBodyWeightDisplay="latestRecordedWeightDisplay"
+                            @save="onProgressModalSave"
+                            @delete="onProgressModalDelete"
+                            @cancel="onProgressModalCancel"
                             @dismissErrors="clearValidation"
-                            v-model:setDetails="newProgressSetDetails"
-                            v-model:tempo="newProgressTempo"
-                            v-model:restSeconds="newProgressRestSeconds"
-                            v-model:avgHr="newProgressAvgHr"
-                            v-model:calories="newProgressCalories"
-                            v-model:pace="newProgressPace"
-                            v-model:hrZone="newProgressHrZone"
-                            v-model:borg="newProgressBorg"
-                            v-model:painFree="newProgressPainFree"
-                            v-model:movementQuality="newProgressMovementQuality"
-                            v-model:equipment="newProgressEquipment"
-                            v-model:equipmentCustom="newProgressEquipmentCustom"
-                            v-model:side="newProgressSide"
                             @invalid="openValidationPopupError" />
-        <!-- Fortschritt ansehen (Cards je Tag) — OHNE Teleport -->
-        <div v-if="showPlanProgressPopup && currentPlanId"
-             class="modal-overlay"
-             @click.self="closePlanProgressPopup">
-            <div class="modal modal--progress"
-                 role="dialog"
-                 aria-modal="true"
-                 ref="progressModalEl"
-                 @click.stop>
-                <div class="card-header">
-                    <h3 class="modal-title">📖 Fortschritt – {{ currentPlanName }}</h3>
-                    <div class="card-actions" v-if="dayCards.length">
-                        <ActionIconButton ariaLabel="Herunterladen"
-                                          title="Herunterladen"
-                                          @click="openDownloadPopup('progress', currentPlanId!)">
-                            ⬇️
-                        </ActionIconButton>
-                    </div>
-                </div>
-
-                <div v-if="!dayCards.length" class="list-item empty">
-                    Noch kein Fortschritt erfasst.
-                    <button class="open-btn" style="margin-left:.5rem" @click="addEntryFromPlanView">
-                        Erster Eintrag
-                    </button>
-                </div>
-
-                <div v-else class="day-card-list">
-                    <article v-for="c in visibleDayCards" :key="c.day" class="day-card">
-                        <div class="day-card-row">
-                            <div class="day-card-main">
-                                <div class="day-date">{{ formatDayLong(c.day) }}</div>
-                                <div class="day-meta">
-                                    <span class="count">{{ c.uniqueExercises }} Übungen</span>
-                                </div>
-                            </div>
-                            <div class="day-card-actions">
-                                <button class="open-btn" @click="editLatestEntryForDay(c.day)">Bearbeiten</button>
-                                <button class="open-btn" @click="toggleDay(c.day)">
-                                    {{ expandedDays.has(c.day) ? 'Schließen' : 'Öffnen' }}
-                                </button>
-                            </div>
-                        </div>
-                        <div class="day-details">
-                            <!-- Cardio (zeit-/distanzbasiert) -->
-                            <div v-if="cardioForDay(c.day).length" class="exercise-block">
-                                <div class="exercise-header">Cardio</div>
-                                <ul class="journal-entries">
-                                    <li v-for="(e, i) in cardioForDay(c.day)" :key="'cardio-'+e.date+'-'+i" class="journal-entry">
-                                        <div class="entry-head">
-                                            <span class="entry-exercise">{{ e.exercise }}</span>
-                                            <span class="type-chip" data-type="ausdauer">Cardio</span>
-                                            <span class="entry-summary">
-                                                <template v-if="e.durationMin != null">
-                                                    {{ e.durationMin }} Min
-                                                </template>
-                                                <template v-if="e.sets && e.reps">
-                                                    <span v-if="e.durationMin != null"> · </span>
-                                                    {{ e.sets }}×{{ e.reps }}
-                                                </template>
-                                            </span>
-                                        </div>
-                                        <div class="chips">
-                                            <span v-if="e.avgHr != null" class="chip">Ø Puls {{ e.avgHr }}</span>
-                                            <span v-if="e.calories != null" class="chip">{{ e.calories }} kcal</span>
-                                            <span v-if="e.pace" class="chip">{{ e.pace }}/km</span>
-                                            <span v-if="e.hrZone != null" class="chip">Zone {{ e.hrZone }}</span>
-                                            <span v-if="e.borg != null" class="chip">Borg {{ e.borg }}</span>
-                                        </div>
-                                        <div v-if="e.note" class="note">— {{ e.note }}</div>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <!-- Dehnung (zeit-/satzbasiert) -->
-                            <div v-if="stretchForDay(c.day).length" class="exercise-block">
-                                <div class="exercise-header">Dehnung</div>
-                                <ul class="journal-entries">
-                                    <li v-for="(e, i) in stretchForDay(c.day)" :key="'flex-'+e.date+'-'+i" class="journal-entry">
-                                        <div class="entry-head">
-                                            <span class="entry-exercise">{{ e.exercise }}</span>
-                                            <span class="type-chip" data-type="dehnung">Dehnung</span>
-                                            <span class="entry-summary">
-                                                {{ e.durationMin }} Min
-                                                <span v-if="e.sets && e.reps"> · {{ e.sets }}×{{ e.reps }}</span>
-                                            </span>
-                                        </div>
-                                        <div class="chips">
-                                            <span v-if="e.side" class="chip">{{ e.side }}</span>
-                                            <span v-if="e.painFree != null" class="chip">Schmerzfrei {{ e.painFree }}/10</span>
-                                            <span v-if="e.movementQuality != null" class="chip">Qualität {{ e.movementQuality }}/10</span>
-                                            <span v-if="e.equipment" class="chip">{{ e.equipment }}</span>
-                                            <span v-if="e.equipmentCustom" class="chip">{{ e.equipmentCustom }}</span>
-                                        </div>
-                                        <div v-if="e.note" class="note">— {{ e.note }}</div>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </article>
-
-                    <div v-if="dayCards.length > visibleDays" class="load-more">
-                        <button class="open-btn" @click="visibleDays += 7">Weitere Tage laden</button>
-                    </div>
-                </div>
-
-                <div class="scroll-sentinel-end" aria-hidden="true" style="height:1px"></div>
-
-                <div class="modal-actions">
-                    <PopupCancelButton ariaLabel="Abbrechen" @click="closePlanProgressPopup" />
-                    <PopupSaveButton ariaLabel="Eintragen" @click="addEntryFromPlanView">
-                        Neuer Eintrag
-                    </PopupSaveButton>
-                </div>
-            </div>
-        </div>
-
-
         <!-- Export-Popup -->
         <ExportPopup :show="showDownloadPopup"
                      v-model="downloadFormat"
@@ -669,9 +565,16 @@
                      @cancel="closeDownloadPopup" />
 
         <!-- Validation Popup-->
-        <ValidationPopup :show="validationErrorMessages.length > 0"
-                         :errors="validationErrorMessages"
-                         @close="clearValidation" />
+        <ValidationPopup :show="calcValidationErrors.length > 0"
+                         :errors="calcValidationErrors"
+                         @close="clearCalcValidation" />
+
+        <!-- Delete Confirm Popup (für Stats-Resets) -->
+        <DeleteConfirmPopup :show="showDeleteConfirmPopup"
+                            @confirm="confirmDeleteNow"
+                            @cancel="cancelDeleteConfirm" />
+
+
         <!-- Toast -->
         <Toast v-if="toast"
                :toast="toast"
@@ -687,7 +590,7 @@
     import { useRouter } from 'vue-router'
     import Chart from 'chart.js/auto';
     import confetti from 'canvas-confetti';
-    import jsPDF from 'jspdf';
+    import { jsPDF } from 'jspdf';
     import { useUnits, KG_PER_LB } from '@/composables/useUnits'
     import Toast from '@/components/ui/Toast.vue'
     import DashboardCard from '@/components/ui/DashboardCard.vue'
@@ -705,13 +608,44 @@
     import ProteinCalculator from '@/components/ui/calculators/ProteinCalculator.vue'
     import CaffeineSafeDoseCalculator from '@/components/ui/calculators/CaffeineSafeDoseCalculator.vue'
     import GlycemicLoadCalculator from '@/components/ui/calculators/GlycemicLoadCalculator.vue'
+    import BurnRateCalculator from '@/components/ui/calculators/BurnRateCalculator.vue'
     import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
     import type { Toast as ToastModel } from '@/types/toast'
-    import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
     import ProgressEntryModal from '@/components/ui/popups/ProgressEntryModal.vue'
-    import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
+    import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
+    import PlanProgressPopup from '@/components/ui/popups/PlanProgressPopup.vue'
+    import { useProgressStore } from "@/store/progressStore"
+    import type { CreateProgressEntry, UpdateProgressEntry } from "@/types/Progress"
+    import { useTrainingPlansStore } from "@/store/trainingPlansStore"
 
+    import { useRoute } from 'vue-router'
+
+    import {
+        LS_AUTO_CALC_ENABLED,
+        LS_OPEN_PLAN_ID,
+        LS_PROGRESS_FAVORITE_CALCULATORS,
+        LS_PROGRESS_WEIGHTS,
+        LS_PROGRESS_WORKOUTS,
+        LS_PROGRESS_GOAL,
+
+        LS_PROGRESS_BMI,
+        LS_PROGRESS_CALORIES,
+        LS_PROGRESS_ONE_RM,
+        LS_PROGRESS_BODY_FAT,
+        LS_PROGRESS_FFMI,
+        LS_PROGRESS_WATER,
+        LS_PROGRESS_PROTEIN,
+        LS_PROGRESS_CAFFEINE,
+        LS_PROGRESS_GLYLOAD,
+        LS_PROGRESS_BURN_RATE,
+
+        LS_LEGACY_TRAINING_PLANS,
+
+        LS_TOAST_DURATION_MS,
+        LS_TOASTS_ENABLED,
+        LS_TRAINING_DATA,
+    } from '@/constants/storageKeys'
     // Interfaces
     interface PlanExercise {
         exercise: string
@@ -736,11 +670,12 @@
     }
 
     interface DropSetEntry {
-        weight: number;
-        reps: number
+        weight: number | null
+        reps: number | null
     }
 
     interface Workout {
+        id?: string
         exercise: string
         sets: number
         weight: number
@@ -751,9 +686,9 @@
         type?: WorkoutType
         durationMin?: number
         distanceKm?: number
-        setDetails?: Array<{ weight: number; reps: number }>
+        setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null }>
         isDropset?: boolean
-        dropsets?: Array<{ weight: number; reps: number }>
+        dropsets?: Array<{ weight: number | null; reps: number | null }>
         tempo?: string
         restSeconds?: number | null
         avgHr?: number | null
@@ -789,7 +724,30 @@
 
     type CalcCategory = 'alle' | 'gesundheit' | 'kraft' | 'ernaehrung' | 'alltag'
 
-    type ProgressEntryModalExposed = { submit: () => void }
+    type ProgressEntryModalExposed = {
+        openCreate: (opts: { planId: string; defaultBodyWeightDisplay: number | null }) => void
+        openEdit: (opts: { planId: string; entry: Workout }) => void
+        submit?: () => void
+    }
+
+    const trainingPlansStore = useTrainingPlansStore()
+
+    const activePlanId = computed(() => effectivePlanId.value)
+
+    const planExerciseOptions = computed < string[] > (() => {
+        const id = activePlanId.value
+        if (!id) return []
+
+        const dto = trainingPlansStore.items.find(p => p.id === id)
+        if (!dto || !Array.isArray(dto.days)) return []
+
+        const names = dto.days.flatMap(d =>
+            Array.isArray(d.exercises) ? d.exercises.map(x => String((x as any).name ?? "").trim()) : []
+        ).filter(Boolean)
+
+        // unique + sort
+        return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b, "de"))
+    })
 
     // ====== CHARTS UND COPY >>>>>>>>>>
 
@@ -988,24 +946,24 @@
 
     // Basis-State für die Werte, die in den Cards angezeigt werden
 
-    const weightHistory = ref < WeightEntry[] > ([]);
-    const workouts = ref < Workout[] > ([]);
-    const meals = ref < Meal[] > ([]);
-    const goal = ref < number | null > (null);
+    const weightHistory = ref<WeightEntry[]>([]);
+    const workouts = ref<Workout[]>([]);
+    const meals = ref<Meal[]>([]);
+    const goal = ref<number | null>(null);
 
     // State für die Popups der DashboardCards
 
-    const newWeight = ref < number | null > (null);
-    const newGoal = ref < number | null > (null);
+    const newWeight = ref<number | null>(null);
+    const newGoal = ref<number | null>(null);
     const showWeightPopup = ref(false);
     const showGoalPopup = ref(false);
-    const weightInput = ref < HTMLInputElement | null > (null);
-    const goalInput = ref < HTMLInputElement | null > (null);
+    const weightInput = ref<HTMLInputElement | null>(null);
+    const goalInput = ref<HTMLInputElement | null>(null);
 
     // Tabs + Responsive-Handling für :compact in DashboardCard
 
     const mq = window.matchMedia('(max-width: 600px)')
-    const isMobile = ref < boolean > (mq.matches)
+    const isMobile = ref<boolean>(mq.matches)
 
     const handleMqChange = (e: MediaQueryListEvent | MediaQueryList) => {
         isMobile.value = 'matches' in e ? e.matches : (e as MediaQueryList).matches
@@ -1057,11 +1015,11 @@
     })
 
     //  Validierung für Gewicht & Zielgewicht
-    const validationErrorMessages = ref < string[] > ([]);
+    const validationErrorMessages = ref<string[]>([]);
 
     const validateWeight = (weight: number | null): string | null => {
         if (weight === null || isNaN(weight)) return 'Gewicht muss eine Zahl sein';
-        if (weight <= 0) return 'Gewicht muss größer als 0 sein';
+        if (weight <= 0) return 'Körpergewicht muss größer als 0 sein';
         const kg = displayToKg(Number(weight));
         if (kg > 200) return 'Gewicht darf maximal 200 kg sein';
 
@@ -1078,7 +1036,7 @@
 
     // ================== Popup-Logik: Card "Aktuelles Gewicht" ==================
 
-    const latestRecordedWeightDisplay = computed < number | null > (() =>
+    const latestRecordedWeightDisplay = computed<number | null>(() =>
         weightHistory.value.length ? kgToDisplay(weightHistory.value[0].weight) : null
     )
 
@@ -1099,7 +1057,7 @@
         weightHistory.value.unshift({ date: today, weight: weightKg });
 
         // Persistieren
-        localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value));
+        localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value));
 
         // 👉 Körpergewicht oben im Fortschritt-Editor direkt mitziehen
         newProgressWeight.value = kgToDisplay(weightKg)
@@ -1125,11 +1083,11 @@
 
     const saveToLocalStorage = (key: string, data: any) => {
         try {
-            localStorage.setItem(`progress_${key}`, JSON.stringify(data));
+            localStorage.setItem(key, JSON.stringify(data))
         } catch (err) {
-            console.error(`Error saving ${key} to localStorage:`, err);
+            console.error(`Error saving ${key} to localStorage:`, err)
         }
-    };
+    }
 
     const openGoalPopup = () => {
         newGoal.value = null;
@@ -1146,7 +1104,7 @@
             return;
         }
         goal.value = displayToKg(Number(newGoal.value));
-        saveToLocalStorage('goal', { goal: goal.value });
+        saveToLocalStorage(LS_PROGRESS_GOAL, { goal: goal.value })
         addToast('Zielgewicht gespeichert', 'default');
         closeGoalPopup();
     };
@@ -1160,19 +1118,17 @@
 
     // Suche
 
-    const searchQuery = ref < string > ('');
-    const planSearchQuery = ref < string > ('');
+    const searchQuery = ref<string>('');
+    const planSearchQuery = ref<string>('');
 
-    const activeTab = ref < 'stats' | 'calculators' | 'plans' > ('stats');
+    const activeTab = ref<'stats' | 'calculators' | 'plans'>('stats');
 
     // ===== Stats-Tab: ChartCard Gewichtsverlauf & Trainingsstatistik =====
 
     const hasWeightStats = computed(() => weightHistory.value.length > 0)
     const hasWorkoutStats = computed(() => workouts.value.length > 0)
 
-    const resetWeightStats = () => {
-        if (!weightHistory.value.length) return
-
+    const doResetWeightStats = () => {
         // alten Zustand für Undo merken
         const snapshot = [...weightHistory.value]
         lastResetAction.value = {
@@ -1182,17 +1138,15 @@
 
         // wirklich zurücksetzen
         weightHistory.value = []
-        localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
+        localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value))
 
         if (weightChart) {
             weightChart.destroy()
             weightChart = null
         }
 
-        // Toasts ggf. noch unterdrückt? Sofort freigeben.
         releaseToasts()
 
-        // Reset-Toast mit Undo-Action
         addToast(
             'Gewichtsverlauf zurückgesetzt',
             'add',
@@ -1201,11 +1155,9 @@
                 handler: () => {
                     if (!lastResetAction.value || lastResetAction.value.kind !== 'weight') return
 
-                    // Daten zurückholen
                     weightHistory.value = [...lastResetAction.value.data]
-                    localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
+                    localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value))
 
-                    // Canvas wird durch v-if erst im nächsten Tick wieder gerendert
                     nextTick(() => {
                         updateWeightChart()
                     })
@@ -1217,28 +1169,30 @@
         )
     }
 
+    const resetWeightStats = () => {
+        if (!weightHistory.value.length) return
 
-    const resetWorkoutStats = () => {
-        if (!workouts.value.length) return
-
-        // alten Zustand für Undo merken
+        requestDeleteConfirm({
+            title: 'Gewichtsverlauf wirklich löschen?',
+            message: 'Das setzt deinen Gewichtsverlauf zurück.',
+            onConfirm: doResetWeightStats,
+        })
+    }
+    const doResetWorkoutStats = () => {
         const snapshot = [...workouts.value]
         lastResetAction.value = {
             kind: 'workout',
             data: snapshot,
         }
 
-        // wirklich zurücksetzen
         workouts.value = []
-        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
+        localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value))
 
         if (workoutChart) workoutChart.destroy()
         updateWorkoutChart()
 
-        // Toasts ggf. noch unterdrückt? Sofort freigeben.
         releaseToasts()
 
-        // Reset-Toast mit Undo-Action
         addToast(
             'Trainingsstatistik zurückgesetzt',
             'add',
@@ -1247,11 +1201,9 @@
                 handler: () => {
                     if (!lastResetAction.value || lastResetAction.value.kind !== 'workout') return
 
-                    // Daten zurückholen
                     workouts.value = [...lastResetAction.value.data]
-                    localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
+                    localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value))
 
-                    // Canvas kommt per v-if erst im nächsten Tick zurück
                     nextTick(() => {
                         updateWorkoutChart()
                     })
@@ -1263,10 +1215,20 @@
         )
     }
 
+    const resetWorkoutStats = () => {
+        if (!workouts.value.length) return
+
+        requestDeleteConfirm({
+            title: 'Trainingsstatistik wirklich löschen?',
+            message: 'Das setzt deine Trainingsstatistik zurück.',
+            onConfirm: doResetWorkoutStats,
+        })
+    }
+
 
     // ===== Filterleiste =====
 
-    const calcCategory = ref < CalcCategory > ('alle')
+    const calcCategory = ref<CalcCategory>('alle')
 
     const CALC_CATEGORY: Record<string, CalcCategory> = {
         'BMI': 'gesundheit',
@@ -1278,6 +1240,7 @@
         'Proteinbedarf': 'ernaehrung',
         'Koffein': 'alltag',
         'Glykämische Last': 'ernaehrung',
+        'Burn Rate': 'ernaehrung',
 
     }
 
@@ -1288,21 +1251,10 @@
         return searchOk && categoryOk
     }
 
-    const sortedCalculators = computed(() => {
-        return calculators.value
-            .filter(c => matchesCalc(c.key))
-            .sort((a, b) => {
-                const aFav = favoriteCalculators.value.has(a.key) ? 1 : 0
-                const bFav = favoriteCalculators.value.has(b.key) ? 1 : 0
-                if (bFav !== aFav) return bFav - aFav   // Favoriten nach oben
-                return a.name.localeCompare(b.name, 'de') // danach alphabetisch
-            })
-    })
-
     //===== Favorit Calculators =====
 
-    const favoriteCalculators = ref < Set < string >> (new Set())
-    const FAVORITES_KEY = 'progress_favorite_calculators'
+    const favoriteCalculators = ref<Set<string>>(new Set())
+    const FAVORITES_KEY = LS_PROGRESS_FAVORITE_CALCULATORS
     const favoriteCalcs = computed(() => Array.from(favoriteCalculators.value));
 
     const isFavorite = (id: string) => isFavCalculator(id);
@@ -1342,43 +1294,17 @@
     const isFavCalculator = (id: string) => favoriteCalculators.value.has(id)
 
     onMounted(() => {
-        const flag = localStorage.getItem('autoCalcEnabled')
+        const flag = localStorage.getItem(LS_AUTO_CALC_ENABLED)
         autoCalcEnabled.value = flag === 'true'
         loadFavoriteCalculators()
 
-        const stored = localStorage.getItem('toastsEnabled')
+        const stored = localStorage.getItem(LS_TOASTS_ENABLED)
         toastsEnabled.value = stored === null ? true : stored === 'true'
-
-        window.addEventListener('toasts-enabled-changed', handleToastsSetting)
     })
 
 
     // ===== Allgemein zu den Calculators =====
     const autoCalcEnabled = ref(false)
-
-    const getCalculatorComponent = (key: string) => {
-        switch (key) {
-            case 'BMI': return 'BmiCalculator'
-            case 'Kalorienbedarf': return 'CaloriesCalculator'
-            case '1RM': return 'OneRmCalculator'
-            case 'Körperfett': return 'BodyFatCalculator'
-            case 'FFMI': return 'FfmiCalculator'
-            case 'Wasserbedarf': return 'WaterCalculator'
-            default: return 'div'
-        }
-    }
-
-    const calculators = ref([
-        { key: 'BMI', name: 'BMI-Rechner', isFavorite: false },
-        { key: 'Kalorienbedarf', name: 'Kalorienbedarfsrechner', isFavorite: false },
-        { key: '1RM', name: '1RM-Rechner', isFavorite: false },
-        { key: 'Körperfett', name: 'Körperfett-Rechner', isFavorite: false },
-        { key: 'FFMI', name: 'FFMI-Rechner', isFavorite: false },
-        { key: 'Wasserbedarf', name: 'Wasserbedarfsrechner', isFavorite: false },
-        { key: 'Proteinbedarf', name: 'Proteinbedarfsrechner', isFavorite: false },
-        { key: 'Glykämische Last', name: 'GL-Rechner', isFavorite: false },
-        { key: 'Koffein', name: 'Koffein – sichere Dosis', isFavorite: false },
-    ])
 
     const resetCalculator = (calculator: string) => {
         releaseToasts()
@@ -1399,7 +1325,7 @@
                 bmiWeight.value = null
                 bmiHeight.value = null
                 bmiResult.value = null
-                localStorage.removeItem('progress_bmi')
+                localStorage.removeItem(LS_PROGRESS_BMI)
 
                 addToast('BMI-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1410,7 +1336,7 @@
                         bmiWeight.value = prev.weight
                         bmiHeight.value = prev.height
                         bmiResult.value = prev.result
-                        saveToLocalStorage('bmi', prev)
+                        saveToLocalStorage(LS_PROGRESS_BMI, prev)
                         lastCalculatorReset.value = null
                         addToast('BMI-Rechner wiederhergestellt', 'add')
                     }
@@ -1439,7 +1365,7 @@
                 calorieActivity.value = '1.2'
                 calorieGoal.value = 0
                 calorieResult.value = null
-                localStorage.removeItem('progress_calories')
+                localStorage.removeItem(LS_PROGRESS_CALORIES)
 
                 addToast('Kalorienbedarfsrechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1453,12 +1379,49 @@
                         calorieActivity.value = prev.activity
                         calorieGoal.value = prev.goal
                         calorieResult.value = prev.result
-                        saveToLocalStorage('calories', prev)
+                        saveToLocalStorage(LS_PROGRESS_CALORIES, prev)
                         if (calorieResult.value && activeTab.value === 'calculators') {
                             updateMacroChart()
                         }
                         lastCalculatorReset.value = null
                         addToast('Kalorienbedarfsrechner wiederhergestellt', 'add')
+                    }
+                })
+                break
+            }
+
+            case 'burnRate': {
+                lastCalculatorReset.value = {
+                    id: 'burnRate',
+                    data: {
+                        startWeight: burnStartWeight.value,
+                        goalWeight: burnGoalWeight.value,
+                        maintenance: burnMaintenance.value,
+                        intake: burnIntake.value,
+                        result: burnRateResult.value,
+                    }
+                }
+
+                burnStartWeight.value = null
+                burnGoalWeight.value = null
+                burnMaintenance.value = null
+                burnIntake.value = null
+                burnRateResult.value = null
+                localStorage.removeItem(LS_PROGRESS_BURN_RATE)
+
+                addToast('Burn Rate zurückgesetzt', 'add', {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        if (!lastCalculatorReset.value || lastCalculatorReset.value.id !== 'burnRate') return
+                        const prev = lastCalculatorReset.value.data
+                        burnStartWeight.value = prev.startWeight
+                        burnGoalWeight.value = prev.goalWeight
+                        burnMaintenance.value = prev.maintenance
+                        burnIntake.value = prev.intake
+                        burnRateResult.value = prev.result
+                        saveToLocalStorage(LS_PROGRESS_BURN_RATE, prev)
+                        lastCalculatorReset.value = null
+                        addToast('Burn Rate wiederhergestellt', 'add')
                     }
                 })
                 break
@@ -1479,7 +1442,7 @@
                 oneRmWeight.value = null
                 oneRmReps.value = null
                 oneRmResult.value = null
-                localStorage.removeItem('progress_oneRm')
+                localStorage.removeItem(LS_PROGRESS_ONE_RM)
 
                 addToast('1RM-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1490,7 +1453,7 @@
                         oneRmWeight.value = prev.weight
                         oneRmReps.value = prev.reps
                         oneRmResult.value = prev.result
-                        saveToLocalStorage('oneRm', prev)
+                        saveToLocalStorage(LS_PROGRESS_ONE_RM, prev)
                         lastCalculatorReset.value = null
                         addToast('1RM-Rechner wiederhergestellt', 'add')
                     }
@@ -1517,7 +1480,7 @@
                 bodyFatHip.value = null
                 bodyFatHeight.value = null
                 bodyFatResult.value = null
-                localStorage.removeItem('progress_bodyFat')
+                localStorage.removeItem(LS_PROGRESS_BODY_FAT)
 
                 addToast('Körperfett-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1530,7 +1493,7 @@
                         bodyFatHip.value = prev.hip
                         bodyFatHeight.value = prev.height
                         bodyFatResult.value = prev.result
-                        saveToLocalStorage('bodyFat', prev)
+                        saveToLocalStorage(LS_PROGRESS_BODY_FAT, prev)
                         lastCalculatorReset.value = null
                         addToast('Körperfett-Rechner wiederhergestellt', 'add')
                     }
@@ -1553,7 +1516,7 @@
                 ffmiHeight.value = null
                 ffmiBodyFat.value = null
                 ffmiResult.value = null
-                localStorage.removeItem('progress_ffmi')
+                localStorage.removeItem(LS_PROGRESS_FFMI)
 
                 addToast('FFMI-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1564,7 +1527,7 @@
                         ffmiHeight.value = prev.height
                         ffmiBodyFat.value = prev.bodyFat
                         ffmiResult.value = prev.result
-                        saveToLocalStorage('ffmi', prev)
+                        saveToLocalStorage(LS_PROGRESS_FFMI, prev)
                         lastCalculatorReset.value = null
                         addToast('FFMI-Rechner wiederhergestellt', 'add')
                     }
@@ -1587,7 +1550,7 @@
                 waterActivity.value = 'low'
                 waterClimate.value = 'temperate'
                 waterResult.value = null
-                localStorage.removeItem('progress_water')
+                localStorage.removeItem(LS_PROGRESS_WATER)
 
                 addToast('Wasserbedarfsrechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1598,7 +1561,7 @@
                         waterActivity.value = prev.activity
                         waterClimate.value = prev.climate
                         waterResult.value = prev.result
-                        saveToLocalStorage('water', prev)
+                        saveToLocalStorage(LS_PROGRESS_WATER, prev)
                         lastCalculatorReset.value = null
                         addToast('Wasserbedarfsrechner wiederhergestellt', 'add')
                     }
@@ -1623,7 +1586,7 @@
                 proteinActivity.value = 'low'
                 proteinMeals.value = null
                 proteinResult.value = null
-                localStorage.removeItem('progress_protein')
+                localStorage.removeItem(LS_PROGRESS_PROTEIN)
 
                 addToast('Proteinbedarf-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1635,7 +1598,7 @@
                         proteinActivity.value = prev.activity
                         proteinMeals.value = prev.meals
                         proteinResult.value = prev.result
-                        saveToLocalStorage('protein', {
+                        saveToLocalStorage(LS_PROGRESS_PROTEIN, {
                             weight: prev.weight,
                             goal: prev.goal,
                             activity: prev.activity,
@@ -1663,7 +1626,7 @@
                 cafSensitivity.value = 'normal'
                 cafStatus.value = 'none'
                 cafResult.value = null
-                localStorage.removeItem('progress_caffeine')
+                localStorage.removeItem(LS_PROGRESS_CAFFEINE)
 
                 addToast('Koffein-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1674,7 +1637,7 @@
                         cafSensitivity.value = prev.sensitivity
                         cafStatus.value = prev.status
                         cafResult.value = prev.result
-                        saveToLocalStorage('caffeine', prev)
+                        saveToLocalStorage(LS_PROGRESS_CAFFEINE, prev)
                         lastCalculatorReset.value = null
                         addToast('Koffein-Rechner wiederhergestellt', 'add')
                     }
@@ -1699,7 +1662,7 @@
                 glCarbs100.value = null
                 glGi.value = null
                 glResult.value = null
-                localStorage.removeItem('progress_glyload')
+                localStorage.removeItem(LS_PROGRESS_GLYLOAD)
 
                 addToast('GL-Rechner zurückgesetzt', 'add', {
                     label: 'Rückgängig',
@@ -1711,7 +1674,7 @@
                         glCarbs100.value = prev.carbs100
                         glGi.value = prev.gi
                         glResult.value = prev.result
-                        saveToLocalStorage('glyload', {
+                        saveToLocalStorage(LS_PROGRESS_GLYLOAD, {
                             food: prev.food,
                             serving: prev.serving,
                             carbs100: prev.carbs100,
@@ -1728,30 +1691,68 @@
         }
     }
 
+    //=============== Validation Rechner ===========
+
+    const calcValidationErrors = ref<string[]>([])
+
+    function onCalcInvalid(errors: string[]) {
+        calcValidationErrors.value = errors
+    }
+    function clearCalcValidation() {
+        calcValidationErrors.value = []
+    }
+    //=============== Jump to Rechner Infos ===========
+
+    const route = useRoute()
+    const router = useRouter()
+    const progressStore = useProgressStore()
+
+    async function jumpToCalculatorsFromRoute() {
+        const tab = String(route.query.tab || '')
+        const focusRaw = String(route.query.focus || '')
+        const focus = focusRaw.trim()
+
+        if (tab !== 'calculators') return
+
+        // Tab umschalten
+        activeTab.value = 'calculators'
+
+        // optional: Fokus setzt Filter direkt passend
+        if (focus) {
+            searchQuery.value = focus
+            const cat = CALC_CATEGORY[focus]
+            if (cat) calcCategory.value = cat
+        }
+
+        // warten bis DOM wirklich da ist
+        await nextTick()
+
+        // sauber an den Rechner-Bereich
+        const el =
+            document.querySelector('.calc-filterbar') ||
+            document.querySelector('.calculators-grid')
+
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+        // URL cleanen (ohne History-Spam)
+        if (route.query.tab || route.query.focus) {
+            const q: Record<string, any> = { ...route.query }
+            delete q.tab
+            delete q.focus
+            router.replace({ query: q })
+        }
+    }
 
     //=============== BMI Calculator ==========
 
-    const bmiGender = ref < 'male' | 'female' > ('male');
-    const bmiWeight = ref < number | null > (null);
-    const bmiHeight = ref < number | null > (null);
-    const bmiResult = ref < { value: number; category: string } | null > (null);
-
-    const validateBMI = (): string[] => {
-        const errors: string[] = [];
-        if (!bmiGender.value) errors.push('Geschlecht muss ausgewählt sein');
-        if (bmiWeight.value === null || isNaN(bmiWeight.value) || bmiWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (bmiHeight.value === null || isNaN(bmiHeight.value) || bmiHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        return errors;
-    };
+    const bmiGender = ref<'male' | 'female'>('male');
+    const bmiWeight = ref<number | null>(null);
+    const bmiHeight = ref<number | null>(null);
+    const bmiResult = ref<{ value: number; category: string } | null>(null);
 
     const calculateBMI = () => {
-        const errors = validateBMI();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        if (bmiWeight.value == null || bmiHeight.value == null) return
+
         const weightKg = unit.value === 'kg' ? Number(bmiWeight.value) : Number(bmiWeight.value) * KG_PER_LB
         const heightM = Number(bmiHeight.value) / 100
         const bmi = weightKg / (heightM * heightM)
@@ -1770,12 +1771,12 @@
         }
         bmiResult.value = { value: bmi, category };
         addToast('BMI berechnet', 'default');
-        saveToLocalStorage('bmi', {
+        saveToLocalStorage(LS_PROGRESS_BMI, {
             gender: bmiGender.value,
             weight: bmiWeight.value,
             height: bmiHeight.value,
             result: bmiResult.value,
-        });
+        })
     };
 
     const copyBMI = () => {
@@ -1789,7 +1790,7 @@
     }
 
     const debouncedCalcBMI = debounce(() => {
-        if (!validateBMI().length) withSilentToasts(calculateBMI)
+        withSilentToasts(calculateBMI)
     })
 
     watch([bmiGender, bmiWeight, bmiHeight], () => {
@@ -1798,34 +1799,20 @@
 
     //========== Calories Calculator ==========
 
-    const calorieAge = ref < number | null > (null);
-    const calorieGender = ref < 'male' | 'female' > ('male');
-    const calorieWeight = ref < number | null > (null);
-    const calorieHeight = ref < number | null > (null);
-    const calorieActivity = ref < string > ('1.2');
-    const calorieGoal = ref < number > (0);
-    const calorieResult = ref < {
+    const calorieAge = ref<number | null>(null);
+    const calorieGender = ref<'male' | 'female'>('male');
+    const calorieWeight = ref<number | null>(null);
+    const calorieHeight = ref<number | null>(null);
+    const calorieActivity = ref<string>('1.2');
+    const calorieGoal = ref<number>(0);
+    const calorieResult = ref<{
         total: number;
         macros: { carbs: number; protein: number; fat: number };
-    } | null > (null);
-
-    const validateCalories = (): string[] => {
-        const errors: string[] = [];
-        if (calorieAge.value === null || isNaN(calorieAge.value) || calorieAge.value <= 0)
-            errors.push('Alter muss größer als 0 sein');
-        if (calorieWeight.value === null || isNaN(calorieWeight.value) || calorieWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (calorieHeight.value === null || isNaN(calorieHeight.value) || calorieHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        return errors;
-    };
+    } | null>(null);
 
     const calculateCalories = () => {
-        const errors = validateCalories();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        if (calorieAge.value == null || calorieWeight.value == null || calorieHeight.value == null) return
+
         let bmr = 0;
         const weightKg = unit.value === 'kg' ? Number(calorieWeight.value) : Number(calorieWeight.value) * KG_PER_LB;
         const height = Number(calorieHeight.value);
@@ -1846,7 +1833,7 @@
         calorieResult.value = { total, macros };
         updateMacroChart();
         addToast('Kalorienbedarf berechnet', 'default');
-        saveToLocalStorage('calories', {
+        saveToLocalStorage(LS_PROGRESS_CALORIES, {
             age,
             gender: calorieGender.value,
             weight: calorieWeight.value,
@@ -1871,33 +1858,119 @@
     }
 
     const debouncedCalcCalories = debounce(() => {
-        if (!validateCalories().length) withSilentToasts(calculateCalories)
+        withSilentToasts(calculateCalories)
     })
 
     watch([calorieAge, calorieGender, calorieWeight, calorieHeight, calorieActivity, calorieGoal], () => {
         if (autoCalcEnabled.value) debouncedCalcCalories()
     })
+
+    //========== Burn Rate Calculator ==========
+
+    const burnStartWeight = ref<number | null>(null)
+    const burnGoalWeight = ref<number | null>(null)
+    const burnMaintenance = ref<number | null>(null)
+    const burnIntake = ref<number | null>(null)
+
+    type BurnRateResult = {
+        dailyDelta: number
+        weeklyChangeKg: number
+        weeklyChangeDisplay: number
+        daysToGoal: number | null
+        note?: string
+    }
+    const burnRateResult = ref<BurnRateResult | null>(null)
+
+    const calculateBurnRate = () => {
+        // Safety-Guard
+        if (
+            burnStartWeight.value == null ||
+            burnGoalWeight.value == null ||
+            burnMaintenance.value == null ||
+            burnIntake.value == null
+        ) return
+
+        const startKg = unit.value === 'kg' ? Number(burnStartWeight.value) : Number(burnStartWeight.value) * KG_PER_LB
+        const goalKg = unit.value === 'kg' ? Number(burnGoalWeight.value) : Number(burnGoalWeight.value) * KG_PER_LB
+
+        const tdee = Number(burnMaintenance.value)
+        const intake = Number(burnIntake.value)
+
+        const dailyDelta = intake - tdee // negativ = Defizit, positiv = Überschuss
+        const weeklyChangeKg = (dailyDelta * 7) / 7700
+
+        const weeklyChangeDisplay =
+            unit.value === 'kg' ? weeklyChangeKg : (weeklyChangeKg / KG_PER_LB)
+
+        const targetChangeKg = goalKg - startKg
+        let daysToGoal: number | null = null
+        let note = ''
+
+        if (Math.abs(weeklyChangeKg) < 1e-9) {
+            daysToGoal = null
+            note = 'Du bist auf Erhaltung – so erreichst du das Zielgewicht nicht. Stell Intake/TDEE so ein, dass Defizit/Überschuss entsteht.'
+        } else if ((targetChangeKg > 0 && weeklyChangeKg <= 0) || (targetChangeKg < 0 && weeklyChangeKg >= 0)) {
+            daysToGoal = null
+            note = 'Deine Bilanz passt nicht zum Ziel. Beispiel: Ziel runter → du brauchst Defizit (Bilanz negativ).'
+        } else {
+            const weeks = Math.abs(targetChangeKg / weeklyChangeKg)
+            const days = Math.round(weeks * 7)
+            daysToGoal = Number.isFinite(days) ? Math.max(1, days) : null
+            note = ''
+        }
+
+        burnRateResult.value = { dailyDelta, weeklyChangeKg, weeklyChangeDisplay, daysToGoal, note: note || undefined }
+
+        addToast('Burn Rate berechnet', 'default')
+        saveToLocalStorage(LS_PROGRESS_BURN_RATE, {
+            startWeight: burnStartWeight.value,
+            goalWeight: burnGoalWeight.value,
+            maintenance: burnMaintenance.value,
+            intake: burnIntake.value,
+            result: burnRateResult.value,
+        })
+    }
+
+    const copyBurnRate = () => {
+        if (!burnRateResult.value) return
+        const r = burnRateResult.value
+        const txt = `Burn Rate – Kalorien-Bilanz
+- Startgewicht: ${burnStartWeight.value ?? '-'} ${unit.value}
+- Zielgewicht: ${burnGoalWeight.value ?? '-'} ${unit.value}
+- Erhaltung (TDEE): ${burnMaintenance.value ?? '-'} kcal/Tag
+- Intake: ${burnIntake.value ?? '-'} kcal/Tag
+- Bilanz: ${r.dailyDelta > 0 ? '+' : ''}${Math.round(r.dailyDelta)} kcal/Tag
+- Tempo: ${r.weeklyChangeDisplay > 0 ? '+' : ''}${r.weeklyChangeDisplay.toFixed(2)} ${unit.value === 'kg' ? 'kg' : 'lbs'}/Woche
+- Bis Ziel: ${r.daysToGoal != null ? `~${r.daysToGoal} Tage` : '—'}
+${r.note ? `- Hinweis: ${r.note}` : ''}`
+        copyText(txt)
+    }
+
+    const debouncedCalcBurnRate = debounce(() => {
+        withSilentToasts(calculateBurnRate)
+    })
+
+    watch([burnStartWeight, burnGoalWeight, burnMaintenance, burnIntake, unit], () => {
+        if (autoCalcEnabled.value) debouncedCalcBurnRate()
+    })
+    watch(autoCalcEnabled, (on) => {
+        if (!on) return
+        debouncedCalcBurnRate()
+    })
+
     //========== Protein Calculator ==========
 
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
-    const proteinWeight = ref < number | null > (null)
-    const proteinGoal = ref < 'maintain' | 'bulk' | 'cut' > ('maintain')
-    const proteinResult = ref < { recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null > (null)
-    const proteinActivity = ref < 'low' | 'moderate' | 'high' > ('low')
-    const proteinMeals = ref < number | null > (null)
-
-    const validateProtein = (): string[] => {
-        const errors: string[] = []
-        const w = Number(proteinWeight.value)
-        if (!Number.isFinite(w) || w <= 0) errors.push('Gewicht muss größer als 0 sein')
-        if (!proteinGoal.value) errors.push('Ziel muss ausgewählt sein')
-        return errors
-    }
+    const proteinWeight = ref<number | null>(null)
+    const proteinGoal = ref<'maintain' | 'bulk' | 'cut'>('maintain')
+    const proteinResult = ref<{ recommend: number; min?: number; max?: number; factor: number; weightDisplay: string } | null>(null)
+    const proteinActivity = ref<'low' | 'moderate' | 'high'>('low')
+    const proteinMeals = ref<number | null>(null)
 
     const calculateProtein = () => {
-        const errors = validateProtein()
-        if (errors.length) { openValidationPopupError(errors); return }
+        // Safety-Guard
+        if (proteinWeight.value == null) return
 
         const weightKg = unit.value === 'kg'
             ? Number(proteinWeight.value)
@@ -1930,7 +2003,7 @@
         }
 
         addToast('Proteinbedarf berechnet', 'default')
-        saveToLocalStorage('protein', {
+        saveToLocalStorage(LS_PROGRESS_PROTEIN, {
             weight: proteinWeight.value,
             goal: proteinGoal.value,
             activity: proteinActivity.value,
@@ -1951,7 +2024,7 @@
     }
 
     const debouncedCalcProtein = debounce(() => {
-        if (!validateProtein().length) withSilentToasts(calculateProtein)
+        withSilentToasts(calculateProtein)
     }, 300)
 
     watch([proteinWeight, proteinGoal, proteinActivity, unit], () => {
@@ -1964,33 +2037,22 @@
 
     //========== 1RM ==========
 
-    const oneRmExercise = ref < string > ('');
-    const oneRmWeight = ref < number | null > (null);
-    const oneRmReps = ref < number | null > (null);
-    const oneRmResult = ref < number | null > (null);
-
-    const validateOneRm = (): string[] => {
-        const errors: string[] = [];
-        if (oneRmWeight.value === null || isNaN(oneRmWeight.value) || oneRmWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (oneRmReps.value === null || isNaN(oneRmReps.value) || oneRmReps.value <= 0)
-            errors.push('Wiederholungen müssen größer als 0 sein');
-        return errors;
-    };
+    const oneRmExercise = ref<string>('');
+    const oneRmWeight = ref<number | null>(null);
+    const oneRmReps = ref<number | null>(null);
+    const oneRmResult = ref<number | null>(null);
 
     const calculateOneRm = () => {
-        const errors = validateOneRm();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        // Safety-Guard
+        if (oneRmWeight.value == null || oneRmReps.value == null) return
+
         const weightKg = unit.value === 'kg' ? Number(oneRmWeight.value) : Number(oneRmWeight.value) * KG_PER_LB;
         const reps = Number(oneRmReps.value);
         const oneRmKg = weightKg * (1 + reps / 30);
         oneRmResult.value = oneRmKg;
 
         addToast('1RM berechnet', 'default');
-        saveToLocalStorage('oneRm', {
+        saveToLocalStorage(LS_PROGRESS_ONE_RM, {
             exercise: oneRmExercise.value,
             weight: oneRmWeight.value,
             reps,
@@ -2008,7 +2070,7 @@
     }
 
     const debouncedCalc1RM = debounce(() => {
-        if (!validateOneRm().length) withSilentToasts(calculateOneRm)
+        withSilentToasts(calculateOneRm)
     })
 
     watch([oneRmWeight, oneRmReps, oneRmExercise], () => {
@@ -2017,22 +2079,17 @@
 
     // ===== Koffein Calculator ==========
 
-    const cafWeight = ref < number | null > (null)
-    const cafSensitivity = ref < 'low' | 'normal' | 'high' > ('normal')
-    const cafStatus = ref < 'none' | 'pregnant' > ('none')
-    const cafResult = ref < { perDose: number; perDay: number } | null > (null)
-
-    const validateCaffeine = (): string[] => {
-        const errors: string[] = []
-        if (cafWeight.value === null || isNaN(cafWeight.value) || cafWeight.value <= 0) {
-            errors.push('Gewicht muss größer als 0 sein')
-        }
-        return errors
-    }
+    const cafWeight = ref<number | null>(null)
+    const cafSensitivity = ref<'low' | 'normal' | 'high'>('normal')
+    const cafStatus = ref<'none' | 'pregnant'>('none')
+    const cafResult = ref<{ perDose: number; perDay: number } | null>(null)
+    const cafLastDoseTime = ref<string>('')
+    const cafSleepTime = ref<string>('')
+    const showTimingExtras = ref<boolean>(false)
 
     const calculateCaffeine = () => {
-        const errors = validateCaffeine()
-        if (errors.length) { openValidationPopupError(errors); return }
+        // Safety-Guard
+        if (cafWeight.value == null) return
 
         const kg = unit.value === 'kg'
             ? Number(cafWeight.value)
@@ -2051,11 +2108,14 @@
         cafResult.value = { perDose, perDay }
         addToast('Koffein-Empfehlung berechnet', 'default')
 
-        saveToLocalStorage('caffeine', {
+        saveToLocalStorage(LS_PROGRESS_CAFFEINE, {
             weight: cafWeight.value,
             sensitivity: cafSensitivity.value,
             status: cafStatus.value,
             result: cafResult.value,
+            lastDoseTime: cafLastDoseTime.value,
+            sleepTime: cafSleepTime.value,
+            showTimingExtras: showTimingExtras.value,
         })
     }
 
@@ -2071,9 +2131,12 @@
         copyText(txt)
     }
 
-    const caffeineData = localStorage.getItem('progress_caffeine')
+    const caffeineData = localStorage.getItem(LS_PROGRESS_CAFFEINE)
     if (caffeineData) {
         const parsed = JSON.parse(caffeineData)
+        cafLastDoseTime.value = parsed.lastDoseTime ?? ''
+        cafSleepTime.value = parsed.sleepTime ?? ''
+        showTimingExtras.value = Boolean(parsed.showTimingExtras)
         cafWeight.value = parsed.weight
         cafSensitivity.value = parsed.sensitivity
         cafStatus.value = parsed.status
@@ -2081,7 +2144,7 @@
     }
 
     const debouncedCalcCaffeine = debounce(() => {
-        if (!validateCaffeine().length) withSilentToasts(calculateCaffeine)
+        withSilentToasts(calculateCaffeine)
     })
 
     watch([cafWeight, cafSensitivity, cafStatus], () => {
@@ -2093,32 +2156,18 @@
     })
     // ========== BodyFat Calculator ==========
 
-    const bodyFatGender = ref < 'male' | 'female' > ('male');
-    const bodyFatWaist = ref < number | null > (null);
-    const bodyFatNeck = ref < number | null > (null);
-    const bodyFatHip = ref < number | null > (null);
-    const bodyFatHeight = ref < number | null > (null);
-    const bodyFatResult = ref < number | null > (null);
-
-    const validateBodyFat = (): string[] => {
-        const errors: string[] = [];
-        if (bodyFatWaist.value === null || isNaN(bodyFatWaist.value) || bodyFatWaist.value <= 0)
-            errors.push('Bauchumfang muss größer als 0 sein');
-        if (bodyFatNeck.value === null || isNaN(bodyFatNeck.value) || bodyFatNeck.value <= 0)
-            errors.push('Halsumfang muss größer als 0 sein');
-        if (bodyFatHeight.value === null || isNaN(bodyFatHeight.value) || bodyFatHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        if (bodyFatGender.value === 'female' && (bodyFatHip.value === null || isNaN(bodyFatHip.value) || bodyFatHip.value <= 0))
-            errors.push('Hüftumfang muss größer als 0 sein');
-        return errors;
-    };
+    const bodyFatGender = ref<'male' | 'female'>('male');
+    const bodyFatWaist = ref<number | null>(null);
+    const bodyFatNeck = ref<number | null>(null);
+    const bodyFatHip = ref<number | null>(null);
+    const bodyFatHeight = ref<number | null>(null);
+    const bodyFatResult = ref<number | null>(null);
 
     const calculateBodyFat = () => {
-        const errors = validateBodyFat();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        // Safety-Guard
+        if (bodyFatWaist.value == null || bodyFatNeck.value == null || bodyFatHeight.value == null) return
+        if (bodyFatGender.value === 'female' && bodyFatHip.value == null) return
+
         const waist = Number(bodyFatWaist.value);
         const neck = Number(bodyFatNeck.value);
         const height = Number(bodyFatHeight.value);
@@ -2131,7 +2180,7 @@
         }
         bodyFatResult.value = Math.max(0, bodyFat);
         addToast('Körperfett berechnet', 'default');
-        saveToLocalStorage('bodyFat', {
+        saveToLocalStorage(LS_PROGRESS_BODY_FAT, {
             gender: bodyFatGender.value,
             waist,
             neck,
@@ -2152,7 +2201,7 @@
     }
 
     const debouncedCalcBodyFat = debounce(() => {
-        if (!validateBodyFat().length) withSilentToasts(calculateBodyFat)
+        withSilentToasts(calculateBodyFat)
     })
 
     watch([bodyFatGender, bodyFatWaist, bodyFatNeck, bodyFatHip, bodyFatHeight], () => {
@@ -2161,29 +2210,17 @@
 
     // ========== FFMI Calculator ==========
 
-    const ffmiWeight = ref < number | null > (null);
-    const ffmiHeight = ref < number | null > (null);
-    const ffmiBodyFat = ref < number | null > (null);
-    const ffmiResult = ref < { value: number; category: string } | null > (null);
-
-    const validateFFMI = (): string[] => {
-        const errors: string[] = [];
-        if (ffmiWeight.value === null || isNaN(ffmiWeight.value) || ffmiWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        if (ffmiHeight.value === null || isNaN(ffmiHeight.value) || ffmiHeight.value <= 0)
-            errors.push('Größe muss größer als 0 sein');
-        if (ffmiBodyFat.value === null || isNaN(ffmiBodyFat.value) || ffmiBodyFat.value < 0 || ffmiBodyFat.value > 100)
-            errors.push('Körperfettanteil muss zwischen 0 und 100% liegen');
-        return errors;
-    };
+    const ffmiWeight = ref<number | null>(null);
+    const ffmiHeight = ref<number | null>(null);
+    const ffmiBodyFat = ref<number | null>(null);
+    const ffmiResult = ref<{ value: number; category: string } | null>(null);
 
     const calculateFFMI = () => {
-        const errors = validateFFMI();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        // Safety-Guard
+        if (ffmiWeight.value == null || ffmiHeight.value == null || ffmiBodyFat.value == null) return
+
         const weightKg = unit.value === 'kg' ? Number(ffmiWeight.value) : Number(ffmiWeight.value) * KG_PER_LB;
+
         const heightM = Number(ffmiHeight.value) / 100;
         const bodyFat = Number(ffmiBodyFat.value) / 100;
         const leanMass = weightKg * (1 - bodyFat);
@@ -2196,7 +2233,7 @@
         else category = 'Extrem muskulös';
         ffmiResult.value = { value: ffmi, category };
         addToast('FFMI berechnet', 'default');
-        saveToLocalStorage('ffmi', {
+        saveToLocalStorage(LS_PROGRESS_FFMI, {
             weight: ffmiWeight.value,
             height: ffmiHeight.value,
             bodyFat: ffmiBodyFat.value,
@@ -2215,7 +2252,7 @@
     }
 
     const debouncedCalcFFMI = debounce(() => {
-        if (!validateFFMI().length) withSilentToasts(calculateFFMI)
+        withSilentToasts(calculateFFMI)
     })
 
     watch([ffmiWeight, ffmiHeight, ffmiBodyFat], () => {
@@ -2224,38 +2261,26 @@
 
     // ========== GlycemicLoadCalculator ==========
 
-    const glFood = ref < string > ('')
-    const glServing = ref < number | null > (null)
-    const glCarbs100 = ref < number | null > (null)
-    const glGi = ref < number | null > (null)
-    const glCarbs = computed < number | null > (() => {
+    const glFood = ref<string>('')
+    const glServing = ref<number | null>(null)
+    const glCarbs100 = ref<number | null>(null)
+    const glGi = ref<number | null>(null)
+    const glCarbs = computed<number | null>(() => {
         if (glServing.value == null || glCarbs100.value == null) return null
         return (Number(glCarbs100.value) * Number(glServing.value)) / 100
     })
 
-    const glResult = ref < number | null > (null)
-    const glCategory = computed < string > (() => {
+    const glResult = ref<number | null>(null)
+    const glCategory = computed<string>(() => {
         if (glResult.value == null) return ''
         if (glResult.value < 10) return 'niedrig'
         if (glResult.value < 20) return 'mittel'
         return 'hoch'
     })
 
-    const validateGlyLoad = (): string[] => {
-        const errors: string[] = []
-        if (!glFood.value.trim()) errors.push('Lebensmittel muss angegeben werden')
-        if (glServing.value === null || isNaN(glServing.value) || glServing.value <= 0)
-            errors.push('Portionsgröße muss größer als 0 g sein')
-        if (glCarbs100.value === null || isNaN(glCarbs100.value) || glCarbs100.value < 0)
-            errors.push('Kohlenhydrate pro 100 g müssen ≥ 0 g sein')
-        if (glGi.value === null || isNaN(glGi.value) || glGi.value < 0 || glGi.value > 110)
-            errors.push('Glykämischer Index muss zwischen 0 und 110 liegen')
-        return errors
-    }
-
     const calculateGlyLoad = () => {
-        const errors = validateGlyLoad()
-        if (errors.length) { openValidationPopupError(errors); return }
+        // Safety-Guard
+        if (glServing.value == null || glCarbs100.value == null || glGi.value == null) return
 
         const serving = Number(glServing.value)
         const carbs100 = Number(glCarbs100.value)
@@ -2267,7 +2292,7 @@
         glResult.value = gl
         addToast('Glykämische Last berechnet', 'default')
 
-        saveToLocalStorage('glyload', {
+        saveToLocalStorage(LS_PROGRESS_GLYLOAD, {
             food: glFood.value,
             serving,
             carbs100,
@@ -2288,7 +2313,7 @@
         copyText(txt)
     }
 
-    const glyloadData = localStorage.getItem('progress_glyload')
+    const glyloadData = localStorage.getItem(LS_PROGRESS_GLYLOAD)
     if (glyloadData) {
         const parsed = JSON.parse(glyloadData)
         glFood.value = parsed.food
@@ -2296,15 +2321,12 @@
         glCarbs100.value = parsed.carbs100
         glGi.value = parsed.gi
 
-        if (parsed.result && typeof parsed.result === 'object' && 'gl' in parsed.result) {
-            glResult.value = Number(parsed.result.gl)
-        } else {
-            glResult.value = parsed.result ?? null
-        }
+        glResult.value = parsed.result != null ? Number(parsed.result) : null
+
     }
 
     const debouncedCalcGlyLoad = debounce(() => {
-        if (!validateGlyLoad().length) withSilentToasts(calculateGlyLoad)
+        withSilentToasts(calculateGlyLoad)
     })
 
     watch([glFood, glServing, glCarbs100, glGi], () => {
@@ -2316,25 +2338,17 @@
     })
     // ========== Water Calculator ==========
 
-    const waterWeight = ref < number | null > (null);
-    const waterActivity = ref < 'low' | 'moderate' | 'high' > ('low');
-    const waterClimate = ref < 'temperate' | 'hot' | 'very_hot' > ('temperate');
-    const waterResult = ref < number | null > (null);
-
-    const validateWater = (): string[] => {
-        const errors: string[] = [];
-        if (waterWeight.value === null || isNaN(waterWeight.value) || waterWeight.value <= 0)
-            errors.push('Gewicht muss größer als 0 sein');
-        return errors;
-    };
+    const waterWeight = ref<number | null>(null);
+    const waterActivity = ref<'low' | 'moderate' | 'high'>('low');
+    const waterClimate = ref<'temperate' | 'hot' | 'very_hot'>('temperate');
+    const waterResult = ref<number | null>(null);
 
     const calculateWater = () => {
-        const errors = validateWater();
-        if (errors.length) {
-            openValidationPopupError(errors);
-            return;
-        }
+        // Safety-Guard
+        if (waterWeight.value == null) return
+
         const weightKg = unit.value === 'kg' ? Number(waterWeight.value) : Number(waterWeight.value) * KG_PER_LB;
+
         let baseWater = weightKg * 0.035;
         if (waterActivity.value === 'moderate') baseWater += 0.5;
         else if (waterActivity.value === 'high') baseWater += 1.0;
@@ -2342,7 +2356,7 @@
         if (waterClimate.value === 'very_hot') baseWater += 1.0;
         waterResult.value = Math.max(1.5, baseWater);
         addToast('Wasserbedarf berechnet', 'default');
-        saveToLocalStorage('water', {
+        saveToLocalStorage(LS_PROGRESS_WATER, {
             weight: waterWeight.value,
             activity: waterActivity.value,
             climate: waterClimate.value,
@@ -2362,7 +2376,7 @@
     }
 
     const debouncedCalcWater = debounce(() => {
-        if (!validateWater().length) withSilentToasts(calculateWater)
+        withSilentToasts(calculateWater)
     })
 
     watch([waterWeight, waterActivity, waterClimate], () => {
@@ -2371,25 +2385,86 @@
 
     // ======== Pläne-Tab: State =======
 
-    const trainingPlans = ref < TrainingPlan[] > ([]);
-    const favoritePlansIds = ref < string[] > ([])
+    type ViewPlan = {
+        id: string
+        name: string
+        isFavorite: boolean
+        exercises: string[]
+    }
 
+    const toViewPlan = (dto: any): ViewPlan => ({
+        id: dto.id,
+        name: dto.name,
+        isFavorite: !!dto.isFavorite,
+        exercises: Array.isArray(dto.days)
+            ? dto.days.flatMap((d: any) =>
+                Array.isArray(d.exercises)
+                    ? d.exercises.map((x: any) => String(x.name ?? x.exercise ?? '').trim()).filter(Boolean)
+                    : []
+            )
+            : [],
+    })
 
+    const localPlans = ref < ViewPlan[] > ([])
 
-    // === Pläne-Tab: abgeleitete Listen ===
+    const trainingPlans = computed < ViewPlan[] > (() => {
+        const api = trainingPlansStore.items.map(toViewPlan)
+        return api.length ? api : localPlans.value
+    })
+
     const favoritePlans = computed(() =>
-        trainingPlans.value.filter(p => favoritePlansIds.value.includes(p.id))
+        trainingPlans.value.filter(p => p.isFavorite)
     )
+
     const otherPlans = computed(() =>
-        trainingPlans.value.filter(p => !favoritePlansIds.value.includes(p.id))
+        trainingPlans.value.filter(p => !p.isFavorite)
     )
 
     // ======= Pläne-Tab: Aktionen =======
 
-    const openPlanProgress = (planId: string) => {
+    const isGuid = (v: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+
+    const openPlanProgress = async (planId: string) => {
         currentPlanId.value = planId
+        lastPlanId.value = planId
+
+        // Legacy/Local IDs blocken (keine Ghost-Pläne)
+        if (!isGuid(planId)) {
+            showToast({ message: "Dieser Plan ist lokal/alt und hat keinen Online-Fortschritt.", type: "default" })
+            return
+        }
+
+        await progressStore.load(planId, true)
+
+        const state = progressStore.byPlan[planId]
+        if (state?.error) {
+            showToast({ message: `Fortschritt konnte nicht geladen werden: ${state.error}`, type: "default" })
+            return
+        }
+
+        workouts.value = (state?.items ?? []).map((e) => ({
+            id: e.id,
+            planId: e.planId,
+            date: e.date,
+            exercise: e.exercise,
+            type: e.type as WorkoutType,
+
+            sets: e.sets ?? 0,
+            reps: e.reps ?? undefined,
+            weight: e.weightKg ?? 0,
+
+            durationMin: e.durationMin ?? undefined,
+            distanceKm: e.distanceKm ?? undefined,
+
+            note: e.note ?? undefined,
+            tempo: e.tempo ?? undefined,
+            restSeconds: e.restSeconds ?? undefined,
+        }))
+
         showPlanProgressPopup.value = true
     }
+
 
     const matchesPlanSearch = (name: string) => {
         if (!planSearchQuery.value) return true;
@@ -2398,466 +2473,326 @@
 
     // === Pläne-Tab: Initiales Laden aus localStorage ===
 
-    onMounted(() => {
+    onMounted(async () => {
         try {
-            const raw = localStorage.getItem('trainingData')
-            if (raw) {
-                const parsed = JSON.parse(raw)
-                trainingPlans.value = Array.isArray(parsed?.plans) ? parsed.plans : []
-                favoritePlansIds.value = Array.isArray(parsed?.favoritePlans) ? parsed.favoritePlans : []
-            } else {
-                const legacy = localStorage.getItem('trainingPlans')
-                trainingPlans.value = legacy ? JSON.parse(legacy) : []
-                favoritePlansIds.value = []
-            }
+            await trainingPlansStore.loadList()
         } catch {
-            trainingPlans.value = []
-            favoritePlansIds.value = []
+            showToast({ message: "Pläne konnten nicht geladen werden.", type: "default" })
         }
+
+        jumpToCalculatorsFromRoute()
     })
+
+    watch(
+        () => [route.query.tab, route.query.focus],
+        () => jumpToCalculatorsFromRoute()
+    )
 
     //ProgressEntryModal
 
     const showProgressPopup = ref(false);
-    const showProgressExtras = ref(false);
 
-    const currentExercise = ref < string > ('');
+    const progressEntryModalRef = ref<ProgressEntryModalExposed | null>(null)
 
-    const newProgressReps = ref < number | null > (null);
-    const newProgressSets = ref < number | null > (null);
-    const newProgressNote = ref < string > ('');
-    const newProgressDuration = ref < number | null > (null)
+    const newProgressWeight = ref<number | null>(null)
 
-    const newProgressDistance = ref < number | null > (null)
-    const newProgressTempo = ref < string > ('')
-    const newProgressRestSeconds = ref < number | null > (null)
-    const newProgressAvgHr = ref < number | null > (null)
-    const newProgressCalories = ref < number | null > (null)
-    const newProgressPace = ref < string > ('')
-    const newProgressHrZone = ref < number | null > (null)
-    const newProgressBorg = ref < number | null > (null)
+    const editingEntry = ref<Workout | null>(null)
 
-    const newProgressPainFree = ref < number | null > (null)
-    const newProgressMovementQuality = ref < number | null > (null)
-    const newProgressEquipment = ref < string > ('')
-    const newProgressEquipmentCustom = ref < string > ('')
-    const newProgressSide = ref < '' | 'links' | 'rechts' | 'beidseitig' > ('')
-
-    const newProgressSetDetails = ref < Array < { weight: number | null; reps: number | null } >> ([])
-
-    const newProgressIsDropset = ref(false)
-    const newProgressDropsets = ref < Array < { weight: number | null; reps: number | null } >> ([])
-
-    const editingEntry = ref < Workout | null > (null);
-
-    const reopenPlanProgressAfterSave = ref(false)
-
-    const progressEntryModalRef = ref < ProgressEntryModalExposed | null > (null)
-
-    const newProgressWeight = ref < number | null > (null)
-
-    // --- Helper: Übungs-Namen → Typ erkennen ---
-
-    const isCardioName = (name: string) => {
-        const n = (name || '').toLowerCase()
-        const kw = [
-            'lauf', 'jogg', 'run', 'treadmill',
-            'rad', 'fahrrad', 'bike', 'spinning', 'cycling',
-            'row', 'rudern', 'ergometer',
-            'crosstrainer', 'ellip',
-            'seilspring', 'rope',
-            'treppen', 'stairs',
-            'schwimm', 'walk', 'hike'
-        ]
-        return kw.some(k => n.includes(k))
+    const getProgressForPlan = (planId: string): Workout[] => {
+        return workouts.value.filter((w: Workout) => w.planId === planId)
     }
 
-    const isStretchName = (name: string) => {
-        const n = (name || '').toLowerCase()
-        const kw = [
-            'dehn', 'stretch', 'mobil', 'mobility', 'beweglich',
-            'yoga', 'faszien', 'smr', 'roll', 'piriformis',
-            'hamstring', 'calf stretch', 'hip opener'
-        ]
-        return kw.some(k => n.includes(k))
+    const getExercisesForPlan = (planId: string | null): PlanExercise[] => {
+        if (!planId) return []
+        const names = trainingPlans.value.find(p => p.id === planId)?.exercises ?? []
+        return names.map(n => ({ exercise: n, sets: 0, reps: 0 }))
+    }
+    const visibleDays = ref<number>(14)
+
+    const entriesByDay = computed<Map<string, Workout[]>>(() => {
+        const map = new Map<string, Workout[]>()
+        const planId = currentPlanId.value
+        if (!planId) return map
+
+        for (const w of getProgressForPlan(planId)) {
+            const day = (w.date || '').slice(0, 10)
+            if (!map.has(day)) map.set(day, [])
+            map.get(day)!.push(w)
+        }
+
+        // optional: innerhalb Tag sortieren (neu -> alt)
+        for (const [day, arr] of map.entries()) {
+            map.set(
+                day,
+                [...arr].sort((a: Workout, b: Workout) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+            )
+        }
+
+        return map
+    })
+
+    const cancelProgressEdit = () => {
+        editingEntry.value = null
+        validationErrorMessages.value = []
+        showProgressPopup.value = false
     }
 
+    const detectedInputType = computed<WorkoutType>(() => {
+        return (editingEntry.value?.type ?? 'kraft') as WorkoutType
+    })
 
-    const detectedInputType = computed < ExerciseType > (() =>
-        isStretchName(currentExercise.value) ? 'dehnung'
-            : isCardioName(currentExercise.value) ? 'ausdauer'
-                : 'kraft'
-    )
+    const cleanupProgressIO = () => {
+        // no-op (damit TS ruhig ist)
+    }
 
+    watch(showProgressPopup, async (open, wasOpen) => {
+        if (wasOpen && !open) {
+            // Modal wurde gerade geschlossen -> sofort PlanProgressPopup öffnen
+            if (currentPlanId.value) {
+                await nextTick()
+                showPlanProgressPopup.value = true
+            }
+        }
+    })
+
+    // Abbrechen
+    const onProgressModalCancel = () => {
+        validationErrorMessages.value = []
+        showProgressPopup.value = false
+        // dein PlanProgressPopup Watcher kann bleiben (oder später über @closed lösen)
+    }
+
+    const onProgressModalDelete = (payload: { planId: string; id?: string; date?: string }) => {
+        const planId = payload.planId
+        let id = payload.id
+
+        if (!id && payload.date) {
+            const day = (payload.date || '').slice(0, 10)
+            const hit = workouts.value
+                .filter(w => w.planId === planId && (w.date || '').slice(0, 10) === day)
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+            id = hit?.id
+        }
+
+        if (!id) {
+            showToast({ message: "Fehler: Eintrag-ID fehlt (Delete nicht möglich).", type: "default" })
+            return
+        }
+
+        deleteProgressEntry(planId, id)
+        showProgressPopup.value = false
+    }
+
+    const toApiWorkoutType = (t: WorkoutType) => {
+        switch (t) {
+            case 'kraft': return 'Kraft'
+            case 'ausdauer': return 'Ausdauer'
+            case 'dehnung': return 'Dehnung'
+            case 'calisthenics': return 'Calisthenics'
+            default: return 'Kraft'
+        }
+    }
+
+    const fromApiWorkoutType = (t: any): WorkoutType => {
+        switch (String(t ?? '')) {
+            case 'Kraft': return 'kraft'
+            case 'Ausdauer': return 'ausdauer'
+            case 'Dehnung': return 'dehnung'
+            case 'Calisthenics': return 'calisthenics'
+            default: return 'kraft'
+        }
+    }
+
+    const syncWorkoutsFromStore = (planId: string) => {
+        const items = progressStore.byPlan?.[planId]?.items ?? []
+
+        // alles für den Plan raus, dann frisch rein (keine Doppelten)
+        workouts.value = workouts.value.filter(w => w.planId !== planId)
+
+        for (const it of items) {
+            workouts.value.push({
+                id: it.id,
+                planId: it.planId,
+                date: typeof it.date === 'string' ? it.date : new Date(it.date as any).toISOString(),
+                exercise: it.exercise,
+                type: fromApiWorkoutType(it.type),
+
+                sets: it.sets ?? 0,
+                reps: it.reps ?? 0,
+                weight: it.weightKg ?? 0,
+
+                durationMin: it.durationMin ?? undefined,
+                distanceKm: it.distanceKm ?? undefined,
+
+                note: it.note ?? undefined,
+                tempo: it.tempo ?? undefined,
+                restSeconds: it.restSeconds ?? undefined,
+            } as any)
+        }
+    }
+
+    // Save aus Modal: Modal liefert fertigen Workout-Payload + optional BodyWeightKg
+    const onProgressModalSave = async (payload: {
+        workout: Workout
+        updatedBodyWeightKg?: number | null
+        mode: 'create' | 'edit'
+        editingDate?: string | null
+    }) => {
+
+        validationErrorMessages.value = []
+        const { workout, updatedBodyWeightKg, mode, editingDate } = payload
+
+        // optional: Körpergewicht-Update (wenn Modal sagt: changed)
+        if (updatedBodyWeightKg != null) {
+            const latestKg = weightHistory.value.length ? weightHistory.value[0].weight : null
+            if (latestKg == null || Math.abs(updatedBodyWeightKg - latestKg) > 1e-9) {
+                const today = new Date().toISOString().split('T')[0]
+                weightHistory.value.unshift({ date: today, weight: updatedBodyWeightKg })
+                localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value))
+                updateWeightChart()
+            }
+        }
+
+        const planId = workout.planId
+        if (!planId) return
+
+        if (mode === "edit") {
+            const id = workout.id
+            if (!id) {
+                addToast("Fehler: Eintrag-ID fehlt (Backend braucht id).", "default")
+                return
+            }
+
+            const payload: UpdateProgressEntry = {
+                date: workout.date,
+                exercise: workout.exercise,
+                type: toApiWorkoutType(workout.type as WorkoutType) as any,
+
+                sets: workout.sets ?? null,
+                reps: workout.reps ?? null,
+                weightKg: workout.weight ?? null,
+
+                durationMin: workout.durationMin ?? null,
+                distanceKm: workout.distanceKm ?? null,
+
+                note: workout.note ?? null,
+                tempo: workout.tempo ?? null,
+                restSeconds: workout.restSeconds ?? null,
+            }
+
+            let updated
+            try {
+                updated = await progressStore.edit(planId, id, payload)
+            } catch (e: any) {
+                showToast({ message: e?.message ?? "Speichern fehlgeschlagen.", type: "default" })
+                return
+            }
+
+            await progressStore.load(planId, true)
+            syncWorkoutsFromStore(planId)
+
+            showToast({ message: "Fortschritt aktualisiert!", type: "success", emoji: "✅" })
+
+        } else {
+            const payload: CreateProgressEntry = {
+                planId,
+                date: workout.date,
+                exercise: workout.exercise,
+                type: toApiWorkoutType(workout.type as WorkoutType) as any,
+
+                sets: workout.sets ?? null,
+                reps: workout.reps ?? null,
+                weightKg: workout.weight ?? null,
+
+                durationMin: workout.durationMin ?? null,
+                distanceKm: workout.distanceKm ?? null,
+
+                note: workout.note ?? null,
+                tempo: workout.tempo ?? null,
+                restSeconds: workout.restSeconds ?? null,
+            }
+
+            let created
+            try {
+                created = await progressStore.add(planId, payload)
+            } catch (e: any) {
+                showToast({ message: e?.message ?? "Speichern fehlgeschlagen.", type: "default" })
+                return
+            }
+
+            await progressStore.load(planId, true)
+            syncWorkoutsFromStore(planId)
+
+            showToast({ message: "Fortschritt gespeichert!", type: "success", emoji: "✅" })
+
+
+        }
+
+        showProgressPopup.value = false
+    }
     //Validation ProgressModalEntry
 
     const clearValidation = () => {
         validationErrorMessages.value = []
     }
 
-    const validateProgress = (): string[] => {
-        const errors: string[] = []
-
-        if (!currentExercise.value) errors.push('Eine Übung muss ausgewählt sein')
-        if (detectedInputType.value === 'ausdauer') {
-            if (newProgressDuration.value == null || isNaN(newProgressDuration.value) || newProgressDuration.value <= 0)
-                errors.push('Dauer (Min) muss größer als 0 sein')
-            if (newProgressDistance.value != null && (isNaN(newProgressDistance.value) || newProgressDistance.value < 0))
-                errors.push('Distanz (km) muss ≥ 0 sein')
-
-            const borgN = toNum(newProgressBorg.value)
-            if (borgN != null) {
-                if (borgN < 6 || borgN > 20) errors.push('Borg-Skala muss zwischen 6 und 20 liegen')
-            }
-            else if (newProgressBorg.value != null && String(newProgressBorg.value).trim() !== '') {
-                errors.push('Borg-Skala muss eine Zahl sein')
-            }
-
-            return errors
-        }
-
-        if (detectedInputType.value === 'dehnung') {
-            if (newProgressSets.value == null || isNaN(newProgressSets.value) || Number(newProgressSets.value) <= 0)
-                errors.push('Sätze müssen größer als 0 sein')
-
-            if (newProgressDuration.value != null && String(newProgressDuration.value).trim() !== '') {
-                const d = Number(newProgressDuration.value)
-                if (!Number.isFinite(d) || d <= 0) errors.push('Dauer (Min) muss > 0 sein, wenn angegeben')
-            }
-
-            if (newProgressReps.value != null && String(newProgressReps.value).trim() !== '') {
-                const r = Number(newProgressReps.value)
-                if (!Number.isFinite(r) || r <= 0) errors.push('Wiederholungen müssen > 0 sein, wenn angegeben')
-            }
-            return errors
-        }
-
-        const perSet = (newProgressSetDetails.value ?? []).filter(r => r !== undefined)
-
-        if (perSet.length > 0) {
-            perSet.forEach((r, i) => {
-                const w = Number(r.weight)
-                const reps = Number(r.reps)
-                if (!Number.isFinite(w) || w < 0) errors.push(`Satz ${i + 1}: Gewicht muss ≥ 0 sein`)
-                if (!Number.isFinite(reps) || reps <= 0) errors.push(`Satz ${i + 1}: Wdh. müssen > 0 sein`)
-            })
-        } else {
-            if (newProgressSets.value == null || isNaN(newProgressSets.value) || newProgressSets.value <= 0)
-                errors.push('Sätze müssen größer als 0 sein')
-            if (newProgressReps.value == null || isNaN(newProgressReps.value) || newProgressReps.value <= 0)
-                errors.push('Wiederholungen müssen größer als 0 sein')
-        }
-
-        if (newProgressIsDropset.value && (newProgressDropsets.value?.length ?? 0) > 0) {
-            newProgressDropsets.value.forEach((ds, j) => {
-                const any = ds.weight != null || ds.reps != null
-                if (!any) return
-                if (ds.weight == null || isNaN(ds.weight) || ds.weight <= 0) errors.push(`Dropsatz ${j + 1}: Gewicht muss > 0 sein`)
-                if (ds.reps == null || isNaN(ds.reps) || ds.reps <= 0) errors.push(`Dropsatz ${j + 1}: Wdh. müssen > 0 sein`)
-            })
-        }
-
-        return errors
-    }
-
     //Core-Flow fürs Modal
 
-    const openProgressPopup = (planId: string) => {
-        editingEntry.value = null
+    const openProgressPopup = async (planId: string) => {
         validationErrorMessages.value = []
-        showProgressExtras.value = false
-
         currentPlanId.value = planId
-        currentExercise.value = ''
-        newProgressSets.value = null
-        newProgressWeight.value = latestRecordedWeightDisplay.value
-        newProgressReps.value = null
-        newProgressNote.value = ''
-        newProgressIsDropset.value = false
-        newProgressDropsets.value = []
-        newProgressDuration.value = null
-        newProgressDistance.value = null
-        showProgressPopup.value = true
-    }
-
-    const cancelProgressEdit = () => {
-        editingEntry.value = null
-        validationErrorMessages.value = []
-        showProgressExtras.value = false
-
-        const planIdForReopen = reopenPlanProgressAfterSave.value ? currentPlanId.value : null
-        closeProgressPopup()
-
-        if (planIdForReopen) {
-            currentPlanId.value = planIdForReopen
-            showPlanProgressPopup.value = true
-            reopenPlanProgressAfterSave.value = false
-        }
-    }
-
-    const closeProgressPopup = () => {
-        showProgressPopup.value = false
-
-        editingEntry.value = null
-        validationErrorMessages.value = []
-        showProgressExtras.value = false
-
-        currentPlanId.value = null
-        currentExercise.value = ''
-        newProgressSets.value = null
-        newProgressWeight.value = null
-        newProgressReps.value = null
-        newProgressNote.value = ''
-        newProgressSetDetails.value = []
-        newProgressDuration.value = null
-        newProgressDistance.value = null
-    }
-
-    const editProgressEntry = (planId: string, entry: Workout) => {
-        currentPlanId.value = planId
-        currentExercise.value = entry.exercise || ''
-
-        newProgressSets.value = entry.sets ?? 1
-        newProgressWeight.value = latestRecordedWeightDisplay.value
-        newProgressReps.value = entry.reps ?? null
-        newProgressNote.value = entry.note ?? ''
-        editingEntry.value = entry
-
-        newProgressDuration.value = entry.durationMin ?? null
-        newProgressDistance.value = entry.distanceKm ?? null
-
-        if (entry.setDetails && entry.setDetails.length) {
-            newProgressSetDetails.value = entry.setDetails.map(s => ({
-                weight: s.weight != null ? kgToDisplay(s.weight) : null,
-                reps: s.reps ?? null,
-            }))
-            newProgressSets.value = entry.setDetails.length
-        } else {
-            newProgressSetDetails.value = []
-        }
-
-        newProgressIsDropset.value = Boolean(entry.isDropset && (entry.dropsets?.length ?? 0) > 0)
-        newProgressDropsets.value = (entry.dropsets ?? []).map(ds => ({
-            weight: ds.weight != null ? kgToDisplay(ds.weight) : null,
-            reps: ds.reps ?? null,
-        }))
-
-        if (showPlanProgressPopup.value) {
-            reopenPlanProgressAfterSave.value = true
-            showPlanProgressPopup.value = false
-        } else {
-            reopenPlanProgressAfterSave.value = false
-        }
+        lastPlanId.value = planId
 
         showProgressPopup.value = true
+        await nextTick()
+
+        progressEntryModalRef.value?.openCreate({
+            planId,
+            defaultBodyWeightDisplay: latestRecordedWeightDisplay.value ?? null,
+        })
+    }
+
+    const editProgressEntry = async (planId: string, entry: Workout) => {
+        validationErrorMessages.value = []
+        currentPlanId.value = planId
+        lastPlanId.value = planId
+
+        if (showPlanProgressPopup.value) showPlanProgressPopup.value = false
+
+        showProgressPopup.value = true
+        await nextTick()
+
+        progressEntryModalRef.value?.openEdit({ planId, entry })
     }
 
     const saveProgress = () => {
-        const toNum = (v: unknown): number | null => {
-            if (v == null) return null
-            const n = Number(String(v).replace(',', '.').trim())
-            return Number.isFinite(n) ? n : null
-        }
-        const hasText = (v: unknown) => String(v ?? '').trim() !== ''
+        progressEntryModalRef.value?.submit?.()
+    }
 
-        const hasExercise = Boolean((currentExercise.value || '').trim())
-
-        const displayWeight = newProgressWeight.value
-        const enteredKg = (displayWeight != null && !isNaN(displayWeight) && Number(displayWeight) > 0)
-            ? displayToKg(Number(displayWeight))
-            : null
-        const latestKg = weightHistory.value.length ? weightHistory.value[0].weight : null
-
-        const noSets = !newProgressSets.value || Number(newProgressSets.value) <= 0
-        const noReps = !newProgressReps.value || Number(newProgressReps.value) <= 0
-        const noDur = !newProgressDuration.value || Number(newProgressDuration.value) <= 0
-        const noDist = !newProgressDistance.value || Number(newProgressDistance.value) <= 0
-        const noNote = !newProgressNote.value || newProgressNote.value.trim() === ''
-
-        const noSetDetails = !(newProgressSetDetails.value?.length) ||
-            newProgressSetDetails.value.every(s => (s?.weight == null && s?.reps == null))
-
-        const noDropsets = !newProgressIsDropset.value ||
-            !(newProgressDropsets.value?.length) ||
-            newProgressDropsets.value.every(ds => (ds?.weight == null && ds?.reps == null))
-
-        const onlyWeightChanged =
-            !hasExercise && noSets && noReps && noDur && noDist && noNote && noSetDetails && noDropsets &&
-            enteredKg != null && (latestKg == null || Math.abs(enteredKg - latestKg) > 1e-9)
-
-        if (onlyWeightChanged) {
-            const today = new Date().toISOString().split('T')[0]
-            weightHistory.value.unshift({ date: today, weight: enteredKg })
-            localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
-
-            newProgressWeight.value = kgToDisplay(enteredKg)
-            updateWeightChart()
-
-            addToast('Aktuelles Gewicht aktualisiert', 'save')
-            closeProgressPopup()
-            return
-        }
-
-        const errors = validateProgress()
-
-        if (detectedInputType.value === 'ausdauer') {
-            const borgRaw = newProgressBorg.value
-            const borgN = toNum(borgRaw)
-
-            if (hasText(borgRaw) && borgN == null) {
-                errors.push('Borg-Skala muss eine Zahl sein')
-            } else if (borgN != null && (borgN < 6 || borgN > 20)) {
-                errors.push('Borg-Skala muss zwischen 6 und 20 liegen')
+    const onProgressEntryDelete = () => {
+        if (currentPlanId.value && editingEntry.value) {
+            const id = editingEntry.value.id
+            if (!id) {
+                showToast({ message: "Fehler: Eintrag-ID fehlt.", type: "default" })
+                return
             }
+            deleteProgressEntry(currentPlanId.value, id)
         }
-
-        if (errors.length) {
-            openValidationPopupError(errors)
-            return
-        }
-
-        let payload: Workout
-
-        if (detectedInputType.value === 'ausdauer') {
-            const borgN = toNum(newProgressBorg.value)
-
-            payload = {
-                planId: currentPlanId.value ?? undefined,
-                exercise: currentExercise.value,
-                sets: 0, weight: 0, reps: 0,
-                note: newProgressNote.value?.trim() || undefined,
-                date: editingEntry.value?.date ?? new Date().toISOString(),
-                type: 'ausdauer',
-                durationMin: Number(newProgressDuration.value),
-                distanceKm: newProgressDistance.value != null ? Number(newProgressDistance.value) : undefined,
-
-                avgHr: toNum(newProgressAvgHr.value) ?? undefined,
-                calories: toNum(newProgressCalories.value) ?? undefined,
-                pace: newProgressPace.value?.trim() || undefined,
-                hrZone: toNum(newProgressHrZone.value) ?? undefined,
-                borg: borgN ?? undefined,
-            }
-        } else if (detectedInputType.value === 'dehnung') {
-            const repsOpt =
-                (newProgressReps.value != null && String(newProgressReps.value).trim() !== '')
-                    ? Number(newProgressReps.value)
-                    : undefined
-            const durOpt = (newProgressDuration.value != null && String(newProgressDuration.value).trim() !== '')
-                ? Number(newProgressDuration.value) : undefined
-
-            payload = {
-                planId: currentPlanId.value ?? undefined,
-                exercise: currentExercise.value,
-                sets: Number(newProgressSets.value) || 0,
-                weight: 0,
-                reps: repsOpt,
-                note: newProgressNote.value?.trim() || undefined,
-                date: editingEntry.value?.date ?? new Date().toISOString(),
-                type: 'dehnung',
-                durationMin: durOpt,
-
-                painFree: toNum(newProgressPainFree.value) ?? undefined,
-                movementQuality: toNum(newProgressMovementQuality.value) ?? undefined,
-                equipment: newProgressEquipment.value || undefined,
-                equipmentCustom: newProgressEquipmentCustom.value || undefined,
-                side: newProgressSide.value || undefined,
-            }
-        } else {
-            const hasPerSet = (newProgressSetDetails.value?.length ?? 0) > 0
-            const perSet = hasPerSet
-                ? newProgressSetDetails.value
-                    .filter(r => r.weight != null && r.reps != null)
-                    .map(r => ({
-                        weight: displayToKg(Number(r.weight)),
-                        reps: Number(r.reps),
-                    }))
-                : []
-
-            const first = perSet[0]
-
-            payload = {
-                planId: currentPlanId.value ?? undefined,
-                exercise: currentExercise.value,
-                sets: hasPerSet ? perSet.length : (Number(newProgressSets.value) || 0),
-                weight: hasPerSet ? first.weight : 0,
-                reps: hasPerSet ? first.reps : (Number(newProgressReps.value) || 0),
-                note: newProgressNote.value?.trim() || undefined,
-                date: editingEntry.value?.date ?? new Date().toISOString(),
-                type: 'kraft',
-
-                tempo: newProgressTempo.value?.trim() || undefined,
-                restSeconds: toNum(newProgressRestSeconds.value) ?? undefined,
-
-                isDropset: newProgressIsDropset.value || undefined,
-                dropsets: newProgressIsDropset.value
-                    ? (newProgressDropsets.value ?? [])
-                        .filter(ds => ds.weight != null && ds.reps != null)
-                        .map(ds => ({
-                            weight: displayToKg(Number(ds.weight)),
-                            reps: Number(ds.reps),
-                        }))
-                    : undefined,
-
-                setDetails: hasPerSet ? perSet : undefined,
-            }
-        }
-
-        {
-            const displayWeight2 = newProgressWeight.value
-            const enteredKg2 = (displayWeight2 != null && !isNaN(displayWeight2) && Number(displayWeight2) > 0)
-                ? displayToKg(Number(displayWeight2))
-                : null
-            const latestKg2 = weightHistory.value.length ? weightHistory.value[0].weight : null
-
-            if (enteredKg2 != null && (latestKg2 == null || Math.abs(enteredKg2 - latestKg2) > 1e-9)) {
-                const today2 = new Date().toISOString().split('T')[0]
-                weightHistory.value.unshift({ date: today2, weight: enteredKg2 })
-                localStorage.setItem('progress_weights', JSON.stringify(weightHistory.value))
-                updateWeightChart()
-            }
-        }
-
-        if (editingEntry.value) {
-            const idx = workouts.value.findIndex(
-                w => w.planId === payload.planId && w.date === editingEntry.value!.date
-            )
-            if (idx !== -1) {
-                workouts.value[idx] = payload
-                showToast({ message: 'Fortschritt aktualisiert!', type: 'success', emoji: '✅' })
-            }
-            editingEntry.value = null
-        } else {
-            workouts.value.push(payload)
-            if (payload.type !== 'ausdauer') {
-                checkMilestones(payload.planId, payload.exercise, payload.weight, payload.reps)
-            }
-            showToast({ message: 'Fortschritt gespeichert!', type: 'success', emoji: '✅' })
-        }
-
-        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value))
-        closeProgressPopup()
-
-        if (reopenPlanProgressAfterSave.value) {
-            const planIdForReopen = payload.planId
-            if (planIdForReopen) {
-                currentPlanId.value = planIdForReopen
-                showPlanProgressPopup.value = true
-            }
-            reopenPlanProgressAfterSave.value = false
-        }
+        editingEntry.value = null
+        showProgressPopup.value = false
+        // PlanProgressPopup öffnet automatisch über den watcher
     }
 
     // ===== Journal & Plan-Progress: State & Helper =====
 
     const maxEntries = ref(3);
-    const showMore = ref < { [key: string]: boolean } > ({});
+    const showMore = ref<{ [key: string]: boolean }>({});
 
-    const prevWeightHistory = ref < WeightEntry[] | null > (null)
-    const prevWorkoutsSnapshot = ref < Workout[] | null > (null)
-    const journalSearch = ref < string > ('')
-    const journalType = ref < 'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer' > ('alle')
+    const prevWeightHistory = ref<WeightEntry[] | null>(null)
+    const prevWorkoutsSnapshot = ref<Workout[] | null>(null)
+    const journalSearch = ref<string>('')
+    const journalType = ref<'alle' | 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'>('alle')
 
-    const router = useRouter()
     const TYPE_LABEL: Record<WorkoutType, string> = {
         kraft: 'Kraft',
         calisthenics: 'Calisthenics',
@@ -2886,7 +2821,7 @@
         return [...base, ...ds, ...extraCols].join(' ')
     }
     const summarizeCategories = (items: Workout[]): string => {
-        const types = new Set < WorkoutType > (items.map(w => (w.type ?? 'kraft') as WorkoutType))
+        const types = new Set<WorkoutType>(items.map(w => (w.type ?? 'kraft') as WorkoutType))
         const labels = [...types].map(t => TYPE_LABEL[t])
         if (labels.length === 1) return labels[0]
         if (labels.length > 3) return 'Gemischt'
@@ -2896,43 +2831,44 @@
     function aggregateDay(items: Workout[]): JournalGroup[] {
         const strength = items.filter(it => (it.type ?? 'kraft') === 'kraft' || it.type === 'calisthenics')
 
-        const byExercise = new Map < string, { entries: Workout[]; notes: string[]
-    }> ()
-    for (const it of strength) {
-        const key = it.exercise || 'Unbenannte Übung'
-        if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
+        const byExercise = new Map<string, {
+            entries: Workout[]; notes: string[]
+        }>()
+        for (const it of strength) {
+            const key = it.exercise || 'Unbenannte Übung'
+            if (!byExercise.has(key)) byExercise.set(key, { entries: [], notes: [] })
 
-        const setCount = Math.max(1, Number(it.sets ?? 1))
-        for (let s = 0; s < setCount; s++) {
-            const detail = it.setDetails?.[s]
-            byExercise.get(key)!.entries.push({
-                ...it,
-                sets: 1,
-                weight: detail ? detail.weight : it.weight,
-                reps: detail ? detail.reps : it.reps,
+            const setCount = Math.max(1, Number(it.sets ?? 1))
+            for (let s = 0; s < setCount; s++) {
+                const detail = it.setDetails?.[s]
+                byExercise.get(key)!.entries.push({
+                    ...it,
+                    sets: 1,
+                    weight: (detail?.weight ?? it.weight),
+                    reps: (detail?.reps ?? it.reps),
+                })
+            }
+
+            if (it.note) byExercise.get(key)!.notes.push(it.note)
+        }
+
+        const groups: JournalGroup[] = []
+        for (const [exercise, { entries, notes }] of byExercise.entries()) {
+            groups.push({
+                exercise,
+                entries,
+                note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
             })
         }
 
-        if (it.note) byExercise.get(key)!.notes.push(it.note)
+        return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
     }
 
-    const groups: JournalGroup[] = []
-    for (const [exercise, { entries, notes }] of byExercise.entries()) {
-        groups.push({
-            exercise,
-            entries,
-            note: notes.length ? Array.from(new Set(notes)).join(' | ') : null,
-        })
-    }
-
-    return groups.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
-}
-
-    const journalDays = computed < JournalDay[] > (() => {
+    const journalDays = computed<JournalDay[]>(() => {
         if (!currentPlanId.value) return []
         const all = getProgressForPlan(currentPlanId.value)
 
-        const filtered = all.filter(w => {
+        const filtered = all.filter((w: Workout) => {
             const t = (w.type ?? 'kraft') as WorkoutType
             const typeOk = journalType.value === 'alle' || t === journalType.value
             if (!typeOk) return false
@@ -2943,7 +2879,7 @@
             return inExercise || inNote
         })
 
-        const byDay = new Map < string, Workout[]> ()
+        const byDay = new Map<string, Workout[]>()
         for (const w of filtered) {
             const day = (w.date || '').slice(0, 10)
             if (!byDay.has(day)) byDay.set(day, [])
@@ -2962,17 +2898,17 @@
         return aggregateDay(items)
     }
 
-    const sortedPlanEntries = computed < Workout[] > (() => {
+    const sortedPlanEntries = computed<Workout[]>(() => {
         if (!currentPlanId.value) return []
         return [...getProgressForPlan(currentPlanId.value)]
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     })
 
-    const deleteProgressEntry = (planId: string, date: string) => {
-        workouts.value = workouts.value.filter(w => !(w.planId === planId && w.date === date));
-        localStorage.setItem('progress_workouts', JSON.stringify(workouts.value));
-        showToast({ message: 'Eintrag gelöscht!', type: 'success', emoji: '🗑️' });
-    };
+    const deleteProgressEntry = async (planId: string, id: string) => {
+        await progressStore.remove(planId, id)
+        workouts.value = workouts.value.filter(w => !(w.planId === planId && w.id === id))
+        showToast({ message: "Eintrag gelöscht!", type: "success", emoji: "🗑️" })
+    }
 
     function strengthExtrasFlags(entries: Workout[]): { tempo: boolean; rest: boolean } {
         const tempo = entries.some(e => (e.tempo || '').trim().length > 0)
@@ -2999,42 +2935,72 @@
     };
 
     const openInTraining = (planId: string) => {
-        localStorage.setItem('openPlanId', planId)
+        localStorage.setItem(LS_OPEN_PLAN_ID, planId)
         router.push({ name: 'Training' })
     }
 
     //Show Progress
-
     const showPlanProgressPopup = ref(false)
-    const currentPlanId = ref < string | null > (null);
-    const progressModalEl = ref < HTMLElement | null > (null)
-    const visibleDays = ref(7)
-    const expandedDays = ref < Set < string >> (new Set())
+    const currentPlanId = ref<string | null>(null)
+    const lastPlanId = ref<string | null>(null)
+    const effectivePlanId = computed(() => currentPlanId.value ?? lastPlanId.value)
 
-    let endIO: IntersectionObserver | null = null
 
-    function setupProgressIO() {
-        const root = progressModalEl.value
-        if (!root) return
-        const endEl = root.querySelector('.scroll-sentinel-end')
-        if (!endEl) return
-        if (endIO) { endIO.disconnect(); endIO = null }
+    const deleteEntriesFromPlanView = (payload: { planId: string; entries: any[] }) => {
+        const planId = payload?.planId
+        const entries = payload?.entries ?? []
+        if (!planId || !entries.length) return
 
-        endIO = new IntersectionObserver(
-            ([entry]) => {
-                root.classList.toggle('at-bottom', entry.isIntersecting)
-            },
-            { root, threshold: 1.0 }
-        )
-        endIO.observe(endEl)
+        for (const e of entries) {
+            const id = e?.id
+            if (id) {
+                deleteProgressEntry(planId, id)
+            } else {
+                showToast({ message: 'Fehler: Eintrag-ID fehlt (kann nicht löschen)', type: 'default' })
+            }
+        }
+
+        showToast({
+            message: entries.length === 1 ? 'Eintrag gelöscht' : `${entries.length} Einträge gelöscht`,
+            type: 'success',
+        })
     }
 
-    function cleanupProgressIO() {
-        if (endIO) { endIO.disconnect(); endIO = null }
+    // ===== Kebab -> ActionSelectPopup flow =====
+    type PlanKebabAction = 'download' | 'edit' | 'delete'
+
+    const showPlanActionSelectPopup = ref(false)
+    const kebabPlanId = ref<string | null>(null)
+    const kebabAction = ref<PlanKebabAction | null>(null)
+
+    const openPlanActionsFromKebab = (planId: string, action: PlanKebabAction) => {
+        kebabPlanId.value = planId
+        kebabAction.value = action
+        showPlanActionSelectPopup.value = true
+    }
+
+    // Wenn im ActionSelectPopup "Download" gewählt wird -> dann erst DownloadPopup öffnen
+    const onPlanActionSelectDownload = async () => {
+        const planId = kebabPlanId.value ?? currentPlanId.value ?? lastPlanId.value
+        showPlanActionSelectPopup.value = false
+        await nextTick()
+        if (planId) openDownloadPopup('progress', planId)
+    }
+
+    const editEntryFromPlanView = async (entry: any) => {
+        const planId = currentPlanId.value
+        if (!planId) return
+
+        // Plan-Popup weg, sonst liegt das Edit-Modal ggf. dahinter
+        showPlanProgressPopup.value = false
+
+        await nextTick()
+        editProgressEntry(planId, entry)
     }
 
     const closePlanProgressPopup = () => {
         showPlanProgressPopup.value = false
+        currentPlanId.value = null
     }
 
     const currentPlanName = computed(() =>
@@ -3044,98 +3010,92 @@
     const formatDayLong = (yyyyMMdd: string) => {
         const [y, m, d] = yyyyMMdd.split('-').map(Number)
         return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString('de-DE', {
-            weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric'
+            weekday: 'short',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
         })
     }
 
-    const getProgressForPlan = (planId: string) => {
-        return workouts.value.filter((workout) => workout.planId === planId);
-    };
-
-    const entriesByDay = computed(() => {
-        const map = new Map < string, Workout[]> ()
-        if (!currentPlanId.value) return map
-        for (const w of getProgressForPlan(currentPlanId.value)) {
-            const day = (w.date || '').slice(0, 10)
-            if (!map.has(day)) map.set(day, [])
-            map.get(day)!.push(w)
-        }
-        // Neueste Tage zuerst
-        return new Map([...map.entries()].sort((a, b) => b[0].localeCompare(a[0])))
-    })
-
-    const dayCards = computed < DayCard[] > (() => {
-        return [...entriesByDay.value.entries()].map(([day, items]) => {
-            const uniqueExercises = new Set(items.map(i => i.exercise)).size
-            return { day, uniqueExercises }
-        })
-    })
-
-    const visibleDayCards = computed(() =>
-        dayCards.value.slice(0, visibleDays.value)
-    )
-
     const editLatestEntryForDay = (day: string) => {
-        if (!currentPlanId.value) return
-        const items = getProgressForPlan(currentPlanId.value)
-            .filter(w => (w.date || '').slice(0, 10) === day)
+        const planId = currentPlanId.value
+        if (!planId) return
+
+        const items = workouts.value
+            .filter(w => w.planId === planId && (w.date || '').slice(0, 10) === day)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
         if (!items.length) {
             showToast({ message: 'Kein Eintrag für diesen Tag', type: 'default' })
             return
         }
-        editProgressEntry(currentPlanId.value, items[0])
+
+        editProgressEntry(planId, items[0])
     }
 
-    function toggleDay(day: string) {
-        const next = new Set(expandedDays.value)
-        next.has(day) ? next.delete(day) : next.add(day)
-        expandedDays.value = next
+    const addEntryFromPlanView = (payload?: { planId?: string; keepOpen?: boolean }) => {
+        const planId = payload?.planId ?? currentPlanId.value ?? lastPlanId.value
+        if (!planId) return
+
+        lastPlanId.value = planId
+
+        if (!payload?.keepOpen) {
+            showPlanProgressPopup.value = false
+        }
+
+        openProgressPopup(planId)
     }
 
-    const cardioForDay = (day: string) => {
-        const items = entriesByDay.value.get(day) ?? []
-        return items.filter(w => (w.type ?? 'kraft') === 'ausdauer')
+    const deleteLatestEntryForDay = (day: string) => {
+        const planId = currentPlanId.value
+        if (!planId) return
+
+        const items = workouts.value
+            .filter(w => w.planId === planId && (w.date || '').slice(0, 10) === day)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+        if (!items.length) {
+            showToast({ message: 'Kein Eintrag für diesen Tag', type: 'default' })
+            return
+        }
+        const id = items[0].id
+        if (!id) {
+            showToast({ message: 'Fehler: Eintrag-ID fehlt', type: 'default' })
+            return
+        }
+        deleteProgressEntry(planId, id)
+        showToast({ message: 'Eintrag gelöscht', type: 'success' })
     }
-
-    const stretchForDay = (day: string) => {
-        const items = entriesByDay.value.get(day) ?? []
-        return items.filter(w => (w.type ?? 'kraft') === 'dehnung')
-    }
-
-    const addEntryFromPlanView = () => {
-        if (!currentPlanId.value) return
-        reopenPlanProgressAfterSave.value = true
-        showPlanProgressPopup.value = false
-        openProgressPopup(currentPlanId.value)
-    }
-
-    watch(showPlanProgressPopup, (open) => {
-        nextTick(() => {
-            if (open) setupProgressIO();
-            else cleanupProgressIO();
-        });
-    })
-
-    watch(showPlanProgressPopup, v => {
-        document.body.style.overflow = v ? 'hidden' : ''
-    })
 
     //======== Export Popup ========
 
     const showDownloadPopup = ref(false);
-    const downloadFormat = ref < 'html' | 'csv' | 'json' | 'pdf' | 'txt' > ('html');
-    const downloadCalculator = ref < string | null > (null);
-    const downloadPlanId = ref < string | null > (null);
+    const downloadFormat = ref<'html' | 'csv' | 'json' | 'pdf' | 'txt'>('html');
+    const downloadCalculator = ref<string | null>(null);
+    const downloadPlanId = ref<string | null>(null);
+    const downloadPlanDays = ref<string[]>([])
+
+    const onPlanProgressDownload = (payload: { planId: string; days: string[] }) => {
+        downloadPlanId.value = payload.planId
+        downloadPlanDays.value = payload.days
+
+        // WICHTIG: sonst macht confirmDownload() sofort return
+        downloadCalculator.value = 'progress'
+
+        showPlanProgressPopup.value = false
+        showDownloadPopup.value = true
+    }
 
     const openDownloadPopup = (calculator: string, planId?: string) => {
-        downloadCalculator.value = calculator;
-        downloadPlanId.value = planId || null;
-        downloadFormat.value = 'html';
-        showDownloadPopup.value = true;
-    };
+        const blocked = new Set(['bmi', 'calories', 'burnRate', 'oneRm', 'bodyFat', 'ffmi', 'water', 'protein', 'caffeine', 'glyload'])
+        if (blocked.has(calculator)) return
 
+        downloadCalculator.value = calculator
+        downloadPlanId.value = planId || null
+        downloadPlanDays.value = [] // wichtig: alte Day-Selection killen
+        downloadFormat.value = 'html'
+        showDownloadPopup.value = true
+    }
 
     const closeDownloadPopup = () => {
         showDownloadPopup.value = false;
@@ -3153,121 +3113,27 @@
         let type = '';
 
         switch (downloadCalculator.value) {
-            case 'bmi':
-                if (!bmiResult.value) { addToast('Kein BMI-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    gender: bmiGender.value,
-                    weight: bmiWeight.value,
-                    height: bmiHeight.value,
-                    bmi: bmiResult.value.value.toFixed(1),
-                    category: bmiResult.value.category,
-                };
-                filename = 'bmi_result';
-                break;
-
-            case 'calories':
-                if (!calorieResult.value) { addToast('Kein Kalorienbedarf-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    age: calorieAge.value,
-                    gender: calorieGender.value,
-                    weight: calorieWeight.value,
-                    height: calorieHeight.value,
-                    activity: calorieActivity.value,
-                    goal: calorieGoal.value,
-                    total: calorieResult.value.total.toFixed(0),
-                    macros: {
-                        carbs: calorieResult.value.macros.carbs.toFixed(0),
-                        protein: calorieResult.value.macros.protein.toFixed(0),
-                        fat: calorieResult.value.macros.fat.toFixed(0),
-                    },
-                };
-                filename = 'calorie_result';
-                break;
-
-            case 'oneRm':
-                if (!oneRmResult.value) { addToast('Kein 1RM-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    exercise: oneRmExercise.value,
-                    weight: oneRmWeight.value,
-                    reps: oneRmReps.value,
-                    oneRm: oneRmResult.value.toFixed(1),
-                };
-                filename = 'one_rm_result';
-                break;
-
-            case 'bodyFat':
-                if (!bodyFatResult.value) { addToast('Kein Körperfett-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    gender: bodyFatGender.value,
-                    waist: bodyFatWaist.value,
-                    neck: bodyFatNeck.value,
-                    hip: bodyFatHip.value,
-                    height: bodyFatHeight.value,
-                    bodyFat: bodyFatResult.value.toFixed(1),
-                };
-                filename = 'bodyFat_result';
-                break;
-
-            case 'ffmi':
-                if (!ffmiResult.value) { addToast('Kein FFMI-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    weight: ffmiWeight.value,
-                    height: ffmiHeight.value,
-                    bodyFat: ffmiBodyFat.value,
-                    ffmi: ffmiResult.value.value.toFixed(1),
-                    category: ffmiResult.value.category,
-                };
-                filename = 'ffmi_result';
-                break;
-
-            case 'water':
-                if (!waterResult.value) { addToast('Kein Wasserbedarf-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    weight: waterWeight.value,
-                    activity: waterActivity.value,
-                    climate: waterClimate.value,
-                    water: waterResult.value.toFixed(1),
-                };
-                filename = 'water_result';
-                break;
-
-            case 'protein':
-                if (!proteinResult.value) { addToast('Kein Protein-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return; }
-                data = {
-                    weight: proteinWeight.value,
-                    unit: unit.value,
-                    goal: proteinGoal.value,
-                    recommend_g_per_day: proteinResult.value.recommend.toFixed(0),
-                    range_g_per_day: proteinResult.value.min && proteinResult.value.max
-                        ? `${proteinResult.value.min.toFixed(0)}–${proteinResult.value.max.toFixed(0)}`
-                        : null,
-                    factor_g_per_kg: proteinResult.value.factor.toFixed(2),
-                };
-                filename = 'protein_result';
-                break;
-
-            case 'caffeine':
-                if (!cafResult.value) { addToast('Kein Koffein-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return }
-                data = {
-                    weight: cafWeight.value,
-                    unit: unit.value,
-                    sensitivity: cafSensitivity.value,
-                    status: cafStatus.value,
-                    per_dose_mg: cafResult.value.perDose,
-                    per_day_mg: cafResult.value.perDay,
-                }
-                filename = 'caffeine_result'
-                break
 
             case 'progress': {
                 if (!downloadPlanId.value) { addToast('Kein Plan ausgewählt', 'default'); closeDownloadPopup(); return; }
                 const plan = trainingPlans.value.find(p => p.id === downloadPlanId.value)
-                const progress = getProgressForPlan(downloadPlanId.value)
-                if (!progress.length) { addToast('Kein Fortschritt zum Herunterladen', 'default'); closeDownloadPopup(); return; }
+                const all = getProgressForPlan(downloadPlanId.value)
+
+                const selected = downloadPlanDays.value.length
+                    ? all.filter(e => downloadPlanDays.value.includes((e.date || '').slice(0, 10)))
+                    : all
+
+                if (!selected.length) {
+                    addToast('Kein Fortschritt zum Herunterladen', 'default')
+                    closeDownloadPopup()
+                    return
+                }
+
+                const progress = selected
 
                 data = {
                     planName: plan?.name || 'Unbekannter Plan',
-                    progress: progress.map((e) => ({
+                    progress: progress.map((e: Workout) => ({
                         type: e.type ?? 'kraft',
                         exercise: e.exercise,
                         date: formatDate(e.date),
@@ -3283,20 +3149,6 @@
                 filename = `progress_${(plan?.name || 'plan').toLowerCase().replace(/\s+/g, '_')}`
                 break
             }
-
-            case 'glyload':
-                if (glResult.value == null) { addToast('Kein GL-Ergebnis zum Herunterladen', 'default'); closeDownloadPopup(); return }
-                data = {
-                    food: glFood.value,
-                    serving_g: glServing.value,
-                    carbs_per_100g_g: glCarbs100.value,
-                    gi: glGi.value,
-                    gl_per_serving: glResult.value.toFixed(1),
-                    category: glCategory.value,
-                }
-                filename = 'glycemic_load_result'
-                break
-
 
             case 'weightStats': {
                 if (!weightHistory.value.length) {
@@ -3510,6 +3362,40 @@ Notiz: ${e.note ?? '-'}\n`
         confirmDownload();
     };
 
+    // --- Confirm-Delete (global Setting) ---
+    const confirmDeleteEnabled = ref(true)
+
+    const showDeleteConfirmPopup = ref(false)
+    let pendingDeleteAction: null | (() => void) = null
+
+    const requestDeleteConfirm = (opts: { title?: string; message?: string; onConfirm: () => void }) => {
+        if (!confirmDeleteEnabled.value) {
+            opts.onConfirm()
+            return
+        }
+        pendingDeleteAction = opts.onConfirm
+        showDeleteConfirmPopup.value = true
+    }
+
+    const confirmDeleteNow = () => {
+        const fn = pendingDeleteAction
+        pendingDeleteAction = null
+        showDeleteConfirmPopup.value = false
+        fn?.()
+    }
+
+    const cancelDeleteConfirm = () => {
+        pendingDeleteAction = null
+        showDeleteConfirmPopup.value = false
+    }
+
+    function handleConfirmDeleteSetting(e: Event) {
+        confirmDeleteEnabled.value = Boolean((e as CustomEvent).detail)
+        if (!confirmDeleteEnabled.value && showDeleteConfirmPopup.value) {
+            cancelDeleteConfirm()
+        }
+    }
+
     // --- Toast: State / Config
 
     const toast = ref<ToastModel | null>(null)
@@ -3523,9 +3409,56 @@ Notiz: ${e.note ?? '-'}\n`
     const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
     const lastResetAction = ref<{ kind: 'weight' | 'workout'; data: any } | null>(null)
     const lastCalculatorReset = ref<{
-        id: 'bmi' | 'calories' | 'oneRm' | 'bodyFat' | 'ffmi' | 'water' | 'protein' | 'caffeine' | 'glyload';
+        id: 'bmi' | 'calories' | 'oneRm' | 'bodyFat' | 'ffmi' | 'water' | 'protein' | 'caffeine' | 'glyload' | 'burnRate';
         data: any;
     } | null>(null)
+
+    // Toast Snapshots Rechner
+
+    type CafResetSnapshot = {
+        weight: number | null
+        sensitivity: 'low' | 'normal' | 'high'
+        status: 'none' | 'pregnant'
+        lastDoseTime: string
+        sleepTime: string
+        showTimingExtras: boolean
+    }
+
+    function onCafReset(snapshot?: CafResetSnapshot) {
+        // 1) HARD RESET (refs korrekt)
+        cafWeight.value = null
+        cafSensitivity.value = 'normal'
+        cafStatus.value = 'none'
+        cafLastDoseTime.value = ''
+        cafSleepTime.value = ''
+        showTimingExtras.value = false
+        cafResult.value = null
+
+        // 2) Toast mit Undo (dein System: addToast)
+        addToast(
+            'Koffein-Rechner zurückgesetzt',
+            'reset',
+            snapshot
+                ? {
+                    label: 'Rückgängig',
+                    handler: () => {
+                        cafWeight.value = snapshot.weight
+                        cafSensitivity.value = snapshot.sensitivity
+                        cafStatus.value = snapshot.status
+                        cafLastDoseTime.value = snapshot.lastDoseTime
+                        cafSleepTime.value = snapshot.sleepTime
+                        showTimingExtras.value = snapshot.showTimingExtras
+
+                        if (autoCalcEnabled.value) {
+                            withSilentToasts(calculateCaffeine)
+                        }
+                    },
+                }
+                : undefined,
+        )
+    }
+
+
     // --- Toast: Dismiss & Exit-Animation ---
 
     function onToastDismiss(id: number) {
@@ -3610,9 +3543,10 @@ Notiz: ${e.note ?? '-'}\n`
         } as const
 
         const mapped = types[type]
-        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, action }
+        const durationMs = Number(localStorage.getItem(LS_TOAST_DURATION_MS)) || 3000
+        toast.value = { id, message, emoji: emojis[type], type: mapped, exiting: false, action, durationMs }
     }
-   
+
     // --- Toast: Integration mit Overlays & Sichtbarkeit ---
 
     const externalOverlayOpen = ref(false)
@@ -3630,7 +3564,6 @@ Notiz: ${e.note ?? '-'}\n`
         || bodyBlocked.value
     )
 
-    
     // ===== Utility: Zahlen, Debounce, Format, Charts, Global-Events =====
 
     const toNum = (v: unknown): number | null => {
@@ -3647,9 +3580,9 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    const currentWeight = computed(() =>
-        weightHistory.value.length ? weightHistory.value[0].weight.toString() : 'N/A'
-    );
+    const currentWeight = computed < number | null > (() =>
+        weightHistory.value.length ? weightHistory.value[0].weight : null
+    )
 
     const initialWeight = computed(() =>
         weightHistory.value.length ? weightHistory.value[weightHistory.value.length - 1].weight : null
@@ -3658,12 +3591,6 @@ Notiz: ${e.note ?? '-'}\n`
     const matchesSearch = (calculatorName: string) => {
         if (!searchQuery.value) return true;
         return calculatorName.toLowerCase().includes(searchQuery.value.toLowerCase());
-    };
-
-    const getExercisesForPlan = (planId: string | null) => {
-        if (!planId) return [];
-        const plan = trainingPlans.value.find((p) => p.id === planId);
-        return plan ? plan.exercises : [];
     };
 
     const formatDate = (isoString: string) => {
@@ -3679,43 +3606,52 @@ Notiz: ${e.note ?? '-'}\n`
         errors.forEach(e => addToast(e, 'default'))
     }
 
-    // ======= Milestones + loadFromLocalStorage ======= 
+    // ======= Milestones + loadFromLocalStorage =======
 
     const checkMilestones = (
         planId?: string,
         exercise?: string,
         weightKg?: number,
-        reps?: number
+        reps?: number,
+        entryDate?: string, // 👈 neu: damit wir den aktuellen Eintrag beim Vergleich ausklammern können
     ) => {
-        if (workouts.value.length >= 10) {
-            celebrateMilestone('Meilenstein: 10 Workouts erreicht! 🎉');
+        if (workouts.value.length === 10) {
+            celebrateMilestone('Meilenstein: 10 Workouts erreicht! 🎉')
         }
 
-
-        if (initialWeight.value && typeof currentWeight.value === 'string') {
-            const weightChange = Math.abs(Number(currentWeight.value) - initialWeight.value);
+        if (initialWeight.value != null && currentWeight.value != null) {
+            const weightChange = Math.abs(currentWeight.value - initialWeight.value)
             if (weightChange >= 5) {
-                celebrateMilestone('Meilenstein: 5 kg Gewichtsveränderung! 🎉');
+                celebrateMilestone('Meilenstein: 5 kg Gewichtsveränderung! 🎉')
             }
         }
 
         if (planId && exercise && typeof weightKg === 'number' && typeof reps === 'number') {
-            const progressEntries = getProgressForPlan(planId);
-            const lastEntry = progressEntries
-                .filter(e => e.exercise === exercise && (e.type === 'kraft' || e.type === 'calisthenics'))
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+            const prevEntry = getProgressForPlan(planId)
+                .filter((e: Workout) =>
+                    e.exercise === exercise
+                    && (e.type === 'kraft' || e.type === 'calisthenics')
+                    && (!entryDate || e.date !== entryDate) // 👈 wichtig: NICHT gegen den aktuellen Eintrag vergleichen
+                )
+                .sort((a: Workout, b: Workout) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
 
-            if (lastEntry) {
-                const improved =
-                    weightKg > lastEntry.weight ||
-                    (weightKg === lastEntry.weight && (reps ?? -Infinity) > (lastEntry.reps ?? -Infinity));
-                if (improved) {
-                    showToast({ message: `Meilenstein erreicht! ${exercise}: ${formatWeight(weightKg, 0)} × ${reps} Wdh. 🎉`, type: 'success', emoji: '🎉' });
-                    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                }
+            if (!prevEntry) return
+
+            const improved =
+                weightKg > prevEntry.weight ||
+                (weightKg === prevEntry.weight && reps > (prevEntry.reps ?? -Infinity))
+
+            if (improved) {
+                showToast({
+                    message: `Meilenstein erreicht! ${exercise}: ${formatWeight(weightKg, 0)} × ${reps} Wdh. 🎉`,
+                    type: 'success',
+                    emoji: '🎉',
+                })
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } })
             }
         }
-    };
+    }
+
 
     const celebrateMilestone = (message: string) => {
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
@@ -3724,14 +3660,14 @@ Notiz: ${e.note ?? '-'}\n`
 
     const loadFromLocalStorage = () => {
         try {
-            const weightsData = localStorage.getItem('progress_weights');
+            const weightsData = localStorage.getItem(LS_PROGRESS_WEIGHTS);
             if (weightsData) {
                 const parsed = JSON.parse(weightsData);
                 if (Array.isArray(parsed)) {
                     weightHistory.value = parsed;
                 }
             }
-            const bmiData = localStorage.getItem('progress_bmi');
+            const bmiData = localStorage.getItem(LS_PROGRESS_BMI);
             if (bmiData) {
                 const parsed = JSON.parse(bmiData);
                 bmiGender.value = parsed.gender;
@@ -3739,7 +3675,7 @@ Notiz: ${e.note ?? '-'}\n`
                 bmiHeight.value = parsed.height;
                 bmiResult.value = parsed.result;
             }
-            const calorieData = localStorage.getItem('progress_calories');
+            const calorieData = localStorage.getItem(LS_PROGRESS_CALORIES);
             if (calorieData) {
                 const parsed = JSON.parse(calorieData);
                 calorieAge.value = parsed.age;
@@ -3750,7 +3686,7 @@ Notiz: ${e.note ?? '-'}\n`
                 calorieGoal.value = parsed.goal;
                 calorieResult.value = parsed.result;
             }
-            const oneRmData = localStorage.getItem('progress_oneRm');
+            const oneRmData = localStorage.getItem(LS_PROGRESS_ONE_RM);
             if (oneRmData) {
                 const parsed = JSON.parse(oneRmData);
                 oneRmExercise.value = parsed.exercise;
@@ -3758,7 +3694,7 @@ Notiz: ${e.note ?? '-'}\n`
                 oneRmReps.value = parsed.reps;
                 oneRmResult.value = parsed.result;
             }
-            const bodyFatData = localStorage.getItem('progress_bodyFat');
+            const bodyFatData = localStorage.getItem(LS_PROGRESS_BODY_FAT);
             if (bodyFatData) {
                 const parsed = JSON.parse(bodyFatData);
                 bodyFatGender.value = parsed.gender;
@@ -3768,7 +3704,7 @@ Notiz: ${e.note ?? '-'}\n`
                 bodyFatHeight.value = parsed.height;
                 bodyFatResult.value = parsed.result;
             }
-            const ffmiData = localStorage.getItem('progress_ffmi');
+            const ffmiData = localStorage.getItem(LS_PROGRESS_FFMI);
             if (ffmiData) {
                 const parsed = JSON.parse(ffmiData);
                 ffmiWeight.value = parsed.weight;
@@ -3776,7 +3712,7 @@ Notiz: ${e.note ?? '-'}\n`
                 ffmiBodyFat.value = parsed.bodyFat;
                 ffmiResult.value = parsed.result;
             }
-            const waterData = localStorage.getItem('progress_water');
+            const waterData = localStorage.getItem(LS_PROGRESS_WATER);
             if (waterData) {
                 const parsed = JSON.parse(waterData);
                 waterWeight.value = parsed.weight;
@@ -3784,50 +3720,47 @@ Notiz: ${e.note ?? '-'}\n`
                 waterClimate.value = parsed.climate;
                 waterResult.value = parsed.result;
             }
-            const goalData = localStorage.getItem('progress_goal');
+            const goalData = localStorage.getItem(LS_PROGRESS_GOAL);
             if (goalData) {
                 const parsed = JSON.parse(goalData);
                 goal.value = parsed.goal;
             }
-            const workoutsData = localStorage.getItem('progress_workouts');
+            const workoutsData = localStorage.getItem(LS_PROGRESS_WORKOUTS);
             if (workoutsData) {
                 const parsed = JSON.parse(workoutsData);
                 workouts.value = parsed;
             }
-            const proteinData = localStorage.getItem('progress_protein')
+            const proteinData = localStorage.getItem(LS_PROGRESS_PROTEIN);
             if (proteinData) {
                 const parsed = JSON.parse(proteinData)
                 proteinWeight.value = parsed.weight
                 proteinGoal.value = parsed.goal
                 proteinResult.value = parsed.result
 
-                if (autoCalcEnabled.value && !validateProtein().length) {
+                if (autoCalcEnabled.value) {
                     calculateProtein()
                 }
             }
 
-            const trainingData = localStorage.getItem('trainingData');
-            if (trainingData) {
-                try {
-                    const parsedTraining = JSON.parse(trainingData);
-                    if (parsedTraining && Array.isArray(parsedTraining.plans)) {
-                        trainingPlans.value = parsedTraining.plans;
-                        console.log(`Geladene Trainingspläne: ${trainingPlans.value.length}`);
-                    } else {
-                        console.warn("trainingData gefunden, aber 'plans' ist kein Array oder fehlt.");
-                        trainingPlans.value = [];
-                    }
-                } catch (e) {
-                    console.error('Error parsing trainingData:', e);
-                    trainingPlans.value = [];
+            const burnData = localStorage.getItem(LS_PROGRESS_BURN_RATE);
+            if (burnData) {
+                const parsed = JSON.parse(burnData)
+                burnStartWeight.value = parsed.startWeight ?? null
+                burnGoalWeight.value = parsed.goalWeight ?? null
+                burnMaintenance.value = parsed.maintenance ?? null
+                burnIntake.value = parsed.intake ?? null
+                burnRateResult.value = parsed.result ?? null
+
+                if (autoCalcEnabled.value) {
+                    calculateBurnRate()
                 }
-            } else {
-                console.log("Keine trainingData im localStorage gefunden.");
-                trainingPlans.value = [];
+            }
+
+            const trainingData = localStorage.getItem(LS_TRAINING_DATA);
+            if (trainingData) {
             }
         } catch (err) {
             console.error('Error loading from localStorage:', err);
-            trainingPlans.value = [];
         }
     };
 
@@ -3900,6 +3833,7 @@ Notiz: ${e.note ?? '-'}\n`
                 workoutChart = null;
                 macroChart = null;
             }
+            freezeProgressBackground()
         });
     }, { immediate: true });
 
@@ -3909,6 +3843,21 @@ Notiz: ${e.note ?? '-'}\n`
             updateWorkoutChart();
         }
     });
+
+    let bgFreezeObserver: MutationObserver | null = null
+    function freezeProgressBackground() {
+        const el = document.querySelector('.progress') as HTMLElement | null
+        if (!el) return
+
+        // wir nutzen jetzt .progress::before als Background-Layer
+        // => alle alten Inline-Copies killen, damit nix "alt" durchblitzt
+        el.style.backgroundImage = ''
+        el.style.backgroundColor = ''
+        el.style.backgroundRepeat = ''
+        el.style.backgroundPosition = ''
+        el.style.backgroundSize = ''
+        el.style.backgroundAttachment = ''
+    }
 
     onMounted(() => {
         withSilentToasts(loadFromLocalStorage)
@@ -3926,6 +3875,16 @@ Notiz: ${e.note ?? '-'}\n`
         window.addEventListener('touchstart', releaseToasts as any)
 
         toastReleaseTimer = setTimeout(() => releaseToasts(), 1500)
+
+        freezeProgressBackground()
+        window.addEventListener('resize', freezeProgressBackground)
+
+        bgFreezeObserver = new MutationObserver(() => freezeProgressBackground())
+        bgFreezeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class', 'style'],
+        })
+
     })
 
     onUnmounted(() => {
@@ -3945,19 +3904,45 @@ Notiz: ${e.note ?? '-'}\n`
         if (weightChart) weightChart.destroy();
         if (workoutChart) workoutChart.destroy();
         if (macroChart) macroChart.destroy();
+
+        window.removeEventListener('resize', freezeProgressBackground)
+        bgFreezeObserver?.disconnect()
+        bgFreezeObserver = null
     })
 </script>
 
 <style scoped>
+
     .progress {
-        padding: 2rem;
-        background: var(--bg-primary);
+        padding: clamp(1.4rem, 3vw, 2.4rem);
         min-height: 100vh;
         font-family: 'Inter', sans-serif;
         color: var(--text-primary);
-        overflow-x: hidden; /* ⟵ verhindert seitliches Wischen */
+        overflow-x: hidden;
+        /* eigener Layer statt "Parent Background klauen" */
+        position: relative;
+        isolation: isolate;
+        background: transparent;
     }
-    /* Canvas nie breiter als der Container */
+
+    /* Dark Mode soll auch keinen eigenen Background setzen */
+    html.dark-mode .progress {
+        background: transparent;
+    }
+
+    .progress::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 58% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 12%, transparent), transparent 62% ), var(--bg-app, #f8fafc);
+    }
+
+    html.dark-mode .progress::before {
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 22%, transparent), transparent 58% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 16%, transparent), transparent 62% ), #020617;
+    }
+
     .chart-canvas {
         display: block;
         width: 100% !important; /* überschreibt Chart.js-Inlinebreite */
@@ -3966,21 +3951,30 @@ Notiz: ${e.note ?? '-'}\n`
         box-sizing: border-box;
     }
 
-    /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
-
     .workout-list {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1rem 1.25rem;
-        box-shadow: var(--shadow-light);
+        position: relative;
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 56% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 18px;
+        padding: 1.3rem 1.4rem 1.2rem;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        overflow: hidden;
+    }
+
+    /* Dark-Mode Variante – wie DashboardCard / CalculatorCard */
+    html.dark-mode .workout-list {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62% ), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
     .section-title {
-        font-size: 1.05rem;
+        font-size: 0.9rem;
         font-weight: 600;
-        color: var(--text-primary);
-        margin: .25rem 0 .75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--text-secondary) 78%, #9ca3af 22%);
+        margin: .15rem 0 .85rem;
     }
 
     .list-item {
@@ -3990,59 +3984,69 @@ Notiz: ${e.note ?? '-'}\n`
         gap: .75rem;
         padding: .75rem 1rem;
         margin-bottom: .5rem;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        transition: background .2s ease, border-color .2s ease, transform .12s ease;
+        /* gleiche Welt wie workout-list / plan-card */
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 60% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 62% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 12px;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.25);
+        transition: background 180ms ease-out, border-color 180ms ease-out, transform 140ms ease-out, box-shadow 200ms ease-out;
     }
 
         .list-item:hover {
-            border-color: var(--accent-primary);
-            transform: translateY(-1px);
+            background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 11%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 90%, #020617 10%);
+            border-color: rgba(129, 140, 248, 0.7);
+            transform: translateY(-2px);
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.4);
         }
 
-    .plan-item span {
-        color: var(--text-secondary);
-        font-size: .95rem;
+    /* optional: Dark-Mode explizit angleichen */
+    html.dark-mode .list-item {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62% ), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
     }
 
-    .list-item-actions {
-        display: flex;
-        gap: .5rem;
-    }
-
-    /* Öffnen-Button in der Liste */
     .open-btn {
         appearance: none;
-        border: none;
-        background: var(--accent-primary);
-        color: #fff;
+        border: 1px solid rgba(148, 163, 184, 0.6); /* wie Cards / list-item */
+        background: color-mix(in srgb, var(--bg-card) 82%, var(--bg-secondary) 18%);
+        color: color-mix(in srgb, var(--accent-primary) 80%, #e5e7eb 20%);
         font-weight: 600;
-        padding: .45rem .8rem;
-        border-radius: 8px;
+        padding: .42rem .9rem;
+        border-radius: 999px;
         cursor: pointer;
-        box-shadow: 0 1px 2px rgba(0,0,0,.06);
-        transition: filter .15s ease, transform .1s ease;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.55), 0 0 0 1px rgba(15, 23, 42, 0.7); /* crisp edge, wie deine anderen Elemente */
+        text-shadow: 0 0 6px rgba(15, 23, 42, 0.9);
+        backdrop-filter: blur(6px);
+        transition: background 160ms ease-out, border-color 160ms ease-out, color 140ms ease-out, transform 100ms ease-out, box-shadow 180ms ease-out;
     }
 
         .open-btn:hover {
-            filter: brightness(1.05);
+            background: color-mix(in srgb, var(--accent-primary) 22%, var(--bg-card) 78%);
+            border-color: color-mix(in srgb, var(--accent-primary) 90%, #a5b4fc 10%);
+            color: #f9fafb;
             transform: translateY(-1px);
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.7), 0 0 14px color-mix(in srgb, var(--accent-primary) 55%, transparent);
         }
 
         .open-btn:active {
             transform: translateY(0);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.55), 0 0 0 1px rgba(15, 23, 42, 0.9);
         }
 
-    /* Leerer Zustand (nimmt die vorhandene .list-item Optik) */
-    .workout-list .list-item.empty,
-    .workout-list .list-item:has(> .empty) {
+
+    /* leerer Zustand übernimmt den gleichen Card-Look */
+    .workout-list .list-item.empty {
         justify-content: center;
         color: var(--text-secondary);
     }
 
     /* Mobile Feinschliff */
     @media (max-width: 600px) {
+        .workout-list {
+            padding: 1.1rem 1.1rem 1rem;
+            border-radius: 16px;
+        }
+
         .list-item {
             padding: .65rem .8rem;
         }
@@ -4063,6 +4067,7 @@ Notiz: ${e.note ?? '-'}\n`
         color: var(--text-primary);
         margin-bottom: 1rem;
         letter-spacing: -0.025em;
+        text-align: center;
     }
 
     .page-subtext {
@@ -4070,6 +4075,7 @@ Notiz: ${e.note ?? '-'}\n`
         margin-bottom: 2rem;
         font-size: 1rem;
         font-weight: 500;
+        text-align: center;
     }
 
     .dashboard-container {
@@ -4105,25 +4111,23 @@ Notiz: ${e.note ?? '-'}\n`
         }
 
     .dashboard-grid {
-        display: flex;
-        gap: 1.5rem;
-        flex-wrap: wrap;
-        margin-bottom: 1.25rem;
-        overflow: visible;
+        --cards-gap-x: 1.1rem;
+        --cards-gap-y: 0.9rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: var(--cards-gap-y) var(--cards-gap-x);
+        align-items: stretch;
+        margin-bottom: 1.4rem;
         width: 100%;
         max-width: 100%;
     }
 
-        .dashboard-grid > * {
-            min-width: 0;
+    /* Feintuning für sehr kleine Screens: 1 Spalte hart erzwingen */
+    @media (max-width: 520px) {
+        .dashboard-grid {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0.85rem;
         }
-    /* Flex-Kinder spreizen nicht */
-
-    @media (max-width: 600px) {
-        .dashboard-grid > * {
-            flex: 1 1 100%;
-        }
-        /* 1-spaltig, sicher */
     }
 
     .btn-ghost.mini {
@@ -4155,28 +4159,23 @@ Notiz: ${e.note ?? '-'}\n`
             text-shadow: 0 0 8px #F59E0B, 0 0 4px #F59E0B;
         }
 
-
-    .dashboard-grid .card-info {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--accent-primary);
-    }
-
-        /* Kompakt-Variante greift jetzt zuverlässig im Stats-Tab auf Mobile */
-        .dashboard-grid .card-info.is-compact {
-            font-size: 1rem;
-            line-height: 1.1;
-            font-weight: 700;
-        }
-
     .progress-charts {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); /* flexibler */
         gap: 1.5rem;
         margin-bottom: 2rem;
         max-width: 100%;
-        overflow-x: clip; /* nix darf herausragen */
+        /* Hover-Effekte der ChartCards sollen nicht abgeschnitten werden */
+        overflow: visible;
     }
+
+        .progress-charts .card-info {
+            margin: 0;
+            margin-top: 0.2rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
 
         .progress-charts > * {
             min-width: 0;
@@ -4202,60 +4201,95 @@ Notiz: ${e.note ?? '-'}\n`
         display: contents;
     }
 
+
+
+    /* Ernährungsplan-Card – gleiche Welt wie andere Cards, ohne Farb-Overkill */
     .plan-card {
-        background: var(--bg-card);
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: var(--shadow-light);
-        border: 1px solid var(--border-color);
-        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
         position: relative;
         z-index: 1;
-        cursor: pointer;
+        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 56% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        padding: 1.3rem 1.4rem 1.2rem;
+        border-radius: 18px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        transition: background 180ms ease-out, border-color 180ms ease-out, box-shadow 200ms ease-out, transform 160ms ease-out;
+        cursor: default;
+        overflow: hidden;
+        width: 100%;
     }
 
+        /* leichter Hover wie bei der Trainingspläne-Box */
         .plan-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(255, 255, 255, 0));
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 60%);
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 160ms ease-out;
             pointer-events: none;
         }
 
         .plan-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-hover);
-            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.7);
         }
 
             .plan-card:hover::before {
                 opacity: 1;
             }
 
-        .plan-card h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-            color: var(--text-primary);
+    /* Dark-Mode angleichen zur workout-list */
+    html.dark-mode .plan-card {
+        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62% ), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Header + Titel im gleichen Stil wie andere Card-Header */
+    .plan-card .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.9rem;
+    }
+
+    .plan-card .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--text-secondary) 82%, #9ca3af 18%);
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .plan-card p,
+    .plan-card .plan-description {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    /* Action-Bereich rechts (Download-Icon) */
+    .plan-card .card-actions {
+        display: flex;
+        gap: .5rem;
+        align-items: center;
+    }
+
+    /* Mobile Feinschliff */
+    @media (max-width: 600px) {
+        .plan-card {
+            padding: 1.3rem 1.3rem 1.1rem;
+            border-radius: 16px;
         }
 
-        .plan-card p {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        .plan-card .plan-description {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-            margin-bottom: 1rem;
-        }
+            .plan-card .card-title {
+                font-size: 0.9rem;
+            }
+    }
 
     :root {
         --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -4307,33 +4341,23 @@ Notiz: ${e.note ?? '-'}\n`
         border: 1px solid var(--border-color);
     }
 
-    /* nur Plan-Karten, NICHT die Calculator-Karten */
-    .plan-card .card-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }
 
-    .plan-card .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .plan-card .card-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
 
     /* ===================== EXPORT-POPUP ===================== */
 
     .plans-section {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1.25rem;
+        width: 100%;
     }
+
+        /* Sicherstellen, dass beide Karten nicht nebeneinander floaten o.ä. */
+        .plans-section .workout-list,
+        .plans-section .plan-card {
+            width: 100%;
+            max-width: 100%;
+        }
 
     /* ===================== BERECHNEN BUTTON ===================== */
     .set-table-wrapper {
@@ -4469,19 +4493,6 @@ Notiz: ${e.note ?? '-'}\n`
 
     /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
 
-    .list-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-        padding: .75rem 1rem;
-        margin-bottom: .5rem;
-        background: var(--bg-card); /* vorher: var(--bg-secondary) */
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        transition: background .2s ease, border-color .2s ease, transform .12s ease;
-    }
-
     .modal-overlay {
         position: fixed;
         inset: 0;
@@ -4575,11 +4586,6 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    .list-item:hover {
-        background: var(--bg-secondary); /* dezente Hover-Fläche */
-        border-color: var(--accent-primary);
-        transform: translateY(-1px);
-    }
 
     .plan-item span {
         color: var(--text-secondary);
@@ -4591,46 +4597,7 @@ Notiz: ${e.note ?? '-'}\n`
         gap: .5rem;
     }
 
-    /* Öffnen-Button: von „schwarz“ zu Ghost/Outline */
-    .open-btn {
-        appearance: none;
-        border: 1px solid var(--border-color);
-        background: transparent;
-        color: var(--text-primary);
-        font-weight: 600;
-        padding: .45rem .8rem;
-        border-radius: 8px;
-        cursor: pointer;
-        box-shadow: none;
-        transition: border-color .15s ease, color .15s ease, background .15s ease, transform .1s ease;
-    }
 
-        .open-btn:hover {
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-            background: var(--bg-secondary);
-            transform: translateY(-1px);
-        }
-
-        .open-btn:active {
-            transform: translateY(0);
-        }
-
-    /* Mobile Feinschliff */
-    @media (max-width: 600px) {
-        .list-item {
-            padding: .65rem .8rem;
-        }
-
-        .plan-item span {
-            font-size: .9rem;
-        }
-
-        .open-btn {
-            padding: .4rem .7rem;
-            font-size: .95rem;
-        }
-    }
     /* Fortschritt ansehen – Header mit Download-Button rechts */
     .modal .card-header {
         display: flex;
@@ -5208,11 +5175,5 @@ Notiz: ${e.note ?? '-'}\n`
     .modal--progress > .card-header + .list-item.empty,
     .modal--progress > .card-header + .day-card-list {
         margin-top: 1rem; /* taste dich bei Bedarf ran: .75rem – 1.25rem */
-    }
-
-</style>
-<style>
-    body:has(.modal-overlay) {
-        overflow: hidden;
     }
 </style>

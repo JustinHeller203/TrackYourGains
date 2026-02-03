@@ -61,6 +61,141 @@ namespace Gym3000.Api.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("Gym3000.Api.Entities.GlycemicFood", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string[]>("Aliases")
+                        .HasColumnType("text[]");
+
+                    b.Property<int?>("Calories100")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("Carbs100")
+                        .IsRequired()
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("Fiber100")
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<int?>("Gi")
+                        .IsRequired()
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("GiMax")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("GiMin")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(220)
+                        .HasColumnType("character varying(220)");
+
+                    b.Property<decimal?>("ServingG")
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<decimal?>("Sugar100")
+                        .HasColumnType("numeric(6,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("Label");
+
+                    b.ToTable("GlycemicFoods");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.ProgressEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<decimal?>("DistanceKm")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<int?>("DurationMin")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Exercise")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(800)
+                        .HasColumnType("character varying(800)");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("Reps")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RestSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Sets")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Tempo")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("WeightKg")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("UserId", "PlanId", "Date");
+
+                    b.HasIndex("UserId", "PlanId", "Exercise");
+
+                    b.ToTable("ProgressEntries");
+                });
+
             modelBuilder.Entity("Gym3000.Api.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -141,6 +276,229 @@ namespace Gym3000.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("RefreshTokens");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.Time.Stopwatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("ElapsedMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsRunning")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("ShouldStaySticky")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsVisible");
+
+                    b.HasIndex("UserId", "ShouldStaySticky");
+
+                    b.HasIndex("UserId", "SortIndex");
+
+                    b.ToTable("Stopwatches");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.Time.Timer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CustomSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsFavorite")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("SecondsPreset")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<bool>("ShouldStaySticky")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Sound")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsFavorite");
+
+                    b.HasIndex("UserId", "SortIndex");
+
+                    b.ToTable("Timers");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId", "SortOrder");
+
+                    b.ToTable("TrainingDays");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingExercise", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("DayId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("DistanceKm")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<int?>("DurationMin")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(600)
+                        .HasColumnType("character varying(600)");
+
+                    b.Property<int?>("Reps")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RestSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Sets")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("TargetWeight")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("DayId", "SortOrder");
+
+                    b.ToTable("TrainingExercises");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsFavorite")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("TrainingPlans");
                 });
 
             modelBuilder.Entity("Gym3000.Api.Entities.UserMeta", b =>
@@ -381,6 +739,39 @@ namespace Gym3000.Api.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Gym3000.Api.Entities.ProgressEntry", b =>
+                {
+                    b.HasOne("Gym3000.Api.Entities.TrainingPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingDay", b =>
+                {
+                    b.HasOne("Gym3000.Api.Entities.TrainingPlan", "Plan")
+                        .WithMany("Days")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingExercise", b =>
+                {
+                    b.HasOne("Gym3000.Api.Entities.TrainingDay", "Day")
+                        .WithMany("Exercises")
+                        .HasForeignKey("DayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Day");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -430,6 +821,16 @@ namespace Gym3000.Api.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingDay", b =>
+                {
+                    b.Navigation("Exercises");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingPlan", b =>
+                {
+                    b.Navigation("Days");
                 });
 #pragma warning restore 612, 618
         }

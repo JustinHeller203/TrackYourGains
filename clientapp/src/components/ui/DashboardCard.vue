@@ -1,12 +1,12 @@
-<!--DashboardCard.vue-->
+<!--Pfad: src/components/ui/DashboardCard.vue-->
 <template>
     <div class="card card--crazy"
          :style="{ cursor: clickable ? 'pointer' : 'default' }"
          :tabindex="clickable ? 0 : undefined"
          :role="clickable ? 'button' : undefined"
          @click="handleClick"
-@keydown.enter="handleClick">
-         <span class="accent" aria-hidden="true"></span>
+         @keydown.enter="handleClick">
+        <span class="accent" aria-hidden="true"></span>
 
         <h3 class="card-title">{{ title }}</h3>
         <p class="card-info"
@@ -42,6 +42,9 @@
         const raw = props.info
         const s = (raw === undefined || raw === null) ? '' : String(raw).trim().toLowerCase()
 
+        // Dashboard: "Kalorien heute" soll selbst bei 0 / 2500 kcal NICHT grau werden
+        if (t.includes('kalorien heute')) return false
+
         // generische Platzhalter
         if (!s || s === '0' || s === '-' || s === '�' || s === 'n/a') return true
         if (s.includes('kein') || s.includes('nicht erfasst') || s.includes('nicht gesetzt')) return true
@@ -64,188 +67,113 @@
     })
 
 
+
 </script>
 
 <style scoped>
-    /* Crazy-Modern ohne Tilt: Stripe + Grid + Shine */
     .card {
-        --radius: 16px;
-        --pad-x: 1.25rem;
-        --pad-y: 1rem;
         position: relative;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
-        gap: .45rem;
-        flex: 1;
+        align-items: flex-start;
+        text-align: left;
+        padding: 1.6rem 1.8rem;
+        border-radius: 18px;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        gap: 0.55rem;
         min-width: 220px;
-        padding: var(--pad-y) var(--pad-x);
-        border-radius: var(--radius);
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        box-shadow: var(--shadow);
-        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
-        overflow: hidden;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        /* smoother, easing-basierter Übergang + kleinste Optimierung */
+        transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 260ms cubic-bezier(0.22, 0.61, 0.36, 1), border-color 220ms ease-out, background 260ms ease-out;
+        will-change: transform, box-shadow;
     }
 
     @media (max-width: 810px) {
         .card {
             flex: 0 1 calc(50% - var(--cards-gap, 1rem));
-            margin-bottom: var(--cards-row-gap, 0.2rem); /* weniger vertikaler Abstand */
+            margin-bottom: var(--cards-row-gap, 0.2rem);
         }
     }
 
-    /* Top-Stripe mit animierter Gradient-Bewegung */
-    .card--crazy .accent {
-        position: absolute;
-        inset: 0 0 auto 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-        background-size: 200% 100%;
-        animation: stripe-move 3s linear infinite;
-    }
-
-    @keyframes stripe-move {
-        0% {
-            background-position: 0% 50%;
-        }
-
-        100% {
-            background-position: 200% 50%;
+    /* Hover wie stat-card / feature-card */
+    @media (hover: hover) {
+        .card:hover {
+            /* etwas weniger „Sprung“, dafür smoother Scaling */
+            transform: translateY(-4px) scale(1.015);
+            box-shadow: 0 26px 60px rgba(15, 23, 42, 0.4);
+            border-color: rgba(129, 140, 248, 0.7);
+            /* ganz leichter Glow über Border via Background-Mix */
+            background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 11%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 90%, #020617 10%);
         }
     }
-    .card-info.is-muted {
-        font-size: clamp(1.0rem, 1.2vw + .55rem, 1.25rem);
-        font-weight: 600;
-        letter-spacing: 0;
-        color: var(--text-secondary);
-        opacity: .85;
-    }
-    /* Subtile Pattern-/Noise-Layer */
-    .card--crazy::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background:
-        /* Soft vignette */
-        radial-gradient(1200px 300px at -20% -20%, color-mix(in oklab, var(--accent-primary) 10%, transparent), transparent 60%),
-        /* Repeating grid */
-        repeating-linear-gradient(45deg, color-mix(in oklab, var(--accent-primary) 14%, transparent) 0 2px, transparent 2px 12px);
-        opacity: .08;
-        pointer-events: none;
+    /* Dark-Mode wie LandingPage-Cards */
+    html.dark-mode .card {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
-
-    @keyframes sweep {
-        0% {
-            transform: translateX(-30%) rotate(20deg);
-        }
-
-        100% {
-            transform: translateX(30%) rotate(20deg);
-        }
-    }
-
-    /* Typo � brutal klare Hierarchie */
+    /* Typo wie Landing: kleines Label oben, großer Wert unten */
     .card-title {
-        margin: .25rem 0 0 0;
-        font-size: .85rem;
-        font-weight: 800;
-        letter-spacing: .08em;
+        margin: 0 0 0.35rem 0;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.16em;
         text-transform: uppercase;
-        color: var(--text-secondary);
+        color: color-mix(in srgb, var(--text-secondary) 82%, #9ca3af 18%);
     }
 
-    .card-info * {
-        font-family: inherit;
-        font-size: inherit;
-        font-weight: inherit;
-        letter-spacing: inherit;
-        line-height: inherit;
-        color: inherit;
+    /* Basis-Wert – wie stat-number: immer Gradient */
+    /* Basis-Wert – klar, hell, gut lesbar auf dem dunklen Card-Background */
+    .card-info {
+        font-size: 1.3rem;
+        font-weight: 700;
+        line-height: 1.3;
+        letter-spacing: -0.01em;
+        color: var(--text-primary); /* kein Gradient, kein Blau-Zwang */
+    }
+
+        /* Placeholder / Muted: etwas kleiner & dezenter */
+        .card-info.is-muted,
+        .card-info :is(.is-muted, .muted, .placeholder) {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            opacity: 0.9;
+        }
+
+        /* Kompaktmodus: etwas größerer, “wichtigerer” Wert */
+        .card-info.is-compact {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        /* Slot-Content erbt weiterhin sauber */
+        .card-info * {
+            font-family: inherit;
+            font-size: inherit;
+            font-weight: inherit;
+            letter-spacing: inherit;
+            line-height: inherit;
+            color: inherit;
+        }
+
+
+
+    /* Kein alter Crazy-Stripe mehr */
+    .card--crazy .accent {
+        display: none;
     }
 
     /* Motion-Respect */
     @media (prefers-reduced-motion: reduce) {
-        .card, .card--crazy .shine {
+        .card {
+            /* keine Animation, aber Hover-Effekt bleibt erlaubt */
             transition: none;
-            animation: none;
-        }
-
-        .card--crazy:hover {
-            transform: none;
         }
     }
-    /* Smooth Lift + Subtle Tint + Pattern-Shift */
-    .card--crazy:hover {
-        transform: translateY(-2px) scale(1.01);
-        box-shadow: var(--shadow-hover);
-        border-color: color-mix(in oklab, var(--accent-primary) 28%, var(--border-color));
-        background: linear-gradient(0deg, color-mix(in oklab, var(--accent-primary) 6%, transparent), transparent 45%), var(--bg-card);
-        filter: saturate(1.03);
-    }
-
-        /* Grid/Noise minimal anheben f�r �alive�-Gef�hl */
-        .card--crazy:hover::before {
-            opacity: .12;
-            background: radial-gradient(1200px 300px at -20% -20%, color-mix(in oklab, var(--accent-primary) 14%, transparent), transparent 60%), repeating-linear-gradient(45deg, color-mix(in oklab, var(--accent-primary) 18%, transparent) 0 2px, transparent 2px 12px);
-        }
-
-    /* Accent-Stripe reagiert dezent (ohne Spiegel) */
-    .card--crazy .accent {
-        height: 3px;
-    }
-
-    .card--crazy:hover .accent {
-        height: 4px;
-        background-size: 220% 100%;
-    }
-
-    /* Falls du im Slot eigene Placeholder markierst */
-    .card-info :is(.is-muted, .muted, .placeholder) {
-        font-size: clamp(1.0rem, 1.2vw + .55rem, 1.25rem);
-        font-weight: 600;
-        color: var(--text-secondary);
-        opacity: .85;
-    }
-    /* smoother, subtiler Hover */
-.card {
-  transition:
-    transform .22s cubic-bezier(.22,.61,.36,1),
-    box-shadow .22s cubic-bezier(.22,.61,.36,1),
-    border-color .22s ease,
-    background .22s ease,
-    filter .22s ease;
-}
-
-.card--crazy .accent { transition: height .22s ease, background-size .22s ease; }
-
-.card--crazy:hover {
-  transform: translateY(-1px) scale(1.006);
-  box-shadow: var(--shadow-hover);
-  border-color: color-mix(in oklab, var(--accent-primary) 22%, var(--border-color));
-  background:
-    linear-gradient(0deg, color-mix(in oklab, var(--accent-primary) 4%, transparent), transparent 55%),
-    var(--bg-card);
-  filter: saturate(1.01) contrast(1.01);
-}
-
-.card--crazy:hover::before {
-  opacity: .10;
-  background:
-    radial-gradient(1200px 300px at -20% -20%, color-mix(in oklab, var(--accent-primary) 12%, transparent), transparent 60%),
-    repeating-linear-gradient(45deg,
-      color-mix(in oklab, var(--accent-primary) 16%, transparent) 0 2px,
-      transparent 2px 12px);
-}
-
-.card--crazy:hover .accent {
-  height: 3.5px;
-  background-size: 210% 100%;
-}
-    .card-info.is-compact {
-        font-size: clamp(1.15rem, 1.6vw + .6rem, 1.65rem);
-        font-weight: 800;
-        letter-spacing: -0.01em;
-    }
-
 </style>
+

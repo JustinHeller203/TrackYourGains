@@ -54,7 +54,7 @@
     const updateLabelMode = () => {
         if (typeof window === 'undefined') return
         const w = window.innerWidth
-        useShortLabels.value = w <= 810 && w >= 687
+        useShortLabels.value = !iconOnly.value && w <= 810
         iconOnly.value = w <= 350
     }
 
@@ -72,49 +72,108 @@
 
 <style scoped>
     .chart-card {
-        background: var(--bg-card);
-        padding: 1.5rem;
-        border-radius: 16px;
-        box-shadow: var(--shadow);
-        border: 1px solid var(--border-color);
-        transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
         position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        padding: 1.6rem 1.8rem 1.1rem;
+        border-radius: 18px;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        gap: 0.55rem;
         color: var(--text-primary);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     }
 
+    /* Hover wie bei DashboardCard */
+    @media (hover: hover) {
         .chart-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-hover);
-            border-color: var(--accent-primary);
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.55);
         }
+    }
 
+    /* Dark-Mode – gleich wie die Dashboard-Cards */
+    html.dark-mode .chart-card {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Titel wie bei den DashboardCards (kleines Label oben) */
     .card-title {
-        font-size: 1.25rem;
+        margin: 0 0 0.35rem 0;
+        font-size: 0.8rem;
         font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-        word-break: break-word; /* lange W�rter umbrechen */
-        hyphens: auto; /* Browser darf trennen (mit passender Spracheinstellung) */
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--text-secondary) 82%, #9ca3af 18%);
     }
 
+    /* Chart-Bereich */
     .chart-container {
-        height: 300px;
-        margin-top: 1rem;
+        display: block;
+        width: 100%;
+        height: 240px;
+        margin-top: 0.35rem;
+        box-sizing: border-box;
     }
+
+    .empty-state {
+        height: 240px;
+        margin-top: 0.6rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        padding: 0 1rem;
+    }
+
+    /* Footer wie bisher, nur an Card-Optik angepasst */
+    .card-footer {
+        border-top: 1px solid rgba(148, 163, 184, 0.26);
+        padding: 0.75rem 0 0;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.6rem;
+        width: 100%;
+        align-self: stretch;
+    }
+        .card-footer > * {
+            min-width: 0;
+        }
 
     .footer-btn {
         display: inline-flex;
         justify-content: center;
         align-items: center;
-        width: 100%; /* f�llt die Grid-Spalte */
-        min-height: 40px; /* angenehme Zielh�he */
+        width: auto;
+        min-height: 40px;
         padding: .55rem .85rem;
         line-height: 1.2;
-        white-space: normal; /* ? darf auf 2 Zeilen umbrechen */
+        white-space: nowrap;
         text-align: center;
-        text-wrap: balance; /* sch�ner Zeilenumbruch (supported modern) */
-        word-break: keep-all; /* keine h�sslichen Worttrennungen */
         font-size: 0.95rem;
+    }
+
+    /* Responsive Feinschliff */
+    @media (max-width: 600px) {
+        .chart-card {
+            padding: 1.25rem 1.2rem 0.9rem;
+            border-radius: 16px;
+        }
+
+        .chart-container,
+        .empty-state {
+            height: 220px;
+        }
     }
 
     @media (max-width: 420px) {
@@ -129,8 +188,8 @@
         }
 
         .card-title {
-            font-size: 1.05rem;
-            line-height: 1.25;
+            font-size: 0.75rem;
+            line-height: 1.3;
         }
     }
 
@@ -141,18 +200,11 @@
         }
 
         .card-title {
-            font-size: 0.95rem;
-        }
-    }
-    /* Engere Settings nur f�r Phones */
-    @media (max-width: 380px) {
-        .footer-btn {
-            padding-inline: .55rem;
-            font-size: clamp(.85rem, 3.8vw, .95rem);
+            font-size: 0.7rem;
         }
     }
 
-    /* Ultra-kleine Ger�te */
+    /* Ultra-kleine Geräte */
     @media (max-width: 340px) {
         .card-footer {
             gap: .35rem;
@@ -162,56 +214,5 @@
             padding-inline: .45rem;
             font-size: clamp(.8rem, 4vw, .9rem);
         }
-    }
-
-    .card-footer {
-        border-top: 1px solid var(--border-color);
-        padding: 0.75rem 0.75rem 0;
-        display: grid; /* ? 2-Spalten-Grid f�r saubere Aufteilung */
-        grid-template-columns: 1fr 1fr;
-        gap: 0.6rem; /* etwas Luft zwischen den Buttons */
-        align-items: stretch; /* Buttons gleiche H�he */
-        justify-items: stretch;
-    }
-
-        .card-footer > * {
-            flex: 1 1 0; /* ? zwei gleich breite Spalten */
-            min-width: 0; /* ? verhindert Overflow durch Mindestbreiten */
-        }
-
-    @media (max-width: 380px) {
-        .card-footer {
-            gap: 0.4rem;
-        }
-        /* ? engeres Gap auf Mini-Phones */
-    }
-
-    @media (max-width: 340px) {
-        .card-footer > * {
-            flex: 1 1 0;
-        }
-        /* Falls die Button-Komponenten selbst Innenabst�nde haben, hilft schmalere Typo: */
-        .card-footer :where(button) {
-            padding-inline: .6rem;
-            font-size: .9rem;
-        }
-    }
-    /* Mobile: kleineres Gap, mehr Platz f�rs Chart */
-    @media (max-width: 420px) {
-        .card-footer {
-            gap: 0.5rem;
-        }
-    }
-
-    .empty-state {
-        height: 300px;
-        margin-top: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        color: var(--text-secondary);
-        font-size: 0.95rem;
-        padding: 0 1rem;
     }
 </style>

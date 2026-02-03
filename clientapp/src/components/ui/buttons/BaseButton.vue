@@ -1,3 +1,5 @@
+<!--Pfad: components/ui/buttons/BaseButton.vue-->
+
 <template>
     <button class="action-btn"
             :class="extraClass"

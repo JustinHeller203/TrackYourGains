@@ -1,5 +1,6 @@
 <template>
-    <div class="sticky-timer-card"
+    <div v-if="stickyEnabled"
+         class="sticky-timer-card"
          ref="cardEl"
          :class="[{ resizing: resizeMode, movable: moveMode }, sizePreset]"
          :style="{
@@ -14,7 +15,6 @@
   '--btn-bg': timer.btnColor ?? undefined,
   '--time-color': timer.timeColor ?? undefined
 }"
-
          @mousedown="onMouseDown($event)"
          @mousedown.right.prevent="openMenu($event as any)"
          @contextmenu.prevent="openMenu($event as any)"
@@ -48,7 +48,6 @@
         <button @click="startTimer(timer)" :disabled="timer.isRunning">Start</button>
         <button @click="stopTimer(timer)" :disabled="!timer.isRunning">Stop</button>
         <button @click="resetTimer(timer)">Reset</button>
-
         <!-- StickyTimerCard.vue | REPLACE HoldMenu block -->
         <HoldMenu v-if="showMenu"
                   class="sticky-menu"
@@ -169,6 +168,13 @@
 
             </template>
 
+            <button v-if="hasStyleChanges"
+                    type="button"
+                    class="menu-item"
+                    @click="handleApplyToAll"
+                    @mousedown.stop>
+                Für alle Timer übernehmen
+            </button>
             <button type="button" class="menu-item danger" @click="handleClose">
                 Schließen
             </button>
@@ -192,8 +198,9 @@
 
 <script setup lang="ts">
 
-    import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount } from 'vue'
+    import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount, toRef } from 'vue'
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
+    import type { TimerInstance as BaseTimer } from '@/types/training'
 
     // ADD inline time edit (double click)
     const isEditingTime = ref(false)
@@ -297,11 +304,35 @@
         (e: 'open', id: string): void
         (e: 'crop', id: string): void
         (e: 'close', id: string): void
+        (e: 'apply-style-all', payload: {
+            kind: 'timer'
+            style: {
+                bgColor: string | null
+                btnColor: string | null
+                timeColor: string | null
+                shape: 'square' | 'rounded' | 'oval' | null
+            }
+        }): void
     }>()
+
+    function handleApplyToAll() {
+        emit('apply-style-all', {
+            kind: 'timer',
+            style: {
+                bgColor: timer.bgColor ?? null,
+                btnColor: timer.btnColor ?? null,
+                timeColor: timer.timeColor ?? null,
+                shape: timer.shape ?? null,
+            },
+        })
+        hasStyleChanges.value = false
+        closeMenu()
+    }
 
     const cardEl = ref<HTMLElement | null>(null)
     const showMenu = ref(false)
     const showColors = ref(false)
+    const hasStyleChanges = ref(false)
 
     const menuStyle = computed(() => {
         const w = timer.width ?? cardEl.value?.offsetWidth ?? 220
@@ -503,16 +534,25 @@
 
     function setColor(color: string | null, close = true) {
         timer.bgColor = color
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 
     function setBtnColor(color: string | null, close = true) {
         timer.btnColor = color
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 
     function setTimeColor(color: string | null, close = true) {
         timer.timeColor = color
+        hasStyleChanges.value = true
+        if (close) closeMenu()
+    }
+
+    function setShape(shape: 'square' | 'rounded' | 'oval' | null, close = false) {
+        timer.shape = shape
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 
@@ -524,11 +564,6 @@
             default: return undefined
         }
     })
-
-    function setShape(shape: 'square' | 'rounded' | 'oval' | null, close = false) {
-        timer.shape = shape
-        if (close) closeMenu()
-    }
     function handleClose() {
         // Timer sauber stoppen + unsticky machen
         stopTimer(timer)
@@ -857,32 +892,45 @@
         { flush: 'post' }
     )
 
-    interface TimerInstance {
-        id: string
-        name: string
-        seconds: string
-        customSeconds: number | null
-        time: number
-        isRunning: boolean
-        interval: number | null
-        isFavorite: boolean
-        sound: string
-        isVisible: boolean
-        shouldStaySticky: boolean
+    type StickyTimer = BaseTimer & {
+        // sticky positioning / size
+        left?: number
+        top?: number
+        width?: number
+        height?: number
+        zIndex?: number
+
+        // style
         bgColor?: string | null
         btnColor?: string | null
         timeColor?: string | null
         shape?: 'square' | 'rounded' | 'oval' | null
-        width?: number
-        height?: number
-        left?: number
-        top?: number
-        endAt?: number | null
+
+        // runtime flags (werden im Parent genutzt)
+        shouldStaySticky?: boolean
+        isVisible?: boolean
+
+        // engine fields (werden hier gesetzt)
         startedAtMs?: number | null
         endsAtMs?: number | null
         pausedRemaining?: number | null
-        zIndex?: number
+
+        // legacy (falls irgendwo genutzt)
+        endAt?: number | null
     }
+
+    const props = defineProps<{
+        timer: StickyTimer
+        stickyEnabled: boolean
+        formatTimer: (time: number) => string
+        startTimer: (timer: BaseTimer) => void
+        stopTimer: (timer: BaseTimer) => void
+        resetTimer: (timer: BaseTimer) => void
+        startDrag: (e: MouseEvent, timer: BaseTimer) => void
+        focusInTraining: (type: 'timer' | 'stopwatch', id: string) => void
+    }>()
+
+    const stickyEnabled = toRef(props, 'stickyEnabled')
 
     const {
         timer,
@@ -892,15 +940,8 @@
         resetTimer,
         startDrag,
         focusInTraining,
-    } = defineProps<{
-        timer: TimerInstance
-        formatTimer: (time: number) => string
-        startTimer: (timer: TimerInstance) => void
-        stopTimer: (timer: TimerInstance) => void
-        resetTimer: (timer: TimerInstance) => void
-        startDrag: (e: MouseEvent, timer: TimerInstance) => void
-        focusInTraining: (type: 'timer' | 'stopwatch', id: string) => void
-    }>()
+    } = props
+
 </script>
 
 <style>

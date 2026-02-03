@@ -1,4 +1,5 @@
 import { ref, onMounted, onUnmounted } from 'vue'
+import { LS_PREFERRED_UNIT } from '@/constants/storageKeys'
 
 export type Unit = 'kg' | 'lbs'
 
@@ -10,7 +11,7 @@ export const LB_PER_KG = 1 / KG_PER_LB
 
 function setUnit(u: Unit) {
     unitRef.value = u
-    localStorage.setItem('preferredUnit', u)
+    localStorage.setItem(LS_PREFERRED_UNIT, u)
 }
 
 // kg -> Anzeigeeinheit
@@ -32,7 +33,7 @@ function formatWeight(kg: number, digits = 1): string {
 
 export function useUnits() {
     const onStorage = (e: StorageEvent) => {
-        if (e.key === 'preferredUnit' && e.newValue) {
+        if (e.key === LS_PREFERRED_UNIT && e.newValue) {
             unitRef.value = (e.newValue as Unit)
         }
     }
@@ -43,7 +44,7 @@ export function useUnits() {
     }
 
     onMounted(() => {
-        const saved = (localStorage.getItem('preferredUnit') || 'kg').toLowerCase()
+        const saved = (localStorage.getItem(LS_PREFERRED_UNIT) || 'kg').toLowerCase()
         if (saved === 'kg' || saved === 'lbs') unitRef.value = saved as Unit
         window.addEventListener('storage', onStorage)
         window.addEventListener('preferred-unit-changed', onCustom)

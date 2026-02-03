@@ -1,11 +1,12 @@
-<!--ValidationPopup.vue-->
+<!--Pfad: components\ui\popups\ValidationPopup.vue-->
 <template>
     <BasePopup :show="show"
                :title="title"
                overlayClass="validation-popup"
+               :zIndex="20000"
                @cancel="$emit('close')">
         <div class="validation-body">
-            <div class="icon-wrap" aria-hidden="true">??</div>
+            <div class="icon-wrap" aria-hidden="true">⚠️</div>
             <p v-if="lead" class="lead">{{ lead }}</p>
 
             <ul class="error-list" role="list">
@@ -17,16 +18,16 @@
         </div>
 
         <template #actions>
-            <PopupSaveButton autofocus @click="$emit('close')">
-                OK
-            </PopupSaveButton>
+            <PopupActionButton autofocus @click="$emit('close')">
+                Verstanden
+            </PopupActionButton>
         </template>
     </BasePopup>
 </template>
 
 <script setup lang="ts">
     import BasePopup from './BasePopup.vue'
-    import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
     withDefaults(defineProps<{
         show: boolean
@@ -35,7 +36,7 @@
         lead?: string
     }>(), {
         title: 'Eingabefehler',
-        lead: 'Bitte �berpr�fe die folgenden Punkte:'
+        lead: 'Bitte überprüfe die folgenden Punkte:'
     })
 
     defineEmits<{ (e: 'close'): void }>()

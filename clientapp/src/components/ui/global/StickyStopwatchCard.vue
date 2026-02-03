@@ -1,5 +1,6 @@
 <template>
-    <div class="sticky-stopwatch-card"
+    <div v-if="stickyEnabled"
+         class="sticky-stopwatch-card"
          ref="cardEl"
          :class="[{ resizing: resizeMode, movable: moveMode }, sizePreset]"
          :style="{
@@ -14,7 +15,6 @@
   '--btn-bg': stopwatch.btnColor ?? undefined,
   '--time-color': stopwatch.timeColor ?? undefined
 }"
-
          @mousedown="onMouseDown($event)"
          @mousedown.right.prevent="openMenu($event as any)"
          @contextmenu.prevent="openMenu($event as any)"
@@ -26,10 +26,14 @@
 
         <span class="name-link"
               @click="focusInTraining('stopwatch', stopwatch.id)"
-              @mousedown.stop>
+              @mousedown.stop="onMaybeDrag($event)">
             {{ stopwatch.name || 'Stoppuhr' }}
         </span>
-        <span class="time">{{ formatStopwatch(stopwatch.time) }}</span>
+        <span class="time"
+              @mousedown.stop="onMaybeDrag($event)">
+            {{ formatStopwatch(stopwatch.time) }}
+        </span>
+
         <button @click="toggleStopwatch(stopwatch)">
             {{ stopwatch.isRunning ? 'Pause' : 'Start' }}
         </button>
@@ -37,7 +41,6 @@
         <button ref="lapBtnEl" @click="addLap(stopwatch)" :disabled="!stopwatch.isRunning">
             Runde
         </button>
-
         <!-- StickyStopwatchCard.vue | REPLACE HoldMenu block -->
         <HoldMenu v-if="showMenu"
                   class="sticky-menu"
@@ -158,6 +161,13 @@
 
             </template>
 
+            <button v-if="hasStyleChanges"
+                    type="button"
+                    class="menu-item"
+                    @click="handleApplyToAll"
+                    @mousedown.stop>
+                Für alle Stoppuhren übernehmen
+            </button>
             <button type="button" class="menu-item danger" @click="handleClose">
                 Schließen
             </button>
@@ -180,7 +190,7 @@
 
 <script setup lang="ts">
 
-    import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount } from 'vue'
+    import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount, toRef } from 'vue'
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
 
     const Z_KEY = '__stickyZ'
@@ -194,30 +204,73 @@
         bumpZ(stopwatch)
         startDrag(ev, stopwatch)
     }
+    function onMaybeDrag(ev: MouseEvent) {
+        if (!moveMode.value) return
+        bumpZ(stopwatch)
+        startDrag(ev, stopwatch)
+    }
+    type LapEntryObj = {
+        [key: string]: any
+
+        // ✅ neues Format (seconds)
+        time: number
+        name?: string
+
+        // ✅ legacy Format (ms)
+        ms?: number
+        splitMs?: number
+        atMs?: number
+        label?: string
+    }
+
+    type LapEntry = number | LapEntryObj
 
     interface StopwatchInstance {
+        [key: string]: any
+
         id: string
         name: string
         time: number
         isRunning: boolean
         interval: number | null
-        laps: number[]
+
+        // ✅ FIX: erlaubt number ODER Objekt
+        laps: LapEntry[]
+
         isFavorite: boolean
         isVisible: boolean
         shouldStaySticky: boolean
+
         bgColor?: string | null
         btnColor?: string | null
         timeColor?: string | null
         shape?: 'square' | 'rounded' | 'oval' | null
+
         width?: number
         height?: number
         left?: number
         top?: number
-        startedAt?: number | null
-        offsetSec?: number
+
+        // ✅ an App.vue angepasst
+        startedAtMs?: number | null
+        offsetMs?: number
+
         zIndex?: number
     }
 
+
+    const props = defineProps<{
+        stopwatch: StopwatchInstance
+        stickyEnabled: boolean
+        formatStopwatch: (time: number) => string
+        toggleStopwatch: (sw: StopwatchInstance) => void
+        resetStopwatch: (sw: StopwatchInstance) => void
+        addLap: (sw: StopwatchInstance) => void
+        startDrag: (e: MouseEvent, sw: StopwatchInstance) => void
+        focusInTraining: (type: 'timer' | 'stopwatch', id: string) => void
+    }>()
+
+    const stickyEnabled = toRef(props, 'stickyEnabled')
 
     const {
         stopwatch,
@@ -227,25 +280,40 @@
         addLap,
         startDrag,
         focusInTraining,
-    } = defineProps<{
-        stopwatch: StopwatchInstance
-        formatStopwatch: (time: number) => string
-        toggleStopwatch: (sw: StopwatchInstance) => void
-        resetStopwatch: (sw: StopwatchInstance) => void
-        addLap: (sw: StopwatchInstance) => void
-        startDrag: (e: MouseEvent, sw: StopwatchInstance) => void
-        focusInTraining: (type: 'timer' | 'stopwatch', id: string) => void
-    }>()
+    } = props
 
     const emit = defineEmits<{
         (e: 'open', id: string): void
         (e: 'crop', id: string): void
         (e: 'close', id: string): void
+        (e: 'apply-style-all', payload: {
+            kind: 'stopwatch'
+            style: {
+                bgColor: string | null
+                btnColor: string | null
+                timeColor: string | null
+                shape: 'square' | 'rounded' | 'oval' | null
+            }
+        }): void
     }>()
 
+    function handleApplyToAll() {
+        emit('apply-style-all', {
+            kind: 'stopwatch',
+            style: {
+                bgColor: stopwatch.bgColor ?? null,
+                btnColor: stopwatch.btnColor ?? null,
+                timeColor: stopwatch.timeColor ?? null,
+                shape: stopwatch.shape ?? null,
+            },
+        })
+        hasStyleChanges.value = false
+        closeMenu()
+    }
     const cardEl = ref<HTMLElement | null>(null)
     const showMenu = ref(false)
     const showColors = ref(false)
+    const hasStyleChanges = ref(false)
 
     const menuStyle = computed(() => {
         const w = stopwatch.width ?? cardEl.value?.offsetWidth ?? 240
@@ -286,12 +354,6 @@
             default: return undefined
         }
     })
-
-    function setShape(shape: 'square' | 'rounded' | 'oval' | null, close = false) {
-        stopwatch.shape = shape
-        if (close) closeMenu()
-    }
-
     
     function closeMenu() {
         showMenu.value = false
@@ -537,18 +599,28 @@
             isForcingPreset = false
         }
     }
+    // REPLACE – StickyStopwatchCard.vue (setColor / setBtnColor / setTimeColor / setShape)
     function setColor(color: string | null, close = true) {
         stopwatch.bgColor = color
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 
     function setBtnColor(color: string | null, close = true) {
         stopwatch.btnColor = color
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 
     function setTimeColor(color: string | null, close = true) {
         stopwatch.timeColor = color
+        hasStyleChanges.value = true
+        if (close) closeMenu()
+    }
+
+    function setShape(shape: 'square' | 'rounded' | 'oval' | null, close = false) {
+        stopwatch.shape = shape
+        hasStyleChanges.value = true
         if (close) closeMenu()
     }
 

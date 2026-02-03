@@ -5,47 +5,51 @@
                variant="weight-goal-popup"
                @cancel="$emit('cancel')">
         <!-- Body -->
-        <input ref="inputRef"
-               :value="modelValue"
-               type="number"
-               :placeholder="placeholder"
-               class="edit-input"
-               @input="onInput"
-               @keydown.enter.prevent="$emit('save')" />
+        <UiPopupInput :modelValue="modelValue ?? ''"
+                      as="input"
+                      type="number"
+                      :placeholder="placeholder"
+                      inputmode="decimal"
+                      autofocus
+                      @update:modelValue="onInputValue"
+                      @enter="$emit('save')" />
         <!-- Footer-Buttons -->
         <template #actions>
-            <PopupCancelButton @click="$emit('cancel')">Abbrechen</PopupCancelButton>
-            <PopupSaveButton @click="$emit('save')">Speichern</PopupSaveButton>
+            <PopupActionButton variant="ghost" @click="$emit('cancel')">
+                Abbrechen
+            </PopupActionButton>
+
+            <PopupActionButton autofocus @click="$emit('save')">
+                Speichern
+            </PopupActionButton>
         </template>
     </BasePopup>
 </template>
 <script setup lang="ts">
-    import { ref, watch, nextTick } from 'vue'
     import BasePopup from './BasePopup.vue'
-    import PopupSaveButton from '@/components/ui/buttons/PopupSaveButton.vue'
-    import PopupCancelButton from '@/components/ui/buttons/PopupCancelButton.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
+    import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
 
     const props = defineProps<{
         show: boolean
         modelValue: number | null
         placeholder?: string
     }>()
+
     const emit = defineEmits<{
         (e: 'update:modelValue', value: number | null): void
         (e: 'save'): void
         (e: 'cancel'): void
     }>()
 
-    const inputRef = ref<HTMLInputElement | null>(null)
-    watch(() => props.show, async (open) => {
-        if (open) {
-            await nextTick()
-            inputRef.value?.focus()
+    function onInputValue(v: string) {
+        const trimmed = (v ?? '').toString().trim()
+        if (!trimmed) {
+            emit('update:modelValue', null)
+            return
         }
-    })
-    function onInput(e: Event) {
-        const t = e.target as HTMLInputElement
-        const val = t.value === '' ? null : (isNaN(t.valueAsNumber) ? Number(t.value) : t.valueAsNumber)
-        emit('update:modelValue', val)
+
+        const n = Number(trimmed.replace(',', '.'))
+        emit('update:modelValue', Number.isFinite(n) ? n : null)
     }
 </script>
