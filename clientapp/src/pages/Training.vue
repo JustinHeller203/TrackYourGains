@@ -326,7 +326,8 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             </div>
         </div>
         <!-- Satzpausen-Timer -->
-        <TimerComponent :dragDelay="dragDelay"
+        <TimerComponent v-if="auth.user"
+                        :dragDelay="dragDelay"
                         :startTimer="startTimerSafe"
                         :stopTimer="stopTimerSafe"
                         :resetTimer="resetTimerSafe"
@@ -335,7 +336,8 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
                         :dismissToast="dismissToast" />
 
         <!-- Übungs-Stoppuhr -->
-        <StopwatchComponent :dragDelay="dragDelay"
+        <StopwatchComponent v-if="auth.user"
+                            :dragDelay="dragDelay"
                             :addToast="addToast"
                             :stickyEnabled="stickyStopwatchEnabled"
                             @validation="openValidationPopup" />
@@ -450,16 +452,21 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         durationMs?: number
     }
 
+    const noopTimer = (_: TimerInstance) => { }
+
     const props = withDefaults(defineProps<{
         timers?: TimerInstance[]
-        startTimer?: (timer: TimerInstance) => void
-        stopTimer?: (timer: TimerInstance) => void
-        resetTimer?: (timer: TimerInstance) => void
+        startTimer: (timer: TimerInstance) => void
+        stopTimer: (timer: TimerInstance) => void
+        resetTimer: (timer: TimerInstance) => void
         removeTimer?: (id: string) => void
         stopwatches?: any[]
     }>(), {
         timers: () => [],
         stopwatches: () => [],
+        startTimer: () => noopTimer,
+        stopTimer: () => noopTimer,
+        resetTimer: () => noopTimer,
     })
 
     const emit = defineEmits<{
@@ -555,9 +562,10 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         type: (ex.category === 3 ? "ausdauer" : ex.category === 2 ? "dehnung" : ex.category === 1 ? "calisthenics" : "kraft"),
     });
 
-    const startTimerSafe = (timer: TimerInstance) => props.startTimer?.(timer)
-    const stopTimerSafe = (timer: TimerInstance) => props.stopTimer?.(timer)
-    const resetTimerSafe = (timer: TimerInstance) => props.resetTimer?.(timer)
+    const startTimerSafe = (timer: TimerInstance) => props.startTimer(timer)
+    const stopTimerSafe = (timer: TimerInstance) => props.stopTimer(timer)
+    const resetTimerSafe = (timer: TimerInstance) => props.resetTimer(timer)
+
 
     const flattenDto = (p: TrainingPlanDto): ViewPlan => {
         const flat: PlanExercise[] = [];
