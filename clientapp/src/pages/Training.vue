@@ -327,9 +327,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         </div>
         <!-- Satzpausen-Timer -->
         <TimerComponent :dragDelay="dragDelay"
-                        :startTimer="startTimer"
-                        :stopTimer="stopTimer"
-                        :resetTimer="resetTimer"
+                        :startTimer="startTimerSafe"
+                        :stopTimer="stopTimerSafe"
+                        :resetTimer="resetTimerSafe"
                         :openEditPopup="openEditPopup"
                         :addToast="addToast"
                         :dismissToast="dismissToast" />
@@ -554,6 +554,10 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         reps: ex.reps ?? 0,
         type: (ex.category === 3 ? "ausdauer" : ex.category === 2 ? "dehnung" : ex.category === 1 ? "calisthenics" : "kraft"),
     });
+
+    const startTimerSafe = (timer: TimerInstance) => props.startTimer?.(timer)
+    const stopTimerSafe = (timer: TimerInstance) => props.stopTimer?.(timer)
+    const resetTimerSafe = (timer: TimerInstance) => props.resetTimer?.(timer)
 
     const flattenDto = (p: TrainingPlanDto): ViewPlan => {
         const flat: PlanExercise[] = [];

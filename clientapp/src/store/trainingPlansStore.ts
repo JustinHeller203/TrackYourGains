@@ -12,6 +12,19 @@ import {
     setTrainingPlanFavorite,
 } from "@/services/trainingPlans";
 
+const is401 = (e: any): boolean => {
+    const status =
+        e?.status ??
+        e?.response?.status ??
+        e?.data?.status ??
+        e?.statusCode
+
+    if (status === 401) return true
+
+    const msg = String(e?.message ?? '').toLowerCase()
+    return msg.includes('401') || msg.includes('unauthorized')
+}
+
 export const useTrainingPlansStore = defineStore("trainingPlans", {
     state: () => ({
         items: [] as TrainingPlanDto[],
