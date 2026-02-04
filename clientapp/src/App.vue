@@ -115,6 +115,8 @@
 
         <BackToTopButton />
 
+        <ErrorOverlay />
+
     </div>
 </template>
 
@@ -127,6 +129,8 @@
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import GlobalNewsPopup from '@/components/ui/popups/global/GlobalNewsPopup.vue'
     import GlobalExplainGuide from '@/components/ui/popups/global/GlobalExplainGuide.vue'
+
+    import ErrorOverlay from '@/components/dev/ErrorOverlay.vue'
     import AppFooter from '@/AppFooter.vue'
     import BackToTopButton from '@/components/ui/buttons/BackToTopButton.vue'
     import {
@@ -991,6 +995,7 @@
         html.dark-mode .main-nav:hover {
             background: radial-gradient(circle at top left, color-mix(in srgb, #5B21B6 50%, #020617 50%), #020617 65%) fixed;
         }
+
     .nav-content {
         max-width: var(--nav-max);
         margin: 0 auto;
@@ -1131,5 +1136,4 @@
             margin-right: 12px;
         }
     }
-
 </style>

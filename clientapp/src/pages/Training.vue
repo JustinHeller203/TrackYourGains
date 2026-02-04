@@ -413,6 +413,8 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         LS_STICKY_STOPWATCH_ENABLED,
     } from '@/constants/storageKeys'
     import Table from '@/components/ui/kits/UiTable.vue'
+    import { useTimersStore } from '@/store/timersStore'
+    import { useStopwatchesStore } from '@/store/stopwatchesStore'
 
     // Typ-Definitionen (bleiben unverändert)
     interface PlanExercise {
@@ -462,9 +464,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     }>(), {
         timers: () => [],
         stopwatches: () => [],
-        startTimer: () => ((_: TimerInstance) => { }),
-        stopTimer: () => ((_: TimerInstance) => { }),
-        resetTimer: () => ((_: TimerInstance) => { }),
+        startTimer: (_: TimerInstance) => { },
+        stopTimer: (_: TimerInstance) => { },
+        resetTimer: (_: TimerInstance) => { },
     })
 
     const emit = defineEmits<{
@@ -514,6 +516,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 
     const auth = useAuthStore()
 
+    const timersStore = useTimersStore()
+    const stopwatchesStore = useStopwatchesStore()
+
     const hardResetTrainingUi = () => {
         if (isResettingTrainingUi) return
         isResettingTrainingUi = true
@@ -538,10 +543,12 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
 
-
     const LS_FAV_ORDER = "LS_TRAINING_FAV_ORDER_IDS";
 
+    const canUseLocalStorage = () => !!auth.user; // Gäste: nix lesen, nix schreiben
+
     const readFavOrder = (): string[] => {
+        if (!canUseLocalStorage()) return [];
         try {
             const raw = localStorage.getItem(LS_FAV_ORDER);
             const arr = raw ? JSON.parse(raw) : [];
@@ -550,6 +557,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     };
 
     const writeFavOrder = (ids: string[]) => {
+        if (!canUseLocalStorage()) return;
         localStorage.setItem(LS_FAV_ORDER, JSON.stringify(ids));
     };
 
@@ -608,12 +616,15 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         const order = readFavOrder().filter((id) => favIds.has(id));
 
         const missing = (Array.from(favIds) as string[]).filter((id) => !order.includes(id));
-        const next = [...order, ...missing];
-
-        writeFavOrder(next);
-        return next;
+        return [...order, ...missing];
     });
 
+    watch(favoritePlans, (ids) => {
+        // optional: nur wenn eingeloggt persistieren
+        // wenn du auch als Gast speichern willst -> einfach die if-zeile löschen
+        if (!auth.user) return
+        writeFavOrder(ids)
+    }, { immediate: true })
     const selectedPlan = ref<ViewPlan | null>(null);
     const showDeletePopup = ref(false);
     const showEditPopup = ref(false);
@@ -732,19 +743,27 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     const stickyStopwatchEnabled = ref(true)
 
     const readBoolLS = (key: string, fallback = true) => {
-        const raw = localStorage.getItem(key)
-        if (raw == null) return fallback
-        const v = raw.trim().toLowerCase()
-        if (v === 'true' || v === '1' || v === 'yes' || v === 'on') return true
-        if (v === 'false' || v === '0' || v === 'no' || v === 'off') return false
-        return fallback
-    }
+        if (!canUseLocalStorage()) return fallback;
+        const raw = localStorage.getItem(key);
+        if (raw == null) return fallback;
+        const v = raw.trim().toLowerCase();
+        if (v === 'true' || v === '1' || v === 'yes' || v === 'on') return true;
+        if (v === 'false' || v === '0' || v === 'no' || v === 'off') return false;
+        return fallback;
+    };
 
     const syncStickyPrefsFromStorage = () => {
-        stickyTimerEnabled.value = readBoolLS(LS_STICKY_TIMER_ENABLED, true)
-        stickyStopwatchEnabled.value = readBoolLS(LS_STICKY_STOPWATCH_ENABLED, true)
-        nextTick(() => checkScroll())
-    }
+        // Gäste: Defaults, keine Reads
+        stickyTimerEnabled.value = canUseLocalStorage()
+            ? readBoolLS(LS_STICKY_TIMER_ENABLED, true)
+            : true;
+
+        stickyStopwatchEnabled.value = canUseLocalStorage()
+            ? readBoolLS(LS_STICKY_STOPWATCH_ENABLED, true)
+            : true;
+
+        nextTick(() => checkScroll());
+    };
 
     let mq: MediaQueryList | null = null
     const onMedia = (e: MediaQueryListEvent | MediaQueryList) => {
@@ -754,25 +773,31 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     }
 
     onMounted(() => {
-        syncStickyPrefsFromStorage()
-        document.addEventListener('visibilitychange', syncStickyPrefsFromStorage)
-        window.addEventListener('storage', syncStickyPrefsFromStorage)
+        syncStickyPrefsFromStorage();
+
+        // Gäste: KEINE storage/visibility Listener (sonst liest er LS ständig)
+        if (canUseLocalStorage()) {
+            document.addEventListener('visibilitychange', syncStickyPrefsFromStorage);
+            window.addEventListener('storage', syncStickyPrefsFromStorage);
+        }
 
         if (typeof window !== 'undefined') {
-            mq = window.matchMedia('(max-width: 560px)')
-            onMedia(mq)
+            mq = window.matchMedia('(max-width: 560px)');
+            onMedia(mq);
             try { mq.addEventListener('change', onMedia as any) } catch { mq.addListener(onMedia as any) }
         }
-    })
+    });
 
     onUnmounted(() => {
-        document.removeEventListener('visibilitychange', syncStickyPrefsFromStorage)
-        window.removeEventListener('storage', syncStickyPrefsFromStorage)
+        if (canUseLocalStorage()) {
+            document.removeEventListener('visibilitychange', syncStickyPrefsFromStorage);
+            window.removeEventListener('storage', syncStickyPrefsFromStorage);
+        }
 
         if (mq) {
             try { mq.removeEventListener('change', onMedia as any) } catch { mq.removeListener(onMedia as any) }
         }
-    })
+    });
 
     const favoritePlanItems = computed<ViewPlan[]>({
         get() {
@@ -780,6 +805,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             return favoritePlans.value.map(id => map.get(id)).filter(Boolean) as ViewPlan[];
         },
         set(newArr) {
+            if (!canUseLocalStorage()) return;
             writeFavOrder(newArr.map(p => p.id));
         }
     });
@@ -1848,7 +1874,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         if (!stickyTimerEnabled.value) {
             isTimerSticky.value = false
         } else {
-            const stickyTimers = props.timers.filter(t => t.shouldStaySticky)
+            const stickyTimers = (timersStore.items ?? []).filter(t => !!t.shouldStaySticky)
             let visibleTimerFound = false
 
             for (const t of stickyTimers) {
@@ -1866,7 +1892,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         if (!stickyStopwatchEnabled.value) {
             isStopwatchSticky.value = false
         } else {
-            const stickyStopwatches = (props.stopwatches ?? []).filter((sw: any) => sw.shouldStaySticky)
+            const stickyStopwatches = (stopwatchesStore.items ?? []).filter(sw => !!(sw as any)?.shouldStaySticky)
             let visibleStopwatchFound = false
 
             for (const sw of stickyStopwatches) {
@@ -1881,7 +1907,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             isStopwatchSticky.value = stickyStopwatches.length > 0 && !visibleStopwatchFound
         }
     }
-
 
     let headerRO: ResizeObserver | null = null;
 
@@ -1915,16 +1940,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     let crashGuardInstalled = false
     let lastCrashToastAt = 0
 
-    const showCrashToast = (msg: string) => {
-        const now = Date.now()
-        // nicht spammen
-        if (now - lastCrashToastAt < 2000) return
-        lastCrashToastAt = now
-        try {
-            addToast(msg, 'delete')
-        } catch {
-            // falls addToast selbst kaputt ist -> wenigstens console
-        }
+    const showCrashToast = (_msg: string) => {
+        // bewusst nix: wir wollen keine Toast-Spam-Schleife mehr.
+        // Fehlerdetails stehen in der Console + (optional) in deinem globalen ErrorOverlay.
     }
 
     const installCrashGuard = () => {
@@ -2199,9 +2217,11 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
 
-    watch(() => [props.timers, props.stopwatches], () => {
-        nextTick(() => checkScroll());
-    }, { deep: true });
+    watch(
+        () => [timersStore.items, stopwatchesStore.items],
+        () => nextTick(() => checkScroll()),
+        { deep: true }
+    )
 
     watch(planSearch, () => closePlanMenu());
 
