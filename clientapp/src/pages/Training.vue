@@ -2218,11 +2218,15 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     }
 
     watch(
-        () => [timersStore.items, stopwatchesStore.items],
+        () => [
+            timersStore.items?.length ?? 0,
+            stopwatchesStore.items?.length ?? 0,
+            stickyTimerEnabled.value,
+            stickyStopwatchEnabled.value,
+        ],
         () => nextTick(() => checkScroll()),
-        { deep: true }
+        { immediate: true }
     )
-
     watch(planSearch, () => closePlanMenu());
 
     const syncFullscreenClass = () => {
