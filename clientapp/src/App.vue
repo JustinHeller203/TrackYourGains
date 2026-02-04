@@ -114,9 +114,6 @@
         <AppFooter />
 
         <BackToTopButton />
-
-        <ErrorOverlay />
-
     </div>
 </template>
 
@@ -130,7 +127,6 @@
     import GlobalNewsPopup from '@/components/ui/popups/global/GlobalNewsPopup.vue'
     import GlobalExplainGuide from '@/components/ui/popups/global/GlobalExplainGuide.vue'
 
-    import ErrorOverlay from '@/components/dev/ErrorOverlay.vue'
     import AppFooter from '@/AppFooter.vue'
     import BackToTopButton from '@/components/ui/buttons/BackToTopButton.vue'
     import {

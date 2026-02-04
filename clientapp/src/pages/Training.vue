@@ -326,8 +326,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             </div>
         </div>
         <!-- Satzpausen-Timer -->
-        <TimerComponent v-if="auth.user"
-                        :dragDelay="dragDelay"
+        <TimerComponent :dragDelay="dragDelay"
                         :startTimer="startTimerSafe"
                         :stopTimer="stopTimerSafe"
                         :resetTimer="resetTimerSafe"
@@ -336,8 +335,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
                         :dismissToast="dismissToast" />
 
         <!-- Übungs-Stoppuhr -->
-        <StopwatchComponent v-if="auth.user"
-                            :dragDelay="dragDelay"
+        <StopwatchComponent :dragDelay="dragDelay"
                             :addToast="addToast"
                             :stickyEnabled="stickyStopwatchEnabled"
                             @validation="openValidationPopup" />
