@@ -706,13 +706,23 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     };
 
     function tryFocusFromStorage() {
-        const type = localStorage.getItem(LS_TRAINING_FOCUS_TYPE)
-        const id = localStorage.getItem(LS_TRAINING_FOCUS_ID)
+        if (!canUseLocalStorage()) return
+
+        let type: string | null = null
+        let id: string | null = null
+
+        try {
+            type = localStorage.getItem(LS_TRAINING_FOCUS_TYPE)
+            id = localStorage.getItem(LS_TRAINING_FOCUS_ID)
+        } catch {
+            return
+        }
+
         if (!type || !id) return
 
         const selector = type === 'timer'
             ? `.timer-card[data-timer-id="${id}"]`
-            : `.timer-card[data-stopwatch-id="${id}"]`
+            : `.stopwatch-card[data-stopwatch-id="${id}"]`
 
         const focusIt = (attempts = 0) => {
             const el = document.querySelector(selector) as HTMLElement | null
@@ -720,16 +730,16 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' })
                 el.classList.add('flash-focus')
                 setTimeout(() => el.classList.remove('flash-focus'), 1500)
-                // Flags weg
-                localStorage.removeItem(LS_TRAINING_FOCUS_TYPE)
-                localStorage.removeItem(LS_TRAINING_FOCUS_ID)
+
+                try {
+                    localStorage.removeItem(LS_TRAINING_FOCUS_TYPE)
+                    localStorage.removeItem(LS_TRAINING_FOCUS_ID)
+                } catch { }
             } else if (attempts < 20) {
-                // UI ist noch nicht gemountet → kurz retry
                 requestAnimationFrame(() => focusIt(attempts + 1))
             }
         }
 
-        // einmal nach DOM-Render probieren
         nextTick(() => focusIt())
     }
 
@@ -1765,21 +1775,17 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     };
 
     const onTrainingFocus = (e: Event) => {
+        if (!canUseLocalStorage()) return
+
         const { type, id } = (e as CustomEvent<{ type: 'timer' | 'stopwatch'; id: string }>).detail
-        localStorage.setItem(LS_TRAINING_FOCUS_TYPE, type)
-        localStorage.setItem(LS_TRAINING_FOCUS_ID, id)
+
+        try {
+            localStorage.setItem(LS_TRAINING_FOCUS_TYPE, type)
+            localStorage.setItem(LS_TRAINING_FOCUS_ID, id)
+        } catch { }
+
         nextTick(() => tryFocusFromStorage())
     }
-
-    onMounted(() => {
-        window.addEventListener('training:focus', onTrainingFocus as EventListener)
-    })
-
-    onUnmounted(() => {
-        window.removeEventListener('training:focus', onTrainingFocus as EventListener)
-        if (toastTimeout) { window.clearTimeout(toastTimeout as any); toastTimeout = null; }
-
-    })
 
     const updatePlanInStorage = () => {
         saveToStorage();
@@ -2208,13 +2214,16 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 
     let isResettingTrainingUi = false
 
-    // Öffnet ggf. einen von außerhalb gewählten Plan
     const tryOpenPlanFromStorage = () => {
-        const id = localStorage.getItem(LS_TRAINING_OPEN_PLAN_ID)
-        if (id) {
-            loadPlan(id)
-            localStorage.removeItem(LS_TRAINING_OPEN_PLAN_ID)
-        }
+        if (!canUseLocalStorage()) return
+
+        try {
+            const id = localStorage.getItem(LS_TRAINING_OPEN_PLAN_ID)
+            if (id) {
+                loadPlan(id)
+                localStorage.removeItem(LS_TRAINING_OPEN_PLAN_ID)
+            }
+        } catch { }
     }
 
     watch(
@@ -2298,6 +2307,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 
     onMounted(async () => {
         installCrashGuard()
+
+        window.addEventListener('training:focus', onTrainingFocus as EventListener)
+
         if (!auth.user) {
             hardResetTrainingUi()
             return
@@ -2351,6 +2363,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         window.removeEventListener('keydown', handleKeydown)
         document.removeEventListener('fullscreenchange', syncFullscreenClass)
         window.removeEventListener('auth:logout', hardResetTrainingUi as EventListener)
+        window.removeEventListener('training:focus', onTrainingFocus as EventListener)
+        if (toastTimeout) { window.clearTimeout(toastTimeout as any); toastTimeout = null; }
+        if (saveAccountTimer) { window.clearTimeout(saveAccountTimer as any); saveAccountTimer = null; }
 
         if (onBeforeUnload) window.removeEventListener('beforeunload', onBeforeUnload)
         if (onVisChange) document.removeEventListener('visibilitychange', onVisChange)

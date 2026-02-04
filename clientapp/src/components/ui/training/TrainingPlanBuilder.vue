@@ -301,17 +301,39 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         Array.isArray(props.customExercises) ? [...props.customExercises] : []
     )
 
+    const sameCustom = (
+        a: Array<{ name: string; muscle: string; type: CustomExerciseType }>,
+        b: Array<{ name: string; muscle: string; type: CustomExerciseType }>
+    ) => {
+        if (a === b) return true
+        if (a.length !== b.length) return false
+        for (let i = 0; i < a.length; i++) {
+            const x = a[i], y = b[i]
+            if (!y) return false
+            if (x.name !== y.name || x.muscle !== y.muscle || x.type !== y.type) return false
+        }
+        return true
+    }
+
     watch(
         () => props.customExercises,
         (val) => {
-            if (Array.isArray(val)) customExercisesState.value = [...val]
+            const next = Array.isArray(val) ? [...val] : []
+            if (!sameCustom(customExercisesState.value, next)) {
+                customExercisesState.value = next
+            }
         },
-        { deep: true }
+        { deep: false }
     )
 
     watch(
         customExercisesState,
-        (val) => emit('update:customExercises', [...val]),
+        (val) => {
+            const currentProp = Array.isArray(props.customExercises) ? props.customExercises : []
+            if (!sameCustom(currentProp as any, val)) {
+                emit('update:customExercises', [...val])
+            }
+        },
         { deep: true }
     )
     // ===== Typen (wie in Training.vue) =====

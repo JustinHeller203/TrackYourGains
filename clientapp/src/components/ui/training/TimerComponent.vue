@@ -210,7 +210,7 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, computed, onMounted, nextTick, watch } from 'vue'
+    import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
     import Draggable from 'vuedraggable'
     import UiTimerInput from '@/components/ui/kits/inputs/UiTimerInput.vue'
     import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
@@ -706,14 +706,43 @@
 
                 prevTimes.set(id, time)
             }
+        }
+    )
+
+    watch(
+        () => timers.value.map(t => t.id),
+        (ids) => {
+            const alive = new Set(ids)
+
+            // prevTimes cleanup
+            for (const key of prevTimes.keys()) {
+                if (!alive.has(key)) prevTimes.delete(key)
+            }
+
+            // finishedOnce cleanup
+            for (const key of Array.from(finishedOnce)) {
+                if (!alive.has(key)) finishedOnce.delete(key)
+            }
+
+            // meta cleanup
+            for (const key of Object.keys(metaById.value)) {
+                if (!alive.has(key)) delete metaById.value[key]
+            }
         },
-        { deep: true }
+        { immediate: true }
     )
 
     onMounted(async () => {
         requestNotificationPermission()
         initAudioElements()
         await timersStore.load()
+    })
+
+    onUnmounted(() => {
+        stopAllTimerSounds()
+        prevTimes.clear()
+        finishedOnce.clear()
+        metaById.value = {}
     })
 
 </script>

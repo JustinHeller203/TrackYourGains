@@ -345,6 +345,13 @@
         return metaById.value[id]
     }
 
+    watch(
+        () => store.items.map(x => x.id),
+        (ids) => {
+            for (const id of ids) getMeta(id)
+        },
+        { immediate: true }
+    )
     // Re-render-Tick für laufende Stoppuhren (damit Anzeige live läuft)
     const nowTick = ref(0)
     let tickTimer: number | null = null
