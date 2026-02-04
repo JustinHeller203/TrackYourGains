@@ -2239,9 +2239,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }, { deep: true });
 
-    watchEffect(() => {
-        nextTick(() => safeRun('initResizeTable', () => initResizeTable()))
-    })
     // wenn der ausgewählte Plan geladen/geschlossen wird → Tabelle wechselt
     watch(selectedPlan, (val) => {
         if (val) {
