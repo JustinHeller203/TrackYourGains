@@ -11,18 +11,25 @@ import { initAuthObserver } from '@/services/authObserver'
 import ErrorOverlay from '@/components/dev/ErrorOverlay.vue'
 import { pushUiError } from '@/lib/errorBus'
 
+import { installErrorOverlay } from '@/utils/errorOverlay'
+
 // ?? ganz fr�h anwenden (verhindert �Light-Flash� & sorgt f�rs Persistieren)
 initTheme();
+
+const __overlay = installErrorOverlay()
 
 ensureDailyAutoActivity();
 
 ; (async () => {
     const app = createApp(App)
 
-    // Dev Error Overlay
+    // Dev Error Overlay (Vue-Komponente) – nur sichtbar wenn Vue mountet
     app.component('ErrorOverlay', ErrorOverlay)
 
+    // Vue Errors -> both: overlay + UI bus
     app.config.errorHandler = (err, instance, info) => {
+        __overlay.append(`vue.errorHandler (${info})`, err)
+
         const e = err as any
         pushUiError({
             source: 'vue',
@@ -30,9 +37,31 @@ ensureDailyAutoActivity();
             stack: String(e?.stack ?? ''),
             info: String(info ?? ''),
         })
+
         console.error('[Vue errorHandler]', err, info)
     }
 
+    app.config.warnHandler = (msg, instance, trace) => {
+        __overlay.append(`vue.warn (${msg})`, trace)
+        pushUiError({
+            source: 'vue-warn',
+            message: String(msg),
+            info: String(trace ?? ''),
+        })
+    }
+
+    // Router errors (z.B. lazy import chunk fail)
+    router.onError((err) => {
+        __overlay.append('router.onError', err)
+        const e = err as any
+        pushUiError({
+            source: 'router',
+            message: String(e?.message ?? err ?? 'Router error'),
+            stack: String(e?.stack ?? ''),
+        })
+    })
+
+    // window-level -> UI bus (installErrorOverlay macht console + optional DOM overlay)
     window.addEventListener('error', (ev) => {
         const ee = (ev as ErrorEvent).error as any
         pushUiError({
@@ -52,6 +81,7 @@ ensureDailyAutoActivity();
         })
         console.error('[unhandledrejection]', ev.reason)
     })
+
 
     // Pinia
     const pinia = createPinia()
