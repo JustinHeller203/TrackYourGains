@@ -858,10 +858,6 @@
         window.removeEventListener('keydown', handleKeydown, { capture: true } as any)
     })
 
-    // Persist
-    watch([timers, stopwatches], () => {
-        saveAll()
-    }, { deep: true })
 </script>
 
 <style scoped>
