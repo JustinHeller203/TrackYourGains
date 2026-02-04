@@ -3,7 +3,7 @@ import { reactive } from 'vue'
 export type UiErrorEntry = {
     id: string
     at: number
-    source: 'vue' | 'window' | 'promise'
+    source: 'window' | 'vue' | 'promise' | 'router' | 'vue-warn'
     message: string
     stack?: string
     info?: string
