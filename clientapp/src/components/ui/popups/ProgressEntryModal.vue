@@ -1597,4 +1597,48 @@
         }
     }
 
+    /* <=546px: Sets + Bodyweight NICHT mehr nebeneinander (Bodyweight oben, Sets unten) */
+    @media (max-width: 546px) {
+        /* NUR Kraft/Calisthenics/Dehnung (Cardio ausnehmen) */
+        .modal-grid.grid-2:not(.grid-cardio) {
+            grid-template-columns: 1fr !important;
+            grid-template-areas:
+                "weight"
+                "sets";
+            gap: .10rem !important;
+
+        }
+
+        .note-input {
+            margin-top: 1.05rem !important;
+        }
+
+
+            .modal-grid.grid-2:not(.grid-cardio) > div:first-child {
+                grid-area: sets;
+            }
+
+            .modal-grid.grid-2:not(.grid-cardio) > div:nth-child(2) {
+                grid-area: weight;
+            }
+    }
+
+    /* <=308px: gleiche Logik (extra tight screens) */
+    @media (max-width: 308px) {
+        .modal-grid.grid-2:not(.grid-cardio) {
+            grid-template-columns: 1fr !important;
+            grid-template-areas:
+                "weight"
+                "sets";
+        }
+
+            .modal-grid.grid-2:not(.grid-cardio) > div:first-child {
+                grid-area: sets;
+            }
+
+            .modal-grid.grid-2:not(.grid-cardio) > div:nth-child(2) {
+                grid-area: weight;
+            }
+    }
+
 </style>
