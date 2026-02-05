@@ -936,6 +936,22 @@
         }
     }
 
+    function seedGuestStopwatch() {
+        // Guest only
+        if (!isGuest.value) return
+
+        // Falls aus irgendeinem Grund leer: wieder Default rein + persist
+        if (!store.items?.length) {
+            loadGuestSingleStopwatch()
+            persistGuestSingleStopwatch()
+            return
+        }
+
+        // Meta sicherstellen (Favorites/LapMode/Target)
+        for (const s of (store.items as any[])) {
+            if (s?.id) getMeta(String(s.id))
+        }
+    }
     const toggleStopwatch = async (sw: UiStopwatch) => {
         if (isGuest.value) {
             const base: any = store.items.find((x: any) => x.id === sw.id)
