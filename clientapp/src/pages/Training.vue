@@ -8,10 +8,11 @@
                              :addToast="addToast"
                              :openValidationPopup="openValidationPopup"
                              :openDeletePopup="openDeletePopup"
+                             :onGuestPlanCreated="onGuestPlanCreated"
                              v-model:customExercises="customExercises"
                              :saveToStorage="saveToStorage" />
 
-        <div v-if="auth.user" class="workout-list plans-section">
+        <div class="workout-list plans-section">
             <h3 class="section-title">Deine Trainingspläne</h3>
 
             <UiSearch v-model="planSearch"
@@ -531,6 +532,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             rowHeights.value = []
             showCustomExercises.value = false
             customExercises.value = []
+            guestPlans.value = []
 
             // Builder sauber resetten (weil der State jetzt dort lebt)
             builderRef.value?.clearEditMode?.()
@@ -605,7 +607,12 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
 
-    const plans = computed<ViewPlan[]>(() => trainingPlansStore.items.map(flattenDto));
+    const guestPlans = ref<ViewPlan[]>([])
+
+    const plans = computed<ViewPlan[]>(() => {
+        if (!auth.user) return guestPlans.value
+        return trainingPlansStore.items.map(flattenDto)
+    })
 
     const favoritePlans = computed<string[]>(() => {
         const items = trainingPlansStore.items as TrainingPlanDto[];
@@ -825,6 +832,10 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     };
 
+    const onGuestPlanCreated = (plan: ViewPlan) => {
+        guestPlans.value.unshift(plan)
+        addToast('Plan erstellt', 'add')
+    }
     const otherPlanItems = computed<ViewPlan[]>({
         get() {
             const fav = new Set(favoritePlans.value);
@@ -1181,6 +1192,32 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         });
     };
     const editPlan = async (planId: string) => {
+        // ✅ Gast: aus guestPlans laden (ohne Store/API)
+        if (!auth.user) {
+            const gp = guestPlans.value.find(p => p.id === planId)
+            if (!gp) { addToast("Plan nicht gefunden", "delete"); return }
+
+            const view: ViewPlan = {
+                ...gp,
+                exercises: Array.isArray(gp.exercises) ? gp.exercises.map(x => ({ ...x })) : [],
+            }
+
+            builderRef.value?.setEditMode?.({
+                planId,
+                name: view.name,
+                exercises: [...view.exercises],
+            })
+
+            selectedPlan.value = view
+            rowHeights.value = Array(view.exercises.length).fill(40)
+
+            addToast("Plan wird bearbeitet", "save")
+            await nextTick()
+            builderRef.value?.scrollToBuilder?.()
+            return
+        }
+
+        // ✅ Account: wie gehabt über Store/API
         try {
             await trainingPlansStore.loadOne(planId)
             const dto = trainingPlansStore.selected
@@ -1188,26 +1225,37 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 
             const view = flattenDto(dto)
 
-            // ✅ Builder übernimmt Edit-State komplett
-            builderRef.value?.setEditMode({
+            builderRef.value?.setEditMode?.({
                 planId,
                 name: view.name,
                 exercises: [...view.exercises],
             })
 
-            // optional: du willst den Plan trotzdem unten „geöffnet“ lassen
             selectedPlan.value = view
             rowHeights.value = Array(view.exercises.length).fill(40)
 
             addToast("Plan wird bearbeitet", "save")
             await nextTick()
-            builderRef.value?.scrollToBuilder()
+            builderRef.value?.scrollToBuilder?.()
         } catch {
             addToast("Plan konnte nicht geladen werden", "delete")
         }
     }
 
     const deletePlan = async (planId: string) => {
+        // ✅ Gast: nur aus guestPlans entfernen
+        if (!auth.user) {
+            guestPlans.value = guestPlans.value.filter(p => p.id !== planId)
+            if (selectedPlan.value?.id === planId) {
+                selectedPlan.value = null
+                rowHeights.value = []
+                columnWidths.value = [50, 25, 25]
+            }
+            addToast("Trainingsplan gelöscht", "delete")
+            return
+        }
+
+        // ✅ Account: wie gehabt
         try {
             await trainingPlansStore.remove(planId);
             writeFavOrder(readFavOrder().filter(id => id !== planId));
@@ -1218,8 +1266,33 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     };
 
+    const upsertGuestPlan = (updated: ViewPlan) => {
+        const idx = guestPlans.value.findIndex(p => p.id === updated.id)
+        if (idx >= 0) guestPlans.value[idx] = updated
+        else guestPlans.value.unshift(updated)
+    }
+
     const loadPlan = async (planId: string) => {
         closePlanMenu();
+
+        // ✅ Gäste: NICHT Store/API nutzen – nur aus guestPlans öffnen
+        if (!auth.user) {
+            const gp = guestPlans.value.find(p => p.id === planId);
+            if (!gp) { addToast("Plan nicht gefunden", "delete"); return; }
+
+            // copy, damit UI-Edits nicht aus Versehen dein Array zerschießen
+            selectedPlan.value = {
+                ...gp,
+                exercises: Array.isArray(gp.exercises) ? gp.exercises.map(x => ({ ...x })) : [],
+            };
+
+            rowHeights.value = Array(selectedPlan.value.exercises.length).fill(40);
+            columnWidths.value = [50, 25, 25];
+            addToast("Plan geladen", "load");
+            return;
+        }
+
+        // ✅ Account: wie gehabt über Store/API
         try {
             await trainingPlansStore.loadOne(planId);
             const dto = trainingPlansStore.selected;
@@ -1786,10 +1859,19 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     }
 
     const updatePlanInStorage = () => {
+        // ✅ Gast: Plan im Memory persistieren
+        if (!auth.user) {
+            if (selectedPlan.value) upsertGuestPlan({ ...selectedPlan.value, exercises: selectedPlan.value.exercises.map(x => ({ ...x })) })
+            return
+        }
+
+        // ✅ Account: wie gehabt
         saveToStorage();
     };
 
     const persistPlanName = async (planId: string, newName: string) => {
+        if (!auth.user) return;
+
         try {
             const p = trainingPlansStore.items.find((x: TrainingPlanDto) => x.id === planId);
             const isFavorite = !!p?.isFavorite;
@@ -1815,8 +1897,16 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     };
 
-
     const setPlanNameInStore = (planId: string, newName: string) => {
+        // ✅ Gast: nur in guestPlans + selectedPlan ändern
+        if (!auth.user) {
+            const gp = guestPlans.value.find(p => p.id === planId)
+            if (gp) gp.name = newName
+            if (selectedPlan.value?.id === planId) selectedPlan.value.name = newName
+            return
+        }
+
+        // ✅ Account: wie gehabt
         const dto = trainingPlansStore.items.find((p: TrainingPlanDto) => p.id === planId);
         if (dto) dto.name = newName;
 
@@ -1828,12 +1918,10 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             selectedPlan.value.name = newName;
         }
 
-        // ✅ WICHTIG: Server persistieren (damit Refresh stimmt)
         void persistPlanName(planId, newName);
-
-        // dein bisheriger Account-Sync kann bleiben
         saveToStorage();
     };
+
     const removeCustomExercise = (index: number) => {
         customExercises.value.splice(index, 1);
         if (customExercises.value.length === 0) showCustomExercises.value = false;

@@ -296,6 +296,7 @@
     import KebabMenu, { type KebabMenuItem } from '@/components/ui/menu/KebabMenu.vue'
     import ActionSelectPopup, { type ActionSelectRow } from '@/components/ui/popups/ActionSelectPopup.vue'
     import { useStopwatchesStore, effectiveElapsedMs } from '@/store/stopwatchesStore'
+    import { useAuthStore } from '@/store/authStore'
 
     type ToastKind = 'delete' | 'add' | 'save' | 'timer' | 'load'
 
@@ -328,9 +329,99 @@
 
     const store = useStopwatchesStore()
 
+    const auth = useAuthStore()
+    const isGuest = computed(() => !auth.user)
+
+    const LS_STOPWATCH_SINGLE_KEY = 'tyg.guest.stopwatch.single.v1'
+
+    const makeDefaultGuestStopwatch = (): any => ({
+        id: 'guest-stopwatch-1', // stabil
+        name: 'Stoppuhr',
+        sortIndex: 0,
+
+        laps: [],
+        startedAtMs: null,   // nie persist running
+        offsetMs: 0,
+
+        isVisible: true,
+        shouldStaySticky: false,
+        left: 0,
+        top: 0,
+
+        // meta, weil du das über metaById steuerst
+        __meta: { isFavorite: false, lapMode: 'min', targetSeconds: undefined as number | undefined }
+    })
+
+    const pickPrimaryStopwatch = (list: any[]) => {
+        if (!Array.isArray(list) || !list.length) return null
+        const bySort = [...list].sort((a, b) => (a?.sortIndex ?? 9999) - (b?.sortIndex ?? 9999))
+        return bySort[0] ?? list[0]
+    }
+
+    const loadGuestSingleStopwatch = () => {
+        let parsed: any = null
+        try {
+            const raw = localStorage.getItem(LS_STOPWATCH_SINGLE_KEY)
+            parsed = raw ? JSON.parse(raw) : null
+        } catch { /* ignore */ }
+
+        const def = makeDefaultGuestStopwatch()
+        const base = parsed && typeof parsed === 'object'
+            ? { ...def, ...parsed }
+            : def
+
+        // running-state immer killen
+        base.startedAtMs = null
+        base.id = 'guest-stopwatch-1'
+        base.sortIndex = 0
+        base.offsetMs = Number.isFinite(base.offsetMs) ? base.offsetMs : 0
+        base.laps = Array.isArray(base.laps) ? base.laps : []
+
+        // Guest: nach Refresh GENAU 1 Stoppuhr
+        store.items = [base] as any
+
+        // metaById aus stored meta setzen
+        const m = base.__meta ?? def.__meta
+        metaById.value = {
+            [base.id]: {
+                isFavorite: !!m.isFavorite,
+                lapMode: (m.lapMode ?? 'min'),
+                targetSeconds: (typeof m.targetSeconds === 'number' && m.targetSeconds > 0) ? m.targetSeconds : undefined
+            }
+        }
+    }
+
+    const persistGuestSingleStopwatch = () => {
+        const primary = pickPrimaryStopwatch(store.items as any[])
+        const def = makeDefaultGuestStopwatch()
+        const base = primary ? { ...def, ...primary } : def
+
+        // meta aus metaById übernehmen
+        const meta = getMeta('guest-stopwatch-1')
+        base.__meta = {
+            isFavorite: !!meta.isFavorite,
+            lapMode: (meta.lapMode ?? 'min'),
+            targetSeconds: (typeof meta.targetSeconds === 'number' && meta.targetSeconds > 0) ? meta.targetSeconds : undefined
+        }
+
+        // running-state nie persistieren
+        base.startedAtMs = null
+        base.id = 'guest-stopwatch-1'
+        base.sortIndex = 0
+
+        // sanity
+        base.offsetMs = Number.isFinite(base.offsetMs) ? base.offsetMs : 0
+        base.laps = Array.isArray(base.laps) ? base.laps : []
+
+        try {
+            localStorage.setItem(LS_STOPWATCH_SINGLE_KEY, JSON.stringify(base))
+        } catch { /* ignore */ }
+    }
+
     type UiStopwatch = StopwatchInstanceBase & {
         time: number // seconds
-        interval: number | null // bleibt legacy, aber harmless
+        isRunning: boolean
+        interval: number | null // legacy
         isFavorite: boolean
         lapMode?: 'min' | 'max' | 'const' | 'none'
         targetSeconds?: number
@@ -346,6 +437,33 @@
     }
 
     watch(
+        () => isGuest.value ? store.items : null,
+        () => {
+            if (!isGuest.value) return
+
+            // wenn Guest irgendwie 0 hat -> sofort wieder default
+            if (!store.items?.length) {
+                loadGuestSingleStopwatch()
+                persistGuestSingleStopwatch()
+                return
+            }
+
+            // persistiert NUR die Primary Stoppuhr (Extras werden nicht gesichert)
+            persistGuestSingleStopwatch()
+        },
+        { deep: true }
+    )
+
+    watch(
+        () => isGuest.value ? metaById.value : null,
+        () => {
+            if (!isGuest.value) return
+            persistGuestSingleStopwatch()
+        },
+        { deep: true }
+    )
+
+    watch(
         () => store.items.map(x => x.id),
         (ids) => {
             for (const id of ids) getMeta(id)
@@ -356,8 +474,23 @@
     const nowTick = ref(0)
     let tickTimer: number | null = null
 
+    // robust: egal ob Store startedAtMs/offsetMs oder startedAt/elapsedMs liefert
+    function readTiming(s: any) {
+        const startedAtMs =
+            typeof s.startedAtMs === 'number' ? s.startedAtMs :
+                (typeof s.startedAt === 'string' ? Date.parse(s.startedAt) : null)
+
+        const offsetMs =
+            typeof s.offsetMs === 'number' ? s.offsetMs :
+                (typeof s.elapsedMs === 'number' ? s.elapsedMs : 0)
+
+        const isRunning = typeof startedAtMs === 'number' && Number.isFinite(startedAtMs) && startedAtMs > 0
+        const elapsedMs = offsetMs + (isRunning ? (Date.now() - startedAtMs) : 0)
+
+        return { startedAtMs, offsetMs, isRunning, elapsedMs }
+    }
+
     const stopwatches = computed<UiStopwatch[]>(() => {
-        // tick-only dependency:
         void nowTick.value
 
         return store.items
@@ -365,14 +498,17 @@
             .sort((a, b) => {
                 const af = getMeta(a.id).isFavorite ? 1 : 0
                 const bf = getMeta(b.id).isFavorite ? 1 : 0
-                if (af !== bf) return bf - af // Favoriten zuerst
-                return (a.sortIndex ?? 0) - (b.sortIndex ?? 0) // danach normal
+                if (af !== bf) return bf - af
+                return (a.sortIndex ?? 0) - (b.sortIndex ?? 0)
             })
-            .map((s) => {
+            .map((s: any) => {
                 const meta = getMeta(s.id)
+                const t = readTiming(s)
+
                 return {
                     ...s,
-                    time: effectiveElapsedMs(s) / 1000,
+                    time: t.elapsedMs / 1000,
+                    isRunning: t.isRunning,
                     interval: null,
                     isFavorite: meta.isFavorite,
                     lapMode: meta.lapMode,
@@ -765,9 +901,32 @@
 
         const uniqueName = makeUniqueStopwatchName(validated)
 
+        if (isGuest.value) {
+            seedGuestStopwatch()
+
+            const created: any = {
+                id: makeId(),
+                name: uniqueName,
+                sortIndex: store.items.length,
+                laps: [],
+                startedAtMs: null,
+                offsetMs: 0,
+                isVisible: true,
+                shouldStaySticky: false,
+                left: 0,
+                top: 0,
+            }
+
+            store.items = [created, ...(store.items as any)]
+            getMeta(created.id)
+
+            props.addToast('Stoppuhr hinzugefügt', 'add')
+            closeAddStopwatchPopup()
+            return
+        }
+
         try {
             const created = await store.create(uniqueName)
-            // lokale meta defaults anlegen
             getMeta(created.id)
 
             props.addToast('Stoppuhr hinzugefügt', 'add')
@@ -778,6 +937,25 @@
     }
 
     const toggleStopwatch = async (sw: UiStopwatch) => {
+        if (isGuest.value) {
+            const base: any = store.items.find((x: any) => x.id === sw.id)
+            if (!base) return
+
+            const now = Date.now()
+            const running = typeof base.startedAtMs === 'number' && base.startedAtMs > 0
+
+            if (running) {
+                base.offsetMs = (base.offsetMs ?? 0) + (now - base.startedAtMs)
+                base.startedAtMs = null
+            } else {
+                base.startedAtMs = now
+                base.offsetMs = base.offsetMs ?? 0
+            }
+
+            store.items = [...(store.items as any)]
+            return
+        }
+
         try {
             if (sw.isRunning) await store.stop(sw.id)
             else await store.start(sw.id)
@@ -787,6 +965,19 @@
     }
 
     const resetStopwatch = async (sw: UiStopwatch) => {
+        if (isGuest.value) {
+            const base: any = store.items.find((x: any) => x.id === sw.id)
+            if (!base) return
+
+            base.startedAtMs = null
+            base.offsetMs = 0
+            base.laps = []
+            store.items = [...(store.items as any)]
+
+            props.addToast('Reset ✅', 'timer')
+            return
+        }
+
         try {
             await store.reset(sw.id)
             props.addToast('Reset ✅', 'timer')
@@ -821,6 +1012,11 @@
         base.laps.push({ time: lapDuration, name: '' })
         base.laps = [...base.laps]
 
+        if (isGuest.value) {
+            props.addToast('Runde aufgezeichnet', 'timer')
+            return
+        }
+
         try {
             await store.update(base.id, { laps: base.laps } as any)
             props.addToast('Runde aufgezeichnet', 'timer')
@@ -851,6 +1047,18 @@
         }
 
         const nextName = makeUniqueStopwatchName(validated, sw.id)
+
+        if (isGuest.value) {
+            const base: any = store.items.find((x: any) => x.id === id)
+            if (!base) { showNameEditPopup.value = false; return }
+
+            base.name = nextName
+            store.items = [...(store.items as any)]
+
+            props.addToast('Stoppuhrname aktualisiert', 'timer')
+            showNameEditPopup.value = false
+            return
+        }
 
         try {
             await store.update(id, { name: nextName })
@@ -886,9 +1094,11 @@
         // reactivity + persist
         base.laps = [...laps]
 
-        store.update(swId, { laps: base.laps } as any).catch(() => {
-            emit('validation', ['Rundenname konnte nicht gespeichert werden.'])
-        })
+        if (!isGuest.value) {
+            store.update(swId, { laps: base.laps } as any).catch(() => {
+                emit('validation', ['Rundenname konnte nicht gespeichert werden.'])
+            })
+        }
 
         props.addToast('Rundenname aktualisiert', 'save')
         showLapNameEditPopup.value = false
@@ -1075,6 +1285,12 @@
             base.laps = (base.laps ?? []).filter((_, i) => !kill.has(i))
             base.laps = [...base.laps]
 
+            if (isGuest.value) {
+                props.addToast('Runden gelöscht', 'delete')
+                closeLapsPickPopup()
+                return
+            }
+
             await store.update(swId, { laps: base.laps } as any)
 
             props.addToast('Runden gelöscht', 'delete')
@@ -1103,6 +1319,28 @@
         if (!id) { cancelDelete(); return }
 
         const sw = store.items.find(x => x.id === id)
+
+        if (isGuest.value) {
+            const base: any = store.items.find((x: any) => x.id === id)
+            if (base && typeof base.startedAtMs === 'number' && base.startedAtMs > 0) {
+                base.offsetMs = (base.offsetMs ?? 0) + (Date.now() - base.startedAtMs)
+                base.startedAtMs = null
+            }
+
+            store.items = (store.items as any).filter((x: any) => x.id !== id)
+
+            const { [id]: _, ...rest } = metaById.value
+            metaById.value = rest
+
+            if (!store.items.length) {
+                loadGuestSingleStopwatch()
+            }
+            persistGuestSingleStopwatch()
+
+            props.addToast('Stoppuhr gelöscht', 'delete')
+            cancelDelete()
+            return
+        }
         try {
             if (sw?.isRunning) {
                 await store.stop(id)
@@ -1123,6 +1361,12 @@
     }
 
     const onDragUpdate = async (list: UiStopwatch[]) => {
+        if (isGuest.value) {
+            // list ist UI-sortiert → in store.items übernehmen + sortIndex neu setzen
+            store.items = list.map((x, i) => ({ ...(x as any), sortIndex: i })) as any
+            return
+        }
+
         try {
             const orderedIds = list.map(x => x.id)
             await store.reorder(orderedIds)
@@ -1131,10 +1375,21 @@
         }
     }
     onMounted(async () => {
-        try {
-            await store.load()
-        } catch {
-            emit('validation', ['Stopuhren konnten nicht geladen werden (Backend/Auth?).'])
+        if (isGuest.value) {
+            loadGuestSingleStopwatch()
+            persistGuestSingleStopwatch()
+        } else {
+            try {
+                await store.load()
+
+                // Account: falls backend 0 liefert -> 1 erstellen
+                if (!store.items.length) {
+                    await store.create('Stoppuhr')
+                    await store.load()
+                }
+            } catch {
+                emit('validation', ['Stopuhren konnten nicht geladen werden (Backend/Auth?).'])
+            }
         }
 
         tickTimer = window.setInterval(() => {

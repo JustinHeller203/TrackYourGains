@@ -227,6 +227,7 @@
     import { useTimersStore } from '@/store/timersStore'
     import type { UpsertTimerDto } from '@/services/timers'
     import type { TimerInstance } from '@/types/training'
+    import { useAuthStore } from '@/store/authStore'
 
     const props = defineProps<{
         startTimer: (timer: TimerInstance) => void
@@ -246,6 +247,9 @@
 
     const timersStore = useTimersStore()
     const timers = computed(() => timersStore.items)
+
+    const auth = useAuthStore()
+    const isGuest = computed(() => !auth.user)
 
     const resolvedDragDelay = computed(() => props.dragDelay ?? 0)
 
@@ -453,6 +457,59 @@
         return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
     }
 
+    const LS_TIMER_SINGLE_KEY = 'tyg.guest.timer.single.v1'
+
+    const makeDefaultGuestTimer = (): any => ({
+        id: 'guest-timer-1',          // bewusst stabil, damit Update easy
+        name: 'Timer',
+        sortIndex: 0,
+        isFavorite: false,
+
+        secondsPreset: '60',
+        seconds: '60',
+        customSeconds: null,
+        sound: 'standard',
+
+        time: 60,
+        isRunning: false,
+    })
+
+    const pickPrimaryTimer = (list: any[]) => {
+        if (!Array.isArray(list) || !list.length) return null
+        const bySort = [...list].sort((a, b) => (a?.sortIndex ?? 9999) - (b?.sortIndex ?? 9999))
+        return bySort[0] ?? list[0]
+    }
+
+    const loadGuestSingleTimer = () => {
+        let parsed: any = null
+        try {
+            const raw = localStorage.getItem(LS_TIMER_SINGLE_KEY)
+            parsed = raw ? JSON.parse(raw) : null
+        } catch { /* ignore */ }
+
+        const base = parsed && typeof parsed === 'object'
+            ? { ...makeDefaultGuestTimer(), ...parsed }
+            : makeDefaultGuestTimer()
+
+        // hart erzwingen: Guest hat nach Refresh GENAU 1 Timer
+        timersStore.items = [{ ...base, isRunning: false, sortIndex: 0 }]
+    }
+
+    const persistGuestSingleTimer = () => {
+        const primary = pickPrimaryTimer(timersStore.items as any[])
+        const base = primary ? { ...makeDefaultGuestTimer(), ...primary } : makeDefaultGuestTimer()
+
+        // IMPORTANT: niemals Running-State persistieren
+        base.isRunning = false
+        base.time = Number.isFinite(base.time) ? base.time : 60
+        base.sortIndex = 0
+        base.id = 'guest-timer-1'
+
+        try {
+            localStorage.setItem(LS_TIMER_SINGLE_KEY, JSON.stringify(base))
+        } catch { /* ignore */ }
+    }
+
     const makeUniqueTimerName = (rawName: string, excludeId?: string): string => {
         const base = (rawName || '').trim() || 'Timer'
         const existing = new Set(
@@ -475,6 +532,17 @@
     }
 
     const onReorderTimers = async (list: TimerInstance[]) => {
+
+        if (isGuest.value) {
+
+            timersStore.items = list.map((t: any, i) => ({
+                ...t,
+                sortIndex: i
+            }))
+
+            return
+        }
+
         const orderedIds = list.map(t => t.id)
         await timersStore.reorder(orderedIds)
     }
@@ -507,8 +575,36 @@
     }
 
     const saveNamePopup = async () => {
+
+        // ADD
         if (namePopupMode.value === 'add') {
             const uniqueName = makeUniqueTimerName(namePopupValue.value)
+
+            if (isGuest.value) {
+                const created: any = {
+                    id: makeId(),
+                    name: uniqueName,
+                    sortIndex: timersStore.items.length,
+                    isFavorite: false,
+
+                    // Presets / Settings
+                    secondsPreset: '60',
+                    seconds: '60',
+                    customSeconds: null,
+                    sound: 'standard',
+
+                    // Laufzeit-State (muss zu deinem Timer-System passen)
+                    time: 60,
+                    isRunning: false,
+                }
+
+                timersStore.items = [created, ...timersStore.items]
+                props.addToast?.('Timer hinzugefügt', 'add')
+                closeNamePopup()
+                await nextTick()
+                return
+            }
+
             await timersStore.create(uniqueName)
             props.addToast?.('Timer hinzugefügt', 'add')
             closeNamePopup()
@@ -516,14 +612,24 @@
             return
         }
 
+        // RENAME
         const id = editingTimerId.value
         if (!id) return
 
         const uniqueName = makeUniqueTimerName(namePopupValue.value, id)
+
+        if (isGuest.value) {
+            await patchTimer(id, { name: uniqueName })
+            props.addToast?.('Timername aktualisiert', 'timer')
+            closeNamePopup()
+            return
+        }
+
         await timersStore.update(id, { name: uniqueName } as any)
         props.addToast?.('Timername aktualisiert', 'timer')
         closeNamePopup()
     }
+
 
     const openDeleteTimerPopup = (id: string) => {
         if (timers.value.length <= 1) {
@@ -532,19 +638,32 @@
         }
 
         openDeletePopup(async () => {
+
             nextTick(() => closeTimerPopup())
-            await timersStore.remove(id)
+
+            if (isGuest.value) {
+                timersStore.items = timersStore.items.filter(t => t.id !== id)
+            } else {
+                await timersStore.remove(id)
+            }
+
             props.addToast?.('Timer gelöscht', 'delete')
             await nextTick()
         })
     }
 
     const toggleFavoriteTimer = async (id: string) => {
-        const cur = timers.value.find(t => t.id === id)
+
+        const cur: any = timers.value.find(t => t.id === id)
         if (!cur) return
+
         const nextFav = !cur.isFavorite
 
-        await timersStore.update(id, { isFavorite: nextFav })
+        if (isGuest.value) {
+            await patchTimer(id, { isFavorite: nextFav })
+        } else {
+            await timersStore.update(id, { isFavorite: nextFav })
+        }
 
         props.addToast?.(
             nextFav ? 'Timer zu Favoriten hinzugefügt' : 'Timer aus Favoriten entfernt',
@@ -554,7 +673,6 @@
 
     const patchTimer = async (id: string, patch: {
         name?: string | null
-        // wir schicken BEIDES, weil wir nicht 100% wissen ob Store/DTO "seconds" oder "secondsPreset" nutzt
         secondsPreset?: string | null
         seconds?: string | null
         customSeconds?: number | null
@@ -563,6 +681,17 @@
         isVisible?: boolean | null
         shouldStaySticky?: boolean | null
     }) => {
+
+        if (isGuest.value) {
+            const base: any = timersStore.items.find(t => t.id === id)
+            if (!base) return
+
+            Object.assign(base, patch)
+
+            timersStore.items = [...timersStore.items]
+            return
+        }
+
         await timersStore.update(id, patch as any)
     }
 
@@ -710,6 +839,22 @@
     )
 
     watch(
+        () => isGuest.value ? timersStore.items : null,
+        () => {
+            if (!isGuest.value) return
+
+            // wenn Guest irgendwie 0 hat -> sofort default rein
+            if (!timersStore.items.length) {
+                timersStore.items = [makeDefaultGuestTimer()]
+            }
+
+            // persistiert NUR den Primary Timer, Extras werden bewusst nicht gesichert
+            persistGuestSingleTimer()
+        },
+        { deep: true }
+    )
+
+    watch(
         () => timers.value.map(t => t.id),
         (ids) => {
             const alive = new Set(ids)
@@ -735,7 +880,20 @@
     onMounted(async () => {
         requestNotificationPermission()
         initAudioElements()
+
+        if (isGuest.value) {
+            loadGuestSingleTimer()      // lädt 1 aus LocalStorage ODER seedet 1
+            persistGuestSingleTimer()   // direkt einmal speichern, damit Key safe existiert
+            return
+        }
+
         await timersStore.load()
+
+        // Account: falls API aus irgendeinem Grund 0 liefert -> 1 erstellen
+        if (!timersStore.items.length) {
+            await timersStore.create('Timer')
+            await timersStore.load()
+        }
     })
 
     onUnmounted(() => {

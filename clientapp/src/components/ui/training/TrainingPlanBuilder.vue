@@ -277,6 +277,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     import { useTrainingPlansStore } from "@/store/trainingPlansStore";
 
     import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan"
+    import { useAuthStore } from "@/store/authStore";
 
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
     type CustomExerciseType = Exclude<ExerciseType, 'ausdauer'>
@@ -287,6 +288,9 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         openValidationPopup: (errors: string[]) => void
 
         openDeletePopup?: (action: () => void) => void
+
+        // ✅ Guest: Plan an Training.vue hochreichen
+        onGuestPlanCreated?: (plan: ViewPlan) => void
 
         // ✅ v-model Quelle
         customExercises?: Array<{ name: string; muscle: string; type: CustomExerciseType }>
@@ -357,6 +361,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     // ===== Store =====
     const trainingPlansStore = useTrainingPlansStore()
+    const auth = useAuthStore()
 
     // ===== Builder State (1:1 übernommen) =====
     const planName = ref('')
@@ -384,6 +389,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const exerciseFilter = ref('')
 
     const builderSection = ref<HTMLElement | null>(null)
+
 
     // Parent soll Builder steuern können (Edit/Reset/Scroll)
     const setEditMode = (payload: {
@@ -834,14 +840,16 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         planName.value = ""
         newExercise.value = ""
         customPlanExercise.value = ""
+
         newReps.value = null
         newSets.value = null
+        newDuration.value = null
+        newDistance.value = null
+
         selectedGoal.value = ""
         selectedPlanExercises.value = []
         editingPlanId.value = null
         cardioExercise.value = ''
-        newDuration.value = null
-        newDistance.value = null
     }
 
     // ===== Actions (1:1) =====
@@ -860,8 +868,6 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             })
             props.addToast('Cardio hinzugefügt', 'add')
             cardioExercise.value = ''
-            newDuration.value = null
-            newDistance.value = null
             selectedGoal.value = ''
             return
         }
@@ -894,8 +900,6 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
         newExercise.value = ''
         customPlanExercise.value = ''
-        newReps.value = null
-        newSets.value = null
         selectedGoal.value = ''
     }
 
@@ -922,6 +926,39 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     const createOrUpdatePlan = async () => {
         const validatedPlanName = validatePlanName(planName.value)
+
+        if (!auth.user) {
+            if (validatedPlanName === false || !selectedPlanExercises.value.length) {
+                const errors: string[] = []
+                if (validatedPlanName === false) {
+                    errors.push(
+                        planName.value.trim().length < 3
+                            ? "Planname muss mindestens 3 Zeichen lang sein"
+                            : "Planname darf maximal 20 Zeichen lang sein"
+                    )
+                }
+                if (!selectedPlanExercises.value.length) errors.push("Mindestens eine Übung ist erforderlich")
+                props.openValidationPopup(errors)
+                return
+            }
+
+            // ✅ Gast-Plan in der UI-Liste anzeigen (Session-only)
+            const id =
+                (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+                    ? crypto.randomUUID()
+                    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+
+            props.onGuestPlanCreated?.({
+                id,
+                name: validatedPlanName as string,
+                isFavorite: false,
+                exercises: [...selectedPlanExercises.value],
+                exerciseCount: selectedPlanExercises.value.length,
+            })
+
+            resetBuilder()
+            return
+        }
 
         if (validatedPlanName === false || (!editingPlanId.value && !selectedPlanExercises.value.length)) {
             const errors: string[] = []
