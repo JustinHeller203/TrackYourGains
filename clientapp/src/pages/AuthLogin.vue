@@ -27,9 +27,6 @@
                            minlength="6"
                            :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
                            required />
-                    <small v-if="mode === 'register'" class="field-hint">
-                        Mindestens 6 Zeichen, ideal: Buchstaben + Zahlen.
-                    </small>
                 </div>
 
                 <div v-if="mode === 'register'" class="form-row">

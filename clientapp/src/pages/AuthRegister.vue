@@ -15,7 +15,7 @@
                    required />
             <input v-model.trim="confirmPwd"
                    type="password"
-                   placeholder="Passwort best�tigen"
+                   placeholder="Passwort bestätigen"
                    autocomplete="new-password"
                    required />
             <button :disabled="busy" type="submit">
@@ -53,7 +53,7 @@
             return
         }
         if (password.value !== confirmPwd.value) {
-            err.value = 'Passw�rter stimmen nicht �berein.'
+            err.value = 'Passwörter stimmen nicht überein.'
             return
         }
 
@@ -61,7 +61,7 @@
         try {
             // dein Store erwartet (email, password, confirm)
             await auth.signUp(email.value, password.value, confirmPwd.value)
-            msg.value = 'Best�tigungs-Mail gesendet. Bitte E-Mail pr�fen.'
+            msg.value = 'Bestätigungs-Mail gesendet. Bitte E-Mail prüfen.'
         } catch (e: any) {
             err.value = e?.message || 'Registrierung fehlgeschlagen.'
         } finally {

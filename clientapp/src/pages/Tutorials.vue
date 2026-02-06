@@ -144,7 +144,11 @@
                 <div v-for="tutorial in filteredTutorials"
                      :key="tutorial.id"
                      class="tutorial-card"
-                     @click="openTutorial(tutorial)">
+                     role="button"
+                     tabindex="0"
+                     @click="openTutorial(tutorial)"
+                     @keydown.enter.prevent="openTutorial(tutorial)"
+                     @keydown.space.prevent="openTutorial(tutorial)">
 
                     <div class="card-head">
                         <h3 class="card-title">{{ tutorial.title }}</h3>
@@ -162,13 +166,15 @@
                             allowfullscreen
                             loading="lazy"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            referrerpolicy="strict-origin-when-cross-origin" />
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            @click.stop />
 
                     <video v-else-if="tutorial.videoUrl"
                            class="video-frame"
                            controls
                            playsinline
-                           preload="metadata">
+                           preload="metadata"
+                           @click.stop>
                         <source :src="tutorial.videoUrl" />
                     </video>
 
@@ -210,7 +216,7 @@
             </div>
 
             <!-- Modal -->
-            <div v-if="activeTutorial" class="tut-modal" @click="closeTutorial">
+            <div v-if="activeTutorial" class="tut-modal" @click="closeTutorial" role="dialog" aria-modal="true">
                 <div class="tut-modal-card" @click.stop>
                     <div class="tut-modal-head">
                         <div class="tut-modal-title">
@@ -280,7 +286,7 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+    import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
     import UiSearch from '@/components/ui/kits/UiSearch.vue'
     import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
 
