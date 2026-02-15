@@ -13,6 +13,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         : base(options) { }
 
     public DbSet<WeightEntry> WeightEntries => Set<WeightEntry>();
+    public DbSet<GoalWeight> GoalWeights => Set<GoalWeight>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<UserMeta> UserMetas => Set<UserMeta>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
@@ -23,7 +24,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<ProgressEntry> ProgressEntries => Set<ProgressEntry>();
     public DbSet<TimerEntity> Timers => Set<TimerEntity>();
     public DbSet<StopwatchEntity> Stopwatches => Set<StopwatchEntity>();
-
+    public DbSet<UserSettings> UserSettings => Set<UserSettings>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -43,11 +44,28 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
             // Postgres 'date' (ohne Uhrzeit)
             e.Property(x => x.Date)
-             .HasColumnType("date");
+ .HasColumnType("timestamptz");
 
-            // Pro User nur ein Eintrag pro Datum
-            e.HasIndex(x => new { x.UserId, x.Date })
-             .IsUnique();
+            // Mehrere Einträge pro Tag erlaubt -> KEIN Unique Index
+            e.HasIndex(x => new { x.UserId, x.Date });
+        });
+
+        // -------- GoalWeight --------
+        builder.Entity<GoalWeight>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId)
+             .IsRequired()
+             .HasMaxLength(64);
+
+            e.Property(x => x.GoalKg)
+             .HasPrecision(6, 2);
+
+            e.Property(x => x.UpdatedUtc).IsRequired();
+
+            // 1 Row pro User
+            e.HasIndex(x => x.UserId).IsUnique();
         });
 
         // -------- RefreshToken (Rotation/Reuse-Detection) --------
@@ -293,5 +311,21 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             e.HasIndex(x => new { x.UserId, x.IsVisible });
         });
 
+        builder.Entity<UserSettings>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).IsRequired().HasMaxLength(64);
+
+            e.Property(x => x.Theme).IsRequired().HasMaxLength(10);
+            e.Property(x => x.PreferredUnit).IsRequired().HasMaxLength(10);
+
+            e.Property(x => x.ToastTypeEnabledJson).HasMaxLength(4096);
+
+            e.Property(x => x.UpdatedUtc).IsRequired();
+
+            // 1 Settings Row pro User
+            e.HasIndex(x => x.UserId).IsUnique();
+        });
     }
 }

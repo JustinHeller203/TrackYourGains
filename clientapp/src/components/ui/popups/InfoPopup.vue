@@ -1,3 +1,4 @@
+<!--components/ui/popups/InfoPopup.vue-->
 <template>
     <BasePopup :show="show"
                :title="title"
@@ -42,5 +43,6 @@
         font-size: var(--popup-body-size, 1rem);
         color: var(--text-secondary);
         margin: .25rem 0 .25rem;
+        text-align: center;
     }
 </style>

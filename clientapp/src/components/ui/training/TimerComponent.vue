@@ -32,6 +32,7 @@
                    @update:modelValue="onReorderTimers">
             <template #item="{ element: timer }">
                 <div class="timer-card"
+                     :class="{ 'timer-scroll-highlight': highlightTimerId === timer.id }"
                      :key="timer.id"
                      :data-timer-id="timer.id"
                      :data-running="timer.isRunning ? 'true' : 'false'"
@@ -255,6 +256,21 @@
 
     const isDragging = ref(false)
 
+    const highlightTimerId = ref<string | null>(null)
+
+    const scrollToTimerCard = async (id: string) => {
+        await nextTick()
+
+        const el = document.querySelector(`[data-timer-id="${id}"]`) as HTMLElement | null
+        if (!el) return
+
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+        highlightTimerId.value = id
+        window.setTimeout(() => {
+            if (highlightTimerId.value === id) highlightTimerId.value = null
+        }, 900)
+    }
     const onDragStart = () => {
         isDragging.value = true
     }
@@ -601,14 +617,21 @@
                 timersStore.items = [created, ...timersStore.items]
                 props.addToast?.('Timer hinzugefügt', 'add')
                 closeNamePopup()
-                await nextTick()
+                await scrollToTimerCard(created.id)
                 return
             }
 
             await timersStore.create(uniqueName)
+
+            // sicherstellen, dass wir die neue ID im Store haben
+            await timersStore.load()
+
             props.addToast?.('Timer hinzugefügt', 'add')
             closeNamePopup()
-            await nextTick()
+
+            const created = timers.value.find(t => (t.name || 'Timer').trim() === uniqueName)
+            if (created) await scrollToTimerCard(created.id)
+
             return
         }
 
@@ -1358,5 +1381,12 @@
             padding: .5rem .75rem;
         }
     }
-</style>
 
+    .timer-scroll-highlight {
+        outline: 2px solid color-mix(in srgb, var(--accent-primary) 60%, transparent);
+        outline-offset: 6px;
+        border-radius: 18px;
+        box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-primary) 12%, transparent);
+        transition: outline-color .18s ease, box-shadow .18s ease;
+    }
+</style>

@@ -1,4 +1,4 @@
-<!--StopButton.vue-->
+<!--components/ui/buttons/glocks/StopButton.vue-->
 <template>
     <BaseButton :type="type"
                 :title="title || 'Stop'"

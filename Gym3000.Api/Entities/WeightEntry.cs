@@ -17,8 +17,8 @@ public class WeightEntry
 	[Column(TypeName = "numeric(6,2)")]
 	public decimal Weight { get; set; }
 
-	/// <summary>
-	/// Datum des Eintrags (UTC-Datum, ohne Uhrzeit in DB als DATE).
-	/// </summary>
-	public DateTime Date { get; set; }
+    /// <summary>
+    /// Zeitpunkt des Eintrags (UTC). In DB als timestamptz gespeichert.
+    /// </summary>
+    public DateTime Date { get; set; }
 }

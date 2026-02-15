@@ -131,6 +131,34 @@ namespace Gym3000.Api.Migrations
                     b.ToTable("GlycemicFoods");
                 });
 
+            modelBuilder.Entity("Gym3000.Api.Entities.GoalWeight", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("GoalKg")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("GoalWeights");
+                });
+
             modelBuilder.Entity("Gym3000.Api.Entities.ProgressEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -516,6 +544,64 @@ namespace Gym3000.Api.Migrations
                     b.ToTable("UserMetas");
                 });
 
+            modelBuilder.Entity("Gym3000.Api.Entities.UserSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AutoCalcEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("BackToTopEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ConfirmDeleteEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PreferredUnit")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<bool>("StickyStopwatchEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("StickyTimerEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Theme")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<int>("ToastDurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ToastTypeEnabledJson")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)");
+
+                    b.Property<bool>("ToastsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserSettings");
+                });
+
             modelBuilder.Entity("Gym3000.Api.Entities.WeightEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -525,7 +611,7 @@ namespace Gym3000.Api.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("Date")
-                        .HasColumnType("date");
+                        .HasColumnType("timestamptz");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -537,8 +623,7 @@ namespace Gym3000.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "Date")
-                        .IsUnique();
+                    b.HasIndex("UserId", "Date");
 
                     b.ToTable("WeightEntries");
                 });

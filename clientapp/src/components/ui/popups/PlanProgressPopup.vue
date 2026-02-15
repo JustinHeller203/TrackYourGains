@@ -1819,7 +1819,7 @@
         flex-direction: column;
         overflow-y: auto; /* oder: scroll, wenn du IMMER Platz reservieren willst */
         overflow-x: hidden;
-        max-height: calc(100vh - 220px);
+        max-height: min(52vh, calc(100vh - 220px));
         min-height: 0;
         overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
@@ -1891,10 +1891,9 @@
             }
 
 
-    /* Mobile/modern browsers: besser als 100vh wegen Browser-UI */
     @supports (height: 100dvh) {
         .modal--progress {
-            max-height: calc(100dvh - 220px);
+            max-height: min(52vh, calc(100dvh - 220px));
         }
     }
 

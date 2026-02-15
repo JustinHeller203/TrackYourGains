@@ -13,7 +13,72 @@ namespace Gym3000.Api.Controllers;
 [Route("api/weights")]
 public class WeightEntriesController(ApplicationDbContext db) : ControllerBase
 {
-    private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    private string UserId =>
+        User.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? User.FindFirstValue("sub")
+        ?? throw new UnauthorizedAccessException("Missing user id claim (nameid/sub).");
+
+    /// <summary>Dashboard Summary: latest weight + goal weight</summary>
+    [HttpGet("summary")]
+    [ProducesResponseType(typeof(WeightSummaryDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<WeightSummaryDto>> GetSummary()
+    {
+        var latest = await db.WeightEntries
+            .Where(w => w.UserId == UserId)
+            .OrderByDescending(w => w.Date)
+            .Select(w => new { w.Weight, w.Date })
+            .FirstOrDefaultAsync();
+
+        var goal = await db.GoalWeights
+    .Where(g => g.UserId == UserId)
+    .Select(g => g.GoalKg)
+    .FirstOrDefaultAsync();
+
+        return Ok(new WeightSummaryDto(
+            LatestKg: latest?.Weight,
+            LatestDate: latest?.Date,
+            GoalKg: goal
+        ));
+    }
+
+    /// <summary>Zielgewicht setzen (nullable -> Ziel löschen)</summary>
+    [HttpPut("goal")]
+    [ProducesResponseType(typeof(WeightSummaryDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<WeightSummaryDto>> SetGoal([FromBody] SetGoalWeightDto dto)
+    {
+        var row = await db.GoalWeights.FirstOrDefaultAsync(x => x.UserId == UserId);
+
+        if (row is null)
+        {
+            row = new GoalWeight
+            {
+                UserId = UserId,
+                GoalKg = dto.GoalKg,
+                UpdatedUtc = DateTime.UtcNow
+            };
+            db.GoalWeights.Add(row);
+        }
+        else
+        {
+            row.GoalKg = dto.GoalKg;
+            row.UpdatedUtc = DateTime.UtcNow;
+        }
+
+        await db.SaveChangesAsync();
+
+        // Return Summary (damit Frontend direkt neu rendern kann)
+        var latest = await db.WeightEntries
+            .Where(w => w.UserId == UserId)
+            .OrderByDescending(w => w.Date)
+            .Select(w => new { w.Weight, w.Date })
+            .FirstOrDefaultAsync();
+
+        return Ok(new WeightSummaryDto(
+            LatestKg: latest?.Weight,
+            LatestDate: latest?.Date,
+            GoalKg: row.GoalKg
+        ));
+    }
 
     /// <summary>Alle Gewichts-Einträge des eingeloggten Users (absteigend nach Datum)</summary>
     [HttpGet]
@@ -35,34 +100,26 @@ public class WeightEntriesController(ApplicationDbContext db) : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<WeightEntryDto>> Create([FromBody] CreateWeightEntryDto dto)
     {
-        // Datum hart auf reines Datum normalisieren
-        var dateOnly = dto.Date.Date;
+        var timestamp = dto.Date;
 
-        // Optional: Du könntest hier prüfen, ob es schon existiert, um sauberere Fehlermeldung vor DB-Insert zu liefern
-        var already = await db.WeightEntries
-            .AnyAsync(w => w.UserId == UserId && w.Date == dateOnly);
-
-        if (already)
-            return Conflict(new { message = "Für dieses Datum existiert bereits ein Eintrag." });
+        // Npgsql + timestamptz verlangt UTC. "2026-02-13" kommt als Kind=Unspecified rein.
+        timestamp = timestamp.Kind switch
+        {
+            DateTimeKind.Utc => timestamp,
+            DateTimeKind.Local => timestamp.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(timestamp, DateTimeKind.Utc)
+        };
 
         var entity = new WeightEntry
         {
             UserId = UserId,
             Weight = dto.Weight,
-            Date = dateOnly
+            Date = timestamp
         };
 
         db.WeightEntries.Add(entity);
 
-        try
-        {
-            await db.SaveChangesAsync();
-        }
-        catch (DbUpdateException)
-        {
-            // Falls Parallel-Request die Unique-Constraint triggert:
-            return Conflict(new { message = "Für dieses Datum existiert bereits ein Eintrag." });
-        }
+        await db.SaveChangesAsync();
 
         var response = new WeightEntryDto(entity.Id, entity.Weight, entity.Date);
         return Ok(response);

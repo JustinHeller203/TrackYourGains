@@ -28,7 +28,7 @@
                 </div>
 
                 <div class="calc-hero-sub">
-                    KFA ist oft ehrlicher als BMI – aber bleibt trotzdem nur eine Schätzung.
+                    Der KFA schätzt, <strong>wie viel % deines Körpers Fett ist</strong> – berechnet aus <strong>Umfängen</strong> (Bauch/Hals, bei Frauen + Hüfte) und <strong>Größe</strong> (US-Navy).
                 </div>
 
                 <div class="calc-hero-pills" aria-label="Schnellnavigation">
@@ -265,7 +265,7 @@
         <!-- Mini -->
         <template #mini>
             <div class="calc-mini">
-                <div class="calc-mini-title">Reality-Check ✅</div>
+                <div class="calc-mini-title">✅ Reality-Check</div>
                 <div class="calc-mini-text">
                     KFA ist top zum Tracken. Für echte Einschätzung: <strong>Taille</strong>, <strong>Fotos</strong>, <strong>Leistung</strong>.
                 </div>

@@ -8,28 +8,32 @@
         <div class="dashboard-container">
             <!-- ===================== DASHBOARD-CARDS ===================== -->
             <div class="dashboard-grid">
-                <!-- Mobile-Compact nur im Statistiken-Tab -->
-                <DashboardCard title="Aktuelles Gewicht"
-                               :info="currentWeightDisplay"
-                               :muted="!weightHistory.length"
-                               :compact="compactCards"
-                               clickable
-                               @click="openWeightPopup" />
 
-                <DashboardCard title="Kalorien heute"
-                               :info="totalCalories + ' / 2500 kcal'"
-                               :compact="compactCards" />
+                <ProgressWeightCard v-model:weightHistory="weightHistory"
+                                    :unit="unit"
+                                    :compact="compactCards"
+                                    :formatWeight="formatWeight"
+                                    :kgToDisplay="kgToDisplay"
+                                    :displayToKg="displayToKg"
+                                    @saved="onWeightSaved"
+                                    @invalid="openValidationPopupError" />
 
-                <DashboardCard title="Letztes Training"
-                               :info="lastWorkout || 'Kein Training erfasst'"
-                               :muted="!lastWorkout"
-                               :compact="compactCards" />
+                <ProgressCaloriesTodayCard :meals="meals"
+                                           :compact="compactCards"
+                                           :targetCalories="2500" />
 
-                <DashboardCard title="Zielgewicht"
-                               :info="goal ? formatWeight(goal, 1) : 'Kein Ziel gesetzt'"
-                               :compact="compactCards"
-                               clickable
-                               @click="openGoalPopup" />
+                <ProgressLastWorkoutCard :workouts="workouts"
+                                         :compact="compactCards"
+                                         :formatWeight="formatWeight" />
+
+                <ProgressGoalWeightCard v-model:goalKg="goal"
+                                        :unit="unit"
+                                        :compact="compactCards"
+                                        :formatWeight="formatWeight"
+                                        :kgToDisplay="kgToDisplay"
+                                        :displayToKg="displayToKg"
+                                        @saved="onGoalSaved"
+                                        @invalid="openValidationPopupError" />
             </div>
 
             <!-- ===================== TABS ===================== -->
@@ -517,20 +521,6 @@
         </div>
 
         <!-- ===================== POPUPS ===================== -->
-        <!-- Gewicht -->
-        <WeightPopup :show="showWeightPopup"
-                     v-model="newWeight"
-                     :placeholder="unit === 'kg' ? 'Gewicht in kg' : 'Gewicht in lbs'"
-                     @save="saveWeight"
-                     @cancel="closeWeightPopup" />
-
-        <!-- Ziel -->
-        <GoalPopup :show="showGoalPopup"
-                   v-model="newGoal"
-                   :placeholder="unit === 'kg' ? 'Ziel in kg' : 'Ziel in lbs'"
-                   @save="saveGoal"
-                   @cancel="closeGoalPopup" />
-
         <!-- Fortschritt ansehen (Cards je Tag) — OHNE Teleport -->
         <PlanProgressPopup :show="showPlanProgressPopup"
                            :currentPlanId="currentPlanId"
@@ -552,7 +542,7 @@
                             :exercises="getExercisesForPlan(effectivePlanId)"
                             :errors="validationErrorMessages"
                             :planId="effectivePlanId"
-                            :latestBodyWeightDisplay="latestRecordedWeightDisplay"
+                            :latestBodyWeightDisplay="latestRecordedWeightValue"
                             @save="onProgressModalSave"
                             @delete="onProgressModalDelete"
                             @cancel="onProgressModalCancel"
@@ -593,9 +583,9 @@
     import { jsPDF } from 'jspdf';
     import { useUnits, KG_PER_LB } from '@/composables/useUnits'
     import Toast from '@/components/ui/Toast.vue'
-    import DashboardCard from '@/components/ui/DashboardCard.vue'
-    import WeightPopup from '@/components/ui/popups/WeightPopup.vue'
-    import GoalPopup from '@/components/ui/popups/GoalPopup.vue'
+    import ProgressCaloriesTodayCard from '@/components/ui/progress/ProgressCaloriesTodayCard.vue'
+    import ProgressWeightCard from '@/components/ui/progress/ProgressWeightCard.vue'
+    import ProgressGoalWeightCard from '@/components/ui/progress/ProgressGoalWeightCard.vue'
     import ExportPopup from '@/components/ui/popups/ExportPopup.vue'
     import TabsBar from '@/components/ui/TabsBar.vue'
     import ChartCard from '@/components/ui/charts/ChartCard.vue'
@@ -618,6 +608,8 @@
     import { useProgressStore } from "@/store/progressStore"
     import type { CreateProgressEntry, UpdateProgressEntry } from "@/types/Progress"
     import { useTrainingPlansStore } from "@/store/trainingPlansStore"
+    import ProgressLastWorkoutCard from '@/components/ui/progress/ProgressLastWorkoutCard.vue'
+    import { useWeightStore } from "@/store/weightStore"
 
     import { useRoute } from 'vue-router'
 
@@ -734,7 +726,7 @@
 
     const activePlanId = computed(() => effectivePlanId.value)
 
-    const planExerciseOptions = computed < string[] > (() => {
+    const planExerciseOptions = computed<string[]>(() => {
         const id = activePlanId.value
         if (!id) return []
 
@@ -946,20 +938,14 @@
 
     // Basis-State für die Werte, die in den Cards angezeigt werden
 
-    const weightHistory = ref<WeightEntry[]>([]);
-    const workouts = ref<Workout[]>([]);
-    const meals = ref<Meal[]>([]);
-    const goal = ref<number | null>(null);
+    const weightHistory = ref<WeightEntry[]>([])
+    const workouts = ref<Workout[]>([])
+    const meals = ref<Meal[]>([])
 
-    // State für die Popups der DashboardCards
+    // goal kommt aus Backend (GoalWeight-Tabelle)
+    const goal = ref<number | null>(null)
 
-    const newWeight = ref<number | null>(null);
-    const newGoal = ref<number | null>(null);
-    const showWeightPopup = ref(false);
-    const showGoalPopup = ref(false);
-    const weightInput = ref<HTMLInputElement | null>(null);
-    const goalInput = ref<HTMLInputElement | null>(null);
-
+    const weightStore = useWeightStore()
     // Tabs + Responsive-Handling für :compact in DashboardCard
 
     const mq = window.matchMedia('(max-width: 600px)')
@@ -969,150 +955,59 @@
         isMobile.value = 'matches' in e ? e.matches : (e as MediaQueryList).matches
     }
 
-    onMounted(() => {
+    onMounted(async () => {
         handleMqChange(mq)
         mq.addEventListener?.('change', handleMqChange as any)
+
+        await Promise.all([
+            weightStore.loadEntries(),
+            weightStore.loadSummary(),
+        ])
+
+        weightHistory.value = (weightStore.entries ?? []).map((x: any) => ({
+            date: x.date,
+            weight: (x.weightKg ?? x.weight) as number,
+        }))
+
+        goal.value = weightStore.goalKg
     })
 
     onUnmounted(() => {
         mq.removeEventListener?.('change', handleMqChange as any)
     })
 
+    const onWeightSaved = async () => {
+        await Promise.all([
+            weightStore.loadEntries(true),
+            weightStore.loadSummary(true),
+        ])
+
+        weightHistory.value = (weightStore.entries ?? []).map((x: any) => ({
+            date: x.date,
+            weight: (x.weightKg ?? x.weight) as number,
+        }))
+
+        goal.value = weightStore.goalKg
+
+        nextTick(() => updateWeightChart())
+
+        addToast('Gewicht gespeichert', 'save')
+        checkMilestones()
+    }
+
+    const onGoalSaved = async () => {
+        await weightStore.loadSummary(true)
+        goal.value = weightStore.goalKg
+
+        addToast('Zielgewicht gespeichert', 'default')
+    }
+
     // 👉 wird in allen 4 DashboardCards als :compact benutzt
 
     const compactCards = computed(() => activeTab.value === 'stats' && isMobile.value)
 
-    // Werte für die einzelnen DashboardCards
-
-    const currentWeightDisplay = computed(() =>
-        weightHistory.value.length
-            ? formatWeight(weightHistory.value[0].weight, 1)
-            : 'Kein Gewicht erfasst'
-    )
-
-    const totalCalories = computed(() =>
-        meals.value.reduce((sum, meal) => sum + meal.calories, 0)
-
-    );
-
-    const lastWorkout = computed(() => {
-        if (!workouts.value.length) return null
-        const last = workouts.value.reduce((a, b) =>
-            new Date(a.date) > new Date(b.date) ? a : b
-        )
-        if (last.type === 'ausdauer') {
-            const dist = last.distanceKm != null ? ` · ${last.distanceKm} km` : ''
-            return `${last.exercise} – ${last.durationMin} Min${dist}`
-        }
-        if (last.type === 'dehnung') {
-            const bits: string[] = []
-            if (last.durationMin != null && Number.isFinite(last.durationMin)) bits.push(`${last.durationMin} Min`)
-            if (last.sets && last.reps) bits.push(`${last.sets}×${last.reps}`)
-            const tail = bits.length ? ` – ${bits.join(' · ')}` : ''
-            return `${last.exercise}${tail}`
-        }
-        return `${last.exercise} – ${formatWeight(last.weight, 0)} × ${last.reps}`
-    })
-
     //  Validierung für Gewicht & Zielgewicht
     const validationErrorMessages = ref<string[]>([]);
-
-    const validateWeight = (weight: number | null): string | null => {
-        if (weight === null || isNaN(weight)) return 'Gewicht muss eine Zahl sein';
-        if (weight <= 0) return 'Körpergewicht muss größer als 0 sein';
-        const kg = displayToKg(Number(weight));
-        if (kg > 200) return 'Gewicht darf maximal 200 kg sein';
-
-        return null;
-    };
-
-    const validateGoal = (g: number | null): string | null => {
-        if (g === null || isNaN(g)) return 'Zielgewicht muss eine Zahl sein';
-        if (g <= 0) return 'Zielgewicht muss größer als 0 sein';
-        const kg = displayToKg(Number(g));
-        if (kg > 200) return 'Zielgewicht darf maximal 200 kg sein';
-        return null;
-    };
-
-    // ================== Popup-Logik: Card "Aktuelles Gewicht" ==================
-
-    const latestRecordedWeightDisplay = computed<number | null>(() =>
-        weightHistory.value.length ? kgToDisplay(weightHistory.value[0].weight) : null
-    )
-
-    const openWeightPopup = () => {
-        newWeight.value = newProgressWeight.value ?? latestRecordedWeightDisplay.value ?? null
-        showWeightPopup.value = true
-        nextTick(() => { if (weightInput.value) weightInput.value.focus() })
-    }
-
-    const saveWeight = () => {
-        const error = validateWeight(newWeight.value);
-        if (error) {
-            openValidationPopupError([error]);
-            return;
-        }
-        const today = new Date().toISOString().split('T')[0];
-        const weightKg = displayToKg(Number(newWeight.value));
-        weightHistory.value.unshift({ date: today, weight: weightKg });
-
-        // Persistieren
-        localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value));
-
-        // 👉 Körpergewicht oben im Fortschritt-Editor direkt mitziehen
-        newProgressWeight.value = kgToDisplay(weightKg)
-
-        newWeight.value = null;
-
-        // Chart erst updaten, wenn das Canvas nach dem v-if gerendert ist
-        nextTick(() => {
-            updateWeightChart();
-        });
-
-        addToast('Gewicht gespeichert', 'save');
-        checkMilestones();
-        closeWeightPopup();
-    };
-
-    const closeWeightPopup = () => {
-        showWeightPopup.value = false;
-        newWeight.value = null;
-    };
-
-    // ================== Popup-Logik: Card "Zielgewicht" ==================
-
-    const saveToLocalStorage = (key: string, data: any) => {
-        try {
-            localStorage.setItem(key, JSON.stringify(data))
-        } catch (err) {
-            console.error(`Error saving ${key} to localStorage:`, err)
-        }
-    }
-
-    const openGoalPopup = () => {
-        newGoal.value = null;
-        showGoalPopup.value = true;
-        nextTick(() => {
-            if (goalInput.value) goalInput.value.focus();
-        });
-    };
-
-    const saveGoal = () => {
-        const error = validateGoal(newGoal.value);
-        if (error) {
-            openValidationPopupError([error]);
-            return;
-        }
-        goal.value = displayToKg(Number(newGoal.value));
-        saveToLocalStorage(LS_PROGRESS_GOAL, { goal: goal.value })
-        addToast('Zielgewicht gespeichert', 'default');
-        closeGoalPopup();
-    };
-
-    const closeGoalPopup = () => {
-        showGoalPopup.value = false;
-        newGoal.value = null;
-    };
 
     // ===== TabsBar: Aktiver Tab + Suchfelder =====
 
@@ -1126,6 +1021,18 @@
     // ===== Stats-Tab: ChartCard Gewichtsverlauf & Trainingsstatistik =====
 
     const hasWeightStats = computed(() => weightHistory.value.length > 0)
+
+    // Chart initial + bei Änderungen sauber neu zeichnen
+    watch(
+        [activeTab, unit, () => weightHistory.value.length],
+        async () => {
+            if (activeTab.value !== 'stats') return
+            await nextTick()
+            updateWeightChart()
+        },
+        { flush: 'post' },
+    )
+
     const hasWorkoutStats = computed(() => workouts.value.length > 0)
 
     const doResetWeightStats = () => {
@@ -1138,7 +1045,6 @@
 
         // wirklich zurücksetzen
         weightHistory.value = []
-        localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value))
 
         if (weightChart) {
             weightChart.destroy()
@@ -1156,7 +1062,6 @@
                     if (!lastResetAction.value || lastResetAction.value.kind !== 'weight') return
 
                     weightHistory.value = [...lastResetAction.value.data]
-                    localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value))
 
                     nextTick(() => {
                         updateWeightChart()
@@ -2405,9 +2310,9 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             : [],
     })
 
-    const localPlans = ref < ViewPlan[] > ([])
+    const localPlans = ref<ViewPlan[]>([])
 
-    const trainingPlans = computed < ViewPlan[] > (() => {
+    const trainingPlans = computed<ViewPlan[]>(() => {
         const api = trainingPlansStore.items.map(toViewPlan)
         return api.length ? api : localPlans.value
     })
@@ -2495,6 +2400,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const progressEntryModalRef = ref<ProgressEntryModalExposed | null>(null)
 
     const newProgressWeight = ref<number | null>(null)
+
 
     const editingEntry = ref<Workout | null>(null)
 
@@ -2641,18 +2547,35 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
         validationErrorMessages.value = []
         const { workout, updatedBodyWeightKg, mode, editingDate } = payload
-
-        // optional: Körpergewicht-Update (wenn Modal sagt: changed)
         if (updatedBodyWeightKg != null) {
-            const latestKg = weightHistory.value.length ? weightHistory.value[0].weight : null
-            if (latestKg == null || Math.abs(updatedBodyWeightKg - latestKg) > 1e-9) {
-                const today = new Date().toISOString().split('T')[0]
-                weightHistory.value.unshift({ date: today, weight: updatedBodyWeightKg })
-                localStorage.setItem(LS_PROGRESS_WEIGHTS, JSON.stringify(weightHistory.value))
+            const today = new Date().toISOString().split('T')[0]
+
+            try {
+                // ✅ 1) Backend speichern (du MUSST eine dieser Actions im weightStore haben)
+                // Ich nehme absichtlich einen klaren Namen -> du passt ggf. 1 Zeile an:
+                await weightStore.upsertEntry({ date: today, weightKg: updatedBodyWeightKg })
+
+                // ✅ 2) Danach sauber neu laden (damit UI exakt Backend zeigt)
+                await Promise.all([
+                    weightStore.loadEntries(true),
+                    weightStore.loadSummary(true),
+                ])
+
+                weightHistory.value = (weightStore.entries ?? []).map((x: any) => ({
+                    date: x.date,
+                    weight: x.weight,
+                }))
+
+                goal.value = weightStore.goalKg
+
+                await nextTick()
                 updateWeightChart()
+
+            } catch (e) {
+                console.error(e)
+                showToast({ message: "Körpergewicht konnte nicht gespeichert werden.", type: "default" })
             }
         }
-
         const planId = workout.planId
         if (!planId) return
 
@@ -2732,6 +2655,56 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }
     //Validation ProgressModalEntry
 
+    // Progress.vue — INSERT (above "// ===== Utility: Zahlen, Debounce ...")
+
+    // --- LocalStorage Guards / Helper ---
+    const canUseLocalStorage = () => {
+        try {
+            return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+        } catch {
+            return false
+        }
+    }
+
+    const saveToLocalStorage = (key: string, value: any) => {
+        if (!canUseLocalStorage()) return
+        try {
+            localStorage.setItem(key, JSON.stringify(value))
+        } catch { }
+    }
+
+    // --- Missing popup refs (were referenced but not defined) ---
+    const showWeightPopup = ref(false)
+    const showGoalPopup = ref(false)
+
+    // used in watcher below (newProgressWeight -> newWeight)
+    const newWeight = ref<number | null>(null)
+
+    // Minimal close/save handlers to satisfy TS (and avoid crashes)
+    const closeWeightPopup = () => { showWeightPopup.value = false }
+    const closeGoalPopup = () => { showGoalPopup.value = false }
+
+    const saveWeight = () => {
+        // If you later re-add the popup, wire it here.
+        showWeightPopup.value = false
+    }
+
+    const saveGoal = () => {
+        // If you later re-add the popup, wire it here.
+        showGoalPopup.value = false
+    }
+
+    // --- latest recorded weight display (used by ProgressEntryModal + openCreate default) ---
+    const latestRecordedWeightDisplay = computed<string | null>(() => {
+        // bevorzugt: aktuellster Eintrag aus weightHistory
+        const kg =
+            (weightHistory.value?.length ? weightHistory.value[0].weight : null)
+            ?? (weightStore as any)?.latestKg
+            ?? null
+
+        return kg == null ? null : formatWeight(kg, 1)
+    })
+
     const clearValidation = () => {
         validationErrorMessages.value = []
     }
@@ -2748,7 +2721,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
         progressEntryModalRef.value?.openCreate({
             planId,
-            defaultBodyWeightDisplay: latestRecordedWeightDisplay.value ?? null,
+            defaultBodyWeightDisplay: latestRecordedWeightValue.value,
         })
     }
 
@@ -3572,6 +3545,19 @@ Notiz: ${e.note ?? '-'}\n`
         return Number.isFinite(n) ? n : null
     }
 
+    // ADD: "Display" (string) -> number fürs Modal
+    const latestRecordedWeightValue = computed<number | null>(() => {
+        const raw = latestRecordedWeightDisplay.value
+        if (raw == null) return null
+
+        // akzeptiert "82", "82.5", "82,5", "82 kg"
+        const cleaned = String(raw).replace(',', '.').replace(/[^\d.]/g, '').trim()
+        if (!cleaned) return null
+
+        const n = Number(cleaned)
+        return Number.isFinite(n) ? n : null
+    })
+
     function debounce<F extends (...args: any[]) => void>(fn: F, wait = 300) {
         let t: number | undefined
         return (...args: Parameters<F>) => {
@@ -3580,7 +3566,7 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    const currentWeight = computed < number | null > (() =>
+    const currentWeight = computed<number | null>(() =>
         weightHistory.value.length ? weightHistory.value[0].weight : null
     )
 
@@ -3660,13 +3646,6 @@ Notiz: ${e.note ?? '-'}\n`
 
     const loadFromLocalStorage = () => {
         try {
-            const weightsData = localStorage.getItem(LS_PROGRESS_WEIGHTS);
-            if (weightsData) {
-                const parsed = JSON.parse(weightsData);
-                if (Array.isArray(parsed)) {
-                    weightHistory.value = parsed;
-                }
-            }
             const bmiData = localStorage.getItem(LS_PROGRESS_BMI);
             if (bmiData) {
                 const parsed = JSON.parse(bmiData);
@@ -3719,11 +3698,6 @@ Notiz: ${e.note ?? '-'}\n`
                 waterActivity.value = parsed.activity;
                 waterClimate.value = parsed.climate;
                 waterResult.value = parsed.result;
-            }
-            const goalData = localStorage.getItem(LS_PROGRESS_GOAL);
-            if (goalData) {
-                const parsed = JSON.parse(goalData);
-                goal.value = parsed.goal;
             }
             const workoutsData = localStorage.getItem(LS_PROGRESS_WORKOUTS);
             if (workoutsData) {

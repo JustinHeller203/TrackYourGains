@@ -28,7 +28,7 @@
                 </div>
 
                 <div class="calc-hero-sub">
-                    Richtwert für deinen Tag – kein medizinisches Urteil.
+                    Schätzt deinen Bedarf aus <strong>Gewicht</strong> + <strong>Aktivität</strong> + <strong>Klima</strong> (Schwitzen).
                 </div>
 
                 <div class="calc-hero-pills" aria-label="Schnellnavigation">
@@ -205,7 +205,7 @@
         <!-- Mini -->
         <template #mini>
             <div class="calc-mini">
-                <div class="calc-mini-title">Reality-Check ✅</div>
+                <div class="calc-mini-title">✅ Reality-Check </div>
                 <div class="calc-mini-text">
                     Trink so, dass du dich stabil fühlst: <strong>Durst</strong>, <strong>Urinfarbe</strong>, <strong>Training</strong> = die echten Marker.
                 </div>

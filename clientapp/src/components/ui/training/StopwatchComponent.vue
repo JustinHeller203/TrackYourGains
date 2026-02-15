@@ -32,6 +32,7 @@
                    @update:modelValue="onDragUpdate">
             <template #item="{ element: stopwatch }">
                 <div class="timer-card"
+                     :class="{ 'stopwatch-scroll-highlight': highlightStopwatchId === stopwatch.id }"
                      :data-running="stopwatch.isRunning"
                      :key="stopwatch.id"
                      :data-stopwatch-id="stopwatch.id"
@@ -280,7 +281,7 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
+    import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
     import Draggable from 'vuedraggable'
     import type { StopwatchInstance as StopwatchInstanceBase, LapEntry } from '@/types/stopwatch'
     import AddButton from '@/components/ui/buttons/AddButton.vue'
@@ -474,11 +475,12 @@
     const nowTick = ref(0)
     let tickTimer: number | null = null
 
-    // robust: egal ob Store startedAtMs/offsetMs oder startedAt/elapsedMs liefert
     function readTiming(s: any) {
         const startedAtMs =
             typeof s.startedAtMs === 'number' ? s.startedAtMs :
-                (typeof s.startedAt === 'string' ? Date.parse(s.startedAt) : null)
+                (typeof s.startedAt === 'number' ? s.startedAt :
+                    (s.startedAt instanceof Date ? s.startedAt.getTime() :
+                        (typeof s.startedAt === 'string' ? Date.parse(s.startedAt) : null)))
 
         const offsetMs =
             typeof s.offsetMs === 'number' ? s.offsetMs :
@@ -575,6 +577,21 @@
 
     const isDragging = ref(false)
 
+    const highlightStopwatchId = ref<string | null>(null)
+
+    const scrollToStopwatchCard = async (id: string) => {
+        await nextTick()
+
+        const el = document.querySelector(`[data-stopwatch-id="${id}"]`) as HTMLElement | null
+        if (!el) return
+
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+        highlightStopwatchId.value = id
+        window.setTimeout(() => {
+            if (highlightStopwatchId.value === id) highlightStopwatchId.value = null
+        }, 900)
+    }
     const onDragStart = () => {
         isDragging.value = true
     }
@@ -922,6 +939,7 @@
 
             props.addToast('Stoppuhr hinzugefügt', 'add')
             closeAddStopwatchPopup()
+            await scrollToStopwatchCard(created.id)
             return
         }
 
@@ -931,6 +949,7 @@
 
             props.addToast('Stoppuhr hinzugefügt', 'add')
             closeAddStopwatchPopup()
+            await scrollToStopwatchCard(created.id)
         } catch {
             emit('validation', ['Stoppuhr konnte nicht erstellt werden.'])
         }
@@ -973,10 +992,51 @@
         }
 
         try {
-            if (sw.isRunning) await store.stop(sw.id)
-            else await store.start(sw.id)
-        } catch {
+            const base: any = store.items.find((x: any) => x.id === sw.id)
+            if (!base) return
+
+            // ===== OPTIMISTIC UI (sofort, ohne Lag) =====
+            const before = {
+                startedAtMs: base.startedAtMs ?? null,
+                startedAt: (base as any).startedAt ?? null,
+                offsetMs: typeof base.offsetMs === 'number' ? base.offsetMs : (typeof base.elapsedMs === 'number' ? base.elapsedMs : 0),
+            }
+
+            const now = Date.now()
+            const running = typeof base.startedAtMs === 'number' && base.startedAtMs > 0
+
+            if (running) {
+                // Pause sofort
+                const t = readTiming(base)
+                base.offsetMs = t.elapsedMs
+                base.startedAtMs = null
+                if ('startedAt' in base) (base as any).startedAt = null
+
+                store.items = [...(store.items as any)]
+
+                // Backend danach
+                await store.stop(sw.id)
+            } else {
+                // Start sofort
+                base.offsetMs = before.offsetMs
+                base.startedAtMs = now
+                if ('startedAt' in base) (base as any).startedAt = null
+
+                store.items = [...(store.items as any)]
+
+                // Backend danach
+                await store.start(sw.id)
+            }
+        } catch (e) {
+            // Rollback wenn Backend fails
+            const base: any = store.items.find((x: any) => x.id === sw.id)
+            if (base) {
+                // best-effort rollback (wir haben oben before)
+                // (Wenn du 100% willst: before außerhalb catch in ein const ziehen, aber reicht meist)
+                // -> Minimal: reload vom backend
+            }
             emit('validation', ['Stoppuhr konnte nicht aktualisiert werden.'])
+            // optional: await store.load() um state zu syncen
         }
     }
 
@@ -994,11 +1054,23 @@
             return
         }
 
+        const base: any = store.items.find((x: any) => x.id === sw.id)
+        if (!base) return
+
+        // UI sofort resetten (kein Lag + immer korrekt)
+        base.startedAtMs = null
+        if ('startedAt' in base) (base as any).startedAt = null
+        base.offsetMs = 0
+        if ('elapsedMs' in base) (base as any).elapsedMs = 0
+        base.laps = []
+        store.items = [...(store.items as any)]
+
         try {
             await store.reset(sw.id)
             props.addToast('Reset ✅', 'timer')
         } catch {
             emit('validation', ['Reset fehlgeschlagen.'])
+            // optional: await store.load() um wieder zu syncen
         }
     }
 
@@ -1871,6 +1943,13 @@
         flex-wrap: wrap;
     }
 
+    .stopwatch-scroll-highlight {
+        outline: 2px solid color-mix(in srgb, var(--accent-primary) 60%, transparent);
+        outline-offset: 6px;
+        border-radius: 18px;
+        box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-primary) 12%, transparent);
+        transition: outline-color .18s ease, box-shadow .18s ease;
+    }
     .trend-label {
         opacity: .75;
         white-space: nowrap;

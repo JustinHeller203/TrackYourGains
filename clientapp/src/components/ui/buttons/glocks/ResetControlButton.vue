@@ -1,27 +1,27 @@
+<!--components/ui/buttons/glocks/ResetControlButton.vue-->
+
 <template>
-  <BaseButton
-    :type="type"
-    :title="title || 'Reset'"
-    :aria-label="ariaLabel || title || 'Reset'"
-    :disabled="disabled"
-    extraClass="timer-btn reset-btn"
-    @click="$emit('click', $event)"
-  >
-    <slot>Reset</slot>
-  </BaseButton>
+    <BaseButton :type="type"
+                :title="title || 'Reset'"
+                :aria-label="ariaLabel || title || 'Reset'"
+                :disabled="disabled"
+                extraClass="timer-btn reset-btn"
+                @click="$emit('click', $event)">
+        <slot>Reset</slot>
+    </BaseButton>
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/ui/buttons/BaseButton.vue'
+    import BaseButton from '@/components/ui/buttons/BaseButton.vue'
 
-defineProps<{
-  type?: 'button' | 'submit' | 'reset'
-  title?: string
-  ariaLabel?: string
-  disabled?: boolean
-}>()
+    defineProps<{
+        type?: 'button' | 'submit' | 'reset'
+        title?: string
+        ariaLabel?: string
+        disabled?: boolean
+    }>()
 
-defineEmits<{ (e:'click', ev:MouseEvent): void }>()
+    defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 </script>
 
 <style scoped>
@@ -84,5 +84,4 @@ defineEmits<{ (e:'click', ev:MouseEvent): void }>()
         background: radial-gradient(circle at 18% 28%, rgba(148,163,184,.16), transparent 60%), radial-gradient(circle at 85% 78%, rgba(100,116,139,.12), transparent 70%), linear-gradient(180deg, rgba(100,116,139,.78), rgba(51,65,85,.88));
         box-shadow: 0 18px 48px rgba(0,0,0,.62), 0 0 0 1px rgba(148,163,184,.16), inset 0 1px 0 rgba(255,255,255,.08);
     }
-
 </style>

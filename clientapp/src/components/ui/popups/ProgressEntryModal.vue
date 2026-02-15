@@ -37,7 +37,7 @@
                     <div class="input-with-extras">
                         <UiPopupInput id="progress-weight"
                                       ref="weightInput"
-                                      :label="`Körpergewicht (${unit})`"
+                                      :label="`Körpergewicht (${unit ?? 'kg'})`"
                                       type="number"
                                       inputmode="decimal"
                                       min="0"
@@ -135,9 +135,9 @@
                 </div>
             </div>
 
-            <div v-if="Number(setsLocal) > 0 && (inputType === 'kraft' || inputType === 'calisthenics' || inputType === 'dehnung')"
+            <div v-if="visibleSetCount > 0 && (inputType === 'kraft' || inputType === 'calisthenics' || inputType === 'dehnung')"
                  class="set-rows">
-                <div v-for="(row, i) in setDetailsLocal" :key="i" class="set-row">
+                <div v-for="(row, i) in visibleSetDetails" :key="i" class="set-row">
                     <div class="set-row-label">Satz {{ i + 1 }}</div>
 
                     <!-- Kraft / Calisthenics: Gewicht + Wdh. -->
@@ -458,7 +458,7 @@
 
 
 <script setup lang="ts">
-    import { computed, nextTick, onMounted, ref, watch } from 'vue'
+    import { computed, nextTick, onMounted, ref, watch, withDefaults } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue'
@@ -470,14 +470,23 @@
     import HrZoneExplain from '@/components/ui/explain/HrZoneExplain.vue'
     import TempoExplain from '@/components/ui/explain/TempoExplain.vue'
     import { useTrainingPlansStore } from "@/store/trainingPlansStore"
+    import { useWeightStore } from '@/store/weightStore'
 
     type Focusable = { focus: () => void }
 
     type Unit = 'kg' | 'lbs'
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
     type SetDetail = { weight: number | null; reps: number | null; durationSec?: number | null }
-    type PlanExercise = { exercise: string; sets: number; reps: number; goal?: string }
-
+    type PlanExercise = {
+        exercise: string
+        sets: number
+        reps: number
+        goal?: string
+        type?: ExerciseType
+        // cardio extra (optional, aber für Prefill nice)
+        durationMin?: number | null
+        distanceKm?: number | null
+    }
     type Workout = {
         planId?: string
         exercise: string
@@ -513,37 +522,47 @@
         side?: '' | 'links' | 'rechts' | 'beidseitig'
     }
 
-    const props = defineProps<{
+    const props = withDefaults(defineProps<{
         show: boolean
-        unit: Unit
+        unit?: Unit
         exercises: PlanExercise[]
         errors?: string[]
         planId: string | null
         latestBodyWeightDisplay?: number | null
-    }>()
+        prefillExercise?: string | null
+        prefillSetValues?: Record<number, { weight?: number | null; reps?: number | null }>
 
-    watch(
-        () => props.show,
-        async (v) => {
-            if (!v) return
+        // ✅ TrainingSimulation: progressive Set-Freigabe
+        activeSetNumber?: number | null
+        lockSetsBefore?: number | null
+    }>(), {
+        unit: 'kg',
+        activeSetNumber: null,
+        lockSetsBefore: 0,
+    })
 
-            const id = props.planId
-            if (!id) return
+    onMounted(() => {
+        watch(
+            () => props.show,
+            async (v) => {
+                if (!v) return
 
-            // Wenn Liste leer: erstmal Liste holen (optional)
-            if (!trainingPlansStore.items?.length) {
-                try { await trainingPlansStore.loadList() } catch { /* no toast hier */ }
-            }
+                const id = props.planId
+                if (!id) return
 
-            // Wenn Plan in items keine days hat -> Full-Plan nachladen
-            const dto: any = trainingPlansStore.items.find((p: any) => p.id === id)
-            const hasDays = dto && Array.isArray(dto.days) && dto.days.length > 0
-            if (!hasDays) {
-                try { await trainingPlansStore.loadOne(id) } catch { /* silent */ }
-            }
-        },
-        { immediate: true }
-    )
+                if (!trainingPlansStore.items?.length) {
+                    try { await trainingPlansStore.loadList() } catch { /* no toast hier */ }
+                }
+
+                const dto: any = trainingPlansStore.items.find((p: any) => p.id === id)
+                const hasDays = dto && Array.isArray(dto.days) && dto.days.length > 0
+                if (!hasDays) {
+                    try { await trainingPlansStore.loadOne(id) } catch { /* silent */ }
+                }
+            },
+            { immediate: true }
+        )
+    })
 
     function closePopup() {
         showExtrasLocal.value = false
@@ -560,44 +579,323 @@
             updatedBodyWeightKg?: number | null
             mode: 'create' | 'edit'
             editingDate?: string | null
+            draft?: {
+                valuesBySet?: Record<number, { weight?: number | null; reps?: number | null }>
+            }
         }): void
         (e: 'delete', payload: { planId: string; date: string }): void
     }>()
 
     const trainingPlansStore = useTrainingPlansStore()
 
+    const weightStore = useWeightStore()
+
+    function getLatestWeightKgFromStore(): number | null {
+        const s: any = weightStore as any
+
+        // probier die üblichen Patterns durch (robust gegen Store-Refactors)
+        const kg =
+            s?.latestKg ??
+            s?.latestWeightKg ??
+            s?.latest?.weight ??
+            s?.entries?.[0]?.weight ??
+            s?.weightHistory?.[0]?.weight ??
+            null
+
+        const n = typeof kg === 'number' ? kg : Number(String(kg ?? '').replace(',', '.').trim())
+        return Number.isFinite(n) && n > 0 ? n : null
+    }
+
+    function getLatestWeightDisplayFromStore(): number | null {
+        const kg = getLatestWeightKgFromStore()
+        return kg == null ? null : kgToDisplay(kg)
+    }
+
+    const mapCategoryToType = (cat: unknown): ExerciseType => {
+        // Zahlen & Zahl-Strings weiter unterstützen
+        const num = typeof cat === 'number' ? cat : Number(String(cat ?? '').trim())
+        if (Number.isFinite(num)) {
+            if (num === 2) return 'ausdauer'
+            if (num === 3) return 'dehnung'
+            if (num === 1) return 'calisthenics'
+            if (num === 0) return 'kraft'
+        }
+
+        // String/Enum aus Backend robust mappen
+        const s = String(cat ?? '').trim().toLowerCase()
+
+        if (!s) return 'kraft'
+
+        // Cardio
+        if (
+            s.includes('ausdauer') ||
+            s.includes('cardio') ||
+            s.includes('endurance') ||
+            s.includes('aerob')
+        ) return 'ausdauer'
+
+        // Stretch/Mobility
+        if (
+            s.includes('dehnung') ||
+            s.includes('stretch') ||
+            s.includes('mobility') ||
+            s.includes('beweglichkeit')
+        ) return 'dehnung'
+
+        // Calisthenics
+        if (
+            s.includes('calisthenics') ||
+            s.includes('bodyweight') ||
+            s.includes('eigengewicht')
+        ) return 'calisthenics'
+
+        // Default
+        return 'kraft'
+    }
+
+    const DEBUG_PROGRESS_TYPE = true
+
+    function dbgType(label: string, data: any) {
+        if (!DEBUG_PROGRESS_TYPE) return
+
+        // NICHT collapsed -> du siehst es sofort
+        console.group(`[ProgressEntryModal][TYPE] ${label}`)
+
+        // Deep-clone, damit Chrome dir echte Werte zeigt (nicht "live refs")
+        try {
+            const snap = JSON.parse(JSON.stringify(data))
+            console.log(snap)
+        } catch {
+            console.log(data)
+        }
+
+        console.groupEnd()
+    }
+
+    onMounted(() => {
+        watch(
+            () => exerciseLocal.value,
+            (name) => {
+                if (!DEBUG_PROGRESS_TYPE) return
+                if (!name?.trim()) return
+
+                const key = name.trim().toLowerCase()
+                const resolvedHit =
+                    exercisesResolved.value.find(e => (e.exercise || '').trim().toLowerCase() === key) ?? null
+
+                dbgType('SELECTED EXERCISE', {
+                    selected: name,
+                    resolvedHit,
+                    resolvedHit_type: resolvedHit?.type,
+                    detectedInputType: detectedInputType.value,
+                    inputType: inputType.value,
+                })
+            },
+            { flush: 'sync' }
+        )
+    })
+
+    function applyPlanPrefillFromPlan(planEx: PlanExercise) {
+        if (!canAutofill.value) return
+        if (!planEx) return
+
+        // ✅ Kraft / Calisthenics
+        if ((planEx.type === 'kraft' || planEx.type === 'calisthenics') && shouldFillStrength()) {
+            repsLocal.value = Number(planEx.reps || 0) || null
+            setsLocal.value = Number(planEx.sets || 0) || null
+            return
+        }
+
+        // ✅ Cardio
+        if (planEx.type === 'ausdauer' && shouldFillCardio()) {
+            const dur = planEx.durationMin ?? planEx.sets
+            const dist = planEx.distanceKm ?? (planEx.reps ? planEx.reps : null)
+
+            durationLocal.value = dur != null ? Number(dur) : null
+            distanceLocal.value = dist != null ? Number(dist) : null
+            return
+        }
+
+        // ✅ Dehnung
+        if (planEx.type === 'dehnung' && shouldFillStretch()) {
+            const holds = Number(planEx.sets || 0) || 0
+            const sec = Number(planEx.reps || 0) || 0
+
+            setsLocal.value = holds > 0 ? holds : null
+
+            if (holds > 0) {
+                const dur = sec > 0 ? sec : 30
+                setDetailsLocal.value = Array.from({ length: Math.min(7, holds) }, () => ({
+                    weight: 0,
+                    reps: null,
+                    durationSec: dur,
+                }))
+            }
+            return
+        }
+    }
+
+    onMounted(() => {
+        watch(
+            () => plannedForSelected.value,
+            (planEx, prev) => {
+                if (!props.show) return
+                if (!hasExerciseSelected.value) return
+                if (!planEx) return
+                if (localIsEditing.value) return
+
+                const nextType = planEx.type ?? detectedInputType.value
+
+                if (lastTypeLocal.value && nextType !== lastTypeLocal.value) {
+                    resetIrrelevantFields(nextType)
+                }
+                lastTypeLocal.value = nextType
+
+                nextTick(() => applyPlanPrefill(exerciseLocal.value))
+            },
+            { flush: 'post' }
+        )
+
+        watch(
+            () => plannedForSelected.value,
+            (x) => {
+                console.log('[PREFILL CHECK]', {
+                    selected: exerciseLocal.value,
+                    planned: x,
+                    type: x?.type,
+                    sets: x?.sets,
+                    reps: x?.reps,
+                    dur: x?.durationMin,
+                    dist: x?.distanceKm
+                })
+            },
+            { immediate: true }
+        )
+
+        watch(
+            () => detectedInputType.value,
+            (t, prev) => {
+                if (!DEBUG_PROGRESS_TYPE) return
+                if (!props.show) return
+                dbgType('detectedInputType changed', {
+                    prev,
+                    next: t,
+                    exercise: exerciseLocal.value,
+                    plannedForSelected: plannedForSelected.value,
+                })
+            }
+        )
+    })
+
+    function inferExerciseType(e: Partial<PlanExercise>): ExerciseType {
+        const name = String(e.exercise ?? '').trim()
+
+        // 0) explizites string-type gewinnt sofort
+        const explicit = String((e as any).type ?? '').trim().toLowerCase()
+        if (explicit === 'ausdauer' || explicit === 'dehnung' || explicit === 'calisthenics' || explicit === 'kraft') {
+            return explicit as ExerciseType
+        }
+
+        // 1) Stretch per Name gewinnt (damit "Mobility/Dehnen" nie als Cardio/Kraft endet)
+        if (isStretchName(name)) return 'dehnung'
+
+        // 2) Cardio-Felder -> Ausdauer
+        if (e.durationMin != null || e.distanceKm != null) return 'ausdauer'
+
+        // 3) Numeric Enum (number ODER string) 0..3 mappen
+        const rawType = (e as any).type
+        const num = typeof rawType === 'number' ? rawType : Number(String(rawType ?? '').trim())
+        if (Number.isFinite(num)) {
+            if (num === 2) return 'ausdauer'
+            if (num === 3) return 'dehnung'
+            if (num === 1) return 'calisthenics'
+            return 'kraft'
+        }
+
+        // 4) string aliases (BUGFIX: compare LOWERCASE STRING, nicht rawType)
+        if (explicit.includes('cardio') || explicit.includes('endurance') || explicit.includes('aerob')) return 'ausdauer'
+        if (explicit.includes('stretch') || explicit.includes('mobility') || explicit.includes('beweglich')) return 'dehnung'
+        if (explicit.includes('bodyweight') || explicit.includes('eigengewicht')) return 'calisthenics'
+        if (explicit.includes('strength') || explicit.includes('weights')) return 'kraft'
+
+        // 5) Name-Fallback
+        if (isCardioName(name)) return 'ausdauer'
+        return 'kraft'
+    }
+
     const exercisesResolved = computed<PlanExercise[]>(() => {
         const id = props.planId
         const dto = id ? trainingPlansStore.items.find((p: any) => p.id === id) : null
 
         const fromApi: PlanExercise[] =
+
             dto && Array.isArray((dto as any).days)
                 ? (dto as any).days
                     .flatMap((d: any) =>
                         Array.isArray(d.exercises)
-                            ? d.exercises.map((x: any) => ({
-                                exercise: String(x.name ?? x.exercise ?? '').trim(),
-                                sets: 0,
-                                reps: 0,
-                            }))
+                            ? d.exercises.map((x: any) => {
+                                const name = String(x.name ?? x.exercise ?? '').trim()
+                                const isCardio = x.durationMin != null || x.distanceKm != null
+
+                                const type: ExerciseType = isCardio
+                                    ? 'ausdauer'
+                                    : mapCategoryToType(x.category)
+
+                                // Werte passend setzen
+                                const sets = isCardio
+                                    ? Number(x.durationMin ?? 0) || 0
+                                    : Number(x.sets ?? 0) || 0
+
+                                const reps = isCardio
+                                    ? Number(x.distanceKm ?? 0) || 0
+                                    : Number(x.reps ?? 0) || 0
+
+                                return {
+                                    exercise: name,
+                                    sets,
+                                    reps,
+                                    type,
+                                    durationMin: type === 'ausdauer' ? (x.durationMin ?? null) : null,
+                                    distanceKm: type === 'ausdauer' ? (x.distanceKm ?? null) : null,
+                                }
+                            })
                             : []
                     )
                     .filter((e: any) => e.exercise)
                 : []
 
-        const fallback: PlanExercise[] = Array.isArray(props.exercises) ? props.exercises : []
+        const fallback: PlanExercise[] = Array.isArray(props.exercises) ? (props.exercises as any) : []
 
         const names = new Set<string>()
         const merged = [...fromApi, ...fallback].filter(e => {
             const n = (e?.exercise ?? '').trim()
             if (!n) return false
-            if (names.has(n)) return false
-            names.add(n)
+            const key = n.toLowerCase()
+            if (names.has(key)) return false
+            names.add(key)
             return true
         })
 
-        merged.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
-        return merged
+        const normalized = merged.map(e => {
+            const t = inferExerciseType(e)
+
+            return {
+                ...e,
+                type: t,
+
+                // 🔥 kill leaked cardio fields auf Nicht-Cardio (sonst triggert es später wieder irgendwo)
+                durationMin: t === 'ausdauer' ? (e as any).durationMin ?? null : null,
+                distanceKm: t === 'ausdauer' ? (e as any).distanceKm ?? null : null,
+            }
+        })
+
+        normalized.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
+
+        if (DEBUG_PROGRESS_TYPE) {
+            const sample = normalized.slice(0, 12).map(x => ({ ex: x.exercise, type: x.type, sets: x.sets, reps: x.reps, dur: (x as any).durationMin, dist: (x as any).distanceKm }))
+            dbgType('exercisesResolved sample', sample)
+        }
+        return normalized
     })
 
     const exerciseOptions = computed(() =>
@@ -641,8 +939,7 @@
     const displayToKg = (n: number) => (props.unit === 'kg' ? n : lbsToKg(n))
     const kgToDisplay = (n: number) => (props.unit === 'kg' ? n : kgToLbs(n))
 
-    /* detect type from exercise name */
-    const isCardioName = (name: string) => {
+    function isCardioName(name: string) {
         const n = (name || '').toLowerCase()
         const kw = [
             'lauf', 'jogg', 'run', 'treadmill', 'rad', 'fahrrad', 'bike', 'spinning', 'cycling', 'row', 'rudern',
@@ -650,7 +947,8 @@
         ]
         return kw.some(k => n.includes(k))
     }
-    const isStretchName = (name: string) => {
+
+    function isStretchName(name: string) {
         const n = (name || '').toLowerCase()
         const kw = ['dehn', 'stretch', 'mobil', 'mobility', 'beweglich', 'yoga', 'faszien', 'smr', 'roll', 'hip opener']
         return kw.some(k => n.includes(k))
@@ -730,14 +1028,240 @@
     const isDropsetLocal = ref(false)
     const dropsetsLocal = ref<Array<{ weight: number | null; reps: number | null }>>([])
 
-    const detectedInputType = computed<ExerciseType>(() =>
-        isStretchName(exerciseLocal.value) ? 'dehnung'
+    const plannedForSelected = computed<PlanExercise | null>(() => {
+        const key = (exerciseLocal.value || '').trim().toLowerCase()
+        if (!key) return null
+        return plannedLookup.value.get(key) ?? null
+    })
+
+    const detectedInputType = computed<ExerciseType>(() => {
+        const t = plannedForSelected.value?.type
+        if (t) return t
+        return isStretchName(exerciseLocal.value) ? 'dehnung'
             : isCardioName(exerciseLocal.value) ? 'ausdauer'
                 : 'kraft'
-    )
+    })
+
+    const plannedLookup = computed(() => {
+        const m = new Map<string, PlanExercise>()
+        for (const e of exercisesResolved.value) {
+            const key = (e.exercise || '').trim().toLowerCase()
+            if (!key) continue
+            m.set(key, { ...e, type: inferExerciseType(e) })
+        }
+        return m
+    })
+
+    
+    const isBlank = (v: unknown) => v == null || String(v).trim() === ''
+
+    const canAutofill = computed(() => !localIsEditing.value)
+
+    // Nur füllen, wenn User noch nichts reingeschrieben hat (sonst nervt’s)
+    const shouldFillStrength = () =>
+        (setsLocal.value == null || setsLocal.value === 0) &&
+        (repsLocal.value == null || repsLocal.value === 0) &&
+        (setDetailsLocal.value?.length ?? 0) === 0
+
+    const shouldFillCardio = () =>
+        durationLocal.value == null || durationLocal.value === 0
+
+    const shouldFillStretch = () =>
+        (setsLocal.value == null || setsLocal.value === 0) &&
+        (setDetailsLocal.value?.length ?? 0) === 0
+
+    function applyPlanPrefill(exName: string) {
+        if (!canAutofill.value) return
+
+        const key = (exName || '').trim().toLowerCase()
+        if (!key) return
+
+        const planEx = plannedLookup.value.get(key)
+        if (!planEx) return
+
+        // ✅ Kraft / Calisthenics
+        if ((planEx.type === 'kraft' || planEx.type === 'calisthenics') && shouldFillStrength()) {
+            // Reihenfolge wichtig: erst reps, dann sets (damit watcher reps reinziehen kann)
+            repsLocal.value = Number(planEx.reps || 0) || null
+            setsLocal.value = Number(planEx.sets || 0) || null
+            return
+        }
+
+        // ✅ Cardio
+        if (planEx.type === 'ausdauer' && shouldFillCardio()) {
+            const dur = planEx.durationMin ?? planEx.sets
+            const dist = planEx.distanceKm ?? (planEx.reps ? planEx.reps : null)
+
+            durationLocal.value = dur != null ? Number(dur) : null
+            distanceLocal.value = dist != null ? Number(dist) : null
+            return
+        }
+
+        // ✅ Dehnung (Holds + Sekunden pro Hold)
+        if (planEx.type === 'dehnung' && shouldFillStretch()) {
+            const holds = Number(planEx.sets || 0) || 0
+            const sec = Number(planEx.reps || 0) || 0
+
+            setsLocal.value = holds > 0 ? holds : null
+
+            // Set-Reihen direkt sauber setzen (statt watcher-default 30s)
+            if (holds > 0) {
+                const dur = sec > 0 ? sec : 30
+                setDetailsLocal.value = Array.from({ length: Math.min(7, holds) }, () => ({
+                    weight: 0,
+                    reps: null,
+                    durationSec: dur,
+                }))
+            }
+            return
+        }
+    }
+
+    // INSERT in components/ui/popups/ProgressEntryModal.vue (vor dem exerciseLocal watcher)
+    const lastTypeLocal = ref<ExerciseType | null>(null)
+
+    function resetIrrelevantFields(nextType: ExerciseType) {
+        if (!nextType) return
+
+
+        // Extras immer zu beim Typwechsel (sonst sieht man random Felder)
+        showExtrasLocal.value = false
+
+        // Cardio gewählt -> alles Kraft/Dehnung weghauen (Bodyweight bleibt!)
+        if (nextType === 'ausdauer') {
+            setsLocal.value = null
+            repsLocal.value = null
+            setDetailsLocal.value = []
+            isDropsetLocal.value = false
+            dropsetsLocal.value = []
+
+            tempoLocal.value = ''
+            restSecondsLocal.value = null
+
+            painFreeLocal.value = null
+            equipmentLocal.value = ''
+            equipmentCustomLocal.value = ''
+            sideLocal.value = ''
+
+            // Cardio-Extras optional resetten (damit nix “von vorher” hängt)
+            avgHrLocal.value = null
+            caloriesLocal.value = null
+            paceLocal.value = ''
+            hrZoneLocal.value = null
+            borgLocalNum.value = null
+            borgLocal.value = ''
+            return
+        }
+
+        // Dehnung gewählt -> alles Kraft/Cardio weghauen (Bodyweight bleibt!)
+        if (nextType === 'dehnung') {
+            // Kraft weg
+            repsLocal.value = null
+            setDetailsLocal.value = []
+            isDropsetLocal.value = false
+            dropsetsLocal.value = []
+            tempoLocal.value = ''
+            restSecondsLocal.value = null
+
+            // Cardio weg
+            durationLocal.value = null
+            distanceLocal.value = null
+            avgHrLocal.value = null
+            caloriesLocal.value = null
+            paceLocal.value = ''
+            hrZoneLocal.value = null
+            borgLocalNum.value = null
+            borgLocal.value = ''
+            return
+        }
+
+        // Kraft/Calisthenics gewählt -> Cardio + Dehnung-Extras weg
+        durationLocal.value = null
+        distanceLocal.value = null
+        avgHrLocal.value = null
+        caloriesLocal.value = null
+        paceLocal.value = ''
+        hrZoneLocal.value = null
+        borgLocalNum.value = null
+        borgLocal.value = ''
+
+        painFreeLocal.value = null
+        equipmentLocal.value = ''
+        equipmentCustomLocal.value = ''
+        sideLocal.value = ''
+
+        // Wenn du von Cardio kommst, sollten reps/sets/setDetails leer sein,
+        // damit Prefill sauber neu setzen kann:
+        setsLocal.value = null
+        repsLocal.value = null
+        setDetailsLocal.value = []
+    }
+
+    // inputType MUSS vor Watchern stehen
     const inputType = computed(() => detectedInputType.value)
 
+    watch(
+        () => inputType.value,
+        (next, prev) => {
+            if (!props.show) return
+            if (!hasExerciseSelected.value) return
+            if (!next || next === prev) return
+
+            resetIrrelevantFields(next)
+            lastTypeLocal.value = next
+        }
+        // kein immediate!
+    )
+
+    watch(
+        () => exerciseLocal.value,
+        (name, prev) => {
+            if (!name || name === prev) return
+            if (!props.show) return
+            if (localIsEditing.value) return
+
+            // ✅ immer versuchen – zuerst mit planEx, sonst fallback
+            nextTick(() => {
+                const planEx = plannedForSelected.value
+                if (planEx) applyPlanPrefillFromPlan(planEx)
+                else applyPlanPrefill(name)
+            })
+        },
+        { flush: 'post' }
+    )
+
+    watch(
+        () => [props.show, plannedForSelected.value, exerciseLocal.value] as const,
+        ([show, planEx, name]) => {
+            if (!show) return
+            if (!name?.trim()) return
+            if (!planEx) return
+            if (localIsEditing.value) return
+
+            nextTick(() => applyPlanPrefillFromPlan(planEx))
+        },
+        { flush: 'post' }
+    )
     const hasExerciseSelected = computed(() => !!exerciseLocal.value.trim())
+
+    const visibleSetCount = computed(() => {
+        const raw = Math.max(0, Math.min(7, Number(setsLocal.value ?? 0) || 0))
+        const active = Math.floor(Number(props.activeSetNumber ?? 0))
+        if (active > 0) return Math.max(0, Math.min(raw, active))
+        return raw
+    })
+
+    const visibleSetDetails = computed(() => {
+        return (setDetailsLocal.value ?? []).slice(0, visibleSetCount.value)
+    })
+
+    watch(
+        () => [props.show, setDetailsLocal.value.length, visibleSetCount.value] as const,
+        () => {
+            applyPrefillSetValues()
+        },
+        { flush: 'post' }
+    )
 
     function requireExercise(reason?: string): boolean {
         if (hasExerciseSelected.value) return true
@@ -847,6 +1371,7 @@
     function openCreate(args: { planId: string; defaultBodyWeightDisplay: number | null }) {
         localEditingEntry.value = null
         showExtrasLocal.value = false
+        lastTypeLocal.value = null
 
         exerciseLocal.value = ''
         setsLocal.value = null
@@ -874,7 +1399,7 @@
         isDropsetLocal.value = false
         dropsetsLocal.value = []
 
-        weightLocal.value = args.defaultBodyWeightDisplay
+        weightLocal.value = getLatestWeightDisplayFromStore() ?? args.defaultBodyWeightDisplay
 
         showBorgError.value = false
         borgErrors.value = []
@@ -884,6 +1409,7 @@
     function openEdit(args: { planId: string; entry: Workout }) {
         const entry = args.entry
         localEditingEntry.value = entry
+        lastTypeLocal.value = detectedInputType.value
 
         exerciseLocal.value = entry.exercise || ''
         setsLocal.value = entry.sets ?? 1
@@ -932,10 +1458,13 @@
 
     defineExpose({ openCreate, openEdit, submit: () => onSave() })
 
-    /* keep setDetails length in sync with setsLocal */
-    watch([setsLocal, inputType], ([s, t]) => {
+    watch([setsLocal, inputType, () => props.activeSetNumber], ([s, t]) => {
         const raw = Number(s) || 0
-        const count = Math.max(0, Math.min(7, raw))
+        const baseCount = Math.max(0, Math.min(7, raw))
+
+        const active = Math.floor(Number(props.activeSetNumber ?? 0))
+        const count = active > 0 ? Math.min(baseCount, active) : baseCount
+
         if (raw > 7) {
             emit('invalid', ['Maximal 7 Sätze erlaubt.'])
             setsLocal.value = 7
@@ -958,9 +1487,59 @@
         if (val === 'custom') nextTick(() => equipmentCustomInput.value?.focus())
     })
 
+    const didApplyPrefillForOpen = ref(false)
+
+    function applyPrefillSetValues() {
+        if (!props.show) return
+        if (localIsEditing.value) return
+        if (didApplyPrefillForOpen.value) return
+
+        const pre = props.prefillSetValues ?? null
+        if (!pre) return
+
+        // wir brauchen rows (setDetailsLocal) – wenn noch nicht da: später nochmal
+        if (!Array.isArray(setDetailsLocal.value) || setDetailsLocal.value.length === 0) return
+
+        const next = [...setDetailsLocal.value]
+
+        // keys sind 1-based (Satz 1..n)
+        for (const [k, v] of Object.entries(pre)) {
+            const setNo = Math.floor(Number(k))
+            if (!Number.isFinite(setNo) || setNo <= 0) continue
+            const idx = setNo - 1
+            if (!next[idx]) continue
+
+            // NICHT überschreiben, wenn schon was drin ist
+            if (v?.weight != null && (next[idx].weight == null || next[idx].weight === 0)) {
+                next[idx] = { ...next[idx], weight: v.weight }
+            }
+            if (v?.reps != null && (next[idx].reps == null || next[idx].reps === 0)) {
+                next[idx] = { ...next[idx], reps: v.reps }
+            }
+        }
+
+        setDetailsLocal.value = next
+        didApplyPrefillForOpen.value = true
+    }
+
     watch(() => props.show, (v) => {
         if (v) {
-            focusFirst()
+            didApplyPrefillForOpen.value = false
+
+            if (!localIsEditing.value) {
+                const fromStore = getLatestWeightDisplayFromStore()
+                weightLocal.value = fromStore ?? (props.latestBodyWeightDisplay ?? null)
+            }
+
+            const preEx = (props.prefillExercise ?? '').trim()
+            if (preEx && !localIsEditing.value) {
+                exerciseLocal.value = preEx
+                nextTick(() => applyPlanPrefill(preEx))
+            }
+
+            // ⬇️ wichtig: nach den plan-prefills + row-setup anwenden
+            nextTick(() => applyPrefillSetValues())
+            nextTick(() => focusFirst())
             nextTick(() => openSyncBorg())
         } else {
             showExtrasLocal.value = false
@@ -1103,9 +1682,52 @@
                 ? displayToKg(Number(weightLocal.value))
                 : null
 
-        emit('save', { workout, updatedBodyWeightKg, mode: isEdit ? 'edit' : 'create', editingDate })
+        const valuesBySet: Record<number, { weight?: number | null; reps?: number | null }> = {}
+        for (let i = 0; i < (setDetailsLocal.value?.length ?? 0); i++) {
+            const r = setDetailsLocal.value[i]
+            valuesBySet[i + 1] = {
+                weight: r?.weight ?? null,
+                reps: r?.reps ?? null,
+            }
+        }
+
+        emit('save', {
+            workout,
+            updatedBodyWeightKg,
+            mode: isEdit ? 'edit' : 'create',
+            editingDate,
+            draft: { valuesBySet },
+        })
         closePopup()
     }
+
+    watch(
+        () => props.latestBodyWeightDisplay,
+        (v) => {
+            if (!props.show) return
+            if (localIsEditing.value) return
+
+            // nur überschreiben, wenn noch leer/0 (damit du User-Eingabe nicht killst)
+            const cur = Number(weightLocal.value ?? 0)
+            if (!cur || cur <= 0) {
+                weightLocal.value = (v ?? null)
+            }
+        }
+    )
+
+    watch(
+        () => (weightStore as any)?.entries?.[0]?.weight ?? (weightStore as any)?.weightHistory?.[0]?.weight ?? (weightStore as any)?.latestKg,
+        () => {
+            if (!props.show) return
+            if (localIsEditing.value) return
+
+            const cur = Number(weightLocal.value ?? 0)
+            if (!cur || cur <= 0) {
+                weightLocal.value = getLatestWeightDisplayFromStore()
+            }
+        }
+    )
+
 </script>
 
 
@@ -1115,19 +1737,37 @@
         z-index: 10050 !important;
     }
 
-    /* Bevorzuge dynamische/small viewport heights -> noch fr her scollen */
     @supports (height: 100dvh) {
         .modal {
-            max-height: min(76dvh, 86svh);
+            max-height: min(52dvh, 102svh);
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            max-width: 100%;
+            box-sizing: border-box;
+            /* ✅ Scrollbar “weiter rechts” (ohne Content zu verschieben) */
+            margin-right: -0.45rem;
+            padding-right: 0.45rem;
+            /* Luft unten, damit Inputs nicht unter sticky Actions verschwinden */
+            padding-bottom: 1rem;
         }
     }
-    /* Kleine Breiten: noch strenger limitieren */
+
     @media (max-width: 560px) {
         .modal {
-            max-height: 68svh;
+            max-height: 50svh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            max-width: 100%;
+            box-sizing: border-box;
+            margin-right: -0.45rem;
+            padding-right: 0.45rem;
+            padding-bottom: 1rem;
         }
         /* fr her Scroll auf kleinen Screens */
     }
+
 
     @media (max-width: 480px) {
         .modal {
@@ -1153,26 +1793,26 @@
     }
 
     .modal::-webkit-scrollbar-track {
-        background: color-mix(in oklab, var(--bg-secondary) 92%, transparent);
-        border-left: 1px solid var(--border-color);
-        border-radius: 999px;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
     }
 
     .modal::-webkit-scrollbar-thumb {
-        /* On-brand Daumen mit leichtem Glow-Ring */
-        background: linear-gradient( 180deg, color-mix(in oklab, var(--accent-primary) 85%, #fff), var(--accent-primary) );
+        background: color-mix(in oklab, var(--text-secondary) 28%, transparent);
         border-radius: 999px;
-        border: 3px solid transparent; /* macht den Thumb schlanker */
+        /* macht den Thumb optisch dünn */
+        border: 3px solid transparent;
         background-clip: padding-box;
-        box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-primary) 40%, transparent);
+        box-shadow: none;
     }
 
         .modal::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient( 180deg, color-mix(in oklab, var(--accent-primary) 92%, #fff), var(--accent-primary) );
+            background: color-mix(in oklab, var(--text-secondary) 42%, transparent);
         }
 
         .modal::-webkit-scrollbar-thumb:active {
-            background: linear-gradient( 180deg, var(--accent-primary), color-mix(in oklab, var(--accent-primary) 80%, #000) );
+            background: color-mix(in oklab, var(--text-secondary) 55%, transparent);
         }
 
     .modal::-webkit-scrollbar-corner {
@@ -1606,7 +2246,6 @@
                 "weight"
                 "sets";
             gap: .10rem !important;
-
         }
 
         .note-input {
@@ -1614,13 +2253,13 @@
         }
 
 
-            .modal-grid.grid-2:not(.grid-cardio) > div:first-child {
-                grid-area: sets;
-            }
+        .modal-grid.grid-2:not(.grid-cardio) > div:first-child {
+            grid-area: sets;
+        }
 
-            .modal-grid.grid-2:not(.grid-cardio) > div:nth-child(2) {
-                grid-area: weight;
-            }
+        .modal-grid.grid-2:not(.grid-cardio) > div:nth-child(2) {
+            grid-area: weight;
+        }
     }
 
     /* <=308px: gleiche Logik (extra tight screens) */
@@ -1640,5 +2279,4 @@
                 grid-area: weight;
             }
     }
-
 </style>

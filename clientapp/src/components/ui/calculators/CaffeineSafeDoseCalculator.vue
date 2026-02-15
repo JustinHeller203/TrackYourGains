@@ -24,11 +24,11 @@
         <template #graphic="{ jumpTo }">
             <div class="calc-hero" role="img" aria-label="Koffein Kurzkarte">
                 <div class="calc-hero-top">
-                    <span class="calc-hero-title">☕ Wie viel Koffein ist „safe“?</span>
+                    <span class="calc-hero-title">ℹ️ Was bedeutet der Koffein-Rechner?</span>
                 </div>
 
                 <div class="calc-hero-sub">
-                    Richtwerte helfen — aber Timing &amp; Schlaf entscheiden oft mehr als mg.
+                    Der Rechner schätzt eine <strong>Einzeldosis</strong> (mg/kg) und ein <strong>Tageslimit</strong> aus Gewicht + Empfindlichkeit. Entscheidend bleibt: <strong>Schlaf</strong> &amp; wie du’s verträgst.
                 </div>
 
                 <div class="calc-hero-pills" aria-label="Schnellnavigation">
@@ -331,7 +331,7 @@
         <!-- Mini -->
         <template #mini>
             <div class="calc-mini">
-                <div class="calc-mini-title">Reality-Check ✅</div>
+                <div class="calc-mini-title">✅ Reality-Check</div>
                 <div class="calc-mini-text">
                     Koffein ist ein Tool. Wenn Schlaf leidet, ist das Tool gerade gegen dich.
                 </div>

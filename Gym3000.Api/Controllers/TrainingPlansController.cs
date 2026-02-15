@@ -1,4 +1,4 @@
-//TrainingPlansController.cs
+ï»¿//TrainingPlansController.cs
 
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
@@ -41,7 +41,7 @@ public class TrainingPlansController : ControllerBase
     // nur diese Sonderzeichen erlauben:
     private const string CODE_SPECIAL = "&-_,#.";
 
-    // für “normale” Füllzeichen: KEINE Specials
+    // fÃ¼r â€œnormaleâ€ FÃ¼llzeichen: KEINE Specials
     private const string CODE_ALNUM = CODE_UPPER + CODE_LOWER + CODE_DIGIT;
     private const string CODE_ALL = CODE_ALNUM + CODE_SPECIAL;
 
@@ -84,7 +84,7 @@ public class TrainingPlansController : ControllerBase
         int specialCount = trimmed.Count(c => CODE_SPECIAL.Contains(c));
         bool allOk = trimmed.All(c => CODE_ALL.Contains(c));
 
-        // GENAU 1 Special (so wie du’s willst)
+        // GENAU 1 Special (so wie duâ€™s willst)
         return hasU && hasL && hasD && specialCount == 1 && allOk;
     }
 
@@ -155,7 +155,7 @@ public class TrainingPlansController : ControllerBase
     {
         var trimmed = (code ?? "").Trim();
         if (!IsValidPlanCode(trimmed))
-            return BadRequest(new { message = "Ungültiger Code." });
+            return BadRequest(new { message = "UngÃ¼ltiger Code." });
 
         var plan = await _db.TrainingPlans
             .Include(p => p.Days.OrderBy(d => d.SortOrder))
@@ -216,33 +216,39 @@ public class TrainingPlansController : ControllerBase
 
     // PUT: /api/training-plans/{id}
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<TrainingPlanDto>> Update(Guid id, [FromBody] UpsertTrainingPlanDto dto)
+    public async Task<ActionResult<TrainingPlanDto>> Update(
+        Guid id,
+        [FromBody] UpsertTrainingPlanDto dto)
     {
         var userId = GetUserId();
         var now = DateTime.UtcNow;
 
-        var plan = await _db.TrainingPlans
-            .Include(p => p.Days)
-                .ThenInclude(d => d.Exercises)
-            .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
-
-        if (plan is null) return NotFound();
-
-        // Code ist immutable (bleibt immer gleich)
         dto = dto with { Code = null };
 
-        plan.Name = dto.Name.Trim();
-        plan.IsFavorite = dto.IsFavorite;
-        plan.UpdatedUtc = now;
+        var newName = dto.Name.Trim();
 
-        // simpel & robust: wir ersetzen Days+Exercises komplett (V1)
-        _db.TrainingExercises.RemoveRange(plan.Days.SelectMany(d => d.Exercises));
-        _db.TrainingDays.RemoveRange(plan.Days);
+        // 1) Header direkt in der DB updaten (kein Tracking / kein Concurrency-Knall)
+        var updatedRows = await _db.TrainingPlans
+            .Where(p => p.Id == id && p.UserId == userId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(p => p.Name, newName)
+                .SetProperty(p => p.IsFavorite, dto.IsFavorite)
+                .SetProperty(p => p.UpdatedUtc, now)
+            );
 
-        plan.Days = dto.Days.Select(d => new TrainingDay
+        if (updatedRows == 0)
+            return NotFound();
+
+        // 2) Alle Days lÃ¶schen (Exercises kommen per Cascade mit)
+        await _db.TrainingDays
+            .Where(d => d.PlanId == id)
+            .ExecuteDeleteAsync();
+
+        // 3) Neu anlegen (nur Inserts, kein Mischen mit alten Entities)
+        var newDays = dto.Days.Select(d => new TrainingDay
         {
             Id = Guid.NewGuid(),
-            PlanId = plan.Id,
+            PlanId = id,
             Name = d.Name.Trim(),
             SortOrder = d.SortOrder,
             Exercises = d.Exercises.Select(x => new TrainingExercise
@@ -261,9 +267,18 @@ public class TrainingPlansController : ControllerBase
             }).ToList()
         }).ToList();
 
+        _db.TrainingDays.AddRange(newDays);
         await _db.SaveChangesAsync();
+
+        // 4) frisch laden fÃ¼r Response
+        var plan = await _db.TrainingPlans
+            .Include(p => p.Days.OrderBy(d => d.SortOrder))
+                .ThenInclude(d => d.Exercises.OrderBy(x => x.SortOrder))
+            .FirstAsync(p => p.Id == id && p.UserId == userId);
+
         return Ok(TrainingPlanDto.FromEntity(plan));
     }
+
 
     // POST: /api/training-plans/{id}/favorite
     [HttpPost("{id:guid}/favorite")]

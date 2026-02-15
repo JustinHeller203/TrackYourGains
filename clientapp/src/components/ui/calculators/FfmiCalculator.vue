@@ -227,7 +227,7 @@
         <!-- Mini -->
         <template #mini>
             <div class="calc-mini">
-                <div class="calc-mini-title">Reality-Check ✅</div>
+                <div class="calc-mini-title">✅ Reality-Check</div>
                 <div class="calc-mini-text">
                     FFMI ist ein <strong>Kompass</strong>, kein Urteil. Tracke <strong>Gewicht</strong>, <strong>KFA-Trend</strong> und <strong>Leistung</strong> zusammen.
                 </div>

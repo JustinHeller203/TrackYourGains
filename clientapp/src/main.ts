@@ -6,6 +6,7 @@ import './style.css'
 import router from './router'
 import { createPinia } from 'pinia'
 import { useAuthStore } from '@/store/authStore'
+import { useSettingsStore } from '@/store/settingsStore'
 
 import { ensureDailyAutoActivity } from '@/utils/dailyActivity'
 import { initTheme } from '@/composables/useTheme'
@@ -20,6 +21,7 @@ ensureDailyAutoActivity()
 
     ; (async () => {
         const app = createApp(App)
+
 
         // Vue Errors -> UI bus
         app.config.errorHandler = (err, instance, info) => {
@@ -95,4 +97,7 @@ ensureDailyAutoActivity()
         app.use(router)
         initAuthObserver(pinia, router)
         app.mount('#app')
+
+        const settings = useSettingsStore(pinia)
+        settings.broadcast()
     })()

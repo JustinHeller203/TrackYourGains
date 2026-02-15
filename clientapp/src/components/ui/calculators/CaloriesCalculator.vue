@@ -24,11 +24,11 @@
         <template #graphic="{ jumpTo }">
             <div class="calc-hero" role="img" aria-label="Kalorien Kurzkarte">
                 <div class="calc-hero-top">
-                    <span class="calc-hero-title">🔥 Wie viele Kalorien brauchst du?</span>
+                    <span class="calc-hero-title">ℹ️ Was bedeutet der Kalorienrechner?</span>
                 </div>
 
                 <div class="calc-hero-sub">
-                    Schätzung = Startpunkt. Dein Gewichtstrend entscheidet, ob du nachjustierst.
+                    Der Rechner schätzt deinen <strong>Tagesbedarf</strong> aus Grundumsatz + Aktivität und passt ihn fürs Ziel an. 
                 </div>
 
                 <div class="calc-hero-pills" aria-label="Schnellnavigation">
@@ -250,7 +250,7 @@
         <!-- Mini -->
         <template #mini>
             <div class="calc-mini">
-                <div class="calc-mini-title">Reality-Check ✅</div>
+                <div class="calc-mini-title">✅ Reality-Check</div>
                 <div class="calc-mini-text">
                     Die beste Kalorienzahl ist die, die deinen <strong>Trend</strong> trifft. Zahlen sind Start – Anpassung ist King.
                 </div>

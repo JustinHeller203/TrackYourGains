@@ -10,322 +10,23 @@
                              :openDeletePopup="openDeletePopup"
                              :onGuestPlanCreated="onGuestPlanCreated"
                              v-model:customExercises="customExercises"
-                             :saveToStorage="saveToStorage" />
+                             :saveToStorage="saveToStorage"
+                             @plan-created="onPlanCreated" />
 
-        <div class="workout-list plans-section">
-            <h3 class="section-title">Deine Trainingspläne</h3>
+        <TrainingPlansList :guestPlans="guestPlans"
+                           :customExercises="customExercises"
+                           :onRemoveCustomExercise="removeCustomExercise"
+                           :onGuestDeletePlan="onGuestDeletePlan"
+                           :onGuestEditPlan="onGuestEditPlan"
+                           :onEditInBuilder="onEditPlanInBuilder"
+                           :openEditPopup="openEditPopup"
+                           :openDeletePopup="openDeletePopup"
+                           :openDownloadPopup="openDownloadPopup"
+                           :addToast="addToast"
+                           :planTutActive="planTutActive"
+                           :planTutPlanId="planTutPlanId"
+                           @planTutDone="closePlanTut" />
 
-            <UiSearch v-model="planSearch"
-                      placeholder="Nach Planname oder Trainingsziel suchen"
-                      aria-label="Trainingspläne durchsuchen"
-                      class="plan-search" />
-
-            <!-- Favoriten sortieren -->
-            <Draggable v-if="plans.length && favoritePlanItems.length"
-                       v-model="favoritePlanItems"
-                       item-key="id"
-                       :handle="isMobile ? undefined : '.plan-drag-handle'"
-                       ghost-class="drag-ghost"
-                       chosen-class="drag-chosen"
-                       drag-class="dragging"
-                       :force-fallback="true"
-                       :animation="0"
-                       direction="vertical"
-                       easing="cubic-bezier(0.16,1,0.3,1)"
-                       :disabled="planSearch.trim().length > 0"
-                       :delay="dragDelay"
-                       :delay-on-touch-only="true"
-                       :touch-start-threshold="8"
-                       :fallback-tolerance="3"
-                       :fallback-on-body="true"
-                       :scroll="true"
-                       :scroll-sensitivity="40"
-                       :scroll-speed="12"
-                       :swap-threshold="0.3"
-                       :filter="isMobile ? dragFilter : undefined"
-                       tag="div"
-                       class="plan-drag-stack">
-
-                <template #item="{ element: plan }">
-                    <div v-if="planMatchesSearch(plan)"
-                         class="list-item plan-item"
-                         :class="{ 'menu-open': planMenuOpenId === plan.id }"
-                         :key="plan.id">
-                        <div class="plan-row1">
-                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
-
-                            <span class="plan-title"
-                                  :title="plan.name"
-                                  @click="loadPlan(plan.id)"
-                                  @dblclick="openEditPopup('planName', plan.id)">
-                                <span class="plan-name-scroll">{{ plan.name }}</span>
-                                <span class="plan-count">({{ plan.exerciseCount }} Übungen)</span>
-                            </span>
-
-                            <div class="plan-right">
-                                <FavoriteButton :active="favoritePlans.includes(plan.id)"
-                                                :titleActive="'Aus Favoriten entfernen'"
-                                                :titleInactive="'Zu Favoriten hinzufügen'"
-                                                @toggle="toggleFavoritePlan(plan.id)" />
-
-                                <div class="inline-actions">
-                                    <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
-                                    <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
-                                    <ActionIconButton title="Download"
-                                                      aria-label="Trainingsplan herunterladen"
-                                                      @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
-                                </div>
-
-                                <span class="kebab-wrap">
-                                    <ActionIconButton title="Mehr"
-                                                      aria-label="Weitere Aktionen"
-                                                      @click.stop="togglePlanMenu(plan.id)">⋯</ActionIconButton>
-                                </span>
-                                <OpenButton class="primary-open desktop-open" title="Öffnen" @click="loadPlan(plan.id)" />
-                            </div>
-
-                            <PlanMenu v-if="planMenuOpenId === plan.id"
-                                      @edit="editPlan(plan.id)"
-                                      @delete="openDeletePopup(() => deletePlan(plan.id))"
-                                      @download="openDownloadPopup(plan)" />
-                        </div>
-
-
-                        <!-- Open-Button bleibt im schmalen Layout sichtbar (eigene Zeile) -->
-                        <div class="plan-row2">
-                            <OpenButton class="primary-open mobile-open" title="Öffnen" @click="loadPlan(plan.id)" />
-                        </div>
-                    </div>
-
-                </template>
-            </Draggable>
-
-            <!-- Nicht-Favoriten sortieren -->
-            <Draggable v-if="plans.length"
-                       v-model="otherPlanItems"
-                       item-key="id"
-                       :handle="isMobile ? undefined : '.plan-drag-handle'"
-                       ghost-class="drag-ghost"
-                       chosen-class="drag-chosen"
-                       drag-class="dragging"
-                       :force-fallback="true"
-                       :animation="0"
-                       direction="vertical"
-                       easing="cubic-bezier(0.16,1,0.3,1)"
-                       :disabled="planSearch.trim().length > 0"
-                       :delay="dragDelay"
-                       :delay-on-touch-only="true"
-                       :touch-start-threshold="8"
-                       :fallback-tolerance="3"
-                       :fallback-on-body="true"
-                       :scroll="true"
-                       :scroll-sensitivity="40"
-                       :scroll-speed="12"
-                       :swap-threshold="0.3"
-                       :filter="isMobile ? dragFilter : undefined"
-                       tag="div"
-                       class="plan-drag-stack">
-
-                <template #item="{ element: plan }">
-                    <div v-if="planMatchesSearch(plan)"
-                         class="list-item plan-item"
-                         :class="{ 'menu-open': planMenuOpenId === plan.id }"
-                         :key="plan.id">
-                        <div class="plan-row1">
-                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
-
-                            <span class="plan-title"
-                                  :title="plan.name"
-                                  @click="loadPlan(plan.id)"
-                                  @dblclick="openEditPopup('planName', plan.id)">
-                                <span class="plan-name-scroll">{{ plan.name }}</span>
-                                <span class="plan-count">({{ (plan.exerciseCount ?? plan.exercises?.length ?? 0) }} Übungen)</span>
-                            </span>
-
-                            <div class="plan-right">
-                                <FavoriteButton :active="favoritePlans.includes(plan.id)"
-                                                :titleActive="'Aus Favoriten entfernen'"
-                                                :titleInactive="'Zu Favoriten hinzufügen'"
-                                                @toggle="toggleFavoritePlan(plan.id)" />
-
-                                <div class="inline-actions">
-                                    <EditButton title="Plan bearbeiten" @click="editPlan(plan.id)" />
-                                    <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
-                                    <ActionIconButton title="Download"
-                                                      aria-label="Trainingsplan herunterladen"
-                                                      @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
-                                </div>
-
-                                <span class="kebab-wrap">
-                                    <ActionIconButton title="Mehr"
-                                                      aria-label="Weitere Aktionen"
-                                                      @click.stop="togglePlanMenu(plan.id)">⋯</ActionIconButton>
-                                </span>
-
-                                <OpenButton class="primary-open desktop-open" title="Öffnen" @click="loadPlan(plan.id)" />
-                            </div>
-
-                            <PlanMenu v-if="planMenuOpenId === plan.id"
-                                      @edit="editPlan(plan.id)"
-                                      @delete="openDeletePopup(() => deletePlan(plan.id))"
-                                      @download="openDownloadPopup(plan)" />
-                        </div>
-
-                        <!-- Open-Button bleibt im schmalen Layout sichtbar (eigene Zeile) -->
-                        <div class="plan-row2">
-                            <OpenButton class="primary-open mobile-open" title="Öffnen" @click="loadPlan(plan.id)" />
-                        </div>
-                    </div>
-
-                </template>
-            </Draggable>
-        </div>
-
-        <!-- Ausgewählter Trainingsplan -->
-        <div v-if="selectedPlan" class="workout-list">
-            <div class="plan-header">
-                <h3 class="section-title" @dblclick="openEditPopup('selectedPlanName', selectedPlan.id)">
-                    <span class="plan-title-main">
-                        Trainingsplan: {{ selectedPlan.name }}
-                    </span>
-
-                    <div v-if="selectedPlan.code" class="plan-code-row">
-                        <span class="plan-code-badge"
-                              :title="`${selectedPlan.code} (Doppelklick zum Kopieren)`"
-                              @dblclick.stop="copyPlanCode(selectedPlan.code)">
-                            Code: {{ middleEllipsis(selectedPlan.code, 14) }}
-                        </span>
-                    </div>
-                </h3>
-                <CloseButton title="Plan schließen" @click="closePlan" />
-            </div>
-            <Table class="exercise-table full-width narrow" variant="narrow">
-                <table ref="resizeTable" data-cols="3">
-                    <thead>
-                        <tr>
-                            <th class="resizable" :style="{ width: columnWidths[0] + '%' }">
-                                <span class="th-text">Übung</span>
-                            </th>
-                            <th class="resizable" :style="{ width: columnWidths[1] + '%' }">
-                                <span class="th-text">
-                                    {{ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
-                                </span>
-                            </th>
-                            <th class="resizable th-wdh" :style="{ width: columnWidths[2] + '%' }">
-                                <span class="th-text th-label">
-                                    <span class="full">
-                                        {{
-selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
-          ? 'Wdh. / km / s'
-          : 'Wiederholungen'
-                                        }}
-                                    </span>
-                                    <span class="mid">
-                                        {{
-selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
-          ? 'Wdh./km/s'
-          : 'Wiederhol...'
-                                        }}
-                                    </span>
-                                    <span class="short">
-                                        {{
-selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
-          ? 'W/km/s'
-          : 'Wdh.'
-                                        }}
-                                    </span>
-                                </span>
-                            </th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr v-for="(ex, index) in selectedPlan.exercises" :key="index" class="resizable-row" :style="{ height: rowHeights[index] + 'px' }" @dblclick="openEditPopup('selectedPlan', index, $event)">
-                            <td :style="{ width: columnWidths[0] + '%' }">{{ ex.exercise }}</td>
-
-                            <!-- Sätze/Min -->
-                            <td :style="{ width: columnWidths[1] + '%' }">
-                                {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
-                            </td>
-
-                            <!-- Wdh./km/s -->
-                            <td :style="{ width: columnWidths[2] + '%' }">
-                                <template v-if="ex.type === 'ausdauer'">
-                                    {{ ex.reps ? `${ex.reps} km` : '-' }}
-                                </template>
-                                <template v-else-if="ex.type === 'dehnung'">
-                                    {{ ex.reps }} s
-                                </template>
-                                <template v-else>
-                                    {{ ex.reps }}
-                                </template>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </Table>
-
-            <button v-if="customExercises.length > 0"
-                    type="button"
-                    class="custom-toggle-btn"
-                    :class="{ on: showCustomExercises }"
-                    :aria-expanded="showCustomExercises"
-                    @click="toggleCustomExercises">
-                <span class="custom-toggle-text">
-                    {{ showCustomExercises ? 'Benutzerdefinierte Übungen ausblenden' : 'Benutzerdefinierte Übungen anzeigen' }}
-                </span>
-                <span class="custom-toggle-arrow" aria-hidden="true"></span>
-            </button>
-            <div v-if="showCustomExercises">
-                <h3 class="section-title">Eigene Übungen</h3>
-                <Table class="exercise-table full-width narrow" variant="narrow">
-                    <table ref="customResizeTable" data-cols="4">
-                        <thead>
-                            <tr>
-                                <th class="resizable" :style="{ width: customColWidths[0] + '%' }">
-                                    <span class="th-text">Name</span>
-                                </th>
-                                <th class="resizable th-muskel" :style="{ width: customColWidths[1] + '%' }">
-                                    <span class="th-text th-label">
-                                        <span class="full">Muskelgruppe</span>
-                                        <span class="mid">Muskelgr...</span>
-                                        <span class="short">Muskel...</span>
-                                    </span>
-                                </th>
-                                <th class="resizable" :style="{ width: customColWidths[2] + '%' }">
-                                    <span class="th-text">Typ</span>
-                                </th>
-                                <th :style="{ width: customColWidths[3] + '%' }">Aktion</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            <tr v-for="(ex, i) in customExercises" :key="i">
-                                <td :style="{ width: customColWidths[0] + '%' }"
-                                    @dblclick="openEditPopup('customExerciseName', i)">
-                                    <span>{{ ex.name }}</span>
-                                </td>
-                                <td class="v-stack"
-                                    :style="{ width: customColWidths[1] + '%' }"
-                                    @dblclick="openEditPopup('customExerciseMuscle', i)">
-                                    <span>{{ ex.muscle }}</span>
-                                </td>
-
-                                <td :style="{ width: customColWidths[2] + '%' }" @dblclick="openEditPopup('customExerciseType', i)">
-                                    {{ typeLabel(ex.type) }}
-                                </td>
-
-                                <td class="action-cell">
-                                    <DeleteButton class="table-delete-btn"
-                                                  title="Benutzerdefinierte Übung entfernen"
-                                                  @click="removeCustomExercise(i)" />
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </Table>
-            </div>
-        </div>
         <!-- Satzpausen-Timer -->
         <TimerComponent :dragDelay="dragDelay"
                         :startTimer="startTimerSafe"
@@ -379,25 +80,19 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
 </template>
 
 <script setup lang="ts">
-    import { ref, computed, nextTick, watch, watchEffect, onMounted, onUnmounted, withDefaults } from 'vue'
+    import { ref, computed, nextTick, watch, onMounted, onUnmounted, withDefaults } from 'vue'
     import { jsPDF } from 'jspdf';
-    import Draggable from 'vuedraggable';
     import Toast from '@/components/ui/Toast.vue'
-    import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
     import EditPopup from '@/components/ui/popups/EditPopup.vue'
-    import EditButton from '@/components/ui/buttons/EditButton.vue'
-    import DeleteButton from '@/components/ui/buttons/DeleteButton.vue'
-    import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
-    import OpenButton from '@/components/ui/buttons/OpenButton.vue'
-    import CloseButton from '@/components/ui/buttons/CloseButton.vue'
     import ExportPopup from '@/components/ui/popups/ExportPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import TimerComponent from '@/components/ui/training/TimerComponent.vue'
     import StopwatchComponent from '@/components/ui/training/StopwatchComponent.vue'
-    import PlanMenu from '@/components/ui/menu/PlanMenu.vue'
-    import UiSearch from '@/components/ui/kits/UiSearch.vue';
+ 
     import TrainingPlanBuilder from '@/components/ui/training/TrainingPlanBuilder.vue'
+    import TrainingPlansList from '@/components/ui/training/TrainingPlansList.vue'
+    import { useWeightStore } from "@/store/weightStore"
 
     import { useTrainingPlansStore } from "@/store/trainingPlansStore";
     import { useAuthStore } from '@/store/authStore';
@@ -411,7 +106,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         LS_STICKY_TIMER_ENABLED,
         LS_STICKY_STOPWATCH_ENABLED,
     } from '@/constants/storageKeys'
-    import Table from '@/components/ui/kits/UiTable.vue'
     import { useTimersStore } from '@/store/timersStore'
     import { useStopwatchesStore } from '@/store/stopwatchesStore'
 
@@ -430,7 +124,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         isFavorite: boolean;
         code?: string | null;
         exercises: PlanExercise[];
-        exerciseCount: number; 
+        exerciseCount: number;
     };
 
     type TrainingPlan = ViewPlan;
@@ -499,6 +193,24 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
     const builderRef = ref<InstanceType<typeof TrainingPlanBuilder> | null>(null)
+    function canUseLocalStorage(): boolean {
+        // SSR / Tests / Privacy Mode guard
+        if (typeof window === 'undefined') return false
+
+        try {
+            const k = '__ls_test__'
+            window.localStorage.setItem(k, '1')
+            window.localStorage.removeItem(k)
+            return true
+        } catch {
+            return false
+        }
+    }
+    const onEditPlanInBuilder = (payload: { planId: string; name: string; exercises: any[] }) => {
+        const b = builderRef.value as any
+        b?.setEditMode?.({ planId: payload.planId, name: payload.name, exercises: payload.exercises })
+        b?.scrollToBuilder?.()
+    }
 
     const onReorderTimers = (list: TimerInstance[]) => emit('reorder-timers', list);
     const onAddTimerFromChild = (timer: TimerInstance) => emit('add-timer', timer)
@@ -512,6 +224,80 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     let onVisChange: (() => void) | null = null
 
     const trainingPlansStore = useTrainingPlansStore();
+
+    // ===== Crash-Fix: fehlende Refs/Handler die im Template + Reset genutzt werden =====
+    const guestPlans = ref<ViewPlan[]>([])
+    const selectedPlan = ref<ViewPlan | null>(null)
+
+    const planSearch = ref('')
+    const showCustomExercises = ref(false)
+    const rowHeights = ref<number[]>([])
+
+    // Falls du später echtes Plan-Menü hast: hier ersetzen.
+    // Wichtig: ohne Definition crasht hardResetTrainingUi().
+    const closePlanMenu = () => { }
+
+    // Wird an mehreren Stellen verwendet (Popup-Editing)
+    const editCellIndex = ref<number | null>(null)
+
+    // Tabellen-Refs (werden in initResizeTable/initCustomResizeTable abgefragt)
+    const resizeTable = ref<HTMLTableElement | null>(null)
+    const customResizeTable = ref<HTMLTableElement | null>(null)
+
+    // Spaltenbreiten Defaults (sonst normalize/init kann später knallen)
+    const columnWidths = ref<number[]>([50, 25, 25])
+
+    // Header ResizeObserver (wird in setup/teardown benutzt)
+    let headerRO: ResizeObserver | null = null
+
+    // Falls du später Favorites richtig implementierst: hier ersetzen.
+    // Wird aktuell nur in save/flush payloads genutzt.
+    const favoritePlans = ref<any[]>([])
+
+    // Optional: falls irgendwo "plans.value" genutzt wird.
+    // (Dein UI nutzt gerade TrainingPlansList mit guestPlans, aber deine Save-Funktionen referenzieren plans.)
+    const plans = ref<ViewPlan[]>([])
+
+    // ===== Guest-Handlers die im Template gebunden sind =====
+    const onGuestDeletePlan = (planId: string) => {
+        const idx = guestPlans.value.findIndex(p => p.id === planId)
+        if (idx >= 0) guestPlans.value.splice(idx, 1)
+
+        if (selectedPlan.value?.id === planId) selectedPlan.value = null
+        addToast('Plan gelöscht', 'delete')
+    }
+
+    const onGuestEditPlan = (planId: string) => {
+        const p = guestPlans.value.find(x => x.id === planId) || null
+        selectedPlan.value = p
+        if (p) addToast('Plan geöffnet', 'load')
+    }
+
+    // Wird von tryOpenPlanFromStorage() aufgerufen – ohne Definition -> Crash
+    const loadPlan = (planId: string) => {
+        // Guest-first: öffnen, wenn vorhanden
+        const gp = guestPlans.value.find(p => p.id === planId)
+        if (gp) {
+            selectedPlan.value = gp
+            return
+        }
+
+        // Account: wenn du später willst, hier Store-Select / API load einbauen.
+        console.warn('[Training.vue] loadPlan: plan not found', planId)
+    }
+
+    const planTutActive = ref(false)
+    const planTutPlanId = ref < string | null > (null)
+
+    const onPlanCreated = (payload: { id: string; name: string }) => {
+        planTutPlanId.value = payload?.id ?? null
+        planTutActive.value = !!planTutPlanId.value
+    }
+
+    const closePlanTut = () => {
+        planTutActive.value = false
+        planTutPlanId.value = null
+    }
 
     const auth = useAuthStore()
 
@@ -542,58 +328,11 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             queueMicrotask(() => { isResettingTrainingUi = false })
         }
     }
-
-    const LS_FAV_ORDER = "LS_TRAINING_FAV_ORDER_IDS";
-
-    const canUseLocalStorage = () => !!auth.user; // Gäste: nix lesen, nix schreiben
-
-    const readFavOrder = (): string[] => {
-        if (!canUseLocalStorage()) return [];
-        try {
-            const raw = localStorage.getItem(LS_FAV_ORDER);
-            const arr = raw ? JSON.parse(raw) : [];
-            return Array.isArray(arr) ? arr.filter(x => typeof x === "string") : [];
-        } catch { return []; }
-    };
-
-    const writeFavOrder = (ids: string[]) => {
-        if (!canUseLocalStorage()) return;
-        localStorage.setItem(LS_FAV_ORDER, JSON.stringify(ids));
-    };
-
-    const toPlanExercise = (ex: any): PlanExercise => ({
-        exercise: ex.name,
-        sets: ex.sets ?? 0,
-        reps: ex.reps ?? 0,
-        type: (ex.category === 3 ? "ausdauer" : ex.category === 2 ? "dehnung" : ex.category === 1 ? "calisthenics" : "kraft"),
-    });
+    const weightStore = useWeightStore()
 
     const startTimerSafe = (timer: TimerInstance) => props.startTimer(timer)
     const stopTimerSafe = (timer: TimerInstance) => props.stopTimer(timer)
     const resetTimerSafe = (timer: TimerInstance) => props.resetTimer(timer)
-
-
-    const flattenDto = (p: TrainingPlanDto): ViewPlan => {
-        const flat: PlanExercise[] = [];
-        for (const d of (p.days ?? [])) {
-            for (const ex of (d.exercises ?? [])) flat.push(toPlanExercise(ex));
-        }
-
-        // ✅ Falls loadList keine days liefert: nimm Count-Feld aus DTO (wenn vorhanden)
-        const fallbackCount =
-            Number((p as any)?.exerciseCount ?? (p as any)?.exercisesCount ?? (p as any)?.exercise_count ?? 0) || 0;
-
-        const count = flat.length > 0 ? flat.length : fallbackCount;
-
-        return {
-            id: p.id,
-            name: p.name,
-            isFavorite: !!p.isFavorite,
-            code: (p as any)?.code ?? null,
-            exercises: flat,
-            exerciseCount: count,
-        };
-    };
 
     const copyPlanCode = async (code?: string | null) => {
         const c = (code ?? '').trim()
@@ -607,30 +346,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     }
 
-    const guestPlans = ref<ViewPlan[]>([])
-
-    const plans = computed<ViewPlan[]>(() => {
-        if (!auth.user) return guestPlans.value
-        return trainingPlansStore.items.map(flattenDto)
-    })
-
-    const favoritePlans = computed<string[]>(() => {
-        const items = trainingPlansStore.items as TrainingPlanDto[];
-
-        const favIds = new Set(items.filter((p) => !!p.isFavorite).map((p) => p.id));
-        const order = readFavOrder().filter((id) => favIds.has(id));
-
-        const missing = (Array.from(favIds) as string[]).filter((id) => !order.includes(id));
-        return [...order, ...missing];
-    });
-
-    watch(favoritePlans, (ids) => {
-        // optional: nur wenn eingeloggt persistieren
-        // wenn du auch als Gast speichern willst -> einfach die if-zeile löschen
-        if (!auth.user) return
-        writeFavOrder(ids)
-    }, { immediate: true })
-    const selectedPlan = ref<ViewPlan | null>(null);
     const showDeletePopup = ref(false);
     const showEditPopup = ref(false);
     const showDownloadPopup = ref(false);
@@ -639,34 +354,9 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     const downloadPlan = ref<ViewPlan | null>(null);
     const downloadFormat = ref<'html' | 'pdf' | 'csv' | 'json' | 'txt'>('html');
     const customColWidths = ref([40, 30, 15, 15]); // Start: Name|Muskel|Typ|Aktion
-    const customResizeTable = ref<HTMLTableElement | null>(null);
+  
     const deleteAction = ref<(() => void) | null>(null);
 
-    const planMenuOpenId = ref<string | null>(null);
-
-    const togglePlanMenu = (id: string) => {
-        planMenuOpenId.value = (planMenuOpenId.value === id) ? null : id;
-    };
-
-    const closePlanMenu = () => {
-        planMenuOpenId.value = null;
-    };
-
-    const onDocClick = (e: MouseEvent) => {
-        const el = e.target as HTMLElement | null;
-        if (!el) return;
-
-        if (el.closest('.plan-menu') || el.closest('.kebab-wrap')) return;
-
-        // Klicks innerhalb des Toasts sollen das Menü NICHT schließen
-        if (el.closest('.toast') || el.closest('.toast-container') || el.closest('[data-toast-root]')) return;
-
-        closePlanMenu();
-    };
-
-    const columnWidths = ref([50, 25, 25]);
-    const rowHeights = ref<number[]>([]);
-    const planSearch = ref('');
     const editValue = ref('');
     const editType = ref<
         'table'
@@ -679,8 +369,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         | 'customExerciseType'
     >('table');
     const editIndex = ref<number | string | null>(null);
-    const editCellIndex = ref<number | null>(null);
-    const showCustomExercises = ref(false);
     const customExercises = ref<Array<{ name: string; muscle: string; type: CustomExerciseType }>>([]);
     const toast = ref<AppToast | null>(null);
     let toastId = 0;
@@ -689,8 +377,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     let autoDismissRemainingMs = 0;
     let autoDismissStartedAt = 0;
     const isTimerSticky = ref(false); // Hinzugefügt für Sticky-Logik
-    const isStopwatchSticky = ref(false); // Hinzugefügt für Sticky-Logik
-    const resizeTable = ref<HTMLTableElement | null>(null);
+    const isStopwatchSticky = ref(false); 
     const typeLabel = (t: ExerciseType) =>
         ({ kraft: 'Kraft', calisthenics: 'Calisthenics', dehnung: 'Dehnung', ausdauer: 'Ausdauer' } as const)[t];
 
@@ -814,17 +501,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         }
     });
 
-    const favoritePlanItems = computed<ViewPlan[]>({
-        get() {
-            const map = new Map(plans.value.map(p => [p.id, p]));
-            return favoritePlans.value.map(id => map.get(id)).filter(Boolean) as ViewPlan[];
-        },
-        set(newArr) {
-            if (!canUseLocalStorage()) return;
-            writeFavOrder(newArr.map(p => p.id));
-        }
-    });
-
     const makeId = () => {
         if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
             return crypto.randomUUID();
@@ -836,21 +512,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         guestPlans.value.unshift(plan)
         addToast('Plan erstellt', 'add')
     }
-    const otherPlanItems = computed<ViewPlan[]>({
-        get() {
-            const fav = new Set(favoritePlans.value);
-            return plans.value.filter(p => !fav.has(p.id));
-        },
-        set(_) {
-        }
-    });
-
-    const planMatchesSearch = (plan: ViewPlan) => {
-        const q = planSearch.value.toLowerCase().trim();
-        return !q
-            || plan.name.toLowerCase().includes(q)
-            || plan.exercises.some(ex => (ex.goal ?? '').toLowerCase().includes(q));
-    };
 
     const editPopupTitle = computed(() => {
         if (editType.value === 'customExerciseType') return 'Übungstyp bearbeiten';
@@ -973,8 +634,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         saveAccountTimer = window.setTimeout(async () => {
             try {
                 const payload = {
-                    plans: plans.value,
-                    favoritePlans: favoritePlans.value,
                     customExercises: customExercises.value,
                 }
 
@@ -1151,20 +810,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         validationErrorMessages.value = [];
     };
 
-    const toggleFavoritePlan = async (planId: string) => {
-        const p = trainingPlansStore.items.find((x: TrainingPlanDto) => x.id === planId);
-        if (!p) return;
-
-        const nextFav = !p.isFavorite;
-        await trainingPlansStore.toggleFavorite(planId);
-
-        const order = readFavOrder().filter(id => id !== planId);
-        if (nextFav) order.unshift(planId);
-        writeFavOrder(order);
-
-        addToast(nextFav ? "Plan zu Favoriten hinzugefügt" : "Plan aus Favoriten entfernt", nextFav ? "add" : "delete");
-    };
-
     const mapTypeToCategory = (t?: PlanExercise["type"]) => {
         if (t === "calisthenics") return 1;
         if (t === "dehnung") return 2;
@@ -1191,121 +836,12 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             addToast('Übung gelöscht', 'delete');
         });
     };
-    const editPlan = async (planId: string) => {
-        // ✅ Gast: aus guestPlans laden (ohne Store/API)
-        if (!auth.user) {
-            const gp = guestPlans.value.find(p => p.id === planId)
-            if (!gp) { addToast("Plan nicht gefunden", "delete"); return }
-
-            const view: ViewPlan = {
-                ...gp,
-                exercises: Array.isArray(gp.exercises) ? gp.exercises.map(x => ({ ...x })) : [],
-            }
-
-            builderRef.value?.setEditMode?.({
-                planId,
-                name: view.name,
-                exercises: [...view.exercises],
-            })
-
-            selectedPlan.value = view
-            rowHeights.value = Array(view.exercises.length).fill(40)
-
-            addToast("Plan wird bearbeitet", "save")
-            await nextTick()
-            builderRef.value?.scrollToBuilder?.()
-            return
-        }
-
-        // ✅ Account: wie gehabt über Store/API
-        try {
-            await trainingPlansStore.loadOne(planId)
-            const dto = trainingPlansStore.selected
-            if (!dto) { addToast("Plan nicht gefunden", "delete"); return }
-
-            const view = flattenDto(dto)
-
-            builderRef.value?.setEditMode?.({
-                planId,
-                name: view.name,
-                exercises: [...view.exercises],
-            })
-
-            selectedPlan.value = view
-            rowHeights.value = Array(view.exercises.length).fill(40)
-
-            addToast("Plan wird bearbeitet", "save")
-            await nextTick()
-            builderRef.value?.scrollToBuilder?.()
-        } catch {
-            addToast("Plan konnte nicht geladen werden", "delete")
-        }
-    }
-
-    const deletePlan = async (planId: string) => {
-        // ✅ Gast: nur aus guestPlans entfernen
-        if (!auth.user) {
-            guestPlans.value = guestPlans.value.filter(p => p.id !== planId)
-            if (selectedPlan.value?.id === planId) {
-                selectedPlan.value = null
-                rowHeights.value = []
-                columnWidths.value = [50, 25, 25]
-            }
-            addToast("Trainingsplan gelöscht", "delete")
-            return
-        }
-
-        // ✅ Account: wie gehabt
-        try {
-            await trainingPlansStore.remove(planId);
-            writeFavOrder(readFavOrder().filter(id => id !== planId));
-            if (selectedPlan.value?.id === planId) selectedPlan.value = null;
-            addToast("Trainingsplan gelöscht", "delete");
-        } catch (e: any) {
-            addToast(e?.message ?? "Löschen fehlgeschlagen", "delete");
-        }
-    };
 
     const upsertGuestPlan = (updated: ViewPlan) => {
         const idx = guestPlans.value.findIndex(p => p.id === updated.id)
         if (idx >= 0) guestPlans.value[idx] = updated
         else guestPlans.value.unshift(updated)
     }
-
-    const loadPlan = async (planId: string) => {
-        closePlanMenu();
-
-        // ✅ Gäste: NICHT Store/API nutzen – nur aus guestPlans öffnen
-        if (!auth.user) {
-            const gp = guestPlans.value.find(p => p.id === planId);
-            if (!gp) { addToast("Plan nicht gefunden", "delete"); return; }
-
-            // copy, damit UI-Edits nicht aus Versehen dein Array zerschießen
-            selectedPlan.value = {
-                ...gp,
-                exercises: Array.isArray(gp.exercises) ? gp.exercises.map(x => ({ ...x })) : [],
-            };
-
-            rowHeights.value = Array(selectedPlan.value.exercises.length).fill(40);
-            columnWidths.value = [50, 25, 25];
-            addToast("Plan geladen", "load");
-            return;
-        }
-
-        // ✅ Account: wie gehabt über Store/API
-        try {
-            await trainingPlansStore.loadOne(planId);
-            const dto = trainingPlansStore.selected;
-            if (!dto) { addToast("Plan nicht gefunden", "delete"); return; }
-
-            selectedPlan.value = flattenDto(dto);
-            rowHeights.value = Array(selectedPlan.value.exercises.length).fill(40);
-            columnWidths.value = [50, 25, 25];
-            addToast("Plan geladen", "load");
-        } catch {
-            addToast("Plan konnte nicht geladen werden", "delete");
-        }
-    };
 
     // Scroll/Highlight zum Builder
     const builderSection = ref<HTMLElement | null>(null);
@@ -1329,15 +865,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         const input = document.getElementById('plan-name') as HTMLInputElement | null;
         if (input) input.focus({ preventScroll: true });
     }
-
-    const closePlan = () => {
-        closePlanMenu(); // NEU
-        selectedPlan.value = null;
-        columnWidths.value = [50, 25, 25];
-        rowHeights.value = [];
-        addToast('Plan geschlossen', 'load');
-    };
-
 
     const openDownloadPopup = (plan: TrainingPlan) => {
         downloadPlan.value = plan;
@@ -1584,9 +1111,22 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             else if (editCellIndex.value === 1) editValue.value = String(exercise.sets);
             else if (editCellIndex.value === 2) editValue.value = String(exercise.reps);
         } else if (type === 'planName') {
-            const plan = plans.value.find(p => p.id === index);
-            if (!plan) { openValidationPopup(['Plan nicht gefunden']); return; }
-            editValue.value = plan.name;
+            // Account-Pläne liegen NICHT in plans.value, sondern im Store (TrainingPlansList ist Quelle)
+            const id = String(index)
+
+            const storePlan =
+                trainingPlansStore.selected?.id === id
+                    ? trainingPlansStore.selected
+                    : trainingPlansStore.items.find(p => p.id === id) ?? null
+
+            // Fallback: falls du doch irgendwann plans.value befüllst
+            const localPlan = (plans.value ?? []).find(p => p.id === id) ?? null
+
+            const planLike: any = storePlan ?? localPlan
+
+            if (!planLike) { openValidationPopup(['Plan nicht gefunden']); return; }
+
+            editValue.value = String(planLike.name ?? '')
         } else if (type === 'selectedPlanName') {
             if (!selectedPlan.value) { openValidationPopup(['Kein ausgewählter Plan']); return; }
             editValue.value = selectedPlan.value.name;
@@ -1988,7 +1528,7 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             let visibleStopwatchFound = false
 
             for (const sw of stickyStopwatches) {
-                const el = document.querySelector(`.timer-card[data-stopwatch-id="${sw.id}"]`) as HTMLElement | null
+                const el = document.querySelector(`.stopwatch-card[data-stopwatch-id="${sw.id}"]`) as HTMLElement | null
                 if (!el) continue
                 const rect = el.getBoundingClientRect()
                 if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
@@ -1999,8 +1539,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             isStopwatchSticky.value = stickyStopwatches.length > 0 && !visibleStopwatchFound
         }
     }
-
-    let headerRO: ResizeObserver | null = null;
 
     function applyHeaderState(th: HTMLElement) {
         const label = th.querySelector('.th-label') as HTMLElement | null;
@@ -2149,8 +1687,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
                 makeResizer('right');  // wie gehabt
             }
         });
-
-
 
         // Zeilen-Resizer bleibt unverändert …
         const rows = Array.from(table.querySelectorAll('tbody tr.resizable-row')) as HTMLElement[];
@@ -2322,7 +1858,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         () => nextTick(() => checkScroll()),
         { immediate: true }
     )
-    watch(planSearch, () => closePlanMenu());
 
     const syncFullscreenClass = () => {
         const isFs = !!document.fullscreenElement;
@@ -2417,9 +1952,15 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             return
         }
 
+        // ✅ aktuelles Gewicht/Goal im Training verfügbar machen
+        try {
+            await weightStore.loadSummary(true)
+        } catch (e) {
+            console.warn('[Training.vue] weight summary load failed', e)
+        }
+
         tryFocusFromStorage()
 
-        document.addEventListener('click', onDocClick)
         window.addEventListener('scroll', checkScroll)
         window.addEventListener('keydown', handleKeydown)
         document.addEventListener('fullscreenchange', syncFullscreenClass)
@@ -2444,7 +1985,6 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
     });
 
     onUnmounted(() => {
-        document.removeEventListener('click', onDocClick)
         window.removeEventListener('scroll', checkScroll)
         window.removeEventListener('keydown', handleKeydown)
         document.removeEventListener('fullscreenchange', syncFullscreenClass)
@@ -2473,22 +2013,22 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         --custom-toggle-ch: 38;
         --custom-toggle-w: calc(var(--custom-toggle-ch) * 1ch + 2 * var(--control-padding-x));
         padding: 1rem;
-        background: transparent; /* globale Fläche (Landing-Gradient) scheint durch */
+        background: transparent;
         width: 100%;
-        max-width: 100%; /* verhindert Overflow */
-        margin: 0 auto;
+        max-width: 1200px;
+        margin-inline: auto;
+        min-height: 100dvh;
+        overflow-x: visible;
+        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         align-items: stretch;
-        margin-top: 0;
-        min-height: 100dvh;
-        margin-inline: auto;
-        overflow-x: visible; /* keine abgeschnittenen Glows/Outlines */
-        box-sizing: border-box;
     }
 
     html.dark-mode .training {
-        background: transparent; /* Dark-Gradient vom Layout bleibt sichtbar */
+        background: transparent;
+        --resize-color: #64748b;
+        --resize-color-hover: #3b82f6;
     }
 
     .page-title {
@@ -2500,596 +2040,15 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
         letter-spacing: -0.025em;
     }
 
-    .workout-list {
-        margin-top: 0.5rem;
-        width: 100%;
-        max-width: var(--section-max);
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        padding: 0 0.5rem; /* reduziert von 1rem */
-        box-sizing: border-box;
-        overflow-x: visible; /* keine abgeschnittenen Schatten/Tables */
-    }
-
-    @media (max-width: 1240px) {
-        .workout-list {
-            max-width: var(--section-max);
-        }
-    }
-
-    @media (min-width: 1241px) {
-        .training {
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-            .training .workout-list {
-                max-width: var(--section-max); /* fix: keine 100vw-Logik */
-                width: 100%;
-                margin: 0 auto;
-            }
-    }
-
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        text-align: center;
-    }
-
-    .plan-search {
-        margin-bottom: 1rem;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .builder-landing {
-            animation: none;
-        }
-    }
-
-    html.dark-mode .section-title {
-        color: #ffffff;
-    }
-
-    .plan-header {
-        display: grid;
-        grid-template-columns: 1fr auto 1fr; /* links spacer | mitte title | rechts close */
-        align-items: center;
-        width: 100%;
-        position: relative;
-    }
-
-        .plan-header > .section-title {
-            grid-column: 2;
-            justify-self: center;
-            text-align: center;
-        }
-
-        .plan-header > :not(.section-title) {
-            grid-column: 3;
-            justify-self: end;
-        }
-
-    .drag-ghost {
-        opacity: 0.6;
-    }
-
-    /* Zelle wird selbst Container → reagiert auf ihre eigene Breite */
-    .v-stack {
-        container-type: inline-size;
-        white-space: normal;
-        word-break: break-word;
-        hyphens: auto;
-    }
-
-    /* Stelle sicher: mittlere Spalte darf schrumpfen */
-    .plan-item > .plan-row1 {
-        display: grid !important;
-        grid-template-columns: auto minmax(0,1fr) auto; /* <- minmax(0,1fr) ist key */
-        align-items: center;
-        gap: .5rem;
-    }
-
-    /* Titel darf nie wachsen, sondern ellipsen */
-    .plan-title {
-        display: block; /* stabil */
-        min-width: 0; /* !!! ohne das bricht ellipsis oft */
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        /* dezenter Fade statt hartem Schnitt (modern, unkritisch) */
-        -webkit-mask-image: linear-gradient(to right, #000 80%, transparent);
-        mask-image: linear-gradient(to right, #000 80%, transparent);
-    }
-
-    /* Buttons rechts dürfen nie umbrechen */
-    .plan-right {
-        display: inline-flex;
-        gap: .5rem;
-        align-items: center;
-        white-space: nowrap; /* kein Umbruch in den Actions */
-    }
-
-
-    @media (max-width: 1240px) {
-        .training {
-            overflow-x: visible; /* lässt Inhalt sauber raus, ohne Scrollbars zu blocken */
-        }
-
-        .workout-list {
-            max-width: 100%;
-            min-width: 0;
-            width: 100%;
-        }
-    }
-
-    .list-item {
-        background: var(--bg-card);
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        transition: transform 0.2s;
-    }
-
-    html.dark-mode .list-item {
-        background: #1c2526;
-        color: #c9d1d9;
-    }
-
-    .list-item:hover {
-        transform: translateY(-2px);
-    }
-
-    .plan-item {
-        cursor: pointer;
-    }
-
-    @supports not (overflow: clip) {
-        .training,
-        .workout-list {
-            overflow-x: visible; /* auch in älteren Browsern keine abgeschnittenen Effekte */
-        }
-    }
-
-    :root {
-        --clip-margin: 8px;
-    }
-
-    .plan-title {
-        display: inline-flex;
-        align-items: center;
-        gap: .35rem;
-        min-width: 0;
-        max-width: 100%;
-        -webkit-mask-image: none;
-        mask-image: none;
-        text-overflow: clip;
-    }
-
-        .plan-title .plan-name-scroll {
-            display: block;
-            flex: 1 1 auto;
-            min-width: 0;
-            white-space: nowrap;
-            overflow-x: auto;
-            overflow-y: hidden;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; /* Firefox: keine Scrollbar */
-        }
-
-            .plan-title .plan-name-scroll::-webkit-scrollbar {
-                display: none; /* WebKit: keine Scrollbar */
-            }
-
-        .plan-title .plan-count {
-            flex: 0 0 auto;
-            white-space: nowrap;
-        }
-
-    @media (max-width: 560px) {
-        .plan-drag-handle {
-            display: none;
-        }
-    }
-
-    .plan-drag-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-        width: 100%;
-    }
-
-        .plan-drag-stack > .plan-item {
-            width: 100%;
-        }
-
-    html.dark-mode .training {
-        --resize-color: #64748b; /* slate-500 */
-        --resize-color-hover: #3b82f6; /* blue-500 */
-    }
-
-    .list-item-actions .action-btn {
-        line-height: 1;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .custom-toggle-btn {
-        margin-top: 1rem;
-        height: var(--control-height);
-        padding: 0 var(--control-padding-x);
-        border-radius: 999px;
-        width: fit-content;
-        max-width: 100%;
-        inline-size: min(var(--custom-toggle-w), 100%);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: .55rem;
-        font-weight: 700;
-        font-size: .92rem;
-        letter-spacing: -0.01em;
-        color: var(--text-primary);
-        cursor: pointer;
-        user-select: none;
-        background: radial-gradient(circle at 18% 35%, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 58%), radial-gradient(circle at 85% 70%, color-mix(in srgb, var(--accent-secondary) 10%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 92%, #020617 8%);
-        border: 1px solid rgba(148, 163, 184, 0.26);
-        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, filter .15s ease;
-    }
-
-        .custom-toggle-btn .custom-toggle-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 1.6rem;
-            height: 1.6rem;
-            border-radius: 999px;
-            background: color-mix(in srgb, var(--bg-card) 86%, #0f172a 14%);
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            flex: 0 0 auto;
-        }
-
-        .custom-toggle-btn .custom-toggle-text {
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-    @media (hover: hover) {
-        .custom-toggle-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22);
-            border-color: rgba(129, 140, 248, 0.55);
-            filter: brightness(1.02);
-        }
-    }
-
-    .custom-toggle-btn:active {
-        transform: translateY(0);
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
-    }
-
-    .custom-toggle-btn:focus-visible {
-        outline: none;
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 22%, transparent), 0 16px 36px rgba(15, 23, 42, 0.22);
-    }
-
-    /* „On“-State: etwas satter + tiny glow */
-    .custom-toggle-btn.on {
-        border-color: rgba(129, 140, 248, 0.62);
-        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
-    }
-
-    html.dark-mode .custom-toggle-btn {
-        background: radial-gradient(circle at 18% 35%, color-mix(in srgb, #6366f1 18%, transparent), transparent 58%), radial-gradient(circle at 85% 70%, color-mix(in srgb, #22c55e 12%, transparent), transparent 62%), rgba(2, 6, 23, 0.72);
-        border-color: rgba(148, 163, 184, 0.34);
-        box-shadow: 0 16px 42px rgba(0, 0, 0, 0.55);
-    }
-
-        html.dark-mode .custom-toggle-btn .custom-toggle-icon {
-            background: rgba(2, 6, 23, 0.6);
-            border-color: rgba(148, 163, 184, 0.28);
-        }
-
-    /* Karte selbst darf über Nachbarn stehen */
-    .plan-item {
-        position: relative;
-    }
-
-        /* Wenn Menü offen ist: Karte nach oben und kein Hover-Shift */
-        .plan-item.menu-open {
-            z-index: 999;
-        }
-
-            .plan-item.menu-open:hover {
-                transform: none !important;
-            }
-
-    /* Menü noch darüber */
-    .plan-menu {
-        z-index: 1000;
-    }
-
-    .exercise-table.full-width th,
-    .exercise-table.full-width td {
-        padding: 1.5rem;
-        text-align: center;
-        min-width: 0; /* war 150px: verhindert Breiten-Inflation */
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .custom-toggle-btn {
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .custom-toggle-arrow {
-        width: 1.05rem;
-        height: 1.05rem;
-        flex: 0 0 auto;
-        opacity: .92;
-        transform: rotate(0deg);
-        transition: transform .18s ease, opacity .18s ease, filter .18s ease;
-        filter: drop-shadow(0 1px 0 rgba(0,0,0,.10));
-    }
-
-    @supports (mask-image: url("")) or (-webkit-mask-image: url("")) {
-        .custom-toggle-arrow {
-            background: currentColor;
-            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.7 9.3a1 1 0 0 1 1.4 0L12 13.2l3.9-3.9a1 1 0 1 1 1.4 1.4l-4.6 4.6a1 1 0 0 1-1.4 0l-4.6-4.6a1 1 0 0 1 0-1.4z'/%3E%3C/svg%3E");
-            -webkit-mask-repeat: no-repeat;
-            -webkit-mask-position: center;
-            -webkit-mask-size: 100% 100%;
-            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.7 9.3a1 1 0 0 1 1.4 0L12 13.2l3.9-3.9a1 1 0 1 1 1.4 1.4l-4.6 4.6a1 1 0 0 1-1.4 0l-4.6-4.6a1 1 0 0 1 0-1.4z'/%3E%3C/svg%3E");
-            mask-repeat: no-repeat;
-            mask-position: center;
-            mask-size: 100% 100%;
-        }
-    }
-
-    @supports not (mask-image: url("")) and not (-webkit-mask-image: url("")) {
-        .custom-toggle-arrow {
-            border-right: 2px solid currentColor;
-            border-bottom: 2px solid currentColor;
-            width: .6rem;
-            height: .6rem;
-            transform: rotate(45deg);
-            filter: none;
-        }
-    }
-
-    .custom-toggle-btn.on .custom-toggle-arrow {
-        transform: rotate(180deg);
-        opacity: 1;
-    }
-
-    .action-btn.plan-submit-btn {
-        height: calc(var(--control-height) - 4px);
-    }
-
-    @media (max-width:560px) {
-        .plan-item {
-            display: flex !important;
-        }
-
-        .plan-row1 {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            align-items: center;
-            gap: .5rem;
-            width: 100%;
-        }
-
-        .plan-title {
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .plan-right {
-            display: inline-flex;
-            align-items: center;
-            gap: .25rem;
-            flex-wrap: nowrap;
-        }
-
-        .inline-actions {
-            display: inline-flex !important;
-            gap: .25rem;
-        }
-
-        .kebab-wrap {
-            display: none !important;
-        }
-
-        .desktop-open {
-            display: inline-flex !important;
-        }
-
-        .mobile-open, .plan-row2 {
-            display: none !important;
-        }
-
-        .plan-menu {
-            z-index: 1000;
-        }
-    }
-
-    /* ========== Desktop/ab deinem Original-Breakpoint: alles in EINER Reihe ========== */
-
-    .plan-title {
-        flex: 1 1 auto;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .inline-actions {
-        display: inline-flex;
-        gap: .4rem;
-    }
-
-    @media (max-width:1024px) {
-        .inline-actions {
-            display: none !important;
-        }
-
-        .desktop-open {
-            display: inline-flex !important;
-        }
-    }
-
-    @media (max-width:560px) {
-        .plan-row2 {
-            display: none !important;
-        }
-
-        .mobile-open {
-            display: none !important;
-        }
-
-        .desktop-open {
-            display: inline-flex !important;
-        }
-    }
-
-    .desktop-open {
-        display: inline-flex;
-    }
-
-    .mobile-open {
-        display: none;
-    }
-
-    /* ========== Ab dem Original-Mobile-Breakpoint (~560px): schalte auf Kebab + eigene Open-Zeile ========== */
-    @media (max-width: 560px) {
-        .plan-item {
-            position: relative;
-            display: grid;
-            grid-template-rows: auto auto;
-            gap: .5rem;
-        }
-
-        .inline-actions {
-            display: none;
-        }
-        .desktop-open {
-            display: inline-flex !important;
-        }
-
-        .mobile-open {
-            display: none !important;
-        }
-
-        .plan-row2 {
-            display: none;
-        }
-
-            .plan-row2 .primary-open {
-                width: 100%;
-            }
-
-        .plan-title {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .plan-menu {
-            position: absolute;
-            right: .5rem;
-            top: calc(100% + .55rem);
-            display: flex;
-            gap: .35rem;
-            padding: .5rem;
-            border-radius: 14px;
-            border: 1px solid rgba(148, 163, 184, 0.28);
-            background: radial-gradient(circle at 18% 30%, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 62%), radial-gradient(circle at 85% 75%, color-mix(in srgb, var(--accent-secondary) 12%, transparent), transparent 70%), color-mix(in srgb, var(--bg-card) 88%, white 12%);
-            box-shadow: 0 18px 44px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255,255,255,0.08);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            z-index: 1200;
-        }
-
-            .plan-menu > * {
-                inline-size: auto;
-            }
-    }
-
-    html.dark-mode .plan-menu {
-        border-color: rgba(148, 163, 184, 0.34);
-        background: radial-gradient(circle at 18% 30%, color-mix(in srgb, #6366f1 18%, transparent), transparent 62%), radial-gradient(circle at 85% 75%, color-mix(in srgb, #22c55e 12%, transparent), transparent 70%), rgba(2, 6, 23, 0.78);
-        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(255,255,255,0.05);
-    }
-
-    .plan-drag-handle {
-        cursor: grab;
-        margin-right: .5rem;
-        user-select: none;
-    }
-
-    @media (max-width: 560px) {
-
-        .list-item-actions {
-            flex-wrap: wrap;
-        }
-
-        .workout-list {
-            max-width: 100%;
-            min-width: 0;
-        }
-
-        .workout-list {
-            padding: 0 .5rem;
-        }
-    }
-
-    .workout-list{
-        width: 100%;
-        max-width: var(--section-max);
-        margin-inline: auto !important;
-    }
-
     @media (max-width: 420px) {
         .training {
             --control-height: 44px;
             --control-padding-x: 1rem;
         }
 
-        .workout-list {
-            padding: 0 .5rem;
-        }
-
         .page-title {
             font-size: 1.9rem;
         }
-
-        .timer-display {
-            font-size: 2.4rem;
-        }
-
-        .custom-toggle-btn {
-            inline-size: min(var(--custom-toggle-w), 100%);
-        }
-    }
-
-    .training,
-    .workout-list {
-        max-width: 100%;
-        overflow-x: visible;
     }
 
     @media (max-width: 360px) {
@@ -3097,337 +2056,4 @@ selectedPlan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.t
             font-size: 1.75rem;
         }
     }
-
-    @media (max-width: 900px) {
-        .plan-title .plan-count {
-            display: none;
-        }
-    }
-
-    .plan-row1 > .plan-title {
-        flex: 1 1 auto;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .plan-row1 > .inline-actions {
-        display: inline-flex;
-        gap: .4rem;
-    }
-
-    @media (min-width:561px) and (max-width:1024px) {
-        .inline-actions {
-            display: none !important;
-        }
-
-        .desktop-open {
-            display: inline-flex !important;
-        }
-
-        .mobile-open {
-            display: none !important;
-        }
-    }
-
-    .plan-row1 {
-        width: 100%;
-        position: relative;
-    }
-
-    @media (min-width:1025px) {
-        .plan-row1 .inline-actions {
-            margin-left: auto;
-        }
-    }
-
-    .plan-menu {
-        position: absolute;
-        right: .5rem;
-        top: calc(100% + .5rem); /* unter der Zeile aufklappen */
-        display: flex;
-        gap: .35rem;
-        padding: .45rem;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        box-shadow: 0 6px 18px rgba(0,0,0,.15);
-        z-index: 50;
-    }
-
-        .plan-menu > * {
-            inline-size: auto;
-        }
-
-    .plan-item > .plan-row1 {
-        display: grid !important;
-        grid-template-columns: auto 1fr auto;
-        align-items: center;
-        width: 100%;
-    }
-
-        .plan-item > .plan-row1 .plan-drag-handle {
-            grid-column: 1;
-        }
-
-        .plan-item > .plan-row1 .plan-title {
-            grid-column: 2;
-            justify-self: center;
-            text-align: center;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .plan-item > .plan-row1 .plan-right {
-            grid-column: 3;
-            justify-self: end;
-            display: inline-flex;
-            align-items: center;
-            gap: .5rem;
-        }
-
-        .plan-item > .plan-row1 .desktop-open {
-            order: 3;
-        }
-
-    @media (max-width:1024px) {
-        .plan-item > .plan-row1 .inline-actions {
-            display: none !important;
-        }
-
-        .plan-item > .plan-row1 .desktop-open {
-            display: inline-flex !important;
-        }
-    }
-
-    @media (max-width:560px) {
-        .plan-row2, .mobile-open {
-            display: none !important;
-        }
-    }
-
-    .plan-item {
-        display: block; 
-    }
-
-        .plan-item > .plan-row1 {
-            display: grid !important;
-            grid-template-columns: auto 1fr auto;
-            align-items: center;
-            width: 100%;
-        }
-
-            .plan-item > .plan-row1 .plan-title {
-                justify-self: center;
-                text-align: center;
-                min-width: 0;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-
-            .plan-item > .plan-row1 .plan-right {
-                justify-self: end;
-                display: inline-flex;
-                align-items: center;
-                gap: .5rem;
-            }
-
-    .plan-row2 {
-        display: none;
-    }
-
-    @media (max-width:560px) {
-        .plan-row2 {
-            display: block;
-        }
-
-        .mobile-open {
-            display: inline-flex !important;
-        }
-
-        .desktop-open {
-            display: none !important;
-        }
-    }
-
-    .inline-actions {
-        display: inline-flex;
-        gap: .4rem;
-    }
-
-    .kebab-wrap {
-        display: none;
-    }
-
-    @media (max-width: 1024px) {
-        .inline-actions {
-            display: none !important;
-        }
-
-        .kebab-wrap {
-            display: inline-flex !important;
-        }
-    }
-
-    th .th-text > .resizer {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: var(--resize-hit, 10px);
-        height: 100%;
-        cursor: col-resize;
-        z-index: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: transparent;
-    }
-
-        th .th-text > .resizer::before {
-            content: "";
-            width: var(--resize-line, 1px);
-            height: 100%;
-            background: var(--resize-color, #94a3b8);
-            opacity: .7;
-            transition: transform .12s ease, background-color .12s ease, opacity .12s ease;
-        }
-
-        th .th-text > .resizer:hover::before,
-        th .th-text > .resizer.is-active::before {
-            background: var(--resize-color-hover, #60a5fa);
-            opacity: 1;
-            transform: scaleX(2);
-        }
-
-    .list-item.plan-item {
-        position: relative;
-        padding: 1.35rem 1.6rem; 
-        border-radius: 18px;
-        background: radial-gradient( circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60% ), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
-        border: 1px solid rgba(148, 163, 184, 0.26);
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
-        display: block; 
-        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
-    }
-
-    @media (hover: hover) {
-        .list-item.plan-item:hover {
-            transform: translateY(-3px) scale(1.01);
-            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
-            border-color: rgba(129, 140, 248, 0.55);
-        }
-    }
-
-    html.dark-mode .list-item.plan-item {
-        background: radial-gradient( circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55% ), radial-gradient( circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60% ), #020617;
-        border-color: rgba(148, 163, 184, 0.45);
-        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
-    }
-
-    .plan-drag-stack .plan-item {
-        touch-action: pan-y;
-        -webkit-tap-highlight-color: transparent;
-        will-change: transform;
-    }
-
-    .sortable-chosen {
-        user-select: none;
-    }
-
-    .sortable-ghost,
-    .drag-ghost {
-        opacity: .85;
-        transform: scale(.98);
-    }
-
-    .drag-chosen,
-    .dragging,
-    .sortable-chosen,
-    .sortable-drag,
-    .sortable-ghost {
-        transition: none !important;
-    }
-
-    .sortable-drag {
-        opacity: 0.98;
-        cursor: grabbing;
-        pointer-events: none;
-    }
-
-    .drag-ghost,
-    .sortable-ghost {
-        opacity: .4 !important;
-    }
-
-    .plan-drag-stack > *,
-    .drag-stack > *,
-    .list-item.plan-item {
-        will-change: transform;
-    }
-
-    .dragging .list-item.plan-item {
-        transform: none !important;
-    }
-
-    .plan-code-badge {
-        margin-left: .5rem;
-        padding: .15rem .45rem;
-        border-radius: 999px;
-        font-size: .8rem;
-        opacity: .9;
-        border: 1px solid rgba(255,255,255,.18);
-    }
-
-    .plan-code-copy {
-        margin-left: .35rem;
-    }
-
-    /* Planname oben, Code immer drunter (ohne Wrap) */
-    .plan-header .section-title {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: .35rem;
-        min-width: 0;
-    }
-
-    .plan-title-main {
-        max-width: 100%;
-        min-width: 0;
-        white-space: nowrap; /* kein Wrap */
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .plan-code-row {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: .35rem;
-        white-space: nowrap; /* kein Wrap */
-        max-width: 100%;
-    }
-    .plan-code-badge {
-        cursor: copy;
-        user-select: none;
-    }
-
-    /* mehr Luft zwischen Plan-Liste und Satzpausen-Timer */
-    .plans-section {
-        margin-top: 2.25rem;
-        margin-bottom: 2.25rem;
-    }
-
-    /* optional: auf Mobile etwas weniger */
-    @media (max-width: 560px) {
-        .plans-section {
-            margin-top: 1.75rem;
-            margin-bottom: 1.75rem;
-        }
-    }
-
 </style>

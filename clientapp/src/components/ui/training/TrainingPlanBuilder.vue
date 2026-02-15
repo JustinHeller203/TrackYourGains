@@ -299,6 +299,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     const emit = defineEmits<{
         (e: 'update:customExercises', value: Array<{ name: string; muscle: string; type: CustomExerciseType }>): void
+        (e: 'plan-created', payload: { id: string; name: string }): void
     }>()
 
     const customExercisesState = ref<Array<{ name: string; muscle: string; type: CustomExerciseType }>>(
@@ -390,8 +391,6 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     const builderSection = ref<HTMLElement | null>(null)
 
-
-    // Parent soll Builder steuern können (Edit/Reset/Scroll)
     const setEditMode = (payload: {
         planId: string | null
         name: string
@@ -400,6 +399,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         editingPlanId.value = payload.planId
         planName.value = payload.name
         selectedPlanExercises.value = Array.isArray(payload.exercises) ? [...payload.exercises] : []
+
+        // ✅ nice default: Typ passend zum Plan
+        const firstType = selectedPlanExercises.value[0]?.type
+        if (firstType) trainingType.value = firstType
     }
 
     const clearEditMode = () => {
@@ -956,6 +959,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 exerciseCount: selectedPlanExercises.value.length,
             })
 
+            emit('plan-created', { id, name: validatedPlanName as string })
+
             resetBuilder()
             return
         }
@@ -1008,6 +1013,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 console.log("[TrainingPlan] code:", (created as any)?.code ?? (created as any)?.data?.code)
 
                 props.addToast("Plan erstellt", "add")
+                // INSERT in components/ui/training/TrainingPlanBuilder.vue AFTER props.addToast("Plan erstellt", "add")
+                const createdId = String((created as any)?.id ?? (created as any)?.data?.id ?? '')
+                if (createdId) emit('plan-created', { id: createdId, name: validatedPlanName as string })
+
             }
 
             resetBuilder()
@@ -1219,6 +1228,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         teardownHeaderShorteningFallback()
     })
 </script>
+
 <style scoped>
     .workout-list {
         margin-top: 0.5rem;

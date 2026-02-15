@@ -116,17 +116,6 @@
         margin: 0.15rem 0 0.6rem;
     }
 
-    .explain-graphic {
-        border-radius: 16px;
-        overflow: hidden;
-        border: 1px solid rgba(148, 163, 184, 0.18);
-        margin-bottom: 0.9rem;
-    }
-
-    .explain-slot {
-        margin-top: 0.25rem;
-    }
-
     .explain-empty {
         margin: 0.2rem 0 0;
         opacity: 0.7;
@@ -153,14 +142,6 @@
         margin: 0 0 0.35rem;
         font-size: 0.92rem;
         color: rgba(255, 255, 255, 0.92);
-    }
-
-    .explain-mini {
-        margin-top: 1rem;
-        border-radius: 16px;
-        background: rgba(99, 102, 241, 0.14);
-        border: 1px solid rgba(99, 102, 241, 0.25);
-        padding: 0.85rem 0.9rem;
     }
 
     /* Footer Button (kommt über #actions Slot in BasePopup) */
@@ -196,15 +177,70 @@
         scrollbar-gutter: stable;
     }
 
-    /* Content bekommt Abstand, Scrollbar bleibt außen */
-    .explain-scroll {
-        padding-right: 1.1rem; /* matcht BasePopup padding */
-        max-width: 100%;
-    }
     /* Scrollbar (Webkit) */
     .explain-scroll-wrap::-webkit-scrollbar {
         width: 10px;
     }
+
+    .explain-scroll {
+        padding-right: 1.1rem; /* matcht BasePopup padding */
+        max-width: 100%;
+        /* Ordnung: Sections bekommen sauberen Abstand */
+        display: grid;
+        gap: 0.95rem;
+    }
+
+    .explain-graphic {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        margin-bottom: 0; /* gap übernimmt */
+    }
+
+    .explain-slot {
+        margin-top: 0; /* gap übernimmt */
+    }
+
+    /* ===== Mini / Reality-Check ===== */
+
+    .explain-mini {
+        margin-top: 0; /* gap übernimmt */
+        border-radius: 18px;
+        padding: 0.95rem 1rem;
+        border: 1px solid rgba(129, 140, 248, 0.26);
+        background: radial-gradient(circle at 18% 0%, rgba(99, 102, 241, 0.22), transparent 62%), radial-gradient(circle at 95% 120%, rgba(34, 197, 94, 0.16), transparent 58%), rgba(2, 6, 23, 0.28);
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    /* Mini-Content kommt aus Slot -> sauber scoped nur im ExplanationPopup */
+    :global(.popup-overlay.explanation-popup .explain-mini .calc-mini) {
+        display: grid;
+        gap: 0.55rem;
+    }
+
+    :global(.popup-overlay.explanation-popup .explain-mini .calc-mini-title) {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin: 0;
+        font-weight: 950;
+        font-size: 0.92rem;
+        letter-spacing: 0.01em;
+        color: rgba(255, 255, 255, 0.93);
+    }
+
+    :global(.popup-overlay.explanation-popup .explain-mini .calc-mini-text) {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        color: rgba(226, 232, 240, 0.9);
+    }
+
+    :global(.popup-overlay.explanation-popup .explain-mini .calc-mini-text strong) {
+        color: rgba(255, 255, 255, 0.92);
+        font-weight: 850;
+    }
+
 
     .explain-scroll-wrap::-webkit-scrollbar-track {
         background: rgba(148, 163, 184, 0.10);
@@ -450,37 +486,26 @@
         transition: box-shadow 160ms ease, filter 160ms ease;
     }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-mini) {
-        display: grid;
-        gap: 0.35rem;
-    }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-mini-title) {
-        font-weight: 900;
-        margin: 0;
-    }
-
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-mini-text) {
-        font-size: 0.88rem;
-        line-height: 1.55;
-        color: rgba(226, 232, 240, 0.9);
-    }
-
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero) {
+  
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero) {
         border-radius: 16px;
         border: 1px solid rgba(148, 163, 184, 0.18);
         background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 55%), radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.14), transparent 60%), rgba(2, 6, 23, 0.35);
         padding: 0.85rem 0.95rem;
     }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-top) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-top),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero-top) {
         display: flex;
         align-items: center;
         gap: 0.6rem;
         margin-bottom: 0.35rem;
     }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-badge) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-badge),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero-badge) {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -495,26 +520,33 @@
         background: rgba(99, 102, 241, 0.12);
     }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-title) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-title),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero-title) {
         font-size: 0.98rem;
         font-weight: 900;
         color: rgba(255, 255, 255, 0.92);
     }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-sub) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-sub),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero-sub) {
         font-size: 0.86rem;
         line-height: 1.5;
         color: rgba(226, 232, 240, 0.86);
         margin-bottom: 0.65rem;
     }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pills) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pills),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero-pills) {
         display: flex;
         flex-wrap: wrap;
         gap: 0.45rem;
     }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill) {
+    /* BMI nutzt oben .calc-chip -> wir stylen den dort wie .calc-hero-pill */
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero .calc-chip),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero .calc-chip),
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero-pill) {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
@@ -531,22 +563,32 @@
         transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease, background 120ms ease;
     }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill:hover) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero .calc-chip:hover),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero .calc-chip:hover),
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill:hover),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero-pill:hover) {
         transform: translateY(-1px);
         filter: brightness(1.05);
         border-color: rgba(129, 140, 248, 0.35);
     }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill:active) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero .calc-chip:active),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero .calc-chip:active),
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill:active),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero-pill:active) {
         transform: translateY(0px) scale(0.98);
     }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill:focus-visible) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero .calc-chip:focus-visible),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero .calc-chip:focus-visible),
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill:focus-visible),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero-pill:focus-visible) {
         outline: none;
         box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.35);
     }
 
-    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill--warn) {
+    :global(.popup-overlay.explanation-popup .explain-slot .calc-hero-pill--warn),
+    :global(.popup-overlay.explanation-popup .explain-graphic .calc-hero-pill--warn) {
         border-color: rgba(251, 191, 36, 0.22);
         background: rgba(251, 191, 36, 0.08);
     }
@@ -602,6 +644,8 @@
             transform: none !important;
         }
     }
+
+
 
 </style>
 

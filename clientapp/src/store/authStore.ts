@@ -1,8 +1,10 @@
-// src/store/authStore.ts
+﻿// src/store/authStore.ts
 import { defineStore } from "pinia";
 import { login, register, logout, changeEmail, changePassword, deleteAccount as svcDeleteAccount } from "@/services/auth";
+import { useSettingsStore } from "@/store/settingsStore";
 import { LS_AUTH_EMAIL } from "@/constants/storageKeys";
 import { getToken, setToken } from "@/lib/api";
+import { useWeightStore } from "@/store/weightStore";
 
 type AuthResponseDto = { token: string; email: string };
 
@@ -20,47 +22,82 @@ export const useAuthStore = defineStore("auth", {
 
     actions: {
         async init() {
+            const settings = useSettingsStore();
+
             const token = getToken();
             const email = localStorage.getItem(LS_AUTH_EMAIL);
 
             if (token && email) {
                 this.user = { email };
-            } else {
+                // ✅ sobald eingeloggt: settings aus Backend ziehen
+                try {
+                    await settings.loadFromBackend()
+                } catch {
+                    settings.resetToDefaults()
+                }
+                settings.broadcast()            } else {
                 this.user = null;
-                // wichtig: kein "Ghost-Token" im API Layer
                 setToken(null);
+                // ✅ guest: defaults (nur in-memory)
+                settings.resetToDefaults();
             }
 
             this.loading = false;
         },
 
         async signIn(email: string, password: string) {
+            const settings = useSettingsStore();
+
             const data: AuthResponseDto = await login(email, password);
             this.user = { email: data.email };
             setToken(data.token);
             localStorage.setItem(LS_AUTH_EMAIL, data.email);
-        },
 
-        // Registrieren mit confirmPassword
+            // ✅ backend settings laden
+            try {
+                await settings.loadFromBackend()
+            } catch {
+                settings.resetToDefaults()
+            }
+            settings.broadcast()        },
+
         async signUp(email: string, password: string, confirmPassword: string) {
+            const settings = useSettingsStore();
+
             const data: AuthResponseDto = await register(email, password, confirmPassword);
             this.user = { email: data.email };
             setToken(data.token);
             localStorage.setItem(LS_AUTH_EMAIL, data.email);
-        },
+
+            // ✅ backend settings laden
+            try {
+                await settings.loadFromBackend()
+            } catch {
+                settings.resetToDefaults()
+            }
+            settings.broadcast()        },
 
         async signOut() {
+            const settings = useSettingsStore();
+            const weights = useWeightStore();
+
             try {
                 await logout();
             } catch {
-                // egal � lokal muss trotzdem sauber werden
+                // egal — lokal muss trotzdem sauber werden
             } finally {
                 this.user = null;
                 localStorage.removeItem(LS_AUTH_EMAIL);
                 setToken(null);
+
+                // ✅ harte UI-Resets (sofort)
+                weights.resetAll();
+
+                // ✅ zurück auf guest-defaults (nur in-memory)
+                settings.resetToDefaults();
+                settings.broadcast();
             }
         },
-
 
         async changeEmail(newEmail: string, password: string) {
             const data: AuthResponseDto = await changeEmail(newEmail, password);
@@ -76,12 +113,22 @@ export const useAuthStore = defineStore("auth", {
         },
 
         async deleteAccount(password: string) {
+            const settings = useSettingsStore();
+            const weights = useWeightStore();
+
             try {
                 await svcDeleteAccount(password);
             } finally {
                 this.user = null;
                 localStorage.removeItem(LS_AUTH_EMAIL);
                 setToken(null);
+
+                // ✅ harte UI-Resets (sofort)
+                weights.resetAll();
+
+                // ✅ zurück auf guest-defaults (nur in-memory)
+                settings.resetToDefaults();
+                settings.broadcast();
             }
         },
     },

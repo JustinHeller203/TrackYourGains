@@ -291,25 +291,16 @@
 
 <script setup lang="ts">
     import { ref, reactive, onMounted, watch, onBeforeUnmount, onActivated } from 'vue'
-    import { isDark, initTheme, setTheme, previewTheme } from '@/composables/useTheme'
+    import { isDark, initTheme, previewTheme } from '@/composables/useTheme'
     import { onBeforeRouteLeave } from 'vue-router'
+    import { useAuthStore } from '@/store/authStore'
+    import type { SettingsDto } from '@/services/settings'
+    import { useSettingsStore } from '@/store/settingsStore'
+
     import Toast from '@/components/ui/Toast.vue'
     import SettingsSaveButton from '@/components/ui/buttons/SettingsSaveButton.vue'
     import ToastTypeManagerPopup from '@/components/ui/popups/ToastTypeManagerPopup.vue'
     import ReminderPopup from '@/components/ui/popups/ReminderPopup.vue'
-    import {
-        LS_PREFERRED_UNIT,
-        LS_AUTO_CALC_ENABLED,
-        LS_TOASTS_ENABLED,
-        LS_TOAST_DURATION_MS,
-        LS_CONFIRM_DELETE_ENABLED,
-        LS_BACK_TO_TOP_ENABLED,
-        LS_TOAST_TYPES_REMINDER_COUNT,
-        LS_TOAST_TYPE_ENABLED,
-        LS_TOAST_DISABLED_TYPES,
-        LS_STICKY_TIMER_ENABLED,
-        LS_STICKY_STOPWATCH_ENABLED,
-    } from '@/constants/storageKeys'
 
     // Typen passend zu deiner Toast.vue
     type ToastType =
@@ -330,6 +321,8 @@
     }
 
     type SettingsGroupKey = 'display' | 'system' | 'toast'
+
+    const auth = useAuthStore()
 
     const openGroups = reactive<Record<SettingsGroupKey, boolean>>({
         display: false,
@@ -397,12 +390,12 @@
     const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
 
     // Draft-State für das UI
-    const isDarkDraft = ref(false)
-    const persistedTheme = ref<'dark' | 'light'>('light')
+    const isDarkDraft = ref(true)
+    const persistedTheme = ref<'dark' | 'light'>('dark')
     const saved = ref(false)
 
     const confirmDeleteEnabled = ref(true)
-    const backToTopEnabled = ref(true)
+    const backToTopEnabled = ref(false)
     const stickyTimerEnabled = ref(true)
     const stickyStopwatchEnabled = ref(true)
 
@@ -471,6 +464,39 @@
         toastTypesSnapshot = ''
     }
 
+    function applySettingsDto(s: SettingsDto) {
+        // Theme
+        const theme = (s.theme || 'light') === 'dark' ? 'dark' : 'light'
+        persistedTheme.value = theme
+        isDarkDraft.value = theme === 'dark'
+        previewTheme(theme)
+
+        // Units
+        const unit = (s.preferredUnit || 'kg').toLowerCase() as 'kg' | 'lbs'
+        preferredUnit.value = (allowedUnits as readonly string[]).includes(unit) ? unit : 'kg'
+
+        // System
+        autoCalcEnabled.value = !!s.autoCalcEnabled
+        confirmDeleteEnabled.value = !!s.confirmDeleteEnabled
+        backToTopEnabled.value = !!s.backToTopEnabled
+        stickyTimerEnabled.value = !!s.stickyTimerEnabled
+        stickyStopwatchEnabled.value = !!s.stickyStopwatchEnabled
+
+        // Toasts
+        toastsEnabled.value = s.toastsEnabled ?? true
+        toastDurationMs.value = Number.isFinite(s.toastDurationMs) && s.toastDurationMs > 0 ? s.toastDurationMs : 2500
+
+        // ToastTypes JSON
+        try {
+            const parsed = JSON.parse(s.toastTypeEnabledJson || '{}') as Partial<Record<ToastType, unknown>>
+                ; (Object.keys(toastTypeEnabled) as ToastType[]).forEach((k) => {
+                    if (typeof parsed?.[k] === 'boolean') toastTypeEnabled[k] = parsed[k] as boolean
+                })
+        } catch {
+            // ignore: defaults bleiben
+        }
+    }
+
     function onToastTypeManagerDone() {
         // Fertig -> hier Reminder-Logik
         showToastTypeManager.value = false
@@ -481,9 +507,10 @@
 
         if (!changed) return
 
-        const raw = Number(localStorage.getItem(LS_TOAST_TYPES_REMINDER_COUNT) || '0')
+        const key = 'settings:toast-types-reminder-count'
+        const raw = Number(sessionStorage.getItem(key) || '0')
         const next = Number.isFinite(raw) ? raw + 1 : 1
-        localStorage.setItem(LS_TOAST_TYPES_REMINDER_COUNT, String(next))
+        sessionStorage.setItem(key, String(next))
 
         const REMINDER_STEPS = [1, 2, 3, 5, 8, 13]
 
@@ -510,33 +537,6 @@
         'toast-reset': true
     })
 
-    const loadToastTypePrefs = () => {
-        // Primär: enabled-map
-        const raw = localStorage.getItem(LS_TOAST_TYPE_ENABLED)
-        if (raw) {
-            try {
-                const parsed = JSON.parse(raw) as Partial<Record<ToastType, unknown>>
-                    ; (Object.keys(toastTypeEnabled) as ToastType[]).forEach((k) => {
-                        if (typeof parsed?.[k] === 'boolean') toastTypeEnabled[k] = parsed[k] as boolean
-                    })
-                return
-            } catch { /* ignore */ }
-        }
-
-        // Fallback: disabled-array (falls dein Toast-Menü sowas nutzt)
-        const rawDisabled = localStorage.getItem(LS_TOAST_DISABLED_TYPES)
-        if (rawDisabled) {
-            try {
-                const disabled = JSON.parse(rawDisabled) as unknown
-                if (Array.isArray(disabled)) {
-                    ; (Object.keys(toastTypeEnabled) as ToastType[]).forEach((k) => {
-                        toastTypeEnabled[k] = !disabled.includes(k)
-                    })
-                }
-            } catch { /* ignore */ }
-        }
-    }
-
     const onToastTypesChanged = (e: CustomEvent<Partial<Record<ToastType, boolean>>>) => {
         const map = e.detail || {}
             ; (Object.keys(toastTypeEnabled) as ToastType[]).forEach((k) => {
@@ -556,53 +556,29 @@
             saveHintTimer = null
         }
     })
-    onMounted(() => {
-        // Persistierten Zustand initialisieren
+    onMounted(async () => {
         initTheme()
 
         window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
-
         window.addEventListener('confirm-delete-changed', onConfirmDeleteEnabledChanged as EventListener)
-
-        persistedTheme.value = isDark.value ? 'dark' : 'light'
-        isDarkDraft.value = isDark.value
-
-        // Einheiten / AutoCalc laden
-        const unit = (localStorage.getItem(LS_PREFERRED_UNIT) || '').toLowerCase()
-        preferredUnit.value = (allowedUnits as readonly string[]).includes(unit)
-            ? (unit as 'kg' | 'lbs')
-            : 'kg'
-
-        autoCalcEnabled.value = localStorage.getItem(LS_AUTO_CALC_ENABLED) === 'true'
-
-        // Toasts aktiviert?
-        const stored = localStorage.getItem(LS_TOASTS_ENABLED)
-        toastsEnabled.value = stored === null ? true : stored === 'true'
-
-        // Toast-Dauer laden
-        const durRaw = Number(localStorage.getItem(LS_TOAST_DURATION_MS))
-        toastDurationMs.value = Number.isFinite(durRaw) && durRaw > 0 ? durRaw : 2500
-
-        // Löschen bestätigen?
-        const storedConfirm = localStorage.getItem(LS_CONFIRM_DELETE_ENABLED)
-        confirmDeleteEnabled.value = storedConfirm === null ? true : storedConfirm === 'true'
-
-        // Back-to-top?
-        const bttStored = localStorage.getItem(LS_BACK_TO_TOP_ENABLED)
-        backToTopEnabled.value = bttStored === null ? true : bttStored === 'true'
-
-        // Sticky Timer / Stoppuhr?
-        const stStored = localStorage.getItem(LS_STICKY_TIMER_ENABLED)
-        stickyTimerEnabled.value = stStored === null ? true : stStored === 'true'
-
-        const ssStored = localStorage.getItem(LS_STICKY_STOPWATCH_ENABLED)
-        stickyStopwatchEnabled.value = ssStored === null ? true : ssStored === 'true'
-
-        loadToastTypePrefs()
-
         window.addEventListener('toast-types-changed', onToastTypesChanged as EventListener)
 
-        // Wenn wir von Settings weg sind, sollen die Gruppen beim nächsten Öffnen zu sein
+        const settings = useSettingsStore()
+
+        if (auth.user) {
+            try {
+                await settings.loadFromBackend()
+                applySettingsDto(settings.dto)
+            } catch {
+                // wenn backend failt: defaults (aber nix local speichern)
+                settings.resetToDefaults()
+                applySettingsDto(settings.dto)
+            }
+        } else {
+            settings.resetToDefaults()
+            applySettingsDto(settings.dto)
+        }
+
         if (sessionStorage.getItem(SETTINGS_GROUPS_COLLAPSE_FLAG) === '1') {
             collapseAllGroups()
             sessionStorage.removeItem(SETTINGS_GROUPS_COLLAPSE_FLAG)
@@ -627,68 +603,107 @@
     watch(isDarkDraft, (v) => {
         previewTheme(v ? 'dark' : 'light')
     })
+
     const startToastExit = () => {
         if (!toast.value) return
         toast.value.exiting = true
         // Exit ist in Toast.vue per Inline-Style bereits auf 0ms gesetzt → sofort entfernen
         setTimeout(() => { toast.value = null }, 0)
     }
-    function saveSettings() {
-        // Theme persistieren
-        setTheme(isDarkDraft.value ? 'dark' : 'light')
-        persistedTheme.value = isDarkDraft.value ? 'dark' : 'light'
-        saved.value = true
 
-        // Units & AutoCalc persistieren
-        const unit = (preferredUnit.value || 'kg').toLowerCase() as 'kg' | 'lbs'
-        const normalized = (allowedUnits as readonly string[]).includes(unit) ? unit : 'kg'
-        localStorage.setItem(LS_PREFERRED_UNIT, normalized)
-        window.dispatchEvent(new CustomEvent('preferred-unit-changed', { detail: normalized }))
+    async function saveSettings() {
+        const theme: 'dark' | 'light' = isDarkDraft.value ? 'dark' : 'light'
 
-        localStorage.setItem(LS_AUTO_CALC_ENABLED, String(autoCalcEnabled.value))
-
-        // Toasts persistieren + global announcen
-        localStorage.setItem(LS_TOASTS_ENABLED, String(toastsEnabled.value))
-        window.dispatchEvent(new CustomEvent('toasts-enabled-changed', { detail: toastsEnabled.value }))
-
-        localStorage.setItem(LS_TOAST_TYPE_ENABLED, JSON.stringify({ ...toastTypeEnabled }))
-
-        const disabledTypes = (Object.keys(toastTypeEnabled) as ToastType[]).filter((k) => !toastTypeEnabled[k])
-        localStorage.setItem(LS_TOAST_DISABLED_TYPES, JSON.stringify(disabledTypes))
-
-        window.dispatchEvent(new CustomEvent('toast-types-changed', { detail: { ...toastTypeEnabled } }))
-
-        // Toast-Dauer persistieren + global announcen
-        localStorage.setItem(LS_TOAST_DURATION_MS, String(toastDurationMs.value))
-        window.dispatchEvent(new CustomEvent('toast-duration-changed', { detail: toastDurationMs.value }))
-
-        // Confirm-Delete persistieren + global announcen
-        localStorage.setItem(LS_CONFIRM_DELETE_ENABLED, String(confirmDeleteEnabled.value))
-        window.dispatchEvent(new CustomEvent('confirm-delete-changed', { detail: confirmDeleteEnabled.value }))
-
-        localStorage.setItem(LS_BACK_TO_TOP_ENABLED, String(backToTopEnabled.value))
-        window.dispatchEvent(new CustomEvent('back-to-top-enabled-changed', { detail: backToTopEnabled.value }))
-
-        localStorage.setItem(LS_STICKY_TIMER_ENABLED, String(stickyTimerEnabled.value))
-        window.dispatchEvent(new CustomEvent('sticky-timer-enabled-changed', { detail: stickyTimerEnabled.value }))
-
-        localStorage.setItem(LS_STICKY_STOPWATCH_ENABLED, String(stickyStopwatchEnabled.value))
-        window.dispatchEvent(new CustomEvent('sticky-stopwatch-enabled-changed', { detail: stickyStopwatchEnabled.value }))
-
-        window.dispatchEvent(new Event('tyg:sticky-prefs-changed'))
-
-        if (toastsEnabled.value && toastTypeEnabled['toast-save']) {
-            const id = Date.now()
-            toast.value = {
-                id,
-                message: 'Einstellungen gespeichert! 🎉',
-                emoji: '💾',
-                type: 'toast-save',
-                exiting: false,
-                durationMs: toastDurationMs.value
+        // Guest
+        if (!auth.user) {
+            if (toastsEnabled.value) {
+                toast.value = {
+                    id: Date.now(),
+                    message: 'Nur mit Account werden Einstellungen gespeichert 👀',
+                    emoji: '🔒',
+                    type: 'toast-default',
+                    exiting: false,
+                    durationMs: toastDurationMs.value
+                }
             }
+            return
         }
 
+        // Persistenz
+        saved.value = true
+        persistedTheme.value = theme
+        previewTheme(theme)
+
+        const settings = useSettingsStore()
+
+        const nextToastTypesJson = JSON.stringify({ ...toastTypeEnabled })
+
+        settings.dto = {
+            theme,
+            preferredUnit: preferredUnit.value,
+            autoCalcEnabled: autoCalcEnabled.value,
+            confirmDeleteEnabled: confirmDeleteEnabled.value,
+            backToTopEnabled: backToTopEnabled.value,
+            stickyTimerEnabled: stickyTimerEnabled.value,
+            stickyStopwatchEnabled: stickyStopwatchEnabled.value,
+            toastsEnabled: toastsEnabled.value,
+            toastDurationMs: toastDurationMs.value,
+            toastTypeEnabledJson: nextToastTypesJson
+        }
+
+        try {
+            await settings.saveToBackend()
+
+            // ✅ Verifizieren: direkt nochmal laden
+            await settings.loadFromBackend()
+
+            const persistedToastTypesJson = settings.dto.toastTypeEnabledJson ?? "{}"
+            const ok = persistedToastTypesJson === nextToastTypesJson
+
+            // UI-Draft sauber aus Backend-Truth setzen
+            applySettingsDto(settings.dto)
+
+            // deine bisherigen Events (kannst du später reduzieren, aber lassen wir)
+            window.dispatchEvent(new CustomEvent('preferred-unit-changed', { detail: preferredUnit.value }))
+            window.dispatchEvent(new CustomEvent('toasts-enabled-changed', { detail: toastsEnabled.value }))
+            window.dispatchEvent(new CustomEvent('toast-duration-changed', { detail: toastDurationMs.value }))
+            window.dispatchEvent(new CustomEvent('confirm-delete-changed', { detail: confirmDeleteEnabled.value }))
+            window.dispatchEvent(new CustomEvent('back-to-top-enabled-changed', { detail: backToTopEnabled.value }))
+            window.dispatchEvent(new CustomEvent('sticky-timer-enabled-changed', { detail: stickyTimerEnabled.value }))
+            window.dispatchEvent(new CustomEvent('sticky-stopwatch-enabled-changed', { detail: stickyStopwatchEnabled.value }))
+            window.dispatchEvent(new Event('tyg:sticky-prefs-changed'))
+
+            if (toastsEnabled.value) {
+                toast.value = ok
+                    ? {
+                        id: Date.now(),
+                        message: 'Einstellungen gespeichert! 🎉',
+                        emoji: '💾',
+                        type: 'toast-save',
+                        exiting: false,
+                        durationMs: toastDurationMs.value
+                    }
+                    : {
+                        id: Date.now(),
+                        message: 'Toast-Arten wurden NICHT übernommen (Backend/DB).',
+                        emoji: '⚠️',
+                        type: 'toast-default',
+                        exiting: false,
+                        durationMs: toastDurationMs.value
+                    }
+            }
+        } catch {
+            if (toastsEnabled.value) {
+                toast.value = {
+                    id: Date.now(),
+                    message: 'Speichern fehlgeschlagen (Netzwerk/Backend).',
+                    emoji: '⚠️',
+                    type: 'toast-default',
+                    exiting: false,
+                    durationMs: toastDurationMs.value
+                }
+            }
+        }
     }
 </script>
 <style scoped>
@@ -1549,6 +1564,5 @@
             text-overflow: unset;
         }
     }
-
 
 </style>

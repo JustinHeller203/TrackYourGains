@@ -204,7 +204,7 @@
         <!-- Mini -->
         <template #mini>
             <div class="calc-mini">
-                <div class="calc-mini-title">Reality-Check ✅</div>
+                <div class="calc-mini-title">✅ Reality-Check</div>
                 <div class="calc-mini-text">
                     Dein bestes Tool bleibt: <strong>saubere Reps</strong> + <strong>Progress</strong>. 1RM ist nur ’ne Zahl.
                 </div>

@@ -27,7 +27,7 @@
                 </div>
 
                 <div class="calc-hero-sub">
-                    BMI ist nur ein Richtwert – kein Urteil über dich.
+                    Der BMI setzt dein <strong>Gewicht</strong> ins Verhältnis zu deiner <strong>Größe</strong> – für eine grobe Einordnung. Muskeln und Fett unterscheidet er nicht.
                 </div>
 
                 <div class="calc-hero-pills" aria-label="Schnellnavigation">
@@ -226,7 +226,7 @@
         <!-- Mini -->
         <template #mini>
             <div class="calc-mini">
-                <div class="calc-mini-title">Reality-Check ✅</div>
+                <div class="calc-mini-title">✅ Reality-Check</div>
                 <div class="calc-mini-text">
                     BMI = <strong>Startpunkt</strong>. Für echte Einschätzung: <strong>Körperfett</strong>, <strong>Umfänge</strong> oder <strong>Progress-Fotos</strong>.
                 </div>

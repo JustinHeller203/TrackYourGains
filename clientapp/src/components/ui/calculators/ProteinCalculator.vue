@@ -273,7 +273,7 @@
         <!-- Mini -->
         <template #mini>
             <div class="calc-mini">
-                <div class="calc-mini-title">Reality-Check ✅</div>
+                <div class="calc-mini-title">✅ Reality-Check</div>
                 <div class="calc-mini-text">
                     Wenn du <strong>regelmäßig trainierst</strong> und dein Protein <strong>halbwegs triffst</strong>, bist du schon sehr weit.
                 </div>

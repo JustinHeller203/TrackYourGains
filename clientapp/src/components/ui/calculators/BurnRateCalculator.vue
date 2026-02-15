@@ -241,9 +241,20 @@
                         <li><strong>„Warum zeigt die Waage was anderes?“</strong> → Wasser, Salz, Schlaf, Stress, Darm-Inhalt.</li>
                     </ul>
                 </section>
+
             </div>
         </template>
 
+        <template #mini>
+            <div class="calc-mini">
+                <div class="calc-mini-title">✅ Reality-Check</div>
+                <div class="calc-mini-text">
+                    BurnRate ist nur ein <strong>Richtwert</strong> (Energie-Äquivalent). Auf der Waage siehst du oft
+                    <strong>Wasser/Glykogen</strong> statt Fett. Wenn du abnehmen willst: tracke lieber
+                    <strong>Kalorien</strong>, <strong>Protein</strong>, <strong>Schritte</strong> + <strong>Krafttraining</strong>.
+                </div>
+            </div>
+        </template>
         <!-- Inputs -->
         <template #inputs="{ maybeAutoCalc, normalizeNumberInput }">
             <!-- Modus Buttons (bleibt) -->
@@ -272,7 +283,7 @@
                                    :label="mode === 'fat_to_kcal' ? 'Fettmenge' : 'Kalorien'"
                                    :placeholder="mode === 'fat_to_kcal' ? 'z.B. 250' : 'z.B. 500'"
                                    :hint="modeHint"
-                                  @update:modelValue="(v) => { amountRaw = normalizeNumberInput(String(v)); if (!autoCalcEnabled) didCalculate = false; maybeAutoCalc() }" />
+                                   @update:modelValue="(v) => { amountRaw = normalizeNumberInput(String(v)); if (!autoCalcEnabled) didCalculate = false; maybeAutoCalc() }" />
 
                 <UiCalculatorInput :modelValue="fatUnit"
                                    as="select"
@@ -465,18 +476,41 @@
     .br-row {
         display: flex;
         gap: .75rem;
+        flex-wrap: nowrap;
         align-items: flex-start;
     }
 
-    /* kein :deep -> nimm global, damit es safe greift */
+    /* wichtig: Flex-Items dürfen schrumpfen, sonst bricht die Row */
+    :global(.br-row > *) {
+        min-width: 0;
+    }
+
+    /* Input darf groß werden */
     :global(.br-row .ui-input) {
         flex: 1 1 auto;
         min-width: 0;
     }
 
+    /* Select bleibt “zielbreit”, darf aber schrumpfen wenn Label lang ist */
     :global(.br-row .ui-select) {
-        flex: 0 0 160px;
+        flex: 0 1 160px;
+        min-width: 120px;
     }
 
+    /* <= 475px: untereinander, beide 100% */
+    @media (max-width: 475px) {
+        .br-row {
+            flex-direction: column;
+            flex-wrap: nowrap;
+            gap: .65rem;
+        }
+
+        :global(.br-row .ui-input),
+        :global(.br-row .ui-select) {
+            flex: 1 1 auto;
+            width: 100%;
+            min-width: 0;
+        }
+    }
 
 </style>

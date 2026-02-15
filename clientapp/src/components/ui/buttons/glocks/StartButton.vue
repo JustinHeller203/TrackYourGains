@@ -1,3 +1,5 @@
+<!--components/ui/buttons/glocks/StartButton.vue-->
+
 <template>
     <BaseButton :type="type"
                 :title="title || 'Start'"
@@ -10,16 +12,16 @@
 </template>
 
 <script setup lang="ts">
-import BaseButton from '@/components/ui/buttons/BaseButton.vue'
+    import BaseButton from '@/components/ui/buttons/BaseButton.vue'
 
-defineProps<{
-  type?: 'button' | 'submit' | 'reset'
-  title?: string
-  ariaLabel?: string
-  disabled?: boolean
-}>()
+    defineProps<{
+        type?: 'button' | 'submit' | 'reset'
+        title?: string
+        ariaLabel?: string
+        disabled?: boolean
+    }>()
 
-defineEmits<{ (e:'click', ev:MouseEvent): void }>()
+    defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 </script>
 
 <style scoped>
@@ -51,14 +53,15 @@ defineEmits<{ (e:'click', ev:MouseEvent): void }>()
             filter: saturate(.85);
         }
 
-    .timer-btn:focus-visible {
-        outline: none;
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 22%, transparent), 0 16px 36px rgba(15, 23, 42, 0.22);
-    }
-        .start-btn:active:not(:disabled) {
-            transform: translateY(0) scale(1.01);
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+        .timer-btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 22%, transparent), 0 16px 36px rgba(15, 23, 42, 0.22);
         }
+
+    .start-btn:active:not(:disabled) {
+        transform: translateY(0) scale(1.01);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
 
     /* START: Glass-Button im selben Material wie Selects/Displays */
     .start-btn {
@@ -82,5 +85,4 @@ defineEmits<{ (e:'click', ev:MouseEvent): void }>()
         background: radial-gradient(circle at 18% 28%, rgba(16,185,129,.30), transparent 60%), radial-gradient(circle at 85% 78%, rgba(132,204,22,.18), transparent 70%), linear-gradient(180deg, rgba(16,185,129,.86), rgba(4,120,87,.90));
         box-shadow: 0 18px 48px rgba(0,0,0,.62), 0 0 0 1px rgba(16,185,129,.26), 0 0 22px rgba(16,185,129,.20), inset 0 1px 0 rgba(255,255,255,.08);
     }
-
 </style>

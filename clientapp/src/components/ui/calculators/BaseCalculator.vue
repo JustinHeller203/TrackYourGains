@@ -64,6 +64,7 @@
 
         <!-- Calculate button (manual mode) -->
         <CalculateButton v-if="showCalculateButton"
+                         class="calc-calc-btn"
                          @click="emitCalculate()" />
 
         <!-- Result -->
@@ -86,9 +87,9 @@
         <div class="card-footer" v-if="showFooter">
             <div class="footer-actions">
                 <ResetButton v-if="showReset"
-                             class="calc-footer-btn"
+                             class="calc-footer-btn calc-reset-btn"
                              aria-label="Zurücksetzen"
-                             data-short="Reset"
+                             data-short="Zurücksetzen"
                              @click="$emit('reset')" />
             </div>
         </div>
@@ -379,10 +380,29 @@
 
     .card-footer {
         border-top: 1px solid var(--border-color);
-        padding: .75rem 0 0;
+        padding: 1rem 0 0; /* war .75rem -> Trennlinie "weiter runter" */
         display: flex;
         width: 100%;
         justify-content: flex-end !important;
+    }
+
+    .calc-calc-btn {
+        margin-bottom: 1rem;
+    }
+
+    @media (max-width: 600px) {
+        .calc-calc-btn {
+            margin-bottom: 1rem;
+        }
+    }
+    @media (max-width: 600px) {
+        .card-footer {
+            border-top: 1px solid var(--border-color);
+            padding: 1rem 0 0; /* gleiches Spacing mobil */
+            display: flex;
+            width: 100%;
+            justify-content: flex-end !important;
+        }
     }
 
     .footer-actions {
@@ -396,18 +416,72 @@
         margin-left: auto;
     }
 
-    @media (max-width: 600px) {
-        .card-footer {
-            border-top: 1px solid var(--border-color);
-            padding: .75rem 0 0;
-            display: flex;
-            width: 100%;
-            justify-content: flex-end !important;
-        }
-
-        .footer-actions {
-            max-width: none;
-        }
-
+    /* Input/Select Info-Button (Label) -> nur Emoji, kein Background */
+    :global(.calculator-card .label-with-info .info-btn) {
+        appearance: none;
+        -webkit-appearance: none;
+        border: 0;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+        color: inherit;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        -webkit-tap-highlight-color: transparent;
     }
+
+    :global(.calculator-card .label-with-info .info-btn .info-emoji) {
+        display: inline-block;
+        transform: scale(1);
+        transform-origin: center;
+        transition: transform 140ms ease;
+    }
+
+    :global(.calculator-card .label-with-info .info-btn:hover .info-emoji) {
+        transform: scale(1.18);
+    }
+
+    :global(.calculator-card .label-with-info .info-btn:active .info-emoji) {
+        transform: scale(1.08);
+    }
+
+    :global(.calculator-card .label-with-info .info-btn:focus-visible) {
+        outline: none;
+    }
+
+    @media (max-width: 600px) {
+        /* Nur in Calculator-Cards: Label NICHT verstecken + kein "data-short" Ersatztext */
+        :global(.calculator-card .calc-reset-btn .btn-label) {
+            display: inline !important;
+        }
+
+        :global(.calculator-card .calc-reset-btn.btn-danger-ghost::after) {
+            content: none !important;
+            display: none !important;
+        }
+
+        :global(.calculator-card .calc-reset-btn .btn-icon) {
+            margin-right: .4rem !important;
+        }
+    }
+
+    @media (max-width: 350px) {
+        /* Auch auf super klein: Text bleibt sichtbar bei Rechnern */
+        :global(.calculator-card .calc-reset-btn .btn-label) {
+            display: inline !important;
+        }
+
+        :global(.calculator-card .calc-reset-btn.btn-danger-ghost::after) {
+            content: none !important;
+            display: none !important;
+        }
+
+        :global(.calculator-card .calc-reset-btn .btn-icon) {
+            margin-right: .4rem !important;
+        }
+    }
+
 </style>

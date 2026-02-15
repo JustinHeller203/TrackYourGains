@@ -316,7 +316,7 @@
         <!-- Mini -->
         <template #mini>
             <div class="calc-mini">
-                <div class="calc-mini-title">Reality-Check ✅</div>
+                <div class="calc-mini-title">✅ Reality-Check</div>
                 <div class="calc-mini-text">
                     GL hilft dir bei <strong>Portionen</strong>. Für “gesund” zählen auch <strong>Protein</strong>, <strong>Ballaststoffe</strong> &amp; <strong>Gesamtkalorien</strong>.
                 </div>
@@ -348,7 +348,7 @@
                                hint="Falls bekannt: Ballaststoffe von den Gesamt-KH abziehen."
                                @update:modelValue="(v) => { emit('update:glCarbs100', toNumberOrNull(v)); maybeAutoCalc() }" />
 
-            <div class="gi-label">
+            <div class="label-with-info">
                 <span>Glykämischer Index (0–110)</span>
                 <button class="info-btn"
                         type="button"
@@ -512,13 +512,6 @@
 </script>
 
 <style scoped>
-    .gi-label {
-        display: inline-flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: .4rem;
-        width: fit-content;
-    }
     /* GI Block */
     .gi-steps {
         display: grid;
@@ -580,6 +573,14 @@
         .gi-steps {
             grid-template-columns: 1fr;
         }
+    }
+
+    /* Abstand zwischen Label-Text und Info-Button größer */
+    .label-with-info {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        width: fit-content;
     }
 
    
