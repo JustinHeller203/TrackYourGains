@@ -7,7 +7,12 @@
                @cancel="emit('close')">
 
         <!-- Scroll-Container (Ref bleibt vorhanden für Parent-Logik) -->
-        <div class="modal--progress" ref="modalEl">
+        <div class="modal--progress"
+             ref="modalEl"
+             @touchstart="onSwipeStart"
+             @touchmove="onSwipeMove"
+             @touchend="onSwipeEnd"
+             @touchcancel="onSwipeCancel">
 
             <div v-if="!dayCards.length" class="empty-state">
                 <div class="empty-icon" aria-hidden="true">📈</div>
@@ -740,6 +745,86 @@
     }
 
     const viewMode = ref<'list' | 'calendar'>('list')
+
+    // ===== Swipe (List <-> Calendar) =====
+    const swipe = ref({
+        active: false,
+        startX: 0,
+        startY: 0,
+        lastX: 0,
+        lastY: 0,
+        decided: false,
+        horizontal: false,
+    })
+
+    const SWIPE_MIN_X = 55          // wie weit muss man wischen
+    const SWIPE_MAX_Y = 45          // wenn zu viel vertikal -> ist scroll, kein swipe
+    const SWIPE_DECIDE_AT = 12      // ab wann wir entscheiden "horizontal vs vertical"
+
+    const onSwipeStart = (ev: TouchEvent) => {
+        // Nur wenn es überhaupt was zu wechseln gibt
+        if (!dayCards.value.length) return
+
+        const t = ev.touches?.[0]
+        if (!t) return
+
+        swipe.value.active = true
+        swipe.value.decided = false
+        swipe.value.horizontal = false
+
+        swipe.value.startX = t.clientX
+        swipe.value.startY = t.clientY
+        swipe.value.lastX = t.clientX
+        swipe.value.lastY = t.clientY
+    }
+
+    const onSwipeMove = (ev: TouchEvent) => {
+        if (!swipe.value.active) return
+        const t = ev.touches?.[0]
+        if (!t) return
+
+        swipe.value.lastX = t.clientX
+        swipe.value.lastY = t.clientY
+
+        if (!swipe.value.decided) {
+            const dx = Math.abs(swipe.value.lastX - swipe.value.startX)
+            const dy = Math.abs(swipe.value.lastY - swipe.value.startY)
+            if (dx < SWIPE_DECIDE_AT && dy < SWIPE_DECIDE_AT) return
+
+            swipe.value.decided = true
+            swipe.value.horizontal = dx > dy
+        }
+    }
+
+    const onSwipeEnd = () => {
+        if (!swipe.value.active) return
+        swipe.value.active = false
+
+        if (!swipe.value.horizontal) return
+
+        const dx = swipe.value.lastX - swipe.value.startX
+        const dy = Math.abs(swipe.value.lastY - swipe.value.startY)
+
+        // zu viel vertical => war einfach scroll
+        if (dy > SWIPE_MAX_Y) return
+
+        if (Math.abs(dx) < SWIPE_MIN_X) return
+
+        // dx < 0 => swipe left, dx > 0 => swipe right
+        if (dx < 0 && viewMode.value === 'list') {
+            viewMode.value = 'calendar'
+            return
+        }
+
+        if (dx > 0 && viewMode.value === 'calendar') {
+            viewMode.value = 'list'
+            return
+        }
+    }
+
+    const onSwipeCancel = () => {
+        swipe.value.active = false
+    }
 
     const selectedDay = ref<string | null>(null)
 
@@ -1817,38 +1902,11 @@
     .modal--progress {
         display: flex;
         flex-direction: column;
-        overflow-y: auto; /* oder: scroll, wenn du IMMER Platz reservieren willst */
-        overflow-x: hidden;
         max-height: min(52vh, calc(100vh - 220px));
         min-height: 0;
         overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
-        /* Firefox */
-        scrollbar-width: thin;
-        scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
     }
-
-        /* WebKit (Chrome/Edge/Safari) */
-        .modal--progress::-webkit-scrollbar {
-            width: 10px;
-        }
-
-        .modal--progress::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .modal--progress::-webkit-scrollbar-thumb {
-            border-radius: 999px;
-            background: rgba(148, 163, 184, 0.45);
-            border: 3px solid transparent; /* macht's “slimmer” + nicer */
-            background-clip: content-box;
-        }
-
-            .modal--progress::-webkit-scrollbar-thumb:hover {
-                background: rgba(148, 163, 184, 0.65);
-                background-clip: content-box;
-            }
-
     .section-caret {
         display: inline-block;
         font-weight: 950;

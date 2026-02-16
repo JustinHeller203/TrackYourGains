@@ -56,6 +56,11 @@ builder.Services
     .AddIdentityCore<IdentityUser>(opt =>
     {
         opt.User.RequireUniqueEmail = true;
+
+        // ✅ FIX: erlaubt Punkte/Plus/etc. in Username (du setzt Username = Email)
+        opt.User.AllowedUserNameCharacters =
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+
         opt.Password.RequiredLength = 8;
         opt.Password.RequireDigit = true;
         opt.Password.RequireUppercase = true;

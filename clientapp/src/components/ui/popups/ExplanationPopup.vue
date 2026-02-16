@@ -165,23 +165,6 @@
             transform: translateY(0px) scale(0.99);
         }
 
-    .explain-scroll-wrap {
-        max-height: min(56vh, 620px);
-        /* NUR vertikal */
-        overflow-y: auto;
-        overflow-x: hidden;
-        overscroll-behavior: contain;
-        scroll-behavior: smooth;
-        /* Wrapper geht bis zum Rand -> Scrollbar sitzt am Popup-Rand */
-        padding-right: 0;
-        scrollbar-gutter: stable;
-    }
-
-    /* Scrollbar (Webkit) */
-    .explain-scroll-wrap::-webkit-scrollbar {
-        width: 10px;
-    }
-
     .explain-scroll {
         padding-right: 1.1rem; /* matcht BasePopup padding */
         max-width: 100%;
@@ -239,18 +222,6 @@
     :global(.popup-overlay.explanation-popup .explain-mini .calc-mini-text strong) {
         color: rgba(255, 255, 255, 0.92);
         font-weight: 850;
-    }
-
-
-    .explain-scroll-wrap::-webkit-scrollbar-track {
-        background: rgba(148, 163, 184, 0.10);
-        border-radius: 999px;
-    }
-
-    .explain-scroll-wrap::-webkit-scrollbar-thumb {
-        background: linear-gradient(to bottom, rgba(99,102,241,.75), rgba(34,197,94,.55));
-        border-radius: 999px;
-        border: 2px solid rgba(2,6,23,.45);
     }
 
     .explain-scroll-wrap {
@@ -644,8 +615,4 @@
             transform: none !important;
         }
     }
-
-
-
 </style>
-

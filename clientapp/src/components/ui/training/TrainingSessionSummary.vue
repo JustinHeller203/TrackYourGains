@@ -425,13 +425,12 @@
     .tss-root {
         display: grid;
         gap: 1rem;
-        /* ✅ max Höhe + Scrollbar innerhalb vom Summary */
         max-height: 52vh;
         overflow: auto;
         min-height: 0;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
-        padding-right: .15rem; /* kleine Luft für Scrollbar */
+        padding-right: .15rem;
     }
 
     .tss-head {
@@ -605,16 +604,4 @@
         }
     }
 
-    .tss-root::-webkit-scrollbar {
-        width: 10px;
-    }
-
-    .tss-root::-webkit-scrollbar-thumb {
-        background: rgba(148, 163, 184, 0.22);
-        border-radius: 999px;
-    }
-
-    .tss-root::-webkit-scrollbar-track {
-        background: transparent;
-    }
 </style>

@@ -1787,38 +1787,6 @@
         }
     }
 
-    .modal::-webkit-scrollbar {
-        width: var(--sb-size);
-        height: var(--sb-size);
-    }
-
-    .modal::-webkit-scrollbar-track {
-        background: transparent;
-        border: 0;
-        border-radius: 0;
-    }
-
-    .modal::-webkit-scrollbar-thumb {
-        background: color-mix(in oklab, var(--text-secondary) 28%, transparent);
-        border-radius: 999px;
-        /* macht den Thumb optisch dünn */
-        border: 3px solid transparent;
-        background-clip: padding-box;
-        box-shadow: none;
-    }
-
-        .modal::-webkit-scrollbar-thumb:hover {
-            background: color-mix(in oklab, var(--text-secondary) 42%, transparent);
-        }
-
-        .modal::-webkit-scrollbar-thumb:active {
-            background: color-mix(in oklab, var(--text-secondary) 55%, transparent);
-        }
-
-    .modal::-webkit-scrollbar-corner {
-        background: transparent;
-    }
-
     .modal-actions {
         display: flex;
         justify-content: flex-end;

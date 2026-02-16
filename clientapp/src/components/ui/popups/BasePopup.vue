@@ -86,7 +86,18 @@
     }
 
     .popup {
-        position: relative;
+        width: min(620px, 94vw);
+        max-height: 88vh; /* ADD: Popup bleibt im Viewport */
+        display: flex; /* ADD */
+        flex-direction: column; /* ADD */
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+        text-align: left;
+        font-family: var(--popup-font-family, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
+        padding: 0;
     }
 
     .popup-x {
@@ -99,10 +110,14 @@
     .popup-body {
         font-size: var(--popup-body-size, 1rem);
         padding: 1rem 1.1rem;
-        /* WICHTIG: erlaubt korrektes Scroll-Layout */
         display: flex;
         flex-direction: column;
         min-height: 0;
+        flex: 1; /* ADD: nimmt Resthöhe */
+        overflow: auto; /* ADD: Scrollbar für alle Popups */
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        padding-right: .15rem; /* ADD: Luft für Scrollbar */
     }
     .popup-overlay.explanation-popup .popup-body {
         padding-right: 0;
@@ -228,4 +243,19 @@
         margin-top: 1.1rem;
     }
 
+    :global(.popup-overlay *::-webkit-scrollbar) {
+        width: 10px;
+    }
+
+    :global(.popup-overlay *::-webkit-scrollbar-thumb) {
+        background: rgba(148, 163, 184, 0.22);
+        border-radius: 999px;
+    }
+
+    :global(.popup-overlay *::-webkit-scrollbar-track) {
+        background: transparent;
+    }
+    .popup {
+        position: relative;
+    }
 </style>
