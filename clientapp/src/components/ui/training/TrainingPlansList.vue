@@ -10,6 +10,43 @@
                       aria-label="Trainingspläne durchsuchen"
                       class="plan-search" />
 
+            <!-- Externer Plan per Code -->
+            <div v-if="externalQueryActive" class="external-plan-box">
+                <div v-if="externalLoading" class="external-plan-hint">
+                    Suche externen Plan…
+                </div>
+
+                <div v-else-if="externalError" class="external-plan-error">
+                    {{ externalError }}
+                </div>
+
+                <div v-else-if="externalView" class="external-plan-card">
+                    <div class="external-plan-left">
+                        <div class="external-plan-title">
+                            🔗 Externer Plan: <b>{{ externalView.name }}</b>
+                        </div>
+                        <div class="external-plan-sub">
+                            {{ externalView.exerciseCount }} Übungen · Code: {{ middleEllipsis(String(externalView.code ?? ''), 14) }}
+                        </div>
+                    </div>
+
+                    <div class="external-plan-actions">
+                        <ActionIconButton title="Installieren"
+                                          aria-label="Externen Trainingsplan installieren"
+                                          @click="installExternalPlan">
+                            <img class="icon-download icon-download--install"
+                                 src="/DownloadButton.png"
+                                 alt=""
+                                 aria-hidden="true" />
+                        </ActionIconButton>
+                    </div>
+                </div>
+
+                <div v-else class="external-plan-hint">
+                    Kein externer Plan gefunden.
+                </div>
+            </div>
+
             <!-- Favoriten sortieren -->
             <Draggable v-if="plans.length && favoritePlanItems.length"
                        v-model="favoritePlanItems"
@@ -187,8 +224,8 @@
 
                     <div v-if="selectedPlan.code" class="plan-code-row">
                         <span class="plan-code-badge"
-                              :title="`${selectedPlan.code} (Doppelklick zum Kopieren)`"
-                              @dblclick.stop="copyPlanCode(selectedPlan.code)">
+                              :title="`${selectedPlan.code} (Klick zum Kopieren)`"
+                              @click.stop="copyPlanCode(selectedPlan.code)">
                             Code: {{ middleEllipsis(selectedPlan.code, 14) }}
                         </span>
                     </div>
@@ -363,6 +400,8 @@
     import { useTrainingPlansStore } from '@/store/trainingPlansStore'
     import { useAuthStore } from '@/store/authStore'
     import type { TrainingPlan as TrainingPlanDto } from '@/types/TrainingPlan'
+    import { getTrainingPlanByCode, installTrainingPlanByCode } from "@/services/trainingPlans"
+
     import PlanCreatedTutorial from "@/components/ui/TygTutorials/PlanCreatedTutorial.vue"
     import TrainingSimulation from "@/components/ui/popups/TrainingSimulation.vue"
     import { useProgressStore } from "@/store/progressStore"
@@ -767,6 +806,110 @@
 
     /* -------------------- UI State (nur Plans) -------------------- */
     const planSearch = ref('')
+
+    const externalPlan = ref<TrainingPlanDto | null>(null)
+    const externalLoading = ref(false)
+    const externalError = ref<string | null>(null)
+
+    let externalT: number | null = null
+
+    const isValidPlanCodeFrontend = (raw: string) => {
+        const code = (raw ?? '').trim()
+        if (code.length !== 12) return false
+
+        const U = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+        const L = "abcdefghijkmnpqrstuvwxyz"
+        const D = "23456789"
+        const S = "&-_,#."
+        const ALL = U + L + D + S
+
+        let hasU = false, hasL = false, hasD = false, specialCount = 0
+
+        for (const c of code) {
+            if (!ALL.includes(c)) return false
+            if (U.includes(c)) hasU = true
+            else if (L.includes(c)) hasL = true
+            else if (D.includes(c)) hasD = true
+            else if (S.includes(c)) specialCount++
+        }
+
+        return hasU && hasL && hasD && specialCount === 1
+    }
+
+    const externalQueryActive = computed(() => isValidPlanCodeFrontend(planSearch.value))
+
+    const externalView = computed<ViewPlan | null>(() => {
+        if (!externalPlan.value) return null
+        return flattenDto(externalPlan.value)
+    })
+
+    const fetchExternalPlan = async (code: string) => {
+        externalLoading.value = true
+        externalError.value = null
+        externalPlan.value = null
+
+        try {
+            const dto = await getTrainingPlanByCode(code.trim())
+            externalPlan.value = dto
+        } catch (e: any) {
+            const status = e?.response?.status ?? e?.status
+            if (status === 404) {
+                externalError.value = null
+                externalPlan.value = null
+            } else if (status === 400) {
+                externalError.value = "Ungültiger Code."
+            } else {
+                externalError.value = "Externer Plan konnte nicht geladen werden."
+            }
+        } finally {
+            externalLoading.value = false
+        }
+    }
+
+    watch(planSearch, (val) => {
+        if (externalT) window.clearTimeout(externalT)
+
+        // Nur triggern wenn es wie ein Code aussieht
+        if (!isValidPlanCodeFrontend(val)) {
+            externalPlan.value = null
+            externalError.value = null
+            externalLoading.value = false
+            return
+        }
+
+        externalT = window.setTimeout(() => {
+            fetchExternalPlan(val)
+        }, 350)
+    })
+
+    const installExternalPlan = async () => {
+        const code = planSearch.value.trim()
+        if (!isValidPlanCodeFrontend(code)) return
+
+        if (!auth.user) {
+            props.addToast("Zum Installieren musst du eingeloggt sein", "delete")
+            return
+        }
+
+        try {
+            const created = await installTrainingPlanByCode(code)
+
+            // Liste refreshen, damit es direkt in "Deine Trainingspläne" auftaucht
+            await trainingPlansStore.loadList()
+
+            props.addToast("Plan installiert ✅", "add")
+
+            // optional: direkt öffnen
+            await loadPlan(created.id)
+
+            // Suchfeld leeren (damit externe Card weg ist)
+            planSearch.value = ""
+        } catch (e: any) {
+            const msg = e?.response?.data?.message ?? e?.message ?? null
+            props.addToast(msg || "Installieren fehlgeschlagen", "delete")
+        }
+    }
+
     const selectedPlan = ref<ViewPlan | null>(null)
     const selectedPlanRoot = ref<HTMLElement | null>(null)
 
@@ -2122,5 +2265,97 @@
 
     .plan-drag-stack--others {
         margin-top: 1.25rem; /* Abstand zwischen Favoriten & Nicht-Favoriten */
+    }
+
+    .external-plan-box {
+        margin: 12px 0 16px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+    }
+
+    .external-plan-card {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.05rem 1.25rem;
+        border-radius: 18px;
+        /* TYG premium card vibe (matcht deine .list-item.plan-item Richtung) */
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 58%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 92%, #020617 8%);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease, background .22s ease;
+    }
+
+    @media (hover: hover) {
+        .external-plan-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.30);
+            border-color: rgba(129, 140, 248, 0.55);
+        }
+    }
+
+    html.dark-mode .external-plan-card {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 58%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 62%), #020617;
+        border-color: rgba(148, 163, 184, 0.26);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.70);
+    }
+
+    .external-plan-left {
+        min-width: 0;
+    }
+
+    .external-plan-title {
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: .2px;
+    }
+
+    .external-plan-sub {
+        margin-top: .2rem;
+        font-size: 0.85rem;
+        opacity: 0.88;
+    }
+
+    .external-plan-hint,
+    .external-plan-error {
+        padding: .9rem 1.15rem;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: color-mix(in srgb, var(--bg-card) 86%, #020617 14%);
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.18);
+        font-size: 0.85rem;
+    }
+
+    .external-plan-error {
+        border-color: rgba(239, 68, 68, 0.35);
+    }
+
+    .external-plan-actions :deep(button),
+    .external-plan-actions button {
+        height: 44px;
+        padding: 0 .85rem;
+        border-radius: 12px;
+        /* neutral + clean */
+        border: 1px solid rgba(148, 163, 184, 0.20);
+        background: color-mix(in srgb, var(--bg-card) 88%, #020617 12%);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
+        transition: background .15s ease, border-color .15s ease;
+    }
+
+
+    .icon-download--install {
+        width: 50px;
+        height: 40px;
+        display: block;
+        pointer-events: none;
+        filter: brightness(0) invert(1); /* macht das Icon weiß */
+    }
+
+    .install-text {
+        margin-left: .45rem;
+        font-weight: 700;
     }
 </style>

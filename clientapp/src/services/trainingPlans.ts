@@ -26,6 +26,16 @@ export async function deleteTrainingPlan(id: string) {
     return { ok: true };
 }
 
+export async function getTrainingPlanByCode(code: string) {
+    const { data } = await api.get<TrainingPlanDto>(`/training-plans/by-code/${encodeURIComponent(code)}`);
+    return data;
+}
+
+export async function installTrainingPlanByCode(code: string) {
+    const { data } = await api.post<TrainingPlanDto>(`/training-plans/install/${encodeURIComponent(code)}`);
+    return data;
+}
+
 // optional: wenn du später einen eigenen Endpoint machst (PATCH /favorite):
 export async function setTrainingPlanFavorite(id: string, isFavorite: boolean) {
     // wenn du (noch) keinen PATCH hast, kannst du erstmal über PUT lösen

@@ -150,6 +150,7 @@ public class TrainingPlansController : ControllerBase
         return Ok(TrainingPlanDto.FromEntity(plan));
     }
 
+    [AllowAnonymous]
     [HttpGet("by-code/{code}")]
     public async Task<ActionResult<TrainingPlanDto>> GetByCode(string code)
     {
@@ -158,13 +159,77 @@ public class TrainingPlansController : ControllerBase
             return BadRequest(new { message = "Ungültiger Code." });
 
         var plan = await _db.TrainingPlans
+            .AsNoTracking()
             .Include(p => p.Days.OrderBy(d => d.SortOrder))
                 .ThenInclude(d => d.Exercises.OrderBy(x => x.SortOrder))
             .FirstOrDefaultAsync(p => p.Code == trimmed);
 
-        if (plan is null) return NotFound();
+        if (plan is null) return NotFound(new { message = "Plan nicht gefunden." });
 
         return Ok(TrainingPlanDto.FromEntity(plan));
+    }
+
+    [HttpPost("install/{code}")]
+    public async Task<ActionResult<TrainingPlanDto>> InstallByCode(string code)
+    {
+        var userId = GetUserId();
+
+        var trimmed = (code ?? "").Trim();
+        if (!IsValidPlanCode(trimmed))
+            return BadRequest(new { message = "Ungültiger Code." });
+
+        var source = await _db.TrainingPlans
+            .Include(p => p.Days.OrderBy(d => d.SortOrder))
+                .ThenInclude(d => d.Exercises.OrderBy(x => x.SortOrder))
+            .FirstOrDefaultAsync(p => p.Code == trimmed);
+
+        if (source is null)
+            return NotFound(new { message = "Plan nicht gefunden." });
+
+        if (source.UserId == userId)
+            return BadRequest(new { message = "Das ist bereits dein Plan." });
+
+        var now = DateTime.UtcNow;
+
+        var cloned = new TrainingPlan
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Name = source.Name,
+            IsFavorite = false,
+            Code = await GetUniquePlanCodeAsync(null),
+            CreatedUtc = now,
+            UpdatedUtc = now,
+            Days = source.Days
+                .OrderBy(d => d.SortOrder)
+                .Select(d => new TrainingDay
+                {
+                    Id = Guid.NewGuid(),
+                    Name = d.Name,
+                    SortOrder = d.SortOrder,
+                    Exercises = d.Exercises
+                        .OrderBy(x => x.SortOrder)
+                        .Select(x => new TrainingExercise
+                        {
+                            Id = Guid.NewGuid(),
+                            Name = x.Name,
+                            Category = x.Category,
+                            SortOrder = x.SortOrder,
+                            Sets = x.Sets,
+                            Reps = x.Reps,
+                            TargetWeight = x.TargetWeight,
+                            RestSeconds = x.RestSeconds,
+                            DurationMin = x.DurationMin,
+                            DistanceKm = x.DistanceKm,
+                            Notes = x.Notes
+                        }).ToList()
+                }).ToList()
+        };
+
+        _db.TrainingPlans.Add(cloned);
+        await _db.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetOne), new { id = cloned.Id }, TrainingPlanDto.FromEntity(cloned));
     }
 
     // POST: /api/training-plans
