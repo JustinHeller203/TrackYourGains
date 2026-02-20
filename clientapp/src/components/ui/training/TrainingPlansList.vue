@@ -100,9 +100,9 @@
                                 <div class="inline-actions">
                                     <EditButton title="Plan bearbeiten" @click.stop="editPlanInBuilder(plan.id)" />
                                     <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
-                                    <ActionIconButton title="Download"
-                                                      aria-label="Trainingsplan herunterladen"
-                                                      @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
+                                    <ActionIconButton title="Exportieren"
+                                                      aria-label="Trainingsplan exportieren"
+                                                      @click="downloadPlan(plan)">⬇️</ActionIconButton>
                                 </div>
 
                                 <span class="kebab-wrap">
@@ -182,9 +182,9 @@
                                 <div class="inline-actions">
                                     <EditButton title="Plan bearbeiten" @click.stop="editPlanInBuilder(plan.id)" />
                                     <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
-                                    <ActionIconButton title="Download"
-                                                      aria-label="Trainingsplan herunterladen"
-                                                      @click="openDownloadPopup(plan)">⬇️</ActionIconButton>
+                                    <ActionIconButton title="Exportieren"
+                                                      aria-label="Trainingsplan exportieren"
+                                                     @click="downloadPlan(plan)">⬇️</ActionIconButton>
                                 </div>
 
                                 <span class="kebab-wrap">
@@ -204,7 +204,7 @@
                             <PlanMenu v-if="planMenuOpenId === plan.id"
                                       @edit="editPlanInBuilder(plan.id)"
                                       @delete="openDeletePopup(() => deletePlan(plan.id))"
-                                      @download="openDownloadPopup(plan)" />
+                                      @download="downloadPlan(plan)" />
                         </div>
                     </div>
                 </template>
@@ -472,6 +472,44 @@
     const simOpen = ref(false)
     const simPlan = ref<ViewPlan | null>(null)
 
+    const downloadPlan = async (plan: ViewPlan) => {
+        closePlanMenu()
+
+        // Gast: hat exercises schon drin
+        if (!auth.user) {
+            props.openDownloadPopup(plan)
+            return
+        }
+
+        const hasAnyExercises = (p: any) =>
+            Array.isArray(p?.days) &&
+            p.days.some((d: any) => Array.isArray(d?.exercises) && d.exercises.length > 0)
+
+        try {
+            // 1) quick try: item aus store
+            let dto = getAccountPlanDto(plan.id)
+
+            // 2) wenn "light" -> full nachladen (genau wie beim Öffnen)
+            if (!dto || !hasAnyExercises(dto)) {
+                await trainingPlansStore.loadOne(plan.id)
+                dto =
+                    (trainingPlansStore.selected as any) ??
+                    getAccountPlanDto(plan.id) ??
+                    null
+            }
+
+            if (!dto) {
+                props.addToast('Plan konnte nicht geladen werden', 'delete')
+                return
+            }
+
+            // 3) export braucht ViewPlan mit exercises
+            const fullView = flattenDto(dto)
+            props.openDownloadPopup(fullView)
+        } catch {
+            props.addToast('Plan konnte nicht geladen werden', 'delete')
+        }
+    }
     const startSimulation = async (plan: ViewPlan) => {
         closePlanMenu()
 
@@ -804,6 +842,48 @@
         }
     }
 
+    const buildPlanShareUrl = (code?: string | null) => {
+        const c = (code ?? '').trim()
+        if (!c) return 'https://trackyourgains.de'
+        const origin = (typeof window !== 'undefined' && window.location?.origin)
+            ? window.location.origin
+            : 'https://trackyourgains.de'
+        return `${origin}/training?code=${encodeURIComponent(c)}`
+    }
+
+    const buildShareLines = (ctx: { kind: 'plan' | 'progress' | 'whatever'; url?: string; title?: string }) => {
+        const url = (ctx.url ?? 'https://trackyourgains.de').trim() // ctx.url am besten schon encoded/deep
+        if (ctx.kind === 'plan') {
+            return [
+                '🔥 Ich hab dir meinen Trainingsplan in TrackYourGains geschickt.',
+                '👉 Öffnen & direkt loslegen:',
+                url,
+                '',
+                'Hol dir die App — macht Planung & Progress so viel cleaner 💪',
+            ]
+        }
+
+        if (ctx.kind === 'progress') {
+            return [
+                '📈 Ich hab dir meinen Progress in TrackYourGains geschickt.',
+                '👉 Öffnen:',
+                url,
+            ]
+        }
+
+        // fallback
+        return [
+            '📦 Export aus TrackYourGains:',
+            url,
+        ]
+    }
+
+    const shareLines = computed(() =>
+        buildShareLines({
+            kind: 'plan',
+            url: buildPlanShareUrl(selectedPlan.value?.code ?? null),
+        })
+    )
     /* -------------------- UI State (nur Plans) -------------------- */
     const planSearch = ref('')
 
@@ -843,6 +923,17 @@
         return flattenDto(externalPlan.value)
     })
 
+    const openViewPlanInUi = async (view: ViewPlan, toastMsg?: string) => {
+        selectedPlan.value = {
+            ...view,
+            exercises: Array.isArray(view.exercises) ? view.exercises.map(x => ({ ...x })) : [],
+        }
+        rowHeights.value = Array(selectedPlan.value.exercises.length).fill(40)
+        columnWidths.value = [50, 25, 25]
+        if (toastMsg) props.addToast(toastMsg, 'load')
+        await scrollToSelectedPlan()
+    }
+
     const fetchExternalPlan = async (code: string) => {
         externalLoading.value = true
         externalError.value = null
@@ -851,6 +942,10 @@
         try {
             const dto = await getTrainingPlanByCode(code.trim())
             externalPlan.value = dto
+
+            // ✅ direkt im UI anzeigen (ohne Install)
+            const view = flattenDto(dto)
+            await openViewPlanInUi(view, "Externer Plan geöffnet")
         } catch (e: any) {
             const status = e?.response?.status ?? e?.status
             if (status === 404) {
@@ -1487,6 +1582,14 @@
     onMounted(() => {
         document.addEventListener('click', onDocClick)
 
+        try {
+            const sp = new URLSearchParams(window.location.search)
+            const code = (sp.get('code') ?? '').trim()
+            if (code && isValidPlanCodeFrontend(code)) {
+                // nur setzen -> watch(planSearch) übernimmt fetch (kein Doppel-Call)
+                planSearch.value = code
+            }
+        } catch { }
         if (typeof window !== 'undefined') {
             mq = window.matchMedia('(max-width: 560px)')
             onMedia(mq)

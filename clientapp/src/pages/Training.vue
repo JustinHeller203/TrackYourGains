@@ -60,7 +60,7 @@
         <!-- Pop-up für Download -->
         <ExportPopup :show="showDownloadPopup"
                      v-model="downloadFormat"
-                     @confirm="confirmDownload"
+                     @confirm="confirmExport"
                      @cancel="closeDownloadPopup" />
 
         <!-- Pop-up für Validierungsfehler -->
@@ -81,7 +81,7 @@
 
 <script setup lang="ts">
     import { ref, computed, nextTick, watch, onMounted, onUnmounted, withDefaults } from 'vue'
-    import { jsPDF } from 'jspdf';
+    import { exportTrainingPlan } from '@/services/export/trainingPlanExport'
     import Toast from '@/components/ui/Toast.vue'
     import EditPopup from '@/components/ui/popups/EditPopup.vue'
     import ExportPopup from '@/components/ui/popups/ExportPopup.vue'
@@ -89,7 +89,7 @@
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import TimerComponent from '@/components/ui/training/TimerComponent.vue'
     import StopwatchComponent from '@/components/ui/training/StopwatchComponent.vue'
- 
+
     import TrainingPlanBuilder from '@/components/ui/training/TrainingPlanBuilder.vue'
     import TrainingPlansList from '@/components/ui/training/TrainingPlansList.vue'
     import { useWeightStore } from "@/store/weightStore"
@@ -287,7 +287,7 @@
     }
 
     const planTutActive = ref(false)
-    const planTutPlanId = ref < string | null > (null)
+    const planTutPlanId = ref<string | null>(null)
 
     const onPlanCreated = (payload: { id: string; name: string }) => {
         planTutPlanId.value = payload?.id ?? null
@@ -354,7 +354,7 @@
     const downloadPlan = ref<ViewPlan | null>(null);
     const downloadFormat = ref<'html' | 'pdf' | 'csv' | 'json' | 'txt'>('html');
     const customColWidths = ref([40, 30, 15, 15]); // Start: Name|Muskel|Typ|Aktion
-  
+
     const deleteAction = ref<(() => void) | null>(null);
 
     const editValue = ref('');
@@ -377,7 +377,7 @@
     let autoDismissRemainingMs = 0;
     let autoDismissStartedAt = 0;
     const isTimerSticky = ref(false); // Hinzugefügt für Sticky-Logik
-    const isStopwatchSticky = ref(false); 
+    const isStopwatchSticky = ref(false);
     const typeLabel = (t: ExerciseType) =>
         ({ kraft: 'Kraft', calisthenics: 'Calisthenics', dehnung: 'Dehnung', ausdauer: 'Ausdauer' } as const)[t];
 
@@ -878,138 +878,24 @@
         downloadFormat.value = 'html';
     };
 
-    const confirmDownload = () => {
-        if (!downloadPlan.value) return;
-        const plan = downloadPlan.value;
+   const confirmExport = async (payload?: { format: 'html' | 'pdf' | 'csv' | 'json' | 'txt'; mode: 'file' | 'clipboard' }) => {
+    if (!downloadPlan.value) return
 
-        // Header dynamisch wie im UI
-        const anyCardio = plan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer');
-        const anyStretch = plan.exercises.some((ex: PlanExercise) => ex.type === 'dehnung');
+    const plan = downloadPlan.value
+    const format = payload?.format ?? downloadFormat.value
+    const mode = payload?.mode ?? 'file'
 
-        const setsHeader = anyCardio ? 'Sätze / Min' : 'Sätze';
-        const repsHeader = (anyCardio || anyStretch) ? 'Wdh. / km / s' : 'Wiederholungen';
+    downloadFormat.value = format
 
-        // Zellen-Formatter mit Einheiten
-        const fmtSets = (ex: PlanExercise) => ex.type === 'ausdauer' ? `${ex.sets} min` : `${ex.sets}`;
-        const fmtReps = (ex: PlanExercise) => {
-            if (ex.type === 'ausdauer') return ex.reps ? `${ex.reps} km` : '-';
-            if (ex.type === 'dehnung') return `${ex.reps} s`;
-            return `${ex.reps}`;
-        };
+    const ok = await exportTrainingPlan(plan, { format, mode })
 
-        const uniqueGoal = [...new Set(plan.exercises.map((ex: PlanExercise) => ex.goal).filter(Boolean))][0] as string | undefined;
-        const title = plan.name;
-        const fileName = plan.name;
-
-        if (downloadFormat.value === 'html') {
-            const htmlContent = `
-<!DOCTYPE html>
-<html lang="de">
-  <head>
-    <meta charset="UTF-8">
-    <title>${title}</title>
-    <style>
-      body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
-      h1 { color: #4B6CB7; text-align: left; }
-      table { width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 20px 0; }
-      th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-      th { background: #333; color: #fff; }
-      tr:nth-child(even) { background: #f9fafb; }
-      tr:hover { background: #e2e8f0; }
-      td { color: #4b5563; }
-      .muted { color: #6b7280; font-size: 0.9em; }
-    </style>
-  </head>
-  <body>
-    <h1>${title}${uniqueGoal ? ` <span class="muted">(${uniqueGoal})</span>` : ''}</h1>
-    <table>
-      <tr>
-        <th>Übung</th>
-        <th>${setsHeader}</th>
-        <th>${repsHeader}</th>
-      </tr>
-      ${plan.exercises.map(ex => `
-        <tr>
-          <td>${ex.exercise}</td>
-          <td>${fmtSets(ex)}</td>
-          <td>${fmtReps(ex)}</td>
-        </tr>
-      `).join('')}
-    </table>
-  </body>
-</html>`;
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${fileName}_Trainingsplan.html`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-
-        } else if (downloadFormat.value === 'pdf') {
-            const doc = new jsPDF();
-            doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(16);
-            doc.text(title + (uniqueGoal ? ` (${uniqueGoal})` : ''), 20, 20);
-            doc.setFontSize(12);
-            let y = 40;
-            doc.text(['Übung', setsHeader, repsHeader].join(' | '), 20, y);
-            y += 10;
-            plan.exercises.forEach(ex => {
-                doc.text([ex.exercise, fmtSets(ex), fmtReps(ex)].join(' | '), 20, y);
-                y += 10;
-            });
-            doc.save(`${fileName}_Trainingsplan.pdf`);
-
-        } else if (downloadFormat.value === 'csv') {
-            const header = ['Übung', setsHeader, repsHeader];
-            const rows = plan.exercises.map(ex => [
-                ex.exercise,
-                fmtSets(ex),
-                fmtReps(ex),
-            ]);
-            const csv = [header.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${fileName}_Trainingsplan.csv`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-
-        } else if (downloadFormat.value === 'json') {
-            const json = plan.exercises.map(ex => ({
-                exercise: ex.exercise,
-                sets: ex.sets,
-                sets_unit: ex.type === 'ausdauer' ? 'min' : 'sets',
-                reps: ex.reps,
-                reps_unit: ex.type === 'ausdauer' ? 'km' : (ex.type === 'dehnung' ? 's' : 'reps'),
-                type: ex.type ?? 'kraft',
-                goal: ex.goal ?? null,
-            }));
-            const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${fileName}_Trainingsplan.json`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-
-        } else if (downloadFormat.value === 'txt') {
-            const lines = [
-                `Trainingsplan: ${title}${uniqueGoal ? ` (${uniqueGoal})` : ''}`,
-                '',
-                `Übung\t${setsHeader}\t${repsHeader}`,
-                ...plan.exercises.map(ex => `${ex.exercise}\t${fmtSets(ex)}\t${fmtReps(ex)}`)
-            ].join('\n');
-            const blob = new Blob([lines], { type: 'text/plain;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${fileName}_Trainingsplan.txt`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-        }
-
-        addToast('Plan heruntergeladen', 'load');
-        closeDownloadPopup();
-    };
+    if (ok) {
+        addToast(mode === 'clipboard' ? 'In Zwischenablage kopiert ✅' : 'Plan exportiert', 'save')
+        closeDownloadPopup()
+    } else {
+        addToast('Export fehlgeschlagen', 'delete')
+    }
+}
 
     const openDeletePopup = (action: () => void) => {
         deleteAction.value = action;

@@ -4,7 +4,7 @@
     <div class="plan-menu" @click.stop>
         <EditButton title="Plan bearbeiten" @click="$emit('edit')" />
         <DeleteButton title="Plan löschen" @click="$emit('delete')" />
-        <ActionIconButton title="Download"
+        <ActionIconButton title="Exportieren"
                           aria-label="Trainingsplan herunterladen"
                           @click="$emit('download')">
             ⬇️
