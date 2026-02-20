@@ -352,7 +352,11 @@
     const showValidationPopup = ref(false);
     const validationErrorMessages = ref<string[]>([]);
     const downloadPlan = ref<ViewPlan | null>(null);
-    const downloadFormat = ref<'html' | 'pdf' | 'csv' | 'json' | 'txt'>('html');
+    const downloadFormat = ref<Fmt>('html')
+
+    type Fmt = 'html' | 'pdf' | 'csv' | 'json' | 'txt'
+    type ExportMode = 'file' | 'share'
+
     const customColWidths = ref([40, 30, 15, 15]); // Start: Name|Muskel|Typ|Aktion
 
     const deleteAction = ref<(() => void) | null>(null);
@@ -878,24 +882,24 @@
         downloadFormat.value = 'html';
     };
 
-   const confirmExport = async (payload?: { format: 'html' | 'pdf' | 'csv' | 'json' | 'txt'; mode: 'file' | 'clipboard' }) => {
-    if (!downloadPlan.value) return
+    const confirmExport = async (payload: { format: Fmt; mode: ExportMode }) => {
+        if (!downloadPlan.value) return
 
-    const plan = downloadPlan.value
-    const format = payload?.format ?? downloadFormat.value
-    const mode = payload?.mode ?? 'file'
+        const plan = downloadPlan.value
+        const format = payload.format
+        const mode = payload.mode
 
-    downloadFormat.value = format
+        downloadFormat.value = format
 
-    const ok = await exportTrainingPlan(plan, { format, mode })
+        const ok = await exportTrainingPlan(plan, { format, mode })
 
-    if (ok) {
-        addToast(mode === 'clipboard' ? 'In Zwischenablage kopiert ✅' : 'Plan exportiert', 'save')
-        closeDownloadPopup()
-    } else {
-        addToast('Export fehlgeschlagen', 'delete')
+        if (ok) {
+            addToast(mode === 'share' ? 'Share-Text kopiert ✅' : 'Plan exportiert', 'save')
+            closeDownloadPopup()
+        } else {
+            addToast('Export fehlgeschlagen', 'delete')
+        }
     }
-}
 
     const openDeletePopup = (action: () => void) => {
         deleteAction.value = action;
