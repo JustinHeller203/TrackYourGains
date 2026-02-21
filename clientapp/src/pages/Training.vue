@@ -60,6 +60,9 @@
         <!-- Pop-up für Download -->
         <ExportPopup :show="showDownloadPopup"
                      v-model="downloadFormat"
+                     :shareLines="downloadShareLines ?? undefined"
+                     :shareText="downloadShareText ?? undefined"
+                     :shareUrl="downloadShareUrl ?? undefined"
                      @confirm="confirmExport"
                      @cancel="closeDownloadPopup" />
 
@@ -216,6 +219,9 @@
     const onAddTimerFromChild = (timer: TimerInstance) => emit('add-timer', timer)
     const onRemoveTimerFromChild = (id: string) => emit('remove-timer', id)
 
+    const downloadShareLines = ref < string[] | null > (null)
+    const downloadShareText = ref < string | null > (null)
+    const downloadShareUrl = ref < string | null > (null)
     // NEU: gemeinsamer Typ für Übungskategorien
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer';
     type CustomExerciseType = Exclude<ExerciseType, 'ausdauer'>;
@@ -870,17 +876,26 @@
         if (input) input.focus({ preventScroll: true });
     }
 
-    const openDownloadPopup = (plan: TrainingPlan) => {
-        downloadPlan.value = plan;
-        downloadFormat.value = 'html';
-        showDownloadPopup.value = true;
-    };
+    const openDownloadPopup = (
+        plan: TrainingPlan,
+        opts?: { shareLines?: string[]; shareText?: string; shareUrl?: string }
+    ) => {
+        downloadPlan.value = plan
+        downloadFormat.value = 'html'
+        downloadShareLines.value = opts?.shareLines ?? null
+        downloadShareText.value = opts?.shareText ?? null
+        downloadShareUrl.value = opts?.shareUrl ?? null
+        showDownloadPopup.value = true
+    }
 
     const closeDownloadPopup = () => {
-        showDownloadPopup.value = false;
-        downloadPlan.value = null;
-        downloadFormat.value = 'html';
-    };
+        showDownloadPopup.value = false
+        downloadPlan.value = null
+        downloadFormat.value = 'html'
+        downloadShareLines.value = null
+        downloadShareText.value = null
+        downloadShareUrl.value = null
+    }
 
     const confirmExport = async (payload: { format: Fmt; mode: ExportMode }) => {
         if (!downloadPlan.value) return
@@ -891,7 +906,13 @@
 
         downloadFormat.value = format
 
-        const ok = await exportTrainingPlan(plan, { format, mode })
+        const ok = await exportTrainingPlan(plan, {
+            format,
+            mode,
+            shareLines: downloadShareLines.value ?? undefined,
+            shareText: downloadShareText.value ?? undefined,
+            shareUrl: downloadShareUrl.value ?? undefined,
+        })
 
         if (ok) {
             addToast(mode === 'share' ? 'Share-Text kopiert ✅' : 'Plan exportiert', 'save')

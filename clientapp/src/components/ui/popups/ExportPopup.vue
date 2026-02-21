@@ -94,6 +94,12 @@
     type ExportMode = 'file' | 'share'
     const exportMode = ref<ExportMode>('file')
 
+    const emit = defineEmits<{
+        (e: 'update:modelValue', v: Fmt): void
+        (e: 'confirm', payload: { format: Fmt; mode: ExportMode }): void
+        (e: 'cancel'): void
+    }>()
+
     // Wenn Share aktiv ist, macht Format keinen Sinn → erzwingen wir "txt"
     watch(exportMode, (m) => {
         if (m === 'share' && proxy.value !== 'txt') {
@@ -138,13 +144,6 @@
         ].join("\n")
     })
     
-
-    const emit = defineEmits<{
-        (e: 'update:modelValue', v: Fmt): void
-        (e: 'confirm', payload: { format: Fmt; mode: ExportMode }): void
-        (e: 'cancel'): void
-    }>()
-
     watch(() => props.show, (open) => {
         if (!open) return
         exportMode.value = 'file'

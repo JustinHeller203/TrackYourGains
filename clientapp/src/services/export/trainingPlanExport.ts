@@ -20,7 +20,15 @@ type TrainingPlan = {
 
 export async function exportTrainingPlan(
     plan: TrainingPlan,
-    opts: { format: ExportFormat; mode: ExportMode }
+    opts: {
+        format: ExportFormat
+        mode: ExportMode
+
+        // optional overrides fürs Teilen (muss = Preview sein)
+        shareText?: string
+        shareLines?: string[]
+        shareUrl?: string
+    }
 ): Promise<boolean> {
     try {
         const { format, mode } = opts
@@ -109,7 +117,7 @@ export async function exportTrainingPlan(
 
         // ---- SHARE (Clipboard Message) ----
         if (mode === 'share') {
-            const msg = buildShareMessage(plan)
+            const msg = buildShareMessageWithOverrides(plan, opts)
             await navigator.clipboard.writeText(msg)
             return true
         }
@@ -158,26 +166,41 @@ export async function exportTrainingPlan(
         return false
     }
 }
+function buildShareMessageWithOverrides(
+    plan: TrainingPlan,
+    opts?: { shareText?: string; shareLines?: string[]; shareUrl?: string }
+) {
+    const lines =
+        Array.isArray(opts?.shareLines) && opts!.shareLines!.length
+            ? opts!.shareLines!
+            : null
 
+    if (lines) return lines.join('\n')
+
+    const url = (opts?.shareUrl ?? '').trim()
+    const text = (opts?.shareText ?? '').trim()
+
+    if (text || url) {
+        return [text, url].filter(Boolean).join('\n')
+    }
+
+    return buildShareMessage(plan)
+}
 function buildShareMessage(plan: TrainingPlan) {
-    const name = (plan?.name ?? "Trainingsplan").trim()
-    const code = (plan?.code ?? "").trim()
+    const code = (plan?.code ?? '').trim()
 
-    // Deep Link: Code + URL. Selbst wenn Link später anders ist, Code bleibt.
+    // Deep-Link direkt in Training (passt zu deinem /training?code=...)
     const url = code
-        ? `https://trackyourgains.de/?planCode=${encodeURIComponent(code)}`
+        ? `https://trackyourgains.de/training?code=${encodeURIComponent(code)}`
         : `https://trackyourgains.de`
 
-    // bisschen “Bock”-Copy, aber nicht cringe
     return [
-        `🔥 ${name} – mein Trainingsplan in TrackYourGains`,
-        ``,
-        `👉 Direkt öffnen: ${url}`,
-        code ? `🔑 Code: ${code}` : ``,
-        ``,
-        `TrackYourGains macht Training planen + Fortschritt tracken einfach clean. 💪`,
-    ].filter(Boolean).join("\n")
+        '🔥 Ich hab dir meinen Trainingsplan in TrackYourGains geschickt.',
+        '👉 Öffnen & direkt loslegen:',
+        url,
+    ].join('\n')
 }
+
 function downloadFile(filename: string, content: string, mime: string) {
     const blob = new Blob([content], { type: mime })
     const link = document.createElement('a')

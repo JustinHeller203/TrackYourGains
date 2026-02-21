@@ -122,7 +122,7 @@
                             <PlanMenu v-if="planMenuOpenId === plan.id"
                                       @edit="editPlanInBuilder(plan.id)"
                                       @delete="openDeletePopup(() => deletePlan(plan.id))"
-                                      @download="openDownloadPopup(plan)" />
+                                      @download="downloadPlan(plan)" />
                         </div>
 
                     </div>
@@ -455,7 +455,8 @@
         ) => void
 
         openDeletePopup: (action: () => void) => void
-        openDownloadPopup: (plan: ViewPlan) => void
+        openDownloadPopup: (plan: ViewPlan, opts?: { shareLines?: string[]; shareText?: string; shareUrl?: string }) => void
+
         addToast: (message: string, type?: 'delete' | 'add' | 'save' | 'timer' | 'load') => void
 
         // ✅ Tutorial (Option B)
@@ -477,7 +478,7 @@
 
         // Gast: hat exercises schon drin
         if (!auth.user) {
-            props.openDownloadPopup(plan)
+            props.openDownloadPopup(plan, { shareLines: buildShareLinesForPlan(plan) })
             return
         }
 
@@ -505,7 +506,7 @@
 
             // 3) export braucht ViewPlan mit exercises
             const fullView = flattenDto(dto)
-            props.openDownloadPopup(fullView)
+            props.openDownloadPopup(fullView, { shareLines: buildShareLinesForPlan(fullView) })
         } catch {
             props.addToast('Plan konnte nicht geladen werden', 'delete')
         }
@@ -844,47 +845,32 @@
 
     const buildPlanShareUrl = (code?: string | null) => {
         const c = (code ?? '').trim()
-        if (!c) return 'https://trackyourgains.de'
-        const origin = (typeof window !== 'undefined' && window.location?.origin)
-            ? window.location.origin
-            : 'https://trackyourgains.de'
+        const origin =
+            (typeof window !== 'undefined' && window.location?.origin)
+                ? window.location.origin
+                : 'https://trackyourgains.de'
+
+        if (!c) return origin
         return `${origin}/training?code=${encodeURIComponent(c)}`
     }
 
-    const buildShareLines = (ctx: { kind: 'plan' | 'progress' | 'whatever'; url?: string; title?: string }) => {
-        const url = (ctx.url ?? 'https://trackyourgains.de').trim() // ctx.url am besten schon encoded/deep
-        if (ctx.kind === 'plan') {
-            return [
-                '🔥 Ich hab dir meinen Trainingsplan in TrackYourGains geschickt.',
-                '👉 Öffnen & direkt loslegen:',
-                url,
-                '',
-                'Hol dir die App — macht Planung & Progress so viel cleaner 💪',
-            ]
-        }
+    const buildShareLinesForPlan = (p: ViewPlan) => {
+        const url = buildPlanShareUrl(p.code ?? null)
+        const name = (p?.name ?? 'Trainingsplan').trim()
+        const count = Number(p?.exerciseCount ?? p?.exercises?.length ?? 0)
 
-        if (ctx.kind === 'progress') {
-            return [
-                '📈 Ich hab dir meinen Progress in TrackYourGains geschickt.',
-                '👉 Öffnen:',
-                url,
-            ]
-        }
+        const countText =
+            count > 0
+                ? `(${count} Übungen – easy erklärt)`
+                : `(easy erklärt)`
 
-        // fallback
         return [
-            '📦 Export aus TrackYourGains:',
-            url,
+            `🔥 Ich hab dir einen Trainingsplan gebaut: "${name}" ${countText}`,
+            `✅ Perfekt für den Start: einfach öffnen, nachmachen, fertig.`,
+            `👉 Hier geht’s direkt los: ${url}`,
         ]
     }
-
-    const shareLines = computed(() =>
-        buildShareLines({
-            kind: 'plan',
-            url: buildPlanShareUrl(selectedPlan.value?.code ?? null),
-        })
-    )
-    /* -------------------- UI State (nur Plans) -------------------- */
+/* -------------------- UI State (nur Plans) -------------------- */
     const planSearch = ref('')
 
     const externalPlan = ref<TrainingPlanDto | null>(null)
