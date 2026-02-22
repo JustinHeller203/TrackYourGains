@@ -1,4 +1,4 @@
-using Gym3000.Api.Data;
+﻿using Gym3000.Api.Data;
 using Gym3000.Api.Dtos;
 using Gym3000.Api.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -41,7 +41,7 @@ public class WeightEntriesController(ApplicationDbContext db) : ControllerBase
         ));
     }
 
-    /// <summary>Zielgewicht setzen (nullable -> Ziel l�schen)</summary>
+    /// <summary>Zielgewicht setzen (nullable -> Ziel löschen)</summary>
     [HttpPut("goal")]
     [ProducesResponseType(typeof(WeightSummaryDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<WeightSummaryDto>> SetGoal([FromBody] SetGoalWeightDto dto)
@@ -80,7 +80,7 @@ public class WeightEntriesController(ApplicationDbContext db) : ControllerBase
         ));
     }
 
-    /// <summary>Alle Gewichts-Eintr�ge des eingeloggten Users (absteigend nach Datum)</summary>
+    /// <summary>Alle Gewichts-Einträge des eingeloggten Users (absteigend nach Datum)</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<WeightEntryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<WeightEntryDto>>> GetAll()
@@ -123,5 +123,16 @@ public class WeightEntriesController(ApplicationDbContext db) : ControllerBase
 
         var response = new WeightEntryDto(entity.Id, entity.Weight, entity.Date);
         return Ok(response);
+    }
+    /// <summary>Alle Gewichtseinträge des eingeloggten Users löschen</summary>
+    [HttpDelete]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> DeleteAll()
+    {
+        await db.WeightEntries
+            .Where(w => w.UserId == UserId)
+            .ExecuteDeleteAsync();
+
+        return Ok(new { ok = true });
     }
 }

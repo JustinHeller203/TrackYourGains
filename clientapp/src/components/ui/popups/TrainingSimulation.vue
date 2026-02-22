@@ -36,7 +36,8 @@
                                                :options="exerciseOptions" />
                             </div>
 
-                            <div class="sim-ex-name">{{ current.exercise }}</div>
+                        <div class="sim-ex-name">{{ current.exercise }}</div>
+                        <div v-if="mottoDisplay" class="sim-motto">“{{ mottoDisplay }}”</div>
 
                             <div class="sim-ex-meta">
                                 <span class="pill">{{ typeLabel(currentType) }}</span>
@@ -59,6 +60,7 @@
                                     🎯 keine Vorgaben
                                 </span>
                             </div>
+
                         </div>
 
                         <BasePopup :show="motiOpen"
@@ -177,7 +179,9 @@
                                         {{ fmt(restLeft) }}
                                     </div>
 
-                                    <div class="sim-rest-sub">{{ restFocusSub }}</div>
+                                    <div v-if="mottoDisplay" class="sim-motto sim-motto--rest">
+                                        “{{ mottoDisplay }}”
+                                    </div>
 
                                     <div class="sim-timer-btns">
                                         <button type="button"
@@ -195,9 +199,9 @@
                                                class="sim-rest-input"
                                                placeholder="Sekunden"
                                                aria-label="Restzeit setzen (Sekunden)"
-                                               @input="applyRestSet()"
                                                @keydown.enter.prevent="applyRestSet()" />
 
+                                        <button type="button" class="btn" @click="applyRestSet()">Übernehmen</button>
                                         <button type="button" class="btn ghost" @click="resetRest()">Reset</button>
                                     </div>
                                 </template>
@@ -272,6 +276,8 @@
     import { useWeightStore } from "@/store/weightStore"
     import TrainingSessionSummary from "@/components/ui/training/TrainingSessionSummary.vue"
     import { useProgressStore } from "@/store/progressStore"
+    import { useAuthStore } from "@/store/authStore"
+    import { getProfile } from "@/services/profile"
 
     const DEBUG_SIM = true
     function dlog(...a: any[]) {
@@ -281,6 +287,9 @@
     }
 
     const progressStore = useProgressStore()
+    const auth = useAuthStore()
+
+    const mottoLocal = ref('')
 
     const pendingProgressSaves = ref<any[]>([])
 
@@ -966,6 +975,30 @@
         !inSet.value &&
         setTotal.value > 0
     )
+
+    const loadMotto = async () => {
+        if (!auth.isAuthenticated) {
+            mottoLocal.value = ''
+            return
+        }
+        try {
+            const profile = await getProfile()
+            mottoLocal.value = String(profile?.motto ?? '').trim()
+        } catch {
+            mottoLocal.value = ''
+        }
+    }
+
+    watch(
+        () => [props.show, auth.user] as const,
+        ([open]) => {
+            if (!open) return
+            void loadMotto()
+        },
+        { immediate: true }
+    )
+
+    const mottoDisplay = computed(() => mottoLocal.value)
 
     // =====================
     // Motivation Toast (pop-up -> fade out)
@@ -1654,6 +1687,22 @@
         line-height: 1.1;
     }
 
+    .sim-motto {
+        margin-top: .35rem;
+        font-style: italic;
+        color: var(--text-secondary);
+        font-weight: 600;
+        line-height: 1.3;
+        max-width: 46ch;
+        justify-self: center;
+    }
+
+    .sim-motto--rest {
+        margin-top: .6rem;
+        margin-bottom: .9rem;
+        text-align: center;
+    }
+
     .sim-ex-meta {
         display: flex;
         flex-wrap: wrap;
@@ -2267,6 +2316,65 @@
 
     .sim-rest-setup-actions {
         gap: .55rem;
+    }
+
+    @media (max-width: 525px) {
+        .sim-timer-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+        }
+
+        .sim-timer-btns .sim-rest-input {
+            grid-column: 2 / 3;
+            grid-row: 1;
+            width: 100%;
+        }
+
+        .sim-timer-btns .btn {
+            width: 100%;
+        }
+
+        .sim-timer-btns .btn:first-of-type {
+            grid-column: 1 / 2;
+            grid-row: 1;
+        }
+
+        .sim-timer-btns .btn:nth-of-type(2) {
+            grid-column: 1 / 2;
+            grid-row: 2;
+        }
+
+        .sim-timer-btns .btn:nth-of-type(3) {
+            grid-column: 2 / 3;
+            grid-row: 2;
+        }
+    }
+
+    @media (max-width: 435px) {
+        .sim-timer-btns {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .sim-timer-btns .sim-rest-input {
+            grid-column: 2 / 3;
+            grid-row: 1;
+        }
+
+        .sim-timer-btns .btn:first-of-type {
+            grid-column: 1 / 2;
+            grid-row: 1;
+        }
+
+        .sim-timer-btns .btn:nth-of-type(2) {
+            grid-column: 1 / 2;
+            grid-row: 2;
+        }
+
+        .sim-timer-btns .btn:nth-of-type(3) {
+            grid-column: 2 / 3;
+            grid-row: 2;
+        }
     }
 
     :global(.popup-overlay.sim-rest-done-popup) {

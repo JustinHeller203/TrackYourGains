@@ -32,6 +32,22 @@
             </div>
 
             <div v-else>
+                <div v-if="planRotationNotice || (testNoticeVisible && planRotationTestNotice)"
+                     class="plan-rotation-notice"
+                     role="status"
+                     aria-live="polite">
+                    <div class="notice-icon" aria-hidden="true">⏳</div>
+                    <div class="notice-body">
+                        <div class="notice-title">{{ (planRotationNotice ?? planRotationTestNotice!).title }}</div>
+                        <div class="notice-text">{{ (planRotationNotice ?? planRotationTestNotice!).body }}</div>
+                    </div>
+                </div>
+
+                <div v-if="planLastSummary" class="plan-last-summary">
+                    <div class="summary-label">Letztes Training</div>
+                    <div class="summary-body">{{ planLastSummary }}</div>
+                </div>
+
                 <!-- View Toggle -->
                 <div class="progress-topbar">
                     <button type="button"
@@ -54,12 +70,23 @@
                             @click="viewMode = 'calendar'">
                         Kalender
                     </button>
+
+                    <button type="button"
+                            class="progress-btn"
+                            :class="{ 'progress-btn--active': viewMode === 'stats' }"
+                            @click="viewMode = 'stats'">
+                        Statistik
+                    </button>
                 </div>
 
                 <!-- Calendar View -->
                 <Calender v-if="viewMode === 'calendar'"
                           :daysWithEntries="daysWithEntriesArr"
                           @select="jumpToDay" />
+
+                <!-- List View -->
+                <PlanProgressStats v-else-if="viewMode === 'stats'"
+                                   :entries="apiWorkouts" />
 
                 <!-- List View -->
                 <div v-else class="day-card-list">
@@ -485,7 +512,7 @@
 
 
 <script setup lang="ts">
-    import { ref, computed, watch, nextTick } from 'vue'
+    import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import KebabButton from '@/components/ui/buttons/KebabButton.vue'
@@ -493,6 +520,7 @@
     import ActionSelectPopup, { type ActionSelectRow } from '@/components/ui/popups/ActionSelectPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import Calender from '@/components/ui/kits/calender/Calender.vue'
+    import PlanProgressStats from '@/components/ui/progress/PlanProgressStats.vue'
     import { useProgressStore } from "@/store/progressStore"
     import type { ProgressEntry } from "@/types/Progress"
     import { storeToRefs } from "pinia"
@@ -544,6 +572,8 @@
         show: boolean
         currentPlanId: string | null
         currentPlanName: string
+        planRotationNotice?: { title: string; body: string } | null
+        planRotationTestNotice?: { title: string; body: string } | null
         workouts: WorkoutLike[]
         formatDayLong: (yyyyMMdd: string) => string
     }>()
@@ -564,6 +594,30 @@
 
     const progressStore = useProgressStore()
     const { byPlan } = storeToRefs(progressStore)
+
+    const testNoticeVisible = ref(false)
+    const onSpaceToggle = (e: KeyboardEvent) => {
+        if (e.code !== 'Space') return
+        e.preventDefault()
+        testNoticeVisible.value = !testNoticeVisible.value
+    }
+
+    watch(
+        () => props.show,
+        (open) => {
+            if (open) {
+                window.addEventListener('keydown', onSpaceToggle)
+            } else {
+                window.removeEventListener('keydown', onSpaceToggle)
+                testNoticeVisible.value = false
+            }
+        },
+        { immediate: true }
+    )
+
+    onBeforeUnmount(() => {
+        window.removeEventListener('keydown', onSpaceToggle)
+    })
 
     const apiWorkouts = computed<WorkoutLike[]>(() => {
         const planId = props.currentPlanId
@@ -632,6 +686,76 @@
             note: x.note ?? null,
         }))
     })
+
+    const strengthEntryStats = (it: WorkoutLike) => {
+        const hasDetails = Array.isArray(it.setDetails) && it.setDetails.length > 0
+        const detailsMatchSets = hasDetails && (it.sets == null || it.sets === it.setDetails!.length)
+
+        let sets = 0
+        let volume = 0
+
+        if (detailsMatchSets) {
+            sets = it.setDetails!.length
+            for (const s of it.setDetails!) {
+                if (typeof s.reps === 'number' && typeof s.weight === 'number') {
+                    volume += s.reps * s.weight
+                }
+            }
+            return { sets, volume }
+        }
+
+        const fallbackSets = (typeof it.sets === 'number')
+            ? it.sets
+            : ((typeof it.reps === 'number' || typeof it.weight === 'number') ? 1 : 0)
+
+        sets = fallbackSets
+        if (typeof it.reps === 'number' && typeof it.weight === 'number') {
+            volume = it.reps * it.weight * (fallbackSets || 1)
+        }
+
+        return { sets, volume }
+    }
+
+    const lastEntrySummary = computed(() => {
+        if (!apiWorkouts.value.length) return null
+
+        const sorted = [...apiWorkouts.value].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        const last = sorted[0]
+        if (!last?.date) return null
+
+        const dayKey = (last.date || '').slice(0, 10)
+        const sameDay = apiWorkouts.value.filter(w => (w.date || '').slice(0, 10) === dayKey)
+
+        let volume = 0
+        let strengthSets = 0
+        let cardioMin = 0
+        let cardioKm = 0
+
+        for (const it of sameDay) {
+            if (it.type === 'kraft' || it.type === 'calisthenics') {
+                const s = strengthEntryStats(it)
+                strengthSets += s.sets
+                volume += s.volume
+            }
+
+            if (typeof it.durationMin === 'number') cardioMin += it.durationMin
+            if (typeof it.distanceKm === 'number') cardioKm += it.distanceKm
+        }
+
+        const parts = [
+            props.formatDayLong(dayKey),
+            `${sameDay.length} Einträge`,
+        ]
+
+        if (strengthSets > 0) parts.push(`${strengthSets} Sätze`)
+        if (volume > 0) parts.push(`${Math.round(volume)} kg`)
+        if (cardioMin > 0) parts.push(`${Math.round(cardioMin)} min`)
+        if (cardioKm > 0) parts.push(`${cardioKm.toFixed(1)} km`)
+
+        return parts.join(' · ')
+    })
+
+    const planLastSummary = computed(() => lastEntrySummary.value)
     const visibleDays = ref(7)
     const expandedDays = ref<Set<string>>(new Set())
 
@@ -744,7 +868,7 @@
         }
     }
 
-    const viewMode = ref<'list' | 'calendar'>('list')
+    const viewMode = ref<'list' | 'calendar' | 'stats'>('list')
 
     // ===== Swipe (List <-> Calendar) =====
     const swipe = ref({
@@ -762,8 +886,8 @@
     const SWIPE_DECIDE_AT = 12      // ab wann wir entscheiden "horizontal vs vertical"
 
     const onSwipeStart = (ev: TouchEvent) => {
-        // Nur wenn es überhaupt was zu wechseln gibt
-        if (!dayCards.value.length) return
+        // Bei leerem Plan nur in Calendar/Stats wischen lassen
+        if (!dayCards.value.length && viewMode.value === 'list') return
 
         const t = ev.touches?.[0]
         if (!t) return
@@ -812,6 +936,16 @@
 
         // dx < 0 => swipe left, dx > 0 => swipe right
         if (dx < 0 && viewMode.value === 'list') {
+            viewMode.value = 'calendar'
+            return
+        }
+
+        if (dx < 0 && viewMode.value === 'calendar') {
+            viewMode.value = 'stats'
+            return
+        }
+
+        if (dx > 0 && viewMode.value === 'stats') {
             viewMode.value = 'calendar'
             return
         }
@@ -1259,9 +1393,7 @@
             .map(e => e.id)
             .filter((x): x is string => typeof x === "string" && x.length > 0)
 
-        if (ids.length) {
-            await Promise.allSettled(ids.map(id => progressStore.remove(planId, id)))
-        }
+        emit('delete', { planId, entries })
 
         cancelDelete()
     }
@@ -2807,6 +2939,79 @@
         overflow-y: hidden;
         padding-bottom: .15rem;
         -webkit-overflow-scrolling: touch;
+    }
+
+    .plan-rotation-notice {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: .75rem;
+        align-items: start;
+        padding: .8rem .9rem;
+        margin: .2rem 0 .75rem;
+        border-radius: 16px;
+        border: 1px solid rgba(250, 204, 21, 0.32);
+        background: linear-gradient(180deg, rgba(250, 204, 21, 0.10), rgba(250, 204, 21, 0.05));
+        box-shadow: 0 16px 34px rgba(15, 23, 42, 0.18);
+    }
+
+    .plan-rotation-notice .notice-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: rgba(250, 204, 21, 0.18);
+        border: 1px solid rgba(250, 204, 21, 0.30);
+        font-size: 1rem;
+    }
+
+    .plan-rotation-notice .notice-title {
+        font-weight: 850;
+        color: var(--text-primary);
+        letter-spacing: -0.01em;
+    }
+
+    .plan-rotation-notice .notice-text {
+        margin-top: .2rem;
+        font-size: .92rem;
+        color: var(--text-secondary);
+    }
+
+    html.dark-mode .plan-rotation-notice {
+        border-color: rgba(250, 204, 21, 0.36);
+        background: linear-gradient(180deg, rgba(2, 6, 23, 0.85), rgba(2, 6, 23, 0.70));
+        box-shadow: 0 20px 44px rgba(0, 0, 0, 0.68);
+    }
+
+    .plan-last-summary {
+        display: grid;
+        gap: .2rem;
+        padding: .7rem .9rem;
+        margin: .15rem 0 .65rem;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: linear-gradient(180deg, rgba(148, 163, 184, 0.08), rgba(148, 163, 184, 0.04));
+        box-shadow: 0 16px 34px rgba(15, 23, 42, 0.16);
+    }
+
+    .plan-last-summary .summary-label {
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+
+    .plan-last-summary .summary-body {
+        font-size: .95rem;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    html.dark-mode .plan-last-summary {
+        border-color: rgba(148, 163, 184, 0.26);
+        background: rgba(255,255,255,0.03);
+        box-shadow: 0 20px 44px rgba(0, 0, 0, 0.68);
     }
 
     .progress-topbar {

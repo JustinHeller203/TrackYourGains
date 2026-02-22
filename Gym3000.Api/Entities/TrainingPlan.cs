@@ -14,6 +14,9 @@ public class TrainingPlan
 
     public bool IsFavorite { get; set; }
 
+    [MaxLength(16)]
+    public string? Color { get; set; }
+
     [Required, MaxLength(12)]
     public string Code { get; set; } = default!;
 

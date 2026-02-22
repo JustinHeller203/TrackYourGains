@@ -23,7 +23,11 @@
                 <ul id="mobile-nav-links" class="nav-links" :class="{ open: menuOpen }">
                     <li><router-link to="/" class="nav-link" @click="closeMenu"><i class="fas fa-home"></i> Home</router-link></li>
                     <li><router-link to="/training" class="nav-link" @click="closeMenu"><i class="fas fa-dumbbell"></i> Training</router-link></li>
-                    <li><router-link to="/nutrition" class="nav-link" @click="closeMenu"><i class="fas fa-utensils"></i> Ernährung</router-link></li>
+                    <li>
+                        <button type="button" class="nav-link nav-link-button" @click="onNutritionClick">
+                            <i class="fas fa-utensils"></i> Ernährung
+                        </button>
+                    </li>
                     <li><router-link to="/progress" class="nav-link" @click="closeMenu"><i class="fas fa-chart-line"></i> Fortschritt</router-link></li>
                     <li><router-link to="/tutorials" class="nav-link" @click="closeMenu"><i class="fas fa-video"></i> Tutorials</router-link></li>
                     <li><router-link to="/settings" class="nav-link" @click="closeMenu"><i class="fas fa-cog"></i> Einstellungen</router-link></li>
@@ -459,6 +463,11 @@
     function openValidationPopup(errors: string[]) {
         validationErrorMessages.value = errors
         showValidationPopup.value = true
+    }
+
+    function onNutritionClick() {
+        closeMenu()
+        openValidationPopup(['Coming soon: Der Ernährungsbereich ist bald verfügbar.'])
     }
 
     function closeValidationPopup() {
@@ -1023,6 +1032,14 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+    }
+
+    .nav-link-button {
+        background: transparent;
+        border: none;
+        padding: 0.4rem 0.6rem;
+        cursor: pointer;
+        font: inherit;
     }
 
     .nav-overlay {

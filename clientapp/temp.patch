@@ -1,0 +1,30 @@
+*** Begin Patch
+*** Update File: src/components/ui/training/TrainingPlanner.vue
+@@
+-                        <div class="plan-actions">
++                        <div class="plan-repeat">
++                            <div class="side-title">Wiederholung</div>
++                            <div class="repeat-row">
++                                <label class="repeat-label">Wochen</label>
++                                <input v-model.number="repeatWeeks"
++                                       class="repeat-input"
++                                       type="number"
++                                       min="1"
++                                       max="52" />
++                            </div>
++                            <div class="repeat-weekdays">
++                                <button v-for="(label, idx) in ['Mo','Di','Mi','Do','Fr','Sa','So']"
++                                        :key="label"
++                                        type="button"
++                                        class="weekday-chip"
++                                        :class="{ active: repeatWeekdays.includes(idx) }"
++                                        @click="repeatWeekdays = repeatWeekdays.includes(idx)
++                                            ? repeatWeekdays.filter(d => d !== idx)
++                                            : [...repeatWeekdays, idx]">
++                                    {{ label }}
++                                </button>
++                            </div>
++                        </div>
++
++                        <div class="plan-actions">
+*** End Patch

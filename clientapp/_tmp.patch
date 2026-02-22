@@ -1,0 +1,39 @@
+*** Begin Patch
+*** Update File: src/pages/Nutrition.vue
+@@
+-    <div class="nutrition" :class="{ 'cs-locked': comingSoon }">
++    <div class="nutrition">
+@@
+-        <div class="dashboard-grid" :inert="comingSoon || undefined">
++        <div class="dashboard-grid">
+@@
+-        <div class="chart-container" :inert="comingSoon || undefined">
++        <div class="chart-container">
+@@
+-        <div class="actions" :inert="comingSoon || undefined">
++        <div class="actions">
+@@
+-        <div v-if="filteredMeals.length" class="meal-list" :inert="comingSoon || undefined">
++        <div v-if="filteredMeals.length" class="meal-list">
+@@
+-        <p v-else class="no-meals" :inert="comingSoon || undefined">Noch keine Mahlzeiten eingetragen.</p>
++        <p v-else class="no-meals">Noch keine Mahlzeiten eingetragen.</p>
+@@
+-        <!-- === COMING SOON OVERLAY (nur über dieser Seite, Navbar bleibt sichtbar) === -->
+-        <div v-if="comingSoon"
+-             class="coming-soon-overlay"
+-             role="dialog"
+-             aria-modal="true"
+-             aria-label="Coming Soon Hinweis">
+-            <div class="coming-soon-card" @click.stop>
+-                <div class="cs-badge">Bald verfügbar</div>
+-                <h1 class="cs-title">COMING&nbsp;SOON!</h1>
+-                <p class="cs-sub">Dieser Bereich ist noch in Arbeit. Nutze die Navigation, um woanders hinzugehen.</p>
+-            </div>
+-        </div>
+     </div>
+ </template>
+@@
+-    // === Coming Soon Overlay State (nicht schließbar) ===
+-    const comingSoon = ref(true)
+*** End Patch

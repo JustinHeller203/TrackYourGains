@@ -703,6 +703,8 @@
         if ((planEx.type === 'kraft' || planEx.type === 'calisthenics') && shouldFillStrength()) {
             repsLocal.value = Number(planEx.reps || 0) || null
             setsLocal.value = Number(planEx.sets || 0) || null
+            // force sync in case sets value doesn't change but rows are empty
+            syncSetDetailsToSets(setsLocal.value)
             return
         }
 
@@ -1458,28 +1460,32 @@
 
     defineExpose({ openCreate, openEdit, submit: () => onSave() })
 
-    watch([setsLocal, inputType, () => props.activeSetNumber], ([s, t]) => {
-        const raw = Number(s) || 0
+    const syncSetDetailsToSets = (setsValue?: number | null) => {
+        const raw = Number(setsValue ?? setsLocal.value ?? 0) || 0
         const baseCount = Math.max(0, Math.min(7, raw))
-
         const active = Math.floor(Number(props.activeSetNumber ?? 0))
         const count = active > 0 ? Math.min(baseCount, active) : baseCount
-
-        if (raw > 7) {
-            emit('invalid', ['Maximal 7 Sätze erlaubt.'])
-            setsLocal.value = 7
-        }
 
         const next = [...setDetailsLocal.value]
         if (count > next.length) {
             for (let i = next.length; i < count; i++) {
-                if (t === 'dehnung') next.push({ weight: 0, reps: null, durationSec: 30 })
+                if (inputType.value === 'dehnung') next.push({ weight: 0, reps: null, durationSec: 30 })
                 else next.push({ weight: null, reps: repsLocal.value ?? null })
             }
         } else if (count < next.length) {
             next.splice(count)
         }
         setDetailsLocal.value = next
+    }
+
+    watch([setsLocal, inputType, () => props.activeSetNumber], ([s]) => {
+        const raw = Number(s) || 0
+        if (raw > 7) {
+            emit('invalid', ['Maximal 7 Sätze erlaubt.'])
+            setsLocal.value = 7
+            return
+        }
+        syncSetDetailsToSets(s)
     })
 
     watch(equipmentLocal, (val) => {

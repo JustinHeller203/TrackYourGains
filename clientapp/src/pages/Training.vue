@@ -27,6 +27,9 @@
                            :planTutPlanId="planTutPlanId"
                            @planTutDone="closePlanTut" />
 
+        <TrainingPlanner :apiPlans="trainingPlansStore.items"
+                         :guestPlans="guestPlans" />
+
         <!-- Satzpausen-Timer -->
         <TimerComponent :dragDelay="dragDelay"
                         :startTimer="startTimerSafe"
@@ -102,6 +105,7 @@
 
     import TrainingPlanBuilder from '@/components/ui/training/TrainingPlanBuilder.vue'
     import TrainingPlansList from '@/components/ui/training/TrainingPlansList.vue'
+    import TrainingPlanner from '@/components/ui/training/TrainingPlanner.vue'
     import { useWeightStore } from "@/store/weightStore"
 
     import { useTrainingPlansStore } from "@/store/trainingPlansStore";
@@ -2001,4 +2005,5 @@
             font-size: 1.75rem;
         }
     }
+
 </style>

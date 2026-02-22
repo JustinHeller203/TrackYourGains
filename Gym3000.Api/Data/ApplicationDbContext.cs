@@ -20,6 +20,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<GlycemicFood> GlycemicFoods => Set<GlycemicFood>();
     public DbSet<TrainingPlan> TrainingPlans => Set<TrainingPlan>();
+    public DbSet<TrainingPlanSchedule> TrainingPlanSchedules => Set<TrainingPlanSchedule>();
+    public DbSet<TrainingRestDay> TrainingRestDays => Set<TrainingRestDay>();
     public DbSet<TrainingDay> TrainingDays => Set<TrainingDay>();
     public DbSet<TrainingExercise> TrainingExercises => Set<TrainingExercise>();
     public DbSet<ProgressEntry> ProgressEntries => Set<ProgressEntry>();
@@ -211,6 +213,9 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
              .IsRequired()
              .HasMaxLength(12);
 
+            e.Property(x => x.Color)
+             .HasMaxLength(16);
+
             e.HasIndex(x => x.Code).IsUnique();
 
             e.Property(x => x.CreatedUtc).IsRequired();
@@ -223,6 +228,34 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
              .WithOne(x => x.Plan)
              .HasForeignKey(x => x.PlanId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<TrainingPlanSchedule>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).IsRequired();
+            e.Property(x => x.Date).IsRequired();
+            e.Property(x => x.CreatedUtc).IsRequired();
+
+            e.HasIndex(x => new { x.UserId, x.Date });
+            e.HasIndex(x => new { x.UserId, x.PlanId, x.Date }).IsUnique();
+
+            e.HasOne(x => x.Plan)
+             .WithMany()
+             .HasForeignKey(x => x.PlanId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<TrainingRestDay>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).IsRequired();
+            e.Property(x => x.Date).IsRequired();
+            e.Property(x => x.CreatedUtc).IsRequired();
+
+            e.HasIndex(x => new { x.UserId, x.Date }).IsUnique();
         });
 
         builder.Entity<TrainingDay>(e =>

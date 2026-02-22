@@ -235,7 +235,18 @@
         if (idx < 0) return;
         const items = el.querySelectorAll<HTMLElement>(".popsel__opt:not(.popsel__opt--placeholder)");
         const item = items[idx];
-        item?.scrollIntoView({ block: "nearest" });
+        if (!item) return;
+
+        const itemTop = item.offsetTop;
+        const itemBottom = itemTop + item.offsetHeight;
+        const viewTop = el.scrollTop;
+        const viewBottom = viewTop + el.clientHeight;
+
+        if (itemTop < viewTop) {
+            el.scrollTop = itemTop;
+        } else if (itemBottom > viewBottom) {
+            el.scrollTop = itemBottom - el.clientHeight;
+        }
     }
 
     function onKeydown(e: KeyboardEvent) {

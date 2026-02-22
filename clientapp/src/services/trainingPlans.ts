@@ -1,4 +1,4 @@
-import { api } from "@/lib/api";
+ï»¿import { api } from "@/lib/api";
 import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan";
 
 export async function listTrainingPlans() {
@@ -36,9 +36,9 @@ export async function installTrainingPlanByCode(code: string) {
     return data;
 }
 
-// optional: wenn du später einen eigenen Endpoint machst (PATCH /favorite):
+// optional: wenn du spÃ¤ter einen eigenen Endpoint machst (PATCH /favorite):
 export async function setTrainingPlanFavorite(id: string, isFavorite: boolean) {
-    // wenn du (noch) keinen PATCH hast, kannst du erstmal über PUT lösen
+    // wenn du (noch) keinen PATCH hast, kannst du erstmal Ã¼ber PUT lÃ¶sen
     const plan = await getTrainingPlan(id);
     return updateTrainingPlan(id, {
         name: plan.name,
@@ -61,3 +61,10 @@ export async function setTrainingPlanFavorite(id: string, isFavorite: boolean) {
         })),
     });
 }
+
+
+export async function setTrainingPlanColor(id: string, color: string | null) {
+    const { data } = await api.put<TrainingPlanDto>(`/training-plans/${id}/color`, { color });
+    return data;
+}
+

@@ -525,6 +525,8 @@
         <PlanProgressPopup :show="showPlanProgressPopup"
                            :currentPlanId="currentPlanId"
                            :currentPlanName="currentPlanName"
+                           :planRotationNotice="planRotationNotice"
+                           :planRotationTestNotice="planRotationTestNotice"
                            :workouts="workouts"
                            :formatDayLong="formatDayLong"
                            @close="closePlanProgressPopup"
@@ -1046,34 +1048,32 @@
         }
 
         // wirklich zurücksetzen
-        weightHistory.value = []
+        ;(async () => {
+            try {
+                if (auth.isAuthenticated) {
+                    await weightStore.clearAllEntries()
+                    weightHistory.value = (weightStore.entries ?? []).map((x: any) => ({
+                        date: x.date,
+                        weight: x.weight,
+                    }))
+                    goal.value = weightStore.goalKg
+                } else {
+                    weightHistory.value = []
+                }
 
-        if (weightChart) {
-            weightChart.destroy()
-            weightChart = null
-        }
+                if (weightChart) {
+                    weightChart.destroy()
+                    weightChart = null
+                }
 
-        releaseToasts()
-
-        addToast(
-            'Gewichtsverlauf zurückgesetzt',
-            'add',
-            {
-                label: 'Rückgängig',
-                handler: () => {
-                    if (!lastResetAction.value || lastResetAction.value.kind !== 'weight') return
-
-                    weightHistory.value = [...lastResetAction.value.data]
-
-                    nextTick(() => {
-                        updateWeightChart()
-                    })
-
-                    addToast('Gewichtsverlauf wiederhergestellt', 'add')
-                    lastResetAction.value = null
-                },
-            },
-        )
+                releaseToasts()
+                addToast('Gewichtsverlauf zurückgesetzt', 'reset')
+            } catch {
+                addToast('Gewichtsverlauf konnte nicht gelöscht werden', 'default')
+            } finally {
+                lastResetAction.value = null
+            }
+        })()
     }
 
     const resetWeightStats = () => {
@@ -1092,34 +1092,39 @@
             data: snapshot,
         }
 
-        workouts.value = []
-        localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value))
+        ;(async () => {
+            try {
+                if (auth.isAuthenticated) {
+                    const ids = Array.from(
+                        new Set(
+                            workouts.value
+                                .map(w => w.id)
+                                .filter((x): x is string => typeof x === 'string' && x.length > 0),
+                        ),
+                    )
 
-        if (workoutChart) workoutChart.destroy()
-        updateWorkoutChart()
+                    await Promise.allSettled(
+                        ids.map(id => {
+                            const planId = workouts.value.find(w => w.id === id)?.planId
+                            return planId ? progressStore.remove(planId, id) : Promise.resolve()
+                        }),
+                    )
+                }
 
-        releaseToasts()
+                workouts.value = []
+                localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value))
 
-        addToast(
-            'Trainingsstatistik zurückgesetzt',
-            'add',
-            {
-                label: 'Rückgängig',
-                handler: () => {
-                    if (!lastResetAction.value || lastResetAction.value.kind !== 'workout') return
+                if (workoutChart) workoutChart.destroy()
+                updateWorkoutChart()
 
-                    workouts.value = [...lastResetAction.value.data]
-                    localStorage.setItem(LS_PROGRESS_WORKOUTS, JSON.stringify(workouts.value))
-
-                    nextTick(() => {
-                        updateWorkoutChart()
-                    })
-
-                    addToast('Trainingsstatistik wiederhergestellt', 'add')
-                    lastResetAction.value = null
-                },
-            },
-        )
+                releaseToasts()
+                addToast('Trainingsstatistik zurückgesetzt', 'reset')
+            } catch {
+                addToast('Trainingsstatistik konnte nicht gelöscht werden', 'default')
+            } finally {
+                lastResetAction.value = null
+            }
+        })()
     }
 
     const resetWorkoutStats = () => {
@@ -2397,6 +2402,24 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     const getExercisesForPlan = (planId: string | null): PlanExercise[] => {
         if (!planId) return []
+        const fromStore = trainingPlansStore.items
+            .find(p => p.id === planId)?.days
+            ?.flatMap(d => d.exercises ?? [])
+            .map(ex => ({
+                exercise: String(ex.name ?? '').trim(),
+                sets: Number(ex.sets ?? 0) || 0,
+                reps: Number(ex.reps ?? 0) || 0,
+            }))
+            .filter(e => e.exercise.length > 0) ?? []
+
+        if (fromStore.length) {
+            const map = new Map<string, PlanExercise>()
+            for (const ex of fromStore) {
+                if (!map.has(ex.exercise)) map.set(ex.exercise, ex)
+            }
+            return [...map.values()]
+        }
+
         const names = trainingPlans.value.find(p => p.id === planId)?.exercises ?? []
         return names.map(n => ({ exercise: n, sets: 0, reps: 0 }))
     }
@@ -2990,6 +3013,32 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         trainingPlans.value.find(p => p.id === currentPlanId.value)?.name ?? ''
     )
 
+    const PLAN_ROTATION_ACTIVE_WEEKS = 8
+    const PLAN_ROTATION_MIN_SESSIONS = 10
+    const PLAN_ROTATION_RECENT_DAYS = 21
+
+    const pad2 = (n: number) => String(n).padStart(2, '0')
+
+    const toUtcDayKey = (dateStr?: string | null) => {
+        if (!dateStr) return null
+        const normalized = dateStr.length === 10 ? `${dateStr}T00:00:00Z` : dateStr
+        const d = new Date(normalized)
+        if (Number.isNaN(d.getTime())) return null
+        return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`
+    }
+
+    const toUtcWeekKey = (dateStr?: string | null) => {
+        if (!dateStr) return null
+        const normalized = dateStr.length === 10 ? `${dateStr}T00:00:00Z` : dateStr
+        const d = new Date(normalized)
+        if (Number.isNaN(d.getTime())) return null
+        const day = d.getUTCDay()
+        const diff = (day + 6) % 7 // Monday = 0
+        const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+        monday.setUTCDate(monday.getUTCDate() - diff)
+        return `${monday.getUTCFullYear()}-${pad2(monday.getUTCMonth() + 1)}-${pad2(monday.getUTCDate())}`
+    }
+
     const formatDayLong = (yyyyMMdd: string) => {
         const [y, m, d] = yyyyMMdd.split('-').map(Number)
         return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString('de-DE', {
@@ -2999,6 +3048,62 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             year: 'numeric',
         })
     }
+
+    const planRotationNotice = computed<null | { title: string; body: string }>(() => {
+        const planId = currentPlanId.value
+        if (!planId) return null
+
+        const items = workouts.value.filter(w => w.planId === planId && !!w.date)
+        if (items.length < PLAN_ROTATION_MIN_SESSIONS) return null
+
+        const weekKeys = new Set<string>()
+        const dayKeys: string[] = []
+
+        for (const it of items) {
+            const dayKey = toUtcDayKey(it.date)
+            if (dayKey) dayKeys.push(dayKey)
+            const weekKey = toUtcWeekKey(it.date)
+            if (weekKey) weekKeys.add(weekKey)
+        }
+
+        const activeWeeks = weekKeys.size
+        if (activeWeeks < PLAN_ROTATION_ACTIVE_WEEKS) return null
+
+        const lastDay = dayKeys.sort().at(-1)
+        if (!lastDay) return null
+
+        const today = new Date()
+        const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+        const lastUtc = Date.parse(`${lastDay}T00:00:00Z`)
+        const daysSinceLast = Math.floor((todayUtc - lastUtc) / 86400000)
+        if (Number.isNaN(daysSinceLast) || daysSinceLast > PLAN_ROTATION_RECENT_DAYS) return null
+
+        return {
+            title: 'Zeit für einen neuen Plan?',
+            body: `Du nutzt diesen Plan seit ${activeWeeks} aktiven Wochen (${items.length} Einträge) – oft lohnt sich dann ein neuer Trainingsreiz. Letzter Eintrag: ${formatDayLong(lastDay)}.`,
+        }
+    })
+
+    const planRotationTestNotice = computed<null | { title: string; body: string }>(() => {
+        const planId = currentPlanId.value
+        if (!planId) return null
+
+        const items = workouts.value.filter(w => w.planId === planId && !!w.date)
+        const dayKeys: string[] = []
+
+        for (const it of items) {
+            const dayKey = toUtcDayKey(it.date)
+            if (dayKey) dayKeys.push(dayKey)
+        }
+
+        const lastDay = dayKeys.sort().at(-1) ?? toUtcDayKey(new Date().toISOString())
+        if (!lastDay) return null
+
+        return {
+            title: 'Zeit für einen neuen Plan?',
+            body: `Du nutzt diesen Plan seit ${PLAN_ROTATION_ACTIVE_WEEKS} aktiven Wochen (${items.length} Einträge) – oft lohnt sich dann ein neuer Trainingsreiz. Letzter Eintrag: ${formatDayLong(lastDay)}.`,
+        }
+    })
 
     const editLatestEntryForDay = (day: string) => {
         const planId = currentPlanId.value

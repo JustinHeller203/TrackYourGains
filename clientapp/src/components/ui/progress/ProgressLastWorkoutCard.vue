@@ -37,19 +37,6 @@ const lastWorkoutText = computed(() => {
         new Date(a.date) > new Date(b.date) ? a : b
     )
 
-    if (last.type === 'ausdauer') {
-        const dist = last.distanceKm != null ? `   ${last.distanceKm} km` : ''
-        return `${last.exercise}   ${last.durationMin} Min${dist}`
-    }
-
-    if (last.type === 'dehnung') {
-        const bits: string[] = []
-        if (last.durationMin != null && Number.isFinite(last.durationMin)) bits.push(`${last.durationMin} Min`)
-        if (last.sets && last.reps) bits.push(`${last.sets} ${last.reps}`)
-        const tail = bits.length ? `   ${bits.join('   ')}` : ''
-        return `${last.exercise}${tail}`
-    }
-
-    return `${last.exercise}   ${props.formatWeight(last.weight, 0)}   ${last.reps}`
+    return last.exercise
 })
 </script>

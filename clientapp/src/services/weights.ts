@@ -17,6 +17,11 @@ export const weightsApi = {
         return data
     },
 
+    async clear(): Promise<{ ok: true }> {
+        const { data } = await api.delete<{ ok: true }>('/weights')
+        return data
+    },
+
     async getSummary(): Promise<WeightSummaryDto> {
         const { data } = await api.get<WeightSummaryDto>('/weights/summary')
         return data

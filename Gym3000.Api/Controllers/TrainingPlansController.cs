@@ -124,6 +124,7 @@ public class TrainingPlansController : ControllerBase
     p.Id,
     p.Name,
     p.IsFavorite,
+    p.Color,
     p.Code,
     p.Days.SelectMany(d => d.Exercises).Count(),
     p.CreatedUtc,
@@ -239,12 +240,19 @@ public class TrainingPlansController : ControllerBase
         var userId = GetUserId();
 
         var now = DateTime.UtcNow;
+        var name = dto.Name.Trim();
+
+        // ✅ Unique-Name pro User (saubere 409 statt 500)
+        var nameExists = await _db.TrainingPlans
+            .AnyAsync(p => p.UserId == userId && p.Name == name);
+        if (nameExists)
+            return Conflict(new { message = "Du hast bereits einen Trainingsplan mit diesem Namen." });
 
         var plan = new TrainingPlan
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            Name = dto.Name.Trim(),
+            Name = name,
             IsFavorite = dto.IsFavorite,
             Code = await GetUniquePlanCodeAsync(dto.Code),
             CreatedUtc = now,
@@ -353,6 +361,24 @@ public class TrainingPlansController : ControllerBase
             .Include(p => p.Days.OrderBy(d => d.SortOrder))
                 .ThenInclude(d => d.Exercises.OrderBy(x => x.SortOrder))
             .FirstAsync(p => p.Id == id && p.UserId == userId);
+
+        return Ok(TrainingPlanDto.FromEntity(plan));
+    }
+
+    // PUT: /api/training-plans/{id}/color
+    [HttpPut("{id:guid}/color")]
+    public async Task<ActionResult<TrainingPlanDto>> SetColor(Guid id, [FromBody] UpdateTrainingPlanColorDto dto)
+    {
+        var userId = GetUserId();
+
+        var plan = await _db.TrainingPlans
+            .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+
+        if (plan is null) return NotFound();
+
+        plan.Color = string.IsNullOrWhiteSpace(dto.Color) ? null : dto.Color.Trim();
+        plan.UpdatedUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
 
         return Ok(TrainingPlanDto.FromEntity(plan));
     }

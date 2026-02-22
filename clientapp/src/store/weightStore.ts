@@ -125,5 +125,28 @@ export const useWeightStore = defineStore('weight', {
 
             await this.addEntry(payload.weightKg, iso)
         },
+
+        async clearAllEntries() {
+            this.loadingEntries = true
+            this.loadingSummary = true
+            this.error = null
+            try {
+                await weightsApi.clear()
+                await this.loadEntries(true)
+                await this.loadSummary(true)
+            } catch (e: any) {
+                const status = e?.response?.status
+                const msg =
+                    e?.response?.data?.message ??
+                    e?.response?.data ??
+                    e?.message ??
+                    'Gewichte konnten nicht gelöscht werden.'
+                this.error = status ? `(${status}) ${String(msg)}` : String(msg)
+                throw e
+            } finally {
+                this.loadingEntries = false
+                this.loadingSummary = false
+            }
+        },
     },
 })

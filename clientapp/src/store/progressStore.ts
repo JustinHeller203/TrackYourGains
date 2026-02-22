@@ -89,9 +89,25 @@ export const useProgressStore = defineStore("progress", {
 
         async remove(planId: string, id: string) {
             const s = this.ensure(planId);
-            await deleteProgress(id);
-            s.items = s.items.filter((x) => x.id !== id);
-            return { ok: true };
+            try {
+                // lokale/legacy ids nicht ans Backend schicken
+                if (!isGuid(id)) {
+                    s.items = s.items.filter((x) => x.id !== id);
+                    return { ok: true };
+                }
+
+                await deleteProgress(id);
+                s.items = s.items.filter((x) => x.id !== id);
+                return { ok: true };
+            } catch (e: any) {
+                const status = e?.response?.status
+                if (status === 404) {
+                    // Backend kennt den Eintrag nicht (schon weg) -> lokal trotzdem entfernen
+                    s.items = s.items.filter((x) => x.id !== id);
+                    return { ok: true };
+                }
+                throw e;
+            }
         },
     },
 });

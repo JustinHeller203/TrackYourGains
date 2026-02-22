@@ -69,12 +69,19 @@
                     :class="{
                         'is-out': !cell.inMonth,
                         'has-entry': !!cell.day && hasEntries(cell.day),
-                        'is-today': cell.day === todayKey
+                        'is-today': cell.day === todayKey,
+                        'is-selected': !!cell.day && isSelected(cell.day),
+                        'is-past': !!cell.day && isPast(cell.day),
+                        'is-rest': !!cell.day && isRest(cell.day)
                     }"
-                    :disabled="!cell.day"
+                    :disabled="!cell.day || (cell.day && isPast(cell.day))"
                     @click="cell.day && emit('select', cell.day)">
                 <span class="cal-num">{{ cell.num }}</span>
-                <span v-if="cell.day && hasEntries(cell.day)" class="cal-dot" aria-hidden="true"></span>
+                <span v-if="cell.day && hasEntries(cell.day)"
+                      class="cal-dot"
+                      :style="dotStyle(cell.day)"
+                      :title="dotTitle(cell.day)"
+                      aria-hidden="true"></span>
             </button>
         </div>
 
@@ -94,11 +101,35 @@
 
     const props = defineProps<{
         daysWithEntries: string[] // yyyy-mm-dd
+        dayColors?: Record<string, string | string[]>
+        dayTitles?: Record<string, string>
+        selectedDays?: string[]
+        minDate?: string
+        restDays?: string[]
     }>()
 
     const emit = defineEmits<{
         (e: 'select', day: string): void
     }>()
+
+    const dotStyle = (day: string) => {
+        const colors = props.dayColors?.[day]
+        if (!colors) return undefined
+
+        if (Array.isArray(colors)) {
+            const unique = colors.filter(Boolean)
+            if (!unique.length) return undefined
+            if (unique.length === 1) return { background: unique[0] }
+            const stops = unique.map((c, i) => `${c} ${(i * 100) / unique.length}% ${(i + 1) * 100 / unique.length}%`)
+            return { background: `conic-gradient(${stops.join(', ')})` }
+        }
+
+        return { background: colors }
+    }
+
+    const dotTitle = (day: string) => {
+        return props.dayTitles?.[day] ?? ''
+    }
 
     const pad2 = (n: number) => String(n).padStart(2, '0')
     const toKey = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
@@ -151,7 +182,13 @@
     })
 
     const daysSet = computed(() => new Set(props.daysWithEntries ?? []))
+    const selectedSet = computed(() => new Set(props.selectedDays ?? []))
     const hasEntries = (day: string) => daysSet.value.has(day)
+    const isSelected = (day: string) => selectedSet.value.has(day)
+    const restSet = computed(() => new Set(props.restDays ?? []))
+    const isRest = (day: string) => restSet.value.has(day)
+    const minDateKey = computed(() => props.minDate ?? '')
+    const isPast = (day: string) => !!minDateKey.value && day < minDateKey.value
 
     const prevMonth = () => {
         const d = monthCursor.value
@@ -302,6 +339,16 @@
             outline-offset: 2px;
         }
 
+        .cal-cell.is-selected {
+            border-color: rgba(34, 197, 94, 0.55);
+            box-shadow: inset 0 0 0 2px rgba(34, 197, 94, 0.22);
+        }
+
+        .cal-cell.is-past {
+            opacity: .35;
+            filter: grayscale(0.2);
+        }
+
     .cal-num {
         font-weight: 950;
         color: var(--text-primary);
@@ -316,6 +363,22 @@
         border-radius: 999px;
         background: rgba(129, 140, 248, 0.85);
         box-shadow: 0 0 14px rgba(129, 140, 248, 0.25);
+    }
+
+    .cal-cell.is-rest::after {
+        content: '';
+        position: absolute;
+        inset: 6px;
+        border-radius: 10px;
+        background: repeating-linear-gradient(
+            135deg,
+            rgba(59, 130, 246, 0.55),
+            rgba(59, 130, 246, 0.55) 6px,
+            rgba(59, 130, 246, 0.12) 6px,
+            rgba(59, 130, 246, 0.12) 12px
+        );
+        pointer-events: none;
+        mix-blend-mode: multiply;
     }
 
     .cal-hint {
@@ -442,6 +505,16 @@
             outline-width: 3px;
         }
 
+        html.dark-mode .cal-cell.is-selected {
+            border-color: rgba(34, 197, 94, 0.65);
+            box-shadow: inset 0 0 0 2px rgba(34, 197, 94, 0.28);
+        }
+
+        html.dark-mode .cal-cell.is-past {
+            opacity: .28;
+            filter: grayscale(0.2);
+        }
+
     html.dark-mode .cal-num {
         color: rgba(226, 232, 240, 0.95);
     }
@@ -449,6 +522,17 @@
     html.dark-mode .cal-dot {
         background: rgba(129, 140, 248, 0.85);
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18), 0 0 18px rgba(99, 102, 241, 0.22);
+    }
+
+    html.dark-mode .cal-cell.is-rest::after {
+        background: repeating-linear-gradient(
+            135deg,
+            rgba(59, 130, 246, 0.7),
+            rgba(59, 130, 246, 0.7) 6px,
+            rgba(59, 130, 246, 0.18) 6px,
+            rgba(59, 130, 246, 0.18) 12px
+        );
+        mix-blend-mode: screen;
     }
 
     html.dark-mode .cal-hint {

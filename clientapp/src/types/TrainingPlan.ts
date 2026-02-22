@@ -25,6 +25,7 @@ export interface TrainingPlan {
     id: string;
     name: string;
     isFavorite: boolean;
+    color?: string | null;
     createdUtc: string;
     updatedUtc: string;
     code?: string;

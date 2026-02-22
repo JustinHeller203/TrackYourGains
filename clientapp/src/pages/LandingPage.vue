@@ -1,4 +1,4 @@
-<!--LandingPage.vue-->
+﻿<!--LandingPage.vue-->
 <template>
     <div class="landing">
         <section class="hero">
@@ -17,6 +17,14 @@
             </p>
 
             <router-link to="/progress" class="cta-button">Jetzt loslegen</router-link>
+        </section>
+        <section v-if="todayPlan" class="today-plan">
+            <div class="today-card">
+                <div class="today-label">Heute geplant</div>
+                <h2 class="today-title">{{ todayPlan.planName }}</h2>
+                <p class="today-text">{{ todayPlan.message }}</p>
+                <router-link to="/training" class="today-action">Zum Training</router-link>
+            </div>
         </section>
         <section class="stats">
             <h2 class="section-title">Deine Erfolge 🏆</h2>
@@ -104,14 +112,17 @@
 </template>
 
 <script setup lang="ts">
-    import { ref, onMounted, onUnmounted } from 'vue'
+    import { ref, onMounted, onUnmounted, watch } from 'vue'
     import { useAuthStore } from '@/store/authStore'
     import { useTrainingPlansStore } from '@/store/trainingPlansStore'
     import { useProgressStore } from '@/store/progressStore'
+    import { listTrainingPlanner } from '@/services/trainingPlanner'
     import {
         LS_PROGRESS_WORKOUTS,
         LS_PROGRESS_MEALS,
         LS_PROGRESS_WEIGHTS,
+        LS_TRAINING_PLANNER,
+        LS_TRAINING_REST_DAYS,
     } from '@/constants/storageKeys'
 
     const typedText = ref('')
@@ -121,6 +132,9 @@
     const workoutsCompleted = ref(0)
     const mealsPlanned = ref(0)
     const kgLost = ref(0)
+
+    type TodayPlan = { planName: string; message: string }
+    const todayPlan = ref<TodayPlan | null>(null)
 
     type StoredWeightEntry = { date: string; weight: number }
     type StoredMeal = { name: string; calories: number }
@@ -162,6 +176,65 @@
             }
         } catch {
             kgLost.value = 0
+        }
+    }
+
+    const pad2 = (n: number) => String(n).padStart(2, '0')
+    const toUtcDayKey = (iso: string) => {
+        const d = new Date(iso)
+        return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`
+    }
+
+    const buildMotivation = (planName: string) => {
+        const lines = [
+            `Heute ist ${planName}-Tag. Du bist bereit – hol dir deinen Fortschritt.`,
+            `${planName} steht an. Bleib fokussiert, setz das nächste Level.`,
+            `Dein ${planName} wartet. Pack die Energie rein, die du spüren willst.`,
+            `Heute ${planName}: saubere Ausführung, starker Kopf, starkes Ergebnis.`,
+            `${planName} ist geplant. Starte jetzt und feier die Session.`,
+        ]
+        return lines[Math.floor(Math.random() * lines.length)]
+    }
+
+    const loadTodayPlan = async () => {
+        if (typeof window === 'undefined') return
+        const todayKey = new Date().toISOString().slice(0, 10)
+
+        if (auth.user) {
+            try {
+                const items = await listTrainingPlanner()
+                const hasRest = items.some(i => i.isRestDay && toUtcDayKey(i.date) === todayKey)
+                if (hasRest) return
+                const plan = items.find(i => !i.isRestDay && toUtcDayKey(i.date) === todayKey)
+                if (plan?.planName) {
+                    todayPlan.value = {
+                        planName: plan.planName,
+                        message: buildMotivation(plan.planName),
+                    }
+                }
+            } catch {
+                // ignore
+            }
+            return
+        }
+
+        try {
+            const restRaw = window.localStorage.getItem(LS_TRAINING_REST_DAYS)
+            const restArr = restRaw ? JSON.parse(restRaw) as string[] : []
+            if (Array.isArray(restArr) && restArr.includes(todayKey)) return
+
+            const rawPlanner = window.localStorage.getItem(LS_TRAINING_PLANNER)
+            const planner = rawPlanner ? JSON.parse(rawPlanner) as Record<string, any[]> : {}
+            const list = planner?.[todayKey] ?? []
+            const first = Array.isArray(list) ? list[0] : null
+            if (first?.planName) {
+                todayPlan.value = {
+                    planName: first.planName,
+                    message: buildMotivation(first.planName),
+                }
+            }
+        } catch {
+            // ignore
         }
     }
     // Testimonials Slider
@@ -309,6 +382,12 @@
     const auth = useAuthStore()
     const trainingPlansStore = useTrainingPlansStore()
     const progressStore = useProgressStore()
+
+    watch(
+        () => auth.user,
+        () => { void loadTodayPlan() },
+        { immediate: true }
+    )
 
     const isGuid = (v: string) =>
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
@@ -576,6 +655,69 @@
         max-width: 1200px;
         margin: 0 auto;
         text-align: center;
+    }
+
+    .today-plan {
+        padding: 2.5rem 1rem 0;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .today-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 20px;
+        padding: 1.8rem 2rem;
+        text-align: left;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 12%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 92%, #020617 8%);
+        box-shadow: 0 20px 44px rgba(15, 23, 42, 0.25);
+        display: grid;
+        gap: .6rem;
+    }
+
+    .today-label {
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .18em;
+        color: var(--text-secondary);
+        font-weight: 700;
+    }
+
+    .today-title {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 900;
+        color: var(--text-primary);
+    }
+
+    .today-text {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    .today-action {
+        margin-top: .6rem;
+        align-self: start;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: .75rem 1.4rem;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 800;
+        color: #fff;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
+        transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+    }
+
+    .today-action:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+        box-shadow: 0 16px 34px rgba(15, 23, 42, 0.28);
     }
 
     .section-title {
@@ -937,6 +1079,12 @@
     html.dark-mode .feature-card,
     html.dark-mode .testimonial-card{
         background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    html.dark-mode .today-card {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 12%, transparent), transparent 60%), #020617;
         border-color: rgba(148, 163, 184, 0.45);
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }

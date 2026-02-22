@@ -6,6 +6,7 @@ public record TrainingPlanListItemDto(
     Guid Id,
     string Name,
     bool IsFavorite,
+    string? Color,
     string Code,
     int ExerciseCount,
     DateTime CreatedUtc,
@@ -37,6 +38,7 @@ public record TrainingPlanDto(
     Guid Id,
     string Name,
     bool IsFavorite,
+    string? Color,
     string Code,
     DateTime CreatedUtc,
     DateTime UpdatedUtc,
@@ -47,6 +49,7 @@ public record TrainingPlanDto(
         p.Id,
         p.Name,
         p.IsFavorite,
+        p.Color,
         p.Code,
         p.CreatedUtc,
         p.UpdatedUtc,
@@ -102,3 +105,5 @@ public record UpsertTrainingPlanDto(
     List<UpsertTrainingDayDto> Days,
     string? Code = null
 );
+
+public record UpdateTrainingPlanColorDto(string? Color);

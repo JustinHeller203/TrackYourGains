@@ -1,11 +1,11 @@
-<!--Nutrition.vue-->
+﻿<!--Nutrition.vue-->
 <template>
-    <div class="nutrition" :class="{ 'cs-locked': comingSoon }">
+    <div class="nutrition">
         <h2 class="page-title">🍽️ Ernährung</h2>
         <p class="page-subtext">Tracke deine Mahlzeiten, Makros & Ziele</p>
 
         <!-- === Dashboard-Cards mit Balken === -->
-        <div class="dashboard-grid" :inert="comingSoon || undefined">
+        <div class="dashboard-grid">
             <DashboardCard title="Kalorien" clickable @click="openGoalPopup">
                 {{ totalCalories }} / {{ calorieGoal }} kcal
                 <div class="progress-bar">
@@ -18,24 +18,44 @@
         </div>
 
         <!-- === Chart === -->
-        <div class="chart-container" :inert="comingSoon || undefined">
+        <div class="chart-container card-surface">
+            <div class="card-head">
+                <h3 class="card-title">Makro-Verteilung</h3>
+                <span class="card-tag">Heute</span>
+            </div>
             <canvas id="macroChart"></canvas>
         </div>
 
         <!-- === Aktionen === -->
-        <div class="actions" :inert="comingSoon || undefined">
-            <button class="btn-ghost" @click="openMealPopup">+ Neue Mahlzeit</button>
-            <button class="btn-ghost" @click="openExportPopup">⬇️ Exportieren</button>
-            <select v-model="filter" class="filter-select">
-                <option value="">Alle</option>
-                <option value="protein">Proteinbomben (>30g)</option>
-                <option value="carbs">High Carb (>50g)</option>
-            </select>
-            <input v-model="search" placeholder="Mahlzeit suchen..." class="search-input" />
+        <div class="actions">
+            <div class="actions-left">
+                <button class="btn-primary" @click="openMealPopup">+ Neue Mahlzeit</button>
+                <button class="btn-ghost" @click="openExportPopup">⬇️ Exportieren</button>
+            </div>
+            <div class="actions-right">
+                <select v-model="filter" class="filter-select">
+                    <option value="">Alle</option>
+                    <option value="protein">Proteinbomben (>30g)</option>
+                    <option value="carbs">High Carb (>50g)</option>
+                </select>
+                <input v-model="search" placeholder="Mahlzeit suchen..." class="search-input" />
+            </div>
+        </div>
+
+        <div class="quick-add">
+            <p>Quick-Add</p>
+            <div class="quick-list">
+                <button v-for="q in quickMeals"
+                        :key="q.name"
+                        class="quick-pill"
+                        @click="quickAdd(q)">
+                    {{ q.name }}
+                </button>
+            </div>
         </div>
 
         <!-- === Liste der Mahlzeiten === -->
-        <div v-if="filteredMeals.length" class="meal-list" :inert="comingSoon || undefined">
+        <div v-if="filteredMeals.length" class="meal-list">
             <div v-for="(m, index) in filteredMeals" :key="index" class="meal-card">
                 <div class="meal-info">
                     <strong>{{ m.name }}</strong>
@@ -48,7 +68,7 @@
                 </div>
             </div>
         </div>
-        <p v-else class="no-meals" :inert="comingSoon || undefined">Noch keine Mahlzeiten eingetragen.</p>
+        <p v-else class="no-meals">Noch keine Mahlzeiten eingetragen.</p>
 
         <!-- === Popups === -->
         <BasePopup :show="showMealPopup"
@@ -70,18 +90,6 @@
         <!-- Toasts -->
         <Toast v-if="toast" :toast="toast" />
 
-        <!-- === COMING SOON OVERLAY (nur über dieser Seite, Navbar bleibt sichtbar) === -->
-        <div v-if="comingSoon"
-             class="coming-soon-overlay"
-             role="dialog"
-             aria-modal="true"
-             aria-label="Coming Soon Hinweis">
-            <div class="coming-soon-card" @click.stop>
-                <div class="cs-badge">Bald verfügbar</div>
-                <h1 class="cs-title">COMING&nbsp;SOON!</h1>
-                <p class="cs-sub">Dieser Bereich ist noch in Arbeit. Nutze die Navigation, um woanders hinzugehen.</p>
-            </div>
-        </div>
     </div>
 </template>
 
@@ -260,60 +268,156 @@
         timeoutHandle = setTimeout(() => (toast.value = null), 3000)
     }
 
-    // === Coming Soon Overlay State (nicht schließbar) ===
-    const comingSoon = ref(true)
 </script>
 
 <style scoped>
     .nutrition {
         position: relative;
-        padding: 2rem;
-        background: transparent !important;
+        padding: 2.4rem 1.8rem 3rem;
+        background: radial-gradient(1200px 700px at 15% -5%, rgba(99, 102, 241, 0.15), transparent 60%),
+                    radial-gradient(1000px 700px at 85% 10%, rgba(16, 185, 129, 0.12), transparent 60%);
         min-height: 100vh;
-        /* WICHTIG: sonst werden Glow/Blur-Kanten brutal abgeschnitten (wirkt “kantig”) */
         overflow: visible;
     }
-    .chart-container {
-        max-width: 400px;
-        margin: 2rem auto;
-    }
 
-    .actions {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        margin-bottom: 1.5rem;
-    }
-
-    .search-input, .filter-select {
-        padding: .5rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        background: var(--bg-secondary);
+    .page-title {
+        font-size: 2.3rem;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: .2rem;
+        letter-spacing: -0.02em;
         color: var(--text-primary);
     }
 
-    .meal-list {
+    .page-subtext {
+        text-align: center;
+        color: var(--text-secondary);
+        margin-bottom: 1.8rem;
+    }
+
+    .card-surface {
+        border-radius: 18px;
+        padding: 1rem 1.2rem 1.2rem;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%),
+                    radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%),
+                    color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+    }
+
+    .card-head {
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        margin-bottom: .5rem;
+    }
+
+    .card-title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+    .card-tag {
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        padding: .25rem .55rem;
+        border-radius: 999px;
+        background: rgba(129, 140, 248, 0.18);
+        color: var(--text-primary);
+        border: 1px solid rgba(129, 140, 248, 0.4);
+    }
+
+    .chart-container {
+        max-width: 520px;
+        margin: 1.8rem auto 1.4rem;
+    }
+
+    .actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: .9rem;
+        margin: 1.2rem 0 1rem;
+    }
+
+    .actions-left,
+    .actions-right {
+        display: flex;
+        gap: .8rem;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-primary,
+    .btn-ghost {
+        height: 42px;
+        padding: 0 1.25rem;
+        border-radius: 12px;
+        font-weight: 800;
+        cursor: pointer;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        color: #fff;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.25);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.32);
+    }
+
+    .btn-ghost {
+        background: transparent;
+        color: var(--text-primary);
+    }
+
+    .btn-ghost:hover {
+        border-color: rgba(129, 140, 248, 0.55);
+        transform: translateY(-1px);
+    }
+
+    .search-input,
+    .filter-select {
+        height: 42px;
+        padding: 0 .85rem;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--bg-card) 92%, #020617 8%);
+        color: var(--text-primary);
+        min-width: 200px;
+    }
+
+    .meal-list {
+        display: grid;
         gap: 1rem;
+        margin-top: .5rem;
     }
 
     .meal-card {
-        background: var(--bg-card);
-        padding: 1rem;
-        border-radius: 12px;
-        border: 1px solid var(--border-color);
-        display: flex;
-        justify-content: space-between;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 8%, transparent), transparent 55%),
+                    radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 6%, transparent), transparent 60%),
+                    color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        padding: 1.1rem 1.2rem;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 1rem;
         align-items: center;
-        transition: .2s;
+        transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
     }
 
         .meal-card:hover {
             transform: translateY(-2px);
-            border-color: var(--accent-primary);
-            box-shadow: var(--shadow-hover);
+            border-color: rgba(129, 140, 248, 0.55);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.28);
         }
 
     .meal-info {
@@ -326,19 +430,64 @@
         color: var(--accent-primary);
     }
 
-    .quick-add {
-        margin-top: 1rem
+    .entry-actions {
+        display: flex;
+        gap: .5rem;
     }
 
-        .quick-add p {
-            margin-bottom: .5rem;
-            font-weight: 500
-        }
+    .edit-btn,
+    .delete-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: transparent;
+        cursor: pointer;
+        transition: transform .15s ease, border-color .2s ease;
+    }
 
-        .quick-add .mini {
-            font-size: .8rem;
-            padding: .25rem .5rem
-        }
+    .delete-btn:hover {
+        border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .quick-add {
+        margin-top: .25rem;
+        display: grid;
+        gap: .5rem;
+        text-align: center;
+    }
+
+    .quick-add p {
+        margin: 0;
+        font-weight: 800;
+        color: var(--text-secondary);
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        font-size: .78rem;
+    }
+
+    .quick-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        justify-content: center;
+    }
+
+    .quick-pill {
+        padding: .45rem .8rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        background: rgba(148, 163, 184, 0.08);
+        color: var(--text-primary);
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform .15s ease, border-color .2s ease;
+    }
+
+    .quick-pill:hover {
+        transform: translateY(-1px);
+        border-color: rgba(129, 140, 248, 0.5);
+    }
 
     .progress-bar {
         height: 8px;
@@ -353,196 +502,15 @@
         border-radius: 4px;
     }
 
-    /* === COMING SOON OVERLAY: bedeckt NUR die Nutrition.vue, Navbar bleibt klickbar === */
-    .coming-soon-overlay {
-        --cs-blue: #60a5fa;
-        --cs-purple: #a855f7;
-        /* FIX: nicht im .nutrition "eingesperrt" -> fullscreen */
-        position: fixed;
-        /* Navbar bleibt sichtbar/klickbar: overlay startet darunter */
-        top: var(--nav-h, 72px);
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 50;
-        display: grid;
-        place-items: center;
-        padding: 2rem;
-        /* blau/lila ambient statt grauer “platte” */
-        background: radial-gradient(1100px 700px at 20% 18%, rgba(96,165,250,.26), transparent 62%), radial-gradient(900px 650px at 85% 85%, rgba(168,85,247,.22), transparent 64%), rgba(2, 6, 23, 0.64);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        animation: cs-fade .2s ease-out;
-        pointer-events: all;
-    }
-
-        /* optional: falls du irgendwo noch 'ne harte Kante siehst -> weicher “fade” am Rand */
-        .coming-soon-overlay::after {
-            content: "";
-            position: absolute;
-            inset: -40px;
-            background: radial-gradient(800px 520px at 50% 50%, rgba(96,165,250,.10), transparent 70%), radial-gradient(760px 520px at 60% 60%, rgba(168,85,247,.08), transparent 72%);
-            filter: blur(22px);
-            opacity: .9;
-            pointer-events: none;
+    @media (max-width: 720px) {
+        .meal-card {
+            grid-template-columns: 1fr;
+            align-items: start;
         }
 
-    .coming-soon-card {
-        position: relative;
-        width: min(760px, 100%);
-        text-align: center;
-        padding: 3.2rem 2.4rem;
-        border-radius: 34px; /* <- weniger kantig */
-        overflow: hidden;
-        /* mehr “hero/landing” vibe */
-        background: radial-gradient(1200px 420px at 10% 0%, rgba(96,165,250,.22), transparent 60%), radial-gradient(900px 420px at 95% 110%, rgba(168,85,247,.18), transparent 62%), rgba(10, 18, 38, 0.62);
-        /* KEIN harter Border mehr */
-        border: 0;
-        box-shadow: 0 26px 90px rgba(0,0,0,.62), 0 0 0 1px rgba(255,255,255,.06) inset;
-        backdrop-filter: blur(18px);
-        -webkit-backdrop-filter: blur(18px);
-        animation: cs-pop .25s cubic-bezier(.2,.8,.2,1);
-        pointer-events: auto;
-    }
-
-        /* soft gradient “border” ohne harte Kante */
-        .coming-soon-card::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            padding: 1px;
-            border-radius: inherit;
-            background: linear-gradient(135deg, rgba(96,165,250,.55), rgba(168,85,247,.45));
-            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            opacity: .55;
-            pointer-events: none;
-        }
-
-    .cs-title {
-        font-size: clamp(2rem, 6vw, 4rem);
-        font-weight: 900;
-        margin: 0 0 .6rem 0;
-        line-height: 1.05;
-        background: linear-gradient(135deg, var(--cs-blue), var(--cs-purple));
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        text-shadow: 0 10px 40px rgba(96,165,250,.18), 0 10px 40px rgba(168,85,247,.14);
-    }
-
-    .cs-badge {
-        display: inline-block;
-        padding: 0.4rem 0.9rem;
-        border-radius: 999px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        /* wie hero-badge */
-        background: rgba(15, 23, 42, 0.06);
-        color: var(--accent-primary);
-        border: 1px solid rgba(129, 140, 248, 0.5);
-        backdrop-filter: blur(8px);
-        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.25);
-        margin-bottom: 0.9rem;
-    }
-
-    .cs-sub {
-        color: var(--text-secondary);
-        margin: 0;
-        font-size: 1rem;
-        line-height: 1.55;
-    }
-
-    @keyframes cs-pop {
-        from {
-            transform: scale(.96);
-            opacity: .0
-        }
-
-        to {
-            transform: scale(1);
-            opacity: 1
+        .actions-left,
+        .actions-right {
+            justify-content: center;
         }
     }
-
-    @keyframes cs-fade {
-        from {
-            opacity: 0
-        }
-
-        to {
-            opacity: 1
-        }
-    }
-
-    /* ===================== Responsive Coming-Soon ===================== */
-    @media (max-width: 820px) {
-        .coming-soon-overlay {
-            top: var(--nav-h, 64px);
-            padding: 1.25rem;
-        }
-
-        .coming-soon-card {
-            width: min(680px, 100%);
-            padding: 2.6rem 1.8rem;
-            border-radius: 28px;
-        }
-
-        .cs-title {
-            font-size: clamp(1.8rem, 8vw, 3.2rem);
-        }
-
-        .cs-sub {
-            font-size: .98rem;
-        }
-    }
-
-    @media (max-width: 560px) {
-        .coming-soon-overlay {
-            top: var(--nav-h, 60px);
-            padding: 1rem;
-            /* wirkt auf mobile weniger “dunkle Platte” */
-            background: radial-gradient(900px 620px at 30% 15%, rgba(96,165,250,.28), transparent 62%), radial-gradient(820px 600px at 80% 85%, rgba(168,85,247,.24), transparent 64%), rgba(2, 6, 23, 0.60);
-        }
-
-        .coming-soon-card {
-            padding: 2.1rem 1.3rem;
-            border-radius: 24px;
-        }
-
-        .cs-badge {
-            font-size: .78rem;
-            padding: .35rem .75rem;
-        }
-
-        .cs-sub {
-            font-size: .95rem;
-            line-height: 1.5;
-        }
-    }
-
-    /* very small phones / landscape */
-    @media (max-width: 380px), (max-height: 520px) {
-        .coming-soon-overlay {
-            /* wenn Höhe knapp wird: nicht mittig “quetschen”, sondern oben + scroll */
-            place-items: start center;
-            padding: .75rem;
-            overflow: auto;
-        }
-
-        .coming-soon-card {
-            margin-top: .75rem;
-            padding: 1.6rem 1.05rem;
-            border-radius: 20px;
-        }
-
-        .cs-title {
-            font-size: clamp(1.55rem, 9vw, 2.6rem);
-            margin-bottom: .45rem;
-        }
-    }
-
 </style>
