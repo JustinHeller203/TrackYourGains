@@ -74,7 +74,7 @@
                         'is-past': !!cell.day && isPast(cell.day),
                         'is-rest': !!cell.day && isRest(cell.day)
                     }"
-                    :disabled="!cell.day || (cell.day && isPast(cell.day))"
+                    :disabled="!cell.day ? true : isPast(cell.day)"
                     @click="cell.day && emit('select', cell.day)">
                 <span class="cal-num">{{ cell.num }}</span>
                 <span v-if="cell.day && hasEntries(cell.day)"
