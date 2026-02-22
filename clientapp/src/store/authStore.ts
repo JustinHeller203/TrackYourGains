@@ -138,7 +138,11 @@ export const useAuthStore = defineStore("auth", {
 
         async changeEmail(newEmail: string, password: string) {
             const data: AuthResponseDto = await changeEmail(newEmail, password);
-            this.user = { email: data.email };
+            this.user = {
+                email: data.email,
+                username: this.user?.username ?? '',
+                hasCreatedTrainingPlan: this.user?.hasCreatedTrainingPlan ?? false
+            };
             localStorage.setItem(LS_AUTH_EMAIL, data.email);
             setToken(data.token);
         },

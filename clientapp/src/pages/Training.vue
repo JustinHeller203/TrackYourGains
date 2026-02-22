@@ -320,11 +320,12 @@
     const stopwatchesStore = useStopwatchesStore()
 
     const showPlanBuilderTut = ref(false)
-    const planBuilderSteps = [
+    type Step = { title: string; text: string; selector: string }
+    const planBuilderSteps: Step[] = [
         { title: 'Schritt 1/3', text: 'Gib deinem Plan einen Namen, damit du ihn später wiederfindest.', selector: '#plan-name' },
         { title: 'Schritt 2/3', text: 'Wähle eine Übung und klick auf „Übung hinzufügen“.', selector: '.add-exercise-btn' },
         { title: 'Schritt 3/3', text: 'Wenn alles passt, klicke „Plan erstellen“.', selector: '.plan-submit-btn' },
-    ] as const
+    ]
 
     const maybeShowPlanBuilderTut = () => {
         if (showPlanBuilderTut.value) return
