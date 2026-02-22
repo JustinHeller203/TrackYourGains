@@ -150,7 +150,12 @@
         width: fit-content; /* <- shrink to content */
         max-width: 100%;
         justify-self: start; /* <- kein Grid-stretch */
-        overflow: hidden; /* <- sauber bei kleinen Screens */
+        overflow-x: auto; /* <- horizontal scroll wenn zu eng */
+        overflow-y: hidden;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
 
         border-radius: 999px;
         border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
@@ -158,6 +163,15 @@
         box-shadow: 0 14px 40px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255,255,255,0.08);
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
+    }
+
+    .tabs__segmented::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .tabs__segmented::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 999px;
     }
 
     .tabs__tab {

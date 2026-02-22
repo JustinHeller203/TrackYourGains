@@ -10,12 +10,23 @@
                 }}
             </p>
             <form @submit.prevent="onSubmit">
-                <div class="form-row">
+                <div v-if="mode === 'register'" class="form-row">
                     <label for="email">E-Mail</label>
                     <input id="email"
                            v-model.trim="email"
                            type="email"
                            autocomplete="email"
+                           required />
+                </div>
+
+                <div class="form-row">
+                    <label for="username">Username</label>
+                    <input id="username"
+                           v-model.trim="username"
+                           type="text"
+                           minlength="3"
+                           maxlength="20"
+                           autocomplete="username"
                            required />
                 </div>
 
@@ -74,6 +85,7 @@
 
     const mode = ref<Mode>('login')
     const email = ref('')
+    const username = ref('')
     const password = ref('')
     const confirm = ref('')
     const error = ref<string | null>(null)
@@ -148,13 +160,13 @@
         busy.value = true
         try {
             if (mode.value === 'login') {
-                await auth.signIn(email.value, password.value)
+                await auth.signIn(username.value, password.value)
             } else {
                 if (password.value !== confirm.value) {
                     error.value = 'Passwörter stimmen nicht überein.'
                     return
                 }
-                await auth.signUp(email.value, password.value, confirm.value)
+                await auth.signUp(email.value, username.value, password.value, confirm.value)
             }
             const target = (route.query.redirect as string) || '/'
             router.push(target)

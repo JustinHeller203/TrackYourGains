@@ -79,15 +79,22 @@
                :autoDismiss="true"
                :position="toastPosition"
                @dismiss="onToastDismiss" />
+
+        <PlanBuilderTutorial
+            :isActive="showPlanBuilderTut"
+            :steps="planBuilderSteps"
+            @done="showPlanBuilderTut = false" />
     </div>
 </template>
 
 <script setup lang="ts">
     import { ref, computed, nextTick, watch, onMounted, onUnmounted, withDefaults } from 'vue'
+    import { useRoute, useRouter } from 'vue-router'
     import { exportTrainingPlan } from '@/services/export/trainingPlanExport'
     import Toast from '@/components/ui/Toast.vue'
     import EditPopup from '@/components/ui/popups/EditPopup.vue'
     import ExportPopup from '@/components/ui/popups/ExportPopup.vue'
+    import PlanBuilderTutorial from '@/components/ui/TygTutorials/PlanBuilderTutorial.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import TimerComponent from '@/components/ui/training/TimerComponent.vue'
@@ -306,9 +313,34 @@
     }
 
     const auth = useAuthStore()
+    const route = useRoute()
+    const router = useRouter()
 
     const timersStore = useTimersStore()
     const stopwatchesStore = useStopwatchesStore()
+
+    const showPlanBuilderTut = ref(false)
+    const planBuilderSteps = [
+        { title: 'Schritt 1/3', text: 'Gib deinem Plan einen Namen, damit du ihn später wiederfindest.', selector: '#plan-name' },
+        { title: 'Schritt 2/3', text: 'Wähle eine Übung und klick auf „Übung hinzufügen“.', selector: '.add-exercise-btn' },
+        { title: 'Schritt 3/3', text: 'Wenn alles passt, klicke „Plan erstellen“.', selector: '.plan-submit-btn' },
+    ] as const
+
+    const maybeShowPlanBuilderTut = () => {
+        if (showPlanBuilderTut.value) return
+        const isQuickStart = route.query?.tut === 'plan'
+        const hasCreated = !!auth.user?.hasCreatedTrainingPlan
+        if (!isQuickStart || hasCreated) return
+        showPlanBuilderTut.value = true
+
+        const { tut, ...rest } = route.query
+        router.replace({ query: rest })
+    }
+
+    watch(
+        () => route.query?.tut,
+        () => maybeShowPlanBuilderTut()
+    )
 
     const hardResetTrainingUi = () => {
         if (isResettingTrainingUi) return
@@ -1839,6 +1871,7 @@
 
     onMounted(async () => {
         installCrashGuard()
+        maybeShowPlanBuilderTut()
 
         window.addEventListener('training:focus', onTrainingFocus as EventListener)
 

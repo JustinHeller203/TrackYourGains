@@ -960,6 +960,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             })
 
             emit('plan-created', { id, name: validatedPlanName as string })
+            await auth.setHasCreatedTrainingPlan?.()
 
             resetBuilder()
             return
@@ -1016,6 +1017,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 // INSERT in components/ui/training/TrainingPlanBuilder.vue AFTER props.addToast("Plan erstellt", "add")
                 const createdId = String((created as any)?.id ?? (created as any)?.data?.id ?? '')
                 if (createdId) emit('plan-created', { id: createdId, name: validatedPlanName as string })
+                await auth.setHasCreatedTrainingPlan?.()
 
             }
 

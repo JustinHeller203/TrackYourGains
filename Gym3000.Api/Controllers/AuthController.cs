@@ -213,10 +213,14 @@ public class AuthController : ControllerBase
         if (existing is not null)
             return BadRequest(new { message = "E-Mail ist bereits registriert." });
 
+        var existingName = await _um.FindByNameAsync(dto.Username);
+        if (existingName is not null)
+            return BadRequest(new { message = "Username ist bereits vergeben." });
+
         var user = new IdentityUser
         {
             Email = dto.Email,
-            UserName = dto.Email,
+            UserName = dto.Username,
             EmailConfirmed = true
         };
 
@@ -243,17 +247,17 @@ public class AuthController : ControllerBase
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-        var user = await _um.FindByEmailAsync(dto.Email);
+        var user = await _um.FindByNameAsync(dto.Username);
         if (user is null)
         {
-            await LogAuditAsync(null, "login_failed", new { email = dto.Email, reason = "user_not_found" });
+            await LogAuditAsync(null, "login_failed", new { username = dto.Username, reason = "user_not_found" });
             return Unauthorized(new { message = "Ungültige Anmeldedaten." });
         }
 
         var ok = await _um.CheckPasswordAsync(user, dto.Password);
         if (!ok)
         {
-            await LogAuditAsync(user.Id, "login_failed", new { email = dto.Email, reason = "bad_password" });
+            await LogAuditAsync(user.Id, "login_failed", new { username = dto.Username, reason = "bad_password" });
             return Unauthorized(new { message = "Ungültige Anmeldedaten." });
         }
 
@@ -419,14 +423,10 @@ public class AuthController : ControllerBase
         if (exists is not null && exists.Id != user.Id)
             return BadRequest(new { message = "E-Mail ist bereits vergeben." });
 
-        // E-Mail + Username setzen
+        // E-Mail setzen (Username bleibt eigenständig!)
         var setEmail = await _um.SetEmailAsync(user, dto.NewEmail);
         if (!setEmail.Succeeded)
             return BadRequest(new { message = "E-Mail konnte nicht gesetzt werden.", errors = setEmail.Errors.Select(e => e.Description) });
-
-        var setUserName = await _um.SetUserNameAsync(user, dto.NewEmail);
-        if (!setUserName.Succeeded)
-            return BadRequest(new { message = "Username konnte nicht gesetzt werden.", errors = setUserName.Errors.Select(e => e.Description) });
 
         user.EmailConfirmed = true;
         var upd = await _um.UpdateAsync(user);

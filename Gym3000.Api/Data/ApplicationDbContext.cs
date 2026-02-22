@@ -16,6 +16,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<GoalWeight> GoalWeights => Set<GoalWeight>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<UserMeta> UserMetas => Set<UserMeta>();
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<GlycemicFood> GlycemicFoods => Set<GlycemicFood>();
     public DbSet<TrainingPlan> TrainingPlans => Set<TrainingPlan>();
@@ -25,6 +26,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<TimerEntity> Timers => Set<TimerEntity>();
     public DbSet<StopwatchEntity> Stopwatches => Set<StopwatchEntity>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
+    public DbSet<Motto> Mottos => Set<Motto>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -104,6 +106,36 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
             e.Property(x => x.TokenVersion)
              .HasDefaultValue(0);
+        });
+
+        // -------- UserProfile --------
+        builder.Entity<UserProfile>(e =>
+        {
+            e.HasKey(x => x.UserId);
+
+            e.Property(x => x.DisplayName)
+             .HasMaxLength(80);
+
+            e.Property(x => x.Motto)
+             .HasMaxLength(280);
+
+            e.Property(x => x.AvatarDataUrl)
+             .HasColumnType("text");
+
+            e.Property(x => x.ActivityJson)
+             .HasColumnType("text");
+
+            e.Property(x => x.ProgressJson)
+             .HasColumnType("text");
+
+            e.Property(x => x.GoalOrderJson)
+             .HasColumnType("text");
+
+            e.Property(x => x.EarnedBadgesJson)
+             .HasColumnType("text");
+
+            e.Property(x => x.UpdatedUtc)
+             .IsRequired();
         });
 
         // -------- AuditLog --------
@@ -326,6 +358,21 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
             // 1 Settings Row pro User
             e.HasIndex(x => x.UserId).IsUnique();
+        });
+
+        // -------- Motto --------
+        builder.Entity<Motto>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Text)
+             .IsRequired()
+             .HasMaxLength(280);
+
+            e.Property(x => x.CreatedUtc)
+             .IsRequired();
+
+            e.HasIndex(x => x.Text).IsUnique();
         });
     }
 }

@@ -8,6 +8,13 @@
                    placeholder="E-Mail"
                    autocomplete="email"
                    required />
+            <input v-model.trim="username"
+                   type="text"
+                   placeholder="Username"
+                   minlength="3"
+                   maxlength="20"
+                   autocomplete="username"
+                   required />
             <input v-model.trim="password"
                    type="password"
                    placeholder="Passwort (min. 6 Zeichen)"
@@ -35,6 +42,7 @@
     import { useAuthStore } from '@/store/authStore'
 
     const email = ref('')
+    const username = ref('')
     const password = ref('')
     const confirmPwd = ref('')          // <� eigenes Confirm-Feld
     const busy = ref(false)
@@ -59,8 +67,8 @@
 
         busy.value = true
         try {
-            // dein Store erwartet (email, password, confirm)
-            await auth.signUp(email.value, password.value, confirmPwd.value)
+            // dein Store erwartet (email, username, password, confirm)
+            await auth.signUp(email.value, username.value, password.value, confirmPwd.value)
             msg.value = 'Bestätigungs-Mail gesendet. Bitte E-Mail prüfen.'
         } catch (e: any) {
             err.value = e?.message || 'Registrierung fehlgeschlagen.'

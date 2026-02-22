@@ -608,6 +608,7 @@
     import { useProgressStore } from "@/store/progressStore"
     import type { CreateProgressEntry, UpdateProgressEntry } from "@/types/Progress"
     import { useTrainingPlansStore } from "@/store/trainingPlansStore"
+    import { useAuthStore } from "@/store/authStore"
     import ProgressLastWorkoutCard from '@/components/ui/progress/ProgressLastWorkoutCard.vue'
     import { useWeightStore } from "@/store/weightStore"
 
@@ -723,6 +724,7 @@
     }
 
     const trainingPlansStore = useTrainingPlansStore()
+    const auth = useAuthStore()
 
     const activePlanId = computed(() => effectivePlanId.value)
 
@@ -2348,24 +2350,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             return
         }
 
-        workouts.value = (state?.items ?? []).map((e) => ({
-            id: e.id,
-            planId: e.planId,
-            date: e.date,
-            exercise: e.exercise,
-            type: e.type as WorkoutType,
-
-            sets: e.sets ?? 0,
-            reps: e.reps ?? undefined,
-            weight: e.weightKg ?? 0,
-
-            durationMin: e.durationMin ?? undefined,
-            distanceKm: e.distanceKm ?? undefined,
-
-            note: e.note ?? undefined,
-            tempo: e.tempo ?? undefined,
-            restSeconds: e.restSeconds ?? undefined,
-        }))
+        syncWorkoutsFromStore(planId)
 
         showPlanProgressPopup.value = true
     }
@@ -2384,6 +2369,8 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         } catch {
             showToast({ message: "Pläne konnten nicht geladen werden.", type: "default" })
         }
+
+        await loadAllProgressForPlans()
 
         jumpToCalculatorsFromRoute()
     })
@@ -2534,6 +2521,29 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
                 tempo: it.tempo ?? undefined,
                 restSeconds: it.restSeconds ?? undefined,
             } as any)
+        }
+    }
+
+    const loadAllProgressForPlans = async () => {
+        if (!auth.user) return
+
+        const planIds = trainingPlansStore.items
+            .map(p => p.id)
+            .filter(id => isGuid(id))
+
+        if (!planIds.length) {
+            workouts.value = []
+            return
+        }
+
+        await Promise.all(planIds.map(id => progressStore.load(id, true)))
+
+        workouts.value = []
+        planIds.forEach(id => syncWorkoutsFromStore(id))
+
+        if (activeTab.value === 'stats') {
+            await nextTick()
+            updateWorkoutChart()
         }
     }
 

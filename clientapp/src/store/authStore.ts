@@ -1,6 +1,7 @@
 ﻿// src/store/authStore.ts
 import { defineStore } from "pinia";
 import { login, register, logout, changeEmail, changePassword, deleteAccount as svcDeleteAccount } from "@/services/auth";
+import { getProfile, updateProfile } from "@/services/profile";
 import { useSettingsStore } from "@/store/settingsStore";
 import { LS_AUTH_EMAIL } from "@/constants/storageKeys";
 import { getToken, setToken } from "@/lib/api";
@@ -8,7 +9,7 @@ import { useWeightStore } from "@/store/weightStore";
 
 type AuthResponseDto = { token: string; email: string };
 
-type User = { email: string };
+type User = { email: string; username: string; hasCreatedTrainingPlan: boolean };
 
 export const useAuthStore = defineStore("auth", {
     state: () => ({
@@ -28,14 +29,26 @@ export const useAuthStore = defineStore("auth", {
             const email = localStorage.getItem(LS_AUTH_EMAIL);
 
             if (token && email) {
-                this.user = { email };
+                this.user = { email, username: "", hasCreatedTrainingPlan: false };
                 // ✅ sobald eingeloggt: settings aus Backend ziehen
                 try {
                     await settings.loadFromBackend()
                 } catch {
                     settings.resetToDefaults()
                 }
-                settings.broadcast()            } else {
+                settings.broadcast()
+
+                // ✅ Profil-Flags laden
+                try {
+                    const profile = await getProfile()
+                    if (this.user) {
+                        this.user.hasCreatedTrainingPlan = !!profile?.hasCreatedTrainingPlan
+                        this.user.username = String(profile?.username ?? "")
+                    }
+                } catch {
+                    // ignore, defaults bleiben
+                }
+            } else {
                 this.user = null;
                 setToken(null);
                 // ✅ guest: defaults (nur in-memory)
@@ -45,11 +58,11 @@ export const useAuthStore = defineStore("auth", {
             this.loading = false;
         },
 
-        async signIn(email: string, password: string) {
+        async signIn(username: string, password: string) {
             const settings = useSettingsStore();
 
-            const data: AuthResponseDto = await login(email, password);
-            this.user = { email: data.email };
+            const data: AuthResponseDto = await login(username, password);
+            this.user = { email: data.email, username: "", hasCreatedTrainingPlan: false };
             setToken(data.token);
             localStorage.setItem(LS_AUTH_EMAIL, data.email);
 
@@ -59,13 +72,25 @@ export const useAuthStore = defineStore("auth", {
             } catch {
                 settings.resetToDefaults()
             }
-            settings.broadcast()        },
+            settings.broadcast()
 
-        async signUp(email: string, password: string, confirmPassword: string) {
+            // ✅ Profil-Flags laden
+            try {
+                const profile = await getProfile()
+                if (this.user) {
+                    this.user.hasCreatedTrainingPlan = !!profile?.hasCreatedTrainingPlan
+                    this.user.username = String(profile?.username ?? "")
+                }
+            } catch {
+                // ignore
+            }
+        },
+
+        async signUp(email: string, username: string, password: string, confirmPassword: string) {
             const settings = useSettingsStore();
 
-            const data: AuthResponseDto = await register(email, password, confirmPassword);
-            this.user = { email: data.email };
+            const data: AuthResponseDto = await register(email, username, password, confirmPassword);
+            this.user = { email: data.email, username: "", hasCreatedTrainingPlan: false };
             setToken(data.token);
             localStorage.setItem(LS_AUTH_EMAIL, data.email);
 
@@ -75,7 +100,19 @@ export const useAuthStore = defineStore("auth", {
             } catch {
                 settings.resetToDefaults()
             }
-            settings.broadcast()        },
+            settings.broadcast()
+
+            // ✅ Profil-Flags laden (falls Backend direkt setzt)
+            try {
+                const profile = await getProfile()
+                if (this.user) {
+                    this.user.hasCreatedTrainingPlan = !!profile?.hasCreatedTrainingPlan
+                    this.user.username = String(profile?.username ?? "")
+                }
+            } catch {
+                // ignore
+            }
+        },
 
         async signOut() {
             const settings = useSettingsStore();
@@ -129,6 +166,17 @@ export const useAuthStore = defineStore("auth", {
                 // ✅ zurück auf guest-defaults (nur in-memory)
                 settings.resetToDefaults();
                 settings.broadcast();
+            }
+        },
+
+        async setHasCreatedTrainingPlan() {
+            if (!this.user) return
+            if (this.user.hasCreatedTrainingPlan) return
+            try {
+                await updateProfile({ hasCreatedTrainingPlan: true })
+                this.user.hasCreatedTrainingPlan = true
+            } catch {
+                // ignore
             }
         },
     },

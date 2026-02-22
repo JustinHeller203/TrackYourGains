@@ -251,7 +251,7 @@
                             {{ shortEmail }}
                         </span>
                     </li>
-                    <li><span class="key">Mitglied seit</span><span class="val">{{ memberSince }}</span></li>
+                    <li><span class="key">Mitglied seit</span><span class="val">{{ memberSinceDisplay }}</span></li>
                     <li><span class="key">Status</span><span class="val badge">Aktiv</span></li>
                 </ul>
             </div>
@@ -290,23 +290,32 @@
         <section class="card motto-card">
             <h3 class="card-title"><i class="fas fa-quote-left"></i> Motto</h3>
 
-            <div class="motto-row">
-                <input v-if="editingMotto"
-                       v-model.trim="motto"
-                       class="input motto-input"
-                       placeholder="Dein Motto…"
-                       @keyup.enter="saveMotto" />
-                <p v-else class="motto" lang="de">
-                    {{ mottoView || 'Kein Motto gesetzt' }}
-                </p>
+        <div class="motto-row">
+            <input v-if="editingMotto"
+                   v-model.trim="motto"
+                   class="input motto-input"
+                   placeholder="Dein Motto…"
+                   @keyup.enter="saveMotto" />
+            <p v-else class="motto" lang="de">
+                {{ mottoView || 'Kein Motto gesetzt' }}
+            </p>
 
-                <div class="motto-actions">
-                    <EditInput v-show="editingMotto || motto"
-                               :ghost="!editingMotto"
-                               @click="toggleMotto"
-                               :title="editingMotto ? 'Motto speichern' : 'Motto bearbeiten'"
-                               :ariaLabel="editingMotto ? 'Motto speichern' : 'Motto bearbeiten'">
-                        {{ editingMotto ? 'Speichern' : 'Bearbeiten' }}
+            <div class="motto-actions">
+                <EditInput class="motto-random-btn"
+                           :ghost="true"
+                           title="Zufälliges Motto"
+                           ariaLabel="Zufälliges Motto"
+                           @click="applyRandomMotto">
+                    <span class="motto-random-label">Random</span>
+                    <span class="motto-random-emoji" aria-hidden="true">🎲</span>
+                </EditInput>
+
+                <EditInput v-show="editingMotto || motto"
+                           :ghost="!editingMotto"
+                           @click="toggleMotto"
+                           :title="editingMotto ? 'Motto speichern' : 'Motto bearbeiten'"
+                           :ariaLabel="editingMotto ? 'Motto speichern' : 'Motto bearbeiten'">
+                    {{ editingMotto ? 'Speichern' : 'Bearbeiten' }}
                     </EditInput>
 
                     <EditInput v-show="!editingMotto && !motto"
@@ -501,6 +510,8 @@
     import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
     import { useRouter } from 'vue-router'
     import { useAuthStore } from '@/store/authStore'
+    import { useTrainingPlansStore } from '@/store/trainingPlansStore'
+    import { useProgressStore } from '@/store/progressStore'
     import PasswordChangePopup from '@/components/ui/popups/profile/PasswordChangePopup.vue'
     import EmailChangePopup from '@/components/ui/popups/profile/EmailChangePopup.vue'
     import Toast from '@/components/ui/Toast.vue'
@@ -514,6 +525,8 @@
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
     import ShortcardPopup from '@/components/ui/popups/ShortcardPopup.vue'
     import { useAutoGoals, type AutoGoalResult, type TrainingEntry } from '@/composables/useAutoGoals'
+    import { getProfile, updateProfile, type UpdateProfileDto } from '@/services/profile'
+    import { getRandomMotto } from '@/services/mottos'
     import {
         LS_ALL_KEYS,
         wipeLocalStorage,
@@ -541,9 +554,59 @@
         localStorage.setItem(key, JSON.stringify(val))
     }
 
+    async function loadProfileFromBackend() {
+        try {
+            const data = await getProfile()
+            displayName.value = data.displayName ?? ''
+            motto.value = data.motto ?? DEFAULT_MOTTO
+            avatarUrl.value = data.avatarDataUrl ?? null
+            favoriteTimers.value = Number.isFinite(data.favoriteTimers) ? data.favoriteTimers : 2
+            activity.value = Array.isArray(data.activity) && data.activity.length
+                ? data.activity
+                : [...DEFAULT_ACTIVITY]
+            progress.value = {
+                muscle: data.progress?.muscle ?? DEFAULT_PROGRESS.muscle,
+                weight: data.progress?.weight ?? DEFAULT_PROGRESS.weight,
+                nutrition: data.progress?.nutrition ?? DEFAULT_PROGRESS.nutrition
+            }
+            autoGoalPrevious.value = {
+                muscle: progress.value.muscle,
+                weightTracking: progress.value.weight,
+                nutrition: progress.value.nutrition
+            }
+            goalOrder.value = (data.goalOrder?.length ? data.goalOrder : DEFAULT_GOAL_ORDER) as GoalKey[]
+            earnedBadges.value = Array.isArray(data.earnedBadges) ? data.earnedBadges : []
+            const since = data.memberSinceUtc ? String(data.memberSinceUtc).slice(0, 10) : ''
+            memberSince.value = since || new Date().toISOString().slice(0, 10)
+        } finally {
+            profileLoaded.value = true
+        }
+    }
+
+    function loadLocalProfile() {
+        displayName.value = localStorage.getItem(LS_PROFILE_DISPLAY_NAME) ?? ''
+        motto.value = localStorage.getItem(LS_KEYS.motto) ?? DEFAULT_MOTTO
+        avatarUrl.value = localStorage.getItem(AVATAR_KEY)
+        favoriteTimers.value = Number(localStorage.getItem(LS_KEYS.favorites) ?? 2)
+        activity.value = loadJSON(LS_KEYS.activity, [1, 0, 2, 1, 3, 2, 2, 1, 0, 2])
+        progress.value = loadJSON(LS_KEYS.progress, { ...DEFAULT_PROGRESS })
+        goalOrder.value = loadJSON<GoalKey[]>(LS_PROFILE_GOAL_ORDER, [...DEFAULT_GOAL_ORDER])
+        earnedBadges.value = loadJSON(LS_KEYS.earnedBadges, [])
+        const savedMember = localStorage.getItem(LS_KEYS.memberSince)
+        memberSince.value = savedMember ?? new Date().toISOString().slice(0, 10)
+        if (!savedMember) localStorage.setItem(LS_KEYS.memberSince, memberSince.value)
+        autoGoalsReady.value = true
+        profileLoaded.value = true
+    }
+
     // --- Stores / Router ---
     const auth = useAuthStore()
+    const trainingPlansStore = useTrainingPlansStore()
+    const progressStore = useProgressStore()
     const router = useRouter()
+    const profileLoaded = ref(false)
+    const pendingProfilePatch = ref<UpdateProfileDto>({})
+    let saveProfileTimer: number | null = null
     const showDeleteAvatarPopup = ref(false)
     const showValidation = ref(false)
     const validationErrors = ref<string[]>([])
@@ -558,6 +621,21 @@
         maxWidth: '220px',
     }))
 
+    function queueProfileSave(patch: UpdateProfileDto) {
+        if (!auth.user || !profileLoaded.value) return
+        pendingProfilePatch.value = { ...pendingProfilePatch.value, ...patch }
+        if (saveProfileTimer) window.clearTimeout(saveProfileTimer)
+        saveProfileTimer = window.setTimeout(async () => {
+            const payload = { ...pendingProfilePatch.value }
+            pendingProfilePatch.value = {}
+            try {
+                await updateProfile(payload)
+            } catch {
+                addToast('Profil konnte nicht gespeichert werden.', 'delete')
+            }
+        }, 500)
+    }
+
     function resetViewerTransform() {
         viewerScale.value = 1;
         viewerTx.value = 0;
@@ -566,17 +644,17 @@
 
     // INSERT Goal-Metadaten
     type GoalKey = 'muscle' | 'weight' | 'nutrition';
+    const DEFAULT_ACTIVITY = Array.from({ length: 21 }, () => 0)
+    const DEFAULT_PROGRESS = { muscle: 40, weight: 60, nutrition: 55 }
+    const DEFAULT_GOAL_ORDER: GoalKey[] = ['muscle', 'weight', 'nutrition']
+    const DEFAULT_MOTTO = 'No excuses. Just results.'
     const goalLabels: Record<GoalKey, string> = {
         muscle: 'Muskeln aufbauen',
         weight: 'Gewicht tracken',
         nutrition: 'Ernährung loggen'
     };
 
-    const goalOrder = ref<GoalKey[]>(
-        loadJSON<GoalKey[]>(LS_PROFILE_GOAL_ORDER, ['muscle', 'weight', 'nutrition'])
-    )
-
-    watch(goalOrder, v => saveJSON(LS_PROFILE_GOAL_ORDER, v), { deep: true })
+    const goalOrder = ref<GoalKey[]>([...DEFAULT_GOAL_ORDER])
 
     // INSERT Move-Funktion
     function moveGoal(index: number, dir: -1 | 1) {
@@ -645,10 +723,18 @@
         const prev = motto.value || ''
         if (!prev) return
         motto.value = ''
-        localStorage.setItem(LS_PROFILE_MOTTO, '')
+        if (auth.user) {
+            queueProfileSave({ motto: '' })
+        } else {
+            localStorage.setItem(LS_PROFILE_MOTTO, '')
+        }
         showUndo('Motto gelöscht', () => {
             motto.value = prev
-            localStorage.setItem(LS_PROFILE_MOTTO, prev)
+            if (auth.user) {
+                queueProfileSave({ motto: prev })
+            } else {
+                localStorage.setItem(LS_PROFILE_MOTTO, prev)
+            }
         }, 5000)
     }
     function onViewerKeydown(e: KeyboardEvent) {
@@ -843,10 +929,18 @@
         if (!prev) return
         // sofort löschen
         avatarUrl.value = null
-        localStorage.removeItem(AVATAR_KEY)
+        if (auth.user) {
+            queueProfileSave({ avatarDataUrl: '' })
+        } else {
+            localStorage.removeItem(AVATAR_KEY)
+        }
         showUndo('Profilbild entfernt', () => {
             avatarUrl.value = prev
-            localStorage.setItem(AVATAR_KEY, prev)
+            if (auth.user) {
+                queueProfileSave({ avatarDataUrl: prev })
+            } else {
+                localStorage.setItem(AVATAR_KEY, prev)
+            }
         }, 5000)
     }
 
@@ -901,7 +995,7 @@
         pickAvatar()
     }
 
-    const displayName = ref<string>(localStorage.getItem(LS_PROFILE_DISPLAY_NAME) ?? '');
+    const displayName = ref<string>('');
     const profileCompletion = computed(() => {
         let score = 0, total = 5;
         if (displayName.value.trim()) score++;
@@ -911,7 +1005,9 @@
         if (progress.value.muscle + progress.value.weight + progress.value.nutrition > 0) score++;
         return Math.round((score / total) * 100);
     });
-    watch(displayName, v => localStorage.setItem(LS_PROFILE_DISPLAY_NAME, v));
+    watch(displayName, v => {
+        if (!auth.user) localStorage.setItem(LS_PROFILE_DISPLAY_NAME, v)
+    });
 
     function onViewerWheel(e: WheelEvent) {
         const delta = -e.deltaY; // up = zoom in
@@ -932,7 +1028,11 @@
 
     const editingName = ref(false);
     function saveDisplayName() {
-        localStorage.setItem(LS_PROFILE_DISPLAY_NAME, displayName.value || '');
+        if (auth.user) {
+            queueProfileSave({ displayName: displayName.value || '' })
+        } else {
+            localStorage.setItem(LS_PROFILE_DISPLAY_NAME, displayName.value || '');
+        }
         editingName.value = false;
         addToast('Name gespeichert', 'save');
     }
@@ -943,7 +1043,7 @@
         clearAvatar()               // zeigt bereits Toast
         showDeleteAvatarPopup.value = false
     }
-    const avatarUrl = ref<string | null>(localStorage.getItem(AVATAR_KEY))
+    const avatarUrl = ref<string | null>(null)
     const avatarInput = ref<HTMLInputElement | null>(null)
 
     function pickAvatar() {
@@ -1182,7 +1282,11 @@
             if (pendingAvatar.value) {
                 const normalized = await normalizeAvatar(pendingAvatar.value, 512);
                 avatarUrl.value = normalized;
-                localStorage.setItem(AVATAR_KEY, normalized);
+                if (auth.user) {
+                    queueProfileSave({ avatarDataUrl: normalized })
+                } else {
+                    localStorage.setItem(AVATAR_KEY, normalized);
+                }
                 addToast('Profilbild gespeichert ✅', 'save');
             }
         } catch {
@@ -1223,24 +1327,83 @@
     }
     function clearAvatar() {
         avatarUrl.value = null
-        localStorage.removeItem(AVATAR_KEY)
+        if (auth.user) {
+            queueProfileSave({ avatarDataUrl: '' })
+        } else {
+            localStorage.removeItem(AVATAR_KEY)
+        }
         addToast('Profilbild entfernt', 'delete')
     }
     // --- State init (mit Fallbacks) ---
-    const activity = ref<number[]>(loadJSON(LS_KEYS.activity, [1, 0, 2, 1, 3, 2, 2, 1, 0, 2]))
+    const activity = ref<number[]>([...DEFAULT_ACTIVITY])
+
+    const isGuid = (v: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+
+    const ACTIVITY_DAYS = 21
+
+    const loadActivityFromBackend = async () => {
+        if (!auth.user) return
+
+        try {
+            await trainingPlansStore.loadList()
+        } catch {
+            return
+        }
+
+        const planIds = trainingPlansStore.items
+            .map(p => p.id)
+            .filter(id => isGuid(id))
+
+        if (!planIds.length) {
+            activity.value = Array(ACTIVITY_DAYS).fill(0)
+            return
+        }
+
+        await Promise.all(planIds.map(id => progressStore.load(id, true)))
+
+        const counts = new Map<string, number>()
+        planIds.forEach(id => {
+            const items = progressStore.byPlan?.[id]?.items ?? []
+            items.forEach(it => {
+                const day = String(it.date ?? '').slice(0, 10)
+                if (!day) return
+                counts.set(day, (counts.get(day) ?? 0) + 1)
+            })
+        })
+
+        const today = new Date()
+        const DAY_MS = 86400000
+        const days: number[] = []
+        for (let i = ACTIVITY_DAYS - 1; i >= 0; i--) {
+            const d = new Date(today.getTime() - i * DAY_MS)
+            const key = d.toISOString().slice(0, 10)
+            days.push(counts.get(key) ?? 0)
+        }
+
+        activity.value = days
+        autoGoalsReady.value = true
+    }
+
+    onMounted(async () => {
+        if (auth.user) {
+            await loadProfileFromBackend()
+            await loadActivityFromBackend()
+        } else {
+            loadLocalProfile()
+        }
+    })
 
     // Typ vor erster Nutzung definieren
     type Badge = { id: string; icon: string; label: string; desc: string }
 
-    const earnedBadges = ref<string[]>(loadJSON(LS_KEYS.earnedBadges, []))
+    const earnedBadges = ref<string[]>([])
 
     const showAchievementPopup = ref(false)
     const latestAchievement = ref<Badge | null>(null)
 
     type Progress = Record<GoalKey, number>
-    const progress = ref<Progress>(
-        loadJSON(LS_KEYS.progress, { muscle: 40, weight: 60, nutrition: 55 })
-    )
+    const progress = ref<Progress>({ ...DEFAULT_PROGRESS })
 
     // Profile.vue – INSERT: AutoGoals-Status + Watch
     const autoGoalPrevious = ref<AutoGoalResult>({
@@ -1248,11 +1411,14 @@
         weightTracking: progress.value.weight,
         nutrition: progress.value.nutrition
     })
+    const autoGoalsReady = ref(false)
 
     // jedes Mal, wenn sich deine Aktivität ändert → AutoGoals neu berechnen
     watch(
         () => activity.value.slice(),
         (days) => {
+            if (!autoGoalsReady.value) return
+            if (auth.user) return
             const trainings = buildTrainingsFromActivity(days)
 
             const result = calculateGoals({
@@ -1271,11 +1437,14 @@
         { immediate: true }
     )
 
-    const favoriteTimers = ref<number>(Number(localStorage.getItem(LS_KEYS.favorites) ?? 2))
-    const motto = ref<string>(localStorage.getItem(LS_KEYS.motto) ?? 'No excuses. Just results.')
-    const memberSince = computed(() =>
-        localStorage.getItem(LS_KEYS.memberSince) ?? new Date().getFullYear().toString()
-    )
+    const favoriteTimers = ref<number>(2)
+    const motto = ref<string>(DEFAULT_MOTTO)
+    const memberSince = ref<string>('')
+    const memberSinceDisplay = computed(() => {
+        if (!memberSince.value) return 'â€”'
+        const d = new Date(memberSince.value)
+        return Number.isNaN(d.getTime()) ? memberSince.value : d.toLocaleDateString('de-DE')
+    })
     // --- Derivates aus Activity ---
     const weeklyWorkouts = computed(() => sumLastDays(activity.value, 7))
     const streakDays = computed(() => calcStreak(activity.value))
@@ -1480,8 +1649,26 @@
         editingMotto.value = !editingMotto.value
     }
     function saveMotto() {
-        localStorage.setItem(LS_KEYS.motto, motto.value || '')
+        if (auth.user) {
+            queueProfileSave({ motto: motto.value || '' })
+        } else {
+            localStorage.setItem(LS_KEYS.motto, motto.value || '')
+        }
         addToast('Motto gespeichert', 'save')
+    }
+    async function applyRandomMotto() {
+        try {
+            const { text } = await getRandomMotto()
+            motto.value = text || DEFAULT_MOTTO
+            if (auth.user) {
+                queueProfileSave({ motto: motto.value })
+            } else {
+                localStorage.setItem(LS_KEYS.motto, motto.value || '')
+            }
+            addToast('Motto gesetzt', 'save')
+        } catch {
+            addToast('Konnte kein Motto laden.', 'delete')
+        }
     }
     const toastPosition = ref<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
 
@@ -1495,8 +1682,16 @@
     function nudgeProgress(key: 'muscle' | 'weight' | 'nutrition', by = 5) {
         progress.value[key] = Math.min(100, Math.max(0, progress.value[key] + by))
     }
-    function resetProgress() {
-        progress.value = { muscle: 40, weight: 60, nutrition: 55 }
+    async function resetProgress() {
+        const reset = { muscle: 40, weight: 60, nutrition: 55 }
+        progress.value = { ...reset }
+        if (auth.user && profileLoaded.value) {
+            try {
+                await updateProfile({ progress: reset })
+            } catch {
+                addToast('Reset konnte nicht gespeichert werden.', 'delete')
+            }
+        }
     }
 
     // --- E-Mail / Passwort / Delete (Frontend-only) ---
@@ -1670,17 +1865,35 @@
     })
 
     // --- Persist watch ---
-    watch(activity, v => saveJSON(LS_KEYS.activity, v), { deep: true })
-    watch(progress, v => saveJSON(LS_KEYS.progress, v), { deep: true })
-    watch(favoriteTimers, v => localStorage.setItem(LS_KEYS.favorites, String(v)))
-    watch(earnedBadges, v => saveJSON(LS_KEYS.earnedBadges, v), { deep: true })
+    watch(activity, v => {
+        if (!profileLoaded.value) return
+        if (auth.user) queueProfileSave({ activity: v })
+        else saveJSON(LS_KEYS.activity, v)
+    }, { deep: true })
 
-    onMounted(() => {
-        // Falls memberSince noch nicht gesetzt, einmalig setzen
-        if (!localStorage.getItem(LS_KEYS.memberSince)) {
-            localStorage.setItem(LS_KEYS.memberSince, new Date().getFullYear().toString())
-        }
+    watch(progress, v => {
+        if (!profileLoaded.value) return
+        if (auth.user) queueProfileSave({ progress: v })
+        else saveJSON(LS_KEYS.progress, v)
+    }, { deep: true })
+
+    watch(goalOrder, v => {
+        if (!profileLoaded.value) return
+        if (auth.user) queueProfileSave({ goalOrder: v })
+        else saveJSON(LS_PROFILE_GOAL_ORDER, v)
+    }, { deep: true })
+
+    watch(favoriteTimers, v => {
+        if (!profileLoaded.value) return
+        if (auth.user) queueProfileSave({ favoriteTimers: v })
+        else localStorage.setItem(LS_KEYS.favorites, String(v))
     })
+
+    watch(earnedBadges, v => {
+        if (!profileLoaded.value) return
+        if (auth.user) queueProfileSave({ earnedBadges: v })
+        else saveJSON(LS_KEYS.earnedBadges, v)
+    }, { deep: true })
 
     // --- Toasts ---
     const toast = ref<ToastModel | null>(null)
@@ -2735,6 +2948,26 @@
         min-width: 0;
     }
 
+    .motto-random-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+    }
+
+    @media (max-width: 480px) {
+        .motto-random-btn {
+            width: 36px;
+            height: 36px;
+            justify-content: center;
+            padding: 0;
+            border-radius: 10px;
+        }
+
+        .motto-random-label {
+            display: none;
+        }
+    }
+
     .image-viewer-stage {
         touch-action: none; /* verhindert Scroll/Rubberband, ohne die Seiten-Scrollbar zu verstecken */
     }
@@ -2963,5 +3196,39 @@
         --hm-border-dark: 1px solid rgba(148, 163, 184, 0.45);
         --hm-shadow-dark: 0 22px 55px rgba(0, 0, 0, 0.70);
         --hm-hover-dark: rgba(148, 163, 184, 0.16);
+    }
+
+    /* ADD: ab 640px Actions unter dem Text + saubere Abtrennung */
+    @media (max-width: 640px) {
+        .motto-row {
+            grid-template-columns: 1fr;
+            row-gap: .75rem;
+            column-gap: 0;
+            align-items: start;
+        }
+
+        .motto-actions {
+            width: 100%;
+            justify-content: flex-end;
+            padding-top: .75rem;
+            border-top: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+        }
+    }
+    /* pages/Profile.vue <style scoped> */
+    /* ADD */
+    .motto-random-emoji {
+        display: none;
+    }
+
+    @media (max-width: 480px) {
+        .motto-random-emoji {
+            display: inline;
+            font-size: 1.05rem;
+            line-height: 1;
+        }
+
+        .motto-random-label {
+            display: none;
+        }
     }
 </style>

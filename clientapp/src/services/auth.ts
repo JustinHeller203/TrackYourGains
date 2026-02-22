@@ -3,9 +3,10 @@ import { api, setToken } from "@/lib/api";
 
 type AuthResponse = { id: string; email: string; token: string };
 
-export async function register(email: string, password: string, confirmPassword: string) {
+export async function register(email: string, username: string, password: string, confirmPassword: string) {
     const { data } = await api.post<AuthResponse>("/auth/register", {
         email,
+        username,
         password,
         confirmPassword,
     });
@@ -13,8 +14,8 @@ export async function register(email: string, password: string, confirmPassword:
     return data;
 }
 
-export async function login(email: string, password: string) {
-    const { data } = await api.post<AuthResponse>("/auth/login", { email, password });
+export async function login(username: string, password: string) {
+    const { data } = await api.post<AuthResponse>("/auth/login", { username, password });
     setToken(data.token);
     return data;
 }

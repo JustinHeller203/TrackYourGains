@@ -274,6 +274,19 @@ public class TrainingPlansController : ControllerBase
         };
 
         _db.TrainingPlans.Add(plan);
+
+        // ✅ UserMeta-Flag setzen: Plan wurde selbst erstellt
+        var meta = await _db.UserMetas.FirstOrDefaultAsync(x => x.UserId == userId);
+        if (meta is null)
+        {
+            meta = new UserMeta { UserId = userId, TokenVersion = 0, HasCreatedTrainingPlan = true };
+            _db.UserMetas.Add(meta);
+        }
+        else
+        {
+            meta.HasCreatedTrainingPlan = true;
+        }
+
         await _db.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetOne), new { id = plan.Id }, TrainingPlanDto.FromEntity(plan));

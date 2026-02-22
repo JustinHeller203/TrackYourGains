@@ -8,6 +8,10 @@
                 <span class="typed-text">{{ typedText }}</span><span class="cursor">|</span>
             </h1>
 
+            <p v-if="auth.user?.username" class="hero-greeting">
+                Willkommen zurück, {{ auth.user.username }}!
+            </p>
+
             <p class="hero-subtitle">
                 Dein Begleiter für Fitness, Ernährung und Fortschritt. Starte jetzt und erreiche deine Ziele! 💪
             </p>
@@ -55,7 +59,7 @@
         <section class="quick-links">
             <h2 class="section-title">Schnellstart ⚡</h2>
             <div class="links-grid">
-                <router-link to="/training" class="link-button">
+                <router-link :to="{ path: '/training', query: { tut: 'plan' } }" class="link-button">
                     <span>🏋️ Trainingsplan erstellen</span>
                 </router-link>
                 <router-link to="/nutrition" class="link-button">
@@ -101,6 +105,9 @@
 
 <script setup lang="ts">
     import { ref, onMounted, onUnmounted } from 'vue'
+    import { useAuthStore } from '@/store/authStore'
+    import { useTrainingPlansStore } from '@/store/trainingPlansStore'
+    import { useProgressStore } from '@/store/progressStore'
     import {
         LS_PROGRESS_WORKOUTS,
         LS_PROGRESS_MEALS,
@@ -121,7 +128,7 @@
     const loadStatsFromStorage = () => {
         if (typeof window === 'undefined') return
 
-        // --- Workouts: aus LS_PROGRESS_WORKOUTS ---
+        // --- Workouts: aus LS_PROGRESS_WORKOUTS (Fallback, wenn nicht eingeloggt) ---
         try {
             const rawWorkouts = window.localStorage.getItem(LS_PROGRESS_WORKOUTS)
             const parsed = rawWorkouts ? JSON.parse(rawWorkouts) as unknown[] : []
@@ -299,11 +306,47 @@
         })
     }
 
-    onMounted(() => {
+    const auth = useAuthStore()
+    const trainingPlansStore = useTrainingPlansStore()
+    const progressStore = useProgressStore()
+
+    const isGuid = (v: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+
+    const loadWorkoutsFromBackend = async () => {
+        if (!auth.user) return
+
+        try {
+            await trainingPlansStore.loadList()
+        } catch {
+            return
+        }
+
+        const planIds = trainingPlansStore.items
+            .map(p => p.id)
+            .filter(id => isGuid(id))
+
+        if (!planIds.length) {
+            workoutsCompleted.value = 0
+            return
+        }
+
+        await Promise.all(planIds.map(id => progressStore.load(id, true)))
+
+        const total = planIds.reduce((sum, id) => {
+            const items = progressStore.byPlan?.[id]?.items ?? []
+            return sum + items.length
+        }, 0)
+
+        workoutsCompleted.value = total
+    }
+
+    onMounted(async () => {
         typeText()
         setupScrollReveal()
         startTestimonialRotation()
         loadStatsFromStorage()
+        await loadWorkoutsFromBackend()
     })
 
     onUnmounted(() => {
@@ -420,6 +463,20 @@
         transform: translateY(10px);
         animation: heroFadeUp 0.7s ease-out forwards;
         animation-delay: 0.25s;
+    }
+
+    .hero-greeting {
+        font-size: 1.7rem;
+        font-weight: 800;
+        margin-top: 0.25rem;
+        margin-bottom: -0.25rem;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        opacity: 0;
+        transform: translateY(10px);
+        animation: heroFadeUp 0.7s ease-out forwards;
+        animation-delay: 0.18s;
     }
 
     @keyframes floatBlob {
