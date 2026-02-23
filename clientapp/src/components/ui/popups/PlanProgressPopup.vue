@@ -14,7 +14,7 @@
              @touchend="onSwipeEnd"
              @touchcancel="onSwipeCancel">
 
-            <div v-if="!dayCards.length" class="empty-state">
+            <div v-if="!dayCards.length && !plannedDaysForCurrentPlan.length" class="empty-state">
                 <div class="empty-icon" aria-hidden="true">📈</div>
 
                 <div class="empty-left">
@@ -46,6 +46,11 @@
                 <div v-if="planLastSummary" class="plan-last-summary">
                     <div class="summary-label">Letztes Training</div>
                     <div class="summary-body">{{ planLastSummary }}</div>
+                </div>
+
+                <div v-if="plannedCompletionPraise" class="plan-completion-praise" role="status" aria-live="polite">
+                    <div class="praise-icon" aria-hidden="true">✅</div>
+                    <div class="praise-text">{{ plannedCompletionPraise }}</div>
                 </div>
 
                 <!-- View Toggle -->
@@ -81,7 +86,11 @@
 
                 <!-- Calendar View -->
                 <Calender v-if="viewMode === 'calendar'"
-                          :daysWithEntries="daysWithEntriesArr"
+                          :daysWithEntries="calendarMarkedDaysArr"
+                          :dayColors="calendarDayColors"
+                          :dayTitles="calendarDayTitles"
+                          :checkDays="completedPlannedDaysArr"
+                          :crossDays="missedPlannedPastDaysArr"
                           @select="jumpToDay" />
 
                 <!-- List View -->
@@ -205,8 +214,16 @@
                                                     <div v-if="g.entry.setDetails?.length" class="set-list">
                                                         <div v-for="(s, idx) in g.entry.setDetails"
                                                              :key="idx"
-                                                             class="set-row">
-                                                            <span class="set-idx">{{ idx + 1 }}S</span>
+                                                            class="set-row">
+                                                            <span class="set-idx-wrap">
+                                                                <span class="set-idx">{{ idx + 1 }}S</span>
+                                                                <span v-if="setLabelText(s.label)"
+                                                                      :ref="el => bindSetNameEl(`str|${g.key}|${idx}`, el)"
+                                                                      class="set-name"
+                                                                      :class="{ 'is-overflowing': isSetNameOverflowing(`str|${g.key}|${idx}`) }">
+                                                                    <span class="set-name__text">{{ setLabelText(s.label) }}</span>
+                                                                </span>
+                                                            </span>
                                                             <span class="set-reps">{{ s.reps ?? '–' }} Wdh</span>
                                                             <span class="set-weight">{{ s.weight ?? '–' }} kg</span>
                                                         </div>
@@ -408,7 +425,15 @@
                                                         <div v-for="idx in rowIndexes(e)"
                                                              :key="`s-row-${idx}`"
                                                              class="set-row">
-                                                            <span class="set-idx">{{ idx }}S</span>
+                                                            <span class="set-idx-wrap">
+                                                                <span class="set-idx">{{ idx }}S</span>
+                                                                <span v-if="setLabelText(stretchSetLabel(e, idx))"
+                                                                      :ref="el => bindSetNameEl(`st|${entryKey(e, i)}|${idx}`, el)"
+                                                                      class="set-name"
+                                                                      :class="{ 'is-overflowing': isSetNameOverflowing(`st|${entryKey(e, i)}|${idx}`) }">
+                                                                    <span class="set-name__text">{{ setLabelText(stretchSetLabel(e, idx)) }}</span>
+                                                                </span>
+                                                            </span>
                                                             <span class="set-reps">{{ stretchRepsText(e, idx) }}</span>
                                                             <span class="set-right">{{ stretchDurationText(e, idx) }}</span>
                                                         </div>
@@ -522,7 +547,10 @@
     import Calender from '@/components/ui/kits/calender/Calender.vue'
     import PlanProgressStats from '@/components/ui/progress/PlanProgressStats.vue'
     import { useProgressStore } from "@/store/progressStore"
+    import { useTrainingPlansStore } from '@/store/trainingPlansStore'
     import type { ProgressEntry } from "@/types/Progress"
+    import { LS_TRAINING_PLANNER } from '@/constants/storageKeys'
+    import { listTrainingPlanner } from '@/services/trainingPlanner'
     import { storeToRefs } from "pinia"
 
     type DayCard = { day: string; uniqueExercises: number }
@@ -543,7 +571,7 @@
         reps?: number | null
 
         // per-set details (kraft/calisthenics)
-        setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null }> | null
+        setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null; label?: string | null }> | null
 
         // kraft extras
         tempo?: string | null
@@ -593,22 +621,122 @@
     defineExpose({ modalEl })
 
     const progressStore = useProgressStore()
+    const trainingPlansStore = useTrainingPlansStore()
     const { byPlan } = storeToRefs(progressStore)
+    const plannerByDayLocal = ref<Record<string, Array<{ planId: string; planName?: string; color?: string | null }>>>({})
+
+    const toPlannerDayKey = (dateStr?: string | null) => {
+        if (!dateStr) return null
+        const normalized = dateStr.length === 10 ? `${dateStr}T00:00:00Z` : dateStr
+        const d = new Date(normalized)
+        if (Number.isNaN(d.getTime())) return null
+        const y = d.getUTCFullYear()
+        const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+        const day = String(d.getUTCDate()).padStart(2, '0')
+        return `${y}-${m}-${day}`
+    }
+
+    const loadPlannerLocal = () => {
+        if (typeof window === 'undefined') return
+        try {
+            const raw = window.localStorage.getItem(LS_TRAINING_PLANNER)
+            const parsed = raw ? JSON.parse(raw) : {}
+            plannerByDayLocal.value = (parsed && typeof parsed === 'object') ? parsed : {}
+        } catch {
+            plannerByDayLocal.value = {}
+        }
+    }
+
+    const loadPlannerForPlanProgress = async () => {
+        try {
+            const items = await listTrainingPlanner()
+            const next: Record<string, Array<{ planId: string; planName?: string; color?: string | null }>> = {}
+            for (const item of items ?? []) {
+                if (item?.isRestDay) continue
+                if (!item?.planId) continue
+                const day = toPlannerDayKey(item.date)
+                if (!day) continue
+                const list = next[day] ?? []
+                list.push({
+                    planId: String(item.planId),
+                    planName: item.planName ?? '',
+                    color: item.planColor ?? null,
+                })
+                next[day] = list
+            }
+            plannerByDayLocal.value = next
+            return
+        } catch {
+            loadPlannerLocal()
+        }
+    }
 
     const testNoticeVisible = ref(false)
+    const setNameEls = new Map<string, HTMLElement>()
+    const overflowingSetNameKeys = ref<Set<string>>(new Set())
+    let setNameMeasureRaf: number | null = null
+
+    const scheduleSetNameMeasure = () => {
+        if (typeof window === 'undefined') return
+        if (setNameMeasureRaf != null) window.cancelAnimationFrame(setNameMeasureRaf)
+        setNameMeasureRaf = window.requestAnimationFrame(() => {
+            setNameMeasureRaf = null
+            const next = new Set<string>()
+            for (const [key, el] of setNameEls.entries()) {
+                if (!el.isConnected) continue
+                const textEl = el.querySelector('.set-name__text') as HTMLElement | null
+                const contentW = Math.ceil(textEl?.scrollWidth ?? el.scrollWidth)
+                const boxW = Math.ceil(el.clientWidth)
+                const overflowPx = Math.max(0, contentW - boxW)
+                if (overflowPx > 2) {
+                    next.add(key)
+                    el.style.setProperty('--set-name-shift', `${overflowPx}px`)
+                    const durationSec = Math.max(3.2, Math.min(8, 2.2 + overflowPx / 16))
+                    el.style.setProperty('--set-name-duration', `${durationSec.toFixed(2)}s`)
+                } else {
+                    el.style.setProperty('--set-name-shift', '0px')
+                    el.style.setProperty('--set-name-duration', '0s')
+                }
+            }
+            overflowingSetNameKeys.value = next
+        })
+    }
+
+    const bindSetNameEl = (key: string, el: Element | null) => {
+        if (!(el instanceof HTMLElement)) {
+            setNameEls.delete(key)
+            if (overflowingSetNameKeys.value.has(key)) {
+                const next = new Set(overflowingSetNameKeys.value)
+                next.delete(key)
+                overflowingSetNameKeys.value = next
+            }
+            return
+        }
+        setNameEls.set(key, el)
+        scheduleSetNameMeasure()
+    }
+
+    const isSetNameOverflowing = (key: string) => overflowingSetNameKeys.value.has(key)
+
     const onSpaceToggle = (e: KeyboardEvent) => {
         if (e.code !== 'Space') return
         e.preventDefault()
         testNoticeVisible.value = !testNoticeVisible.value
     }
 
+    const onWindowResizeMeasureSetNames = () => scheduleSetNameMeasure()
+
     watch(
         () => props.show,
         (open) => {
             if (open) {
                 window.addEventListener('keydown', onSpaceToggle)
+                window.addEventListener('resize', onWindowResizeMeasureSetNames)
+                void loadPlannerForPlanProgress()
+                nextTick(() => scheduleSetNameMeasure())
             } else {
                 window.removeEventListener('keydown', onSpaceToggle)
+                window.removeEventListener('resize', onWindowResizeMeasureSetNames)
                 testNoticeVisible.value = false
             }
         },
@@ -617,6 +745,11 @@
 
     onBeforeUnmount(() => {
         window.removeEventListener('keydown', onSpaceToggle)
+        window.removeEventListener('resize', onWindowResizeMeasureSetNames)
+        if (setNameMeasureRaf != null && typeof window !== 'undefined') {
+            window.cancelAnimationFrame(setNameMeasureRaf)
+            setNameMeasureRaf = null
+        }
     })
 
     const apiWorkouts = computed<WorkoutLike[]>(() => {
@@ -823,6 +956,7 @@
         const next = new Set(expandedEntryKeys.value)
         next.has(key) ? next.delete(key) : next.add(key)
         expandedEntryKeys.value = next
+        nextTick(() => scheduleSetNameMeasure())
     }
 
     const toggleEntrySets = (e: WorkoutLike, index: number) => {
@@ -830,6 +964,7 @@
         const next = new Set(expandedEntryKeys.value)
         next.has(k) ? next.delete(k) : next.add(k)
         expandedEntryKeys.value = next
+        nextTick(() => scheduleSetNameMeasure())
     }
 
     const setStats = (e: WorkoutLike) => {
@@ -961,6 +1096,12 @@
     }
 
     const selectedDay = ref<string | null>(null)
+
+    watch(
+        () => [viewMode.value, selectedDay.value, expandedDays.value.size, expandedEntryKeys.value.size] as const,
+        () => nextTick(() => scheduleSetNameMeasure()),
+        { flush: 'post' }
+    )
 
     const selectedDayCard = computed<DayCard | null>(() => {
         const day = selectedDay.value
@@ -1117,6 +1258,14 @@
     const stretchRepsText = (e: WorkoutLike, idx: number) => {
         const r = e.setDetails?.[idx - 1]?.reps
         return (typeof r === 'number' && r > 0) ? `${r} Wdh` : ''
+    }
+
+    const stretchSetLabel = (e: WorkoutLike, idx: number) =>
+        (e.setDetails?.[idx - 1] as any)?.label ?? null
+
+    const setLabelText = (label?: string | null) => {
+        const txt = String(label ?? '').trim()
+        return txt || ''
     }
 
     const stretchDurationText = (e: WorkoutLike, idx: number) => {
@@ -1527,12 +1676,155 @@
 
     const daysWithEntriesArr = computed(() => [...entriesByDay.value.keys()])
 
+    const todayLocalKey = computed(() => {
+        const d = new Date()
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${y}-${m}-${day}`
+    })
+
+    const plannedExerciseNamesForCurrentPlan = computed<Set<string>>(() => {
+        const planId = props.currentPlanId
+        if (!planId) return new Set()
+        const dto: any = trainingPlansStore.items.find((p: any) => p.id === planId) ?? null
+        const names = new Set<string>()
+        const days = Array.isArray(dto?.days) ? dto.days : []
+        for (const day of days) {
+            for (const ex of (Array.isArray((day as any)?.exercises) ? (day as any).exercises : [])) {
+                const n = String((ex as any)?.name ?? '').trim().toLowerCase()
+                if (n) names.add(n)
+            }
+        }
+        return names
+    })
+
+    const plannedDaysForCurrentPlan = computed<string[]>(() => {
+        const planId = props.currentPlanId
+        if (!planId) return []
+        const out: string[] = []
+        for (const [day, items] of Object.entries(plannerByDayLocal.value ?? {})) {
+            if (!Array.isArray(items)) continue
+            if (items.some((x: any) => String(x?.planId ?? '') === String(planId))) out.push(day)
+        }
+        return out.sort()
+    })
+
+    const plannedColorByDayForCurrentPlan = computed<Record<string, string>>(() => {
+        const planId = props.currentPlanId
+        if (!planId) return {}
+        const out: Record<string, string> = {}
+        for (const [day, items] of Object.entries(plannerByDayLocal.value ?? {})) {
+            if (!Array.isArray(items)) continue
+            const hit = items.find((x: any) => String(x?.planId ?? '') === String(planId))
+            const color = String((hit as any)?.color ?? '').trim()
+            if (hit && color) out[day] = color
+        }
+        return out
+    })
+
+    const plannedDayCompletionMap = computed<Record<string, boolean>>(() => {
+        const required = plannedExerciseNamesForCurrentPlan.value
+        const requireCount = required.size
+        const out: Record<string, boolean> = {}
+        for (const day of plannedDaysForCurrentPlan.value) {
+            const items = entriesByDay.value.get(day) ?? []
+            if (!items.length) {
+                out[day] = false
+                continue
+            }
+            if (requireCount === 0) {
+                out[day] = items.length > 0
+                continue
+            }
+            const done = new Set<string>()
+            for (const it of items) {
+                const ex = String(it.exercise ?? '').trim().toLowerCase()
+                if (ex) done.add(ex)
+            }
+            let complete = true
+            for (const ex of required) {
+                if (!done.has(ex)) { complete = false; break }
+            }
+            out[day] = complete
+        }
+        return out
+    })
+
+    const completedPlannedDaysArr = computed<string[]>(() =>
+        plannedDaysForCurrentPlan.value.filter(d => plannedDayCompletionMap.value[d])
+    )
+
+    const missedPlannedPastDaysArr = computed<string[]>(() =>
+        plannedDaysForCurrentPlan.value.filter(d => d < todayLocalKey.value && !plannedDayCompletionMap.value[d])
+    )
+
+    const calendarMarkedDaysArr = computed<string[]>(() => {
+        const set = new Set<string>([...daysWithEntriesArr.value, ...plannedDaysForCurrentPlan.value])
+        return [...set]
+    })
+
+    const calendarDayColors = computed<Record<string, string | string[]>>(() => {
+        const out: Record<string, string> = {}
+        const entryDays = new Set(daysWithEntriesArr.value)
+        const completedDays = new Set(completedPlannedDaysArr.value)
+        const missedPastDays = new Set(missedPlannedPastDaysArr.value)
+        for (const d of plannedDaysForCurrentPlan.value) {
+            if (missedPastDays.has(d)) {
+                out[d] = '#ef4444'
+                continue
+            }
+            const userColor = plannedColorByDayForCurrentPlan.value[d]
+            if (userColor) out[d] = userColor
+            else if (completedDays.has(d)) out[d] = '#10b981'
+            else if (entryDays.has(d)) out[d] = '#22c55e'
+            else out[d] = '#f59e0b'
+        }
+        for (const d of daysWithEntriesArr.value) {
+            if (!out[d]) out[d] = '#6366f1' // normaler Fortschrittstag
+        }
+        return out
+    })
+
+    const calendarDayTitles = computed<Record<string, string>>(() => {
+        const out: Record<string, string> = {}
+        const plannedSet = new Set(plannedDaysForCurrentPlan.value)
+        const completedSet = new Set(completedPlannedDaysArr.value)
+        const missedPastSet = new Set(missedPlannedPastDaysArr.value)
+        for (const d of calendarMarkedDaysArr.value) {
+            const parts: string[] = []
+            if (plannedSet.has(d)) {
+                if (completedSet.has(d)) parts.push('Geplant + vollständig absolviert')
+                else if (missedPastSet.has(d)) parts.push('Geplant, nicht vollständig absolviert')
+                else parts.push('Geplantes Workout')
+            }
+            if (daysWithEntriesArr.value.includes(d) && !completedSet.has(d)) parts.push('Fortschritt erfasst')
+            out[d] = parts.join(' · ') || 'Tag'
+        }
+        return out
+    })
+
+    const plannedCompletionPraise = computed<string | null>(() => {
+        const latest = [...completedPlannedDaysArr.value].sort().at(-1)
+        if (!latest) return null
+        return `Stark! Geplantes Workout für ${props.formatDayLong(latest)} vollständig absolviert. Weiter so!`
+    })
+
     const dayCards = computed<DayCard[]>(() => {
         return [...entriesByDay.value.entries()].map(([day, items]) => {
             const uniqueExercises = new Set(items.map(i => i.exercise)).size
             return { day, uniqueExercises }
         })
     })
+
+    watch(
+        () => [props.show, dayCards.value.length, plannedDaysForCurrentPlan.value.length] as const,
+        ([open, entryCount, plannedCount]) => {
+            if (!open) return
+            if (entryCount === 0 && plannedCount > 0) viewMode.value = 'calendar'
+        },
+        { flush: 'post' }
+    )
 
     const visibleDayCards = computed(() => dayCards.value.slice(0, visibleDays.value))
 
@@ -1782,10 +2074,15 @@
         // Wenn schon setDetails da sind -> nehmen
         if ((e.setDetails?.length ?? 0) > 0) return e.setDetails!
 
-        // Sonst: aus reps/weight einen "Pseudo-Satz" bauen
+        // Sonst: aus reps/weight Pseudo-Sätze bauen (Anzahl = e.sets, niemals fusionieren)
         const hasAny = (e.reps != null && e.reps !== 0) || (e.weight != null && e.weight !== 0)
         if (!hasAny) return []
-        return [{ reps: e.reps ?? null, weight: e.weight ?? null }]
+
+        const n = Math.max(1, Math.min(50, Number(e.sets ?? 1) || 1))
+        return Array.from({ length: n }, () => ({
+            reps: e.reps ?? null,
+            weight: e.weight ?? null,
+        }))
     }
 
     const mergeStrengthEntries = (day: string, entries: WorkoutLike[]): WorkoutLike => {
@@ -2654,6 +2951,63 @@
         opacity: .9;
     }
 
+    .set-idx-wrap {
+        display: grid;
+        gap: .14rem;
+        align-items: center;
+        justify-items: center;
+        min-width: 0;
+    }
+
+    .set-name {
+        max-width: 5.7rem;
+        font-size: .64rem;
+        line-height: 1.05;
+        font-weight: 800;
+        color: var(--text-secondary);
+        opacity: .9;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        --set-name-shift: 0px;
+        --set-name-duration: 0s;
+    }
+
+    .set-name__text {
+        display: inline-block;
+        white-space: nowrap;
+        will-change: transform;
+    }
+
+    .set-name.is-overflowing {
+        text-overflow: clip;
+    }
+
+    .set-name.is-overflowing .set-name__text {
+        animation: set-name-marquee var(--set-name-duration) linear infinite;
+    }
+
+    @keyframes set-name-marquee {
+        0%, 18% {
+            transform: translateX(0);
+        }
+
+        62%, 80% {
+            transform: translateX(calc(-1 * var(--set-name-shift)));
+        }
+
+        100% {
+            transform: translateX(0);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .set-name.is-overflowing .set-name__text {
+            animation: none !important;
+        }
+    }
+
 
     .set-weight {
         font-weight: 900;
@@ -2753,7 +3107,7 @@
     /* REPLACE */
     .set-row {
         display: grid;
-        grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+        grid-template-columns: minmax(2.2rem, 6.2rem) minmax(0, 1fr) auto;
         gap: .6rem;
         align-items: center;
         padding: .45rem .6rem;
@@ -3008,10 +3362,41 @@
         color: var(--text-primary);
     }
 
+    .plan-completion-praise {
+        margin: .1rem 0 .65rem;
+        padding: .72rem .9rem;
+        border-radius: 16px;
+        border: 1px solid rgba(16, 185, 129, 0.24);
+        background: linear-gradient(180deg, rgba(16, 185, 129, 0.10), rgba(16, 185, 129, 0.05));
+        box-shadow: 0 16px 34px rgba(16, 185, 129, 0.10);
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: .55rem;
+        align-items: center;
+    }
+
+    .praise-icon {
+        font-size: 1rem;
+        line-height: 1;
+    }
+
+    .praise-text {
+        font-size: .92rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.25;
+    }
+
     html.dark-mode .plan-last-summary {
         border-color: rgba(148, 163, 184, 0.26);
         background: rgba(255,255,255,0.03);
         box-shadow: 0 20px 44px rgba(0, 0, 0, 0.68);
+    }
+
+    html.dark-mode .plan-completion-praise {
+        border-color: rgba(16, 185, 129, 0.30);
+        background: rgba(16, 185, 129, 0.10);
+        box-shadow: 0 20px 44px rgba(0, 0, 0, 0.55);
     }
 
     .progress-topbar {

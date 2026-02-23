@@ -545,6 +545,12 @@
                             :errors="validationErrorMessages"
                             :planId="effectivePlanId"
                             :latestBodyWeightDisplay="latestRecordedWeightValue"
+                            :prefillExercise="progressContinuationPrefillExercise"
+                            :prefillSetValues="progressContinuationPrefillSetValues"
+                            :activeSetNumber="progressContinuationActiveSetNumber"
+                            :lockSetsBefore="progressContinuationLockSetsBefore"
+                            :prefillSetValuesByExercise="todayTrackedSetValuesByExercise"
+                            :prefillLockedSetsByExercise="todayTrackedLockedSetsByExercise"
                             @save="onProgressModalSave"
                             @delete="onProgressModalDelete"
                             @cancel="onProgressModalCancel"
@@ -681,7 +687,7 @@
         type?: WorkoutType
         durationMin?: number
         distanceKm?: number
-        setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null }>
+        setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null; label?: string | null }>
         isDropset?: boolean
         dropsets?: Array<{ weight: number | null; reps: number | null }>
         tempo?: string
@@ -723,6 +729,12 @@
         openCreate: (opts: { planId: string; defaultBodyWeightDisplay: number | null }) => void
         openEdit: (opts: { planId: string; entry: Workout }) => void
         submit?: () => void
+    }
+
+    type ProgressContinuationDraft = {
+        exercise: string
+        valuesBySet: Record<number, { weight?: number | null; reps?: number | null }>
+        lastCompletedSetNo: number
     }
 
     const trainingPlansStore = useTrainingPlansStore()
@@ -2395,6 +2407,123 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
 
     const editingEntry = ref<Workout | null>(null)
+    const progressContinuationByPlan = ref<Record<string, ProgressContinuationDraft>>({})
+
+    const progressContinuationForCurrentPlan = computed<ProgressContinuationDraft | null>(() => {
+        const planId = effectivePlanId.value
+        if (!planId) return null
+        return progressContinuationByPlan.value[planId] ?? null
+    })
+
+    const progressContinuationPrefillExercise = computed<string | null>(() =>
+        progressContinuationForCurrentPlan.value?.exercise ?? null
+    )
+
+    const progressContinuationPrefillSetValues = computed<Record<number, { weight?: number | null; reps?: number | null }> | null>(() =>
+        progressContinuationForCurrentPlan.value?.valuesBySet ?? null
+    )
+
+    const progressContinuationActiveSetNumber = computed<number | null>(() =>
+        progressContinuationForCurrentPlan.value?.lastCompletedSetNo ?? null
+    )
+
+    const progressContinuationLockSetsBefore = computed<number>(() =>
+        Math.max(0, progressContinuationForCurrentPlan.value?.lastCompletedSetNo ?? 0)
+    )
+
+    const todayTrackedSetValuesByExercise = computed<Record<string, Record<number, { weight?: number | null; reps?: number | null }>>>(() => {
+        const planId = effectivePlanId.value
+        if (!planId) return {}
+        const today = new Date().toISOString().slice(0, 10)
+
+        const entries = workouts.value
+            .filter(w => w.planId === planId && (w.date || '').slice(0, 10) === today)
+            .filter(w => (w.type ?? 'kraft') !== 'ausdauer')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+        const out: Record<string, Record<number, { weight?: number | null; reps?: number | null }>> = {}
+
+        for (const w of entries) {
+            const key = String(w.exercise ?? '').trim().toLowerCase()
+            if (!key) continue
+
+            const target = out[key] ?? {}
+            let nextSetNo = Math.max(0, ...Object.keys(target).map(k => Math.floor(Number(k)) || 0)) + 1
+
+            const details = Array.isArray(w.setDetails) && w.setDetails.length
+                ? w.setDetails
+                : Array.from({ length: Math.max(0, Number(w.sets ?? 0) || 0) }, () => ({
+                    weight: w.weight ?? null,
+                    reps: w.reps ?? null,
+                }))
+
+            for (const s of details) {
+                const weightDisplay = s?.weight != null ? kgToDisplay(Number(s.weight)) : null
+                target[nextSetNo] = {
+                    weight: Number.isFinite(Number(weightDisplay)) ? Number(weightDisplay) : null,
+                    reps: s?.reps ?? null,
+                }
+                nextSetNo++
+            }
+
+            out[key] = target
+        }
+
+        return out
+    })
+
+    const todayTrackedLockedSetsByExercise = computed<Record<string, number>>(() => {
+        const out: Record<string, number> = {}
+        for (const [key, valuesBySet] of Object.entries(todayTrackedSetValuesByExercise.value)) {
+            out[key] = Math.max(0, ...Object.keys(valuesBySet).map(k => Math.floor(Number(k)) || 0))
+        }
+        return out
+    })
+
+    const upsertProgressContinuationDraft = (
+        planId: string,
+        exercise: string,
+        valuesBySet?: Record<number, { weight?: number | null; reps?: number | null }>
+    ) => {
+        const ex = String(exercise ?? '').trim()
+        if (!planId || !ex) return
+
+        const src = valuesBySet ?? {}
+        const nextValues: Record<number, { weight?: number | null; reps?: number | null }> = {}
+        let lastCompletedSetNo = 0
+
+        for (const [k, v] of Object.entries(src)) {
+            const setNo = Math.floor(Number(k))
+            if (!Number.isFinite(setNo) || setNo <= 0) continue
+            nextValues[setNo] = {
+                weight: v?.weight ?? null,
+                reps: v?.reps ?? null,
+            }
+            if ((v?.weight != null) || (v?.reps != null)) {
+                lastCompletedSetNo = Math.max(lastCompletedSetNo, setNo)
+            }
+        }
+
+        if (lastCompletedSetNo <= 0) {
+            lastCompletedSetNo = Math.max(0, ...Object.keys(nextValues).map(k => Math.floor(Number(k)) || 0))
+        }
+
+        progressContinuationByPlan.value = {
+            ...progressContinuationByPlan.value,
+            [planId]: {
+                exercise: ex,
+                valuesBySet: nextValues,
+                lastCompletedSetNo,
+            },
+        }
+    }
+
+    const clearProgressContinuationDraft = (planId: string) => {
+        if (!planId) return
+        const next = { ...progressContinuationByPlan.value }
+        delete next[planId]
+        progressContinuationByPlan.value = next
+    }
 
     const getProgressForPlan = (planId: string): Workout[] => {
         return workouts.value.filter((w: Workout) => w.planId === planId)
@@ -2543,6 +2672,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
                 note: it.note ?? undefined,
                 tempo: it.tempo ?? undefined,
                 restSeconds: it.restSeconds ?? undefined,
+                setDetails: Array.isArray((it as any).setDetails) ? (it as any).setDetails : undefined,
             } as any)
         }
     }
@@ -2576,10 +2706,13 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         updatedBodyWeightKg?: number | null
         mode: 'create' | 'edit'
         editingDate?: string | null
+        draft?: {
+            valuesBySet?: Record<number, { weight?: number | null; reps?: number | null }>
+        }
     }) => {
 
         validationErrorMessages.value = []
-        const { workout, updatedBodyWeightKg, mode, editingDate } = payload
+        const { workout, updatedBodyWeightKg, mode, editingDate, draft } = payload
         if (updatedBodyWeightKg != null) {
             const today = new Date().toISOString().split('T')[0]
 
@@ -2634,6 +2767,14 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
                 note: workout.note ?? null,
                 tempo: workout.tempo ?? null,
                 restSeconds: workout.restSeconds ?? null,
+                setDetails: Array.isArray(workout.setDetails)
+                    ? workout.setDetails.map(s => ({
+                        weight: s.weight ?? null,
+                        reps: s.reps ?? null,
+                        durationSec: s.durationSec ?? null,
+                        label: (s.label ?? '').trim() || null,
+                    }))
+                    : null,
             }
 
             let updated
@@ -2666,6 +2807,14 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
                 note: workout.note ?? null,
                 tempo: workout.tempo ?? null,
                 restSeconds: workout.restSeconds ?? null,
+                setDetails: Array.isArray(workout.setDetails)
+                    ? workout.setDetails.map(s => ({
+                        weight: s.weight ?? null,
+                        reps: s.reps ?? null,
+                        durationSec: s.durationSec ?? null,
+                        label: (s.label ?? '').trim() || null,
+                    }))
+                    : null,
             }
 
             let created
@@ -2680,6 +2829,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             syncWorkoutsFromStore(planId)
 
             showToast({ message: "Fortschritt gespeichert!", type: "success", emoji: "✅" })
+            upsertProgressContinuationDraft(planId, workout.exercise, draft?.valuesBySet)
 
 
         }
@@ -2913,6 +3063,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const deleteProgressEntry = async (planId: string, id: string) => {
         await progressStore.remove(planId, id)
         workouts.value = workouts.value.filter(w => !(w.planId === planId && w.id === id))
+        clearProgressContinuationDraft(planId)
         showToast({ message: "Eintrag gelöscht!", type: "success", emoji: "🗑️" })
     }
 

@@ -138,11 +138,41 @@
             <div v-if="visibleSetCount > 0 && (inputType === 'kraft' || inputType === 'calisthenics' || inputType === 'dehnung')"
                  class="set-rows">
                 <div v-for="(row, i) in visibleSetDetails" :key="i" class="set-row">
-                    <div class="set-row-label">Satz {{ i + 1 }}</div>
+                    <div class="set-row-head">
+                        <button type="button"
+                                class="set-row-label set-row-label--toggle"
+                                :class="{ 'is-skipped': isSetSkipped(i + 1) }"
+                                :aria-pressed="isSetSkipped(i + 1)"
+                                :disabled="isSetLocked(i + 1)"
+                                :title="isSetSkipped(i + 1) ? 'Satz wieder aktivieren' : 'Satz als übersprungen markieren'"
+                                @click="toggleSetSkipped(i + 1)">
+                            <span class="set-row-label__clip"
+                                  :ref="el => bindSetTitleEl(i + 1, el)"
+                                  :class="{ 'is-overflowing': shouldAnimateSetTitle(i + 1) }"
+                                  :style="setTitleAnimStyle(i + 1)">
+                                <span class="set-row-label__text"
+                                      :style="setTitleTextAnimInlineStyle(i + 1)">
+                                    {{ setTitleText(i + 1) }}
+                                </span>
+                            </span>
+                        </button>
+
+                        <button type="button"
+                                class="set-row-edit-btn"
+                                :disabled="isSetLocked(i + 1)"
+                                :title="editingSetLabelNoLocal === (i + 1) ? 'Satzname schließen' : 'Satzname bearbeiten'"
+                                :aria-label="`Satz ${i + 1} benennen`"
+                                @click.stop="toggleSetLabelEditor(i + 1)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M3 17.25V21h3.75L18.81 8.94l-3.75-3.75L3 17.25Zm14.71-9.04a1 1 0 0 0 0-1.41l-1.5-1.5a1 1 0 0 0-1.41 0l-1.09 1.09 3.75 3.75 1.25-1.38Z" />
+                            </svg>
+                        </button>
+                    </div>
 
                     <!-- Kraft / Calisthenics: Gewicht + Wdh. -->
                     <template v-if="inputType === 'kraft' || inputType === 'calisthenics'">
                         <UiPopupInput :id="`set-${i}-weight`"
+                                      class="set-cell-input"
                                       label=""
                                       type="number"
                                       inputmode="decimal"
@@ -152,11 +182,12 @@
       ? (unit === 'kg' ? 'Zusatzgewicht' : 'Added weight')
       : (unit === 'kg' ? 'Gewicht' : 'Weight'))"
                                       :modelValue="rowField(i,'weight')"
-                                      :readonly="!hasExerciseSelected"
+                                      :readonly="!hasExerciseSelected || isSetLocked(i + 1)"
                                       @focus="!hasExerciseSelected && requireExercise('set-weight')"
                                       @update:modelValue="v => setRowField(i,'weight', v)" />
 
                         <UiPopupInput :id="`set-${i}-reps`"
+                                      class="set-cell-input"
                                       label=""
                                       type="number"
                                       inputmode="numeric"
@@ -164,7 +195,7 @@
                                       step="1"
                                       placeholder="Wdh."
                                       :modelValue="rowField(i,'reps')"
-                                      :readonly="!hasExerciseSelected"
+                                      :readonly="!hasExerciseSelected || isSetLocked(i + 1)"
                                       @focus="!hasExerciseSelected && requireExercise('set-reps')"
                                       @update:modelValue="v => setRowField(i,'reps', v)" />
                     </template>
@@ -172,6 +203,7 @@
                     <!-- Dehnung: Dauer (Sek.) + optionale Wdh. -->
                     <template v-else>
                         <UiPopupInput :id="`set-${i}-duration`"
+                                      class="set-cell-input"
                                       label=""
                                       type="number"
                                       inputmode="numeric"
@@ -180,11 +212,12 @@
                                       step="5"
                                       placeholder="Dauer (Sek.)"
                                       :modelValue="rowField(i,'durationSec')"
-                                      :readonly="!hasExerciseSelected"
+                                      :readonly="!hasExerciseSelected || isSetLocked(i + 1)"
                                       @focus="!hasExerciseSelected && requireExercise('stretch-duration')"
                                       @update:modelValue="v => setRowField(i,'durationSec', v)" />
 
                         <UiPopupInput :id="`set-${i}-reps-opt`"
+                                      class="set-cell-input"
                                       label=""
                                       type="number"
                                       inputmode="numeric"
@@ -193,10 +226,11 @@
                                       step="1"
                                       placeholder="Wdh. (optional)"
                                       :modelValue="rowField(i,'reps')"
-                                      :readonly="!hasExerciseSelected"
+                                      :readonly="!hasExerciseSelected || isSetLocked(i + 1)"
                                       @focus="!hasExerciseSelected && requireExercise('stretch-reps')"
                                       @update:modelValue="v => setRowField(i,'reps', v)" />
                     </template>
+
                 </div>
 
                 <div v-if="inputType==='dehnung'" class="set-quick-actions">
@@ -205,6 +239,12 @@
                     <button type="button" class="btn-extras-chip" @click="applyStretchDuration(60)">60s</button>
                     <button type="button" class="btn-extras-chip" @click="applyStretchDuration(90)">90s</button>
                     <button type="button" class="btn-extras-chip" @click="applyStretchDurationFromFirst()">Alle übernehmen</button>
+                </div>
+
+                <div v-if="canAddSetRow" class="set-add-row">
+                    <button type="button" class="btn-extras-chip set-add-btn" @click="addSetRow">
+                        + Satz
+                    </button>
                 </div>
             </div>
 
@@ -453,13 +493,36 @@
                          lead="Die Borg-Skala geht von 6 (sehr leicht) bis 20 (maximal)."
                          @close="onCloseBorgError" />
 
+        <ValidationPopup :show="showSetLabelErrorPopupLocal"
+                         :errors="setLabelErrorMessagesLocal"
+                         title="Satzname zu lang"
+                         lead="Bitte verkürze den Satznamen und versuche es erneut."
+                         @close="closeSetLabelErrorPopup" />
+
+        <ValidationPopup :show="showSetActionErrorPopupLocal"
+                         :errors="setActionErrorMessagesLocal"
+                         title="Übung zuerst auswählen"
+                         lead="Bitte wähle zuerst eine Übung aus, bevor du Sätze bearbeitest."
+                         @close="closeSetActionErrorPopup" />
+
+        <EditPopup v-model="showSetLabelEditPopupLocal"
+                   title="Satznamen bearbeiten"
+                   inputType="text"
+                   label="Satzname"
+                   placeholder="z. B. Aufwärmsatz"
+                   v-model:value="setLabelDraftLocal"
+                   confirmText="Übernehmen"
+                   @cancel="closeSetLabelEditor"
+                   @save="saveSetLabelEdit" />
+
     </BasePopup>
 </template>
 
 
 <script setup lang="ts">
-    import { computed, nextTick, onMounted, ref, watch, withDefaults } from 'vue'
+    import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, withDefaults } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
+    import EditPopup from '@/components/ui/popups/EditPopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import ExtrasToggleButton from '@/components/ui/buttons/ExtrasToggleButton.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
@@ -476,7 +539,7 @@
 
     type Unit = 'kg' | 'lbs'
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
-    type SetDetail = { weight: number | null; reps: number | null; durationSec?: number | null }
+    type SetDetail = { weight: number | null; reps: number | null; durationSec?: number | null; label?: string | null }
     type PlanExercise = {
         exercise: string
         sets: number
@@ -513,7 +576,7 @@
         restSeconds?: number
         isDropset?: boolean
         dropsets?: Array<{ weight: number | null; reps: number | null }>
-        setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null }>
+        setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null; label?: string | null }>
 
         // stretch extras
         painFree?: number
@@ -531,6 +594,8 @@
         latestBodyWeightDisplay?: number | null
         prefillExercise?: string | null
         prefillSetValues?: Record<number, { weight?: number | null; reps?: number | null }>
+        prefillSetValuesByExercise?: Record<string, Record<number, { weight?: number | null; reps?: number | null }>>
+        prefillLockedSetsByExercise?: Record<string, number>
 
         // ✅ TrainingSimulation: progressive Set-Freigabe
         activeSetNumber?: number | null
@@ -567,6 +632,12 @@
     function closePopup() {
         showExtrasLocal.value = false
         localEditingEntry.value = null
+        closeSetLabelEditor()
+        closeSetLabelErrorPopup()
+        closeSetActionErrorPopup()
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('resize', onWindowResizeMeasureSetTitles)
+        }
         showProxy.value = false
     }
     const emit = defineEmits<{
@@ -837,18 +908,21 @@
                         Array.isArray(d.exercises)
                             ? d.exercises.map((x: any) => {
                                 const name = String(x.name ?? x.exercise ?? '').trim()
-                                const isCardio = x.durationMin != null || x.distanceKm != null
-
-                                const type: ExerciseType = isCardio
-                                    ? 'ausdauer'
-                                    : mapCategoryToType(x.category)
+                                const type = inferExerciseType({
+                                    exercise: name,
+                                    type: x.category ?? x.type,
+                                    durationMin: x.durationMin ?? null,
+                                    distanceKm: x.distanceKm ?? null,
+                                    sets: x.sets ?? null,
+                                    reps: x.reps ?? null,
+                                })
 
                                 // Werte passend setzen
-                                const sets = isCardio
+                                const sets = type === 'ausdauer'
                                     ? Number(x.durationMin ?? 0) || 0
                                     : Number(x.sets ?? 0) || 0
 
-                                const reps = isCardio
+                                const reps = type === 'ausdauer'
                                     ? Number(x.distanceKm ?? 0) || 0
                                     : Number(x.reps ?? 0) || 0
 
@@ -934,6 +1008,7 @@
         return Number.isFinite(n) ? n : null
     }
     const toNumberOr = (v: unknown, fallback: number | null = null) => (toNumber(v) ?? fallback)
+    const normalizeExerciseKey = (v: unknown) => String(v ?? '').trim().toLowerCase()
 
     /* unit conversion */
     const lbsToKg = (lbs: number) => lbs * 0.45359237
@@ -1027,6 +1102,20 @@
     const sideLocal = ref<'' | 'links' | 'rechts' | 'beidseitig'>('')
 
     const setDetailsLocal = ref<SetDetail[]>([])
+    const activeSetNumberLocalOverride = ref<number | null>(null)
+    const skippedSetNumbersLocal = ref<Set<number>>(new Set())
+    const editingSetLabelNoLocal = ref<number | null>(null)
+    const showSetLabelEditPopupLocal = ref(false)
+    const setLabelDraftLocal = ref('')
+    const showSetLabelErrorPopupLocal = ref(false)
+    const setLabelErrorMessagesLocal = ref<string[]>([])
+    const showSetActionErrorPopupLocal = ref(false)
+    const setActionErrorMessagesLocal = ref<string[]>([])
+    const setTitleElsLocal = new Map<number, HTMLElement>()
+    const overflowingSetTitlesLocal = ref<Set<number>>(new Set())
+    const setTitleShiftByNoLocal = ref<Record<number, number>>({})
+    let setTitleMeasureRafLocal: number | null = null
+    const MAX_SET_LABEL_LEN = 20
     const isDropsetLocal = ref(false)
     const dropsetsLocal = ref<Array<{ weight: number | null; reps: number | null }>>([])
 
@@ -1037,6 +1126,14 @@
     })
 
     const detectedInputType = computed<ExerciseType>(() => {
+        const editTypeRaw = String(localEditingEntry.value?.type ?? '').trim().toLowerCase()
+        if (editTypeRaw === 'kraft' || editTypeRaw === 'calisthenics' || editTypeRaw === 'dehnung' || editTypeRaw === 'ausdauer') {
+            return editTypeRaw as ExerciseType
+        }
+        if (editTypeRaw === 'stretch') return 'dehnung'
+        if (editTypeRaw === 'cardio') return 'ausdauer'
+        if (editTypeRaw === 'strength') return 'kraft'
+
         const t = plannedForSelected.value?.type
         if (t) return t
         return isStretchName(exerciseLocal.value) ? 'dehnung'
@@ -1125,6 +1222,8 @@
     function resetIrrelevantFields(nextType: ExerciseType) {
         if (!nextType) return
 
+        skippedSetNumbersLocal.value = new Set()
+        closeSetLabelEditor()
 
         // Extras immer zu beim Typwechsel (sonst sieht man random Felder)
         showExtrasLocal.value = false
@@ -1227,6 +1326,7 @@
                 const planEx = plannedForSelected.value
                 if (planEx) applyPlanPrefillFromPlan(planEx)
                 else applyPlanPrefill(name)
+                nextTick(() => applySelectedExercisePrefillFromToday())
             })
         },
         { flush: 'post' }
@@ -1246,9 +1346,29 @@
     )
     const hasExerciseSelected = computed(() => !!exerciseLocal.value.trim())
 
+    const effectiveActiveSetNumber = computed<number | null>(() => {
+        const local = Math.floor(Number(activeSetNumberLocalOverride.value ?? 0))
+        if (local > 0) return local
+        const selectedKey = normalizeExerciseKey(exerciseLocal.value)
+        const prefillKey = normalizeExerciseKey(props.prefillExercise)
+        if (selectedKey && prefillKey && selectedKey !== prefillKey) return null
+        const prop = Math.floor(Number(props.activeSetNumber ?? 0))
+        return prop > 0 ? prop : null
+    })
+
+    const lockedSetCount = computed<number>(() => {
+        if (localIsEditing.value) return 0
+        const exKey = normalizeExerciseKey(exerciseLocal.value)
+        const fromExerciseMap = exKey ? Math.floor(Number(props.prefillLockedSetsByExercise?.[exKey] ?? 0)) : 0
+        if (fromExerciseMap > 0) return Math.max(0, fromExerciseMap)
+        const prefillKey = normalizeExerciseKey(props.prefillExercise)
+        if (exKey && prefillKey && exKey !== prefillKey) return 0
+        return Math.max(0, Math.floor(Number(props.lockSetsBefore ?? 0) || 0))
+    })
+
     const visibleSetCount = computed(() => {
         const raw = Math.max(0, Math.min(7, Number(setsLocal.value ?? 0) || 0))
-        const active = Math.floor(Number(props.activeSetNumber ?? 0))
+        const active = Math.floor(Number(effectiveActiveSetNumber.value ?? 0))
         if (active > 0) return Math.max(0, Math.min(raw, active))
         return raw
     })
@@ -1256,6 +1376,198 @@
     const visibleSetDetails = computed(() => {
         return (setDetailsLocal.value ?? []).slice(0, visibleSetCount.value)
     })
+
+    function isSetSkipped(setNo: number): boolean {
+        return skippedSetNumbersLocal.value.has(setNo)
+    }
+
+    function isSetLocked(setNo: number): boolean {
+        return setNo >= 1 && setNo <= lockedSetCount.value
+    }
+
+    const canAddSetRow = computed(() => {
+        if (localIsEditing.value) return false
+        if (inputType.value === 'ausdauer') return false
+        if (!hasExerciseSelected.value) return false
+        const sets = Math.max(0, Math.min(7, Number(setsLocal.value ?? 0) || 0))
+        const visible = visibleSetCount.value
+        return visible < 7 && (sets > 0 || visible > 0)
+    })
+
+    function addSetRow() {
+        if (!guardSetActionsRequireExercise()) return
+        if (localIsEditing.value || inputType.value === 'ausdauer') return
+
+        const rawSets = Math.max(0, Math.min(7, Number(setsLocal.value ?? 0) || 0))
+        const currentVisible = visibleSetCount.value
+        if (currentVisible >= 7 && rawSets >= 7) return
+
+        let nextSets = rawSets
+        if (rawSets <= 0) nextSets = 1
+        else if (currentVisible >= rawSets && rawSets < 7) nextSets = rawSets + 1
+
+        const nextVisible = Math.min(7, Math.max(currentVisible + 1, nextSets))
+        setsLocal.value = nextSets
+        activeSetNumberLocalOverride.value = nextVisible
+    }
+
+    function toggleSetSkipped(setNo: number) {
+        if (!guardSetActionsRequireExercise()) return
+        if (isSetLocked(setNo)) return
+        const next = new Set(skippedSetNumbersLocal.value)
+        next.has(setNo) ? next.delete(setNo) : next.add(setNo)
+        skippedSetNumbersLocal.value = next
+    }
+
+    function pruneSkippedSets(maxSetNo: number) {
+        const next = new Set<number>()
+        for (const n of skippedSetNumbersLocal.value) {
+            if (n >= 1 && n <= maxSetNo) next.add(n)
+        }
+        skippedSetNumbersLocal.value = next
+        if ((editingSetLabelNoLocal.value ?? 0) > maxSetNo) closeSetLabelEditor()
+    }
+
+    function setTitleText(setNo: number): string {
+        const label = (setDetailsLocal.value?.[setNo - 1]?.label ?? '').trim()
+        return label || `Satz ${setNo}`
+    }
+
+    function bindSetTitleEl(setNo: number, el: Element | null) {
+        if (!(el instanceof HTMLElement)) {
+            setTitleElsLocal.delete(setNo)
+            if (overflowingSetTitlesLocal.value.has(setNo)) {
+                const next = new Set(overflowingSetTitlesLocal.value)
+                next.delete(setNo)
+                overflowingSetTitlesLocal.value = next
+            }
+            return
+        }
+        setTitleElsLocal.set(setNo, el)
+        scheduleSetTitleMeasure()
+    }
+
+    function isSetTitleOverflowing(setNo: number): boolean {
+        return overflowingSetTitlesLocal.value.has(setNo)
+    }
+
+    function shouldAnimateSetTitle(setNo: number): boolean {
+        if (isSetTitleOverflowing(setNo)) return true
+        const customLabel = (setDetailsLocal.value?.[setNo - 1]?.label ?? '').trim()
+        if (!customLabel) return false
+        return customLabel.length >= 6 // aggressiver Fallback, damit Animation sichtbar wird
+    }
+
+    function setTitleAnimStyle(setNo: number) {
+        const measuredShift = Number(setTitleShiftByNoLocal.value[setNo] ?? 0)
+        const txtLen = setTitleText(setNo).length
+        const estimatedShift = Math.max(0, (txtLen - 7) * 6)
+        const shift = shouldAnimateSetTitle(setNo) ? Math.max(24, measuredShift, estimatedShift) : 0
+        const durationSec = shift > 0 ? Math.max(3.4, Math.min(8.5, 2.6 + shift / 15)) : 0
+        return {
+            '--set-title-shift': `${shift}px`,
+            '--set-title-duration': `${durationSec.toFixed(2)}s`,
+        }
+    }
+
+    function setTitleTextAnimInlineStyle(setNo: number) {
+        if (!shouldAnimateSetTitle(setNo)) return {}
+        const measuredShift = Number(setTitleShiftByNoLocal.value[setNo] ?? 0)
+        const txtLen = setTitleText(setNo).length
+        const estimatedShift = Math.max(0, (txtLen - 7) * 6)
+        const shift = Math.max(24, measuredShift, estimatedShift)
+        if (shift <= 0) return {}
+        const durationSec = Math.max(3.4, Math.min(8.5, 2.6 + shift / 15))
+        return {
+            animation: `set-title-marquee ${durationSec.toFixed(2)}s linear infinite`,
+        }
+    }
+
+    function scheduleSetTitleMeasure() {
+        if (typeof window === 'undefined') return
+        if (setTitleMeasureRafLocal != null) window.cancelAnimationFrame(setTitleMeasureRafLocal)
+        setTitleMeasureRafLocal = window.requestAnimationFrame(() => {
+            setTitleMeasureRafLocal = null
+            const next = new Set<number>()
+            const shifts: Record<number, number> = {}
+            for (const [setNo, el] of setTitleElsLocal.entries()) {
+                if (!el.isConnected) continue
+                const textEl = el.querySelector('.set-row-label__text') as HTMLElement | null
+                const contentW = Math.ceil(textEl?.scrollWidth ?? el.scrollWidth)
+                const boxW = Math.ceil(el.clientWidth)
+                const overflowPx = Math.max(0, contentW - boxW)
+                shifts[setNo] = overflowPx
+                if (overflowPx > 2) {
+                    next.add(setNo)
+                }
+            }
+            setTitleShiftByNoLocal.value = shifts
+            overflowingSetTitlesLocal.value = next
+        })
+    }
+
+    const onWindowResizeMeasureSetTitles = () => scheduleSetTitleMeasure()
+
+    function onSetLabelInput(i: number, raw: string) {
+        const nextValue = String(raw ?? '').trimStart()
+        const next = setDetailsLocal.value.map((r, idx) => idx === i ? { ...r, label: nextValue || null } : r)
+        setDetailsLocal.value = next
+        nextTick(() => scheduleSetTitleMeasure())
+    }
+
+    function toggleSetLabelEditor(setNo: number) {
+        if (!guardSetActionsRequireExercise()) return
+        if (isSetLocked(setNo)) return
+        if (editingSetLabelNoLocal.value === setNo && showSetLabelEditPopupLocal.value) {
+            closeSetLabelEditor()
+            return
+        }
+        editingSetLabelNoLocal.value = setNo
+        setLabelDraftLocal.value = (setDetailsLocal.value?.[setNo - 1]?.label ?? '').toString()
+        showSetLabelEditPopupLocal.value = true
+    }
+
+    function closeSetLabelEditor() {
+        showSetLabelEditPopupLocal.value = false
+        setLabelDraftLocal.value = ''
+        editingSetLabelNoLocal.value = null
+        nextTick(() => scheduleSetTitleMeasure())
+    }
+
+    function closeSetLabelErrorPopup() {
+        showSetLabelErrorPopupLocal.value = false
+        setLabelErrorMessagesLocal.value = []
+    }
+
+    function closeSetActionErrorPopup() {
+        showSetActionErrorPopupLocal.value = false
+        setActionErrorMessagesLocal.value = []
+    }
+
+    function guardSetActionsRequireExercise(): boolean {
+        if (hasExerciseSelected.value) return true
+        setActionErrorMessagesLocal.value = ['Bitte wähle zuerst eine Übung aus.']
+        showSetActionErrorPopupLocal.value = true
+        nextTick(() => exerciseSelect.value?.focus())
+        return false
+    }
+
+    function saveSetLabelEdit(raw: string) {
+        const setNo = editingSetLabelNoLocal.value
+        if (setNo == null) {
+            closeSetLabelEditor()
+            return
+        }
+        const trimmed = String(raw ?? '').trim()
+        if (trimmed.length > MAX_SET_LABEL_LEN) {
+            setLabelErrorMessagesLocal.value = [`Maximal ${MAX_SET_LABEL_LEN} Zeichen erlaubt (aktuell: ${trimmed.length}).`]
+            showSetLabelErrorPopupLocal.value = true
+            return
+        }
+        closeSetLabelErrorPopup()
+        onSetLabelInput(setNo - 1, trimmed)
+        closeSetLabelEditor()
+    }
 
     watch(
         () => [props.show, setDetailsLocal.value.length, visibleSetCount.value] as const,
@@ -1372,6 +1684,8 @@
     /* create/edit API for parent */
     function openCreate(args: { planId: string; defaultBodyWeightDisplay: number | null }) {
         localEditingEntry.value = null
+        activeSetNumberLocalOverride.value = null
+        lastAppliedExercisePrefillKeyLocal.value = ''
         showExtrasLocal.value = false
         lastTypeLocal.value = null
 
@@ -1398,6 +1712,8 @@
         sideLocal.value = ''
 
         setDetailsLocal.value = []
+        skippedSetNumbersLocal.value = new Set()
+        closeSetLabelEditor()
         isDropsetLocal.value = false
         dropsetsLocal.value = []
 
@@ -1411,6 +1727,8 @@
     function openEdit(args: { planId: string; entry: Workout }) {
         const entry = args.entry
         localEditingEntry.value = entry
+        activeSetNumberLocalOverride.value = null
+        lastAppliedExercisePrefillKeyLocal.value = ''
         lastTypeLocal.value = detectedInputType.value
 
         exerciseLocal.value = entry.exercise || ''
@@ -1440,11 +1758,14 @@
                 weight: s.weight ?? null,
                 reps: s.reps ?? null,
                 durationSec: s.durationSec ?? null,
+                label: (s as any).label ?? null,
             }))
             setsLocal.value = entry.setDetails.length
         } else {
             setDetailsLocal.value = []
         }
+        skippedSetNumbersLocal.value = new Set()
+        closeSetLabelEditor()
 
         isDropsetLocal.value = Boolean(entry.isDropset && (entry.dropsets?.length ?? 0) > 0)
         dropsetsLocal.value = (entry.dropsets ?? []).map((ds: { weight?: number | null; reps?: number | null }) => ({
@@ -1463,7 +1784,7 @@
     const syncSetDetailsToSets = (setsValue?: number | null) => {
         const raw = Number(setsValue ?? setsLocal.value ?? 0) || 0
         const baseCount = Math.max(0, Math.min(7, raw))
-        const active = Math.floor(Number(props.activeSetNumber ?? 0))
+        const active = Math.floor(Number(effectiveActiveSetNumber.value ?? 0))
         const count = active > 0 ? Math.min(baseCount, active) : baseCount
 
         const next = [...setDetailsLocal.value]
@@ -1476,9 +1797,11 @@
             next.splice(count)
         }
         setDetailsLocal.value = next
+        pruneSkippedSets(next.length)
+        nextTick(() => scheduleSetTitleMeasure())
     }
 
-    watch([setsLocal, inputType, () => props.activeSetNumber], ([s]) => {
+    watch([setsLocal, inputType, effectiveActiveSetNumber], ([s]) => {
         const raw = Number(s) || 0
         if (raw > 7) {
             emit('invalid', ['Maximal 7 Sätze erlaubt.'])
@@ -1494,6 +1817,59 @@
     })
 
     const didApplyPrefillForOpen = ref(false)
+    const lastAppliedExercisePrefillKeyLocal = ref<string>('')
+
+    function applySelectedExercisePrefillFromToday() {
+        if (!props.show) return
+        if (localIsEditing.value) return
+
+        const exKey = normalizeExerciseKey(exerciseLocal.value)
+        if (!exKey) return
+
+        const pre = props.prefillSetValuesByExercise?.[exKey] ?? null
+        if (!pre) return
+
+        const maxSetNo = Math.max(0, ...Object.keys(pre).map(k => Math.floor(Number(k)) || 0))
+        if (maxSetNo <= 0) return
+
+        // Nur erneut anwenden, wenn Übung gewechselt hat oder wir noch nicht genug Rows sehen.
+        if (lastAppliedExercisePrefillKeyLocal.value === exKey && (setDetailsLocal.value?.length ?? 0) >= maxSetNo) {
+            return
+        }
+
+        const currentSets = Math.max(0, Math.min(7, Number(setsLocal.value ?? 0) || 0))
+        const locked = Math.max(0, Math.floor(Number(props.prefillLockedSetsByExercise?.[exKey] ?? maxSetNo) || 0))
+
+        let targetSets = Math.max(currentSets, maxSetNo)
+        // Wenn alle sichtbaren Sätze bereits historisch sind, direkt einen neuen Satz freigeben
+        if (locked > 0 && targetSets <= locked && locked < 7) {
+            targetSets = locked + 1
+        }
+        if (targetSets > 0 && targetSets !== currentSets) {
+            setsLocal.value = targetSets
+        }
+
+        // Keine "erst + Satz drücken"-Pflicht: zeige vorhandene/planmäßige Satz-Inputs direkt an.
+        activeSetNumberLocalOverride.value = Math.max(1, Math.min(7, targetSets || maxSetNo))
+
+        nextTick(() => {
+            if (!Array.isArray(setDetailsLocal.value) || setDetailsLocal.value.length === 0) return
+            const next = [...setDetailsLocal.value]
+            for (const [k, v] of Object.entries(pre)) {
+                const setNo = Math.floor(Number(k))
+                if (!Number.isFinite(setNo) || setNo <= 0) continue
+                const idx = setNo - 1
+                if (!next[idx]) continue
+                next[idx] = {
+                    ...next[idx],
+                    weight: v?.weight ?? next[idx].weight ?? null,
+                    reps: v?.reps ?? next[idx].reps ?? null,
+                }
+            }
+            setDetailsLocal.value = next
+            lastAppliedExercisePrefillKeyLocal.value = exKey
+        })
+    }
 
     function applyPrefillSetValues() {
         if (!props.show) return
@@ -1530,7 +1906,11 @@
 
     watch(() => props.show, (v) => {
         if (v) {
+            if (typeof window !== 'undefined') {
+                window.addEventListener('resize', onWindowResizeMeasureSetTitles)
+            }
             didApplyPrefillForOpen.value = false
+            lastAppliedExercisePrefillKeyLocal.value = ''
 
             if (!localIsEditing.value) {
                 const fromStore = getLatestWeightDisplayFromStore()
@@ -1547,7 +1927,13 @@
             nextTick(() => applyPrefillSetValues())
             nextTick(() => focusFirst())
             nextTick(() => openSyncBorg())
+            nextTick(() => scheduleSetTitleMeasure())
         } else {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('resize', onWindowResizeMeasureSetTitles)
+            }
+            activeSetNumberLocalOverride.value = null
+            lastAppliedExercisePrefillKeyLocal.value = ''
             showExtrasLocal.value = false
         }
     })
@@ -1556,6 +1942,17 @@
         if (props.show) {
             focusFirst()
             nextTick(() => openSyncBorg())
+            nextTick(() => scheduleSetTitleMeasure())
+        }
+    })
+
+    onBeforeUnmount(() => {
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('resize', onWindowResizeMeasureSetTitles)
+            if (setTitleMeasureRafLocal != null) {
+                window.cancelAnimationFrame(setTitleMeasureRafLocal)
+                setTitleMeasureRafLocal = null
+            }
         }
     })
 
@@ -1596,6 +1993,18 @@
             return
         }
 
+        const activeSetRows = (setDetailsLocal.value ?? [])
+            .map((row, idx) => ({ row, setNo: idx + 1 }))
+            .filter(x => !skippedSetNumbersLocal.value.has(x.setNo))
+
+        const saveableSetRows = activeSetRows
+            .filter(x => !isSetLocked(x.setNo))
+            .map(x => x.row)
+        if (t !== 'ausdauer' && visibleSetCount.value > 0 && saveableSetRows.length === 0) {
+            emit('invalid', ['Mindestens 1 Satz aktiv lassen oder Satzanzahl anpassen.'])
+            return
+        }
+
         const planId = props.planId ?? undefined
         const isEdit = !!localEditingEntry.value
         const editingDate = localEditingEntry.value?.date ?? null
@@ -1619,10 +2028,11 @@
                 borg: borgLocalNum.value ?? undefined,
             }
         } else if (t === 'dehnung') {
-            const perSet = (setDetailsLocal.value ?? []).map(r => ({
+            const perSet = saveableSetRows.map(r => ({
                 weight: 0,
                 reps: r.reps ?? null,
                 durationSec: r.durationSec ?? null,
+                label: (r.label ?? '').trim() || null,
             }))
 
             const totalSec = perSet.reduce((sum, r) => sum + (typeof r.durationSec === 'number' ? r.durationSec : 0), 0)
@@ -1649,11 +2059,14 @@
             }
         }
         else {
-            const hasPerSet = (setDetailsLocal.value?.length ?? 0) > 0
+            const validPerSetRows = saveableSetRows.filter(r => r.weight != null && r.reps != null)
+            const hasPerSet = validPerSetRows.length > 0
             const perSet = hasPerSet
-                ? setDetailsLocal.value
-                    .filter(r => r.weight != null && r.reps != null)
-                    .map(r => ({ weight: displayToKg(Number(r.weight)), reps: Number(r.reps) }))
+                ? validPerSetRows.map(r => ({
+                    weight: displayToKg(Number(r.weight)),
+                    reps: Number(r.reps),
+                    label: (r.label ?? '').trim() || null,
+                }))
                 : []
 
             const first = perSet[0]
@@ -1666,8 +2079,8 @@
                 planId,
                 exercise: exerciseLocal.value.trim(),
                 sets: hasPerSet ? perSet.length : (Number(setsLocal.value) || 0),
-                weight: hasPerSet ? first.weight : baseWeightKg,
-                reps: hasPerSet ? first.reps : (Number(repsLocal.value) || 0),
+                weight: hasPerSet ? (first?.weight ?? baseWeightKg) : baseWeightKg,
+                reps: hasPerSet ? (first?.reps ?? (Number(repsLocal.value) || 0)) : (Number(repsLocal.value) || 0),
                 note: noteLocal.value?.trim() || undefined,
                 date: localEditingEntry.value?.date ?? new Date().toISOString(),
                 type: 'kraft',
@@ -1741,6 +2154,10 @@
 
     :global(.popup-overlay.progress-entry-popup) {
         z-index: 10050 !important;
+    }
+
+    :global(.popup-overlay.edit-popup) {
+        z-index: 10120 !important;
     }
 
     @supports (height: 100dvh) {
@@ -1975,24 +2392,213 @@
 
     .set-row {
         display: grid;
-        grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1fr);
         gap: .5rem;
+        align-items: stretch;
+    }
+
+    .set-row > :nth-child(2),
+    .set-row > :nth-child(3) {
+        align-self: stretch;
+    }
+
+    .set-row :deep(.set-cell-input.popinp) {
+        gap: 0;
+        justify-content: center;
+        align-self: stretch;
+        margin: 0 !important;
+        transform: none !important;
+    }
+
+    .set-row :deep(.set-cell-input .popinp__field) {
+        min-height: 46px;
+        height: 46px;
+        box-sizing: border-box;
+        transform: none !important;
+    }
+
+    .set-row :deep(.set-cell-input .popinp__control) {
+        min-height: 46px;
+        height: 46px;
+        box-sizing: border-box;
+        padding-top: 0;
+        padding-bottom: 0;
+        line-height: 1.2;
+    }
+
+    .set-row :deep(.set-cell-input .popinp__field:focus-within) {
+        transform: none !important;
+    }
+
+    .set-row :deep(.set-cell-input input.popinp__control[type="number"]) {
+        appearance: textfield;
+        -moz-appearance: textfield;
+    }
+
+    .set-row :deep(.set-cell-input input.popinp__control[type="number"]::-webkit-outer-spin-button),
+    .set-row :deep(.set-cell-input input.popinp__control[type="number"]::-webkit-inner-spin-button) {
+        -webkit-appearance: none;
+        margin: 0;
     }
 
     .set-row-label {
         display: flex;
         align-items: center;
-        height: 100%;
+        height: auto;
         font-size: 1rem;
         font-weight: 700;
         color: var(--text-secondary);
-        line-height: 1;
-        transform: translateY(-9px); /* Label bissl höher */
+        line-height: 1.1;
+        transform: none;
+    }
+
+    .set-row-label--toggle.is-skipped {
+        text-decoration: line-through;
+        opacity: .7;
+    }
+
+    .set-row-label--toggle.is-skipped .set-row-label__text {
+        text-decoration: line-through;
+        opacity: .7;
+    }
+
+    .set-row-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: .16rem;
+        min-width: 0;
+        align-self: center;
+        height: 100%;
+        padding-top: 0; /* war der Downshift */
+        transform: translateY(-3px);
+    }
+
+    .set-row-label--toggle {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        padding: 0 .2rem 0 0;
+        cursor: pointer;
+        text-align: left;
+        border-right: 1px solid rgba(148, 163, 184, 0.18); /* sichtbare Grenze vor Edit-Button */
+    }
+
+    .set-row-label--toggle:disabled {
+        cursor: default;
+        opacity: .8;
+    }
+
+    .set-row-label__clip {
+        display: block;
+        flex: 1 1 auto;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        --set-title-shift: 0px;
+        --set-title-duration: 0s;
+    }
+
+    .set-row-label__text {
+        display: inline-block;
+        white-space: nowrap;
+        will-change: transform;
+    }
+
+    .set-row-label__clip.is-overflowing {
+        text-overflow: clip;
+    }
+
+    .set-row-label__clip.is-overflowing .set-row-label__text {
+        animation: set-title-marquee var(--set-title-duration) linear infinite !important;
+    }
+
+    @keyframes set-title-marquee {
+        0%, 16% {
+            transform: translateX(0);
+        }
+
+        62%, 82% {
+            transform: translateX(calc(-1 * var(--set-title-shift)));
+        }
+
+        100% {
+            transform: translateX(0);
+        }
+    }
+
+    /* REPLACE */
+    .set-row-edit-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.45rem;
+        height: 1.45rem;
+        border-radius: 9px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: linear-gradient(180deg, rgba(148, 163, 184, 0.11), rgba(148, 163, 184, 0.05));
+        color: var(--text-secondary);
+        cursor: pointer;
+        flex: 0 0 auto; /* bleibt immer "neben" dem Titel */
+        margin-left: 0; /* kein Overlap/Weirdness */
+        padding: 0;
+        transition: border-color .15s ease, background-color .15s ease, color .15s ease, transform .08s ease;
+    }
+
+
+    .set-row-edit-btn:hover {
+        color: var(--text-primary);
+        border-color: rgba(148, 163, 184, 0.34);
+        background: linear-gradient(180deg, rgba(148, 163, 184, 0.16), rgba(148, 163, 184, 0.08));
+    }
+
+    .set-row-edit-btn:active {
+        transform: translateY(1px);
+    }
+
+    .set-row-edit-btn:disabled {
+        cursor: default;
+        opacity: .65;
+        transform: none;
+    }
+
+    .set-row-edit-btn svg {
+        width: .82rem;
+        height: .82rem;
+        fill: currentColor;
+    }
+
+    .set-add-row {
+        display: flex;
+        justify-content: center;
+        margin-top: .18rem;
+    }
+
+    .set-add-btn {
+        min-height: 36px;
+        padding-inline: .9rem;
+        font-weight: 700;
     }
 
     @media (max-width: 520px) {
         .set-row {
-            grid-template-columns: 80px 1fr 1fr;
+            grid-template-columns: 112px 1fr 1fr;
+        }
+
+        .set-row-edit-btn {
+            width: 1.38rem;
+            height: 1.38rem;
+        }
+
+        .set-row-head {
+            gap: 0;
+            padding-top: .22rem;
         }
     }
 
@@ -2138,6 +2744,7 @@
 
     .set-quick-actions {
         margin-top: .25rem;
+        margin-bottom: .7rem;
         display: flex;
         gap: .5rem;
         flex-wrap: wrap;

@@ -19,6 +19,7 @@ export type ProgressEntry = {
     note: string | null;
     tempo: string | null;
     restSeconds: number | null;
+    setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null; label?: string | null }> | null;
 };
 
 export type CreateProgressEntry = {
@@ -37,6 +38,7 @@ export type CreateProgressEntry = {
     note?: string | null;
     tempo?: string | null;
     restSeconds?: number | null;
+    setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null; label?: string | null }> | null;
 };
 
 export type UpdateProgressEntry = {
@@ -54,4 +56,5 @@ export type UpdateProgressEntry = {
     note?: string | null;
     tempo?: string | null;
     restSeconds?: number | null;
+    setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null; label?: string | null }> | null;
 };

@@ -69,6 +69,8 @@
                     :class="{
                         'is-out': !cell.inMonth,
                         'has-entry': !!cell.day && hasEntries(cell.day),
+                        'has-check': !!cell.day && hasCheck(cell.day),
+                        'has-cross': !!cell.day && hasCross(cell.day),
                         'is-today': cell.day === todayKey,
                         'is-selected': !!cell.day && isSelected(cell.day),
                         'is-past': !!cell.day && isPast(cell.day),
@@ -82,11 +84,17 @@
                       :style="dotStyle(cell.day)"
                       :title="dotTitle(cell.day)"
                       aria-hidden="true"></span>
+                <span v-if="cell.day && hasCheck(cell.day)"
+                      class="cal-check"
+                      aria-hidden="true">✓</span>
+                <span v-if="cell.day && hasCross(cell.day)"
+                      class="cal-cross"
+                      aria-hidden="true">✕</span>
             </button>
         </div>
 
         <div class="cal-hint">
-            Tipp: Tage mit Punkt haben Einträge. Klick drauf.
+            Tipp: Markierte Tage haben Planung oder Einträge. Klick drauf.
         </div>
     </div>
 </template>
@@ -104,6 +112,8 @@
         dayColors?: Record<string, string | string[]>
         dayTitles?: Record<string, string>
         selectedDays?: string[]
+        checkDays?: string[]
+        crossDays?: string[]
         minDate?: string
         restDays?: string[]
     }>()
@@ -183,7 +193,11 @@
 
     const daysSet = computed(() => new Set(props.daysWithEntries ?? []))
     const selectedSet = computed(() => new Set(props.selectedDays ?? []))
+    const checkSet = computed(() => new Set(props.checkDays ?? []))
+    const crossSet = computed(() => new Set(props.crossDays ?? []))
     const hasEntries = (day: string) => daysSet.value.has(day)
+    const hasCheck = (day: string) => checkSet.value.has(day)
+    const hasCross = (day: string) => crossSet.value.has(day)
     const isSelected = (day: string) => selectedSet.value.has(day)
     const restSet = computed(() => new Set(props.restDays ?? []))
     const isRest = (day: string) => restSet.value.has(day)
@@ -312,6 +326,42 @@
         display: grid;
         place-items: center;
         transition: transform 120ms ease, border-color 160ms ease, filter 160ms ease;
+    }
+
+    .cal-check {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 1.15rem;
+        line-height: 1;
+        font-weight: 900;
+        color: rgba(16, 185, 129, 0.92);
+        text-shadow: 0 1px 0 rgba(0,0,0,.22);
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .cal-cross {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 1.1rem;
+        line-height: 1;
+        font-weight: 900;
+        color: rgba(239, 68, 68, 0.95);
+        text-shadow: 0 1px 0 rgba(0,0,0,.22);
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .cal-cell.has-check .cal-num {
+        opacity: .28;
+    }
+
+    .cal-cell.has-cross .cal-num {
+        opacity: .2;
     }
 
         .cal-cell:hover {
