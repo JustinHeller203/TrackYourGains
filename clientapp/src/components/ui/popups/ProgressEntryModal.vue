@@ -521,6 +521,7 @@
 
 <script setup lang="ts">
     import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, withDefaults } from 'vue'
+    import type { ComponentPublicInstance } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import EditPopup from '@/components/ui/popups/EditPopup.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
@@ -1433,8 +1434,17 @@
         return label || `Satz ${setNo}`
     }
 
-    function bindSetTitleEl(setNo: number, el: Element | null) {
-        if (!(el instanceof HTMLElement)) {
+    type VueTemplateRefEl = Element | ComponentPublicInstance | null
+    const toDomEl = (el: VueTemplateRefEl): Element | null => {
+        if (!el) return null
+        if (el instanceof Element) return el
+        const root = (el as any)?.$el
+        return root instanceof Element ? root : null
+    }
+
+    function bindSetTitleEl(setNo: number, el: VueTemplateRefEl) {
+        const domEl = toDomEl(el)
+        if (!(domEl instanceof HTMLElement)) {
             setTitleElsLocal.delete(setNo)
             if (overflowingSetTitlesLocal.value.has(setNo)) {
                 const next = new Set(overflowingSetTitlesLocal.value)
@@ -1443,7 +1453,7 @@
             }
             return
         }
-        setTitleElsLocal.set(setNo, el)
+        setTitleElsLocal.set(setNo, domEl)
         scheduleSetTitleMeasure()
     }
 

@@ -538,6 +538,7 @@
 
 <script setup lang="ts">
     import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+    import type { ComponentPublicInstance } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import KebabButton from '@/components/ui/buttons/KebabButton.vue'
@@ -702,8 +703,17 @@
         })
     }
 
-    const bindSetNameEl = (key: string, el: Element | null) => {
-        if (!(el instanceof HTMLElement)) {
+    type VueTemplateRefEl = Element | ComponentPublicInstance | null
+    const toDomEl = (el: VueTemplateRefEl): Element | null => {
+        if (!el) return null
+        if (el instanceof Element) return el
+        const root = (el as any)?.$el
+        return root instanceof Element ? root : null
+    }
+
+    const bindSetNameEl = (key: string, el: VueTemplateRefEl) => {
+        const domEl = toDomEl(el)
+        if (!(domEl instanceof HTMLElement)) {
             setNameEls.delete(key)
             if (overflowingSetNameKeys.value.has(key)) {
                 const next = new Set(overflowingSetNameKeys.value)
@@ -712,7 +722,7 @@
             }
             return
         }
-        setNameEls.set(key, el)
+        setNameEls.set(key, domEl)
         scheduleSetNameMeasure()
     }
 

@@ -2419,8 +2419,8 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         progressContinuationForCurrentPlan.value?.exercise ?? null
     )
 
-    const progressContinuationPrefillSetValues = computed<Record<number, { weight?: number | null; reps?: number | null }> | null>(() =>
-        progressContinuationForCurrentPlan.value?.valuesBySet ?? null
+    const progressContinuationPrefillSetValues = computed<Record<number, { weight?: number | null; reps?: number | null }> | undefined>(() =>
+        progressContinuationForCurrentPlan.value?.valuesBySet
     )
 
     const progressContinuationActiveSetNumber = computed<number | null>(() =>
