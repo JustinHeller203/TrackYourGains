@@ -567,6 +567,9 @@ namespace Gym3000.Api.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid>("PlanId")
                         .HasColumnType("uuid");
 
@@ -608,6 +611,101 @@ namespace Gym3000.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("TrainingRestDays");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<int?>("DurationSec")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ExercisesDone")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ExercisesTotal")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FinishedAtUtc")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("TypesPresent")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("UserId", "FinishedAtUtc");
+
+                    b.HasIndex("UserId", "PlanId", "FinishedAtUtc");
+
+                    b.ToTable("TrainingSessions");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingSessionFeedback", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BestExercise")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<int?>("CardioIntensity")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<int?>("Intensity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(800)
+                        .HasColumnType("character varying(800)");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("StrengthTechnique")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("StretchPain")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "PlanId", "CreatedUtc");
+
+                    b.ToTable("TrainingSessionFeedbacks");
                 });
 
             modelBuilder.Entity("Gym3000.Api.Entities.UserMeta", b =>
@@ -1001,6 +1099,28 @@ namespace Gym3000.Api.Migrations
                     b.Navigation("Plan");
                 });
 
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingSession", b =>
+                {
+                    b.HasOne("Gym3000.Api.Entities.TrainingPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingSessionFeedback", b =>
+                {
+                    b.HasOne("Gym3000.Api.Entities.TrainingSession", "Session")
+                        .WithOne("Feedback")
+                        .HasForeignKey("Gym3000.Api.Entities.TrainingSessionFeedback", "SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -1060,6 +1180,11 @@ namespace Gym3000.Api.Migrations
             modelBuilder.Entity("Gym3000.Api.Entities.TrainingPlan", b =>
                 {
                     b.Navigation("Days");
+                });
+
+            modelBuilder.Entity("Gym3000.Api.Entities.TrainingSession", b =>
+                {
+                    b.Navigation("Feedback");
                 });
 #pragma warning restore 612, 618
         }

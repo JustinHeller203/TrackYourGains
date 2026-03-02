@@ -88,8 +88,8 @@
             <div class="footer-actions">
                 <ResetButton v-if="showReset"
                              class="calc-footer-btn calc-reset-btn"
-                             aria-label="Zur¸cksetzen"
-                             data-short="Zur¸cksetzen"
+                             aria-label="Zur√ºcksetzen"
+                             data-short="Zur√ºcksetzen"
                              @click="$emit('reset')" />
             </div>
         </div>
@@ -144,16 +144,16 @@
         cardClass?: string | string[] | Record<string, boolean>
     }>(), {
         showInfo: true,
-        infoTitle: 'Rechner erkl‰rt',
-        infoKicker: 'Rechner erkl‰rt',
-        ariaOpen: 'Erkl‰rung ˆffnen',
-        ariaClose: 'Schlieﬂen',
+        infoTitle: 'Rechner erkl√§rt',
+        infoKicker: 'Rechner erkl√§rt',
+        ariaOpen: 'Erkl√§rung √∂ffnen',
+        ariaClose: 'Schlie√üen',
         autoCalcEnabled: false,
 
         showFavorite: true,
         isFavorite: false,
         favoriteTitleActive: 'Aus Favoriten entfernen',
-        favoriteTitleInactive: 'Zu Favoriten hinzuf¸gen',
+        favoriteTitleInactive: 'Zu Favoriten hinzuf√ºgen',
 
         showCalculateButton: true,
         showCopyButton: true,

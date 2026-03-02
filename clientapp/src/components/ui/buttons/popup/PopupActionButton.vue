@@ -63,7 +63,7 @@
         box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.18), 0 16px 30px rgba(15, 23, 42, 0.18);
     }
 
-    /* Ghost (für Abbrechen) */
+    /* Ghost (f?r Abbrechen) */
     .pab-btn.is-ghost {
         background: rgba(255,255,255,0.06);
         border-color: rgba(148, 163, 184, 0.25);

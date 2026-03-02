@@ -30,7 +30,7 @@ export type ReorderStopwatchesDto = {
     orderedIds: string[]
 }
 
-// 2) Store/UI Instance (wir hängen nur lokale Felder dran, z.B. laps)
+// 2) Store/UI Instance (wir h?ngen nur lokale Felder dran, z.B. laps)
 export interface StopwatchInstance {
     id: string
     name: string

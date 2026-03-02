@@ -32,3 +32,4 @@ export const useGymStore = defineStore('gym', {
         }
     }
 })
+

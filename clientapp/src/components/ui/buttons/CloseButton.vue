@@ -36,7 +36,7 @@
     defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 </script>
 
-<!-- CloseButton.vue � nur der <style>-Block ge�ndert -->
+<!-- CloseButton.vue ? nur der <style>-Block ge?ndert -->
 <style scoped>
     .close-btn {
         display: inline-flex;

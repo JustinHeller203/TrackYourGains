@@ -15,6 +15,7 @@ export type ProfileDto = {
 };
 
 export type UpdateProfileDto = {
+    username?: string;
     hasCreatedTrainingPlan?: boolean;
     displayName?: string;
     motto?: string;

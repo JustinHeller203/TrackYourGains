@@ -19,7 +19,7 @@ type ResetWithUndoArgs<TSnapshot> = {
 
 export function useResetWithUndo(enqueueToast: EnqueueToast) {
     function run<TSnapshot>(args: ResetWithUndoArgs<TSnapshot>) {
-        // 1) Reset ausführen
+        // 1) Reset ausf?hren
         args.reset()
 
         // 2) Toast bauen
@@ -33,7 +33,7 @@ export function useResetWithUndo(enqueueToast: EnqueueToast) {
             action:
                 args.snapshot && args.restore
                     ? {
-                        label: args.toast.undoLabel ?? 'Rückgängig',
+                        label: args.toast.undoLabel ?? 'RÃ¼ckgÃ¤ngig',
                         handler: () => args.restore!(args.snapshot as TSnapshot),
                     }
                     : undefined,

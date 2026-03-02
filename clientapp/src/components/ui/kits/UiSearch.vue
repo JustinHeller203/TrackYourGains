@@ -43,7 +43,7 @@
         center?: boolean
         maxWidth?: string
     }>(), {
-        placeholder: 'Suchen…',
+        placeholder: 'Suchen?',
         ariaLabel: '',
         disabled: false,
         autofocus: false,

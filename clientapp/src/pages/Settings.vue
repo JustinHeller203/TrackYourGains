@@ -49,7 +49,7 @@
                             <div class="setting-icon">⬆️</div>
                             <div class="setting-content">
                                 <h3 class="setting-title">Scroll-Hoch Button</h3>
-                                <p class="setting-description">Scrollt automatisch nach oben</p>
+                                <p class="setting-description">Scrollt automatisch nach obens</p>
                             </div>
                             <div class="setting-control">
                                 <input id="backtop-toggle" type="checkbox" class="toggle-switch" v-model="backToTopEnabled" />
@@ -66,10 +66,10 @@
                                 <p class="setting-description">Wähle deine bevorzugten Maßeinheiten</p>
                             </div>
                             <div class="setting-control">
-                                <select v-model="preferredUnit" class="unit-select">
-                                    <option value="kg">Kilogramm (kg)</option>
-                                    <option value="lbs">Pfund (lbs)</option>
-                                </select>
+                                <UiSettingsSelect v-model="preferredUnit"
+                                                  class="settings-select"
+                                                  :options="unitOptions"
+                                                  placeholder="Einheit auswählen" />
                             </div>
                         </div>
                     </div>
@@ -222,14 +222,10 @@
                                 <p class="setting-description">Wie lange Toasts sichtbar bleiben sollen</p>
                             </div>
                             <div class="setting-control">
-                                <select v-model.number="toastDurationMs" class="unit-select">
-                                    <option :value="1500">1.5s</option>
-                                    <option :value="2500">2.5s</option>
-                                    <option :value="4000">4s</option>
-                                    <option :value="6000">6s</option>
-                                    <option :value="9000">9s</option>
-                                    <option :value="12000">12s</option>
-                                </select>
+                                <UiSettingsSelect v-model="toastDurationMs"
+                                                  class="settings-select"
+                                                  :options="toastDurationOptions"
+                                                  placeholder="Dauer auswählen" />
                             </div>
                         </div>
 
@@ -266,8 +262,8 @@
         <ReminderPopup :show="showSaveHint"
                        :x="saveHintX"
                        :y="saveHintY"
-                       emoji="💾"
-                       text="Denk dran: unten noch auf „Einstellungen speichern“ klicken 👀" />
+                       emoji="ℹ️"
+                       text="Denk dran: unten noch auf Einstellungen speichern klicken!" />
 
         <!-- Toast-Arten verwalten (Modal) -->
         <ToastTypeManagerPopup :show="showToastTypeManager"
@@ -301,6 +297,7 @@
     import SettingsSaveButton from '@/components/ui/buttons/SettingsSaveButton.vue'
     import ToastTypeManagerPopup from '@/components/ui/popups/ToastTypeManagerPopup.vue'
     import ReminderPopup from '@/components/ui/popups/ReminderPopup.vue'
+    import UiSettingsSelect from '@/components/ui/kits/selects/UiSettingsSelect.vue'
 
     // Typen passend zu deiner Toast.vue
     type ToastType =
@@ -355,6 +352,10 @@
     const preferredUnit = ref<'kg' | 'lbs'>('kg')
     const autoCalcEnabled = ref(false)
     const allowedUnits = ['kg', 'lbs'] as const
+    const unitOptions = [
+        { label: 'Kilogramm (kg)', value: 'kg' },
+        { label: 'Pfund (lbs)', value: 'lbs' },
+    ] as const
 
     function previewToastType(key: string) {
         const k = key as ToastType
@@ -373,7 +374,7 @@
         toast.value = {
             id: Date.now(),
             message: msgByType[k],
-            emoji: opt?.emoji ?? '🔔',
+            emoji: opt?.emoji ?? '??',
             type: k,
             exiting: false,
             durationMs: toastDurationMs.value
@@ -384,12 +385,20 @@
     const toastsEnabled = ref(false)
 
     const toastDurationMs = ref<number>(2500)
+    const toastDurationOptions = [
+        { label: '1.5s', value: 1500 },
+        { label: '2.5s', value: 2500 },
+        { label: '4s', value: 4000 },
+        { label: '6s', value: 6000 },
+        { label: '9s', value: 9000 },
+        { label: '12s', value: 12000 },
+    ] as const
 
-    // Zentraler Toast-State für diese Seite
+    // Zentraler Toast-State f�r diese Seite
     const toast = ref<ToastModel | null>(null)
     const toastPosition = ref<'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'>('bottom-right')
 
-    // Draft-State für das UI
+    // Draft-State f�r das UI
     const isDarkDraft = ref(true)
     const persistedTheme = ref<'dark' | 'light'>('dark')
     const saved = ref(false)
@@ -425,7 +434,7 @@
     let saveHintTimer: number | null = null
 
     function openToastTypeManager() {
-        // Snapshot, um später echte Änderungen zu erkennen
+        // Snapshot, um sp�ter echte �nderungen zu erkennen
         toastTypesSnapshot = JSON.stringify({ ...toastTypeEnabled })
         showToastTypeManager.value = true
     }
@@ -434,14 +443,14 @@
         toast.value = {
             id: Date.now(),
             message: toastsEnabled.value ? 'Beispiel: Toast ist aktiv ✅' : 'Beispiel: Toast ist AUS (nur Vorschau) 👀',
-            emoji: '👁️',
+            emoji: '🧠',
             type: 'toast-default',
             exiting: false,
             durationMs: toastDurationMs.value
         }
     }
     function maybeShowSaveHintEvery5() {
-        // Position über dem Save-Button setzen
+        // Position �ber dem Save-Button setzen
         const el = saveBtnWrap.value
         if (!el) return
 
@@ -587,10 +596,10 @@
     })
 
     onBeforeRouteLeave((_to, _from, next) => {
-        // Flag setzen, damit beim nächsten Mount alles zu ist (falls Komponente neu gemountet wird)
+        // Flag setzen, damit beim n�chsten Mount alles zu ist (falls Komponente neu gemountet wird)
         sessionStorage.setItem(SETTINGS_GROUPS_COLLAPSE_FLAG, '1')
 
-        // current view auch direkt zuklappen (für KeepAlive / sauberen State)
+        // current view auch direkt zuklappen (f�r KeepAlive / sauberen State)
         collapseAllGroups()
 
         if (!saved.value) {
@@ -607,7 +616,7 @@
     const startToastExit = () => {
         if (!toast.value) return
         toast.value.exiting = true
-        // Exit ist in Toast.vue per Inline-Style bereits auf 0ms gesetzt → sofort entfernen
+        // Exit ist in Toast.vue per Inline-Style bereits auf 0ms gesetzt ? sofort entfernen
         setTimeout(() => { toast.value = null }, 0)
     }
 
@@ -654,7 +663,7 @@
         try {
             await settings.saveToBackend()
 
-            // ✅ Verifizieren: direkt nochmal laden
+            // ? Verifizieren: direkt nochmal laden
             await settings.loadFromBackend()
 
             const persistedToastTypesJson = settings.dto.toastTypeEnabledJson ?? "{}"
@@ -663,7 +672,7 @@
             // UI-Draft sauber aus Backend-Truth setzen
             applySettingsDto(settings.dto)
 
-            // deine bisherigen Events (kannst du später reduzieren, aber lassen wir)
+            // deine bisherigen Events (kannst du sp�ter reduzieren, aber lassen wir)
             window.dispatchEvent(new CustomEvent('preferred-unit-changed', { detail: preferredUnit.value }))
             window.dispatchEvent(new CustomEvent('toasts-enabled-changed', { detail: toastsEnabled.value }))
             window.dispatchEvent(new CustomEvent('toast-duration-changed', { detail: toastDurationMs.value }))
@@ -677,7 +686,7 @@
                 toast.value = ok
                     ? {
                         id: Date.now(),
-                        message: 'Einstellungen gespeichert! 🎉',
+                        message: 'Einstellungen gespeichert! ✅',
                         emoji: '💾',
                         type: 'toast-save',
                         exiting: false,
@@ -733,7 +742,7 @@
     }
 
     html.dark-mode .page-title {
-        color: #ffffff !important; /* Weiß für Lesbarkeit */
+        color: #ffffff !important; /* Wei� f�r Lesbarkeit */
         background: none !important; /* Entfernt Gradient */
         -webkit-background-clip: initial !important; /* Deaktiviert Clip */
         -webkit-text-fill-color: initial !important; /* Deaktiviert transparent */
@@ -795,7 +804,7 @@
                 opacity: 1;
             }
 
-    /* Dark-Mode – gleiche Welt wie plan-card / tutorial-card */
+    /* Dark-Mode � gleiche Welt wie plan-card / tutorial-card */
     html.dark-mode .setting-card {
         background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62%), #020617;
         border-color: rgba(148, 163, 184, 0.5);
@@ -809,14 +818,17 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 56%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.35);
         border-radius: 16px;
-        box-shadow: var(--shadow);
-        color: #ffffff;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+        color: var(--text-primary);
     }
 
     html.dark-mode .setting-icon {
-        background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62%), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        color: #ffffff;
     }
 
     .setting-content {
@@ -852,7 +864,7 @@
         min-width: 0;
     }
 
-    /* Toast-Arten: Pills/Chips statt hässlicher Switch-Liste */
+    /* Toast-Arten: Pills/Chips statt h�sslicher Switch-Liste */
     .toast-types-control {
         align-items: stretch;
     }
@@ -863,23 +875,43 @@
         width: 70px;
         height: 36px;
         appearance: none;
-        background: var(--border-color);
+        background: color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.35);
         border-radius: 50px;
         position: relative;
         cursor: pointer;
-        transition: all 0.3s ease;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: transform 160ms ease-out, border-color 180ms ease-out, box-shadow 200ms ease-out, background 180ms ease-out;
+        overflow: hidden;
     }
 
     html.dark-mode .toggle-switch {
-        background: #30363d;
+        background: #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
     .toggle-switch:checked {
         background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        border-color: rgba(129, 140, 248, 0.7);
+        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
     }
 
     html.dark-mode .toggle-switch:checked {
         background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
+        border-color: rgba(129, 140, 248, 0.7);
+    }
+
+    .toggle-switch:hover {
+        transform: translateY(-2px);
+        border-color: rgba(129, 140, 248, 0.7);
+        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
+    }
+
+    .toggle-switch:focus-visible {
+        outline: none;
+        border-color: rgba(129, 140, 248, 0.85);
+        box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.18), 0 22px 48px rgba(15, 23, 42, 0.32);
     }
 
     .toggle-switch::before {
@@ -888,15 +920,15 @@
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        background: var(--bg-primary);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(226, 232, 240, 0.92));
         top: 2px;
         left: 2px;
         transition: all 0.3s ease;
-        box-shadow: var(--shadow);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.24);
     }
 
     html.dark-mode .toggle-switch::before {
-        background: #161b22;
+        background: linear-gradient(180deg, #1e293b, #0f172a);
     }
 
     .toggle-switch:checked::before {
@@ -906,12 +938,12 @@
     .toggle-label {
         display: inline-flex;
         align-items: center;
-        line-height: 1; /* verhindert Höhen-Jump */
+        line-height: 1; /* verhindert H�hen-Jump */
     }
 
     .toggle-text {
         display: inline-block;
-        width: 3.2ch; /* genug für "AUS" */
+        width: 3.2ch; /* genug f�r "AUS" */
         text-align: left; /* bleibt an der gleichen Stelle wie vorher */
         text-transform: uppercase;
         letter-spacing: 1px;
@@ -922,45 +954,10 @@
         color: #c9d1d9;
     }
 
-    .unit-select {
-        background: var(--bg-secondary);
-        color: var(--text-primary);
-        border: 2px solid var(--border-color);
-        border-radius: 12px;
-        padding: 0.8rem 1.2rem;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    @media (max-width: 640px) {
-        .unit-select {
-            min-width: 0;
-            width: 100%;
-            max-width: 100%;
-        }
-    }
-    html.dark-mode .unit-select {
-        background: #0d1117;
-        color: #ffffff;
-        border-color: #30363d;
-    }
-
-    .unit-select:focus {
-        outline: none;
-        border-color: var(--accent-primary);
-    }
-
-    html.dark-mode .unit-select:focus {
-        border-color: #6B8DD6;
-    }
-
-    .unit-select:hover {
-        border-color: var(--accent-primary);
-    }
-
-    html.dark-mode .unit-select:hover {
-        border-color: #6B8DD6;
+    .settings-select {
+        width: 100%;
+        min-width: 0;
+        max-width: 360px;
     }
 
     .settings-footer {
@@ -1021,28 +1018,28 @@
     }
 
     .manage-btn {
-        border: 2px solid var(--border-color);
-        background: var(--bg-secondary);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 56%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
         color: var(--text-primary);
-        border-radius: 14px;
+        border-radius: 18px;
         padding: 0.65rem 0.9rem;
         font-weight: 800;
         cursor: pointer;
-        transition: transform 140ms ease, border-color 180ms ease, box-shadow 180ms ease;
-        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+        transition: transform 160ms ease-out, border-color 180ms ease-out, box-shadow 200ms ease-out, background 180ms ease-out;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
     }
 
         .manage-btn:hover {
-            transform: translateY(-1px);
-            border-color: rgba(129, 140, 248, 0.65);
-            box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
+            transform: translateY(-2px);
+            border-color: rgba(129, 140, 248, 0.7);
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
         }
 
     html.dark-mode .manage-btn {
-        background: #0d1117;
-        border-color: #30363d;
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62%), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
         color: #ffffff;
-        box-shadow: 0 18px 36px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
     html.dark-mode .modal-card {
@@ -1121,14 +1118,17 @@
         border-radius: 14px;
         display: grid;
         place-items: center;
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        color: #fff;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 56%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: var(--text-primary);
         font-size: 1.15rem;
-        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
     }
 
     html.dark-mode .group-icon {
-        background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62%), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        color: #ffffff;
     }
 
     .group-text {
@@ -1206,7 +1206,7 @@
     }
 
 
-    /* Collapse Animation für Settings-Gruppen (SMOOTH & HEAVY) */
+    /* Collapse Animation f�r Settings-Gruppen (SMOOTH & HEAVY) */
     .sg-collapse-enter-active,
     .sg-collapse-leave-active {
         overflow: hidden;
@@ -1366,10 +1366,10 @@
         position: relative;
     }
 
-    /* ✅ Settings Cards: clean mobile layout ab 640px */
+    /* ? Settings Cards: clean mobile layout ab 640px */
     @media (max-width: 640px) {
         .setting-card {
-            /* statt “alles in einer Zeile”: 2 Zeilen, klar getrennt */
+            /* statt �alles in einer Zeile�: 2 Zeilen, klar getrennt */
             grid-template-columns: 56px 1fr;
             grid-template-areas:
                 "icon content"
@@ -1406,7 +1406,7 @@
             margin: 0;
         }
 
-        /* Control-Zeile: “eigener Bereich” -> sieht sofort aufgeräumt aus */
+        /* Control-Zeile: �eigener Bereich� -> sieht sofort aufger�umt aus */
         .setting-control {
             grid-area: control;
             width: 100%;
@@ -1424,13 +1424,13 @@
         }
 
         /* Selects werden auf Mobile fast immer nicer als full width */
-        .unit-select {
+        .settings-select {
             width: 100%;
             min-width: 0;
             max-width: 360px; /* nicht zu riesig auf phablets */
         }
 
-        /* Toggle minimal kleiner und “tight” */
+        /* Toggle minimal kleiner und �tight� */
         .toggle-switch {
             width: 64px;
             height: 34px;
@@ -1445,7 +1445,7 @@
                 transform: translateX(30px);
             }
 
-        /* Toast Manage Button: full width => wirkt wie “Action Row” */
+        /* Toast Manage Button: full width => wirkt wie �Action Row� */
         .toast-types-summary {
             width: 100%;
             justify-content: stretch;
@@ -1460,7 +1460,7 @@
 
     @media (max-width: 444px) {
         .settings {
-            /* vorher: horizontal 0 -> sorgt optisch für “rausgucken” */
+            /* vorher: horizontal 0 -> sorgt optisch f�r �rausgucken� */
             padding-left: 0.9rem;
             padding-right: 0.9rem;
             /* falls irgendwas minimal overflow produziert (shadows / transforms) */
@@ -1475,7 +1475,7 @@
             width: 100%;
         }
 
-        /* Header-Card + Setting-Cards dürfen NIE breiter als Viewport sein */
+        /* Header-Card + Setting-Cards d�rfen NIE breiter als Viewport sein */
         .group-head,
         .setting-card {
             width: 100%;
@@ -1485,20 +1485,20 @@
             margin-right: auto;
         }
 
-        /* Sicherheit: Grid-Kinder dürfen schrumpfen (gegen min-content overflow) */
+        /* Sicherheit: Grid-Kinder d�rfen schrumpfen (gegen min-content overflow) */
         .group-left,
         .setting-content,
         .setting-control {
             min-width: 0;
         }
 
-        /* Select kann sonst “drücken” */
-        .unit-select {
+        /* Select kann sonst �dr�cken� */
+        .settings-select {
             max-width: 100%;
         }
     }
 
-    /* ✅ WRAP/STACK: unter 640px darf nix mehr horizontal sprengen */
+    /* ? WRAP/STACK: unter 640px darf nix mehr horizontal sprengen */
     @media (max-width: 640px) {
         /* Card bleibt grid, aber Control wird IMMER in neue Zeile gezwungen */
         .setting-card {
@@ -1527,7 +1527,7 @@
         }
 
         /* Select immer full width, damit nix schiebt */
-        .unit-select {
+        .settings-select {
             width: 100%;
             max-width: 100%;
             min-width: 0;
@@ -1553,7 +1553,7 @@
                 transform: translateX(24px);
             }
 
-        /* Gruppen-Header: Text darf umbrechen statt zu drücken */
+        /* Gruppen-Header: Text darf umbrechen statt zu dr�cken */
         .group-left {
             min-width: 0;
         }
@@ -1566,3 +1566,4 @@
     }
 
 </style>
+

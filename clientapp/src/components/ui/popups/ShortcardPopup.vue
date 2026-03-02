@@ -34,7 +34,7 @@ import BasePopup from '@/components/ui/popups/BasePopup.vue'
 
 defineEmits<{ (e: 'cancel'): void; (e: 'save', form: any): void }>()
 
-// Optional: Lokale Formdaten für Shortcards
+// Optional: Lokale Formdaten f?r Shortcards
 const formData = reactive({})
 </script>
 

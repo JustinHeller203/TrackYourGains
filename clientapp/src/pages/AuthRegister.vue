@@ -44,7 +44,7 @@
     const email = ref('')
     const username = ref('')
     const password = ref('')
-    const confirmPwd = ref('')          // <� eigenes Confirm-Feld
+    const confirmPwd = ref('')          // <? eigenes Confirm-Feld
     const busy = ref(false)
     const err = ref('')
     const msg = ref('')

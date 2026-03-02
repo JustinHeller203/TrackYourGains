@@ -138,8 +138,8 @@
 
     .tm-head {
         /* full width wie früher modal-head */
-        margin: -1rem -1.1rem 0;
-        padding: 1rem 1.1rem;
+        margin: 0;
+        padding: 1rem 0;
         border-bottom: 1px solid rgba(148, 163, 184, 0.25);
         display: flex;
         align-items: center;
@@ -155,18 +155,20 @@
 
     .tm-actions {
         /* full width wie früher modal-actions */
-        margin: 0 -1.1rem;
-        padding: 0.9rem 1.1rem;
+        margin: 0;
+        padding: 0.9rem 0;
         border-bottom: 1px solid rgba(148, 163, 184, 0.18);
         display: flex;
+        flex-wrap: wrap;
         gap: 0.6rem;
     }
 
     .tm-list {
         /* full width + scroll wie früher modal-list */
-        margin: 0 -1.1rem -1rem;
+        margin: 0;
         max-height: min(52vh, 520px);
         overflow: auto;
+        overflow-x: hidden;
     }
 
     .tm-foot {
@@ -182,6 +184,7 @@
         gap: 1rem;
         padding: 0.95rem 1.1rem;
         border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        min-width: 0;
     }
 
     .tm-row-left {
@@ -189,6 +192,10 @@
     }
 
     .tm-row-label {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
         font-weight: 900;
         color: var(--text-primary);
         font-size: 1rem;
@@ -228,7 +235,7 @@
         background: transparent;
         color: inherit;
         cursor: pointer;
-        margin-left: 0.45rem;
+        margin-left: 0;
         padding: 0;
         line-height: 1;
         font-size: 0.95rem;
@@ -257,4 +264,41 @@
     :global(html.dark-mode) .tm-row-action {
         color: #ffffff;
     }
+    @media (max-width: 640px) {
+        .tm-head,
+        .tm-actions {
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: 1.1rem;
+            padding-right: 1.1rem;
+        }
+
+        .tm-actions {
+            flex-direction: column;
+        }
+
+        .tm-btn {
+            width: 100%;
+        }
+
+        .tm-list {
+            margin: 0;
+        }
+
+        .tm-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.7rem;
+            padding-left: 1.1rem;
+            padding-right: 1.1rem;
+        }
+
+        .tm-row-action {
+            width: 100%;
+        }
+    }
 </style>
+
+
+
+

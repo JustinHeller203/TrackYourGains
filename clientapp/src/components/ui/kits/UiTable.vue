@@ -78,14 +78,14 @@ defineProps<{
         .tyg-table th:last-child,
         .tyg-table td:last-child {
             border-right: 0;
-            /* letzte Spalte: keine Ellipsis + genug Platz für Icon-Buttons */
+            /* letzte Spalte: keine Ellipsis + genug Platz f?r Icon-Buttons */
             overflow: visible;
             text-overflow: clip;
             white-space: nowrap;
             min-width: 44px;
         }
 
-    /* Training exercise-table: 1:1 Verhalten wie früher (inkl. last-child Override) */
+    /* Training exercise-table: 1:1 Verhalten wie fr?her (inkl. last-child Override) */
     .tyg-table .table-scroll .exercise-table.full-width th,
     .tyg-table .table-scroll .exercise-table.full-width td,
     .tyg-table .table-scroll > table.exercise-table.full-width th,
@@ -98,7 +98,7 @@ defineProps<{
         overflow: hidden !important;
     }
 
-        /* Wichtig: killt die "letzte Spalte immer min 44px + overflow visible" Logik NUR für diese Tabelle */
+        /* Wichtig: killt die "letzte Spalte immer min 44px + overflow visible" Logik NUR f?r diese Tabelle */
         .tyg-table .table-scroll .exercise-table.full-width th:last-child,
         .tyg-table .table-scroll .exercise-table.full-width td:last-child,
         .tyg-table .table-scroll > table.exercise-table.full-width th:last-child,
@@ -125,7 +125,7 @@ defineProps<{
         font-weight: 700;
         /* Header kann auf Breite reagieren */
         container-type: inline-size;
-        position: relative; /* für Resizer */
+        position: relative; /* f?r Resizer */
     }
 
     html.dark-mode .tyg-table thead th {
@@ -191,7 +191,7 @@ defineProps<{
         hyphens: auto;
     }
 
-    /* ===== Resizer (Spalten) – unterstützt beide Markup-Varianten ===== */
+    /* ===== Resizer (Spalten) ? unterst?tzt beide Markup-Varianten ===== */
     body.is-resizing-col {
         cursor: col-resize;
         user-select: none;
@@ -277,7 +277,7 @@ defineProps<{
                 opacity: 1;
             }
 
-    /* Header-Kürzung: zeigt je nach Klasse genau EINS */
+    /* Header-K?rzung: zeigt je nach Klasse genau EINS */
     .tyg-table .th-label .full,
     .tyg-table .th-label .mid,
     .tyg-table .th-label .short {

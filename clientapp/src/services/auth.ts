@@ -34,14 +34,14 @@ export async function logout() {
     }
 }
 
-/** E-Mail �ndern */
+/** E-Mail ?ndern */
 export async function changeEmail(newEmail: string, password: string) {
     const { data } = await api.post<AuthResponse>("/auth/change-email", { newEmail, password });
     setToken(data.token);
     return data;
 }
 
-/** ?? Passwort �ndern */
+/** ?? Passwort ?ndern */
 export async function changePassword(current: string, next: string) {
     const { data } = await api.post<AuthResponse>("/auth/change-password", {
         currentPassword: current,
@@ -51,7 +51,7 @@ export async function changePassword(current: string, next: string) {
     return data;
 }
 
-/** ??? Konto l�schen (best�tigt mit Passwort) */
+/** ??? Konto l?schen (best?tigt mit Passwort) */
 export async function deleteAccount(password: string) {
     await api.post("/auth/delete-account", { password });
     setToken(null);

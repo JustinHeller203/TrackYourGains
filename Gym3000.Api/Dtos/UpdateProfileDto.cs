@@ -2,6 +2,7 @@ namespace Gym3000.Api.Dtos;
 
 public class UpdateProfileDto
 {
+    public string? Username { get; init; }
     public bool? HasCreatedTrainingPlan { get; init; }
     public string? DisplayName { get; init; }
     public string? Motto { get; init; }

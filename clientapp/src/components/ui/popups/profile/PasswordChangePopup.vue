@@ -60,7 +60,7 @@
     const error = ref("");
     const currentRef = ref<HTMLInputElement | null>(null);
 
-    // Autofokus wenn ge�ffnet
+    // Autofokus wenn ge?ffnet
     watch(
         () => props.show,
         async (open) => {

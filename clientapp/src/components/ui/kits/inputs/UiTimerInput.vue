@@ -41,7 +41,7 @@
     const resolvedInputmode = computed<InputMode | undefined>(() => {
         const v = (attrs as any)?.inputmode
         if (!v) return undefined
-        // akzeptiere nur gültige Werte, sonst lieber undefined als TS/DOM-Ärger
+        // akzeptiere nur g?ltige Werte, sonst lieber undefined als TS/DOM-?rger
         const allowed: InputMode[] = ['none', 'text', 'tel', 'url', 'email', 'numeric', 'decimal', 'search']
         return allowed.includes(String(v) as InputMode) ? (String(v) as InputMode) : undefined
     })
@@ -54,7 +54,7 @@
     const onInput = (e: Event) => {
         const v = (e.target as HTMLInputElement | null)?.value ?? ''
         emit('update:modelValue', v)
-        emit('input', e) // wichtig: damit dein bestehendes @input weiterläuft
+        emit('input', e) // wichtig: damit dein bestehendes @input weiterl?uft
     }
 </script>
 

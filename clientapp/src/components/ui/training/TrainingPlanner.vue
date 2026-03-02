@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div v-if="hasAnyPlans" class="planner-wrap">
         <div class="plan-calendar-toggle">
             <button type="button"
@@ -10,8 +10,11 @@
 
         <section v-if="showPlanner" class="plan-calendar card">
             <div class="card-head">
-                <h3 class="card-title">📅 Trainingsplaner</h3>
+                <h3 class="card-title">Trainingsplaner</h3>
                 <button type="button" class="btn ghost" @click="selectToday">Heute</button>
+            </div>
+            <div class="plan-calendar-tip">
+                Tipp: Doppelklick auf das Datum oben, um schneller zu navigieren.
             </div>
 
             <div class="plan-calendar-grid">
@@ -20,9 +23,11 @@
                               :dayColors="plannedDayColors"
                               :dayTitles="plannedDayTitles"
                               :selectedDays="selectedDays"
+                              :checkDays="completedDaysArr"
                               :restDays="Object.keys(restDays)"
                               :minDate="todayKey"
-                              @select="onCalendarSelect" />
+                              @select="onCalendarSelect"
+                              @dblclick="openDayPopup" />
 
                     <div v-if="hasAnyLegend" class="plan-legend">
                         <div class="legend-list">
@@ -61,7 +66,7 @@
                         Wähle zuerst einen Tag im Kalender. Vergangenheit ist gesperrt.
                     </div>
 
-                    <div class="side-title" :class="{ muted: !selectedDay }">Geplant für {{ selectedDay ? formatDayShort(selectedDay) : "—" }}</div>
+                    <div class="side-title" :class="{ muted: !selectedDay }">Geplant für {{ selectedDay ? formatDayShort(selectedDay) : " " }}</div>
 
                     <div class="plan-picker">
                         <UiPopupSelect label="Plan wählen"
@@ -70,7 +75,7 @@
                                        :options="planOptions" />
 
                         <div class="plan-color">
-                            <div class="side-title">Plan‑Farbe</div>
+                            <div class="side-title">Plan-Farbe</div>
                             <div class="color-row">
                                 <button v-for="c in colorOptions"
                                         :key="c.value"
@@ -172,7 +177,7 @@
                                       :style="{ background: p.color || '#94a3b8' }"></span>
                                 <span v-else class="rest-pill">Ruhetag</span>
                                 <span class="side-name">
-                                    {{ formatDayShort(p.day) }} · {{ p.type === 'plan' ? p.planName : 'Ruhetag' }}
+                                    {{ formatDayShort(p.day) }}   {{ p.type === 'plan' ? p.planName : 'Ruhetag' }}
                                 </span>
                                 <button v-if="p.type === 'plan'"
                                         type="button"
@@ -199,6 +204,33 @@
                          :errors="validationErrors"
                          @close="showValidation = false" />
 
+        <CalendarDayPopup :show="showDayPopup"
+                          :day="popupDay"
+                          :dayLabel="popupDayLabel"
+                          :isToday="popupIsToday"
+                          :isFuture="popupIsFuture"
+                          :isPlanned="popupIsPlanned"
+                          :isRest="popupIsRest"
+                          :isCompleted="popupIsCompleted"
+                          :allowComplete="popupAllowComplete"
+                          :allowPlan="popupAllowPlan"
+                          :allowEdit="popupAllowEdit"
+                          :allowRest="popupAllowRest"
+                          :allowMove="popupAllowMove"
+                          :allowClear="popupAllowClear"
+                          :planOptions="planOptions"
+                          :colorOptions="colorOptions"
+                          :defaultPlanId="popupPlanId"
+                          :defaultColor="popupColor"
+                          :minDate="todayKey"
+                          @close="closeDayPopup"
+                          @complete="onPopupComplete"
+                          @plan="onPopupPlan"
+                          @update="onPopupUpdate"
+                          @rest="onPopupRest"
+                          @move="onPopupMove"
+                          @clear="onPopupClear" />
+
         <DeleteConfirmPopup :show="showResetConfirm"
                             @confirm="resetAllPlans"
                             @cancel="showResetConfirm = false" />
@@ -211,11 +243,12 @@
     import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
-    import { LS_TRAINING_PLANNER, LS_TRAINING_PLAN_COLORS, LS_TRAINING_REST_DAYS, LS_CONFIRM_DELETE_ENABLED } from '@/constants/storageKeys'
+    import CalendarDayPopup from '@/components/ui/popups/CalendarDayPopup.vue'
+    import { LS_TRAINING_PLANNER, LS_TRAINING_PLAN_COLORS, LS_TRAINING_REST_DAYS, LS_TRAINING_PLANNER_COMPLETED, LS_CONFIRM_DELETE_ENABLED } from '@/constants/storageKeys'
     import type { TrainingPlan as TrainingPlanDto } from "@/types/TrainingPlan"
     import { useAuthStore } from '@/store/authStore'
     import { useSettingsStore } from '@/store/settingsStore'
-    import { addTrainingPlanner, addTrainingPlannerRestDay, deleteTrainingPlanner, deleteTrainingPlannerRestDay, listTrainingPlanner } from '@/services/trainingPlanner'
+    import { addTrainingPlanner, addTrainingPlannerRestDay, deleteTrainingPlanner, deleteTrainingPlannerRestDay, listTrainingPlanner, setTrainingPlannerCompletion } from '@/services/trainingPlanner'
     import { setTrainingPlanColor } from '@/services/trainingPlans'
 
     type ViewPlan = {
@@ -238,15 +271,20 @@
 
     const planner = ref<Record<string, { planId: string; planName: string; source: 'api' | 'guest'; color?: string }[]>>({})
     const restDays = ref<Record<string, true>>({})
+    const completedDays = ref<Record<string, true>>({})
     const planColors = ref<Record<string, string>>({})
     const auth = useAuthStore()
     const settings = useSettingsStore()
     const showValidation = ref(false)
     const validationErrors = ref<string[]>([])
-    const validationLead = ref('Bitte überprüfe die folgenden Punkte:')
+    const validationLead = ref('Bitte  berpr fe die folgenden Punkte:')
     const showAllPlans = ref(false)
     const allPlansRef = ref<HTMLElement | null>(null)
     const showResetConfirm = ref(false)
+    const showDayPopup = ref(false)
+    const popupDay = ref('')
+    const popupPlanId = ref('')
+    const popupColor = ref('')
 
     const hasAnyPlans = computed(() =>
         (props.apiPlans?.length ?? 0) > 0 || (props.guestPlans?.length ?? 0) > 0
@@ -279,6 +317,7 @@
     })
 
     const plannedDays = computed(() => Object.keys(planner.value))
+    const completedDaysArr = computed(() => Object.keys(completedDays.value))
 
     const plannedDayColors = computed<Record<string, string | string[]>>(() => {
         const out: Record<string, string[]> = {}
@@ -351,12 +390,29 @@
     const selectedDaysSorted = computed(() => [...selectedDays.value].sort())
     const allSelectedRest = computed(() => selectedDays.value.length > 0 && selectedDays.value.every(d => restDays.value[d]))
 
+    const popupDayLabel = computed(() => (popupDay.value ? formatDayLong(popupDay.value) : ''))
+    const popupIsToday = computed(() => popupDay.value === todayKey)
+    const popupIsFuture = computed(() => !!popupDay.value && popupDay.value > todayKey)
+    const popupIsPlanned = computed(() => !!popupDay.value && (planner.value[popupDay.value]?.length ?? 0) > 0)
+    const popupIsRest = computed(() => !!popupDay.value && !!restDays.value[popupDay.value])
+    const popupIsCompleted = computed(() => !!popupDay.value && !!completedDays.value[popupDay.value])
+    const popupAllowComplete = computed(() => popupIsToday.value && popupIsPlanned.value && !popupIsRest.value)
+    const popupAllowPlan = computed(() => popupIsFuture.value && !popupIsPlanned.value && !popupIsRest.value)
+    const popupAllowEdit = computed(() => popupIsPlanned.value && !isPastDay(popupDay.value))
+    const popupAllowRest = computed(() => !!popupDay.value && !isPastDay(popupDay.value))
+    const popupAllowMove = computed(() => popupIsPlanned.value && !isPastDay(popupDay.value))
+    const popupAllowClear = computed(() => popupIsPlanned.value || popupIsRest.value)
+
     const savePlanner = () => {
         localStorage.setItem(LS_TRAINING_PLANNER, JSON.stringify(planner.value))
     }
 
     const saveRestDays = () => {
         localStorage.setItem(LS_TRAINING_REST_DAYS, JSON.stringify(Object.keys(restDays.value)))
+    }
+
+    const saveCompletedDays = () => {
+        localStorage.setItem(LS_TRAINING_PLANNER_COMPLETED, JSON.stringify(Object.keys(completedDays.value)))
     }
 
     const loadPlanner = () => {
@@ -380,6 +436,18 @@
         }
     }
 
+    const loadCompletedDays = () => {
+        try {
+            const raw = localStorage.getItem(LS_TRAINING_PLANNER_COMPLETED)
+            const arr = raw ? JSON.parse(raw) : []
+            const next: Record<string, true> = {}
+            for (const d of Array.isArray(arr) ? arr : []) next[d] = true
+            completedDays.value = next
+        } catch {
+            completedDays.value = {}
+        }
+    }
+
     const savePlanColors = () => {
         localStorage.setItem(LS_TRAINING_PLAN_COLORS, JSON.stringify(planColors.value))
     }
@@ -391,6 +459,20 @@
         } catch {
             planColors.value = {}
         }
+    }
+
+    const setCompletionForDay = async (day: string, isCompleted: boolean, planId?: string) => {
+        if (isAuthenticated.value) {
+            await setTrainingPlannerCompletion(dayToIsoUtc(day), isCompleted, planId)
+        }
+
+        if (isCompleted) completedDays.value = { ...completedDays.value, [day]: true }
+        else {
+            const { [day]: _, ...rest } = completedDays.value
+            completedDays.value = rest
+        }
+
+        if (!isAuthenticated.value) saveCompletedDays()
     }
 
     const onCalendarSelect = (day: string) => {
@@ -437,6 +519,16 @@
             weekday: 'short',
             day: '2-digit',
             month: '2-digit',
+        })
+    }
+
+    const formatDayLong = (yyyyMMdd: string) => {
+        const [y, m, d] = yyyyMMdd.split('-').map(Number)
+        return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString('de-DE', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
         })
     }
 
@@ -509,6 +601,7 @@
         const items = await listTrainingPlanner()
         const next: Record<string, { planId: string; planName: string; source: 'api' | 'guest'; color?: string }[]> = {}
         const rests: Record<string, true> = {}
+        const completed: Record<string, true> = {}
 
         for (const item of items ?? []) {
             const day = toUtcDayKey(item.date)
@@ -526,10 +619,13 @@
                 color: item.planColor ?? undefined,
             })
             next[day] = list
+
+            if (item.isCompleted) completed[day] = true
         }
 
         planner.value = next
         restDays.value = rests
+        completedDays.value = completed
     }
 
     const loadPlannerState = async () => {
@@ -540,6 +636,129 @@
 
         loadPlanner()
         loadRestDays()
+        loadCompletedDays()
+    }
+
+    const getPrimaryPlanForDay = (day: string) => {
+        const list = planner.value[day] ?? []
+        return list[0] ?? null
+    }
+
+    const applyPlanColor = async (planId: string, color?: string) => {
+        if (!planId || !color) return
+        const isApiPlan = (props.apiPlans ?? []).some(p => p.id === planId)
+
+        planColors.value = { ...planColors.value, [planId]: color }
+
+        if (isAuthenticated.value && isApiPlan) {
+            void setTrainingPlanColor(planId, color)
+        }
+
+        savePlanColors()
+    }
+
+    const addPlanForDay = async (day: string, planId: string) => {
+        const apiPlan = props.apiPlans.find(p => p.id === planId)
+        const guestPlan = props.guestPlans.find(p => p.id === planId)
+        const planName = apiPlan?.name ?? guestPlan?.name ?? ''
+        const source: 'api' | 'guest' = apiPlan ? 'api' : 'guest'
+        if (!planName) return
+
+        if (restDays.value[day]) await removeRestDay(day)
+
+        const list = planner.value[day] ?? []
+        if (list.some(x => x.planId === planId)) return
+
+        if (isAuthenticated.value && source === 'api') {
+            const item = await addTrainingPlanner(planId, dayToIsoUtc(day))
+            const color = item.planColor ?? apiColorMap.value[planId] ?? planColors.value[planId]
+            planner.value[day] = [...list, { planId, planName, source, color }]
+        } else {
+            const color = planColors.value[planId]
+            planner.value[day] = [...list, { planId, planName, source, color }]
+            savePlanner()
+        }
+    }
+
+    const updatePlanForDay = async (day: string, planId: string) => {
+        const current = getPrimaryPlanForDay(day)
+        if (!current) {
+            await addPlanForDay(day, planId)
+            return
+        }
+
+        if (current.planId !== planId) {
+            await removePlanned(day, current.planId)
+            await addPlanForDay(day, planId)
+        }
+    }
+
+    const movePlanForDay = async (fromDay: string, toDay: string) => {
+        if (!fromDay || !toDay || fromDay === toDay) return
+        if (isPastDay(toDay)) {
+            openValidation('Vergangenheit gesperrt.', ['Bitte wähle ein heutiges oder zukünftiges Datum.'])
+            return
+        }
+
+        const current = getPrimaryPlanForDay(fromDay)
+        if (!current) return
+
+        const targetList = planner.value[toDay] ?? []
+        if (targetList.length && !targetList.some(x => x.planId === current.planId)) {
+            const existing = targetList[0]?.planName || 'ein anderer Plan'
+            openValidation('Plan-Konflikt', [`${formatDayShort(toDay)}: bereits ${existing} geplant.`])
+            return
+        }
+
+        await removePlanned(fromDay, current.planId)
+        await addPlanForDay(toDay, current.planId)
+    }
+
+    const openDayPopup = (day: string) => {
+        if (!day) return
+        popupDay.value = day
+        const primary = getPrimaryPlanForDay(day)
+        popupPlanId.value = primary?.planId ?? selectedPlanId.value ?? ''
+        popupColor.value = primary?.color ?? planColors.value[popupPlanId.value] ?? apiColorMap.value[popupPlanId.value] ?? ''
+        showDayPopup.value = true
+    }
+
+    const closeDayPopup = () => {
+        showDayPopup.value = false
+    }
+
+    const onPopupComplete = async (payload: { day: string; isCompleted: boolean; planId?: string | null }) => {
+        await setCompletionForDay(payload.day, payload.isCompleted, payload.planId ?? undefined)
+        closeDayPopup()
+    }
+
+    const onPopupPlan = async (payload: { day: string; planId: string; color?: string }) => {
+        await applyPlanColor(payload.planId, payload.color)
+        await addPlanForDay(payload.day, payload.planId)
+        closeDayPopup()
+    }
+
+    const onPopupUpdate = async (payload: { day: string; planId: string; color?: string }) => {
+        await applyPlanColor(payload.planId, payload.color)
+        await updatePlanForDay(payload.day, payload.planId)
+        closeDayPopup()
+    }
+
+    const onPopupRest = async (payload: { day: string; isRest: boolean }) => {
+        if (payload.isRest) await addRestDay(payload.day)
+        else await removeRestDay(payload.day)
+        closeDayPopup()
+    }
+
+    const onPopupMove = async (payload: { day: string; toDay: string }) => {
+        await movePlanForDay(payload.day, payload.toDay)
+        closeDayPopup()
+    }
+
+    const onPopupClear = async (day: string) => {
+        await clearDayPlans(day)
+        if (restDays.value[day]) await removeRestDay(day)
+        closeDayPopup()
     }
 
     const addPlanForSelectedDays = async () => {
@@ -656,9 +875,16 @@
 
         const next = list.filter(x => x.planId !== planId)
         if (next.length) planner.value[day] = next
-        else delete planner.value[day]
+        else {
+            delete planner.value[day]
+            const { [day]: _, ...rest } = completedDays.value
+            completedDays.value = rest
+        }
 
-        if (!isAuthenticated.value || item?.source !== 'api') savePlanner()
+        if (!isAuthenticated.value || item?.source !== 'api') {
+            savePlanner()
+            saveCompletedDays()
+        }
     }
 
     const clearDayPlans = async (day: string) => {
@@ -672,7 +898,12 @@
         }
 
         delete planner.value[day]
-        if (!isAuthenticated.value) savePlanner()
+        const { [day]: _, ...rest } = completedDays.value
+        completedDays.value = rest
+        if (!isAuthenticated.value) {
+            savePlanner()
+            saveCompletedDays()
+        }
     }
 
     const clearDay = async (day: string) => {
@@ -684,11 +915,15 @@
 
         await clearDayPlans(day)
 
+        const { [day]: _, ...rest } = completedDays.value
+        completedDays.value = rest
+
         if (isAuthenticated.value) {
             await addTrainingPlannerRestDay(dayToIsoUtc(day))
         } else {
             restDays.value = { ...restDays.value, [day]: true }
             saveRestDays()
+            saveCompletedDays()
             return
         }
 
@@ -731,10 +966,12 @@
 
         planner.value = {}
         restDays.value = {}
+        completedDays.value = {}
 
         if (!isAuthenticated.value) {
             savePlanner()
             saveRestDays()
+            saveCompletedDays()
         }
     }
 
@@ -918,6 +1155,13 @@
         margin: 0;
         font-size: 1.2rem;
         font-weight: 800;
+    }
+
+    .plan-calendar-tip {
+        font-size: .85rem;
+        color: var(--text-secondary);
+        margin-bottom: .6rem;
+        font-weight: 600;
     }
 
     .plan-calendar-grid {

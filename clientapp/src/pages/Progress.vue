@@ -50,14 +50,19 @@
                 <ChartCard title="Gewichtsverlauf"
                            :hasData="hasWeightStats"
                            exportable
+                           @click="openWeightHistoryCalendarPopup"
                            @export="openDownloadPopup('weightStats')"
                            @reset="resetWeightStats">
-                    <canvas id="weightChart" class="chart-canvas"></canvas>
+                    <canvas id="weightChart"
+                            class="chart-canvas chart-canvas--clickable"
+                            title="Gewichtsverlauf im Kalender öffnen"
+                            aria-label="Gewichtsverlauf im Kalender öffnen"></canvas>
                 </ChartCard>
 
                 <ChartCard title="Trainingsstatistik"
                            :hasData="hasWorkoutStats"
                            exportable
+                           @click="openTrainingStatsDetails"
                            @export="openDownloadPopup('workoutStats')"
                            @reset="resetWorkoutStats">
                     <template #subtitle>
@@ -522,12 +527,15 @@
 
         <!-- ===================== POPUPS ===================== -->
         <!-- Fortschritt ansehen (Cards je Tag) — OHNE Teleport -->
-        <PlanProgressPopup :show="showPlanProgressPopup"
+        <PlanProgressPopup ref="planProgressPopupRef"
+                           :show="showPlanProgressPopup"
                            :currentPlanId="currentPlanId"
                            :currentPlanName="currentPlanName"
+                           :initialView="planProgressInitialView"
                            :planRotationNotice="planRotationNotice"
                            :planRotationTestNotice="planRotationTestNotice"
                            :workouts="workouts"
+                           :feedbackStatusByDay="feedbackStatusByDayForCurrentPlan"
                            :formatDayLong="formatDayLong"
                            @close="closePlanProgressPopup"
                            @add-entry="(p) => addEntryFromPlanView(p)"
@@ -536,7 +544,8 @@
                            @edit-entry="editEntryFromPlanView"
                            @delete-day="deleteLatestEntryForDay"
                            @delete-entries="deleteEntriesFromPlanView"
-                           @delete="deleteEntriesFromPlanView" />
+                           @delete="deleteEntriesFromPlanView"
+                           @feedback="onPlanProgressFeedbackClick" />
 
         <ProgressEntryModal ref="progressEntryModalRef"
                             v-model:show="showProgressPopup"
@@ -548,14 +557,46 @@
                             :prefillExercise="progressContinuationPrefillExercise"
                             :prefillSetValues="progressContinuationPrefillSetValues"
                             :activeSetNumber="progressContinuationActiveSetNumber"
-                            :lockSetsBefore="progressContinuationLockSetsBefore"
                             :prefillSetValuesByExercise="todayTrackedSetValuesByExercise"
-                            :prefillLockedSetsByExercise="todayTrackedLockedSetsByExercise"
                             @save="onProgressModalSave"
                             @delete="onProgressModalDelete"
                             @cancel="onProgressModalCancel"
                             @dismissErrors="clearValidation"
                             @invalid="openValidationPopupError" />
+
+        <BasePopup :show="showTrainingCompletePrompt"
+                   title="Training fertig?"
+                   overlayClass="training-complete-popup"
+                   :showClose="true"
+                   :show-actions="false"
+                   @cancel="closeTrainingCompletePrompt">
+            <div class="training-complete-body">
+                Du hast heute alle Übungen erfasst. War das Training abgeschlossen?
+            </div>
+            <div class="training-complete-actions">
+                <PopupActionButton variant="ghost" @click="closeTrainingCompletePrompt">
+                    Nein
+                </PopupActionButton>
+                <PopupActionButton @click="confirmTrainingComplete">
+                    Ja
+                </PopupActionButton>
+            </div>
+        </BasePopup>
+
+        <TrainingFeedbackForm :show="showTrainingFeedback"
+                              :exercises="feedbackExercisesForPlan"
+                              :initialFeedback="trainingFeedbackInitialData"
+                              :reviewMode="trainingFeedbackReviewMode"
+                              @submit="onTrainingFeedbackSubmit"
+                              @skip="onTrainingFeedbackSkip"
+                              @close="onTrainingFeedbackClose" />
+
+        <WeightHistoryCalendarPopup :show="showWeightHistoryCalendarPopup"
+                                    :entries="weightHistory"
+                                    :goalKg="goal"
+                                    :unitLabel="unit"
+                                    :formatWeightText="(kg: number) => formatWeight(kg, 1)"
+                                    @close="closeWeightHistoryCalendarPopup" />
         <!-- Export-Popup -->
         <ExportPopup :show="showDownloadPopup"
                      v-model="downloadFormat"
@@ -608,17 +649,30 @@
     import GlycemicLoadCalculator from '@/components/ui/calculators/GlycemicLoadCalculator.vue'
     import BurnRateCalculator from '@/components/ui/calculators/BurnRateCalculator.vue'
     import ActionIconButton from '@/components/ui/buttons/ActionIconButton.vue'
+    import BasePopup from '@/components/ui/popups/BasePopup.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import type { Toast as ToastModel } from '@/types/toast'
     import ProgressEntryModal from '@/components/ui/popups/ProgressEntryModal.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import PlanProgressPopup from '@/components/ui/popups/PlanProgressPopup.vue'
+    import TrainingFeedbackForm from '@/components/ui/popups/feedback/TrainingFeedbackForm.vue'
+    import WeightHistoryCalendarPopup from '@/components/ui/popups/WeightHistoryCalendarPopup.vue'
     import { useProgressStore } from "@/store/progressStore"
     import type { CreateProgressEntry, UpdateProgressEntry } from "@/types/Progress"
     import { useTrainingPlansStore } from "@/store/trainingPlansStore"
     import { useAuthStore } from "@/store/authStore"
     import ProgressLastWorkoutCard from '@/components/ui/progress/ProgressLastWorkoutCard.vue'
     import { useWeightStore } from "@/store/weightStore"
+    import {
+        createTrainingSession,
+        listTrainingSessions,
+        upsertTrainingSessionFeedback,
+        type CreateTrainingSessionPayload,
+        type TrainingSessionFeedbackPayload,
+        type TrainingSessionFeedbackRecord
+    } from "@/services/trainingSessions"
+    import { listTrainingPlanner, setTrainingPlannerCompletion } from "@/services/trainingPlanner"
 
     import { useRoute } from 'vue-router'
 
@@ -646,6 +700,8 @@
         LS_TOAST_DURATION_MS,
         LS_TOASTS_ENABLED,
         LS_TRAINING_DATA,
+        LS_TRAINING_PLANNER,
+        LS_TRAINING_PLANNER_COMPLETED,
     } from '@/constants/storageKeys'
     // Interfaces
     interface PlanExercise {
@@ -731,6 +787,11 @@
         submit?: () => void
     }
 
+    type PlanProgressPopupExposed = {
+        modalEl?: HTMLElement | null
+        refreshPlannerState?: () => void | Promise<void>
+    }
+
     type ProgressContinuationDraft = {
         exercise: string
         valuesBySet: Record<number, { weight?: number | null; reps?: number | null }>
@@ -767,6 +828,32 @@
 
     //Funktionen
 
+    const toDayKey = (dateStr?: string) => {
+        if (!dateStr) return null
+        const d = new Date(dateStr)
+        if (Number.isNaN(d.getTime())) return null
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${y}-${m}-${day}`
+    }
+
+    const chartEntries = computed(() => {
+        const byDay = new Map<string, { entry: WeightEntry; ts: number }>()
+        for (const entry of weightHistory.value) {
+            const day = toDayKey(entry.date)
+            const ts = new Date(entry.date).getTime()
+            if (!day || !Number.isFinite(ts)) continue
+            const prev = byDay.get(day)
+            if (!prev || ts >= prev.ts) {
+                byDay.set(day, { entry, ts })
+            }
+        }
+        return Array.from(byDay.values())
+            .map(x => x.entry)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    })
+
     const updateWeightChart = () => {
         const canvas = document.getElementById('weightChart') as HTMLCanvasElement;
         if (!canvas || activeTab.value !== 'stats') return;
@@ -778,11 +865,11 @@
         weightChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: weightHistory.value.map((entry) => formatDate(entry.date)).reverse(),
+                labels: chartEntries.value.map((entry) => formatDate(entry.date)),
                 datasets: [
                     {
                         label: `Gewicht (${unit.value})`,
-                        data: weightHistory.value.map((entry) => kgToDisplay(entry.weight)).reverse(),
+                        data: chartEntries.value.map((entry) => kgToDisplay(entry.weight)),
                         borderColor: '#6366f1',
                         backgroundColor: 'rgba(99, 102, 241, 0.2)',
                         fill: true,
@@ -1216,6 +1303,8 @@
     }
 
     const isFavCalculator = (id: string) => favoriteCalculators.value.has(id)
+
+    const toastsEnabled = ref(true)
 
     onMounted(() => {
         const flag = localStorage.getItem(LS_AUTO_CALC_ENABLED)
@@ -2349,15 +2438,20 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const isGuid = (v: string) =>
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
 
-    const openPlanProgress = async (planId: string) => {
+    const openPlanProgress = async (planId: string, initialView: 'list' | 'calendar' | 'stats' = 'list') => {
         currentPlanId.value = planId
         lastPlanId.value = planId
+        planProgressInitialView.value = initialView
 
         // Legacy/Local IDs blocken (keine Ghost-Pläne)
         if (!isGuid(planId)) {
             showToast({ message: "Dieser Plan ist lokal/alt und hat keinen Online-Fortschritt.", type: "default" })
             return
         }
+
+        try {
+            await trainingPlansStore.loadOne(planId)
+        } catch { }
 
         await progressStore.load(planId, true)
 
@@ -2370,6 +2464,24 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         syncWorkoutsFromStore(planId)
 
         showPlanProgressPopup.value = true
+    }
+
+    const openTrainingStatsDetails = async () => {
+        const current = currentPlanId.value
+        const last = lastPlanId.value
+        const fromLatestWorkout = [...workouts.value]
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .map(w => w.planId)
+            .find(id => !!id && isGuid(id))
+        const firstApiPlan = trainingPlansStore.items.find(p => isGuid(p.id))?.id ?? null
+        const planId = current ?? last ?? fromLatestWorkout ?? firstApiPlan
+
+        if (!planId) {
+            showToast({ message: 'Kein passender Trainingsplan für Details gefunden.', type: 'default' })
+            return
+        }
+
+        await openPlanProgress(planId, 'stats')
     }
 
 
@@ -2402,8 +2514,22 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const showProgressPopup = ref(false);
 
     const progressEntryModalRef = ref<ProgressEntryModalExposed | null>(null)
+    const planProgressPopupRef = ref<PlanProgressPopupExposed | null>(null)
 
     const newProgressWeight = ref<number | null>(null)
+    const showWeightHistoryCalendarPopup = ref(false)
+
+    const showTrainingCompletePrompt = ref(false)
+    const showTrainingFeedback = ref(false)
+    const pendingCompletion = ref<{ planId: string; day: string; planned: boolean; calendarMarked?: boolean } | null>(null)
+    const pendingFeedbackPlanId = ref<string | null>(null)
+    const trainingFeedbackReviewMode = ref(false)
+    const trainingFeedbackInitialData = ref<TrainingSessionFeedbackPayload | null>(null)
+    const activeTrainingFeedbackSessionId = ref<string | null>(null)
+    const completionPrompted = ref<Record<string, true>>({})
+    const pendingPromptCheck = ref<{ planId: string; dateIso: string } | null>(null)
+    const trainingFeedbackByPlanDay = ref<Record<string, TrainingSessionFeedbackPayload>>({})
+    const trainingFeedbackSessionsByPlanDay = ref<Record<string, TrainingSessionFeedbackRecord>>({})
 
 
     const editingEntry = ref<Workout | null>(null)
@@ -2590,16 +2716,6 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         // no-op (damit TS ruhig ist)
     }
 
-    watch(showProgressPopup, async (open, wasOpen) => {
-        if (wasOpen && !open) {
-            // Modal wurde gerade geschlossen -> sofort PlanProgressPopup öffnen
-            if (currentPlanId.value) {
-                await nextTick()
-                showPlanProgressPopup.value = true
-            }
-        }
-    })
-
     // Abbrechen
     const onProgressModalCancel = () => {
         validationErrorMessages.value = []
@@ -2677,7 +2793,36 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         }
     }
 
-    const loadAllProgressForPlans = async () => {
+    const toLocalWorkoutFromModal = (workout: Workout): Workout => ({
+        ...(workout as any),
+        id: (workout as any).id ?? `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        planId: workout.planId ?? null,
+        date: typeof workout.date === 'string' ? workout.date : new Date().toISOString(),
+        type: (workout.type ?? 'kraft') as any,
+        setDetails: Array.isArray((workout as any).setDetails)
+            ? (workout as any).setDetails.map((s: any) => ({
+                weight: s.weight ?? null,
+                reps: s.reps ?? null,
+                durationSec: s.durationSec ?? null,
+                label: (s.label ?? '').trim() || null,
+            }))
+            : undefined,
+    } as any)
+
+    const upsertLocalWorkoutDraft = (planId: string, workout: Workout, mode: 'create' | 'edit') => {
+        const next = toLocalWorkoutFromModal(workout)
+        if (mode === 'edit' && (workout as any).id) {
+            const id = String((workout as any).id)
+            const idx = workouts.value.findIndex(w => w.planId === planId && String((w as any).id ?? '') === id)
+            if (idx >= 0) {
+                workouts.value.splice(idx, 1, next as any)
+                return
+            }
+        }
+        workouts.value.push(next as any)
+    }
+
+    async function loadAllProgressForPlans() {
         if (!auth.user) return
 
         const planIds = trainingPlansStore.items
@@ -2744,6 +2889,10 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         }
         const planId = workout.planId
         if (!planId) return
+
+        // Sofort lokal aktualisieren: verhindert, dass Same-Day-Prefill erst nach Reload/Refresh sichtbar wird.
+        upsertLocalWorkoutDraft(planId, workout, mode)
+        upsertProgressContinuationDraft(planId, workout.exercise, draft?.valuesBySet)
 
         if (mode === "edit") {
             const id = workout.id
@@ -2829,14 +2978,215 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             syncWorkoutsFromStore(planId)
 
             showToast({ message: "Fortschritt gespeichert!", type: "success", emoji: "✅" })
-            upsertProgressContinuationDraft(planId, workout.exercise, draft?.valuesBySet)
-
-
         }
 
+        const completionCheck = {
+            planId,
+            dateIso: workout.date ?? editingDate ?? new Date().toISOString(),
+        }
+        pendingPromptCheck.value = completionCheck
+
         showProgressPopup.value = false
+
+        // Fallback: Prompt auch dann prüfen, wenn das PlanProgressPopup in diesem Flow nicht geöffnet wird.
+        await nextTick()
+        await maybePromptTrainingComplete(completionCheck.planId, completionCheck.dateIso)
     }
     //Validation ProgressModalEntry
+
+    const closeTrainingCompletePrompt = () => {
+        showTrainingCompletePrompt.value = false
+        pendingCompletion.value = null
+        pendingFeedbackPlanId.value = null
+        resetTrainingFeedbackPopupState()
+    }
+
+    const confirmTrainingComplete = async () => {
+        const pending = pendingCompletion.value
+        if (!pending) {
+            showTrainingCompletePrompt.value = false
+            return
+        }
+
+        if (pending.planned && !pending.calendarMarked) {
+            try {
+                await markPlannerCompleted(pending.planId, pending.day)
+                pendingCompletion.value = { ...pending, calendarMarked: true }
+            } catch { }
+        }
+
+        pendingFeedbackPlanId.value = pending.planId
+        resetTrainingFeedbackPopupState()
+        showTrainingCompletePrompt.value = false
+        showTrainingFeedback.value = true
+    }
+
+    const getSessionStartFromEntries = (planId: string, day: string) => {
+        const entries = getProgressForPlan(planId)
+            .filter(w => (w.date || '').slice(0, 10) === day)
+            .map(w => new Date(w.date).getTime())
+            .filter(t => Number.isFinite(t))
+
+        if (!entries.length) return null
+        const min = Math.min(...entries)
+        return Number.isFinite(min) ? new Date(min).toISOString() : null
+    }
+
+    const buildTrainingSessionPayload = (planId: string, day: string, feedback: {
+        intensity?: number | null
+        bestExercise?: string | null
+        strengthTechnique?: number | null
+        cardioIntensity?: number | null
+        stretchPain?: number | null
+        note?: string | null
+    } | null): CreateTrainingSessionPayload => {
+        const planNames = getPlanExerciseNames(planId)
+        const loggedNames = getLoggedExerciseNamesForDay(planId, day)
+        const typesPresent = Array.from(new Set((feedbackExercisesForPlan.value ?? [])
+            .map(e => e.type ?? 'kraft')))
+
+        const startedAtUtc = getSessionStartFromEntries(planId, day)
+        const finishedAtUtc = new Date().toISOString()
+        const durationSec = startedAtUtc
+            ? Math.max(0, Math.round((new Date(finishedAtUtc).getTime() - new Date(startedAtUtc).getTime()) / 1000))
+            : null
+
+        return {
+            planId,
+            startedAtUtc,
+            finishedAtUtc,
+            durationSec,
+            exercisesTotal: planNames.length || null,
+            exercisesDone: loggedNames.length || null,
+            typesPresent,
+            feedback,
+        }
+    }
+
+    const onTrainingFeedbackSubmit = async (payload: {
+        intensity: number | null
+        bestExercise: string | null
+        strengthTechnique: number | null
+        cardioIntensity: number | null
+        stretchPain: number | null
+        note: string
+    }) => {
+        const pending = pendingCompletion.value
+        if (!pending) {
+            showTrainingFeedback.value = false
+            resetTrainingFeedbackPopupState()
+            return
+        }
+
+        const normalizedFeedback: TrainingSessionFeedbackPayload = {
+            intensity: payload.intensity,
+            bestExercise: payload.bestExercise,
+            strengthTechnique: payload.strengthTechnique,
+            cardioIntensity: payload.cardioIntensity,
+            stretchPain: payload.stretchPain,
+            note: payload.note?.trim() ?? '',
+        }
+
+        if (auth.user) {
+            try {
+                if (activeTrainingFeedbackSessionId.value) {
+                    const updated = await upsertTrainingSessionFeedback(activeTrainingFeedbackSessionId.value, normalizedFeedback)
+                    setBackendFeedbackRecord(updated)
+                } else {
+                    const dto = buildTrainingSessionPayload(pending.planId, pending.day, payload)
+                    const created = await createTrainingSession(dto)
+                    if (created?.sessionId) {
+                        activeTrainingFeedbackSessionId.value = created.sessionId
+                        // Nach Create direkt Sessions neu laden, damit FinishedAtUtc/FeedbackId sicher vorhanden sind.
+                        await loadTrainingFeedbackFromBackendForPlan(pending.planId)
+                    }
+                }
+            } catch {
+                showToast({ message: "Feedback konnte nicht gespeichert werden.", type: "default" })
+            }
+        } else {
+            setTrainingFeedbackCacheEntry(pending.planId, pending.day, normalizedFeedback)
+        }
+
+        if (pending.planned && !pending.calendarMarked) {
+            try { await markPlannerCompleted(pending.planId, pending.day) } catch { }
+        }
+
+        showTrainingFeedback.value = false
+        pendingCompletion.value = null
+        pendingFeedbackPlanId.value = null
+        resetTrainingFeedbackPopupState()
+    }
+
+    const onTrainingFeedbackSkip = async () => {
+        const pending = pendingCompletion.value
+        if (!pending) {
+            showTrainingFeedback.value = false
+            resetTrainingFeedbackPopupState()
+            return
+        }
+
+        // In "Feedback ansehen"/Bearbeiten-Modus bedeutet "Skip" nicht "Session ohne Feedback speichern".
+        if (trainingFeedbackReviewMode.value) {
+            showTrainingFeedback.value = false
+            pendingCompletion.value = null
+            pendingFeedbackPlanId.value = null
+            resetTrainingFeedbackPopupState()
+            return
+        }
+
+        if (auth.user) {
+            try {
+                const dto = buildTrainingSessionPayload(pending.planId, pending.day, null)
+                await createTrainingSession(dto)
+                await loadTrainingFeedbackFromBackendForPlan(pending.planId)
+            } catch {
+                showToast({ message: "Training-Session konnte nicht gespeichert werden.", type: "default" })
+            }
+        }
+
+        if (pending.planned && !pending.calendarMarked) {
+            try { await markPlannerCompleted(pending.planId, pending.day) } catch { }
+        }
+
+        showTrainingFeedback.value = false
+        pendingCompletion.value = null
+        pendingFeedbackPlanId.value = null
+        resetTrainingFeedbackPopupState()
+    }
+
+    const maybePromptTrainingComplete = async (planId: string, dateIso: string) => {
+        const day = (dateIso || '').slice(0, 10)
+        if (!day) return
+
+        const localToday = todayKey()
+        const utcToday = new Date().toISOString().slice(0, 10)
+        if (day !== localToday && day !== utcToday) return
+
+        if (!getPlanExerciseNames(planId).length && auth.user) {
+            try { await trainingPlansStore.loadOne(planId) } catch { }
+        }
+
+        if (!isPlanCompleteForDay(planId, day)) return
+        if (auth.user) {
+            await loadTrainingFeedbackFromBackendForPlan(planId)
+            const rec = getBackendFeedbackRecordForDay(planId, day)
+            if (rec?.feedbackId) return
+        } else {
+            if (getTrainingFeedbackCacheEntry(planId, day)) return
+        }
+
+        const key = `${planId}|${day}`
+        if (completionPrompted.value[key]) return
+
+        const status = await getPlannerStatusForDay(planId, day)
+        if (status.completed) return
+
+        completionPrompted.value = { ...completionPrompted.value, [key]: true }
+        pendingCompletion.value = { planId, day, planned: status.planned }
+        pendingFeedbackPlanId.value = planId
+        showTrainingCompletePrompt.value = true
+    }
 
     // Progress.vue — INSERT (above "// ===== Utility: Zahlen, Debounce ...")
 
@@ -2855,6 +3205,91 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             localStorage.setItem(key, JSON.stringify(value))
         } catch { }
     }
+
+    const LS_TRAINING_FEEDBACK_CACHE = 'gym3000.trainingFeedbackByPlanDay.v1'
+
+    const feedbackPlanDayKey = (planId: string, day: string) => `${String(planId)}|${String(day)}`
+
+    const loadTrainingFeedbackCache = () => {
+        if (!canUseLocalStorage()) return
+        try {
+            const raw = localStorage.getItem(LS_TRAINING_FEEDBACK_CACHE)
+            const parsed = raw ? JSON.parse(raw) : {}
+            trainingFeedbackByPlanDay.value = (parsed && typeof parsed === 'object') ? parsed : {}
+        } catch {
+            trainingFeedbackByPlanDay.value = {}
+        }
+    }
+
+    const persistTrainingFeedbackCache = () => {
+        saveToLocalStorage(LS_TRAINING_FEEDBACK_CACHE, trainingFeedbackByPlanDay.value)
+    }
+
+    const setTrainingFeedbackCacheEntry = (planId: string, day: string, feedback: TrainingSessionFeedbackPayload | null) => {
+        const key = feedbackPlanDayKey(planId, day)
+        const next = { ...trainingFeedbackByPlanDay.value }
+        if (feedback) next[key] = feedback
+        else delete next[key]
+        trainingFeedbackByPlanDay.value = next
+        persistTrainingFeedbackCache()
+    }
+
+    const getTrainingFeedbackCacheEntry = (planId: string, day: string) =>
+        trainingFeedbackByPlanDay.value[feedbackPlanDayKey(planId, day)] ?? null
+
+    const feedbackPayloadFromRecord = (rec: TrainingSessionFeedbackRecord): TrainingSessionFeedbackPayload | null => {
+        if (!rec) return null
+        if (!rec.feedbackId) return null
+        return {
+            intensity: rec.intensity ?? null,
+            bestExercise: rec.bestExercise ?? null,
+            strengthTechnique: rec.strengthTechnique ?? null,
+            cardioIntensity: rec.cardioIntensity ?? null,
+            stretchPain: rec.stretchPain ?? null,
+            note: rec.note ?? null,
+        }
+    }
+
+    const setBackendFeedbackRecord = (rec: TrainingSessionFeedbackRecord) => {
+        const day = toPlannerDayKey(rec.finishedAtUtc)
+        if (!day) return
+        const key = feedbackPlanDayKey(rec.planId, day)
+        const current = trainingFeedbackSessionsByPlanDay.value[key]
+        if (!current) {
+            trainingFeedbackSessionsByPlanDay.value = { ...trainingFeedbackSessionsByPlanDay.value, [key]: rec }
+            return
+        }
+        const currentTs = new Date(current.finishedAtUtc || 0).getTime()
+        const nextTs = new Date(rec.finishedAtUtc || 0).getTime()
+        if (!Number.isFinite(currentTs) || nextTs >= currentTs) {
+            trainingFeedbackSessionsByPlanDay.value = { ...trainingFeedbackSessionsByPlanDay.value, [key]: rec }
+        }
+    }
+
+    const loadTrainingFeedbackFromBackendForPlan = async (planId: string) => {
+        if (!auth.user || !planId) return
+        try {
+            const rows = await listTrainingSessions({ planId })
+            const next = { ...trainingFeedbackSessionsByPlanDay.value }
+            for (const row of rows ?? []) {
+                const day = toPlannerDayKey(row.finishedAtUtc)
+                if (!day) continue
+                const key = feedbackPlanDayKey(planId, day)
+                const prev = next[key]
+                if (!prev || new Date(row.finishedAtUtc).getTime() >= new Date(prev.finishedAtUtc).getTime()) {
+                    next[key] = row
+                }
+            }
+            trainingFeedbackSessionsByPlanDay.value = next
+        } catch { }
+    }
+
+    const getBackendFeedbackRecordForDay = (planId: string, day: string) =>
+        trainingFeedbackSessionsByPlanDay.value[feedbackPlanDayKey(planId, day)] ?? null
+
+    onMounted(() => {
+        loadTrainingFeedbackCache()
+    })
 
     // --- Missing popup refs (were referenced but not defined) ---
     const showWeightPopup = ref(false)
@@ -2875,6 +3310,15 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const saveGoal = () => {
         // If you later re-add the popup, wire it here.
         showGoalPopup.value = false
+    }
+
+    const openWeightHistoryCalendarPopup = () => {
+        if (!weightHistory.value?.length) return
+        showWeightHistoryCalendarPopup.value = true
+    }
+
+    const closeWeightHistoryCalendarPopup = () => {
+        showWeightHistoryCalendarPopup.value = false
     }
 
     // --- latest recorded weight display (used by ProgressEntryModal + openCreate default) ---
@@ -3080,6 +3524,283 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         return Math.min((progressEntries.length / totalExercises) * 100, 100);
     };
 
+    const todayKey = () => {
+        const d = new Date()
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${y}-${m}-${day}`
+    }
+
+    const normalizeExerciseName = (v: string) =>
+        String(v ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '')
+
+    const isExerciseMatch = (planName: string, loggedName: string) => {
+        const p = normalizeExerciseName(planName)
+        const l = normalizeExerciseName(loggedName)
+        if (!p || !l) return false
+        if (p === l) return true
+        return p.includes(l) || l.includes(p)
+    }
+
+    const getPlanExerciseNames = (planId: string) =>
+        getExercisesForPlan(planId).map(x => String(x.exercise ?? '').trim()).filter(Boolean)
+
+    const getLoggedExerciseNamesForDay = (planId: string, day: string) =>
+        getProgressForPlan(planId)
+            .filter(w => (w.date || '').slice(0, 10) === day)
+            .map(w => String(w.exercise ?? '').trim())
+            .filter(Boolean)
+
+    const isPlanCompleteForDay = (planId: string, day: string) => {
+        const planNames = getPlanExerciseNames(planId)
+        if (!planNames.length) return false
+
+        const loggedNames = getLoggedExerciseNamesForDay(planId, day)
+        if (!loggedNames.length) return false
+
+        if (planNames.length === 1) return true
+
+        let matched = 0
+        for (const p of planNames) {
+            if (loggedNames.some(l => isExerciseMatch(p, l))) matched += 1
+        }
+        return matched >= planNames.length
+    }
+
+    const toPlannerDayKey = (dateStr?: string | null) => {
+        if (!dateStr) return null
+        const normalized = dateStr.length === 10 ? `${dateStr}T00:00:00Z` : dateStr
+        const d = new Date(normalized)
+        if (Number.isNaN(d.getTime())) return null
+        const y = d.getUTCFullYear()
+        const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+        const day = String(d.getUTCDate()).padStart(2, '0')
+        return `${y}-${m}-${day}`
+    }
+
+    const getPlannerStatusForDay = async (planId: string, day: string) => {
+        if (auth.user) {
+            const items = await listTrainingPlanner()
+            const planned = (items ?? []).some(i =>
+                !i?.isRestDay &&
+                String(i.planId ?? '') === String(planId) &&
+                toPlannerDayKey(i.date) === day
+            )
+            const completed = (items ?? []).some(i =>
+                String(i.planId ?? '') === String(planId) &&
+                toPlannerDayKey(i.date) === day &&
+                !!i.isCompleted
+            )
+            return { planned, completed }
+        }
+
+        try {
+            const rawPlanner = localStorage.getItem(LS_TRAINING_PLANNER)
+            const planner = rawPlanner ? JSON.parse(rawPlanner) : {}
+            const plannedList = planner?.[day] ?? []
+            const planned = Array.isArray(plannedList)
+                ? plannedList.some((p: any) => String(p?.planId ?? '') === String(planId))
+                : false
+
+            const rawCompleted = localStorage.getItem(LS_TRAINING_PLANNER_COMPLETED)
+            const completedArr = rawCompleted ? JSON.parse(rawCompleted) : []
+            const completed = Array.isArray(completedArr) ? completedArr.includes(day) : false
+            return { planned, completed }
+        } catch {
+            return { planned: false, completed: false }
+        }
+    }
+
+    const markPlannerCompleted = async (planId: string, day: string) => {
+        if (auth.user) {
+            await setTrainingPlannerCompletion(`${day}T00:00:00.000Z`, true, planId)
+            await planProgressPopupRef.value?.refreshPlannerState?.()
+            return
+        }
+
+        try {
+            const raw = localStorage.getItem(LS_TRAINING_PLANNER_COMPLETED)
+            const arr = raw ? JSON.parse(raw) : []
+            const next = Array.isArray(arr) ? [...arr] : []
+            if (!next.includes(day)) next.push(day)
+            localStorage.setItem(LS_TRAINING_PLANNER_COMPLETED, JSON.stringify(next))
+            await planProgressPopupRef.value?.refreshPlannerState?.()
+        } catch { }
+    }
+
+    const normalizeFeedbackExerciseType = (t: unknown): 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer' => {
+        const n = typeof t === 'number' ? t : Number(String(t ?? '').trim())
+        if (Number.isFinite(n)) {
+            if (n === 2) return 'dehnung'
+            if (n === 3) return 'ausdauer'
+            if (n === 1) return 'calisthenics'
+            return 'kraft'
+        }
+
+        const s = String(t ?? '').toLowerCase().trim()
+        if (!s) return 'kraft'
+        if (s === 'ausdauer' || s === 'cardio' || s === 'endurance' || s === 'aerobic' || s.includes('ausdauer')) return 'ausdauer'
+        if (s === 'dehnung' || s === 'stretch' || s === 'stretching' || s === 'mobility' || s.includes('dehnung')) return 'dehnung'
+        if (s === 'calisthenics' || s === 'bodyweight' || s === 'bw') return 'calisthenics'
+        if (s === 'kraft' || s === 'strength' || s === 'weights' || s === 'weight') return 'kraft'
+        return 'kraft'
+    }
+
+    const inferFeedbackTypeFromNameAndFields = (name: string, rawType: unknown, item?: any) => {
+        let type = normalizeFeedbackExerciseType(rawType)
+        const n = String(name ?? '').toLowerCase()
+
+        const isCardioName = ['lauf', 'jogg', 'run', 'treadmill', 'rad', 'fahrrad', 'bike', 'spinning', 'cycling', 'row', 'rudern',
+            'ergometer', 'crosstrainer', 'ellip', 'seilspring', 'rope', 'treppen', 'stairs', 'schwimm', 'walk', 'hike']
+            .some(k => n.includes(k))
+        const isStretchName = ['dehn', 'stretch', 'mobil', 'mobility', 'beweglich', 'yoga', 'faszien', 'smr', 'roll', 'hip opener']
+            .some(k => n.includes(k))
+
+        const hasCardioFields = item?.durationMin != null || item?.distanceKm != null || item?.avgHr != null || item?.pace != null || item?.hrZone != null
+        const hasStretchFields = item?.painFree != null || item?.side != null || item?.equipment != null ||
+            (Array.isArray(item?.setDetails) && item.setDetails.some((s: any) => s?.durationSec != null))
+
+        if (type === 'kraft') {
+            if (isStretchName || hasStretchFields) type = 'dehnung'
+            else if (isCardioName || hasCardioFields) type = 'ausdauer'
+        } else if (type === 'dehnung') {
+            if ((isCardioName || hasCardioFields) && !hasStretchFields) type = 'ausdauer'
+        } else if (type === 'ausdauer') {
+            if ((isStretchName || hasStretchFields) && !hasCardioFields) type = 'dehnung'
+        }
+
+        return type
+    }
+
+    const feedbackExercisesForPlan = computed(() => {
+        const planId = pendingFeedbackPlanId.value
+        if (!planId) return []
+        const day = pendingCompletion.value?.day ?? null
+
+        if (day) {
+            const entries = getProgressForPlan(planId)
+                .filter(w => (w.date || '').slice(0, 10) === day)
+                .filter(w => !!String(w.exercise ?? '').trim())
+
+            if (entries.length) {
+                const uniq = new Map<string, { exercise: string; type: 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer' }>()
+                for (const w of entries) {
+                    const exercise = String(w.exercise ?? '').trim()
+                    if (!exercise) continue
+                    const key = exercise.toLowerCase()
+                    if (!uniq.has(key)) {
+                        uniq.set(key, {
+                            exercise,
+                            type: inferFeedbackTypeFromNameAndFields(exercise, (w as any).type, w),
+                        })
+                    }
+                }
+                return Array.from(uniq.values())
+            }
+        }
+
+        const dto = trainingPlansStore.items.find(p => p.id === planId)
+        if (dto && Array.isArray(dto.days)) {
+            return dto.days.flatMap(d =>
+                Array.isArray(d.exercises)
+                    ? d.exercises.map(x => ({
+                        exercise: String((x as any).name ?? '').trim(),
+                        type: inferFeedbackTypeFromNameAndFields(
+                            String((x as any).name ?? '').trim(),
+                            (x as any).category ?? (x as any).type ?? (x as any).exerciseType,
+                            x
+                        ),
+                    }))
+                    : []
+            ).filter(x => !!x.exercise)
+        }
+
+        const names = trainingPlans.value.find(p => p.id === planId)?.exercises ?? []
+        return names.map(n => ({ exercise: n, type: inferFeedbackTypeFromNameAndFields(n, null) }))
+    })
+
+    const feedbackStatusByDayForCurrentPlan = computed<Record<string, boolean>>(() => {
+        const planId = currentPlanId.value ?? lastPlanId.value
+        if (!planId) return {}
+
+        const out: Record<string, boolean> = {}
+        const source = auth.user ? trainingFeedbackSessionsByPlanDay.value : trainingFeedbackByPlanDay.value
+        for (const key of Object.keys(source)) {
+            if (!key.startsWith(`${planId}|`)) continue
+            const day = key.slice(planId.length + 1)
+            if (!day) continue
+            if (auth.user) {
+                const rec = (source as Record<string, TrainingSessionFeedbackRecord>)[key]
+                if (rec?.feedbackId) out[day] = true
+            } else {
+                out[day] = true
+            }
+        }
+        return out
+    })
+
+    const resetTrainingFeedbackPopupState = () => {
+        trainingFeedbackReviewMode.value = false
+        trainingFeedbackInitialData.value = null
+        activeTrainingFeedbackSessionId.value = null
+    }
+
+    const onTrainingFeedbackClose = () => {
+        showTrainingFeedback.value = false
+        pendingCompletion.value = null
+        pendingFeedbackPlanId.value = null
+        resetTrainingFeedbackPopupState()
+    }
+
+    const onPlanProgressFeedbackClick = async (payload: { day: string }) => {
+        const planId = currentPlanId.value ?? lastPlanId.value
+        const day = String(payload?.day ?? '').slice(0, 10)
+        if (!planId || !day) return
+
+        if (auth.user) {
+            await loadTrainingFeedbackFromBackendForPlan(planId)
+        }
+
+        const status = await getPlannerStatusForDay(planId, day)
+
+        pendingCompletion.value = {
+            planId,
+            day,
+            planned: status.planned,
+            calendarMarked: status.completed,
+        }
+        pendingFeedbackPlanId.value = planId
+
+        if (auth.user) {
+            const rec = getBackendFeedbackRecordForDay(planId, day)
+            const feedback = rec ? feedbackPayloadFromRecord(rec) : null
+            activeTrainingFeedbackSessionId.value = rec?.sessionId ?? null
+            if (feedback) {
+                trainingFeedbackReviewMode.value = true
+                trainingFeedbackInitialData.value = { ...feedback }
+            } else {
+                trainingFeedbackReviewMode.value = false
+                trainingFeedbackInitialData.value = null
+            }
+        } else {
+            const cached = getTrainingFeedbackCacheEntry(planId, day)
+            activeTrainingFeedbackSessionId.value = null
+            if (cached) {
+                trainingFeedbackReviewMode.value = true
+                trainingFeedbackInitialData.value = { ...cached }
+            } else {
+                trainingFeedbackReviewMode.value = false
+                trainingFeedbackInitialData.value = null
+            }
+        }
+
+        showTrainingFeedback.value = true
+    }
+
     const displayedEntries = (planId: string) => {
         const entries = getProgressForPlan(planId);
         if (showMore.value[planId]) {
@@ -3100,7 +3821,30 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const showPlanProgressPopup = ref(false)
     const currentPlanId = ref<string | null>(null)
     const lastPlanId = ref<string | null>(null)
+    const planProgressInitialView = ref<'list' | 'calendar' | 'stats'>('list')
     const effectivePlanId = computed(() => currentPlanId.value ?? lastPlanId.value)
+
+    watch(showProgressPopup, async (open, wasOpen) => {
+        if (wasOpen && !open) {
+            // Modal wurde gerade geschlossen -> sofort PlanProgressPopup öffnen
+            if (currentPlanId.value) {
+                await nextTick()
+                showPlanProgressPopup.value = true
+            }
+        }
+    })
+
+    watch(showPlanProgressPopup, async (open) => {
+        if (!open) return
+        const planId = currentPlanId.value ?? lastPlanId.value
+        if (auth.user && planId) {
+            await loadTrainingFeedbackFromBackendForPlan(planId)
+        }
+        const pending = pendingPromptCheck.value
+        if (!pending) return
+        pendingPromptCheck.value = null
+        await maybePromptTrainingComplete(pending.planId, pending.dateIso)
+    })
 
 
     const deleteEntriesFromPlanView = (payload: { planId: string; entries: any[] }) => {
@@ -3158,6 +3902,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const closePlanProgressPopup = () => {
         showPlanProgressPopup.value = false
         currentPlanId.value = null
+        planProgressInitialView.value = 'list'
     }
 
     const currentPlanName = computed(() =>
@@ -3639,8 +4384,6 @@ Notiz: ${e.note ?? '-'}\n`
 
     const toast = ref<ToastModel | null>(null)
     let toastId = 0
-
-    const toastsEnabled = ref(true)
 
     const suppressToasts = ref(false)
     let toastReleaseTimer: ReturnType<typeof setTimeout> | null = null
@@ -4189,6 +4932,16 @@ Notiz: ${e.note ?? '-'}\n`
         max-width: 100%;
         height: 240px !important; /* fixe, angenehme Mobile-Höhe */
         box-sizing: border-box;
+    }
+
+    .chart-canvas--clickable {
+        cursor: pointer;
+    }
+
+    .chart-canvas--clickable:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--accent-primary) 65%, white 35%);
+        outline-offset: 4px;
+        border-radius: 8px;
     }
 
     .workout-list {
@@ -5415,5 +6168,21 @@ Notiz: ${e.note ?? '-'}\n`
     .modal--progress > .card-header + .list-item.empty,
     .modal--progress > .card-header + .day-card-list {
         margin-top: 1rem; /* taste dich bei Bedarf ran: .75rem – 1.25rem */
+    }
+</style>
+
+<style scoped>
+    .training-complete-body {
+        text-align: center;
+        color: var(--text-secondary);
+        margin: 0.25rem 0 0.6rem;
+    }
+
+    .training-complete-actions {
+        display: flex;
+        justify-content: center;
+        gap: 0.6rem;
+        margin-top: 0.5rem;
+        flex-wrap: wrap;
     }
 </style>

@@ -13,5 +13,6 @@ public class TrainingPlanSchedule
     public TrainingPlan Plan { get; set; } = default!;
 
     public DateTime Date { get; set; }
+    public bool IsCompleted { get; set; }
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 }

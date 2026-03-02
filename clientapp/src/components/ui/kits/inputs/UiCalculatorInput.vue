@@ -124,7 +124,7 @@
         min-width: 0;
         padding: .72rem .85rem;
         border-radius: 12px;
-        /* gleiche DNA wie .calculator-card (nur „flacher“) */
+        /* gleiche DNA wie .calculator-card (nur ?flacher?) */
         background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
         border: 1px solid rgba(148, 163, 184, 0.22);
         color: var(--text-primary);

@@ -4,7 +4,7 @@
          ref="panelEl"
          class="ui-menu__panel"
          role="menu"
-         :aria-label="title || 'Menü'"
+         :aria-label="title || 'MenÃ¼'"
          :style="panelStyle"
          @pointerdown.stop>
         <div v-if="title" class="ui-menu__head">

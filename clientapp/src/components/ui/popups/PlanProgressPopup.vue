@@ -53,6 +53,33 @@
                     <div class="praise-text">{{ plannedCompletionPraise }}</div>
                 </div>
 
+                <CalendarDayPopup :show="showDayPopup"
+                                  :day="popupDay"
+                                  :dayLabel="popupDayLabel"
+                                  :isToday="popupIsToday"
+                                  :isFuture="popupIsFuture"
+                                  :isPlanned="popupIsPlanned"
+                                  :isRest="popupIsRest"
+                                  :isCompleted="popupIsCompleted"
+                                  :allowComplete="popupAllowComplete"
+                                  :allowPlan="popupAllowPlan"
+                                  :allowEdit="popupAllowEdit"
+                                  :allowRest="popupAllowRest"
+                                  :allowMove="popupAllowMove"
+                                  :allowClear="popupAllowClear"
+                                  :planOptions="planOptions"
+                                  :colorOptions="colorOptions"
+                                  :defaultPlanId="popupPlanId"
+                                  :defaultColor="popupColor"
+                                  :minDate="todayLocalKey"
+                                  @close="closeDayPopup"
+                                  @complete="onPopupComplete"
+                                  @plan="onPopupPlan"
+                                  @update="onPopupUpdate"
+                                  @rest="onPopupRest"
+                                  @move="onPopupMove"
+                                  @clear="onPopupClear" />
+
                 <!-- View Toggle -->
                 <div class="progress-topbar">
                     <button type="button"
@@ -91,7 +118,8 @@
                           :dayTitles="calendarDayTitles"
                           :checkDays="completedPlannedDaysArr"
                           :crossDays="missedPlannedPastDaysArr"
-                          @select="jumpToDay" />
+                          @select="onCalendarSelect"
+                          @dblclick="onCalendarDblClick" />
 
                 <!-- List View -->
                 <PlanProgressStats v-else-if="viewMode === 'stats'"
@@ -226,6 +254,10 @@
                                                             </span>
                                                             <span class="set-reps">{{ s.reps ?? '–' }} Wdh</span>
                                                             <span class="set-weight">{{ s.weight ?? '–' }} kg</span>
+                                                            <span v-if="strengthSetWeightHintText(g.entry, idx)"
+                                                                  class="set-upgrade-hint">
+                                                                {{ strengthSetWeightHintText(g.entry, idx) }}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -464,6 +496,14 @@
                                         </ul>
                                     </div>
                                 </div>
+
+                                <div class="day-feedback-cta" @click.stop>
+                                    <button type="button"
+                                            class="progress-btn day-feedback-btn"
+                                            @click.stop="emit('feedback', { day: c.day })">
+                                        {{ hasFeedbackForDay(c.day) ? 'Dein Feedback ansehen' : 'Feedback ausfüllen' }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </article>
@@ -545,16 +585,21 @@
     import KebabMenu, { type KebabMenuItem } from '@/components/ui/menu/KebabMenu.vue'
     import ActionSelectPopup, { type ActionSelectRow } from '@/components/ui/popups/ActionSelectPopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
+    import CalendarDayPopup from '@/components/ui/popups/CalendarDayPopup.vue'
     import Calender from '@/components/ui/kits/calender/Calender.vue'
     import PlanProgressStats from '@/components/ui/progress/PlanProgressStats.vue'
     import { useProgressStore } from "@/store/progressStore"
     import { useTrainingPlansStore } from '@/store/trainingPlansStore'
+    import { useAuthStore } from '@/store/authStore'
     import type { ProgressEntry } from "@/types/Progress"
-    import { LS_TRAINING_PLANNER } from '@/constants/storageKeys'
-    import { listTrainingPlanner } from '@/services/trainingPlanner'
+    import { LS_TRAINING_PLANNER, LS_TRAINING_REST_DAYS, LS_TRAINING_PLANNER_COMPLETED } from '@/constants/storageKeys'
+    import { addTrainingPlanner, addTrainingPlannerRestDay, deleteTrainingPlanner, deleteTrainingPlannerRestDay, listTrainingPlanner, setTrainingPlannerCompletion } from '@/services/trainingPlanner'
+    import { setTrainingPlanColor } from '@/services/trainingPlans'
     import { storeToRefs } from "pinia"
+    import { getWeightIncreaseHint } from '@/utils/trainingWeightIncreaseHint'
 
     type DayCard = { day: string; uniqueExercises: number }
+    type PlannedStrengthMeta = { reps: number | null; goal: string | null; type: string | null }
 
     type WorkoutLike = {
         id?: string | null
@@ -601,10 +646,12 @@
         show: boolean
         currentPlanId: string | null
         currentPlanName: string
+        initialView?: 'list' | 'calendar' | 'stats'
         planRotationNotice?: { title: string; body: string } | null
         planRotationTestNotice?: { title: string; body: string } | null
         workouts: WorkoutLike[]
         formatDayLong: (yyyyMMdd: string) => string
+        feedbackStatusByDay?: Record<string, boolean>
     }>()
 
     const emit = defineEmits<{
@@ -616,15 +663,23 @@
         (e: 'edit-entry', entry: WorkoutLike): void
         (e: 'delete-entries', payload: { planId: string; entries: WorkoutLike[] }): void
         (e: 'delete', payload: { planId: string; entries: WorkoutLike[] }): void
+        (e: 'feedback', payload: { day: string }): void
     }>()
 
     const modalEl = ref<HTMLElement | null>(null)
-    defineExpose({ modalEl })
+    const hasFeedbackForDay = (day: string) => !!props.feedbackStatusByDay?.[day]
 
     const progressStore = useProgressStore()
     const trainingPlansStore = useTrainingPlansStore()
+    const auth = useAuthStore()
     const { byPlan } = storeToRefs(progressStore)
     const plannerByDayLocal = ref<Record<string, Array<{ planId: string; planName?: string; color?: string | null }>>>({})
+    const restDaysLocal = ref<Record<string, true>>({})
+    const completedDaysLocal = ref<Record<string, true>>({})
+    const showDayPopup = ref(false)
+    const popupDay = ref('')
+    const popupPlanId = ref('')
+    const popupColor = ref('')
 
     const toPlannerDayKey = (dateStr?: string | null) => {
         if (!dateStr) return null
@@ -646,14 +701,40 @@
         } catch {
             plannerByDayLocal.value = {}
         }
+
+        try {
+            const raw = window.localStorage.getItem(LS_TRAINING_REST_DAYS)
+            const arr = raw ? JSON.parse(raw) : []
+            const next: Record<string, true> = {}
+            for (const d of Array.isArray(arr) ? arr : []) next[d] = true
+            restDaysLocal.value = next
+        } catch {
+            restDaysLocal.value = {}
+        }
+
+        try {
+            const raw = window.localStorage.getItem(LS_TRAINING_PLANNER_COMPLETED)
+            const arr = raw ? JSON.parse(raw) : []
+            const next: Record<string, true> = {}
+            for (const d of Array.isArray(arr) ? arr : []) next[d] = true
+            completedDaysLocal.value = next
+        } catch {
+            completedDaysLocal.value = {}
+        }
     }
 
     const loadPlannerForPlanProgress = async () => {
         try {
             const items = await listTrainingPlanner()
             const next: Record<string, Array<{ planId: string; planName?: string; color?: string | null }>> = {}
+            const rests: Record<string, true> = {}
+            const completed: Record<string, true> = {}
             for (const item of items ?? []) {
-                if (item?.isRestDay) continue
+                if (item?.isRestDay) {
+                    const restDay = toPlannerDayKey(item.date)
+                    if (restDay) rests[restDay] = true
+                    continue
+                }
                 if (!item?.planId) continue
                 const day = toPlannerDayKey(item.date)
                 if (!day) continue
@@ -664,12 +745,218 @@
                     color: item.planColor ?? null,
                 })
                 next[day] = list
+
+                if (item.isCompleted) completed[day] = true
             }
             plannerByDayLocal.value = next
+            restDaysLocal.value = rests
+            completedDaysLocal.value = completed
             return
         } catch {
             loadPlannerLocal()
         }
+    }
+
+    const dayToIsoUtc = (day: string) => `${day}T00:00:00.000Z`
+
+    const getPrimaryPlanForDay = (day: string) => {
+        const list = plannerByDayLocal.value[day] ?? []
+        return list[0] ?? null
+    }
+
+    const savePlannerLocal = (next: Record<string, Array<{ planId: string; planName?: string; color?: string | null }>>) => {
+        if (typeof window === 'undefined') return
+        window.localStorage.setItem(LS_TRAINING_PLANNER, JSON.stringify(next))
+    }
+
+    const saveRestDaysLocal = (next: Record<string, true>) => {
+        if (typeof window === 'undefined') return
+        window.localStorage.setItem(LS_TRAINING_REST_DAYS, JSON.stringify(Object.keys(next)))
+    }
+
+    const saveCompletedDaysLocal = (next: Record<string, true>) => {
+        if (typeof window === 'undefined') return
+        window.localStorage.setItem(LS_TRAINING_PLANNER_COMPLETED, JSON.stringify(Object.keys(next)))
+    }
+
+    const refreshPlannerState = async () => {
+        if (isAuthenticated.value) await loadPlannerForPlanProgress()
+        else loadPlannerLocal()
+    }
+
+    defineExpose({ modalEl, refreshPlannerState })
+
+    const openDayPopup = (day: string) => {
+        if (!day) return
+        popupDay.value = day
+        const list = plannerByDayLocal.value[day] ?? []
+        const current = list.find(x => String(x.planId) === String(props.currentPlanId)) ?? list[0] ?? null
+        popupPlanId.value = current?.planId ?? props.currentPlanId ?? ''
+        const planColor = current?.color ?? trainingPlansStore.items.find(p => p.id === popupPlanId.value)?.color ?? ''
+        popupColor.value = planColor || ''
+        showDayPopup.value = true
+    }
+
+    const closeDayPopup = () => {
+        showDayPopup.value = false
+    }
+
+    const onPopupComplete = async (payload: { day: string; isCompleted: boolean; planId?: string | null }) => {
+        const planId = payload.planId ?? props.currentPlanId ?? undefined
+        if (isAuthenticated.value) {
+            await setTrainingPlannerCompletion(dayToIsoUtc(payload.day), payload.isCompleted, planId)
+        } else {
+            const next = { ...completedDaysLocal.value }
+            if (payload.isCompleted) next[payload.day] = true
+            else delete next[payload.day]
+            completedDaysLocal.value = next
+            saveCompletedDaysLocal(next)
+        }
+
+        await refreshPlannerState()
+        closeDayPopup()
+    }
+
+    const onPopupPlan = async (payload: { day: string; planId: string; color?: string }) => {
+        if (isAuthenticated.value) {
+            if (payload.color) {
+                void setTrainingPlanColor(payload.planId, payload.color)
+            }
+            await addTrainingPlanner(payload.planId, dayToIsoUtc(payload.day))
+        } else {
+            const next = { ...plannerByDayLocal.value }
+            const list = next[payload.day] ?? []
+            if (!list.some(x => String(x.planId) === String(payload.planId))) {
+                const planName = trainingPlansStore.items.find(p => p.id === payload.planId)?.name ?? ''
+                list.push({ planId: payload.planId, planName, color: payload.color ?? null })
+                next[payload.day] = list
+                savePlannerLocal(next)
+            }
+
+            if (restDaysLocal.value[payload.day]) {
+                const restNext = { ...restDaysLocal.value }
+                delete restNext[payload.day]
+                restDaysLocal.value = restNext
+                saveRestDaysLocal(restNext)
+            }
+        }
+
+        await refreshPlannerState()
+        closeDayPopup()
+    }
+
+    const onPopupUpdate = async (payload: { day: string; planId: string; color?: string }) => {
+        const current = getPrimaryPlanForDay(payload.day)
+        if (!current) {
+            await onPopupPlan(payload)
+            return
+        }
+
+        if (isAuthenticated.value) {
+            if (payload.color) {
+                void setTrainingPlanColor(payload.planId, payload.color)
+            }
+            if (String(current.planId) !== String(payload.planId)) {
+                await deleteTrainingPlanner(current.planId, dayToIsoUtc(payload.day))
+                await addTrainingPlanner(payload.planId, dayToIsoUtc(payload.day))
+            }
+        } else {
+            const next = { ...plannerByDayLocal.value }
+            const list = next[payload.day] ?? []
+            const filtered = list.filter(x => String(x.planId) !== String(current.planId))
+            const planName = trainingPlansStore.items.find(p => p.id === payload.planId)?.name ?? ''
+            filtered.push({ planId: payload.planId, planName, color: payload.color ?? null })
+            next[payload.day] = filtered
+            savePlannerLocal(next)
+        }
+
+        await refreshPlannerState()
+        closeDayPopup()
+    }
+
+    const onPopupRest = async (payload: { day: string; isRest: boolean }) => {
+        if (isAuthenticated.value) {
+            if (payload.isRest) await addTrainingPlannerRestDay(dayToIsoUtc(payload.day))
+            else await deleteTrainingPlannerRestDay(dayToIsoUtc(payload.day))
+        } else {
+            const next = { ...restDaysLocal.value }
+            if (payload.isRest) next[payload.day] = true
+            else delete next[payload.day]
+            restDaysLocal.value = next
+            saveRestDaysLocal(next)
+
+            if (payload.isRest) {
+                const plannerNext = { ...plannerByDayLocal.value }
+                delete plannerNext[payload.day]
+                plannerByDayLocal.value = plannerNext
+                savePlannerLocal(plannerNext)
+            }
+        }
+
+        await refreshPlannerState()
+        closeDayPopup()
+    }
+
+    const onPopupMove = async (payload: { day: string; toDay: string }) => {
+        if (!payload.toDay || payload.day === payload.toDay) return
+        if (payload.toDay < todayLocalKey.value) return
+
+        const current = getPrimaryPlanForDay(payload.day)
+        if (!current) return
+
+        if (isAuthenticated.value) {
+            await deleteTrainingPlanner(current.planId, dayToIsoUtc(payload.day))
+            await addTrainingPlanner(current.planId, dayToIsoUtc(payload.toDay))
+        } else {
+            const next = { ...plannerByDayLocal.value }
+            const fromList = (next[payload.day] ?? []).filter(x => String(x.planId) !== String(current.planId))
+            if (fromList.length) next[payload.day] = fromList
+            else delete next[payload.day]
+
+            const toList = next[payload.toDay] ?? []
+            if (!toList.some(x => String(x.planId) === String(current.planId))) {
+                toList.push(current)
+                next[payload.toDay] = toList
+            }
+
+            plannerByDayLocal.value = next
+            savePlannerLocal(next)
+        }
+
+        await refreshPlannerState()
+        closeDayPopup()
+    }
+
+    const onPopupClear = async (day: string) => {
+        if (isAuthenticated.value) {
+            const list = plannerByDayLocal.value[day] ?? []
+            for (const item of list) {
+                await deleteTrainingPlanner(item.planId, dayToIsoUtc(day))
+            }
+            if (restDaysLocal.value[day]) {
+                await deleteTrainingPlannerRestDay(dayToIsoUtc(day))
+            }
+        } else {
+            const next = { ...plannerByDayLocal.value }
+            delete next[day]
+            plannerByDayLocal.value = next
+            savePlannerLocal(next)
+
+            if (restDaysLocal.value[day]) {
+                const restNext = { ...restDaysLocal.value }
+                delete restNext[day]
+                restDaysLocal.value = restNext
+                saveRestDaysLocal(restNext)
+            }
+        }
+
+        const completedNext = { ...completedDaysLocal.value }
+        delete completedNext[day]
+        completedDaysLocal.value = completedNext
+        saveCompletedDaysLocal(completedNext)
+
+        await refreshPlannerState()
+        closeDayPopup()
     }
 
     const testNoticeVisible = ref(false)
@@ -751,6 +1038,14 @@
             }
         },
         { immediate: true }
+    )
+
+    watch(
+        () => props.currentPlanId,
+        () => {
+            if (!props.show) return
+            void loadPlannerForPlanProgress()
+        }
     )
 
     onBeforeUnmount(() => {
@@ -1144,6 +1439,27 @@
         collapsedSections.value = new Set()
 
         await nextTick()
+    }
+
+    let calendarClickTimeout: number | null = null
+
+    const onCalendarSelect = (day: string) => {
+        if (calendarClickTimeout != null) {
+            window.clearTimeout(calendarClickTimeout)
+            calendarClickTimeout = null
+        }
+        calendarClickTimeout = window.setTimeout(() => {
+            calendarClickTimeout = null
+            void jumpToDay(day)
+        }, 220)
+    }
+
+    const onCalendarDblClick = (day: string) => {
+        if (calendarClickTimeout != null) {
+            window.clearTimeout(calendarClickTimeout)
+            calendarClickTimeout = null
+        }
+        openDayPopup(day)
     }
 
     const clearSelectedDay = () => {
@@ -1694,6 +2010,39 @@
         return `${y}-${m}-${day}`
     })
 
+    const isAuthenticated = computed(() => auth.isAuthenticated)
+
+    const popupDayLabel = computed(() => (popupDay.value ? props.formatDayLong(popupDay.value) : ''))
+    const popupIsToday = computed(() => popupDay.value === todayLocalKey.value)
+    const popupIsFuture = computed(() => !!popupDay.value && popupDay.value > todayLocalKey.value)
+    const popupIsPlanned = computed(() => !!popupDay.value && (plannerByDayLocal.value[popupDay.value]?.length ?? 0) > 0)
+    const popupIsRest = computed(() => !!popupDay.value && !!restDaysLocal.value[popupDay.value])
+    const popupIsCompleted = computed(() => !!popupDay.value && !!completedDaysLocal.value[popupDay.value])
+    const popupAllowComplete = computed(() => popupIsToday.value && popupIsPlanned.value && !popupIsRest.value)
+    const popupAllowPlan = computed(() => popupIsFuture.value && !popupIsPlanned.value && !popupIsRest.value)
+    const popupAllowEdit = computed(() => popupIsPlanned.value && !!popupDay.value && popupDay.value >= todayLocalKey.value)
+    const popupAllowRest = computed(() => !!popupDay.value && popupDay.value >= todayLocalKey.value)
+    const popupAllowMove = computed(() => popupIsPlanned.value && !!popupDay.value && popupDay.value >= todayLocalKey.value)
+    const popupAllowClear = computed(() => popupIsPlanned.value || popupIsRest.value)
+
+    const planOptions = computed(() =>
+        (trainingPlansStore.items ?? []).map(p => ({
+            label: p.name,
+            value: p.id,
+        }))
+    )
+
+    const colorOptions = [
+        { label: 'Rot', value: '#ef4444' },
+        { label: 'Orange', value: '#f97316' },
+        { label: 'Gelb', value: '#eab308' },
+        { label: 'Grün', value: '#22c55e' },
+        { label: 'Blau', value: '#3b82f6' },
+        { label: 'Lila', value: '#8b5cf6' },
+        { label: 'Pink', value: '#ec4899' },
+        { label: 'Grau', value: '#94a3b8' },
+    ]
+
     const plannedExerciseNamesForCurrentPlan = computed<Set<string>>(() => {
         const planId = props.currentPlanId
         if (!planId) return new Set()
@@ -1707,6 +2056,28 @@
             }
         }
         return names
+    })
+
+    const plannedStrengthMetaByExercise = computed<Map<string, PlannedStrengthMeta>>(() => {
+        const planId = props.currentPlanId
+        const map = new Map<string, PlannedStrengthMeta>()
+        if (!planId) return map
+
+        const dto: any = trainingPlansStore.items.find((p: any) => p.id === planId) ?? null
+        const days = Array.isArray(dto?.days) ? dto.days : []
+        for (const day of days) {
+            for (const ex of (Array.isArray((day as any)?.exercises) ? (day as any).exercises : [])) {
+                const name = String((ex as any)?.name ?? (ex as any)?.exercise ?? '').trim().toLowerCase()
+                if (!name || map.has(name)) continue
+                const repsRaw = Number((ex as any)?.reps ?? 0)
+                map.set(name, {
+                    reps: Number.isFinite(repsRaw) && repsRaw > 0 ? repsRaw : null,
+                    goal: String((ex as any)?.goal ?? '').trim() || null,
+                    type: String((ex as any)?.type ?? (ex as any)?.category ?? '').trim() || null,
+                })
+            }
+        }
+        return map
     })
 
     const plannedDaysForCurrentPlan = computed<string[]>(() => {
@@ -1762,11 +2133,15 @@
     })
 
     const completedPlannedDaysArr = computed<string[]>(() =>
-        plannedDaysForCurrentPlan.value.filter(d => plannedDayCompletionMap.value[d])
+        plannedDaysForCurrentPlan.value.filter(d => plannedDayCompletionMap.value[d] || completedDaysLocal.value[d])
     )
 
     const missedPlannedPastDaysArr = computed<string[]>(() =>
-        plannedDaysForCurrentPlan.value.filter(d => d < todayLocalKey.value && !plannedDayCompletionMap.value[d])
+        plannedDaysForCurrentPlan.value.filter(d =>
+            d < todayLocalKey.value &&
+            !plannedDayCompletionMap.value[d] &&
+            !completedDaysLocal.value[d]
+        )
     )
 
     const calendarMarkedDaysArr = computed<string[]>(() => {
@@ -1815,9 +2190,9 @@
     })
 
     const plannedCompletionPraise = computed<string | null>(() => {
-        const latest = [...completedPlannedDaysArr.value].sort().at(-1)
-        if (!latest) return null
-        return `Stark! Geplantes Workout für ${props.formatDayLong(latest)} vollständig absolviert. Weiter so!`
+        const today = todayLocalKey.value
+        if (!plannedDayCompletionMap.value[today]) return null
+        return `Stark! Geplantes Workout für ${props.formatDayLong(today)} vollständig absolviert. Weiter so!`
     })
 
     const dayCards = computed<DayCard[]>(() => {
@@ -1831,7 +2206,7 @@
         () => [props.show, dayCards.value.length, plannedDaysForCurrentPlan.value.length] as const,
         ([open, entryCount, plannedCount]) => {
             if (!open) return
-            if (entryCount === 0 && plannedCount > 0) viewMode.value = 'calendar'
+            if (viewMode.value === 'list' && entryCount === 0 && plannedCount > 0) viewMode.value = 'calendar'
         },
         { flush: 'post' }
     )
@@ -2162,6 +2537,29 @@
         return groups
     }
 
+    const strengthSetWeightHintText = (entry: WorkoutLike, setIndex: number): string | null => {
+        const details = entry.setDetails ?? []
+        const s = details[setIndex]
+        if (!s) return null
+
+        const exKey = String(entry.exercise ?? '').trim().toLowerCase()
+        const planned = plannedStrengthMetaByExercise.value.get(exKey)
+        const setNo = setIndex + 1
+        const setTotal = details.length
+
+        const hint = getWeightIncreaseHint({
+            goal: planned?.goal ?? null,
+            type: entry.type ?? planned?.type ?? 'kraft',
+            targetReps: planned?.reps ?? null,
+            currentReps: s.reps ?? null,
+            currentWeight: s.weight ?? null,
+            setNo,
+            setTotal,
+        })
+
+        return hint.shouldSuggest ? hint.message : null
+    }
+
     let endIO: IntersectionObserver | null = null
 
     function setupProgressIO() {
@@ -2186,18 +2584,26 @@
 
     watch(
         () => props.show,
-        (open) => {
+        async (open) => {
             document.body.style.overflow = open ? 'hidden' : ''
             if (open) {
                 visibleDays.value = 7
                 expandedDays.value = new Set()
                 expandedEntryKeys.value = new Set()
-                viewMode.value = 'list'
+                viewMode.value = props.initialView ?? 'list'
                 selectedDay.value = null
                 collapsedSections.value = new Set()
 
                 const planId = props.currentPlanId
                 if (planId) {
+                    if (!trainingPlansStore.items?.length) {
+                        try { await trainingPlansStore.loadList() } catch { }
+                    }
+                    const dto: any = trainingPlansStore.items.find((p: any) => p.id === planId)
+                    const hasDays = dto && Array.isArray(dto.days) && dto.days.length > 0
+                    if (!hasDays) {
+                        try { await trainingPlansStore.loadOne(planId) } catch { }
+                    }
                     progressStore.load(planId).catch(() => { })
                 }
 
@@ -2920,6 +3326,19 @@
     .exercise-block + .exercise-block {
         margin-top: 1rem;
     }
+
+    .day-feedback-cta {
+        margin-top: .85rem;
+        padding-top: .65rem;
+        border-top: 1px dashed rgba(148, 163, 184, 0.18);
+        display: flex;
+        justify-content: flex-start;
+    }
+
+    .day-feedback-btn {
+        font-weight: 800;
+    }
+
     .section-toggle {
         appearance: none;
         border: 0;
@@ -3136,6 +3555,19 @@
         white-space: nowrap;
         justify-self: center; /* sitzt in der Mitte der mittleren Spalte */
         text-align: center; /* Text auch wirklich mittig */
+    }
+
+    .set-upgrade-hint {
+        grid-column: 1 / -1;
+        margin-top: .1rem;
+        padding: .35rem .5rem;
+        border-radius: 10px;
+        border: 1px solid rgba(34, 197, 94, 0.22);
+        background: color-mix(in srgb, rgba(34, 197, 94, 0.12) 75%, transparent);
+        color: var(--text-primary);
+        font-size: .8rem;
+        font-weight: 750;
+        line-height: 1.15;
     }
 
     /* REPLACE */

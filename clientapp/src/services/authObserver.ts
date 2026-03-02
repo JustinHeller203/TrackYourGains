@@ -20,14 +20,14 @@ export function initAuthObserver(pinia: Pinia, router: Router) {
         if (handlingLogout) return
         handlingLogout = true
 
-        // verhindern, dass wir uns selbst in einer Loop wieder auslösen
+        // verhindern, dass wir uns selbst in einer Loop wieder ausl?sen
         lastToken = null
         emitChanged({ token: null, reason })
 
         try {
             await auth.signOut()
         } catch {
-            // egal – Hauptsache local ist clean
+            // egal ? Hauptsache local ist clean
         }
 
         // optional: immer auf Home, wenn nicht eh schon dort

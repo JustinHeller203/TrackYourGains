@@ -1,6 +1,6 @@
 <!--ChartCard.vue-->
 <template>
-    <div class="chart-card">
+    <div class="chart-card" @click="$emit('click')">
         <h3 class="card-title">{{ title }}</h3>
 
         <!-- optionaler Subtext -->
@@ -16,7 +16,7 @@
                           :title="useShortLabels ? 'Export' : 'Exportieren'"
                           :aria-label="useShortLabels ? 'Export' : 'Exportieren'"
                           :data-short="iconOnly ? '' : 'Export'"
-                          @click="$emit('export')">
+                          @click.stop="$emit('export')">
                 {{ iconOnly ? '' : (useShortLabels ? 'Export' : 'Exportieren') }}
             </ExportButton>
 
@@ -24,7 +24,7 @@
                          :title="useShortLabels ? 'Reset' : 'Zurücksetzen'"
                          :aria-label="useShortLabels ? 'Reset' : 'Zurücksetzen'"
                          :data-short="iconOnly ? '' : 'Reset'"
-                         @click="$emit('reset')">
+                         @click.stop="$emit('reset')">
                 {{ iconOnly ? '' : (useShortLabels ? 'Reset' : 'Zurücksetzen') }}
             </ResetButton>
         </div>
@@ -46,7 +46,7 @@
         hasData?: boolean
     }>()
 
-    defineEmits<{ (e: 'export'): void; (e: 'reset'): void }>()
+    defineEmits<{ (e: 'export'): void; (e: 'reset'): void; (e: 'click'): void }>()
 
     const useShortLabels = ref(false)
     const iconOnly = ref(false)

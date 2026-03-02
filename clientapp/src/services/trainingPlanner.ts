@@ -7,6 +7,7 @@ export type TrainingPlannerItem = {
     planName?: string | null;
     planColor?: string | null;
     isRestDay?: boolean;
+    isCompleted?: boolean;
 };
 
 export async function listTrainingPlanner() {
@@ -31,5 +32,10 @@ export async function addTrainingPlannerRestDay(dateIso: string) {
 
 export async function deleteTrainingPlannerRestDay(dateIso: string) {
     const { data } = await api.delete<{ ok: true }>("/training-planner/rest", { params: { date: dateIso } });
+    return data;
+}
+
+export async function setTrainingPlannerCompletion(dateIso: string, isCompleted: boolean, planId?: string | null) {
+    const { data } = await api.post<{ ok: true }>("/training-planner/complete", { date: dateIso, isCompleted, planId });
     return data;
 }

@@ -256,6 +256,15 @@
                @ok="onRestDoneOk"
                @cancel="onRestDoneOk" />
 
+    <InfoPopup :show="weightUpgradeHintPopupOpen"
+               :key="weightUpgradeHintPopupKey"
+               title="📈 Gewichts-Hinweis"
+               :message="weightUpgradeHintMessage"
+               overlayClass="sim-rest-done-popup"
+               okText="Verstanden"
+               @ok="weightUpgradeHintPopupOpen = false"
+               @cancel="weightUpgradeHintPopupOpen = false" />
+
     <TrainingSessionSummary :show="summaryOpen"
                             :meta="summaryMeta"
                             :kpis="summaryKpis"
@@ -263,6 +272,11 @@
                             :perExercise="summaryPerExercise"
                             :showClose="true"
                             @close="onSummaryClose" />
+
+    <TrainingFeedbackForm :show="feedbackOpen"
+                          :exercises="summaryPerExercise"
+                          @submit="onFeedbackSubmit"
+                          @skip="onFeedbackSkip" />
 </template>
 
 
@@ -275,9 +289,12 @@
     import InfoPopup from "@/components/ui/popups/InfoPopup.vue"
     import { useWeightStore } from "@/store/weightStore"
     import TrainingSessionSummary from "@/components/ui/training/TrainingSessionSummary.vue"
+    import TrainingFeedbackForm from "@/components/ui/popups/feedback/TrainingFeedbackForm.vue"
     import { useProgressStore } from "@/store/progressStore"
     import { useAuthStore } from "@/store/authStore"
     import { getProfile } from "@/services/profile"
+    import { createTrainingSession } from "@/services/trainingSessions"
+    import { getWeightIncreaseHint } from "@/utils/trainingWeightIncreaseHint"
 
     const DEBUG_SIM = true
     function dlog(...a: any[]) {
@@ -293,9 +310,7 @@
 
     const pendingProgressSaves = ref<any[]>([])
 
-    const onSummaryClose = () => {
-        summaryOpen.value = false
-
+    const finalizeTrainingSession = () => {
         const planId = props.plan?.id ?? null
 
         // ✅ sofort persistieren (synchron, kein await)
@@ -308,9 +323,23 @@
         if (planId) {
             try { void progressStore.load(planId) } catch { }
         }
+    }
 
-        // ✅ Training ist beendet -> Simulation auch schließen (sofort)
-        emitClose()
+    const onSummaryClose = () => {
+        summaryOpen.value = false
+        sessionFinishedAtIso.value = new Date().toISOString()
+
+        if (sessionStartedAtIso.value) {
+            const start = new Date(sessionStartedAtIso.value).getTime()
+            const end = new Date(sessionFinishedAtIso.value).getTime()
+            const diff = Math.round((end - start) / 1000)
+            sessionDurationSec.value = Number.isFinite(diff) ? Math.max(0, diff) : null
+        } else {
+            sessionDurationSec.value = null
+        }
+
+        finalizeTrainingSession()
+        feedbackOpen.value = true
     }
 
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
@@ -547,6 +576,11 @@
         pendingStartModal.value = false
         progressOpen.value = false
         pendingProgressSaves.value = []
+        weightUpgradeHintPopupOpen.value = false
+        feedbackOpen.value = false
+        sessionStartedAtIso.value = null
+        sessionFinishedAtIso.value = null
+        sessionDurationSec.value = null
         // stop timer sauber, damit nix weiter tickt
         restRunning.value = false
         restHasStarted.value = false
@@ -578,6 +612,11 @@
     })
 
     const summaryOpen = ref(false)
+    const feedbackOpen = ref(false)
+
+    const sessionStartedAtIso = ref<string | null>(null)
+    const sessionFinishedAtIso = ref<string | null>(null)
+    const sessionDurationSec = ref<number | null>(null)
 
     const summaryMeta = computed(() => ({
         planId: props.plan?.id ?? null,
@@ -628,6 +667,73 @@
         "Konstanz > Motivation. Du hast durchgezogen.",
         "Nächster Step: mehr saubere Reps, nicht mehr Ego.",
     ]))
+
+    const sessionTypesPresent = computed(() => {
+        const list = summaryPerExercise.value ?? []
+        const types = list.map(ex => normalizeExerciseType(ex.type))
+        return Array.from(new Set(types))
+    })
+
+    const buildTrainingSessionPayload = (feedback: {
+        intensity?: number | null
+        bestExercise?: string | null
+        strengthTechnique?: number | null
+        cardioIntensity?: number | null
+        stretchPain?: number | null
+        note?: string | null
+    } | null) => {
+        if (!props.plan?.id) return null
+
+        return {
+            planId: props.plan.id,
+            startedAtUtc: sessionStartedAtIso.value,
+            finishedAtUtc: sessionFinishedAtIso.value ?? new Date().toISOString(),
+            durationSec: sessionDurationSec.value,
+            exercisesTotal: summaryKpis.value.exercisesTotal ?? null,
+            exercisesDone: summaryKpis.value.exercisesDone ?? null,
+            typesPresent: sessionTypesPresent.value,
+            feedback,
+        }
+    }
+
+    const onFeedbackSubmit = async (payload: {
+        intensity: number | null
+        bestExercise: string | null
+        strengthTechnique: number | null
+        cardioIntensity: number | null
+        stretchPain: number | null
+        note: string
+    }) => {
+        dlog('FEEDBACK_SUBMIT', payload)
+        if (auth.user) {
+            const dto = buildTrainingSessionPayload(payload)
+            if (dto) {
+                try {
+                    await createTrainingSession(dto)
+                } catch (err) {
+                    dlog('FEEDBACK_SAVE_FAILED', err)
+                }
+            }
+        }
+        feedbackOpen.value = false
+        emitClose()
+    }
+
+    const onFeedbackSkip = async () => {
+        dlog('FEEDBACK_SKIP')
+        if (auth.user) {
+            const dto = buildTrainingSessionPayload(null)
+            if (dto) {
+                try {
+                    await createTrainingSession(dto)
+                } catch (err) {
+                    dlog('FEEDBACK_SAVE_FAILED', err)
+                }
+            }
+        }
+        feedbackOpen.value = false
+        emitClose()
+    }
     type SetPrefill = { weight?: number | null; reps?: number | null }
     type ExercisePrefillMap = Record<number, SetPrefill> // key = setNumber (1-based)
     type PrefillCache = Record<string, ExercisePrefillMap> // key = planId|exIndex
@@ -779,6 +885,28 @@
         restLeft.value = 0
     }
 
+    const maybeShowWeightUpgradeHint = (payload: any) => {
+        const setNo = Math.floor(Number(activeSetNumber.value ?? 0))
+        const setTotalNow = Math.max(0, Number(setTotal.value ?? 0))
+        if (setNo <= 0 || setTotalNow <= 1) return
+
+        const row = payload?.draft?.valuesBySet?.[setNo]
+        const hint = getWeightIncreaseHint({
+            goal: (current.value as any)?.goal ?? null,
+            type: currentType.value,
+            targetReps: Number((current.value as any)?.reps ?? 0),
+            currentReps: row?.reps ?? null,
+            currentWeight: row?.weight ?? null,
+            setNo,
+            setTotal: setTotalNow,
+        })
+
+        if (!hint.shouldSuggest || !hint.message) return
+        weightUpgradeHintMessage.value = `${current.value.exercise}: ${hint.message}`
+        weightUpgradeHintPopupKey.value += 1
+        weightUpgradeHintPopupOpen.value = true
+    }
+
     const onProgressSave = (payload: any) => {
         // Bodyweight wie gehabt
         if (payload?.updatedBodyWeightKg != null && Number.isFinite(Number(payload.updatedBodyWeightKg))) {
@@ -795,6 +923,8 @@
                 ...draft.valuesBySet,
             }
         }
+
+        maybeShowWeightUpgradeHint(payload)
 
         pendingProgressSaves.value.push(payload)
 
@@ -1132,6 +1262,9 @@
     const restDonePopupOpen = ref(false)
     const suppressRestDonePopup = ref(false)
     const restDonePopupKey = ref(0)
+    const weightUpgradeHintPopupOpen = ref(false)
+    const weightUpgradeHintPopupKey = ref(0)
+    const weightUpgradeHintMessage = ref('')
 
     let restDoneAutoCloseT: number | null = null
 
@@ -1576,6 +1709,10 @@
                 exercises: props.plan?.exercises?.length ?? 0,
             })
 
+            sessionStartedAtIso.value = new Date().toISOString()
+            sessionFinishedAtIso.value = null
+            sessionDurationSec.value = null
+
             lockPageScroll()
 
             // ✅ MOTI-Toast direkt beim Öffnen
@@ -1589,6 +1726,10 @@
         if (!v) {
             progressOpen.value = false
             pendingStartModal.value = false
+            sessionStartedAtIso.value = null
+            sessionFinishedAtIso.value = null
+            sessionDurationSec.value = null
+            feedbackOpen.value = false
             return
         }
 

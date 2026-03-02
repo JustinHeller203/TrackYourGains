@@ -54,8 +54,8 @@ export function installErrorOverlay() {
             root.style.wordBreak = 'break-word'
             root.innerHTML =
                 `TYG Error Overlay (debugErrors=1)\n` +
-                `— Press ESC to hide\n` +
-                `— Stored in window.__TYG_ERRORS__\n\n`
+                `? Press ESC to hide\n` +
+                `? Stored in window.__TYG_ERRORS__\n\n`
 
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') root?.remove()

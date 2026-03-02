@@ -67,12 +67,12 @@
             cursor: not-allowed;
         }
 
-        /* Optional: gleiche �block�-Variante wie beim Plan-Button */
+        /* Optional: gleiche ?block?-Variante wie beim Plan-Button */
         .action-btn.add-exercise-btn.block {
             width: 100%;
         }
 
-    /* ?? Chip-Button f�r �Extras ein-/ausblenden� (unver�ndert) */
+    /* ?? Chip-Button f?r ?Extras ein-/ausblenden? (unver?ndert) */
     .action-btn.toggle-exercise-btn {
         background: var(--bg-secondary);
         color: var(--text-primary);

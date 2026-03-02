@@ -17,9 +17,10 @@ public class TrainingPlannerController(ApplicationDbContext db) : ControllerBase
         ?? User.FindFirstValue("sub")
         ?? throw new UnauthorizedAccessException("Missing user id claim (nameid/sub).");
 
-    public record PlannerItemDto(Guid Id, Guid? PlanId, DateTime Date, string? PlanName, string? PlanColor, bool IsRestDay);
+    public record PlannerItemDto(Guid Id, Guid? PlanId, DateTime Date, string? PlanName, string? PlanColor, bool IsRestDay, bool IsCompleted);
     public record UpsertPlannerDto(Guid PlanId, DateTime Date);
     public record UpsertRestDayDto(DateTime Date);
+    public record UpdateCompletionDto(Guid? PlanId, DateTime Date, bool IsCompleted);
 
     private static DateTime NormalizeUtc(DateTime date)
     {
@@ -42,7 +43,8 @@ public class TrainingPlannerController(ApplicationDbContext db) : ControllerBase
                 x.Date,
                 x.Plan.Name,
                 x.Plan.Color,
-                false
+                false,
+                x.IsCompleted
             ))
             .ToListAsync();
 
@@ -54,7 +56,8 @@ public class TrainingPlannerController(ApplicationDbContext db) : ControllerBase
                 x.Date,
                 null,
                 null,
-                true
+                true,
+                false
             ))
             .ToListAsync();
 
@@ -90,7 +93,7 @@ public class TrainingPlannerController(ApplicationDbContext db) : ControllerBase
         await db.SaveChangesAsync();
 
         var plan = await db.TrainingPlans.FirstAsync(p => p.Id == dto.PlanId && p.UserId == UserId);
-        return Ok(new PlannerItemDto(entity.Id, entity.PlanId, entity.Date, plan.Name, plan.Color, false));
+        return Ok(new PlannerItemDto(entity.Id, entity.PlanId, entity.Date, plan.Name, plan.Color, false, false));
     }
 
     [HttpDelete]
@@ -129,7 +132,7 @@ public class TrainingPlannerController(ApplicationDbContext db) : ControllerBase
         db.TrainingRestDays.Add(entity);
         await db.SaveChangesAsync();
 
-        return Ok(new PlannerItemDto(entity.Id, null, entity.Date, null, null, true));
+        return Ok(new PlannerItemDto(entity.Id, null, entity.Date, null, null, true, false));
     }
 
     [HttpDelete("rest")]
@@ -142,6 +145,27 @@ public class TrainingPlannerController(ApplicationDbContext db) : ControllerBase
             .ExecuteDeleteAsync();
 
         if (removed == 0) return NotFound();
+        return Ok(new { ok = true });
+    }
+
+    [HttpPost("complete")]
+    public async Task<IActionResult> SetCompletion([FromBody] UpdateCompletionDto dto)
+    {
+        var date = NormalizeUtc(dto.Date);
+
+        var query = db.TrainingPlanSchedules
+            .Where(x => x.UserId == UserId && x.Date == date);
+
+        if (dto.PlanId.HasValue)
+        {
+            var planId = dto.PlanId.Value;
+            query = query.Where(x => x.PlanId == planId);
+        }
+
+        var updated = await query.ExecuteUpdateAsync(s =>
+            s.SetProperty(x => x.IsCompleted, dto.IsCompleted));
+
+        if (updated == 0) return NotFound();
         return Ok(new { ok = true });
     }
 }

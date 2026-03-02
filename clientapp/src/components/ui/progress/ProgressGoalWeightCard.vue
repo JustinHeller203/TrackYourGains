@@ -42,7 +42,7 @@
 
     const validateGoal = (display: number | null): string | null => {
         if (display === null || Number.isNaN(display)) return 'Zielgewicht muss eine Zahl sein'
-        if (display <= 0) return 'Zielgewicht muss größer als 0 sein'
+        if (display <= 0) return 'Zielgewicht muss grÃ¶ÃŸer als 0 sein'
         const kg = props.displayToKg(Number(display))
         if (kg > 200) return 'Zielgewicht darf maximal 200 kg sein'
         return null

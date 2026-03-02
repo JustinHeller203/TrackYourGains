@@ -66,7 +66,7 @@ router.beforeEach(async (to) => {
         return { name: 'login', query: { redirect: to.fullPath } }
     }
     if (to.meta.guestOnly && auth.isAuthenticated) {
-        // explizit als Location-Objekt zur�ckgeben
+        // explizit als Location-Objekt zur?ckgeben
         const redirect = (to.query.redirect as string) || '/'
         return { path: redirect }
     }

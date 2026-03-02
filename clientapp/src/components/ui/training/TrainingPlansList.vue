@@ -1,4 +1,4 @@
-﻿<!--components/ui/training/TrainingPlansList.vue-->
+<!--components/ui/training/TrainingPlansList.vue-->
 
 <template>
     <div>
@@ -23,7 +23,7 @@
                 <div v-else-if="externalView" class="external-plan-card">
                     <div class="external-plan-left">
                         <div class="external-plan-title">
-                            🔗 Externer Plan: <b>{{ externalView.name }}</b>
+                            ?? Externer Plan: <b>{{ externalView.name }}</b>
                         </div>
                         <div class="external-plan-sub">
                             {{ externalView.exerciseCount }} Übungen · Code: {{ middleEllipsis(String(externalView.code ?? ''), 14) }}
@@ -81,7 +81,7 @@
                          :data-plan-id="plan.id"
                          @click="onPlanCardClick($event, plan.id)">
                         <div class="plan-row1">
-                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
+                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">≡</span>
 
                             <span class="plan-title"
                                   :title="plan.name"
@@ -102,7 +102,7 @@
                                     <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
                                     <ActionIconButton title="Exportieren"
                                                       aria-label="Trainingsplan exportieren"
-                                                      @click="downloadPlan(plan)">⬇️</ActionIconButton>
+                                                      @click="downloadPlan(plan)">⬇</ActionIconButton>
                                 </div>
 
                                 <span class="kebab-wrap">
@@ -163,7 +163,7 @@
                          :data-plan-id="plan.id"
                          @click="onPlanCardClick($event, plan.id)">
                         <div class="plan-row1">
-                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">⠿</span>
+                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">≡</span>
 
                             <span class="plan-title"
                                   :title="plan.name"
@@ -184,7 +184,7 @@
                                     <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
                                     <ActionIconButton title="Exportieren"
                                                       aria-label="Trainingsplan exportieren"
-                                                     @click="downloadPlan(plan)">⬇️</ActionIconButton>
+                                                     @click="downloadPlan(plan)">⬇</ActionIconButton>
                                 </div>
 
                                 <span class="kebab-wrap">
@@ -432,11 +432,11 @@
         guestPlans?: ViewPlan[]
         onEditInBuilder?: (payload: { planId: string; name: string; exercises: PlanExercise[] }) => void
 
-        // ✅ Custom Exercises kommen vom Parent (Quelle bleibt 1x: Training.vue / Builder)
+        // ? Custom Exercises kommen vom Parent (Quelle bleibt 1x: Training.vue / Builder)
         customExercises?: Array<{ name: string; muscle: string; type: CustomExerciseType }>
         onRemoveCustomExercise?: (index: number) => void
 
-        // ✅ Guest-Aktionen zurück an Parent (weil Parent die Quelle der Wahrheit ist)
+        // ? Guest-Aktionen zurück an Parent (weil Parent die Quelle der Wahrheit ist)
         onGuestDeletePlan?: (planId: string) => void
         onGuestEditPlan?: (planId: string) => void
 
@@ -459,7 +459,7 @@
 
         addToast: (message: string, type?: 'delete' | 'add' | 'save' | 'timer' | 'load') => void
 
-        // ✅ Tutorial (Option B)
+        // ? Tutorial (Option B)
         planTutActive?: boolean
         planTutPlanId?: string | null
     }>()
@@ -521,7 +521,7 @@
             return
         }
 
-        // Account: items sind oft "light" → full nachladen
+        // Account: items sind oft "light" ? full nachladen
         const hasAnyExercises = (p: any) =>
             Array.isArray(p?.days) &&
             p.days.some((d: any) => Array.isArray(d?.exercises) && d.exercises.length > 0)
@@ -662,22 +662,22 @@
         // Dehnung: seconds (bei dir wird reps als “s” angezeigt)
         const stretchSecRaw = normalizeNum(ex?.durationSec ?? ex?.seconds ?? ex?.durationSeconds ?? ex?.timeSec)
 
-        // ✅ Type aus DTO (kann bei dir aber faktisch falsch sein)
+        // ? Type aus DTO (kann bei dir aber faktisch falsch sein)
         const dtoType = normalizeTypeFromDto(ex)
 
-        // ✅ Name für Heuristik
+        // ? Name für Heuristik
         const name = String(ex?.name ?? ex?.exercise ?? '').trim()
 
-        // ✅ Candidates (Cardio/Stretch kann bei dir in sets/reps stecken)
+        // ? Candidates (Cardio/Stretch kann bei dir in sets/reps stecken)
         let cardioMin = cardioMinRaw
         let cardioKm = cardioKmRaw
         let stretchSec = stretchSecRaw
 
-        // ✅ Falls dedicated cardio Felder fehlen, aber es cardio sein sollte (dtoType ODER Name)
+        // ? Falls dedicated cardio Felder fehlen, aber es cardio sein sollte (dtoType ODER Name)
         if (cardioMin <= 0 && strengthSets > 0 && isCardioName(name)) cardioMin = strengthSets
         if (cardioKm <= 0 && strengthReps > 0 && isCardioName(name) && strengthReps <= 100) cardioKm = strengthReps
 
-        // ✅ Falls dedicated stretch Felder fehlen, aber es stretch sein sollte (dtoType ODER Name)
+        // ? Falls dedicated stretch Felder fehlen, aber es stretch sein sollte (dtoType ODER Name)
         if (stretchSec <= 0 && strengthReps > 0 && isStretchName(name)) stretchSec = strengthReps
 
         if (isStretchName(name) && stretchSec <= 0 && cardioMinRaw > 0 && cardioKmRaw === 0) {
@@ -686,21 +686,21 @@
             cardioKm = 0
         }
 
-        // ✅ Spezialfall: Cardio hat Sekunden in reps (z.B. Radfahren reps=2040s) -> in Minuten umrechnen
+        // ? Spezialfall: Cardio hat Sekunden in reps (z.B. Radfahren reps=2040s) -> in Minuten umrechnen
         if (isCardioName(name) && cardioMinRaw <= 0 && cardioMin <= 0 && strengthReps >= 60) {
             cardioMin = Math.max(1, Math.round(strengthReps / 60)) // 2040s -> 34min
         }
 
-        // ✅ Jetzt erst “has…” auf den FINALEN Candidates prüfen
+        // ? Jetzt erst “has…” auf den FINALEN Candidates prüfen
         const hasCardio = cardioMin > 0 || cardioKm > 0
         const hasStretch = stretchSec > 0
 
-        // ✅ Type: Daten/Name gewinnt IMMER wenn eindeutig
+        // ? Type: Daten/Name gewinnt IMMER wenn eindeutig
         let type: ExerciseType = dtoType
         if (hasCardio && !hasStretch) type = 'ausdauer'
         else if (hasStretch && !hasCardio) type = 'dehnung'
 
-        // ✅ Output-Mapping
+        // ? Output-Mapping
         const sets =
             type === 'ausdauer' ? cardioMin
                 : (type === 'dehnung' ? 1 : strengthSets)
@@ -865,9 +865,9 @@
                 : `(easy erklärt)`
 
         return [
-            `🔥 Ich hab dir einen Trainingsplan gebaut: "${name}" ${countText}`,
-            `✅ Perfekt für den Start: einfach öffnen, nachmachen, fertig.`,
-            `👉 Hier geht’s direkt los: ${url}`,
+            `?? Ich hab dir einen Trainingsplan gebaut: "${name}" ${countText}`,
+            `? Perfekt für den Start: einfach öffnen, nachmachen, fertig.`,
+            `?? Hier geht’s direkt los: ${url}`,
         ]
     }
 /* -------------------- UI State (nur Plans) -------------------- */
@@ -929,7 +929,7 @@
             const dto = await getTrainingPlanByCode(code.trim())
             externalPlan.value = dto
 
-            // ✅ direkt im UI anzeigen (ohne Install)
+            // ? direkt im UI anzeigen (ohne Install)
             const view = flattenDto(dto)
             await openViewPlanInUi(view, "Externer Plan geöffnet")
         } catch (e: any) {
@@ -978,7 +978,7 @@
             // Liste refreshen, damit es direkt in "Deine Trainingspläne" auftaucht
             await trainingPlansStore.loadList()
 
-            props.addToast("Plan installiert ✅", "add")
+            props.addToast("Plan installiert ?", "add")
 
             // optional: direkt öffnen
             await loadPlan(created.id)
@@ -996,7 +996,7 @@
 
     const showCustomExercises = ref(false)
 
-    // ✅ Quelle der Wahrheit: Parent
+    // ? Quelle der Wahrheit: Parent
     const customExercises = computed(() => props.customExercises ?? [])
 
     /* -------------------- Plans + Favoriten -------------------- */
@@ -1131,12 +1131,12 @@
             // 1) Erst lokal aus items (schnell)
             let dto = getAccountPlanDto(planId)
 
-            // ✅ Light-vs-Full check: items sind oft ohne days/exercises → dann ist Tabelle leer
+            // ? Light-vs-Full check: items sind oft ohne days/exercises ? dann ist Tabelle leer
             const hasAnyExercises = (p: any) =>
                 Array.isArray(p?.days) &&
                 p.days.some((d: any) => Array.isArray(d?.exercises) && d.exercises.length > 0)
 
-            // 2) Wenn dto fehlt ODER dto "light" ist → IMMER Full-Plan nachladen
+            // 2) Wenn dto fehlt ODER dto "light" ist ? IMMER Full-Plan nachladen
             if (!dto || !hasAnyExercises(dto)) {
                 await trainingPlansStore.loadOne(planId)
                 dto =
@@ -1643,7 +1643,7 @@
         opacity: 0.6;
     }
 
-    /* Zelle wird selbst Container → reagiert auf ihre eigene Breite */
+    /* Zelle wird selbst Container ? reagiert auf ihre eigene Breite */
     .v-stack {
         container-type: inline-size;
         white-space: normal;
@@ -2198,7 +2198,7 @@
             align-items: center;
         }
 
-        /* inline-actions ist ein Wrapper → Höhe hart */
+        /* inline-actions ist ein Wrapper ? Höhe hart */
         .plan-right > .inline-actions {
             height: 44px;
             align-items: center;
@@ -2222,7 +2222,7 @@
             line-height: 1;
         }
 
-        /* ⋯ hängt sonst optisch zu tief */
+        /* ? hängt sonst optisch zu tief */
         .kebab-wrap button {
             font-size: 22px;
         }
@@ -2234,12 +2234,12 @@
     /* ADD (only once) – put this as the ONLY max-width:560px block, at the end */
     @media (max-width: 560px) {
 
-        /* ✅ Draggable soll funktionieren -> Handle sichtbar lassen */
+        /* ? Draggable soll funktionieren -> Handle sichtbar lassen */
         .plan-drag-handle {
             display: inline-flex !important;
         }
 
-        /* ✅ Mobile: wir zeigen Play + Kebab (kebab-wrap), inline-actions weg */
+        /* ? Mobile: wir zeigen Play + Kebab (kebab-wrap), inline-actions weg */
         .inline-actions {
             display: none !important;
         }
@@ -2251,7 +2251,7 @@
             gap: .4rem;
         }
 
-        /* ✅ Layout stabil und nicht 5x anders */
+        /* ? Layout stabil und nicht 5x anders */
         .plan-item {
             position: relative;
             display: block !important;
@@ -2281,7 +2281,7 @@
             white-space: nowrap;
         }
 
-        /* ✅ PlanMenu muss auf Mobile sauber drüber liegen */
+        /* ? PlanMenu muss auf Mobile sauber drüber liegen */
         .plan-menu {
             position: absolute;
             right: .5rem;
@@ -2304,13 +2304,13 @@
             box-shadow: 0 22px 60px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(255,255,255,0.05);
         }
 
-        /* ✅ Abstand der Section auf Mobile */
+        /* ? Abstand der Section auf Mobile */
         .plans-section {
             margin-top: 1.75rem;
             margin-bottom: 1.75rem;
         }
 
-        /* ✅ kill leftovers (diese Klassen existieren bei dir, aber sollen mobile nichts tun) */
+        /* ? kill leftovers (diese Klassen existieren bei dir, aber sollen mobile nichts tun) */
         .plan-row2,
         .mobile-open {
             display: none !important;
@@ -2448,3 +2448,4 @@
         font-weight: 700;
     }
 </style>
+

@@ -24,7 +24,7 @@ function displayToKg(val: number): number {
     return unitRef.value === 'kg' ? val : val * KG_PER_LB
 }
 
-// Sch�ne Formatierung mit Suffix
+// Sch?ne Formatierung mit Suffix
 function formatWeight(kg: number, digits = 1): string {
     return unitRef.value === 'kg'
         ? `${kg.toFixed(digits)} kg`

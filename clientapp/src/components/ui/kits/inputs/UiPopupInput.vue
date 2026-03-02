@@ -206,7 +206,7 @@
         right: 0.18rem;
     }
 
-    /* Fokus: weniger “neon”, mehr “Popup-Glow” */
+    /* Fokus: weniger ?neon?, mehr ?Popup-Glow? */
     .popinp__field:focus-within {
         border-color: rgba(148, 163, 184, 0.55);
         background: color-mix(in srgb, #020617 84%, var(--bg-card) 16%);

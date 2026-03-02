@@ -24,6 +24,7 @@ export const LS_NEWS_SEEN_VERSION = 'tyg_news_seen_version' as const
 export const LS_TRAINING_PLANNER = 'training_planner' as const
 export const LS_TRAINING_PLAN_COLORS = 'training_plan_colors' as const
 export const LS_TRAINING_REST_DAYS = 'training_rest_days' as const
+export const LS_TRAINING_PLANNER_COMPLETED = 'training_planner_completed' as const
 
 // Training data / plans
 export const LS_TRAINING_DATA = 'trainingData' as const
@@ -125,6 +126,7 @@ export const LS_TRAINING_KEYS = [
     LS_TRAINING_PLANNER,
     LS_TRAINING_PLAN_COLORS,
     LS_TRAINING_REST_DAYS,
+    LS_TRAINING_PLANNER_COMPLETED,
 ] as const
 
 export const LS_PROGRESS_KEYS = [

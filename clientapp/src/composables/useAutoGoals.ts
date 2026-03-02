@@ -36,16 +36,16 @@ export function useAutoGoals() {
         const last7 = trainings.filter(t => daysAgo(t.date) <= 7).length;
         const last30 = trainings.filter(t => daysAgo(t.date) <= 30).length;
 
-        // Baseline: Wochenziel-Erfüllung
+        // Baseline: Wochenziel-Erf?llung
         let ratio = last7 / weeklyGoal;
         let base = Math.min(1, ratio) * 100;
 
-        // Bonus für Langzeitkonsistenz (sehr motivierend)
+        // Bonus f?r Langzeitkonsistenz (sehr motivierend)
         let longTerm = Math.min(1, last30 / (weeklyGoal * 4)) * 20;
 
         const target = percentageClamp(base + longTerm);
 
-        // Soft limit: max ±10% pro Tag
+        // Soft limit: max ?10% pro Tag
         const diff = target - previous;
         const limited = previous + Math.max(-10, Math.min(10, diff));
         return percentageClamp(limited);

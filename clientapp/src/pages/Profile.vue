@@ -3,9 +3,9 @@
 <template>
     <section class="profile">
         <!-- Header -->
-        <header class="profile-header">
+        <header ref="profileHeaderEl" class="profile-header">
 
-            <div class="avatar-wrap">
+            <div class="avatar-wrap" :class="{ 'is-guided': avatarGuideActive }">
                 <div class="avatar ring clickable"
                      ref="avatarEl"
                      @click="onAvatarClick"
@@ -73,12 +73,16 @@
             <div class="meta">
                 <h1 class="title">Profil</h1>
                 <p class="muted">
-                    Angemeldet als
-                    <strong :title="fullEmail || 'Keine E-Mail hinterlegt'">
-                        {{ shortEmail }}
+                    Username
+                    <strong :title="username || 'Kein Username gesetzt'">
+                        {{ username || 'Kein Username gesetzt' }}
                     </strong>
                 </p>
                 <div class="actions">
+                    <button class="btn neutral" @click="openUsernamePopup">
+                        <i class="fas fa-user"></i>
+                        {{ hasUsername ? 'Username ändern' : 'Username hinzufügen' }}
+                    </button>
                     <button class="btn neutral" @click="openEmailPopup">
                         <i class="fas fa-envelope"></i>
                         E-Mail ändern
@@ -91,34 +95,66 @@
                         <i class="fas fa-user-slash"></i>
                         Profil löschen
                     </button>
-                    <button class="btn neutral logout" @click="logout">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Logout
-                    </button>
                 </div>
             </div>
         </header>
-        <section class="card card--soft-center">
-            <h3 class="card-title"><i class="fas fa-user-check"></i> Profil-Check</h3>
-            <div class="goal">
-                <div class="goal-top">
-                    <span>Komplettheit</span>
-                    <span class="goal-value">{{ profileCompletion }}%</span>
-                </div>
-                <div class="bar"><div :style="{ width: profileCompletion + '%' }"></div></div>
+        <section class="card profile-check-card">
+            <div class="profile-check-head">
+                <h3 class="card-title profile-check-title"><i class="fas fa-user-check"></i> Profil-Check</h3>
+                <span class="profile-check-percent">{{ profileCompletion }}%</span>
+            </div>
+
+            <p class="profile-check-sub">
+                {{ completedProfileSteps }} von {{ profileSteps.length }} Punkten erledigt. {{ profileCheckHint }}
+            </p>
+
+            <div class="profile-check-progress-bar">
+                <div class="profile-check-progress-fill" :style="{ width: profileCompletion + '%' }"></div>
+            </div>
+
+            <div class="profile-check-steps">
+                <button v-for="step in profileSteps"
+                        :key="step.key"
+                        type="button"
+                        class="profile-check-step"
+                        :class="{ done: step.done }"
+                        @click="jumpToProfileStep(step.key)">
+                    <span class="profile-check-step-icon" aria-hidden="true">
+                        {{ step.done ? '✓' : step.icon }}
+                    </span>
+                    <div class="profile-check-step-copy">
+                        <strong>{{ step.label }}</strong>
+                        <span>{{ step.hint }}</span>
+                    </div>
+                </button>
             </div>
         </section>
         <!-- INSERT direkt unter dem Profil-Check-<section class="card"> -->
-        <section class="card weekly-goal-card">
-            <h3 class="card-title">
-                <i class="fas fa-bullseye"></i> Wochenziel
-            </h3>
+        <section ref="weeklyGoalCardEl" class="card weekly-goal-card">
+            <div class="weekly-goal-head">
+                <div>
+                    <span class="weekly-goal-eyebrow">Dein Fokus diese Woche</span>
+                    <h3 class="card-title weekly-goal-title">
+                        <i class="fas fa-bullseye"></i> Wochenziel
+                    </h3>
+                </div>
+                <div class="weekly-goal-chip" :class="`is-${weeklyGoalTone}`">
+                    {{ weeklyStatusText }}
+                </div>
+            </div>
 
             <div class="weekly-goal-inner">
                 <div class="weekly-goal-visual"
                      role="img"
                      :aria-label="`Wochenziel: ${weeklyWorkouts}/${targetWorkoutsPerWeek} Workouts`">
                     <svg class="donut" viewBox="0 0 36 36" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="weekly-goal-donut-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#93c5fd"></stop>
+                                <stop offset="55%" stop-color="#3b82f6"></stop>
+                                <stop offset="100%" stop-color="#1d4ed8"></stop>
+                            </linearGradient>
+                        </defs>
                         <circle class="donut-bg" cx="18" cy="18" r="16"></circle>
                         <circle class="donut-fg" cx="18" cy="18" r="16"
                                 :stroke-dasharray="donutDasharray"
@@ -132,19 +168,32 @@
                 </div>
 
                 <div class="weekly-goal-side">
-                    <div class="weekly-goal-line">
-                        {{ weeklyWorkouts }} / {{ targetWorkoutsPerWeek }} Workouts
-                    </div>
-                    <div class="weekly-goal-status-pill">
-                        {{ weeklyStatusText }}
+                    <div class="weekly-goal-stats">
+                        <div class="weekly-goal-stat-card">
+                            <span class="weekly-goal-stat-label">Aktuell</span>
+                            <strong class="weekly-goal-stat-value">{{ weeklyWorkouts }}</strong>
+                        </div>
+                        <div class="weekly-goal-stat-card">
+                            <span class="weekly-goal-stat-label">Ziel</span>
+                            <strong class="weekly-goal-stat-value">{{ targetWorkoutsPerWeek }}</strong>
+                        </div>
                     </div>
 
-                    <p class="weekly-goal-sub" v-if="targetWorkoutsPerWeek">
-                        Noch {{ weeklyRemaining }} Workout<span v-if="weeklyRemaining !== 1">s</span> bis zum Ziel
-                    </p>
-                    <p class="weekly-goal-sub" v-else>
+                    <div class="weekly-goal-copy">
+                        <div class="weekly-goal-line">
+                            {{ weeklyWorkouts }} von {{ targetWorkoutsPerWeek }} Workouts geschafft
+                        </div>
+                        <div class="weekly-goal-progress-rail">
+                            <div class="weekly-goal-progress-fill" :style="{ width: `${donutPercent}%` }"></div>
+                        </div>
+
+                        <p class="weekly-goal-sub" v-if="targetWorkoutsPerWeek">
+                            Noch {{ weeklyRemaining }} Workout<span v-if="weeklyRemaining !== 1">s</span> bis zum Ziel
+                        </p>
+                        <p class="weekly-goal-sub" v-else>
                         Kein Ziel gesetzt – stell dir unten eins ein.
-                    </p>
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -198,7 +247,7 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div ref="aboutCardEl" class="card">
                 <h3 class="card-title"><i class="fas fa-trophy"></i> Achievements</h3>
                 <div class="badges">
                     <span v-for="b in computedBadges" :key="b.id" class="badge" :title="b.desc">
@@ -211,7 +260,7 @@
 
         <!-- About + Ziele -->
         <section class="grid two">
-            <div class="card">
+            <div ref="goalsCardEl" class="card">
                 <h3 class="card-title"><i class="fas fa-user-circle"></i> Über dich</h3>
                 <ul class="list">
                     <li class="about-name-row">
@@ -287,7 +336,7 @@
         </section>
 
         <!-- Motto (inline editierbar, localStorage) -->
-        <section class="card motto-card">
+        <section ref="mottoCardEl" class="card motto-card">
             <h3 class="card-title"><i class="fas fa-quote-left"></i> Motto</h3>
 
         <div class="motto-row">
@@ -337,7 +386,19 @@
             </div>
         </section>
 
+        <div class="profile-footer-actions">
+            <button class="btn logout-footer-btn" @click="logout">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </button>
+        </div>
+
         <!-- === Popups === -->
+        <UsernameChangePopup :show="showUsernamePopup"
+                             :currentUsername="username"
+                             @cancel="closeUsernamePopup"
+                             @save="handleUsernameChange" />
+
         <EmailChangePopup :show="showEmailPopup"
                           @cancel="closeEmailPopup"
                           @save="handleEmailChange" />
@@ -460,41 +521,6 @@
             </ShortcardPopup>
         </div>
 
-        <!-- Achievement-Popup -->
-        <div v-if="showAchievementPopup && latestAchievement"
-             class="achievement-popup-backdrop"
-             @click.self="closeAchievementPopup">
-            <div class="achievement-popup">
-                <div class="achievement-header">
-                    <span class="achievement-pill">Neues Achievement</span>
-                    <button class="achievement-close"
-                            type="button"
-                            aria-label="Achievement schließen"
-                            @click="closeAchievementPopup">
-                        ×
-                    </button>
-                </div>
-
-                <div class="achievement-body">
-                    <div class="achievement-icon">
-                        <img src="/achievements/FirstStepAchievementIcon.png"
-                             alt="Achievement Icon"
-                             class="achievement-icon-img" />
-                    </div>
-                    <div class="achievement-text">
-                        <h4>{{ latestAchievement?.label }}</h4>
-                        <p>{{ latestAchievement?.desc }}</p>
-                    </div>
-                </div>
-
-                <button class="achievement-cta"
-                        type="button"
-                        @click="closeAchievementPopup">
-                    Weiter machen 💪
-                </button>
-            </div>
-        </div>
-
         <!-- Toasts -->
         <Toast v-if="toast"
                :toast="toast"
@@ -507,11 +533,12 @@
 
 
 <script setup lang="ts">
-    import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+    import { computed, ref, watch, onMounted, nextTick } from 'vue'
     import { useRouter } from 'vue-router'
     import { useAuthStore } from '@/store/authStore'
     import { useTrainingPlansStore } from '@/store/trainingPlansStore'
     import { useProgressStore } from '@/store/progressStore'
+    import UsernameChangePopup from '@/components/ui/popups/profile/UsernameChangePopup.vue'
     import PasswordChangePopup from '@/components/ui/popups/profile/PasswordChangePopup.vue'
     import EmailChangePopup from '@/components/ui/popups/profile/EmailChangePopup.vue'
     import Toast from '@/components/ui/Toast.vue'
@@ -527,6 +554,7 @@
     import { useAutoGoals, type AutoGoalResult, type TrainingEntry } from '@/composables/useAutoGoals'
     import { getProfile, updateProfile, type UpdateProfileDto } from '@/services/profile'
     import { getRandomMotto } from '@/services/mottos'
+    import { computeBadges } from '@/utils/achievements'
     import {
         LS_ALL_KEYS,
         wipeLocalStorage,
@@ -557,6 +585,8 @@
     async function loadProfileFromBackend() {
         try {
             const data = await getProfile()
+            username.value = data.username ?? ''
+            if (auth.user) auth.user.username = username.value
             displayName.value = data.displayName ?? ''
             motto.value = data.motto ?? DEFAULT_MOTTO
             avatarUrl.value = data.avatarDataUrl ?? null
@@ -584,6 +614,7 @@
     }
 
     function loadLocalProfile() {
+        username.value = auth.user?.username ?? ''
         displayName.value = localStorage.getItem(LS_PROFILE_DISPLAY_NAME) ?? ''
         motto.value = localStorage.getItem(LS_KEYS.motto) ?? DEFAULT_MOTTO
         avatarUrl.value = localStorage.getItem(AVATAR_KEY)
@@ -854,6 +885,14 @@
         return 'Ziel erreicht 🎉';
     });
 
+    const weeklyGoalTone = computed(() => {
+        const p = donutPercent.value;
+        if (p >= 100) return 'success';
+        if (p >= 80) return 'accent';
+        if (p >= 40) return 'steady';
+        return 'muted';
+    });
+
     const scCloseTitle = computed(() =>
         isMobile.value ? 'Shortcuts schließen' : 'Shortcuts schließen (Shortcuts)'
     );
@@ -995,19 +1034,102 @@
         pickAvatar()
     }
 
+    const profileHeaderEl = ref<HTMLElement | null>(null)
+    const aboutCardEl = ref<HTMLElement | null>(null)
+    const goalsCardEl = ref<HTMLElement | null>(null)
+    const mottoCardEl = ref<HTMLElement | null>(null)
+    const weeklyGoalCardEl = ref<HTMLElement | null>(null)
+    const avatarGuideActive = ref(false)
+    const avatarUrl = ref<string | null>(null)
+    let avatarGuideTimer: ReturnType<typeof setTimeout> | null = null
+
+    const username = ref<string>('');
     const displayName = ref<string>('');
+    const profileSteps = computed(() => {
+        const hasGoals = progress.value.muscle + progress.value.weight + progress.value.nutrition > 0
+        return [
+            { key: 'name', label: 'Name setzen', hint: 'Gib deinem Profil eine klare Identität.', done: !!displayName.value.trim(), icon: 'A' },
+            { key: 'avatar', label: 'Profilbild hinzufügen', hint: 'Ein Bild macht dein Profil sofort vollständiger.', done: !!avatarUrl.value, icon: '◉' },
+            { key: 'motto', label: 'Motto speichern', hint: 'Ein Motto gibt deinem Profil Charakter.', done: !!motto.value.trim(), icon: '“' },
+            { key: 'workout', label: 'Erstes Workout tracken', hint: 'Mindestens ein Workout bringt echtes Leben ins Profil.', done: weeklyWorkouts.value > 0, icon: '1' },
+            { key: 'goals', label: 'Ziele aktivieren', hint: 'Starte bei Muskel, Gewicht oder Ernährung.', done: hasGoals, icon: 'Z' },
+        ] as const
+    })
+    const completedProfileSteps = computed(() => profileSteps.value.filter(step => step.done).length)
     const profileCompletion = computed(() => {
-        let score = 0, total = 5;
-        if (displayName.value.trim()) score++;
-        if (avatarUrl.value) score++;
-        if (motto.value.trim()) score++;
-        if (weeklyWorkouts.value > 0) score++;
-        if (progress.value.muscle + progress.value.weight + progress.value.nutrition > 0) score++;
-        return Math.round((score / total) * 100);
+        return Math.round((completedProfileSteps.value / profileSteps.value.length) * 100)
     });
+    const profileCheckHint = computed(() => {
+        const nextStep = profileSteps.value.find(step => !step.done)
+        if (!nextStep) return 'Alles erledigt. Dein Profil ist komplett.'
+        return `Nächster Schritt: ${nextStep.label}`
+    })
+    function scrollToProfileTarget(el: HTMLElement | null) {
+        if (!el) return
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+
+    function startAvatarGuide() {
+        avatarGuideActive.value = true
+        if (avatarGuideTimer) clearTimeout(avatarGuideTimer)
+        avatarGuideTimer = setTimeout(() => {
+            avatarGuideActive.value = false
+            avatarGuideTimer = null
+        }, 5000)
+    }
+
+    async function jumpToProfileStep(stepKey: string) {
+        if (stepKey === 'avatar') {
+            if (!avatarUrl.value) startAvatarGuide()
+            scrollToProfileTarget(profileHeaderEl.value)
+            return
+        }
+
+        if (stepKey === 'name') {
+            scrollToProfileTarget(aboutCardEl.value)
+            if (!displayName.value.trim()) {
+                editingName.value = true
+                await nextTick()
+                document.querySelector<HTMLInputElement>('.name-input')?.focus()
+            }
+            return
+        }
+
+        if (stepKey === 'motto') {
+            scrollToProfileTarget(mottoCardEl.value)
+            if (!motto.value.trim()) {
+                editingMotto.value = true
+                await nextTick()
+                document.querySelector<HTMLInputElement>('.motto-input')?.focus()
+            }
+            return
+        }
+
+        if (stepKey === 'goals') {
+            scrollToProfileTarget(goalsCardEl.value)
+            return
+        }
+
+        if (stepKey === 'workout') {
+            void router.push('/training')
+            return
+        }
+
+        scrollToProfileTarget(weeklyGoalCardEl.value)
+    }
+
     watch(displayName, v => {
         if (!auth.user) localStorage.setItem(LS_PROFILE_DISPLAY_NAME, v)
     });
+    watch(avatarUrl, v => {
+        if (v) {
+            avatarGuideActive.value = false
+            if (avatarGuideTimer) {
+                clearTimeout(avatarGuideTimer)
+                avatarGuideTimer = null
+            }
+        }
+    })
 
     function onViewerWheel(e: WheelEvent) {
         const delta = -e.deltaY; // up = zoom in
@@ -1027,6 +1149,27 @@
     }
 
     const editingName = ref(false);
+    const hasUsername = computed(() => !!username.value.trim())
+
+    async function saveUsername(nextUsername: string) {
+        const trimmedUsername = nextUsername.trim()
+        const prevUsername = auth.user?.username ?? ''
+        if (!trimmedUsername) {
+            addToast('Username darf nicht leer sein.', 'delete')
+            return
+        }
+        try {
+            const data = await updateProfile({ username: trimmedUsername })
+            username.value = data.username ?? trimmedUsername
+            if (auth.user) auth.user.username = username.value
+            addToast('Username gespeichert', 'save')
+        } catch (e: any) {
+            username.value = prevUsername
+            addToast(e?.response?.data?.message || 'Username konnte nicht gespeichert werden.', 'delete')
+            throw e
+        }
+    }
+
     function saveDisplayName() {
         if (auth.user) {
             queueProfileSave({ displayName: displayName.value || '' })
@@ -1043,7 +1186,6 @@
         clearAvatar()               // zeigt bereits Toast
         showDeleteAvatarPopup.value = false
     }
-    const avatarUrl = ref<string | null>(null)
     const avatarInput = ref<HTMLInputElement | null>(null)
 
     function pickAvatar() {
@@ -1394,13 +1536,7 @@
         }
     })
 
-    // Typ vor erster Nutzung definieren
-    type Badge = { id: string; icon: string; label: string; desc: string }
-
     const earnedBadges = ref<string[]>([])
-
-    const showAchievementPopup = ref(false)
-    const latestAchievement = ref<Badge | null>(null)
 
     type Progress = Record<GoalKey, number>
     const progress = ref<Progress>({ ...DEFAULT_PROGRESS })
@@ -1441,7 +1577,7 @@
     const motto = ref<string>(DEFAULT_MOTTO)
     const memberSince = ref<string>('')
     const memberSinceDisplay = computed(() => {
-        if (!memberSince.value) return 'â€”'
+        if (!memberSince.value) return '—'
         const d = new Date(memberSince.value)
         return Number.isNaN(d.getTime()) ? memberSince.value : d.toLocaleDateString('de-DE')
     })
@@ -1464,183 +1600,7 @@
         return activity.value.map((v, i) => `${i * stepX},${32 - (v / max) * 32}`).join(' ');
     });
 
-    // Badges dynamisch
-    const computedBadges = computed<Badge[]>(() => {
-        const arr: Badge[] = []
-
-        const totalAll = sumLastDays(activity.value, activity.value.length)
-        const total30 = sumLastDays(activity.value, 30)
-
-        // Einstieg
-        if (totalAll >= 1) {
-            arr.push({
-                id: 'first_workout',
-                icon: 'fas fa-star',
-                label: 'Erster Step',
-                desc: 'Dein erstes Workout ist drin – wichtiger als perfekt ist gestartet.'
-            })
-        }
-
-        // Streaks
-        if (streakDays.value >= 3) {
-            arr.push({
-                id: 'streak3',
-                icon: 'fas fa-fire',
-                label: '3-Tage Streak',
-                desc: 'Drei Tage am Stück aktiv – jetzt bloß nicht abbrechen.'
-            })
-        }
-        if (streakDays.value >= 7) {
-            arr.push({
-                id: 'streak7',
-                icon: 'fas fa-bolt',
-                label: '7-Tage Streak',
-                desc: '7 Tage am Stück aktiv – dein neuer Standard.'
-            })
-        }
-        if (streakDays.value >= 14) {
-            arr.push({
-                id: 'streak14',
-                icon: 'fas fa-mountain',
-                label: '14-Tage Streak',
-                desc: 'Zwei Wochen durchgezogen. Disziplin > Motivation.'
-            })
-        }
-        if (streakDays.value >= 30) {
-            arr.push({
-                id: 'streak30',
-                icon: 'fas fa-crown',
-                label: '30-Tage Streak',
-                desc: 'Ein ganzer Monat ohne Drop – absolut krank.'
-            })
-        }
-
-        // Wochenleistung
-        if (weeklyWorkouts.value >= 3) {
-            arr.push({
-                id: 'weekly3',
-                icon: 'fas fa-running',
-                label: 'Im Flow',
-                desc: '3+ Workouts diese Woche – das ist der Sweet Spot fürs Momentum.'
-            })
-        }
-        if (weeklyWorkouts.value >= 5) {
-            arr.push({
-                id: 'beast',
-                icon: 'fas fa-dragon',
-                label: 'Beast Mode',
-                desc: '5+ Workouts diese Woche – du lässt Ausreden keine Chance.'
-            })
-        }
-        if (weeklyWorkouts.value >= 7) {
-            arr.push({
-                id: 'no_days_off',
-                icon: 'fas fa-fire-alt',
-                label: 'No Days Off',
-                desc: 'Jeden Tag diese Woche aktiv gewesen. Maschine.'
-            })
-        }
-
-        // Volumen (30 Tage & gesamt)
-        if (total30 >= 20) {
-            arr.push({
-                id: 'grinder',
-                icon: 'fas fa-dumbbell',
-                label: 'Grinder 20/30',
-                desc: '20 Workouts in 30 Tagen – du arbeitest, nicht redest.'
-            })
-        }
-
-        if (totalAll >= 50) {
-            arr.push({
-                id: 'volume50',
-                icon: 'fas fa-medal',
-                label: 'Level 50+',
-                desc: '50 Workouts insgesamt – deine Basis ist gebaut.'
-            })
-        }
-
-        if (totalAll >= 100) {
-            arr.push({
-                id: 'volume100',
-                icon: 'fas fa-trophy',
-                label: '100 Workouts',
-                desc: '100 Workouts sind nicht Glück, das ist Identität.'
-            })
-        }
-
-        // Comeback – wenn erstes Element 0 und heute >0
-        if ((activity.value[0] ?? 0) === 0 && (activity.value.at(-1) ?? 0) > 0) {
-            arr.push({
-                id: 'comeback',
-                icon: 'fas fa-redo-alt',
-                label: 'Comeback',
-                desc: 'Du warst raus und bist wieder drin. Genau das zählt.'
-            })
-        }
-
-        return arr
-    })
-
-    function closeAchievementPopup() {
-        showAchievementPopup.value = false
-        latestAchievement.value = null
-    }
-
-    // wenn neue Badges dazukommen → einmalig Popup + Toast
-    watch(computedBadges, (current) => {
-        if (!current.length) return
-
-        const known = new Set(earnedBadges.value)
-        const newly = current.find(b => !known.has(b.id))
-
-        if (!newly) return
-
-        earnedBadges.value = Array.from(new Set([...earnedBadges.value, newly.id]))
-        latestAchievement.value = newly
-        showAchievementPopup.value = true
-
-        addToast(`Neues Achievement: ${newly.label}`, 'add')
-    }, { immediate: false })
-
-    // === TEST: Achievements per Leertaste auslösen ===
-    const testBadgeIndex = ref(0)
-
-    function triggerTestAchievement() {
-        const list = computedBadges.value
-        if (!list.length) return
-
-        latestAchievement.value = list[testBadgeIndex.value % list.length]
-        testBadgeIndex.value++
-        showAchievementPopup.value = true
-    }
-
-    function onGlobalKeydown(e: KeyboardEvent) {
-        // nur Space
-        if (e.code !== 'Space' && e.key !== ' ') return
-
-        const target = e.target as HTMLElement | null
-        const tag = target?.tagName
-        const isEditable =
-            target?.isContentEditable ||
-            tag === 'INPUT' ||
-            tag === 'TEXTAREA' ||
-            tag === 'SELECT'
-
-        // nicht triggern, wenn man in einem Input/Textarea tippt
-        if (isEditable) return
-
-        e.preventDefault()
-        triggerTestAchievement()
-    }
-
-    onMounted(() => {
-        window.addEventListener('keydown', onGlobalKeydown)
-    })
-
-    onUnmounted(() => {
-        window.removeEventListener('keydown', onGlobalKeydown)
-    })
+    const computedBadges = computed(() => computeBadges(activity.value))
 
     // --- UI: Motto Edit ---
     const editingMotto = ref(false)
@@ -1695,9 +1655,22 @@
     }
 
     // --- E-Mail / Passwort / Delete (Frontend-only) ---
+    const showUsernamePopup = ref(false)
     const showEmailPopup = ref(false)
     const emailForm = ref({ newEmail: '', password: '' })
     const emailError = ref('')
+
+    function openUsernamePopup() { showUsernamePopup.value = true }
+    function closeUsernamePopup() { showUsernamePopup.value = false }
+
+    async function handleUsernameChange({ username: nextUsername }: { username: string }) {
+        try {
+            await saveUsername(nextUsername)
+            closeUsernamePopup()
+        } catch {
+            // Toast wird bereits in saveUsername gezeigt.
+        }
+    }
 
     function openEmailPopup() { showEmailPopup.value = true }
     function closeEmailPopup() { showEmailPopup.value = false }
@@ -1895,6 +1868,7 @@
         else saveJSON(LS_KEYS.earnedBadges, v)
     }, { deep: true })
 
+
     // --- Toasts ---
     const toast = ref<ToastModel | null>(null)
     let toastId = 0
@@ -1968,6 +1942,11 @@
         margin-bottom: 2rem;
     }
 
+    .meta {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
     .avatar.ring {
         width: 80px;
         height: 80px;
@@ -2014,6 +1993,10 @@
 
     /* Buttons */
     .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .55rem;
         border: 0;
         padding: .55rem .9rem;
         border-radius: 10px;
@@ -2033,14 +2016,14 @@
             box-shadow: 0 4px 12px rgba(0,0,0,.08);
         }
 
-            .btn.neutral.logout {
-                background: var(--bg-secondary)
-            }
-
         .btn.danger-outline {
             background: transparent;
             border: 1px solid rgba(220,38,38,.6);
             color: rgba(220,38,38,.9);
+        }
+
+        .btn i {
+            flex: 0 0 auto;
         }
 
 
@@ -2081,6 +2064,10 @@
             align-items: flex-start;
         }
 
+        .meta {
+            width: 100%;
+        }
+
         /* Wenn Quick-Stats untereinander stehen → mehr vertical spacing */
         .grid.three.quick-stats {
             row-gap: 1.2rem;
@@ -2097,6 +2084,93 @@
         .profile-header {
             flex-direction: column;
             align-items: flex-start;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: .65rem;
+        }
+
+        .actions .btn {
+            width: 100%;
+            justify-content: flex-start;
+            min-height: 50px;
+            padding: .85rem .95rem;
+            border-radius: 14px;
+            position: relative;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.10);
+        }
+
+        .actions .btn::after {
+            content: '›';
+            margin-left: auto;
+            font-size: 1.05rem;
+            line-height: 1;
+            opacity: .7;
+        }
+
+        .actions .btn i {
+            width: 1.1rem;
+            text-align: center;
+        }
+
+        .profile-check-head {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .profile-check-percent {
+            font-size: 1.05rem;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .profile {
+            padding: 0 .8rem;
+        }
+
+        .actions .btn {
+            font-size: .96rem;
+        }
+    }
+
+    .profile-footer-actions {
+        margin: 1.15rem 0 0;
+        padding-top: .95rem;
+        border-top: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .logout-footer-btn {
+        justify-content: center;
+        gap: .65rem;
+        padding: .8rem 1rem;
+        border-radius: 14px;
+        background: linear-gradient(135deg, color-mix(in srgb, #0f172a 82%, var(--bg-secondary) 18%), color-mix(in srgb, #334155 76%, var(--bg-secondary) 24%));
+        border: 1px solid color-mix(in srgb, #64748b 62%, transparent);
+        color: #f8fafc;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+        text-align: center;
+    }
+
+    .logout-footer-btn i {
+        font-size: 1rem;
+    }
+
+    @media (max-width: 640px) {
+        .profile-footer-actions {
+            margin-top: .95rem;
+            padding-top: .8rem;
+        }
+
+        .logout-footer-btn {
+            width: 100%;
+            min-height: 48px;
+            justify-content: center;
         }
     }
 
@@ -2118,6 +2192,126 @@
     .card--soft-center {
         align-items: center; /* Inhalt in der Card horizontal zur Mitte ziehen */
         text-align: center; /* Texte in diesen Cards mittiger, aber nur da */
+    }
+
+    .profile-check-card {
+        gap: .9rem;
+        text-align: left;
+    }
+
+    .profile-check-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .profile-check-title {
+        margin: 0;
+    }
+
+    .profile-check-percent {
+        white-space: nowrap;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .profile-check-sub {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .profile-check-progress-bar {
+        width: 100%;
+        height: 10px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+        border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, .12);
+    }
+
+    .profile-check-progress-fill {
+        height: 100%;
+        min-width: 10px;
+        border-radius: inherit;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    }
+
+    .profile-check-steps {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: .55rem;
+    }
+
+    .profile-check-step {
+        appearance: none;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        padding: .72rem .8rem;
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+        border: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
+        text-align: left;
+        cursor: pointer;
+        transition: border-color .2s ease, transform .2s ease, background .2s ease;
+    }
+
+    .profile-check-step:hover {
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, var(--accent-primary) 26%, var(--border-color) 74%);
+    }
+
+    .profile-check-step:focus-visible {
+        outline: none;
+        border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border-color) 60%);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 16%, transparent);
+    }
+
+    .profile-check-step.done {
+        border-color: color-mix(in srgb, #22c55e 22%, var(--border-color) 78%);
+    }
+
+    .profile-check-step-icon {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        font-size: .82rem;
+        font-weight: 800;
+        color: var(--text-secondary);
+        background: color-mix(in srgb, var(--bg-card) 86%, transparent);
+        border: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+    }
+
+    .profile-check-step.done .profile-check-step-icon {
+        color: #166534;
+        background: color-mix(in srgb, #22c55e 18%, white 82%);
+        border-color: rgba(34, 197, 94, 0.22);
+    }
+
+    .profile-check-step-copy {
+        display: grid;
+        gap: .14rem;
+        min-width: 0;
+    }
+
+    .profile-check-step-copy strong {
+        color: var(--text-primary);
+        font-size: .93rem;
+        line-height: 1.25;
+    }
+
+    .profile-check-step-copy span {
+        color: var(--text-secondary);
+        font-size: .83rem;
+        line-height: 1.4;
     }
 
     html.dark-mode .card {
@@ -2276,20 +2470,112 @@
         color: var(--text-secondary)
     }
 
-
     .weekly-goal-card {
         width: 100%;
         max-width: none;
         margin-inline: 0;
+        overflow: hidden;
+        gap: 1.2rem;
+    }
+
+    .weekly-goal-head {
+        display: flex;
+        justify-content: space-between;
+        cursor: default;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 0;
+    }
+
+    .weekly-goal-eyebrow {
+        display: inline-flex;
+        margin-bottom: .4rem;
+        padding: .28rem .65rem;
+        border-radius: 999px;
+        font-size: .74rem;
+        font-weight: 700;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--text-secondary) 92%, white 8%);
+        background: color-mix(in srgb, var(--bg-secondary) 82%, transparent);
+        border: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
+    }
+
+    .weekly-goal-title {
+        margin: 0;
+    }
+
+    .weekly-goal-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: .55rem .95rem;
+        border-radius: 14px;
+        font-size: .8rem;
+        font-weight: 800;
+        letter-spacing: .02em;
+        line-height: 1;
+        white-space: nowrap;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 10px 24px rgba(15, 23, 42, 0.10);
+        backdrop-filter: blur(8px);
+    }
+
+    .weekly-goal-chip.is-muted {
+        background: linear-gradient(135deg, color-mix(in srgb, var(--bg-secondary) 92%, white 8%), color-mix(in srgb, var(--bg-card) 90%, transparent));
+        color: var(--text-secondary);
+        border-color: color-mix(in srgb, var(--border-color) 72%, transparent);
+    }
+
+    .weekly-goal-chip.is-steady {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(245, 158, 11, 0.08));
+        color: #b45309;
+        border-color: rgba(245, 158, 11, 0.22);
+    }
+
+    .weekly-goal-chip.is-accent {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(37, 99, 235, 0.08));
+        color: #1d4ed8;
+        border-color: rgba(59, 130, 246, 0.22);
+    }
+
+    .weekly-goal-chip.is-success {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(21, 128, 61, 0.10));
+        color: #166534;
+        border-color: rgba(34, 197, 94, 0.24);
+    }
+
+    html.dark-mode .weekly-goal-chip {
+        border-color: rgba(148, 163, 184, 0.22);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 14px 28px rgba(0, 0, 0, 0.28);
+    }
+
+    html.dark-mode .weekly-goal-chip.is-muted {
+        color: #cbd5e1;
+    }
+
+    html.dark-mode .weekly-goal-chip.is-steady {
+        color: #fbbf24;
+    }
+
+    html.dark-mode .weekly-goal-chip.is-accent {
+        color: #93c5fd;
+    }
+
+    html.dark-mode .weekly-goal-chip.is-success {
+        color: #86efac;
     }
 
     .weekly-goal-inner {
-        display: flex;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
         align-items: center;
-        justify-content: flex-start; /* Cluster links */
-        gap: 1.6rem;
+        gap: 1.2rem 1.4rem;
         width: 100%;
-        margin: .25rem 0 .1rem;
+        margin: 0;
+        padding-top: 1.1rem;
+        border-top: 1px solid color-mix(in srgb, var(--border-color) 62%, transparent);
     }
 
     .weekly-goal-side {
@@ -2297,8 +2583,50 @@
         display: flex;
         flex-direction: column;
         align-items: flex-start;
-        gap: .3rem;
+        gap: .65rem;
         text-align: left;
+        min-width: 0;
+    }
+
+    .weekly-goal-copy {
+        width: 100%;
+        display: grid;
+        gap: .75rem;
+    }
+
+    .weekly-goal-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .65rem;
+        width: 100%;
+    }
+
+    .weekly-goal-stat-card {
+        display: grid;
+        gap: .2rem;
+        padding: .75rem .85rem;
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--bg-secondary) 82%, transparent);
+        border: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    }
+
+    .weekly-goal-card:hover .weekly-goal-stat-card {
+        border-color: color-mix(in srgb, var(--accent-primary) 22%, var(--border-color) 78%);
+    }
+
+    .weekly-goal-stat-label {
+        font-size: .75rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+
+    .weekly-goal-stat-value {
+        font-size: 1.4rem;
+        line-height: 1;
+        color: var(--text-primary);
     }
 
     .motto-add-label {
@@ -2320,29 +2648,43 @@
     }
 
     .weekly-goal-line {
-        font-size: 1.05rem;
+        font-size: 1rem;
         font-weight: 700;
         color: var(--text-primary);
     }
 
-
-    @media (max-width: 600px) {
-        .weekly-goal-inner {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .weekly-goal-side {
-            align-items: flex-start;
-            text-align: left;
-        }
+    .weekly-goal-progress-rail {
+        width: 100%;
+        height: 10px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+        border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, .12);
     }
+
+    .weekly-goal-progress-fill {
+        height: 100%;
+        min-width: 10px;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #93c5fd, #3b82f6 55%, #1d4ed8);
+        box-shadow: 0 0 18px rgba(59, 130, 246, 0.2);
+    }
+
+    .weekly-goal-sub {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.45;
+    }
+
 
     /* ADD: kleine Info unter dem Wochenziel */
     .weekly-goal-footer {
-        margin-top: .6rem;
+        margin-top: 0;
+        padding-top: .9rem;
         font-size: .8rem;
         color: var(--text-secondary);
+        border-top: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
     }
 
     .weekly-goal-auto-hint {
@@ -2350,8 +2692,13 @@
     }
 
     @media (max-width: 600px) {
-        .weekly-goal-inner {
+        .weekly-goal-head {
             flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .weekly-goal-inner {
+            grid-template-columns: 1fr;
             align-items: center;
         }
 
@@ -2360,9 +2707,8 @@
             text-align: center;
         }
 
-        .weekly-goal-status-pill {
-            white-space: normal;
-            text-align: center;
+        .weekly-goal-stats {
+            width: 100%;
         }
 
         .weekly-goal-controls {
@@ -2371,29 +2717,62 @@
     }
 
     /* Donut-Styles */
+    .weekly-goal-visual {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 152px;
+        height: 152px;
+        border-radius: 24px;
+        background:
+            radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 58%),
+            radial-gradient(circle at 75% 80%, color-mix(in srgb, var(--accent-secondary) 14%, transparent), transparent 62%),
+            color-mix(in srgb, var(--bg-secondary) 78%, transparent);
+        border: 1px solid color-mix(in srgb, var(--border-color) 74%, transparent);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 16px 34px rgba(15, 23, 42, .10);
+    }
+
+        .weekly-goal-visual::after {
+            content: '';
+            position: absolute;
+            inset: 20px;
+            border-radius: 50%;
+            background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 96%, white 4%), color-mix(in srgb, var(--bg-card) 90%, #020617 10%));
+            border: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+        }
+
     .donut {
-        width: 130px;
-        height: 130px;
+        position: relative;
+        z-index: 1;
+        width: 128px;
+        height: 128px;
+        filter: drop-shadow(0 8px 18px rgba(15, 23, 42, .12));
     }
 
     .donut-bg {
         fill: none;
-        stroke: var(--bg-secondary);
-        stroke-width: 3;
+        stroke: color-mix(in srgb, var(--border-color) 58%, var(--bg-secondary) 42%);
+        stroke-width: 3.2;
     }
 
     .donut-fg {
         fill: none;
-        stroke: var(--accent-primary);
-        stroke-width: 3.6;
+        stroke: url(#weekly-goal-donut-gradient);
+        stroke-width: 4.2;
         transform: rotate(-90deg);
         transform-origin: 50% 50%;
+        filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.2));
     }
 
     .donut-label {
-        font-weight: 800;
-        font-size: 1rem;
-        fill: var(--text-primary);
+        font-weight: 900;
+        font-size: .72rem;
+        letter-spacing: -.02em;
+        fill: color-mix(in srgb, var(--text-primary) 90%, #1e3a8a 10%);
+        paint-order: stroke;
+        stroke: color-mix(in srgb, var(--bg-card) 88%, transparent);
+        stroke-width: .6px;
     }
 
 
@@ -2417,26 +2796,6 @@
         }
     }
 
-
-    .donut-bg {
-        fill: none;
-        stroke: var(--bg-secondary);
-        stroke-width: 3;
-    }
-
-    .donut-fg {
-        fill: none;
-        stroke: var(--accent-primary);
-        stroke-width: 3.6;
-        transform: rotate(-90deg);
-        transform-origin: 50% 50%;
-    }
-
-    .donut-label {
-        font-weight: 800;
-        font-size: .9rem;
-        fill: var(--text-primary);
-    }
 
     .donut-legend {
         font-size: .9rem;
@@ -2631,6 +2990,45 @@
     .avatar-wrap {
         position: relative;
         display: inline-block;
+    }
+
+    .avatar-wrap.is-guided::after {
+        content: '';
+        position: absolute;
+        inset: -8px;
+        border-radius: 50%;
+        border: 2px dashed color-mix(in srgb, var(--accent-primary) 72%, white 28%);
+        opacity: .95;
+        pointer-events: none;
+        animation: avatar-guide-orbit 2.2s linear infinite;
+    }
+
+    .avatar-wrap.is-guided::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        background: radial-gradient(circle, color-mix(in srgb, var(--accent-primary) 18%, transparent) 0%, transparent 70%);
+        opacity: .8;
+        pointer-events: none;
+    }
+
+    html.dark-mode .avatar-wrap.is-guided::after {
+        border-color: color-mix(in srgb, #93c5fd 72%, transparent 28%);
+    }
+
+    @keyframes avatar-guide-orbit {
+        from {
+            transform: rotate(0deg) scale(1);
+        }
+
+        50% {
+            transform: rotate(180deg) scale(1.03);
+        }
+
+        to {
+            transform: rotate(360deg) scale(1);
+        }
     }
 
     .avatar {
@@ -3232,3 +3630,4 @@
         }
     }
 </style>
+

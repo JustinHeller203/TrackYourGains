@@ -23,49 +23,47 @@
 <style scoped>
     .save-button {
         position: relative;
-        overflow: hidden; /* f�r den Sheen */
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        background-size: 200% 200%; /* f�r sp�rbaren Shift */
-        background-position: 0% 50%;
-        color: #ffffff;
-        border: none;
-        border-radius: 16px;
+        overflow: hidden;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 56%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 8%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        color: var(--text-primary);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 18px;
         padding: 1rem 2.5rem;
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: 800;
         cursor: pointer;
-        box-shadow: var(--shadow);
-        transition: background-position .35s ease, filter .25s ease, box-shadow .25s ease, outline-color .25s ease;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: transform 160ms ease-out, border-color 180ms ease-out, box-shadow 200ms ease-out, background 180ms ease-out;
     }
 
-        /* St�rkerer, dauerhafter Hover-Eindruck */
         .save-button:hover {
-            background-position: 100% 50%; /* sichtbarer Verlaufsshift */
-            filter: brightness(1.12) saturate(1.12); /* kr�ftigeres Leuchten */
-            box-shadow: var(--shadow-hover), 0 8px 22px rgba(0,0,0,.12); /* extra Tiefenwurf */
-            outline: 3px solid var(--accent-primary); /* feiner Ring */
-            outline-offset: 3px;
+            transform: translateY(-2px);
+            border-color: rgba(129, 140, 248, 0.7);
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
         }
 
-        /* Optional: aktiver Klick leicht andeuten */
         .save-button:active {
-            filter: brightness(1.05) saturate(1.08);
+            transform: translateY(0);
         }
 
-        /* �Sheen� Lichtreflex � bleibt w�hrend Hover sichtbar durch leichte Wiederholung */
         .save-button::after {
             content: '';
             position: absolute;
-            inset: -120% -40%;
-            background: linear-gradient( 60deg, transparent 35%, rgba(255,255,255,.25) 50%, transparent 65% );
-            transform: translateX(-60%);
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 60%);
             opacity: 0;
             pointer-events: none;
-            transition: opacity .2s ease;
+            transition: opacity 160ms ease-out;
         }
 
         .save-button:hover::after {
             opacity: 1;
+        }
+
+        .save-button:focus-visible {
+            outline: none;
+            border-color: rgba(129, 140, 248, 0.85);
+            box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.18), 0 22px 48px rgba(15, 23, 42, 0.32);
         }
 
     @keyframes sheen {
@@ -74,12 +72,14 @@
         }
     }
 
-    /* Dark Mode Varianten � behalten den kr�ftigen Effekt */
     html.dark-mode .save-button {
-        background: linear-gradient(135deg, #6B8DD6, #4B6CB7);
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62%), #020617;
+        border-color: rgba(148, 163, 184, 0.5);
+        color: #ffffff;
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
         html.dark-mode .save-button:hover {
-            outline-color: #6B8DD6;
+            border-color: rgba(129, 140, 248, 0.7);
         }
 </style>

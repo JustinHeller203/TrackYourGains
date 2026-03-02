@@ -15,7 +15,7 @@ function buildBaseUrl(): string {
 
 export const api = axios.create({
     baseURL: buildBaseUrl(),
-    withCredentials: true, // wichtig f�rs HttpOnly-Refresh-Cookie "rt"
+    withCredentials: true, // wichtig f?rs HttpOnly-Refresh-Cookie "rt"
     headers: { "Content-Type": "application/json" },
 });
 
@@ -43,7 +43,7 @@ export function getToken(): string | null {
     return t;
 }
 
-// ---- Request Interceptor: h�nge Token an ----
+// ---- Request Interceptor: h?nge Token an ----
 api.interceptors.request.use((config) => {
     const t = getToken();
     if (t) {
@@ -71,12 +71,12 @@ api.interceptors.response.use(
         const status = error.response?.status;
         const original = error.config as RetriableConfig | undefined;
 
-        // Nur f�r 401, keine Endlosschleife, nicht f�r den Refresh-Call selbst
+        // Nur f?r 401, keine Endlosschleife, nicht f?r den Refresh-Call selbst
         const isAuthRefresh = original?.url?.includes("/auth/refresh");
         if (status === 401 && original && !original._retry && !isAuthRefresh) {
             original._retry = true;
 
-            // Wenn bereits Refresh l�uft ? enqueue und warten
+            // Wenn bereits Refresh l?uft ? enqueue und warten
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     queue.push((newToken) => {

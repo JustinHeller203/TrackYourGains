@@ -27,7 +27,7 @@
         title: string
         info?: string | number
         clickable?: boolean
-        /** erzwingt den unauff�lligen (kleineren) Placeholder-Style */
+        /** erzwingt den unauff?lligen (kleineren) Placeholder-Style */
         muted?: boolean
         /** macht den Wert generell kleiner (auch wenn NICHT muted) */
         compact?: boolean
@@ -46,7 +46,7 @@
         if (t.includes('kalorien heute')) return false
 
         // generische Platzhalter
-        if (!s || s === '0' || s === '-' || s === '�' || s === 'n/a') return true
+        if (!s || s === '0' || s === '-' || s === '?' || s === 'n/a') return true
         if (s.includes('kein') || s.includes('nicht erfasst') || s.includes('nicht gesetzt')) return true
 
         // kcal: "0/2500 kcal", "0 kcal", "0 / 2500"

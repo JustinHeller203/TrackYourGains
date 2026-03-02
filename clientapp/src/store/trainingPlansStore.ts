@@ -141,7 +141,7 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
                 this.items = this.items.filter((p: TrainingPlanDto) => p.id !== id);
                 if (this.selected?.id === id) this.selected = null;
             } catch (e: any) {
-                this.error = e?.message ?? "TrainingPlan konnte nicht gelöscht werden.";
+                this.error = e?.message ?? "TrainingPlan konnte nicht gelÃ¶scht werden.";
                 throw e;
             } finally {
                 this.loading = false;
@@ -169,3 +169,5 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
         },
     },
 });
+
+

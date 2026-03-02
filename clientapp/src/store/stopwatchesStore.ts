@@ -134,7 +134,7 @@ export const useStopwatchesStore = defineStore('stopwatches', {
             await stopwatchesApi.reorder({ orderedIds })
         },
 
-        // ---- Convenience Actions (für dein Component-Life einfacher) ----
+        // ---- Convenience Actions (f?r dein Component-Life einfacher) ----
 
         async start(id: string) {
             this.ensureAuthOrThrow()

@@ -231,6 +231,13 @@
                                       @update:modelValue="v => setRowField(i,'reps', v)" />
                     </template>
 
+                    <div v-if="lastTouchedSetNoLocal === (i + 1) && weightIncreaseHintLive.shouldSuggest && weightIncreaseHintLive.message"
+                         class="set-row-hint set-row-hint--upgrade"
+                         role="status"
+                         aria-live="polite">
+                        {{ weightIncreaseHintLive.message }}
+                    </div>
+
                 </div>
 
                 <div v-if="inputType==='dehnung'" class="set-quick-actions">
@@ -535,6 +542,7 @@
     import TempoExplain from '@/components/ui/explain/TempoExplain.vue'
     import { useTrainingPlansStore } from "@/store/trainingPlansStore"
     import { useWeightStore } from '@/store/weightStore'
+    import { getWeightIncreaseHint } from '@/utils/trainingWeightIncreaseHint'
 
     type Focusable = { focus: () => void }
 
@@ -653,6 +661,11 @@
             editingDate?: string | null
             draft?: {
                 valuesBySet?: Record<number, { weight?: number | null; reps?: number | null }>
+                progressionHint?: {
+                    shouldSuggest: boolean
+                    nextSetNo?: number | null
+                    message?: string | null
+                }
             }
         }): void
         (e: 'delete', payload: { planId: string; date: string }): void
@@ -1112,6 +1125,7 @@
     const setLabelErrorMessagesLocal = ref<string[]>([])
     const showSetActionErrorPopupLocal = ref(false)
     const setActionErrorMessagesLocal = ref<string[]>([])
+    const lastTouchedSetNoLocal = ref<number | null>(null)
     const setTitleElsLocal = new Map<number, HTMLElement>()
     const overflowingSetTitlesLocal = ref<Set<number>>(new Set())
     const setTitleShiftByNoLocal = ref<Record<number, number>>({})
@@ -1376,6 +1390,26 @@
 
     const visibleSetDetails = computed(() => {
         return (setDetailsLocal.value ?? []).slice(0, visibleSetCount.value)
+    })
+
+    const weightIncreaseHintLive = computed(() => {
+        const touchedSetNo = Math.floor(Number(lastTouchedSetNoLocal.value ?? 0))
+        const effectiveSetNo = Math.floor(Number(effectiveActiveSetNumber.value ?? 0))
+        const setNo = touchedSetNo > 0 ? touchedSetNo : effectiveSetNo
+        if (setNo <= 0) return { shouldSuggest: false, nextSetNo: null, repsThreshold: null, message: null }
+
+        const row = setDetailsLocal.value?.[setNo - 1]
+        const planEx = plannedForSelected.value
+
+        return getWeightIncreaseHint({
+            goal: planEx?.goal ?? null,
+            type: inputType.value,
+            targetReps: Number(planEx?.reps ?? repsLocal.value ?? 0),
+            currentReps: row?.reps ?? null,
+            currentWeight: row?.weight ?? null,
+            setNo,
+            setTotal: Math.max(visibleSetCount.value, Number(setsLocal.value ?? 0) || 0) || null,
+        })
     })
 
     function isSetSkipped(setNo: number): boolean {
@@ -1665,6 +1699,7 @@
     }
     function onRowChange(i: number, field: RowField, val: number | null) {
         if (!hasExerciseSelected.value) { requireExercise('set-row'); return }
+        lastTouchedSetNoLocal.value = i + 1
 
         let n: number | null = (typeof val === 'number' && Number.isFinite(val)) ? val : null
         if (field === 'reps' && (n == null || n < 1)) n = null
@@ -1696,6 +1731,7 @@
         localEditingEntry.value = null
         activeSetNumberLocalOverride.value = null
         lastAppliedExercisePrefillKeyLocal.value = ''
+        lastTouchedSetNoLocal.value = null
         showExtrasLocal.value = false
         lastTypeLocal.value = null
 
@@ -1739,6 +1775,7 @@
         localEditingEntry.value = entry
         activeSetNumberLocalOverride.value = null
         lastAppliedExercisePrefillKeyLocal.value = ''
+        lastTouchedSetNoLocal.value = null
         lastTypeLocal.value = detectedInputType.value
 
         exerciseLocal.value = entry.exercise || ''
@@ -1934,6 +1971,7 @@
             }
 
             // ⬇️ wichtig: nach den plan-prefills + row-setup anwenden
+            nextTick(() => applySelectedExercisePrefillFromToday())
             nextTick(() => applyPrefillSetValues())
             nextTick(() => focusFirst())
             nextTick(() => openSyncBorg())
@@ -1944,6 +1982,7 @@
             }
             activeSetNumberLocalOverride.value = null
             lastAppliedExercisePrefillKeyLocal.value = ''
+            lastTouchedSetNoLocal.value = null
             showExtrasLocal.value = false
         }
     })
@@ -2125,7 +2164,14 @@
             updatedBodyWeightKg,
             mode: isEdit ? 'edit' : 'create',
             editingDate,
-            draft: { valuesBySet },
+            draft: {
+                valuesBySet,
+                progressionHint: {
+                    shouldSuggest: !!weightIncreaseHintLive.value.shouldSuggest,
+                    nextSetNo: weightIncreaseHintLive.value.nextSetNo,
+                    message: weightIncreaseHintLive.value.message,
+                },
+            },
         })
         closePopup()
     }
@@ -2594,6 +2640,22 @@
         min-height: 36px;
         padding-inline: .9rem;
         font-weight: 700;
+    }
+
+    .set-row-hint {
+        margin-top: .55rem;
+        grid-column: 1 / -1;
+        padding: .6rem .75rem;
+        border-radius: 10px;
+        border: 1px solid rgba(34, 197, 94, 0.28);
+        background: color-mix(in srgb, rgba(34, 197, 94, 0.16) 70%, transparent);
+        color: var(--text-primary);
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .set-row-hint--upgrade {
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
     }
 
     @media (max-width: 520px) {

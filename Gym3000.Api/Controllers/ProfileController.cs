@@ -5,6 +5,7 @@ using Gym3000.Api.Data;
 using Gym3000.Api.Dtos;
 using Gym3000.Api.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,9 +18,14 @@ namespace Gym3000.Api.Controllers;
 public class ProfileController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
+    private readonly UserManager<IdentityUser> _um;
     private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
 
-    public ProfileController(ApplicationDbContext db) => _db = db;
+    public ProfileController(ApplicationDbContext db, UserManager<IdentityUser> um)
+    {
+        _db = db;
+        _um = um;
+    }
 
     private static int[] DefaultActivity() => Enumerable.Repeat(0, 21).ToArray();
 
@@ -119,6 +125,30 @@ public class ProfileController : ControllerBase
     public async Task<ActionResult<ProfileDto>> Put([FromBody] UpdateProfileDto dto)
     {
         var userId = GetUserIdOrThrow();
+        var user = await _um.FindByIdAsync(userId);
+        if (user is null)
+            return Unauthorized(new { message = "User nicht gefunden." });
+
+        if (dto.Username is not null)
+        {
+            var newUsername = dto.Username.Trim();
+            if (string.IsNullOrWhiteSpace(newUsername))
+                return BadRequest(new { message = "Username darf nicht leer sein." });
+
+            var existing = await _um.FindByNameAsync(newUsername);
+            if (existing is not null && existing.Id != user.Id)
+                return BadRequest(new { message = "Username ist bereits vergeben." });
+
+            var setUserName = await _um.SetUserNameAsync(user, newUsername);
+            if (!setUserName.Succeeded)
+            {
+                return BadRequest(new
+                {
+                    message = "Username konnte nicht gespeichert werden.",
+                    errors = setUserName.Errors.Select(e => e.Description)
+                });
+            }
+        }
 
         var meta = await _db.UserMetas.FirstOrDefaultAsync(x => x.UserId == userId);
         if (meta is null)
@@ -188,10 +218,7 @@ public class ProfileController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        var username = (await _db.Users
-            .Where(u => u.Id == userId)
-            .Select(u => u.UserName ?? "")
-            .FirstOrDefaultAsync()) ?? "";
+        var username = user.UserName ?? "";
 
         var activity = DeserializeOr(profile.ActivityJson, DefaultActivity());
         var progress = DeserializeOr(profile.ProgressJson, DefaultProgress());

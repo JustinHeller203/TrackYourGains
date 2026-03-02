@@ -187,7 +187,7 @@
     }
 
     .km-label {
-        font-weight: 700; /* statt 800 -> wirkt “App-typisch” */
+        font-weight: 700; /* statt 800 -> wirkt ?App-typisch? */
         letter-spacing: -0.01em;
     }
 

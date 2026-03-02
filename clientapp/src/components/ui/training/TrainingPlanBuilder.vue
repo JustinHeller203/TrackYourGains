@@ -1,4 +1,4 @@
-﻿<!-- components/ui/training/TrainingPlanBuilder.vue -->
+<!-- components/ui/training/TrainingPlanBuilder.vue -->
 <template>
     <!-- Trainingsplan Formular -->
     <div class="workout-list builder-section" ref="builderSection">
@@ -30,7 +30,7 @@
                         </div>
                     </div>
 
-                    <!-- Trainingstyp (Mobile ≤560px: Label + Dropdown) -->
+                    <!-- Trainingstyp (Mobile =560px: Label + Dropdown) -->
                     <div class="type-block mobile-only">
                         <label class="type-heading field-label" for="training-type">Trainingstyp</label>
                         <UiSelect v-model="trainingTypeSafe"
@@ -289,10 +289,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
         openDeletePopup?: (action: () => void) => void
 
-        // ✅ Guest: Plan an Training.vue hochreichen
+        // ? Guest: Plan an Training.vue hochreichen
         onGuestPlanCreated?: (plan: ViewPlan) => void
 
-        // ✅ v-model Quelle
+        // ? v-model Quelle
         customExercises?: Array<{ name: string; muscle: string; type: CustomExerciseType }>
         saveToStorage?: () => void
     }>()
@@ -400,7 +400,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         planName.value = payload.name
         selectedPlanExercises.value = Array.isArray(payload.exercises) ? [...payload.exercises] : []
 
-        // ✅ nice default: Typ passend zum Plan
+        // ? nice default: Typ passend zum Plan
         const firstType = selectedPlanExercises.value[0]?.type
         if (firstType) trainingType.value = firstType
     }
@@ -433,7 +433,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         resetBuilder,
         scrollToBuilder,
 
-        // 🔥 Parent darf Preview-Liste lesen/patchen (für zentrales EditPopup)
+        // ?? Parent darf Preview-Liste lesen/patchen (für zentrales EditPopup)
         getPreviewExercises: () => selectedPlanExercises.value,
         getPreviewExercise: (i: number) => selectedPlanExercises.value[i] ?? null,
         updatePreviewExercise: (i: number, patch: Partial<PlanExercise>) => {
@@ -515,21 +515,21 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     }
 
     const calisthenicsByGroup: Record<string, string[]> = {
-        Brust: ['Liegestütze', 'Archer Push-up', 'Dips'],
-        Rücken: ['Klimmzüge', 'Australian Pull-up', 'Archer Pull-up'],
-        Schultern: ['Handstand Push-up', 'Archer Push-up'],
-        Arme: ['Dips', 'Klimmzüge', 'Archer Pull-up'],
-        Bauch: ['L-Sit', 'Dragon Flag', 'Hollow Hold', 'Toes to Bar'],
-        Beine: ['Pistol Squat'],
+        'Brust': ['Liegestütze', 'Archer Push-up', 'Dips'],
+        'Rücken': ['Klimmzüge', 'Australian Pull-up', 'Archer Pull-up'],
+        'Schultern': ['Handstand Push-up', 'Archer Push-up'],
+        'Arme': ['Dips', 'Klimmzüge', 'Archer Pull-up'],
+        'Bauch': ['L-Sit', 'Dragon Flag', 'Hollow Hold', 'Toes to Bar'],
+        'Beine': ['Pistol Squat'],
     }
 
     const stretchingByGroup: Record<string, string[]> = {
-        Brust: ['Brust-Dehnung'],
-        Rücken: ['Rücken-Dehnung'],
-        Schultern: ['Schulter-Dehnung', 'Trizeps-Dehnung'],
-        Arme: ['Trizeps-Dehnung'],
-        Bauch: [],
-        Beine: ['Hamstring-Dehnung', 'Waden-Dehnung', 'Quadrizeps-Dehnung', 'Adduktoren-Dehnung'],
+        'Brust': ['Brust-Dehnung'],
+        'Rücken': ['Rücken-Dehnung'],
+        'Schultern': ['Schulter-Dehnung', 'Trizeps-Dehnung'],
+        'Arme': ['Trizeps-Dehnung'],
+        'Bauch': [],
+        'Beine': ['Hamstring-Dehnung', 'Waden-Dehnung', 'Quadrizeps-Dehnung', 'Adduktoren-Dehnung'],
     }
 
     const resolveGroups = (q: string): string[] => {
@@ -557,12 +557,12 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     ])
 
     const muscleGroups = ref({
-        Brust: ['Bankdrücken', 'Liegestütze', 'Butterfly', 'Brustpresse'],
-        Rücken: ['Klimmzüge', 'Latzug', 'Rudern', 'Rückenstrecker'],
-        Beine: ['Kniebeugen', 'Kreuzheben', 'Beinpresse', 'Ausfallschritte', 'Wadenheben'],
-        Schultern: ['Schulterdrücken', 'Seitheben'],
-        Arme: ['Bizepscurls', 'Trizepsdrücken', 'Dips'],
-        Bauch: ['Bauchpresse'],
+        'Brust': ['Bankdrücken', 'Liegestütze', 'Butterfly', 'Brustpresse'],
+        'Rücken': ['Klimmzüge', 'Latzug', 'Rudern', 'Rückenstrecker'],
+        'Beine': ['Kniebeugen', 'Kreuzheben', 'Beinpresse', 'Ausfallschritte', 'Wadenheben'],
+        'Schultern': ['Schulterdrücken', 'Seitheben'],
+        'Arme': ['Bizepscurls', 'Trizepsdrücken', 'Dips'],
+        'Bauch': ['Bauchpresse'],
     })
 
     const filteredExercises = computed(() => {
@@ -917,7 +917,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             props.addToast('Übung gelöscht', 'delete')
         }
 
-        // ✅ wenn Parent Confirm anbietet → nutzen
+        // ? wenn Parent Confirm anbietet ? nutzen
         if (props.openDeletePopup) {
             props.openDeletePopup(doDelete)
             return
@@ -945,7 +945,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 return
             }
 
-            // ✅ Gast-Plan in der UI-Liste anzeigen (Session-only)
+            // ? Gast-Plan in der UI-Liste anzeigen (Session-only)
             const id =
                 (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
                     ? crypto.randomUUID()
@@ -980,7 +980,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             return
         }
 
-        // ✅ Duplicate-Name Check (vor dem Request), case-insensitive
+        // ? Duplicate-Name Check (vor dem Request), case-insensitive
         const getPlans = (): any[] => {
             // versuch mehrere gängige Store-Keys, ohne dass TS meckert
             const anyStore = trainingPlansStore as any
@@ -1025,7 +1025,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         } catch (e: any) {
             const status = e?.response?.status
 
-            // ✅ Falls Backend weiter 500 wirft (23505), geben wir trotzdem die richtige Message
+            // ? Falls Backend weiter 500 wirft (23505), geben wir trotzdem die richtige Message
             if (status === 500 && isNameTaken(validatedPlanName, editingPlanId.value)) {
                 props.openValidationPopup(["Planname bereits vergeben. Bitte wähle einen anderen Namen."])
                 return
@@ -1364,7 +1364,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             box-sizing: border-box;
         }
 
-    /* Zelle wird selbst Container → reagiert auf ihre eigene Breite */
+    /* Zelle wird selbst Container ? reagiert auf ihre eigene Breite */
     .v-stack {
         container-type: inline-size;
         white-space: normal;
@@ -1508,7 +1508,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         min-height: 150px;
         border-radius: 14px;
         padding: 1.25rem 1.5rem;
-        /* kein eigener grauer Kasten mehr → zeigt direkt den lila/blauen Preview-Hintergrund */
+        /* kein eigener grauer Kasten mehr ? zeigt direkt den lila/blauen Preview-Hintergrund */
         background: transparent;
         /* Rahmen im Accent-Look statt langweiligem Grau */
         border: 1px dashed color-mix(in srgb, var(--accent-primary) 55%, rgba(148, 163, 184, 0.5) 45%);
@@ -1587,7 +1587,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         padding: 1.75rem 1.9rem;
         border-radius: 18px;
         box-sizing: border-box;
-        /* ⇓ exakt im Stil der Landing-Karten (stat-card/feature-card) ⇓ */
+        /* ? exakt im Stil der Landing-Karten (stat-card/feature-card) ? */
         background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
         border: 1px solid rgba(148, 163, 184, 0.26);
         box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
@@ -1639,7 +1639,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     .builder-head .plan-block .field-label {
         display: block;
-        margin-bottom: .6rem; /* Abstand Titel ↔ Input */
+        margin-bottom: .6rem; /* Abstand Titel ? Input */
     }
 
     .builder-head .plan-block .plan-name-input {
@@ -1653,7 +1653,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     .goal-row {
         display: grid;
-        gap: .55rem; /* Abstand Titel ↔ Select */
+        gap: .55rem; /* Abstand Titel ? Select */
     }
 
     .builder-head .segmented.seg-type {
@@ -1775,7 +1775,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         .builder-head .extras-cta {
             grid-area: extras;
             justify-self: end !important;
-            align-self: end; /* am unteren Rand der Zeile → Höhe vom Label ignorieren */
+            align-self: end; /* am unteren Rand der Zeile ? Höhe vom Label ignorieren */
             inline-size: var(--control-height) !important; /* quadratisch */
             min-inline-size: var(--control-height) !important;
             max-inline-size: var(--control-height) !important;
@@ -1841,7 +1841,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             padding: 0 var(--control-padding-x);
             border-radius: 12px;
             box-sizing: border-box;
-            /* ✅ exakt wie UiTrainingInput / UiSelect */
+            /* ? exakt wie UiTrainingInput / UiSelect */
             border: 2px solid color-mix(in srgb, var(--accent-primary) 42%, var(--border-color, #e5e7eb) 58%);
             background: radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 58%), color-mix(in srgb, var(--bg-secondary, #f3f4f6) 86%, transparent);
             color: var(--text-primary, #111827);
@@ -1868,7 +1868,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 28%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 32%, transparent) inset, 0 16px 34px rgba(15, 23, 42, 0.18);
             }
 
-            /* ✅ toggled-state (falls dein ExtrasToggleButton sowas setzt) */
+            /* ? toggled-state (falls dein ExtrasToggleButton sowas setzt) */
             .builder-head .extras-cta.on,
             .builder-head .extras-cta.is-on,
             .builder-head .extras-cta[aria-pressed="true"] {
@@ -2227,3 +2227,5 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             width: 100%;
         }
 </style>
+
+

@@ -25,6 +25,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<TrainingDay> TrainingDays => Set<TrainingDay>();
     public DbSet<TrainingExercise> TrainingExercises => Set<TrainingExercise>();
     public DbSet<ProgressEntry> ProgressEntries => Set<ProgressEntry>();
+    public DbSet<TrainingSession> TrainingSessions => Set<TrainingSession>();
+    public DbSet<TrainingSessionFeedback> TrainingSessionFeedbacks => Set<TrainingSessionFeedback>();
     public DbSet<TimerEntity> Timers => Set<TimerEntity>();
     public DbSet<StopwatchEntity> Stopwatches => Set<StopwatchEntity>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
@@ -236,6 +238,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
             e.Property(x => x.UserId).IsRequired();
             e.Property(x => x.Date).IsRequired();
+            e.Property(x => x.IsCompleted).IsRequired();
             e.Property(x => x.CreatedUtc).IsRequired();
 
             e.HasIndex(x => new { x.UserId, x.Date });
@@ -333,7 +336,61 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             e.HasIndex(x => new { x.UserId, x.PlanId, x.Exercise });
         });
 
-        // -------- Timers (Satzpausen-Timer) --------
+
+        // -------- TrainingSession --------
+        builder.Entity<TrainingSession>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).IsRequired();
+
+            e.Property(x => x.StartedAtUtc)
+             .HasColumnType("timestamptz");
+
+            e.Property(x => x.FinishedAtUtc)
+             .HasColumnType("timestamptz");
+
+            e.Property(x => x.CreatedUtc)
+             .HasColumnType("timestamptz")
+             .IsRequired();
+
+            e.Property(x => x.TypesPresent)
+             .HasMaxLength(80);
+
+            e.HasOne(x => x.Plan)
+             .WithMany()
+             .HasForeignKey(x => x.PlanId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => new { x.UserId, x.PlanId, x.FinishedAtUtc });
+            e.HasIndex(x => new { x.UserId, x.FinishedAtUtc });
+        });
+
+        // -------- TrainingSessionFeedback --------
+        builder.Entity<TrainingSessionFeedback>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).IsRequired();
+
+            e.Property(x => x.CreatedUtc)
+             .HasColumnType("timestamptz")
+             .IsRequired();
+
+            e.Property(x => x.BestExercise)
+             .HasMaxLength(160);
+
+            e.Property(x => x.Note)
+             .HasMaxLength(800);
+
+            e.HasOne(x => x.Session)
+             .WithOne(x => x.Feedback)
+             .HasForeignKey<TrainingSessionFeedback>(x => x.SessionId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(x => x.SessionId).IsUnique();
+            e.HasIndex(x => new { x.UserId, x.PlanId, x.CreatedUtc });
+        });        // -------- Timers (Satzpausen-Timer) --------
         builder.Entity<TimerEntity>(e =>
         {
             e.HasKey(x => x.Id);
@@ -409,3 +466,4 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         });
     }
 }
+

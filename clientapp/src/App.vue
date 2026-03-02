@@ -92,6 +92,9 @@
                          title="Was ist neu?"
                          :items="newsItems"
                          @close="onNewsClose" />
+        <GlobalAchievementPopup :show="showAchievementPopup"
+                                :badge="latestAchievement"
+                                @close="closeAchievementPopup" />
 
         <!-- ✅ Seiten-Inhalt -->
         <main class="main-content">
@@ -130,6 +133,8 @@
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import GlobalNewsPopup from '@/components/ui/popups/global/GlobalNewsPopup.vue'
     import GlobalExplainGuide from '@/components/ui/popups/global/GlobalExplainGuide.vue'
+    import GlobalAchievementPopup from '@/components/ui/popups/global/GlobalAchievementPopup.vue'
+    import { useGlobalAchievements } from '@/composables/useGlobalAchievements'
 
     import AppFooter from '@/AppFooter.vue'
     import BackToTopButton from '@/components/ui/buttons/BackToTopButton.vue'
@@ -210,6 +215,12 @@
     const route = useRoute()
     const navRef = ref<HTMLElement | null>(null)
     const router = useRouter()
+    const {
+        showAchievementPopup,
+        latestAchievement,
+        closeAchievementPopup,
+        refreshAchievements,
+    } = useGlobalAchievements()
 
     const TIMER_KEY = LS_TRAINING_TIMERS_V1
     const STOPWATCH_KEY = LS_TRAINING_STOPWATCHES_V1
@@ -422,6 +433,7 @@
     watch(() => route.fullPath, () => {
         if (menuOpen.value) closeMenu()
         refreshStickyPrefs()
+        void refreshAchievements()
     })
     function handleDocClick(e: MouseEvent) {
         if (!menuOpen.value) return
@@ -435,11 +447,16 @@
         refreshStickyPrefs()
     }
 
+    function onWindowFocus() {
+        void refreshAchievements(true)
+    }
+
     onMounted(() => {
         refreshStickyPrefs()
 
         window.addEventListener('tyg:sticky-prefs-changed', onStickyPrefsChanged as any)
         window.addEventListener('storage', onStickyPrefsChanged) // falls anderer Tab
+        window.addEventListener('focus', onWindowFocus)
 
         document.addEventListener('click', handleDocClick, true)
     })
@@ -447,6 +464,7 @@
     onBeforeUnmount(() => {
         window.removeEventListener('tyg:sticky-prefs-changed', onStickyPrefsChanged as any)
         window.removeEventListener('storage', onStickyPrefsChanged)
+        window.removeEventListener('focus', onWindowFocus)
         document.removeEventListener('click', handleDocClick, true)
     })
 

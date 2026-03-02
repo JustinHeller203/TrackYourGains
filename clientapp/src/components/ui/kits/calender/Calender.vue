@@ -77,13 +77,18 @@
                         'is-rest': !!cell.day && isRest(cell.day)
                     }"
                     :disabled="!cell.day ? true : isPast(cell.day)"
-                    @click="cell.day && emit('select', cell.day)">
+                    @click="cell.day && emit('select', cell.day)"
+                    @dblclick.stop="cell.day && emit('dblclick', cell.day)">
                 <span class="cal-num">{{ cell.num }}</span>
                 <span v-if="cell.day && hasEntries(cell.day)"
                       class="cal-dot"
                       :style="dotStyle(cell.day)"
                       :title="dotTitle(cell.day)"
                       aria-hidden="true"></span>
+                <span v-if="cell.day && hasEntries(cell.day) && trendFor(cell.day)"
+                      class="cal-trend"
+                      :class="`is-${trendFor(cell.day)}`"
+                      aria-hidden="true">{{ trendSymbol(trendFor(cell.day)) }}</span>
                 <span v-if="cell.day && hasCheck(cell.day)"
                       class="cal-check"
                       aria-hidden="true">✓</span>
@@ -111,6 +116,7 @@
         daysWithEntries: string[] // yyyy-mm-dd
         dayColors?: Record<string, string | string[]>
         dayTitles?: Record<string, string>
+        dayTrends?: Record<string, 'up' | 'down' | 'same'>
         selectedDays?: string[]
         checkDays?: string[]
         crossDays?: string[]
@@ -120,6 +126,7 @@
 
     const emit = defineEmits<{
         (e: 'select', day: string): void
+        (e: 'dblclick', day: string): void
     }>()
 
     const dotStyle = (day: string) => {
@@ -139,6 +146,17 @@
 
     const dotTitle = (day: string) => {
         return props.dayTitles?.[day] ?? ''
+    }
+
+    const trendFor = (day: string) => {
+        return props.dayTrends?.[day] ?? null
+    }
+
+    const trendSymbol = (trend: 'up' | 'down' | 'same' | null) => {
+        if (!trend) return ''
+        if (trend === 'up') return '↑'
+        if (trend === 'down') return '↓'
+        return '-'
     }
 
     const pad2 = (n: number) => String(n).padStart(2, '0')
@@ -415,6 +433,31 @@
         box-shadow: 0 0 14px rgba(129, 140, 248, 0.25);
     }
 
+    .cal-trend {
+        position: absolute;
+        top: .9rem;
+        right: .35rem;
+        width: .45rem;
+        font-size: .62rem;
+        font-weight: 900;
+        line-height: 1;
+        color: rgba(148, 163, 184, 0.95);
+        text-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+        text-align: center;
+    }
+
+    .cal-trend.is-up {
+        color: rgba(239, 68, 68, 0.95);
+    }
+
+    .cal-trend.is-down {
+        color: rgba(34, 197, 94, 0.95);
+    }
+
+    .cal-trend.is-same {
+        color: rgba(148, 163, 184, 0.95);
+    }
+
     .cal-cell.is-rest::after {
         content: '';
         position: absolute;
@@ -572,6 +615,18 @@
     html.dark-mode .cal-dot {
         background: rgba(129, 140, 248, 0.85);
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18), 0 0 18px rgba(99, 102, 241, 0.22);
+    }
+
+    html.dark-mode .cal-trend.is-up {
+        color: rgba(248, 113, 113, 0.95);
+    }
+
+    html.dark-mode .cal-trend.is-down {
+        color: rgba(74, 222, 128, 0.95);
+    }
+
+    html.dark-mode .cal-trend.is-same {
+        color: rgba(148, 163, 184, 0.95);
     }
 
     html.dark-mode .cal-cell.is-rest::after {
