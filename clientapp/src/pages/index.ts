@@ -8,6 +8,11 @@ const routes = [
         component: LandingPage
     },
     {
+        path: '/beschwerden',
+        name: 'Beschwerden',
+        component: () => import('@/pages/Beschwerden.vue')
+    },
+    {
         path: '/training',
         name: 'Training',
         component: () => import('@/pages/Training.vue')

@@ -146,6 +146,10 @@
                     <div class="stats-k">Top 1RM (Epley)</div>
                     <div class="stats-v">{{ prTop1RmLabel }}</div>
                 </div>
+                <div class="stats-card stats-card--wide stats-card--panel">
+                    <div class="stats-k">Persönliche Rekorde</div>
+                    <PersonalRecordsPanel :records="personalRecords" :limit="8" />
+                </div>
             </div>
 
             <div v-else-if="activeSection === 'trends'" class="stats-grid">
@@ -209,6 +213,8 @@
 
 <script setup lang="ts">
     import { computed, ref } from 'vue'
+    import PersonalRecordsPanel from '@/components/ui/progress/PersonalRecordsPanel.vue'
+    import { computeExercisePersonalRecords } from '@/utils/personalRecords'
 
     type WorkoutLike = {
         id?: string | null
@@ -346,6 +352,7 @@
 
     const currentStreak = computed(() => streakInfo.value.current)
     const bestStreak = computed(() => streakInfo.value.best)
+    const personalRecords = computed(() => computeExercisePersonalRecords(props.entries))
 
     const mostActiveWeekdayLabel = computed(() => {
         if (!props.entries.length) return '–'
@@ -926,6 +933,11 @@
     }
     .stats-card--wide {
         grid-column: 1 / -1;
+    }
+
+    .stats-card--panel {
+        height: auto !important;
+        align-content: start !important;
     }
 
     .stats-note .stats-v {

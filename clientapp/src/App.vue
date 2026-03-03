@@ -23,11 +23,7 @@
                 <ul id="mobile-nav-links" class="nav-links" :class="{ open: menuOpen }">
                     <li><router-link to="/" class="nav-link" @click="closeMenu"><i class="fas fa-home"></i> Home</router-link></li>
                     <li><router-link to="/training" class="nav-link" @click="closeMenu"><i class="fas fa-dumbbell"></i> Training</router-link></li>
-                    <li>
-                        <button type="button" class="nav-link nav-link-button" @click="onNutritionClick">
-                            <i class="fas fa-utensils"></i> Ernährung
-                        </button>
-                    </li>
+                    <li><router-link to="/beschwerden" class="nav-link" @click="closeMenu"><i class="fas fa-notes-medical"></i> Beschwerden</router-link></li>
                     <li><router-link to="/progress" class="nav-link" @click="closeMenu"><i class="fas fa-chart-line"></i> Fortschritt</router-link></li>
                     <li><router-link to="/tutorials" class="nav-link" @click="closeMenu"><i class="fas fa-video"></i> Tutorials</router-link></li>
                     <li><router-link to="/settings" class="nav-link" @click="closeMenu"><i class="fas fa-cog"></i> Einstellungen</router-link></li>
@@ -483,10 +479,6 @@
         showValidationPopup.value = true
     }
 
-    function onNutritionClick() {
-        closeMenu()
-        openValidationPopup(['Coming soon: Der Ernährungsbereich ist bald verfügbar.'])
-    }
 
     function closeValidationPopup() {
         showValidationPopup.value = false
@@ -1164,3 +1156,6 @@
         }
     }
 </style>
+
+
+

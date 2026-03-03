@@ -66,7 +66,7 @@
                            @export="openDownloadPopup('workoutStats')"
                            @reset="resetWorkoutStats">
                     <template #subtitle>
-                        <p class="card-info">Gesamt-Workouts: {{ workouts.length }}</p>
+                        <p class="card-info">Gesamt-Workouts: {{ strengthWorkouts.length }}</p>
                     </template>
                     <canvas id="workoutChart" class="chart-canvas"></canvas>
                 </ChartCard>
@@ -660,6 +660,11 @@
     import WeightHistoryCalendarPopup from '@/components/ui/popups/WeightHistoryCalendarPopup.vue'
     import { useProgressStore } from "@/store/progressStore"
     import type { CreateProgressEntry, UpdateProgressEntry } from "@/types/Progress"
+    import {
+        detectPersonalRecordHits,
+        personalRecordMetricLabel,
+        personalRecordMetricValueLabel,
+    } from '@/utils/personalRecords'
     import { useTrainingPlansStore } from "@/store/trainingPlansStore"
     import { useAuthStore } from "@/store/authStore"
     import ProgressLastWorkoutCard from '@/components/ui/progress/ProgressLastWorkoutCard.vue'
@@ -932,15 +937,16 @@
         if (workoutChart) workoutChart.destroy();
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
+        const statWorkouts = strengthWorkouts.value;
 
         workoutChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: workouts.value.map((w) => w.exercise),
+                labels: statWorkouts.map((w) => w.exercise),
                 datasets: [
                     {
                         label: `Gewicht (${unit.value})`,
-                        data: workouts.value.map((w) => kgToDisplay(w.weight)),
+                        data: statWorkouts.map((w) => kgToDisplay(w.weight)),
                         backgroundColor: '#6366f1',
                         borderColor: '#4338ca',
                         borderWidth: 1,
@@ -973,6 +979,67 @@
             workoutChart.update();
         }
     };
+
+    function normalizeWorkoutType(rawTypeInput: unknown, exerciseInput = '', workoutLike?: Partial<Workout>): WorkoutType {
+        const rawType = String(rawTypeInput ?? '').trim().toLowerCase()
+        const name = String(exerciseInput ?? '').toLowerCase()
+
+        const numericType = Number(rawType)
+        if (Number.isFinite(numericType)) {
+            if (numericType === 1) return 'calisthenics'
+            if (numericType === 2) return 'dehnung'
+            if (numericType === 3) return 'ausdauer'
+            return 'kraft'
+        }
+
+        if (rawType === 'kraft' || rawType === 'strength' || rawType === 'weights' || rawType === 'weight') {
+            return 'kraft'
+        }
+        if (rawType === 'ausdauer' || rawType === 'cardio' || rawType === 'endurance' || rawType === 'aerobic') {
+            return 'ausdauer'
+        }
+        if (rawType === 'dehnung' || rawType === 'stretch' || rawType === 'stretching' || rawType === 'mobility') {
+            return 'dehnung'
+        }
+        if (rawType === 'calisthenics' || rawType === 'bodyweight' || rawType === 'bw') {
+            return 'calisthenics'
+        }
+
+        const isCalisthenicsName = ['klimmzug', 'pull up', 'chin up', 'muscle up', 'liegest', 'push up', 'dip', 'handstand', 'l sit',
+            'l-sit', 'front lever', 'back lever', 'human flag', 'planche', 'burpee', 'pistol squat', 'dragon flag', 'toes to bar']
+            .some(keyword => name.includes(keyword))
+        if (isCalisthenicsName) {
+            return 'calisthenics'
+        }
+
+        const isCardioName = ['lauf', 'jogg', 'run', 'treadmill', 'rad', 'fahrrad', 'bike', 'spinning', 'cycling', 'row', 'rudern',
+            'ergometer', 'crosstrainer', 'ellip', 'seilspring', 'rope', 'treppen', 'stairs', 'schwimm', 'walk', 'hike']
+            .some(keyword => name.includes(keyword))
+        if (
+            isCardioName
+            || workoutLike?.durationMin != null
+            || workoutLike?.distanceKm != null
+            || workoutLike?.avgHr != null
+            || workoutLike?.pace != null
+            || workoutLike?.hrZone != null
+        ) {
+            return 'ausdauer'
+        }
+
+        const isStretchName = ['dehn', 'stretch', 'mobil', 'mobility', 'beweglich', 'yoga', 'faszien', 'smr', 'roll', 'hip opener']
+            .some(keyword => name.includes(keyword))
+        const hasStretchFields = workoutLike?.painFree != null || workoutLike?.side != null || workoutLike?.equipment != null
+            || (Array.isArray(workoutLike?.setDetails) && workoutLike.setDetails.some((set) => set?.durationSec != null))
+        if (isStretchName || hasStretchFields) {
+            return 'dehnung'
+        }
+
+        return 'kraft'
+    }
+
+    function getWorkoutTypeForStats(workout: Workout): WorkoutType {
+        return normalizeWorkoutType(workout.type, workout.exercise, workout)
+    }
 
     const updateMacroChart = () => {
         const canvas = document.getElementById('macroChart') as HTMLCanvasElement;
@@ -1136,7 +1203,19 @@
         { flush: 'post' },
     )
 
-    const hasWorkoutStats = computed(() => workouts.value.length > 0)
+    const strengthWorkouts = computed(() => workouts.value.filter((workout) => getWorkoutTypeForStats(workout) === 'kraft'))
+
+    const hasWorkoutStats = computed(() => strengthWorkouts.value.length > 0)
+
+    watch(
+        [activeTab, unit, strengthWorkouts],
+        async () => {
+            if (activeTab.value !== 'stats') return
+            await nextTick()
+            updateWorkoutChart()
+        },
+        { flush: 'post' },
+    )
 
     const doResetWeightStats = () => {
         // alten Zustand für Undo merken
@@ -2755,13 +2834,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     }
 
     const fromApiWorkoutType = (t: any): WorkoutType => {
-        switch (String(t ?? '')) {
-            case 'Kraft': return 'kraft'
-            case 'Ausdauer': return 'ausdauer'
-            case 'Dehnung': return 'dehnung'
-            case 'Calisthenics': return 'calisthenics'
-            default: return 'kraft'
-        }
+        return normalizeWorkoutType(t)
     }
 
     const syncWorkoutsFromStore = (planId: string) => {
@@ -2771,12 +2844,24 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         workouts.value = workouts.value.filter(w => w.planId !== planId)
 
         for (const it of items) {
+            const rawEntry = it as any
+            const normalizedType = normalizeWorkoutType(it.type, it.exercise, {
+                durationMin: it.durationMin ?? undefined,
+                distanceKm: it.distanceKm ?? undefined,
+                avgHr: rawEntry.avgHr ?? undefined,
+                pace: rawEntry.pace ?? undefined,
+                hrZone: rawEntry.hrZone ?? undefined,
+                painFree: rawEntry.painFree ?? undefined,
+                side: rawEntry.side ?? undefined,
+                equipment: rawEntry.equipment ?? undefined,
+                setDetails: Array.isArray(rawEntry.setDetails) ? rawEntry.setDetails : undefined,
+            })
             workouts.value.push({
                 id: it.id,
                 planId: it.planId,
                 date: typeof it.date === 'string' ? it.date : new Date(it.date as any).toISOString(),
                 exercise: it.exercise,
-                type: fromApiWorkoutType(it.type),
+                type: normalizedType,
 
                 sets: it.sets ?? 0,
                 reps: it.reps ?? 0,
@@ -2890,6 +2975,12 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         const planId = workout.planId
         if (!planId) return
 
+        const prHits = detectPersonalRecordHits(
+            getProgressForPlan(planId),
+            workout,
+            { excludeEntryId: mode === "edit" ? workout.id ?? null : null }
+        )
+
         // Sofort lokal aktualisieren: verhindert, dass Same-Day-Prefill erst nach Reload/Refresh sichtbar wird.
         upsertLocalWorkoutDraft(planId, workout, mode)
         upsertProgressContinuationDraft(planId, workout.exercise, draft?.valuesBySet)
@@ -2937,7 +3028,9 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             await progressStore.load(planId, true)
             syncWorkoutsFromStore(planId)
 
-            showToast({ message: "Fortschritt aktualisiert!", type: "success", emoji: "✅" })
+            if (!showPersonalRecordToast(workout.exercise, prHits)) {
+                showToast({ message: "Fortschritt aktualisiert!", type: "success", emoji: "✅" })
+            }
 
         } else {
             const payload: CreateProgressEntry = {
@@ -2977,7 +3070,9 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             await progressStore.load(planId, true)
             syncWorkoutsFromStore(planId)
 
-            showToast({ message: "Fortschritt gespeichert!", type: "success", emoji: "✅" })
+            if (!showPersonalRecordToast(workout.exercise, prHits)) {
+                showToast({ message: "Fortschritt gespeichert!", type: "success", emoji: "✅" })
+            }
         }
 
         const completionCheck = {
@@ -4152,14 +4247,14 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             }
 
             case 'workoutStats': {
-                if (!workouts.value.length) {
+                if (!strengthWorkouts.value.length) {
                     addToast('Keine Trainingsdaten zum Herunterladen', 'default')
                     closeDownloadPopup()
                     return
                 }
                 data = {
-                    totalWorkouts: workouts.value.length,
-                    entries: workouts.value.map(w => ({
+                    totalWorkouts: strengthWorkouts.value.length,
+                    entries: strengthWorkouts.value.map(w => ({
                         exercise: w.exercise,
                         weight_display: formatWeight(w.weight, 1),
                         weight_raw_kg: w.weight,
@@ -4593,6 +4688,26 @@ Notiz: ${e.note ?? '-'}\n`
         return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
+    const formatPersonalRecordToastMessage = (exercise: string, hits: ReturnType<typeof detectPersonalRecordHits>) => {
+        const parts = hits.slice(0, 3).map(hit =>
+            `${personalRecordMetricLabel(hit.metric)} ${personalRecordMetricValueLabel(hit.metric, hit.currentValue)}`
+        )
+
+        const suffix = hits.length > 3 ? ` +${hits.length - 3}` : ''
+        return `PR erreicht: ${exercise} · ${parts.join(' · ')}${suffix}`
+    }
+
+    const showPersonalRecordToast = (exercise: string, hits: ReturnType<typeof detectPersonalRecordHits>) => {
+        if (!hits.length) return false
+        showToast({
+            message: formatPersonalRecordToastMessage(exercise, hits),
+            type: 'success',
+            emoji: '🏆',
+        })
+        confetti({ particleCount: 120, spread: 72, origin: { y: 0.62 } })
+        return true
+    }
+
 
     //Validation Error Popup
 
@@ -4711,7 +4826,12 @@ Notiz: ${e.note ?? '-'}\n`
             const workoutsData = localStorage.getItem(LS_PROGRESS_WORKOUTS);
             if (workoutsData) {
                 const parsed = JSON.parse(workoutsData);
-                workouts.value = parsed;
+                workouts.value = Array.isArray(parsed)
+                    ? parsed.map((workout: Workout) => ({
+                        ...workout,
+                        type: normalizeWorkoutType(workout?.type, workout?.exercise, workout),
+                    }))
+                    : [];
             }
             const proteinData = localStorage.getItem(LS_PROGRESS_PROTEIN);
             if (proteinData) {

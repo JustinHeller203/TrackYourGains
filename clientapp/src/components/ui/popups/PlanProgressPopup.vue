@@ -116,6 +116,7 @@
                           :daysWithEntries="calendarMarkedDaysArr"
                           :dayColors="calendarDayColors"
                           :dayTitles="calendarDayTitles"
+                          :prDays="calendarPrDaysArr"
                           :checkDays="completedPlannedDaysArr"
                           :crossDays="missedPlannedPastDaysArr"
                           @select="onCalendarSelect"
@@ -140,7 +141,10 @@
                             <div class="day-card-main">
                                 <div class="day-date">{{ formatDayLong(c.day) }}</div>
                                 <div class="day-meta">
-                                    <span class="count">{{ c.uniqueExercises }} Übungen</span>
+                                    <span class="count">{{ c.uniqueExercises }} {{ c.uniqueExercises === 1 ? 'Übung' : 'Übungen' }}</span>
+                                    <span v-if="dayPersonalRecordCount(c.day) > 0" class="day-pr-badge">
+                                        {{ dayPersonalRecordCount(c.day) }} PR{{ dayPersonalRecordCount(c.day) > 1 ? 's' : '' }}
+                                    </span>
                                 </div>
                             </div>
 
@@ -157,6 +161,29 @@
                             Kein Eintrag an diesem Tag gemacht.
                         </div>
 
+                        <button v-else-if="dayPersonalRecordCount(c.day) > 0"
+                                type="button"
+                                class="day-pr-summary"
+                                :aria-expanded="expandedPrDays.has(c.day)"
+                                @click.stop="togglePrDay(c.day)">
+                            <span class="day-pr-summary__icon" aria-hidden="true">🏆</span>
+                            <span class="day-pr-summary__text">
+                                {{ dayPersonalRecordCount(c.day) }} persönliche{{ dayPersonalRecordCount(c.day) > 1 ? ' Rekorde' : 'r Rekord' }} an diesem Tag.
+                            </span>
+                            <span class="day-pr-summary__caret" :class="{ open: expandedPrDays.has(c.day) }" aria-hidden="true"></span>
+                        </button>
+
+                        <div v-if="expandedPrDays.has(c.day) && dayPersonalRecordDetails(c.day).length"
+                             class="day-pr-details">
+                            <div v-for="detail in dayPersonalRecordDetails(c.day)"
+                                 :key="`${c.day}-${detail.exercise}-${detail.metric}`"
+                                 class="day-pr-detail">
+                                <span class="day-pr-detail__exercise">{{ detail.exercise }}</span>
+                                <span class="day-pr-detail__metric">{{ detail.metricLabel }}</span>
+                                <span class="day-pr-detail__value">{{ detail.valueLabel }}</span>
+                            </div>
+                        </div>
+
                         <div class="day-details-wrap" :class="{ open: expandedDays.has(c.day) }">
                             <div class="day-details">
                                 <!-- Kraft / Calisthenics -->
@@ -170,7 +197,7 @@
                                                     :aria-expanded="!isSectionCollapsed(c.day, 'strength')"
                                                     :aria-controls="`sec-${c.day}-strength`"
                                                     @click.stop="toggleSection(c.day, 'strength')">
-                                                <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'strength') }">^</span>
+                                                <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'strength') }" aria-hidden="true"></span>
                                                 <span class="sr-only">
                                                     {{ isSectionCollapsed(c.day, 'strength') ? 'Aufklappen' : 'Zuklappen' }}
                                                 </span>
@@ -189,12 +216,6 @@
                                                      @dblclick.stop.prevent="onEntryDblClick(g.editEntry)"
                                                      @keydown.enter.stop.prevent="onEntryDblClick(g.editEntry)">
                                                     <span class="entry-exercise">{{ g.entry.exercise }}</span>
-
-                                                    <span class="entry-chips">
-                                                        <span class="type-chip" :data-type="g.entry.type || 'kraft'">
-                                                            {{ g.entry.type === 'calisthenics' ? 'Calisthenics' : 'Kraft' }}
-                                                        </span>
-                                                    </span>
 
                                                     <span class="entry-actions">
                                                         <template v-if="g.entry.setDetails?.length">
@@ -288,7 +309,7 @@
                                                 :aria-expanded="!isSectionCollapsed(c.day, 'cardio')"
                                                 :aria-controls="`sec-${c.day}-cardio`"
                                                 @click.stop="toggleSection(c.day, 'cardio')">
-                                            <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'cardio') }">^</span>
+                                            <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'cardio') }" aria-hidden="true"></span>
                                             <span class="sr-only">
                                                 {{ isSectionCollapsed(c.day, 'cardio') ? 'Aufklappen' : 'Zuklappen' }}
                                             </span>
@@ -307,7 +328,6 @@
                                                      @keydown.enter.stop.prevent="onEntryDblClick(g.editEntry)">
 
                                                     <span class="entry-exercise">{{ g.entry.exercise }}</span>
-                                                    <span class="type-chip" data-type="ausdauer">Cardio</span>
 
                                                     <span class="entry-actions">
                                                         <span v-if="g.summary.durationSumMin > 0" class="sum-pill">
@@ -414,7 +434,7 @@
                                                 :aria-expanded="!isSectionCollapsed(c.day, 'stretch')"
                                                 :aria-controls="`sec-${c.day}-stretch`"
                                                 @click.stop="toggleSection(c.day, 'stretch')">
-                                            <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'stretch') }">^</span>
+                                            <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'stretch') }" aria-hidden="true"></span>
                                             <span class="sr-only">
                                                 {{ isSectionCollapsed(c.day, 'stretch') ? 'Aufklappen' : 'Zuklappen' }}
                                             </span>
@@ -433,7 +453,6 @@
                                                      @keydown.enter.stop.prevent="onEntryDblClick(e)">
 
                                                     <span class="entry-exercise">{{ stretchTitle(e) }}</span>
-                                                    <span class="type-chip" data-type="dehnung">Dehnung</span>
 
                                                     <span class="entry-actions">
                                                         <span v-if="stretchSummaryDuration(e)" class="sum-pill">
@@ -597,6 +616,13 @@
     import { setTrainingPlanColor } from '@/services/trainingPlans'
     import { storeToRefs } from "pinia"
     import { getWeightIncreaseHint } from '@/utils/trainingWeightIncreaseHint'
+    import {
+        computeExercisePersonalRecords,
+        getEntryPersonalRecordMetrics,
+        personalRecordExerciseKey,
+        personalRecordMetricLabel,
+        personalRecordMetricValueLabel,
+    } from '@/utils/personalRecords'
 
     type DayCard = { day: string; uniqueExercises: number }
     type PlannedStrengthMeta = { reps: number | null; goal: string | null; type: string | null }
@@ -1125,6 +1151,72 @@
         }))
     })
 
+    const personalRecordByExercise = computed(() => {
+        const map = new Map<string, ReturnType<typeof computeExercisePersonalRecords>[number]>()
+        for (const record of computeExercisePersonalRecords(apiWorkouts.value)) {
+            map.set(record.exerciseKey, record)
+        }
+        return map
+    })
+
+    const strengthGroupPrMetrics = (group: StrengthGroup) => {
+        const exerciseKey = personalRecordExerciseKey(group.entry.exercise)
+        if (!exerciseKey) return [] as Array<'weight' | 'reps' | 'volume' | 'oneRm'>
+
+        const record = personalRecordByExercise.value.get(exerciseKey)
+        if (!record) return [] as Array<'weight' | 'reps' | 'volume' | 'oneRm'>
+
+        const achieved = new Set<'weight' | 'reps' | 'volume' | 'oneRm'>()
+
+        for (const entry of group.entries) {
+            const metrics = getEntryPersonalRecordMetrics(entry)
+            for (const metric of ['weight', 'reps', 'volume', 'oneRm'] as const) {
+                const stat = record.metrics[metric]
+                const value = metrics[metric]
+                if (!stat || value == null) continue
+                if (Math.abs(value - stat.value) > 0.0001) continue
+                if (String(entry.date ?? '') !== String(stat.date ?? '')) continue
+                achieved.add(metric)
+            }
+        }
+
+        return [...achieved]
+    }
+
+    const dayPersonalRecordCount = (day: string) =>
+        strengthGroupsForDay(day).reduce((sum, group) => sum + strengthGroupPrMetrics(group).length, 0)
+
+    const dayPersonalRecordDetails = (day: string) => {
+        const details: Array<{
+            exercise: string
+            metric: 'weight' | 'reps' | 'volume' | 'oneRm'
+            metricLabel: string
+            valueLabel: string
+        }> = []
+
+        for (const group of strengthGroupsForDay(day)) {
+            const exerciseKey = personalRecordExerciseKey(group.entry.exercise)
+            if (!exerciseKey) continue
+
+            const record = personalRecordByExercise.value.get(exerciseKey)
+            if (!record) continue
+
+            for (const metric of strengthGroupPrMetrics(group)) {
+                const stat = record.metrics[metric]
+                if (!stat) continue
+
+                details.push({
+                    exercise: group.entry.exercise,
+                    metric,
+                    metricLabel: personalRecordMetricLabel(metric),
+                    valueLabel: personalRecordMetricValueLabel(metric, stat.value),
+                })
+            }
+        }
+
+        return details
+    }
+
     const strengthEntryStats = (it: WorkoutLike) => {
         const hasDetails = Array.isArray(it.setDetails) && it.setDetails.length > 0
         const detailsMatchSets = hasDetails && (it.sets == null || it.sets === it.setDetails!.length)
@@ -1196,6 +1288,7 @@
     const planLastSummary = computed(() => lastEntrySummary.value)
     const visibleDays = ref(7)
     const expandedDays = ref<Set<string>>(new Set())
+    const expandedPrDays = ref<Set<string>>(new Set())
 
     const menuDay = ref<string | null>(null)
     const menuAnchorEl = ref<HTMLElement | null>(null)
@@ -1434,6 +1527,7 @@
 
         // Nur diesen Tag offen lassen
         expandedDays.value = new Set([day])
+        expandedPrDays.value = new Set()
         expandedEntryKeys.value = new Set()
 
         collapsedSections.value = new Set()
@@ -1466,6 +1560,7 @@
         selectedDay.value = null
         collapsedSections.value = new Set()
         expandedDays.value = new Set()
+        expandedPrDays.value = new Set()
         expandedEntryKeys.value = new Set()
         visibleDays.value = 7
     }
@@ -2149,8 +2244,12 @@
         return [...set]
     })
 
+    const calendarPrDaysArr = computed<string[]>(() =>
+        dayCards.value.map(c => c.day).filter(day => dayPersonalRecordCount(day) > 0)
+    )
+
     const calendarDayColors = computed<Record<string, string | string[]>>(() => {
-        const out: Record<string, string> = {}
+        const out: Record<string, string | string[]> = {}
         const entryDays = new Set(daysWithEntriesArr.value)
         const completedDays = new Set(completedPlannedDaysArr.value)
         const missedPastDays = new Set(missedPlannedPastDaysArr.value)
@@ -2176,6 +2275,7 @@
         const plannedSet = new Set(plannedDaysForCurrentPlan.value)
         const completedSet = new Set(completedPlannedDaysArr.value)
         const missedPastSet = new Set(missedPlannedPastDaysArr.value)
+        const prDays = new Set(calendarPrDaysArr.value)
         for (const d of calendarMarkedDaysArr.value) {
             const parts: string[] = []
             if (plannedSet.has(d)) {
@@ -2184,6 +2284,7 @@
                 else parts.push('Geplantes Workout')
             }
             if (daysWithEntriesArr.value.includes(d) && !completedSet.has(d)) parts.push('Fortschritt erfasst')
+            if (prDays.has(d)) parts.push(`${dayPersonalRecordCount(d)} PR${dayPersonalRecordCount(d) > 1 ? 's' : ''} erreicht`)
             out[d] = parts.join(' · ') || 'Tag'
         }
         return out
@@ -2217,6 +2318,12 @@
         const next = new Set(expandedDays.value)
         next.has(day) ? next.delete(day) : next.add(day)
         expandedDays.value = next
+    }
+
+    function togglePrDay(day: string) {
+        const next = new Set(expandedPrDays.value)
+        next.has(day) ? next.delete(day) : next.add(day)
+        expandedPrDays.value = next
     }
 
     function onEntryDblClick(entry: WorkoutLike) {
@@ -2453,6 +2560,7 @@
         entry: WorkoutLike          // gemergter "Anzeige-Entry"
         editEntry: WorkoutLike      // welches echte Entry beim Doppelklick editiert wird (latest)
         stats: ReturnType<typeof setStats>
+        entries: WorkoutLike[]
     }
 
     const toSetDetails = (e: WorkoutLike) => {
@@ -2529,6 +2637,7 @@
                 entry: merged,
                 editEntry: last,
                 stats: setStats(merged),
+                entries: sorted,
             })
         }
 
@@ -2589,6 +2698,7 @@
             if (open) {
                 visibleDays.value = 7
                 expandedDays.value = new Set()
+                expandedPrDays.value = new Set()
                 expandedEntryKeys.value = new Set()
                 viewMode.value = props.initialView ?? 'list'
                 selectedDay.value = null
@@ -2752,17 +2862,36 @@
         overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
     }
-    .section-caret {
-        display: inline-block;
-        font-weight: 950;
-        line-height: 1;
-        transform: rotate(0deg);
-        transition: transform 160ms ease;
-        translate: 0 1px; /* optisch nicer */
+    .section-caret,
+    .day-pr-summary__caret {
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        opacity: 0.9;
+        color: var(--text-primary);
+        font-size: 0;
+        line-height: 0;
+        text-indent: -9999px;
+        transition: transform 180ms ease, opacity 160ms ease;
+        flex: 0 0 auto;
     }
 
-        .section-caret.open {
-            transform: rotate(180deg);
+        .section-caret::before,
+        .day-pr-summary__caret::before {
+            content: '';
+            width: 9px;
+            height: 9px;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg);
+            transition: transform 180ms ease;
+        }
+
+        .section-caret.open::before,
+        .day-pr-summary__caret.open::before {
+            transform: rotate(225deg);
         }
 
     /* screen-reader only */
@@ -2999,6 +3128,8 @@
         }
 
     .entry-exercise {
+        flex: 1 1 220px;
+        order: 1;
         font-weight: 850;
         letter-spacing: -0.01em;
         min-width: 0;
@@ -3006,35 +3137,8 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         color: var(--text-primary);
+        text-align: left;
     }
-
-    /* Typ-Chip: klein, klar, immer sichtbar */
-    .type-chip {
-        font-size: .74rem;
-        padding: .20rem .55rem;
-        border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.18);
-        background: rgba(148, 163, 184, 0.10);
-        color: var(--text-secondary);
-        white-space: nowrap;
-    }
-
-        /* Type Farben (nur dezent, aber eindeutig) */
-        .type-chip[data-type="ausdauer"] {
-            border-color: rgba(96, 165, 250, 0.28);
-            background: rgba(96, 165, 250, 0.12);
-        }
-
-        .type-chip[data-type="dehnung"] {
-            border-color: rgba(52, 211, 153, 0.26);
-            background: rgba(52, 211, 153, 0.11);
-        }
-
-        .type-chip[data-type="kraft"],
-        .type-chip[data-type="calisthenics"] {
-            border-color: rgba(167, 139, 250, 0.28);
-            background: rgba(167, 139, 250, 0.12);
-        }
 
     .entry-summary {
         display: inline-flex;
@@ -3045,12 +3149,111 @@
     }
 
     .sum-pill {
+        flex: 0 0 auto;
         font-size: .88rem;
         font-weight: 800;
         padding: .28rem .6rem;
         border-radius: 999px;
         border: 1px solid rgba(148, 163, 184, 0.18);
         background: rgba(148, 163, 184, 0.10);
+        color: var(--text-primary);
+        white-space: nowrap;
+    }
+
+    .day-pr-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        flex: 0 0 auto;
+        padding: .22rem .58rem;
+        border-radius: 999px;
+        border: 1px solid rgba(245, 158, 11, 0.34);
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.18), rgba(234, 179, 8, 0.10));
+        color: var(--text-primary);
+        font-size: .78rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .day-pr-badge {
+        margin-left: .2rem;
+    }
+
+    .day-pr-summary {
+        appearance: none;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        margin-top: .55rem;
+        padding: .7rem .8rem;
+        border-radius: 14px;
+        border: 1px solid rgba(245, 158, 11, 0.28);
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.14), rgba(234, 179, 8, 0.08));
+        color: var(--text-primary);
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .day-pr-summary:hover {
+        border-color: rgba(245, 158, 11, 0.4);
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.18), rgba(234, 179, 8, 0.10));
+    }
+
+    .day-pr-summary__icon {
+        width: 1.8rem;
+        height: 1.8rem;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.10);
+        flex: 0 0 auto;
+    }
+
+    .day-pr-summary__text {
+        font-weight: 800;
+        line-height: 1.25;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .day-pr-details {
+        display: grid;
+        gap: .45rem;
+        margin-top: .45rem;
+        padding: .15rem 0 0;
+    }
+
+    .day-pr-detail {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: .5rem;
+        align-items: center;
+        padding: .6rem .75rem;
+        border-radius: 12px;
+        border: 1px solid rgba(245, 158, 11, 0.16);
+        background: rgba(245, 158, 11, 0.06);
+    }
+
+    .day-pr-detail__exercise {
+        min-width: 0;
+        font-weight: 800;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .day-pr-detail__metric {
+        font-size: .84rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        white-space: nowrap;
+    }
+
+    .day-pr-detail__value {
+        font-size: .84rem;
+        font-weight: 900;
         color: var(--text-primary);
         white-space: nowrap;
     }
@@ -3108,40 +3311,45 @@
         white-space: nowrap;
     }
 
-    @media (max-width: 520px) {
-        .entry-head {
-            grid-template-columns: minmax(0, 1fr) auto;
-            align-items: start;
-        }
-
-        .entry-chips {
-            justify-self: end;
-        }
-
-        .entry-actions {
-            grid-column: 1 / -1;
-            justify-self: start;
-            justify-content: flex-start;
-            margin-top: .15rem;
-        }
-    }
-
-    .entry-chips {
-        display: inline-flex;
-        align-items: center;
-        gap: .4rem;
-        flex-wrap: wrap;
-        justify-self: start;
-    }
-
     .entry-actions {
         display: inline-flex;
         align-items: center;
         gap: .4rem;
         flex-wrap: wrap;
-        justify-self: end;
         justify-content: flex-end;
+        margin-left: auto;
+        margin-right: 0;
+        order: 2;
+        flex: 0 1 auto;
         min-width: 0;
+    }
+
+    .entry-actions > * {
+        max-width: 100%;
+    }
+
+    @media (max-width: 640px) {
+        .entry-exercise {
+            flex-basis: 100%;
+            max-width: 100%;
+        }
+
+        .entry-actions {
+            flex: 1 1 100%;
+            margin-left: 0;
+            justify-content: flex-start;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .entry-head {
+            gap: .4rem .5rem;
+        }
+
+        .sum-pill {
+            font-size: .82rem;
+            padding: .24rem .52rem;
+        }
     }
 
     @media (max-width: 520px) {
@@ -3276,11 +3484,53 @@
     }
 
     .entry-head {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto auto;
+        display: flex;
         align-items: center;
         gap: .45rem .6rem;
+        flex-wrap: wrap;
+        min-width: 0;
         padding-left: 1rem;
+    }
+
+    @media (max-width: 420px) {
+        .journal-entry {
+            padding: .8rem .75rem;
+        }
+
+        .entry-exercise {
+            font-size: .97rem;
+        }
+
+        .day-meta {
+            gap: .3rem;
+            flex-wrap: wrap;
+        }
+
+        .day-pr-badge {
+            margin-left: 0;
+        }
+
+        .day-pr-detail {
+            grid-template-columns: 1fr;
+            gap: .25rem;
+        }
+
+        .day-pr-detail__exercise,
+        .day-pr-detail__metric,
+        .day-pr-detail__value {
+            white-space: normal;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .entry-actions {
+            gap: .3rem;
+        }
+
+        .sum-pill {
+            font-size: .78rem;
+            padding: .22rem .45rem;
+        }
     }
 
     .chips {

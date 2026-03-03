@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '@/pages/LandingPage.vue'
+import Beschwerden from '@/pages/Beschwerden.vue'
 import Training from '@/pages/Training.vue'
 import Nutrition from '@/pages/Nutrition.vue'
 import Progress from '@/pages/Progress.vue'
@@ -22,6 +23,7 @@ const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         { path: '/', name: 'home', component: LandingPage },
+        { path: '/beschwerden', name: 'beschwerden', component: Beschwerden },
         { path: '/training', name: 'training', component: Training },
         { path: '/nutrition', name: 'nutrition', component: Nutrition },
         { path: '/progress', name: 'progress', component: Progress },

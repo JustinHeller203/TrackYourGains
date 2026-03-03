@@ -69,6 +69,7 @@
                     :class="{
                         'is-out': !cell.inMonth,
                         'has-entry': !!cell.day && hasEntries(cell.day),
+                        'has-pr': !!cell.day && hasPr(cell.day),
                         'has-check': !!cell.day && hasCheck(cell.day),
                         'has-cross': !!cell.day && hasCross(cell.day),
                         'is-today': cell.day === todayKey,
@@ -117,6 +118,7 @@
         dayColors?: Record<string, string | string[]>
         dayTitles?: Record<string, string>
         dayTrends?: Record<string, 'up' | 'down' | 'same'>
+        prDays?: string[]
         selectedDays?: string[]
         checkDays?: string[]
         crossDays?: string[]
@@ -213,7 +215,9 @@
     const selectedSet = computed(() => new Set(props.selectedDays ?? []))
     const checkSet = computed(() => new Set(props.checkDays ?? []))
     const crossSet = computed(() => new Set(props.crossDays ?? []))
+    const prSet = computed(() => new Set(props.prDays ?? []))
     const hasEntries = (day: string) => daysSet.value.has(day)
+    const hasPr = (day: string) => prSet.value.has(day)
     const hasCheck = (day: string) => checkSet.value.has(day)
     const hasCross = (day: string) => crossSet.value.has(day)
     const isSelected = (day: string) => selectedSet.value.has(day)
@@ -402,6 +406,11 @@
             background: radial-gradient(circle at 20% 25%, rgba(129,140,248,0.14), transparent 62%), rgba(148, 163, 184, 0.06);
         }
 
+        .cal-cell.has-pr {
+            border-color: rgba(245, 158, 11, 0.78);
+            box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.24);
+        }
+
         .cal-cell.is-today {
             outline: 2px solid rgba(129, 140, 248, 0.45);
             outline-offset: 2px;
@@ -431,6 +440,21 @@
         border-radius: 999px;
         background: rgba(129, 140, 248, 0.85);
         box-shadow: 0 0 14px rgba(129, 140, 248, 0.25);
+        animation: cal-dot-blink .9s steps(1, end) infinite;
+    }
+
+    @keyframes cal-dot-blink {
+        0%, 49% {
+            opacity: 1;
+            transform: scale(1.08);
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.18), 0 0 18px rgba(129, 140, 248, 0.34);
+        }
+
+        50%, 100% {
+            opacity: .18;
+            transform: scale(.82);
+            box-shadow: 0 0 0 0 rgba(129, 140, 248, 0), 0 0 6px rgba(129, 140, 248, 0.08);
+        }
     }
 
     .cal-trend {
@@ -593,6 +617,11 @@
             background: radial-gradient(circle at 18% 22%, rgba(129,140,248,0.14), transparent 62%), color-mix(in srgb, #020617 78%, var(--bg-card) 22%);
         }
 
+        html.dark-mode .cal-cell.has-pr {
+            border-color: rgba(245, 158, 11, 0.86);
+            box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.30), 0 0 0 1px rgba(245, 158, 11, 0.10);
+        }
+
         html.dark-mode .cal-cell.is-today {
             outline-color: rgba(99, 102, 241, 0.18);
             outline-width: 3px;
@@ -615,6 +644,12 @@
     html.dark-mode .cal-dot {
         background: rgba(129, 140, 248, 0.85);
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18), 0 0 18px rgba(99, 102, 241, 0.22);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .cal-dot {
+            animation: none;
+        }
     }
 
     html.dark-mode .cal-trend.is-up {
