@@ -221,6 +221,7 @@
     const TIMER_KEY = LS_TRAINING_TIMERS_V1
     const STOPWATCH_KEY = LS_TRAINING_STOPWATCHES_V1
     const NEWS_SEEN_KEY = LS_NEWS_SEEN_VERSION
+    const NEWS_VISIT_COUNT_KEY = 'tyg_news_visit_count'
 
 
     // === neue Refs & Konstanten oben zu den anderen Refs ===
@@ -818,8 +819,13 @@
     // Load saved data
     onMounted(() => {
         loadAll()
+        const rawVisits = Number(localStorage.getItem(NEWS_VISIT_COUNT_KEY) ?? '0')
+        const visitCount = Number.isFinite(rawVisits) ? Math.max(0, Math.floor(rawVisits)) : 0
+        const nextVisitCount = visitCount + 1
+        localStorage.setItem(NEWS_VISIT_COUNT_KEY, String(nextVisitCount))
+
         const seen = localStorage.getItem(NEWS_SEEN_KEY)
-        if (seen !== NEWS_VERSION) {
+        if (nextVisitCount > 1 && seen !== NEWS_VERSION) {
             showNewsPopup.value = true
         }
 
