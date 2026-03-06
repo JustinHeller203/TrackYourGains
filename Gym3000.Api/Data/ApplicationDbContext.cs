@@ -25,6 +25,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<TrainingDay> TrainingDays => Set<TrainingDay>();
     public DbSet<TrainingExercise> TrainingExercises => Set<TrainingExercise>();
     public DbSet<ProgressEntry> ProgressEntries => Set<ProgressEntry>();
+    public DbSet<ComplaintEntry> ComplaintEntries => Set<ComplaintEntry>();
     public DbSet<TrainingSession> TrainingSessions => Set<TrainingSession>();
     public DbSet<TrainingSessionFeedback> TrainingSessionFeedbacks => Set<TrainingSessionFeedback>();
     public DbSet<TimerEntity> Timers => Set<TimerEntity>();
@@ -334,6 +335,42 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
             e.HasIndex(x => new { x.UserId, x.PlanId, x.Date });
             e.HasIndex(x => new { x.UserId, x.PlanId, x.Exercise });
+        });
+
+        // -------- ComplaintEntry --------
+        builder.Entity<ComplaintEntry>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.UserId).IsRequired();
+
+            e.Property(x => x.Area)
+             .IsRequired()
+             .HasMaxLength(40);
+
+            e.Property(x => x.Category)
+             .IsRequired()
+             .HasMaxLength(40);
+
+            e.Property(x => x.Status)
+             .IsRequired()
+             .HasMaxLength(20);
+
+            e.Property(x => x.Intensity)
+             .IsRequired();
+
+            e.Property(x => x.Date)
+             .HasColumnType("date");
+
+            e.Property(x => x.Notes)
+             .HasMaxLength(400);
+
+            e.Property(x => x.CreatedAt)
+             .HasColumnType("timestamptz")
+             .IsRequired();
+
+            e.HasIndex(x => new { x.UserId, x.Date });
+            e.HasIndex(x => new { x.UserId, x.Area, x.Category, x.Status });
         });
 
 

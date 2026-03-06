@@ -37,6 +37,8 @@ export const LS_PROGRESS_WORKOUTS = 'progress_workouts' as const
 export const LS_PROGRESS_MEALS = 'progress_meals' as const
 export const LS_PROGRESS_GOAL = 'progress_goal' as const
 export const LS_PROGRESS_FAVORITE_CALCULATORS = 'progress_favorite_calculators' as const
+export const LS_COMPLAINTS_ENTRIES = 'complaints_entries_v1' as const
+export const LS_COMPLAINTS_CUSTOM_AREAS = 'complaints_custom_areas_v1' as const
 
 // Progress / Calculators (persisted state)
 export const LS_PROGRESS_BMI = 'progress_bmi' as const
@@ -135,6 +137,8 @@ export const LS_PROGRESS_KEYS = [
     LS_PROGRESS_MEALS,
     LS_PROGRESS_GOAL,
     LS_PROGRESS_FAVORITE_CALCULATORS,
+    LS_COMPLAINTS_ENTRIES,
+    LS_COMPLAINTS_CUSTOM_AREAS,
 
     // calculator states
     LS_PROGRESS_BMI,

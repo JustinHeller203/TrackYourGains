@@ -1,12 +1,57 @@
 <!-- components/ui/popups/TrainingSimulation.vue -->
 <template>
     <BasePopup :show="show"
-               :title="plan?.name ? `⚡ Training läuft – ${plan.name}` : '⚡ Training läuft'"
+               :title="popupTitle"
                overlayClass="training-sim-popup"
                :showClose="true"
                :show-actions="false"
                @cancel="emitClose()">
-        <div class="sim-scroll">
+        <div v-if="isFollowUpOnly" class="sim-followup">
+            <div class="sim-followup-card">
+                <div class="sim-followup-title">
+                    Dieses Training wurde heute schon abgeschlossen.
+                </div>
+                <p class="sim-followup-text">
+                    Statt direkt neu zu starten kannst du hier dein heutiges Training nachpflegen oder bearbeiten.
+                </p>
+                <div class="sim-followup-status">
+                    <div class="sim-followup-row">
+                        <span>Feedback</span>
+                        <strong class="sim-followup-dbl"
+                                role="button"
+                                tabindex="0"
+                                @dblclick="onFollowupFeedbackDblClick">
+                            {{ followupFeedbackExists ? 'Vorhanden' : 'Fehlt' }}
+                        </strong>
+                    </div>
+                    <div class="sim-followup-row" :class="{ 'is-disabled': !followupPainAvailable }">
+                        <span>Schmerztagebuch</span>
+                        <strong class="sim-followup-dbl"
+                                role="button"
+                                tabindex="0"
+                                @dblclick="onFollowupPainDblClick">
+                            {{ followupPainDoneToday ? 'Vorhanden' : (followupPainAvailable ? 'Fehlt' : 'Nicht nötig') }}
+                        </strong>
+                    </div>
+                </div>
+                <p class="sim-followup-hint">
+                    Hinweis: Doppelklick auf <b>Fehlt</b> oder <b>Vorhanden</b>, um Feedback oder Schmerztagebuch zu bearbeiten/nachzuholen.
+                </p>
+                <div class="sim-followup-actions">
+                    <PopupActionButton variant="ghost" @click="openFollowupPlanProgress">
+                        Training ansehen
+                    </PopupActionButton>
+                    <PopupActionButton variant="ghost" @click="openFollowupTrainingEdit">
+                        Heutige Trainingseinträge bearbeiten
+                    </PopupActionButton>
+                    <PopupActionButton @click="startNewTrainingAnyway">
+                        Neues Training trotzdem starten
+                    </PopupActionButton>
+                </div>
+            </div>
+        </div>
+
+        <div v-else class="sim-scroll">
 
             <div class="sim-wrap">
                 <div v-if="!plan || !plan.exercises?.length" class="sim-empty">
@@ -275,13 +320,25 @@
 
     <TrainingFeedbackForm :show="feedbackOpen"
                           :exercises="summaryPerExercise"
+                          :initialFeedback="feedbackInitialData"
+                          :reviewMode="feedbackReviewMode"
                           @submit="onFeedbackSubmit"
                           @skip="onFeedbackSkip" />
+
+    <PainFeedbackPopup :show="painFeedbackOpen"
+                       @save="onPainFeedbackSave"
+                       @skip="onPainFeedbackSkip" />
+
+    <PainZeroConfirmPopup :show="painZeroConfirmOpen"
+                          :complaints="painZeroCandidates"
+                          @confirmGone="onPainZeroConfirmGone"
+                          @keep="onPainZeroKeep" />
 </template>
 
 
 <script setup lang="ts">
     import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue"
+    import { useRouter } from "vue-router"
     import BasePopup from "@/components/ui/popups/BasePopup.vue"
     import PopupActionButton from "@/components/ui/buttons/popup/PopupActionButton.vue"
     import UiPopupSelect from "@/components/ui/kits/selects/UiPopupSelect.vue"
@@ -290,11 +347,17 @@
     import { useWeightStore } from "@/store/weightStore"
     import TrainingSessionSummary from "@/components/ui/training/TrainingSessionSummary.vue"
     import TrainingFeedbackForm from "@/components/ui/popups/feedback/TrainingFeedbackForm.vue"
+    import PainFeedbackPopup from "@/components/ui/feedback/PainFeedbackPopup.vue"
+    import PainZeroConfirmPopup from "@/components/ui/feedback/PainZeroConfirmPopup.vue"
+    import { appendPainDiaryEntry, evaluatePainDiarySignals } from "@/components/ui/feedback/painDiary"
     import { useProgressStore } from "@/store/progressStore"
+    import { useComplaintsStore } from "@/store/complaintsStore"
+    import type { ComplaintEntry } from "@/types/complaint"
     import { useAuthStore } from "@/store/authStore"
     import { getProfile } from "@/services/profile"
-    import { createTrainingSession } from "@/services/trainingSessions"
+    import { createTrainingSession, upsertTrainingSessionFeedback, type TrainingSessionFeedbackPayload } from "@/services/trainingSessions"
     import { getWeightIncreaseHint } from "@/utils/trainingWeightIncreaseHint"
+    import { LS_OPEN_PLAN_ID } from "@/constants/storageKeys"
 
     const DEBUG_SIM = true
     function dlog(...a: any[]) {
@@ -304,7 +367,9 @@
     }
 
     const progressStore = useProgressStore()
+    const complaintsStore = useComplaintsStore()
     const auth = useAuthStore()
+    const router = useRouter()
 
     const mottoLocal = ref('')
 
@@ -339,6 +404,7 @@
         }
 
         finalizeTrainingSession()
+        feedbackSource.value = followUpTrainingMode.value === 'edit-existing' ? 'followup' : 'normal'
         feedbackOpen.value = true
     }
 
@@ -517,6 +583,10 @@
     const props = defineProps<{
         show: boolean
         plan: ViewPlan | null
+        followUpMode?: boolean
+        followUpSessionId?: string | null
+        followUpFeedback?: TrainingSessionFeedbackPayload | null
+        followUpHasPainDiaryToday?: boolean
 
         // ✅ für ProgressEntryModal
         unit?: 'kg' | 'lbs'            // <- optional
@@ -578,6 +648,13 @@
         pendingProgressSaves.value = []
         weightUpgradeHintPopupOpen.value = false
         feedbackOpen.value = false
+        painFeedbackOpen.value = false
+        followUpBypass.value = false
+        followUpTrainingMode.value = 'new'
+        feedbackSource.value = 'normal'
+        painSource.value = 'normal'
+        followupFeedbackState.value = props.followUpFeedback ?? null
+        followupPainDoneState.value = !!props.followUpHasPainDiaryToday
         sessionStartedAtIso.value = null
         sessionFinishedAtIso.value = null
         sessionDurationSec.value = null
@@ -613,6 +690,106 @@
 
     const summaryOpen = ref(false)
     const feedbackOpen = ref(false)
+    const painFeedbackOpen = ref(false)
+    const painZeroConfirmOpen = ref(false)
+    const painZeroCandidates = ref<ComplaintEntry[]>([])
+    const followUpBypass = ref(false)
+    const followUpTrainingMode = ref<'new' | 'edit-existing'>('new')
+    const feedbackSource = ref<'normal' | 'followup'>('normal')
+    const painSource = ref<'normal' | 'followup'>('normal')
+    const followupFeedbackState = ref<TrainingSessionFeedbackPayload | null>(props.followUpFeedback ?? null)
+    const followupPainDoneState = ref(!!props.followUpHasPainDiaryToday)
+
+    const isFollowUpOnly = computed(() => !!props.followUpMode && !followUpBypass.value)
+    const followupPainDoneToday = computed(() => followupPainDoneState.value)
+    const popupTitle = computed(() => {
+        if (isFollowUpOnly.value) return props.plan?.name ? `📋 Training verwalten – ${props.plan.name}` : '📋 Training verwalten'
+        return props.plan?.name ? `⚡ Training läuft – ${props.plan.name}` : '⚡ Training läuft'
+    })
+    const followupFeedbackExists = computed(() => {
+        const src = followupFeedbackState.value
+        if (!src) return false
+        return src.intensity != null
+            || !!src.bestExercise
+            || src.strengthTechnique != null
+            || src.cardioIntensity != null
+            || src.stretchPain != null
+            || !!String(src.note ?? '').trim()
+    })
+    const followupPainAvailable = computed(() => openComplaintsForPainFeedback().length > 0)
+    const feedbackInitialData = computed(() => isFollowUpOnly.value ? (followupFeedbackState.value ?? null) : null)
+    const feedbackReviewMode = computed(() => isFollowUpOnly.value && followupFeedbackExists.value)
+
+    const openFollowupFeedback = () => {
+        feedbackSource.value = 'followup'
+        feedbackOpen.value = true
+    }
+
+    const openFollowupPainDiary = () => {
+        if (!followupPainAvailable.value) return
+        painSource.value = 'followup'
+        painFeedbackOpen.value = true
+    }
+
+    const onFollowupFeedbackDblClick = () => {
+        openFollowupFeedback()
+    }
+
+    const onFollowupPainDblClick = () => {
+        if (!followupPainAvailable.value) return
+        openFollowupPainDiary()
+    }
+
+    const openFollowupPlanProgress = async () => {
+        const planId = String(props.plan?.id ?? '').trim()
+        if (!planId) return
+
+        try {
+            localStorage.setItem(LS_OPEN_PLAN_ID, planId)
+        } catch {
+            // ignore
+        }
+
+        emitClose()
+        try {
+            await router.push({
+                path: '/progress',
+                query: {
+                    tab: 'plans',
+                    planId,
+                    openPlanProgress: '1',
+                },
+            })
+        } catch {
+            // ignore
+        }
+    }
+
+    const openFollowupTrainingEdit = () => {
+        followUpTrainingMode.value = 'edit-existing'
+        followUpBypass.value = true
+        exIndex.value = 0
+        setDone.value = 0
+        selectedSetNumber.value = 1
+        inSet.value = false
+        resetRest()
+        nextTick(() => {
+            openProgressModalForCurrentSet({ skipMoti: true, delayMs: 0 })
+        })
+    }
+
+    const startNewTrainingAnyway = () => {
+        followUpTrainingMode.value = 'new'
+        followUpBypass.value = true
+    }
+
+    watch(() => props.followUpFeedback, (next) => {
+        followupFeedbackState.value = next ?? null
+    })
+    watch(() => props.followUpHasPainDiaryToday, (next) => {
+        followupPainDoneState.value = !!next
+    })
+
 
     const sessionStartedAtIso = ref<string | null>(null)
     const sessionFinishedAtIso = ref<string | null>(null)
@@ -704,6 +881,26 @@
         stretchPain: number | null
         note: string
     }) => {
+        if (feedbackSource.value === 'followup') {
+            followupFeedbackState.value = { ...payload }
+            if (auth.user && props.followUpSessionId) {
+                try {
+                    await upsertTrainingSessionFeedback(props.followUpSessionId, payload)
+                } catch (err) {
+                    dlog('FOLLOWUP_FEEDBACK_SAVE_FAILED', err)
+                }
+            }
+            feedbackOpen.value = false
+            if (!followupPainDoneToday.value && followupPainAvailable.value) {
+                painSource.value = 'followup'
+                painFeedbackOpen.value = true
+                return
+            }
+            if (isFollowUpOnly.value) return
+            emitClose()
+            return
+        }
+
         dlog('FEEDBACK_SUBMIT', payload)
         if (auth.user) {
             const dto = buildTrainingSessionPayload(payload)
@@ -716,10 +913,26 @@
             }
         }
         feedbackOpen.value = false
+        if (await shouldAskPainFeedback()) {
+            painFeedbackOpen.value = true
+            return
+        }
         emitClose()
     }
 
     const onFeedbackSkip = async () => {
+        if (feedbackSource.value === 'followup') {
+            feedbackOpen.value = false
+            if (!followupPainDoneToday.value && followupPainAvailable.value) {
+                painSource.value = 'followup'
+                painFeedbackOpen.value = true
+                return
+            }
+            if (isFollowUpOnly.value) return
+            emitClose()
+            return
+        }
+
         dlog('FEEDBACK_SKIP')
         if (auth.user) {
             const dto = buildTrainingSessionPayload(null)
@@ -732,8 +945,109 @@
             }
         }
         feedbackOpen.value = false
+        if (await shouldAskPainFeedback()) {
+            painFeedbackOpen.value = true
+            return
+        }
         emitClose()
     }
+
+    const openComplaintsForPainFeedback = () =>
+        complaintsStore.entries.filter((entry) => entry.status !== 'weg')
+
+    const shouldAskPainFeedback = async () => {
+        try {
+            await complaintsStore.load()
+        } catch {
+            // ignore and continue with in-memory entries
+        }
+        return openComplaintsForPainFeedback().length > 0
+    }
+
+    const onPainFeedbackSave = async (payload: { painLevel: number; note: string }) => {
+        const openComplaints = openComplaintsForPainFeedback()
+        appendPainDiaryEntry({
+            source: 'training-simulation',
+            painLevel: payload.painLevel,
+            note: payload.note,
+            activeComplaints: openComplaints,
+        })
+
+        const signals = evaluatePainDiarySignals({
+            currentPainLevel: payload.painLevel,
+            complaintIds: openComplaints.map((item) => item.id),
+        })
+
+        if (signals.improvedVsPrevious) {
+            const toBetter = openComplaints.filter((item) => item.status === 'aktiv')
+            for (const complaint of toBetter) {
+                try {
+                    await complaintsStore.updateStatus(complaint.id, 'besser')
+                } catch {
+                    // ignore and continue
+                }
+            }
+        }
+
+        painZeroCandidates.value = openComplaints.filter((item) => signals.zeroStreakComplaintIds.includes(item.id))
+        followupPainDoneState.value = true
+        painFeedbackOpen.value = false
+        if (painSource.value === 'followup') {
+            if (painZeroCandidates.value.length) {
+                painZeroConfirmOpen.value = true
+                return
+            }
+            if (isFollowUpOnly.value) return
+            emitClose()
+            return
+        }
+        if (painZeroCandidates.value.length) {
+            painZeroConfirmOpen.value = true
+            return
+        }
+        emitClose()
+    }
+
+    const onPainFeedbackSkip = () => {
+        painFeedbackOpen.value = false
+        if (painSource.value === 'followup') {
+            if (isFollowUpOnly.value) return
+            emitClose()
+            return
+        }
+        emitClose()
+    }
+
+    const onPainZeroKeep = () => {
+        painZeroConfirmOpen.value = false
+        painZeroCandidates.value = []
+        if (painSource.value === 'followup') {
+            if (isFollowUpOnly.value) return
+            emitClose()
+            return
+        }
+        emitClose()
+    }
+
+    const onPainZeroConfirmGone = async () => {
+        const list = [...painZeroCandidates.value]
+        for (const complaint of list) {
+            try {
+                await complaintsStore.updateStatus(complaint.id, 'weg')
+            } catch {
+                // ignore and continue
+            }
+        }
+        painZeroConfirmOpen.value = false
+        painZeroCandidates.value = []
+        if (painSource.value === 'followup') {
+            if (isFollowUpOnly.value) return
+            emitClose()
+            return
+        }
+        emitClose()
+    }
+
     type SetPrefill = { weight?: number | null; reps?: number | null }
     type ExercisePrefillMap = Record<number, SetPrefill> // key = setNumber (1-based)
     type PrefillCache = Record<string, ExercisePrefillMap> // key = planId|exIndex
@@ -1709,15 +2023,19 @@
                 exercises: props.plan?.exercises?.length ?? 0,
             })
 
+            try { void complaintsStore.load() } catch { }
+
             sessionStartedAtIso.value = new Date().toISOString()
             sessionFinishedAtIso.value = null
             sessionDurationSec.value = null
 
             lockPageScroll()
 
-            // ✅ MOTI-Toast direkt beim Öffnen
-            showMoti("DU BIST DRIN.", "HEUTE WIRD GELIEFERT. 💣", MOTI_MS_DEFAULT)
-            pulse([35, 30, 35])
+            if (!isFollowUpOnly.value) {
+                // ✅ MOTI-Toast direkt beim Öffnen
+                showMoti("DU BIST DRIN.", "HEUTE WIRD GELIEFERT. 💣", MOTI_MS_DEFAULT)
+                pulse([35, 30, 35])
+            }
         } else {
             unlockPageScroll()
         }
@@ -1730,6 +2048,12 @@
             sessionFinishedAtIso.value = null
             sessionDurationSec.value = null
             feedbackOpen.value = false
+            painFeedbackOpen.value = false
+            painZeroConfirmOpen.value = false
+            followUpBypass.value = false
+            followUpTrainingMode.value = 'new'
+            feedbackSource.value = 'normal'
+            painSource.value = 'normal'
             return
         }
 
@@ -1775,6 +2099,81 @@
 </script>
 
 <style scoped>
+    .sim-followup {
+        display: grid;
+        gap: .9rem;
+        padding: .25rem .15rem .4rem;
+    }
+
+    .sim-followup-card {
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        background: rgba(15, 23, 42, 0.12);
+        padding: .95rem;
+        display: grid;
+        gap: .75rem;
+    }
+
+    .sim-followup-title {
+        font-weight: 900;
+        color: var(--text-primary);
+        font-size: 1.03rem;
+    }
+
+    .sim-followup-text {
+        margin: 0;
+        color: var(--text-secondary);
+    }
+
+    .sim-followup-status {
+        display: grid;
+        gap: .45rem;
+    }
+
+    .sim-followup-row {
+        display: flex;
+        justify-content: space-between;
+        gap: .8rem;
+        padding: .5rem .55rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: rgba(2, 6, 23, 0.16);
+        color: var(--text-secondary);
+    }
+
+    .sim-followup-row strong {
+        color: var(--text-primary);
+    }
+
+    .sim-followup-row.is-disabled .sim-followup-dbl {
+        opacity: .75;
+        cursor: not-allowed;
+    }
+
+    .sim-followup-dbl {
+        color: var(--text-primary);
+        text-decoration: underline;
+        text-decoration-color: rgba(148, 163, 184, 0.5);
+        text-underline-offset: 2px;
+        cursor: pointer;
+    }
+
+    .sim-followup-hint {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: .88rem;
+        line-height: 1.35;
+    }
+
+    .sim-followup-actions {
+        display: grid;
+        gap: .55rem;
+    }
+
+    .sim-followup-actions > * {
+        width: 100%;
+    }
+
     .sim-wrap {
         display: grid;
         gap: 1rem;

@@ -46,32 +46,51 @@
             <Teleport to="body">
                 <transition name="popsel-dd">
                     <div v-if="isOpen"
-                         ref="menuEl"
+                         ref="menuRootEl"
                          class="popsel__menu"
                          role="listbox"
                          :aria-labelledby="id"
                          :style="menuStyle"
                          @pointerdown.prevent>
 
-                        <div v-if="placeholder"
-                             class="popsel__opt popsel__opt--placeholder"
-                             aria-hidden="true">
-                            {{ placeholder }}
-                        </div>
-
-                        <button v-for="(opt, idx) in options"
-                                :key="opt.value"
+                        <button v-if="canQuickJump"
                                 type="button"
-                                class="popsel__opt"
-                                :class="{
-                        'is-selected': opt.value === stringValue,
-                        'is-active': activeIndex === idx
-                    }"
-                                @mousemove="activeIndex = idx"
-                                @click="selectValue(opt.value)">
-                            <span class="popsel__opt-label">{{ opt.label }}</span>
-                            <span v-if="opt.value === stringValue" class="popsel__check" aria-hidden="true">✓</span>
+                                class="popsel__menu-jump"
+                                :title="quickJumpTitleResolved"
+                                :aria-label="quickJumpTitleResolved"
+                                @click.stop="scrollToQuickJump">
+                            ↓
                         </button>
+
+                        <div ref="menuEl" class="popsel__menu-scroll">
+                            <div v-if="placeholder"
+                                 class="popsel__opt popsel__opt--placeholder"
+                                 aria-hidden="true">
+                                {{ placeholder }}
+                            </div>
+
+                            <div v-for="(opt, idx) in options"
+                                 :key="opt.value"
+                                 class="popsel__opt-row"
+                                 @mousemove="activeIndex = idx">
+                                <button type="button"
+                                        class="popsel__opt"
+                                        :class="{
+                                            'is-selected': opt.value === stringValue,
+                                            'is-active': activeIndex === idx
+                                        }"
+                                        @click="selectValue(opt.value)">
+                                    <span class="popsel__opt-label">{{ opt.label }}</span>
+                                    <span v-if="opt.value === stringValue" class="popsel__check" aria-hidden="true">✓</span>
+                                </button>
+
+                                <InfoButton v-if="hasOptionInfo(opt.value)"
+                                            class="popsel__opt-info"
+                                            :ariaLabel="`Info zu ${opt.label}`"
+                                            :title="`Info zu ${opt.label}`"
+                                            @click="emitOptionInfo(opt.value)" />
+                            </div>
+                        </div>
                     </div>
                 </transition>
             </Teleport>
@@ -85,6 +104,7 @@
 
 <script setup lang="ts">
     import { computed, nextTick, onBeforeUnmount, ref } from "vue";
+    import InfoButton from '@/components/ui/buttons/InfoButton.vue'
 
     const props = withDefaults(defineProps<{
         modelValue: string | null | undefined
@@ -94,17 +114,22 @@
         error?: string
         id?: string
         disabled?: boolean
+        quickJumpValue?: string
+        quickJumpTitle?: string
+        optionInfoValues?: string[]
 
         options?: Array<{ label: string; value: string }>
     }>(), {
         disabled: false,
         options: () => [],
+        optionInfoValues: () => [],
     });
 
     const emit = defineEmits<{
         (e: "update:modelValue", v: string): void
         (e: "enter"): void
         (e: "blur"): void
+        (e: "option-info", v: string): void
     }>();
 
     const fallbackId = `popsel-${Math.random().toString(36).slice(2, 10)}`;
@@ -150,12 +175,28 @@
     }
 
     const menuEl = ref<HTMLElement | null>(null);
+    const menuRootEl = ref<HTMLElement | null>(null);
 
     const labelFor = (v: string) => props.options?.find(o => o.value === v)?.label ?? "";
     const displayLabel = computed(() => {
         if (!stringValue.value) return props.placeholder ?? "Bitte wählen";
         return labelFor(stringValue.value) || stringValue.value;
     });
+
+    const canQuickJump = computed(() => {
+        const target = String(props.quickJumpValue ?? "").trim();
+        if (!target) return false;
+        return !!props.options?.some((opt) => opt.value === target);
+    });
+    const optionInfoValueSet = computed(() => new Set(
+        (props.optionInfoValues ?? [])
+            .map((item) => String(item ?? "").trim())
+            .filter(Boolean)
+    ));
+
+    const quickJumpTitleResolved = computed(() =>
+        props.quickJumpTitle || "Nach unten springen"
+    );
 
     function open() {
         if (props.disabled) return;
@@ -200,11 +241,36 @@
         close(true);
     }
 
+    function jumpToValue() {
+        if (props.disabled || !canQuickJump.value) return;
+        const target = String(props.quickJumpValue ?? "").trim();
+        if (!target) return;
+        const idx = props.options?.findIndex((opt) => opt.value === target) ?? -1;
+        if (idx < 0) return;
+        activeIndex.value = idx;
+        nextTick(() => scrollActiveIntoView());
+    }
+
+    function scrollToQuickJump() {
+        jumpToValue();
+    }
+
+    function hasOptionInfo(value: string) {
+        return optionInfoValueSet.value.has(String(value ?? "").trim());
+    }
+
+    function emitOptionInfo(value: string) {
+        const clean = String(value ?? "").trim();
+        if (!clean || !hasOptionInfo(clean)) return;
+        close(false);
+        emit("option-info", clean);
+    }
+
     function onOutsidePointerDown(e: Event) {
         const t = e.target as Node | null;
         if (!t) return;
         if (triggerEl.value?.contains(t)) return;
-        if (menuEl.value?.contains(t)) return;
+        if (menuRootEl.value?.contains(t)) return;
         close(false);
     }
 
@@ -447,9 +513,37 @@
     .popsel__field.has-trailing .popsel__chev {
         right: 2.85rem;
     }
+
     .popsel__field.is-open .popsel__chev {
         transform: rotate(-135deg);
         opacity: 1;
+    }
+
+    .popsel__menu-jump {
+        position: absolute;
+        top: 0.35rem;
+        right: 0.35rem;
+        margin: 0;
+        width: 1.7rem;
+        height: 1.7rem;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.22);
+        color: color-mix(in srgb, var(--text-primary) 90%, #ffffff 10%);
+        font-size: 0.92rem;
+        line-height: 1;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+        z-index: 4;
+    }
+
+    .popsel__menu-jump:hover {
+        border-color: rgba(148, 163, 184, 0.6);
+        background: rgba(15, 23, 42, 0.32);
+        transform: translateY(-1px);
     }
 
     /* Platz für Chevron rechts */
@@ -464,8 +558,7 @@
         right: 0;
         top: calc(100% + 8px);
         z-index: 50;
-        max-height: 240px;
-        overflow: auto;
+        overflow: visible;
         border-radius: 14px;
         border: 1px solid rgba(148, 163, 184, 0.26);
         background: color-mix(in srgb, #020617 86%, var(--bg-card) 14%);
@@ -473,7 +566,19 @@
         padding: 0.35rem;
     }
 
+    .popsel__menu-scroll {
+        max-height: 240px;
+        overflow: auto;
+    }
+
     /* Optionen */
+    .popsel__opt-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
     .popsel__opt {
         width: 100%;
         border: 0;
@@ -497,6 +602,11 @@
         .popsel__opt.is-selected {
             background: color-mix(in srgb, rgba(99, 102, 241, 0.28) 70%, transparent 30%);
         }
+
+    .popsel__opt-info {
+        align-self: center;
+        margin-right: 0.35rem;
+    }
 
     .popsel__opt--placeholder {
         opacity: 0.85;
@@ -522,16 +632,16 @@
     }
 
     /* Scrollbar im Dropdown */
-    .popsel__menu::-webkit-scrollbar {
+    .popsel__menu-scroll::-webkit-scrollbar {
         width: var(--sb-size);
         height: var(--sb-size);
     }
 
-    .popsel__menu::-webkit-scrollbar-track {
+    .popsel__menu-scroll::-webkit-scrollbar-track {
         background: transparent;
     }
 
-    .popsel__menu::-webkit-scrollbar-thumb {
+    .popsel__menu-scroll::-webkit-scrollbar-thumb {
         background: color-mix(in oklab, var(--accent-primary) 55%, transparent);
         border-radius: 999px;
         border: 3px solid transparent;

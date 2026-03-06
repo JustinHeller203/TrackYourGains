@@ -117,7 +117,6 @@
         overflow: auto; /* ADD: Scrollbar für alle Popups */
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
-        padding-right: .15rem; /* ADD: Luft für Scrollbar */
     }
     .popup-overlay.explanation-popup .popup-body {
         padding-right: 0;

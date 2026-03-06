@@ -378,6 +378,10 @@
 
     <TrainingSimulation :show="simOpen"
                         :plan="simPlan"
+                        :followUpMode="simFollowupMode"
+                        :followUpSessionId="simFollowupSessionId"
+                        :followUpFeedback="simFollowupFeedback"
+                        :followUpHasPainDiaryToday="simFollowupPainDiaryToday"
                         @close="closeSimulation"
                         @progressSave="onSimProgressSave"
                         @progressInvalid="onSimProgressInvalid"
@@ -405,6 +409,8 @@
     import PlanCreatedTutorial from "@/components/ui/TygTutorials/PlanCreatedTutorial.vue"
     import TrainingSimulation from "@/components/ui/popups/TrainingSimulation.vue"
     import { useProgressStore } from "@/store/progressStore"
+    import { listTrainingSessions, type TrainingSessionFeedbackPayload, type TrainingSessionFeedbackRecord } from "@/services/trainingSessions"
+    import { hasPainDiaryEntryForDay } from '@/components/ui/feedback/painDiary'
 
     /* -------------------- Types (nur Plans) -------------------- */
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
@@ -472,6 +478,10 @@
 
     const simOpen = ref(false)
     const simPlan = ref<ViewPlan | null>(null)
+    const simFollowupMode = ref(false)
+    const simFollowupSessionId = ref<string | null>(null)
+    const simFollowupFeedback = ref<TrainingSessionFeedbackPayload | null>(null)
+    const simFollowupPainDiaryToday = ref(false)
 
     const downloadPlan = async (plan: ViewPlan) => {
         closePlanMenu()
@@ -511,12 +521,79 @@
             props.addToast('Plan konnte nicht geladen werden', 'delete')
         }
     }
+
+    const todayLocalKey = () => {
+        const now = new Date()
+        const y = now.getFullYear()
+        const m = String(now.getMonth() + 1).padStart(2, '0')
+        const d = String(now.getDate()).padStart(2, '0')
+        return `${y}-${m}-${d}`
+    }
+
+    const isSameTrainingDay = (finishedAtUtc?: string | null) => {
+        const key = String(finishedAtUtc ?? '').slice(0, 10)
+        if (!key) return false
+        return key === todayLocalKey() || key === new Date().toISOString().slice(0, 10)
+    }
+
+    const feedbackFromSession = (row: TrainingSessionFeedbackRecord): TrainingSessionFeedbackPayload | null => {
+        if (!row.feedbackId) return null
+        return {
+            intensity: row.intensity ?? null,
+            bestExercise: row.bestExercise ?? null,
+            strengthTechnique: row.strengthTechnique ?? null,
+            cardioIntensity: row.cardioIntensity ?? null,
+            stretchPain: row.stretchPain ?? null,
+            note: row.note ?? '',
+        }
+    }
+
+    const latestTodaySessionForPlan = async (planId: string): Promise<TrainingSessionFeedbackRecord | null> => {
+        if (!auth.user) return null
+        try {
+            const rows = await listTrainingSessions({ planId })
+            const todayRows = rows
+                .filter((row) => isSameTrainingDay(row.finishedAtUtc))
+                .sort((a, b) => String(b.finishedAtUtc ?? '').localeCompare(String(a.finishedAtUtc ?? '')))
+            return todayRows[0] ?? null
+        } catch {
+            return null
+        }
+    }
+
+    const hasPainDiaryForToday = () => {
+        const localDay = todayLocalKey()
+        const utcDay = new Date().toISOString().slice(0, 10)
+        return hasPainDiaryEntryForDay({ source: 'training-simulation', day: localDay })
+            || hasPainDiaryEntryForDay({ source: 'training-simulation', day: utcDay })
+    }
+
+    const hasProgressEntriesForToday = async (planId: string) => {
+        try {
+            await progressStore.load(planId, true)
+        } catch {
+            return false
+        }
+
+        const items = progressStore.byPlan?.[planId]?.items ?? []
+        const localDay = todayLocalKey()
+        const utcDay = new Date().toISOString().slice(0, 10)
+        return items.some((row: any) => {
+            const day = String(row?.date ?? '').slice(0, 10)
+            return day === localDay || day === utcDay
+        })
+    }
+
     const startSimulation = async (plan: ViewPlan) => {
         closePlanMenu()
 
         // Gast: hat i.d.R. schon exercises drin
         if (!auth.user) {
             simPlan.value = plan
+            simFollowupMode.value = false
+            simFollowupSessionId.value = null
+            simFollowupFeedback.value = null
+            simFollowupPainDiaryToday.value = false
             simOpen.value = true
             return
         }
@@ -544,6 +621,21 @@
 
             // sim braucht ViewPlan mit exercises
             simPlan.value = flattenDto(dto)
+            const todaySession = await latestTodaySessionForPlan(simPlan.value.id)
+            const hasTodayEntries = await hasProgressEntriesForToday(simPlan.value.id)
+            if (todaySession && hasTodayEntries) {
+                simFollowupMode.value = true
+                simFollowupSessionId.value = todaySession.sessionId
+                simFollowupFeedback.value = feedbackFromSession(todaySession)
+                simFollowupPainDiaryToday.value = hasPainDiaryForToday()
+                simOpen.value = true
+                return
+            }
+
+            simFollowupMode.value = false
+            simFollowupSessionId.value = null
+            simFollowupFeedback.value = null
+            simFollowupPainDiaryToday.value = false
             simOpen.value = true
         } catch {
             props.addToast('Plan konnte nicht geladen werden', 'delete')
@@ -553,6 +645,10 @@
     const closeSimulation = () => {
         simOpen.value = false
         simPlan.value = null
+        simFollowupMode.value = false
+        simFollowupSessionId.value = null
+        simFollowupFeedback.value = null
+        simFollowupPainDiaryToday.value = false
     }
     const openPlanFromTutorial = (planId: string) => {
         loadPlan(planId)

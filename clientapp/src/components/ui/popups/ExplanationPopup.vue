@@ -1,7 +1,8 @@
 ﻿<!--components/ui/popups/ExplanationPopup.vue:-->
 
 <template>
-    <InfoButton :ariaLabel="ariaOpen"
+    <InfoButton v-if="!hideTrigger"
+                :ariaLabel="ariaOpen"
                 :title="ariaOpen"
                 @click="open()" />
 
@@ -59,6 +60,7 @@
         ariaOpen?: string
         ariaClose?: string
         zIndex?: number
+        hideTrigger?: boolean
 
         // legacy: wird NICHT mehr automatisch “intelligent” ausgewertet
         text?: string

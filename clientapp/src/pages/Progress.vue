@@ -591,6 +591,15 @@
                               @skip="onTrainingFeedbackSkip"
                               @close="onTrainingFeedbackClose" />
 
+        <PainFeedbackPopup :show="showPainFeedback"
+                           @save="onPainFeedbackSave"
+                           @skip="onPainFeedbackSkip" />
+
+        <PainZeroConfirmPopup :show="showPainZeroConfirm"
+                              :complaints="painZeroCandidates"
+                              @confirmGone="onPainZeroConfirmGone"
+                              @keep="onPainZeroKeep" />
+
         <WeightHistoryCalendarPopup :show="showWeightHistoryCalendarPopup"
                                     :entries="weightHistory"
                                     :goalKg="goal"
@@ -657,8 +666,11 @@
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import PlanProgressPopup from '@/components/ui/popups/PlanProgressPopup.vue'
     import TrainingFeedbackForm from '@/components/ui/popups/feedback/TrainingFeedbackForm.vue'
+    import PainFeedbackPopup from '@/components/ui/feedback/PainFeedbackPopup.vue'
+    import PainZeroConfirmPopup from '@/components/ui/feedback/PainZeroConfirmPopup.vue'
     import WeightHistoryCalendarPopup from '@/components/ui/popups/WeightHistoryCalendarPopup.vue'
     import { useProgressStore } from "@/store/progressStore"
+    import { useComplaintsStore } from "@/store/complaintsStore"
     import type { CreateProgressEntry, UpdateProgressEntry } from "@/types/Progress"
     import {
         detectPersonalRecordHits,
@@ -678,6 +690,8 @@
         type TrainingSessionFeedbackRecord
     } from "@/services/trainingSessions"
     import { listTrainingPlanner, setTrainingPlannerCompletion } from "@/services/trainingPlanner"
+    import { appendPainDiaryEntry, evaluatePainDiarySignals } from '@/components/ui/feedback/painDiary'
+    import type { ComplaintEntry } from '@/types/complaint'
 
     import { useRoute } from 'vue-router'
 
@@ -805,6 +819,7 @@
 
     const trainingPlansStore = useTrainingPlansStore()
     const auth = useAuthStore()
+    const complaintsStore = useComplaintsStore()
 
     const activePlanId = computed(() => effectivePlanId.value)
 
@@ -2581,11 +2596,15 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         await loadAllProgressForPlans()
 
         jumpToCalculatorsFromRoute()
+        await maybeOpenPlanProgressFromRoute()
     })
 
     watch(
-        () => [route.query.tab, route.query.focus],
-        () => jumpToCalculatorsFromRoute()
+        () => [route.query.tab, route.query.focus, route.query.openPlanProgress, route.query.planId],
+        async () => {
+            jumpToCalculatorsFromRoute()
+            await maybeOpenPlanProgressFromRoute()
+        }
     )
 
     //ProgressEntryModal
@@ -2600,6 +2619,9 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     const showTrainingCompletePrompt = ref(false)
     const showTrainingFeedback = ref(false)
+    const showPainFeedback = ref(false)
+    const showPainZeroConfirm = ref(false)
+    const painZeroCandidates = ref<ComplaintEntry[]>([])
     const pendingCompletion = ref<{ planId: string; day: string; planned: boolean; calendarMarked?: boolean } | null>(null)
     const pendingFeedbackPlanId = ref<string | null>(null)
     const trainingFeedbackReviewMode = ref(false)
@@ -3211,6 +3233,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         pendingCompletion.value = null
         pendingFeedbackPlanId.value = null
         resetTrainingFeedbackPopupState()
+        await maybeAskPainFeedbackAfterTraining()
     }
 
     const onTrainingFeedbackSkip = async () => {
@@ -3248,6 +3271,75 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         pendingCompletion.value = null
         pendingFeedbackPlanId.value = null
         resetTrainingFeedbackPopupState()
+        await maybeAskPainFeedbackAfterTraining()
+    }
+
+    const openComplaintsForPainFeedback = () =>
+        complaintsStore.entries.filter((entry) => entry.status !== 'weg')
+
+    const maybeAskPainFeedbackAfterTraining = async () => {
+        try {
+            await complaintsStore.load()
+        } catch {
+            // ignore
+        }
+        if (!openComplaintsForPainFeedback().length) {
+            showPainFeedback.value = false
+            return
+        }
+        showPainFeedback.value = true
+    }
+
+    const onPainFeedbackSave = async (payload: { painLevel: number; note: string }) => {
+        const openComplaints = openComplaintsForPainFeedback()
+        appendPainDiaryEntry({
+            source: 'plan-progress',
+            painLevel: payload.painLevel,
+            note: payload.note,
+            activeComplaints: openComplaints,
+        })
+
+        const signals = evaluatePainDiarySignals({
+            currentPainLevel: payload.painLevel,
+            complaintIds: openComplaints.map((item) => item.id),
+        })
+
+        if (signals.improvedVsPrevious) {
+            const toBetter = openComplaints.filter((item) => item.status === 'aktiv')
+            for (const complaint of toBetter) {
+                try {
+                    await complaintsStore.updateStatus(complaint.id, 'besser')
+                } catch {
+                    // ignore and continue
+                }
+            }
+        }
+
+        painZeroCandidates.value = openComplaints.filter((item) => signals.zeroStreakComplaintIds.includes(item.id))
+        showPainFeedback.value = false
+        showPainZeroConfirm.value = painZeroCandidates.value.length > 0
+    }
+
+    const onPainFeedbackSkip = () => {
+        showPainFeedback.value = false
+    }
+
+    const onPainZeroKeep = () => {
+        showPainZeroConfirm.value = false
+        painZeroCandidates.value = []
+    }
+
+    const onPainZeroConfirmGone = async () => {
+        const list = [...painZeroCandidates.value]
+        for (const complaint of list) {
+            try {
+                await complaintsStore.updateStatus(complaint.id, 'weg')
+            } catch {
+                // ignore and continue
+            }
+        }
+        showPainZeroConfirm.value = false
+        painZeroCandidates.value = []
     }
 
     const maybePromptTrainingComplete = async (planId: string, dateIso: string) => {
@@ -3918,6 +4010,24 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const lastPlanId = ref<string | null>(null)
     const planProgressInitialView = ref<'list' | 'calendar' | 'stats'>('list')
     const effectivePlanId = computed(() => currentPlanId.value ?? lastPlanId.value)
+
+    const maybeOpenPlanProgressFromRoute = async () => {
+        const tab = String(route.query.tab ?? '')
+        const openFlag = String(route.query.openPlanProgress ?? '')
+        const planId = String(route.query.planId ?? '').trim()
+        if (tab !== 'plans' || openFlag !== '1' || !planId) return
+
+        activeTab.value = 'plans'
+        currentPlanId.value = planId
+        lastPlanId.value = planId
+
+        await nextTick()
+        showPlanProgressPopup.value = true
+
+        const q: Record<string, any> = { ...route.query }
+        delete q.openPlanProgress
+        router.replace({ query: q })
+    }
 
     watch(showProgressPopup, async (open, wasOpen) => {
         if (wasOpen && !open) {
