@@ -14,8 +14,8 @@ export async function register(email: string, username: string, password: string
     return data;
 }
 
-export async function login(username: string, password: string) {
-    const { data } = await api.post<AuthResponse>("/auth/login", { username, password });
+export async function login(identifier: string, password: string) {
+    const { data } = await api.post<AuthResponse>("/auth/login", { username: identifier, password });
     setToken(data.token);
     return data;
 }

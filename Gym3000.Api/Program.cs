@@ -271,6 +271,7 @@ using (var scope = app.Services.CreateScope())
 
         // 2) Seed laden (nur wenn noch leer)
         await Gym3000.Api.Data.Seed.GlycemicFoodsSeeder.SeedAsync(db, logger);
+        await Gym3000.Api.Data.Seed.ExerciseLibrarySeeder.SeedAsync(db, logger);
     }
     catch (Exception ex)
     {

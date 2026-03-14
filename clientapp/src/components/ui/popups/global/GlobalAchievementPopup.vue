@@ -1,18 +1,9 @@
 <template>
-    <div v-if="show && badge"
-         class="achievement-popup-backdrop"
-         @click.self="$emit('close')">
-        <div class="achievement-popup">
-            <div class="achievement-header">
-                <span class="achievement-pill">Neues Achievement</span>
-                <button class="achievement-close"
-                        type="button"
-                        aria-label="Achievement schliessen"
-                        @click="$emit('close')">
-                    x
-                </button>
-            </div>
-
+    <BasePopup :show="show && !!badge"
+               overlayClass="global-achievement-popup"
+               :show-actions="false"
+               @cancel="$emit('close')">
+        <div v-if="badge" class="achievement-root">
             <div class="achievement-body">
                 <div class="achievement-icon">
                     <img src="/achievements/FirstStepAchievementIcon.png"
@@ -20,21 +11,25 @@
                          class="achievement-icon-img" />
                 </div>
                 <div class="achievement-text">
+                    <div class="achievement-pill">Freigeschaltet</div>
                     <h4>{{ badge.label }}</h4>
                     <p>{{ badge.desc }}</p>
                 </div>
             </div>
+        </div>
 
+        <template #actions>
             <button class="achievement-cta"
                     type="button"
                     @click="$emit('close')">
-                Weiter machen
+                Weiter
             </button>
-        </div>
-    </div>
+        </template>
+    </BasePopup>
 </template>
 
 <script setup lang="ts">
+    import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import type { Badge } from '@/utils/achievements'
 
     defineProps<{
@@ -47,133 +42,113 @@
     }>()
 </script>
 
-<style scoped>
-    .achievement-popup-backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 5000;
+<style>
+    .achievement-root {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .achievement-body {
+        display: grid;
+        grid-template-columns: 76px minmax(0, 1fr);
+        gap: 0.8rem;
+        align-items: start;
+    }
+
+    .achievement-icon {
+        width: 76px;
+        height: 76px;
+        border-radius: 12px;
         display: grid;
         place-items: center;
-        padding: 1rem;
-        background: rgba(10, 14, 26, 0.55);
-        backdrop-filter: blur(4px);
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        background: rgba(15, 23, 42, 0.08);
     }
 
-    .achievement-popup {
-        width: min(560px, 92vw);
-        border-radius: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: color-mix(in srgb, var(--bg-card, #101522) 86%, #000 14%);
-        box-shadow: 0 28px 60px rgba(2, 6, 23, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-        animation: achievement-pop-in 0.24s ease-out;
-        overflow: hidden;
+    .achievement-icon-img {
+        width: 52px;
+        height: 52px;
+        object-fit: contain;
+        display: block;
     }
 
-    .achievement-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
-        padding: 0.9rem 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #4B6CB7) 22%, transparent), color-mix(in srgb, var(--accent-secondary, #182848) 18%, transparent));
+    .achievement-text {
+        display: grid;
+        gap: 0.34rem;
+        align-content: start;
     }
 
     .achievement-pill {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        font-size: 0.78rem;
-        font-weight: 800;
+        width: fit-content;
+        font-size: 0.64rem;
+        font-weight: 700;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        color: #e5eefc;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.16);
+        color: var(--text-secondary);
+        border: 1px solid rgba(148, 163, 184, 0.28);
         border-radius: 999px;
-        padding: 0.35rem 0.65rem;
-    }
-
-    .achievement-close {
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        background: rgba(255, 255, 255, 0.08);
-        color: #f8fafc;
-        cursor: pointer;
-        font-size: 1.15rem;
-        line-height: 1;
-    }
-
-    .achievement-body {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        padding: 1rem;
-    }
-
-    .achievement-icon {
-        width: 72px;
-        height: 72px;
-        border-radius: 16px;
-        display: grid;
-        place-items: center;
-        background: linear-gradient(160deg, color-mix(in srgb, var(--accent-primary, #4B6CB7) 30%, #fff 0%), color-mix(in srgb, var(--accent-secondary, #182848) 30%, #000 0%));
-        box-shadow: 0 10px 24px rgba(2, 6, 23, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-        flex-shrink: 0;
-    }
-
-    .achievement-icon-img {
-        width: 56px;
-        height: 56px;
-        object-fit: contain;
-        display: block;
+        background: rgba(15, 23, 42, 0.08);
+        padding: 0.14rem 0.46rem;
     }
 
     .achievement-text h4 {
-        margin: 0 0 0.25rem;
-        font-size: 1.15rem;
-        color: var(--text-main, #f8fafc);
+        margin: 0;
+        font-size: 1.08rem;
+        line-height: 1.2;
+        color: var(--text-primary);
     }
 
     .achievement-text p {
         margin: 0;
-        color: var(--text-muted, #cbd5e1);
+        color: var(--text-secondary);
         line-height: 1.45;
+        font-size: 0.9rem;
     }
 
     .achievement-cta {
-        width: calc(100% - 2rem);
-        margin: 0 1rem 1rem;
-        height: 44px;
-        border: none;
+        width: 100%;
+        min-height: 42px;
+        padding: 0.66rem 0.9rem;
         border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--text-primary);
+        font-weight: 700;
         cursor: pointer;
-        font-weight: 800;
-        color: #fff;
-        background: linear-gradient(135deg, var(--accent-primary, #4B6CB7), var(--accent-secondary, #182848));
+        transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
     }
 
-    @keyframes achievement-pop-in {
-        from {
-            opacity: 0;
-            transform: translateY(10px) scale(0.98);
-        }
+    .achievement-cta:hover {
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, var(--accent-primary) 55%, rgba(148, 163, 184, 0.32));
+        background: color-mix(in srgb, var(--accent-primary) 9%, rgba(15, 23, 42, 0.06));
+    }
 
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
+    .achievement-cta:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--accent-primary) 70%, #fff 30%);
+        outline-offset: 2px;
     }
 
     @media (max-width: 560px) {
-        .achievement-popup {
-            width: 94vw;
+        .achievement-body {
+            grid-template-columns: 64px minmax(0, 1fr);
+            gap: 0.62rem;
         }
 
-        .achievement-body {
-            align-items: flex-start;
+        .achievement-icon {
+            width: 64px;
+            height: 64px;
+        }
+
+        .achievement-icon-img {
+            width: 42px;
+            height: 42px;
+        }
+
+        .achievement-text h4 {
+            font-size: 1rem;
         }
     }
 </style>

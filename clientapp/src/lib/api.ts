@@ -2,6 +2,7 @@
 import axios, { AxiosError, type AxiosRequestConfig } from "axios";
 import { LS_AUTH_TOKEN } from "../constants/storageKeys";
 import type { AxiosRequestHeaders } from "axios";
+import { computed, ref } from "vue";
 
 function buildBaseUrl(): string {
     // .env(.local/.production):
@@ -18,6 +19,17 @@ export const api = axios.create({
     withCredentials: true, // wichtig f?rs HttpOnly-Refresh-Cookie "rt"
     headers: { "Content-Type": "application/json" },
 });
+
+const pendingApiRequests = ref(0);
+export const isGlobalApiLoading = computed(() => pendingApiRequests.value > 0);
+
+function incGlobalLoading() {
+    pendingApiRequests.value += 1;
+}
+
+function decGlobalLoading() {
+    pendingApiRequests.value = Math.max(0, pendingApiRequests.value - 1);
+}
 
 // ---- Token Handling ----
 let memoryToken: string | null = null;
@@ -45,6 +57,7 @@ export function getToken(): string | null {
 
 // ---- Request Interceptor: h?nge Token an ----
 api.interceptors.request.use((config) => {
+    incGlobalLoading();
     const t = getToken();
     if (t) {
         const headers = (config.headers ?? {}) as AxiosRequestHeaders;
@@ -66,8 +79,12 @@ function flushQueue(token: string | null) {
 }
 
 api.interceptors.response.use(
-    (res) => res,
+    (res) => {
+        decGlobalLoading();
+        return res;
+    },
     async (error: AxiosError) => {
+        decGlobalLoading();
         const status = error.response?.status;
         const original = error.config as RetriableConfig | undefined;
 

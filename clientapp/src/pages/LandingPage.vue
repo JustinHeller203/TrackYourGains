@@ -13,7 +13,7 @@
             </p>
 
             <p class="hero-subtitle">
-                Dein Begleiter für Fitness, Ernährung und Fortschritt. Starte jetzt und erreiche deine Ziele! 💪
+                Dein Begleiter für Training, Beschwerden und Fortschritt. Starte strukturiert und bleib an deinen Zielen dran.
             </p>
 
             <router-link to="/progress" class="cta-button">Jetzt loslegen</router-link>
@@ -34,8 +34,8 @@
                     <p class="stat-text">Workouts abgeschlossen</p>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-number">{{ mealsPlanned }}</span>
-                    <p class="stat-text">Mahlzeiten geplant</p>
+                    <span class="stat-number">{{ complaintsTracked }}</span>
+                    <p class="stat-text">Beschwerden erfasst</p>
                 </div>
                 <div class="stat-card">
                     <span class="stat-number">{{ kgLost }}</span>
@@ -48,19 +48,19 @@
             <div class="features-grid">
                 <div class="feature-card">
                     <h3 class="feature-title">🏋️‍♂️ Training</h3>
-                    <p class="feature-text">Plane Workouts, die dich voranbringen.</p>
+                    <p class="feature-text">Erstelle Pläne, starte Sessions und optimiere deine Übungen.</p>
                 </div>
                 <div class="feature-card">
-                    <h3 class="feature-title">🍎 Ernährung</h3>
-                    <p class="feature-text">Tracke Mahlzeiten für maximale Energie.</p>
+                    <h3 class="feature-title">🩺 Beschwerden</h3>
+                    <p class="feature-text">Behalte Schmerzen, Status und mögliche Trainingszusammenhänge im Blick.</p>
                 </div>
                 <div class="feature-card">
                     <h3 class="feature-title">📈 Fortschritt</h3>
-                    <p class="feature-text">Sieh deine Erfolge auf einen Blick.</p>
+                    <p class="feature-text">Analysiere Workouts, Gewichte und deine Entwicklung auf einen Blick.</p>
                 </div>
                 <div class="feature-card">
                     <h3 class="feature-title">🎥 Tutorials</h3>
-                    <p class="feature-text">Lerne Techniken wie ein Profi.</p>
+                    <p class="feature-text">Verbessere Technik und Ausführung mit klaren Übungsanleitungen.</p>
                 </div>
             </div>
         </section>
@@ -70,11 +70,14 @@
                 <router-link :to="{ path: '/training', query: { tut: 'plan' } }" class="link-button">
                     <span>🏋️ Trainingsplan erstellen</span>
                 </router-link>
-                <router-link to="/nutrition" class="link-button">
-                    <span>🍽️ Mahlzeit planen</span>
+                <router-link to="/beschwerden" class="link-button">
+                    <span>🩺 Beschwerde erfassen</span>
                 </router-link>
                 <router-link to="/progress" class="link-button link-button--highlight">
                     <span>📈 Fortschritt ansehen</span>
+                </router-link>
+                <router-link to="/tutorials" class="link-button">
+                    <span>🎥 Tutorials öffnen</span>
                 </router-link>
             </div>
         </section>
@@ -106,7 +109,7 @@
         </section>
         <section class="cta">
             <h2 class="section-title">Bereit für deine Transformation? 🌟</h2>
-            <router-link to="/progress" class="cta-button">Los geht’s! 🚀</router-link>
+            <router-link to="/training" class="cta-button">Los geht’s! 🚀</router-link>
         </section>
     </div>
 </template>
@@ -114,12 +117,13 @@
 <script setup lang="ts">
     import { ref, onMounted, onUnmounted, watch } from 'vue'
     import { useAuthStore } from '@/store/authStore'
+    import { useComplaintsStore } from '@/store/complaintsStore'
     import { useTrainingPlansStore } from '@/store/trainingPlansStore'
     import { useProgressStore } from '@/store/progressStore'
     import { listTrainingPlanner } from '@/services/trainingPlanner'
     import {
+        LS_COMPLAINTS_ENTRIES,
         LS_PROGRESS_WORKOUTS,
-        LS_PROGRESS_MEALS,
         LS_PROGRESS_WEIGHTS,
         LS_TRAINING_PLANNER,
         LS_TRAINING_REST_DAYS,
@@ -130,14 +134,14 @@
     let index = 0
 
     const workoutsCompleted = ref(0)
-    const mealsPlanned = ref(0)
+    const complaintsTracked = ref(0)
     const kgLost = ref(0)
 
     type TodayPlan = { planName: string; message: string }
     const todayPlan = ref<TodayPlan | null>(null)
 
     type StoredWeightEntry = { date: string; weight: number }
-    type StoredMeal = { name: string; calories: number }
+    type StoredComplaint = { id?: string }
 
     const loadStatsFromStorage = () => {
         if (typeof window === 'undefined') return
@@ -151,13 +155,13 @@
             workoutsCompleted.value = 0
         }
 
-        // --- Mahlzeiten: aus progress_meals ---
+        // --- Beschwerden: aus complaints_entries ---
         try {
-            const rawMeals = window.localStorage.getItem(LS_PROGRESS_MEALS)
-            const parsedMeals = rawMeals ? JSON.parse(rawMeals) as StoredMeal[] : []
-            mealsPlanned.value = Array.isArray(parsedMeals) ? parsedMeals.length : 0
+            const rawComplaints = window.localStorage.getItem(LS_COMPLAINTS_ENTRIES)
+            const parsedComplaints = rawComplaints ? JSON.parse(rawComplaints) as StoredComplaint[] : []
+            complaintsTracked.value = Array.isArray(parsedComplaints) ? parsedComplaints.length : 0
         } catch {
-            mealsPlanned.value = 0
+            complaintsTracked.value = 0
         }
 
         // --- Kilo abgenommen: aus progress_weights ---
@@ -241,12 +245,12 @@
     const testimonials = ref([
         {
             id: 1,
-            text: 'TrackYourGains hat mir geholfen, meine Fitnessziele zu erreichen! 🎯',
+            text: 'Die Trainingsplanung und das Beschwerden-Tracking greifen endlich sinnvoll ineinander. 🎯',
             author: 'Max Mustermann',
         },
         {
             id: 2,
-            text: 'Ich liebe die Ernährungs-Tracking-Funktion. Sie ist so einfach zu bedienen! 🍴',
+            text: 'Ich sehe sofort, welche Beschwerden aktiv sind und kann mein Training besser anpassen. 🩺',
             author: 'Anna Beispiel',
         },
     ])
@@ -380,6 +384,7 @@
     }
 
     const auth = useAuthStore()
+    const complaintsStore = useComplaintsStore()
     const trainingPlansStore = useTrainingPlansStore()
     const progressStore = useProgressStore()
 
@@ -420,12 +425,22 @@
         workoutsCompleted.value = total
     }
 
+    const loadComplaintsCount = async () => {
+        try {
+            await complaintsStore.load()
+            complaintsTracked.value = complaintsStore.entries.length
+        } catch {
+            // keep local fallback
+        }
+    }
+
     onMounted(async () => {
         typeText()
         setupScrollReveal()
         startTestimonialRotation()
         loadStatsFromStorage()
         await loadWorkoutsFromBackend()
+        await loadComplaintsCount()
     })
 
     onUnmounted(() => {

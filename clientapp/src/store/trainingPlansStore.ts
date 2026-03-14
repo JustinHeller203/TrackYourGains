@@ -2,7 +2,7 @@
 
 import { defineStore } from "pinia";
 import { useAuthStore } from "@/store/authStore";
-import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan";
+import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
 import {
     listTrainingPlans,
     getTrainingPlan,
@@ -106,9 +106,11 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
             this.error = null;
             try {
                 const created = await createTrainingPlan(payload);
-                this.items = [created, ...this.items];
-                this.selected = created;
-                return created;
+                const createdId = created?.id;
+                const full = createdId ? await getTrainingPlan(createdId) : created;
+                this.items = [full, ...this.items.filter((p: TrainingPlanDto) => p.id !== full.id)];
+                this.selected = full;
+                return full;
             } catch (e: any) {
                 this.error = e?.message ?? "TrainingPlan konnte nicht erstellt werden.";
                 throw e;
@@ -122,9 +124,10 @@ export const useTrainingPlansStore = defineStore("trainingPlans", {
             this.error = null;
             try {
                 const updated = await updateTrainingPlan(id, payload);
-                this.items = this.items.map((p: TrainingPlanDto) => (p.id === id ? updated : p));
-                if (this.selected?.id === id) this.selected = updated;
-                return updated;
+                const full = updated?.id ? await getTrainingPlan(updated.id) : updated;
+                this.items = this.items.map((p: TrainingPlanDto) => (p.id === id ? full : p));
+                if (this.selected?.id === id) this.selected = full;
+                return full;
             } catch (e: any) {
                 this.error = e?.message ?? "TrainingPlan konnte nicht gespeichert werden.";
                 throw e;

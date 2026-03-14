@@ -41,6 +41,15 @@ function readAll(): PainDiaryEntry[] {
     }
 }
 
+export function listPainDiaryEntries(): PainDiaryEntry[] {
+    return readAll()
+}
+
+function writeAll(entries: PainDiaryEntry[]) {
+    if (!canUseStorage()) return
+    window.localStorage.setItem(PAIN_DIARY_KEY, JSON.stringify(entries))
+}
+
 function dayKey(value: string) {
     return String(value ?? '').slice(0, 10)
 }
@@ -124,4 +133,45 @@ export function hasPainDiaryEntryForDay(payload: {
         item.source === payload.source
         && dayKey(item.createdAt) === day
     ))
+}
+
+export function updatePainDiaryEntry(payload: {
+    id: string
+    painLevel: number
+    note?: string
+}) {
+    if (!canUseStorage()) return false
+    const id = String(payload.id ?? '').trim()
+    if (!id) return false
+
+    const nextLevel = Math.max(0, Math.min(10, Math.round(Number(payload.painLevel) || 0)))
+    const nextNote = String(payload.note ?? '').trim().slice(0, 220)
+
+    let changed = false
+    const next = readAll().map((item) => {
+        if (item.id !== id) return item
+        changed = true
+        return {
+            ...item,
+            painLevel: nextLevel,
+            note: nextNote,
+        }
+    })
+
+    if (!changed) return false
+    writeAll(next)
+    return true
+}
+
+export function removePainDiaryEntry(idRaw: string) {
+    if (!canUseStorage()) return false
+    const id = String(idRaw ?? '').trim()
+    if (!id) return false
+
+    const current = readAll()
+    const next = current.filter((item) => item.id !== id)
+    if (next.length === current.length) return false
+
+    writeAll(next)
+    return true
 }

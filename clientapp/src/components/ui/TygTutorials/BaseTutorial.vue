@@ -59,6 +59,7 @@
 
         retryFrames?: number; // default 20
         showHand?: boolean; // default true
+        autoScroll?: boolean; // default true
     }>();
 
     const emit = defineEmits<{
@@ -73,6 +74,7 @@
 
     let raf = 0;
     let retryLeft = 0;
+    let didAutoScrollToPrimary = false;
 
     function measureCard() {
         const el = cardEl.value;
@@ -93,19 +95,27 @@
         return { x: r.left, y: r.top, w: r.width, h: r.height };
     }
 
-    function findTargetEl(): Element | null {
+    function findPrimaryTargetEl(): Element | null {
         const sel = (props.selector ?? "").trim();
         if (sel) {
             const el = document.querySelector(sel);
             if (el) return el;
         }
-        const fallback = (props.fallbackSelector ?? "").trim();
-        if (fallback) return document.querySelector(fallback);
-
         return null;
     }
 
+    function findFallbackTargetEl(): Element | null {
+        const fallback = (props.fallbackSelector ?? "").trim();
+        if (fallback) return document.querySelector(fallback);
+        return null;
+    }
+
+    function findTargetEl(): Element | null {
+        return findPrimaryTargetEl() ?? findFallbackTargetEl();
+    }
+
     function scrollTargetIntoView(el: Element | null) {
+        if (props.autoScroll === false) return;
         if (!el) return;
         const prefersReduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
         try {
@@ -121,7 +131,15 @@
         if (retryLeft <= 0) retryLeft = props.retryFrames ?? 20;
 
         raf = requestAnimationFrame(() => {
-            const el = findTargetEl();
+            const primaryEl = findPrimaryTargetEl();
+            const fallbackEl = findFallbackTargetEl();
+            const el = primaryEl ?? fallbackEl;
+
+            if (primaryEl && !didAutoScrollToPrimary) {
+                didAutoScrollToPrimary = true;
+                scrollTargetIntoView(primaryEl);
+            }
+
             target.value = getElRect(el);
 
             // wenn wir am Ende immer noch nix haben -> trotzdem "ready" feuern (mit null)
@@ -150,8 +168,18 @@
             if (!active) return;
             await nextTick();
             measureCard();
-            const el = findTargetEl();
-            scrollTargetIntoView(el);
+            didAutoScrollToPrimary = false;
+            const primaryEl = findPrimaryTargetEl();
+            const fallbackEl = findFallbackTargetEl();
+            const hasExplicitSelector = !!(props.selector ?? "").trim();
+
+            if (primaryEl) {
+                didAutoScrollToPrimary = true;
+                scrollTargetIntoView(primaryEl);
+            } else if (!hasExplicitSelector && fallbackEl) {
+                scrollTargetIntoView(fallbackEl);
+            }
+
             updateTarget();
         },
         { immediate: true }

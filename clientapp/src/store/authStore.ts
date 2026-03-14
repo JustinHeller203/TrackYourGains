@@ -58,10 +58,10 @@ export const useAuthStore = defineStore("auth", {
             this.loading = false;
         },
 
-        async signIn(username: string, password: string) {
+        async signIn(identifier: string, password: string) {
             const settings = useSettingsStore();
 
-            const data: AuthResponseDto = await login(username, password);
+            const data: AuthResponseDto = await login(identifier, password);
             this.user = { email: data.email, username: "", hasCreatedTrainingPlan: false };
             setToken(data.token);
             localStorage.setItem(LS_AUTH_EMAIL, data.email);

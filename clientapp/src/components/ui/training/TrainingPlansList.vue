@@ -51,7 +51,7 @@
             <Draggable v-if="plans.length && favoritePlanItems.length"
                        v-model="favoritePlanItems"
                        item-key="id"
-                       :handle="isMobile ? undefined : '.plan-drag-handle'"
+                       :handle="isCompactPlanCards ? undefined : '.plan-drag-handle'"
                        ghost-class="drag-ghost"
                        chosen-class="drag-chosen"
                        drag-class="dragging"
@@ -61,7 +61,7 @@
                        easing="cubic-bezier(0.16,1,0.3,1)"
                        :disabled="planSearch.trim().length > 0"
                        :delay="dragDelay"
-                       :delay-on-touch-only="true"
+                       :delay-on-touch-only="dragDelayOnTouchOnly"
                        :touch-start-threshold="8"
                        :fallback-tolerance="3"
                        :fallback-on-body="true"
@@ -69,7 +69,7 @@
                        :scroll-sensitivity="40"
                        :scroll-speed="12"
                        :swap-threshold="0.3"
-                       :filter="isMobile ? dragFilter : undefined"
+                       :filter="isCompactPlanCards ? dragFilter : undefined"
                        tag="div"
                        class="plan-drag-stack">
 
@@ -81,14 +81,14 @@
                          :data-plan-id="plan.id"
                          @click="onPlanCardClick($event, plan.id)">
                         <div class="plan-row1">
-                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">≡</span>
+                            <span v-if="!isCompactPlanCards" class="plan-drag-handle" title="Ziehen zum Verschieben">≡</span>
 
                             <span class="plan-title"
                                   :title="plan.name"
                                   @click.stop="loadPlan(plan.id)"
                                   @dblclick.stop="editPlan(plan.id)">
                                 <span class="plan-name-scroll">{{ plan.name }}</span>
-                                <span class="plan-count">({{ plan.exerciseCount }} Übungen)</span>
+                                <span v-if="!isCompactPlanCards" class="plan-count">({{ plan.exerciseCount }} Übungen)</span>
                             </span>
 
                             <div class="plan-right">
@@ -99,7 +99,7 @@
 
                                 <div class="inline-actions">
                                     <EditButton title="Plan bearbeiten" @click.stop="editPlanInBuilder(plan.id)" />
-                                    <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
+                                    <DeleteButton title="Plan löschen" @click="openDeletePopupUi(() => deletePlan(plan.id))" />
                                     <ActionIconButton title="Exportieren"
                                                       aria-label="Trainingsplan exportieren"
                                                       @click="downloadPlan(plan)">⬇</ActionIconButton>
@@ -121,7 +121,7 @@
 
                             <PlanMenu v-if="planMenuOpenId === plan.id"
                                       @edit="editPlanInBuilder(plan.id)"
-                                      @delete="openDeletePopup(() => deletePlan(plan.id))"
+                                      @delete="openDeletePopupUi(() => deletePlan(plan.id))"
                                       @download="downloadPlan(plan)" />
                         </div>
 
@@ -133,7 +133,7 @@
             <Draggable v-if="plans.length"
                        v-model="otherPlanItems"
                        item-key="id"
-                       :handle="isMobile ? undefined : '.plan-drag-handle'"
+                       :handle="isCompactPlanCards ? undefined : '.plan-drag-handle'"
                        ghost-class="drag-ghost"
                        chosen-class="drag-chosen"
                        drag-class="dragging"
@@ -143,7 +143,7 @@
                        easing="cubic-bezier(0.16,1,0.3,1)"
                        :disabled="planSearch.trim().length > 0"
                        :delay="dragDelay"
-                       :delay-on-touch-only="true"
+                       :delay-on-touch-only="dragDelayOnTouchOnly"
                        :touch-start-threshold="8"
                        :fallback-tolerance="3"
                        :fallback-on-body="true"
@@ -151,7 +151,7 @@
                        :scroll-sensitivity="40"
                        :scroll-speed="12"
                        :swap-threshold="0.3"
-                       :filter="isMobile ? dragFilter : undefined"
+                       :filter="isCompactPlanCards ? dragFilter : undefined"
                        tag="div"
                        class="plan-drag-stack plan-drag-stack--others">
 
@@ -163,14 +163,14 @@
                          :data-plan-id="plan.id"
                          @click="onPlanCardClick($event, plan.id)">
                         <div class="plan-row1">
-                            <span class="plan-drag-handle" title="Ziehen zum Verschieben">≡</span>
+                            <span v-if="!isCompactPlanCards" class="plan-drag-handle" title="Ziehen zum Verschieben">≡</span>
 
                             <span class="plan-title"
                                   :title="plan.name"
                                   @click.stop="loadPlan(plan.id)"
                                   @dblclick.stop="editPlan(plan.id)">
                                 <span class="plan-name-scroll">{{ plan.name }}</span>
-                                <span class="plan-count">({{ (plan.exerciseCount ?? plan.exercises?.length ?? 0) }} Übungen)</span>
+                                <span v-if="!isCompactPlanCards" class="plan-count">({{ (plan.exerciseCount ?? plan.exercises?.length ?? 0) }} Übungen)</span>
                             </span>
 
                             <div class="plan-right">
@@ -181,7 +181,7 @@
 
                                 <div class="inline-actions">
                                     <EditButton title="Plan bearbeiten" @click.stop="editPlanInBuilder(plan.id)" />
-                                    <DeleteButton title="Plan löschen" @click="openDeletePopup(() => deletePlan(plan.id))" />
+                                    <DeleteButton title="Plan löschen" @click="openDeletePopupUi(() => deletePlan(plan.id))" />
                                     <ActionIconButton title="Exportieren"
                                                       aria-label="Trainingsplan exportieren"
                                                      @click="downloadPlan(plan)">⬇</ActionIconButton>
@@ -203,7 +203,7 @@
 
                             <PlanMenu v-if="planMenuOpenId === plan.id"
                                       @edit="editPlanInBuilder(plan.id)"
-                                      @delete="openDeletePopup(() => deletePlan(plan.id))"
+                                      @delete="openDeletePopupUi(() => deletePlan(plan.id))"
                                       @download="downloadPlan(plan)" />
                         </div>
                     </div>
@@ -216,7 +216,7 @@
              ref="selectedPlanRoot"
              class="workout-list"
              :class="{ 'plan-scroll-highlight': isPlanScrollHighlight }">
-            <div class="plan-header">
+            <div ref="selectedPlanAnchor" class="plan-header">
                 <h3 class="section-title" @dblclick="editPlan(selectedPlan.id)">
                     <span class="plan-title-main">
                         Trainingsplan: {{ selectedPlan.name }}
@@ -278,7 +278,7 @@
                             :key="index"
                             class="resizable-row"
                             :style="{ height: rowHeights[index] + 'px' }"
-                            @dblclick="openEditPopup('selectedPlan', index, $event)">
+                            @dblclick="openEditPopupUi('selectedPlan', index, $event)">
                             <td :style="{ width: columnWidths[0] + '%' }">{{ ex.exercise }}</td>
 
                             <!-- Sätze/Min -->
@@ -342,18 +342,18 @@
                         <tbody>
                             <tr v-for="(ex, i) in customExercises" :key="i">
                                 <td :style="{ width: customColWidths[0] + '%' }"
-                                    @dblclick="openEditPopup('customExerciseName', i)">
+                                    @dblclick="openEditPopupUi('customExerciseName', i)">
                                     <span>{{ ex.name }}</span>
                                 </td>
 
                                 <td class="v-stack"
                                     :style="{ width: customColWidths[1] + '%' }"
-                                    @dblclick="openEditPopup('customExerciseMuscle', i)">
+                                    @dblclick="openEditPopupUi('customExerciseMuscle', i)">
                                     <span>{{ ex.muscle }}</span>
                                 </td>
 
                                 <td :style="{ width: customColWidths[2] + '%' }"
-                                    @dblclick="openEditPopup('customExerciseType', i)">
+                                    @dblclick="openEditPopupUi('customExerciseType', i)">
                                     {{ typeLabel(ex.type) }}
                                 </td>
 
@@ -403,7 +403,7 @@
 
     import { useTrainingPlansStore } from '@/store/trainingPlansStore'
     import { useAuthStore } from '@/store/authStore'
-    import type { TrainingPlan as TrainingPlanDto } from '@/types/TrainingPlan'
+    import type { TrainingPlan as TrainingPlanDto } from '@/types/trainingPlan'
     import { getTrainingPlanByCode, installTrainingPlanByCode } from "@/services/trainingPlans"
 
     import PlanCreatedTutorial from "@/components/ui/TygTutorials/PlanCreatedTutorial.vue"
@@ -437,6 +437,8 @@
         // Gäste-Pläne kommen vom Parent (weil der Builder dort sitzt)
         guestPlans?: ViewPlan[]
         onEditInBuilder?: (payload: { planId: string; name: string; exercises: PlanExercise[] }) => void
+        selectedPlanOverride?: ViewPlan | null
+        onSelectedPlanChange?: (plan: ViewPlan | null) => void
 
         // ? Custom Exercises kommen vom Parent (Quelle bleibt 1x: Training.vue / Builder)
         customExercises?: Array<{ name: string; muscle: string; type: CustomExerciseType }>
@@ -475,6 +477,32 @@
     }>()
 
     const closePlanTut = () => emit("planTutDone")
+    const dismissPlanTutIfActive = () => {
+        if (props.planTutActive) closePlanTut()
+    }
+    const openDeletePopupUi = (action: () => void) => {
+        dismissPlanTutIfActive()
+        props.openDeletePopup(action)
+    }
+    const openEditPopupUi = (
+        type:
+            | 'table'
+            | 'selectedPlan'
+            | 'planName'
+            | 'selectedPlanName'
+            | 'customExerciseName'
+            | 'customExerciseMuscle'
+            | 'customExerciseType',
+        index: number | string,
+        event?: MouseEvent
+    ) => {
+        dismissPlanTutIfActive()
+        props.openEditPopup(type, index, event)
+    }
+    const openDownloadPopupUi = (plan: ViewPlan, opts?: { shareLines?: string[]; shareText?: string; shareUrl?: string }) => {
+        dismissPlanTutIfActive()
+        props.openDownloadPopup(plan, opts)
+    }
 
     const simOpen = ref(false)
     const simPlan = ref<ViewPlan | null>(null)
@@ -485,10 +513,11 @@
 
     const downloadPlan = async (plan: ViewPlan) => {
         closePlanMenu()
+        dismissPlanTutIfActive()
 
         // Gast: hat exercises schon drin
         if (!auth.user) {
-            props.openDownloadPopup(plan, { shareLines: buildShareLinesForPlan(plan) })
+            openDownloadPopupUi(plan, { shareLines: buildShareLinesForPlan(plan) })
             return
         }
 
@@ -516,7 +545,7 @@
 
             // 3) export braucht ViewPlan mit exercises
             const fullView = flattenDto(dto)
-            props.openDownloadPopup(fullView, { shareLines: buildShareLinesForPlan(fullView) })
+            openDownloadPopupUi(fullView, { shareLines: buildShareLinesForPlan(fullView) })
         } catch {
             props.addToast('Plan konnte nicht geladen werden', 'delete')
         }
@@ -586,6 +615,7 @@
 
     const startSimulation = async (plan: ViewPlan) => {
         closePlanMenu()
+        dismissPlanTutIfActive()
 
         // Gast: hat i.d.R. schon exercises drin
         if (!auth.user) {
@@ -891,6 +921,7 @@
 
     const editPlanInBuilder = async (planId: string) => {
         closePlanMenu()
+        dismissPlanTutIfActive()
 
         if (!props.onEditInBuilder) {
             props.addToast('Edit im Builder fehlt: onEditInBuilder', 'delete')
@@ -1089,8 +1120,34 @@
 
     const selectedPlan = ref<ViewPlan | null>(null)
     const selectedPlanRoot = ref<HTMLElement | null>(null)
+    const selectedPlanAnchor = ref<HTMLElement | null>(null)
+    let syncingSelectedPlanFromParent = false
+
+    const cloneViewPlan = (plan: ViewPlan | null): ViewPlan | null => {
+        if (!plan) return null
+        return {
+            ...plan,
+            exercises: Array.isArray(plan.exercises) ? plan.exercises.map(x => ({ ...x })) : [],
+        }
+    }
 
     const showCustomExercises = ref(false)
+
+    watch(selectedPlan, (plan) => {
+        if (syncingSelectedPlanFromParent) return
+        props.onSelectedPlanChange?.(cloneViewPlan(plan))
+    }, { deep: true })
+
+    watch(() => props.selectedPlanOverride, (plan) => {
+        const nextPlan = cloneViewPlan(plan ?? null)
+        const current = selectedPlan.value
+        const sameSnapshot = JSON.stringify(nextPlan) === JSON.stringify(current)
+        if (sameSnapshot) return
+
+        syncingSelectedPlanFromParent = true
+        selectedPlan.value = nextPlan
+        queueMicrotask(() => { syncingSelectedPlanFromParent = false })
+    }, { deep: true })
 
     // ? Quelle der Wahrheit: Parent
     const customExercises = computed(() => props.customExercises ?? [])
@@ -1117,21 +1174,23 @@
     }, { immediate: true })
 
     /* -------------------- Draggable / Mobile -------------------- */
-    const isMobile = ref(false)
-    const dragDelay = computed(() => 0)
+    const isCompactPlanCards = ref(false)
+    const dragDelay = computed(() => isCompactPlanCards.value ? 180 : 0)
+    const dragDelayOnTouchOnly = computed(() => !isCompactPlanCards.value)
     const dragFilter =
         '.inline-actions, .inline-actions *, .kebab-wrap, .kebab-wrap *, button, select, input, textarea, a'
 
     let mq: MediaQueryList | null = null
     const onMedia = (e: MediaQueryListEvent | MediaQueryList) => {
         // @ts-ignore (legacy types)
-        isMobile.value = !!e.matches
+        isCompactPlanCards.value = !!e.matches
     }
 
     /* -------------------- Plan Menü -------------------- */
     const planMenuOpenId = ref<string | null>(null)
 
     const togglePlanMenu = (id: string) => {
+        dismissPlanTutIfActive()
         planMenuOpenId.value = (planMenuOpenId.value === id) ? null : id
     }
 
@@ -1193,10 +1252,35 @@
     const scrollToSelectedPlan = async () => {
         await nextTick()
 
-        const el = selectedPlanRoot.value
+        const el = selectedPlanAnchor.value ?? selectedPlanRoot.value
         if (!el) return
 
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const scrollToAnchor = (behavior: ScrollBehavior) => {
+            const rect = el.getBoundingClientRect()
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1
+            const targetCenterY = rect.top + window.scrollY + (rect.height / 2)
+            const visualOffset = 72
+            const top = Math.max(0, targetCenterY - (viewportHeight / 2) - visualOffset)
+
+            window.scrollTo({
+                top,
+                behavior,
+            })
+        }
+
+        await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    scrollToAnchor(prefersReduced ? 'auto' : 'smooth')
+                    resolve()
+                })
+            })
+        })
+
+        window.setTimeout(() => {
+            scrollToAnchor('auto')
+        }, 220)
 
         // mini highlight / umrandung für feedback
         isPlanScrollHighlight.value = true
@@ -1274,6 +1358,7 @@
     }
 
     const editPlan = async (planId: string) => {
+        dismissPlanTutIfActive()
         if (!auth.user) {
             if (!props.onGuestEditPlan) {
                 props.addToast('Guest-Edit fehlt: onGuestEditPlan', 'delete')
@@ -1297,7 +1382,7 @@
             // selected MUSS Full sein, sonst knallt Validation
             setStoreSelectedPlan(dtoFull)
 
-            props.openEditPopup('planName', planId)
+            openEditPopupUi('planName', planId)
             props.addToast('Plan wird bearbeitet', 'save')
         } catch {
             props.addToast('Plan konnte nicht geladen werden', 'delete')
@@ -1305,13 +1390,14 @@
     }
 
     const deletePlan = async (planId: string) => {
+        dismissPlanTutIfActive()
         if (!auth.user) {
             if (!props.onGuestDeletePlan) {
                 props.addToast('Guest-Delete fehlt: onGuestDeletePlan', 'delete')
                 return
             }
 
-            props.openDeletePopup(() => {
+            openDeletePopupUi(() => {
                 props.onGuestDeletePlan?.(planId)
                 if (selectedPlan.value?.id === planId) closePlan()
                 props.addToast('Trainingsplan gelöscht', 'delete')
@@ -1329,6 +1415,7 @@
     }
 
     const toggleFavoritePlan = async (planId: string) => {
+        dismissPlanTutIfActive()
         // Favoriten sind Account-only bei dir (LS + Store). Als Gast: nix.
         if (!auth.user) return
 
@@ -1354,12 +1441,13 @@
     }
 
     const removeCustomExercise = (index: number) => {
+        dismissPlanTutIfActive()
         if (!props.onRemoveCustomExercise) {
             props.addToast('Remove fehlt: onRemoveCustomExercise', 'delete')
             return
         }
 
-        props.openDeletePopup(() => {
+        openDeletePopupUi(() => {
             props.onRemoveCustomExercise?.(index)
             if ((props.customExercises?.length ?? 0) <= 1) showCustomExercises.value = false
             props.addToast('Benutzerdefinierte Übung gelöscht', 'delete')
@@ -1673,7 +1761,7 @@
             }
         } catch { }
         if (typeof window !== 'undefined') {
-            mq = window.matchMedia('(max-width: 560px)')
+            mq = window.matchMedia('(max-width: 820px)')
             onMedia(mq)
             try { mq.addEventListener('change', onMedia as any) } catch { mq.addListener(onMedia as any) }
         }

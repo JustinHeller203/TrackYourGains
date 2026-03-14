@@ -20,12 +20,12 @@
                 </div>
 
                 <div class="form-row">
-                    <label for="username">Username</label>
-                    <input id="username"
-                           v-model.trim="username"
+                    <label for="identifier">{{ mode === 'login' ? 'Username oder E-Mail' : 'Username' }}</label>
+                    <input id="identifier"
+                           v-model.trim="identifier"
                            type="text"
                            minlength="3"
-                           maxlength="20"
+                           :maxlength="mode === 'login' ? 254 : 20"
                            autocomplete="username"
                            required />
                 </div>
@@ -85,7 +85,7 @@
 
     const mode = ref<Mode>('login')
     const email = ref('')
-    const username = ref('')
+    const identifier = ref('')
     const password = ref('')
     const confirm = ref('')
     const error = ref<string | null>(null)
@@ -124,7 +124,7 @@
 
         // Klassiker: falsche Login-Daten
         if (status === 401 || status === 403) {
-            return 'E-Mail oder Passwort ist falsch.'
+            return 'Username/E-Mail oder Passwort ist falsch.'
         }
 
         // Registrierung: Mail schon vergeben
@@ -134,7 +134,7 @@
 
         // Schlechte Eingaben
         if (status === 400 || status === 422) {
-            return 'Deine Eingaben sind unvollständig oder ungültig. Bitte überprüfe E-Mail und Passwort.'
+            return 'Deine Eingaben sind unvollständig oder ungültig. Bitte überprüfe Username/E-Mail und Passwort.'
         }
 
         // Server down / Bug auf der API
@@ -160,13 +160,13 @@
         busy.value = true
         try {
             if (mode.value === 'login') {
-                await auth.signIn(username.value, password.value)
+                await auth.signIn(identifier.value, password.value)
             } else {
                 if (password.value !== confirm.value) {
                     error.value = 'Passwörter stimmen nicht überein.'
                     return
                 }
-                await auth.signUp(email.value, username.value, password.value, confirm.value)
+                await auth.signUp(email.value, identifier.value, password.value, confirm.value)
             }
             const target = (route.query.redirect as string) || '/'
             router.push(target)

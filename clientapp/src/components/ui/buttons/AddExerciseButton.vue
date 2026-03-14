@@ -35,6 +35,7 @@
     // flach mergen, damit kein verschachteltes Array entsteht
     const mergedClass = computed<ClassLike[]>(() => [
         'add-exercise-btn',
+        'primary-btn',
         ...(Array.isArray(props.extraClass)
             ? props.extraClass
             : (props.extraClass ? [props.extraClass] : [])),

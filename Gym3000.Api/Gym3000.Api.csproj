@@ -30,5 +30,8 @@
 		<Content Update="Data\Seed\glycemic-foods.seed.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
+		<Content Update="Data\Seed\exercise-library.seed.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 </Project>

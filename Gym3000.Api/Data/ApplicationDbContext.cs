@@ -26,6 +26,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<TrainingExercise> TrainingExercises => Set<TrainingExercise>();
     public DbSet<ProgressEntry> ProgressEntries => Set<ProgressEntry>();
     public DbSet<ComplaintEntry> ComplaintEntries => Set<ComplaintEntry>();
+    public DbSet<ExerciseLibraryEntry> ExerciseLibraryEntries => Set<ExerciseLibraryEntry>();
+    public DbSet<ExerciseLibraryAlias> ExerciseLibraryAliases => Set<ExerciseLibraryAlias>();
     public DbSet<TrainingSession> TrainingSessions => Set<TrainingSession>();
     public DbSet<TrainingSessionFeedback> TrainingSessionFeedbacks => Set<TrainingSessionFeedback>();
     public DbSet<TimerEntity> Timers => Set<TimerEntity>();
@@ -363,7 +365,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
              .HasColumnType("date");
 
             e.Property(x => x.Notes)
-             .HasMaxLength(400);
+             .HasMaxLength(2000);
 
             e.Property(x => x.CreatedAt)
              .HasColumnType("timestamptz")
@@ -371,6 +373,93 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
             e.HasIndex(x => new { x.UserId, x.Date });
             e.HasIndex(x => new { x.UserId, x.Area, x.Category, x.Status });
+        });
+
+        // -------- ExerciseLibrary --------
+        builder.Entity<ExerciseLibraryEntry>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Key)
+             .IsRequired()
+             .HasMaxLength(120);
+
+            e.Property(x => x.Name)
+             .IsRequired()
+             .HasMaxLength(160);
+
+            e.Property(x => x.PrimaryMuscleGroup)
+             .IsRequired()
+             .HasMaxLength(80);
+
+            e.Property(x => x.SecondaryMuscleGroups)
+             .HasColumnType("text[]");
+
+            e.Property(x => x.Kind)
+             .IsRequired()
+             .HasMaxLength(40);
+
+            e.Property(x => x.MovementPattern)
+             .IsRequired()
+             .HasMaxLength(40);
+
+            e.Property(x => x.Equipment)
+             .HasColumnType("text[]");
+
+            e.Property(x => x.Level)
+             .IsRequired()
+             .HasMaxLength(32);
+
+            e.Property(x => x.Stability)
+             .IsRequired()
+             .HasMaxLength(32);
+
+            e.Property(x => x.AxialLoad)
+             .IsRequired()
+             .HasMaxLength(32);
+
+            e.Property(x => x.Impact)
+             .IsRequired()
+             .HasMaxLength(32);
+
+            e.Property(x => x.JointLoadJson)
+             .HasColumnType("jsonb")
+             .IsRequired();
+
+            e.Property(x => x.GoalTags)
+             .HasColumnType("text[]");
+
+            e.Property(x => x.Substitutions)
+             .HasColumnType("text[]");
+
+            e.Property(x => x.CreatedUtc)
+             .HasColumnType("timestamptz")
+             .IsRequired();
+
+            e.HasIndex(x => x.Key).IsUnique();
+            e.HasIndex(x => x.Name);
+            e.HasIndex(x => new { x.PrimaryMuscleGroup, x.IsActive });
+
+            e.HasMany(x => x.Aliases)
+             .WithOne(x => x.Exercise)
+             .HasForeignKey(x => x.ExerciseLibraryEntryId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ExerciseLibraryAlias>(e =>
+        {
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Value)
+             .IsRequired()
+             .HasMaxLength(160);
+
+            e.Property(x => x.NormalizedValue)
+             .IsRequired()
+             .HasMaxLength(180);
+
+            e.HasIndex(x => new { x.ExerciseLibraryEntryId, x.NormalizedValue }).IsUnique();
+            e.HasIndex(x => x.NormalizedValue);
         });
 
 

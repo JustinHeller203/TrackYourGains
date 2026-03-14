@@ -3,6 +3,7 @@ using System;
 using Gym3000.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gym3000.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260306234140_ExpandComplaintNotesAndAreas")]
+    partial class ExpandComplaintNotesAndAreas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -106,137 +109,6 @@ namespace Gym3000.Api.Migrations
                     b.HasIndex("UserId", "Area", "Category", "Status");
 
                     b.ToTable("ComplaintEntries");
-                });
-
-            modelBuilder.Entity("Gym3000.Api.Entities.ExerciseLibraryAlias", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ExerciseLibraryEntryId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("NormalizedValue")
-                        .IsRequired()
-                        .HasMaxLength(180)
-                        .HasColumnType("character varying(180)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedValue");
-
-                    b.HasIndex("ExerciseLibraryEntryId", "NormalizedValue")
-                        .IsUnique();
-
-                    b.ToTable("ExerciseLibraryAliases");
-                });
-
-            modelBuilder.Entity("Gym3000.Api.Entities.ExerciseLibraryEntry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AxialLoad")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<bool>("DeepKneeFlexion")
-                        .HasColumnType("boolean");
-
-                    b.Property<string[]>("Equipment")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<string[]>("GoalTags")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<string>("Impact")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("JointLoadJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("Level")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string>("MovementPattern")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
-
-                    b.Property<bool>("Overhead")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PrimaryMuscleGroup")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<bool>("Rotation")
-                        .HasColumnType("boolean");
-
-                    b.Property<string[]>("SecondaryMuscleGroups")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<string>("Stability")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string[]>("Substitutions")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.HasIndex("Name");
-
-                    b.HasIndex("PrimaryMuscleGroup", "IsActive");
-
-                    b.ToTable("ExerciseLibraryEntries");
                 });
 
             modelBuilder.Entity("Gym3000.Api.Entities.GlycemicFood", b =>
@@ -1233,17 +1105,6 @@ namespace Gym3000.Api.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Gym3000.Api.Entities.ExerciseLibraryAlias", b =>
-                {
-                    b.HasOne("Gym3000.Api.Entities.ExerciseLibraryEntry", "Exercise")
-                        .WithMany("Aliases")
-                        .HasForeignKey("ExerciseLibraryEntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Exercise");
-                });
-
             modelBuilder.Entity("Gym3000.Api.Entities.ProgressEntry", b =>
                 {
                     b.HasOne("Gym3000.Api.Entities.TrainingPlan", "Plan")
@@ -1359,11 +1220,6 @@ namespace Gym3000.Api.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Gym3000.Api.Entities.ExerciseLibraryEntry", b =>
-                {
-                    b.Navigation("Aliases");
                 });
 
             modelBuilder.Entity("Gym3000.Api.Entities.TrainingDay", b =>

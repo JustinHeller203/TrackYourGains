@@ -19,6 +19,8 @@
                            :onGuestDeletePlan="onGuestDeletePlan"
                            :onGuestEditPlan="onGuestEditPlan"
                            :onEditInBuilder="onEditPlanInBuilder"
+                           :selectedPlanOverride="selectedPlan"
+                           :onSelectedPlanChange="onSelectedPlanChange"
                            :openEditPopup="openEditPopup"
                            :openDeletePopup="openDeletePopup"
                            :openDownloadPopup="openDownloadPopup"
@@ -110,7 +112,7 @@
 
     import { useTrainingPlansStore } from "@/store/trainingPlansStore";
     import { useAuthStore } from '@/store/authStore';
-    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan";
+    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
     import type { TimerInstance } from '@/types/training';
     import {
         LS_AUTH_TOKEN,
@@ -224,6 +226,18 @@
         const b = builderRef.value as any
         b?.setEditMode?.({ planId: payload.planId, name: payload.name, exercises: payload.exercises })
         b?.scrollToBuilder?.()
+    }
+
+    const cloneViewPlan = (plan: ViewPlan | null): ViewPlan | null => {
+        if (!plan) return null
+        return {
+            ...plan,
+            exercises: Array.isArray(plan.exercises) ? plan.exercises.map(ex => ({ ...ex })) : [],
+        }
+    }
+
+    const onSelectedPlanChange = (plan: ViewPlan | null) => {
+        selectedPlan.value = cloneViewPlan(plan)
     }
 
     const onReorderTimers = (list: TimerInstance[]) => emit('reorder-timers', list);
@@ -864,6 +878,20 @@
         return 0;
     };
 
+    const mapSelectedPlanExercisesToPayload = (exercises: PlanExercise[]) =>
+        exercises.map((ex, index) => ({
+            name: ex.exercise,
+            category: mapTypeToCategory(ex.type),
+            sortOrder: index,
+            sets: ex.type === 'ausdauer' ? null : ex.sets,
+            reps: ex.type === 'ausdauer' ? null : ex.reps,
+            targetWeight: null,
+            restSeconds: null,
+            durationMin: ex.type === 'ausdauer' ? ex.sets : null,
+            distanceKm: ex.type === 'ausdauer' ? (ex.reps ? ex.reps : null) : null,
+            notes: null,
+        }));
+
     const removeExerciseFromPlan = (index: number) => {
         if (!selectedPlan.value) {
             addToast('Kein Plan geöffnet', 'delete');
@@ -1354,7 +1382,28 @@
         }
 
         // ✅ Account: wie gehabt
-        saveToStorage();
+        if (!selectedPlan.value) return
+
+        const currentPlan = cloneViewPlan(selectedPlan.value)
+        if (!currentPlan) return
+
+        const sourceDto =
+            trainingPlansStore.selected?.id === currentPlan.id
+                ? trainingPlansStore.selected
+                : trainingPlansStore.items.find((p: TrainingPlanDto) => p.id === currentPlan.id) ?? null
+
+        void trainingPlansStore.update(currentPlan.id, {
+            name: currentPlan.name,
+            isFavorite: !!sourceDto?.isFavorite,
+            days: [{
+                name: sourceDto?.days?.[0]?.name ?? 'Tag 1',
+                sortOrder: sourceDto?.days?.[0]?.sortOrder ?? 0,
+                exercises: mapSelectedPlanExercisesToPayload(currentPlan.exercises),
+            }],
+        }).catch((e) => {
+            console.error('Inline-Update fuer Trainingsplan fehlgeschlagen', e)
+            addToast('Plan konnte nicht gespeichert werden', 'delete')
+        })
     };
 
     const persistPlanName = async (planId: string, newName: string) => {

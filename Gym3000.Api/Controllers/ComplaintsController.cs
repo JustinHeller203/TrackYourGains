@@ -17,7 +17,27 @@ public class ComplaintsController : ControllerBase
 {
     private static readonly HashSet<string> AllowedAreas = new(StringComparer.OrdinalIgnoreCase)
     {
-        "nacken", "schulter", "ellbogen", "handgelenk", "ruecken", "huefte", "knie", "sprunggelenk", "kopf", "sonstiges"
+        "nacken",
+        "schulter",
+        "ellbogen",
+        "unterarm",
+        "handgelenk",
+        "hand",
+        "finger",
+        "brust",
+        "bauch",
+        "ruecken",
+        "leiste",
+        "huefte",
+        "oberschenkel",
+        "knie",
+        "unterschenkel",
+        "wade",
+        "sprunggelenk",
+        "fuss",
+        "kopf",
+        "benutzerdefiniert",
+        "sonstiges"
     };
 
     private static readonly HashSet<string> AllowedCategories = new(StringComparer.OrdinalIgnoreCase)
@@ -92,8 +112,8 @@ public class ComplaintsController : ControllerBase
             return BadRequest(new { message = "Intensität muss zwischen 1 und 10 liegen." });
 
         var isOpenStatus = status is "aktiv" or "besser";
-        var isSonstiges = area == "sonstiges";
-        if (isOpenStatus && !isSonstiges)
+        var isSpecialArea = IsSpecialArea(area);
+        if (isOpenStatus && !isSpecialArea)
         {
             var hasOpenDuplicate = await _db.ComplaintEntries.AnyAsync(x =>
                 x.UserId == userId &&
@@ -150,8 +170,8 @@ public class ComplaintsController : ControllerBase
             return BadRequest(new { message = "Ungültiger Status." });
 
         var isOpenStatus = status is "aktiv" or "besser";
-        var isSonstiges = string.Equals(entry.Area, "sonstiges", StringComparison.Ordinal);
-        if (isOpenStatus && !isSonstiges)
+        var isSpecialArea = IsSpecialArea(entry.Area);
+        if (isOpenStatus && !isSpecialArea)
         {
             var hasOpenDuplicate = await _db.ComplaintEntries.AnyAsync(x =>
                 x.UserId == userId &&
@@ -196,8 +216,75 @@ public class ComplaintsController : ControllerBase
         return Ok(new { ok = true });
     }
 
+    [HttpPatch("{id:guid}")]
+    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateComplaintEntryDto dto)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var userId = GetUserId();
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized(new { message = "Nicht eingeloggt." });
+
+        var entry = await _db.ComplaintEntries.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+        if (entry is null)
+            return NotFound(new { message = "Eintrag nicht gefunden." });
+
+        var area = Normalize(dto.Area);
+        var category = Normalize(dto.Category);
+        var status = Normalize(dto.Status);
+        var notes = NormalizeNullable(dto.Notes);
+
+        if (!AllowedAreas.Contains(area))
+            return BadRequest(new { message = "Ungültige Körperstelle." });
+        if (!AllowedCategories.Contains(category))
+            return BadRequest(new { message = "Ungültige Art." });
+        if (!AllowedStatuses.Contains(status))
+            return BadRequest(new { message = "Ungültiger Status." });
+        if (dto.Intensity is < 1 or > 10)
+            return BadRequest(new { message = "Intensität muss zwischen 1 und 10 liegen." });
+
+        var isOpenStatus = status is "aktiv" or "besser";
+        var isSpecialArea = IsSpecialArea(area);
+        if (isOpenStatus && !isSpecialArea)
+        {
+            var hasOpenDuplicate = await _db.ComplaintEntries.AnyAsync(x =>
+                x.UserId == userId &&
+                x.Id != entry.Id &&
+                x.Area == area &&
+                x.Category == category &&
+                (x.Status == "aktiv" || x.Status == "besser"));
+
+            if (hasOpenDuplicate)
+                return BadRequest(new { message = "Für diese Körperstelle und Art existiert bereits ein aktiver Eintrag." });
+        }
+
+        entry.Area = area;
+        entry.Category = category;
+        entry.Status = status;
+        entry.Intensity = dto.Intensity;
+        entry.Date = dto.Date.Date;
+        entry.Notes = notes;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new ComplaintEntryDto(
+            entry.Id,
+            entry.Area,
+            entry.Category,
+            entry.Status,
+            entry.Intensity,
+            entry.Date,
+            entry.Notes,
+            entry.CreatedAt
+        ));
+    }
+
     private static string Normalize(string value)
         => value.Trim().ToLowerInvariant();
+
+    private static bool IsSpecialArea(string area)
+        => string.Equals(area, "sonstiges", StringComparison.Ordinal)
+           || string.Equals(area, "benutzerdefiniert", StringComparison.Ordinal);
 
     private static string? NormalizeNullable(string? value)
     {

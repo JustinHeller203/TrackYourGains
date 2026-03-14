@@ -51,6 +51,12 @@
 
         <!-- ✅ Overlay -->
         <div v-if="menuOpen" class="nav-overlay" @click="closeMenu"></div>
+        <div v-if="isGlobalApiLoading" class="global-loading-overlay" role="status" aria-live="polite" aria-busy="true">
+            <div class="global-loading-card">
+                <span class="global-loading-spinner" aria-hidden="true"></span>
+                <span>Lädt gerade Daten...</span>
+            </div>
+        </div>
 
         <!-- ✅ Sticky Timer -->
         <StickyTimerCard v-for="timer in (stickyTimersEnabled ? timers.filter((t: AppTimer) => t.shouldStaySticky) : [])"
@@ -131,6 +137,7 @@
     import GlobalExplainGuide from '@/components/ui/popups/global/GlobalExplainGuide.vue'
     import GlobalAchievementPopup from '@/components/ui/popups/global/GlobalAchievementPopup.vue'
     import { useGlobalAchievements } from '@/composables/useGlobalAchievements'
+    import { isGlobalApiLoading } from '@/lib/api'
 
     import AppFooter from '@/AppFooter.vue'
     import BackToTopButton from '@/components/ui/buttons/BackToTopButton.vue'
@@ -1066,6 +1073,45 @@
         bottom: 0;
         background: rgba(0,0,0,.15);
         z-index: 950;
+    }
+
+    .global-loading-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 12000;
+        background: rgba(2, 6, 23, 0.48);
+        display: grid;
+        place-items: center;
+        padding: 1rem;
+        backdrop-filter: blur(2px);
+    }
+
+    .global-loading-card {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.8rem 1rem;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        color: var(--text-primary);
+        font-weight: 700;
+        box-shadow: 0 16px 36px rgba(2, 6, 23, 0.45);
+    }
+
+    .global-loading-spinner {
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        border: 2px solid rgba(148, 163, 184, 0.35);
+        border-top-color: var(--accent-primary);
+        animation: global-loading-spin 0.7s linear infinite;
+    }
+
+    @keyframes global-loading-spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     html.dark-mode .nav-link {

@@ -32,8 +32,8 @@ export function computeBadges(activity: number[]): Badge[] {
         arr.push({
             id: 'first_workout',
             icon: 'fas fa-star',
-            label: 'Erster Step',
-            desc: 'Dein erstes Workout ist drin - wichtiger als perfekt ist gestartet.'
+            label: 'Erster Schritt',
+            desc: 'Dein erstes Workout ist drin - wichtiger als perfekt ist: gestartet.'
         })
     }
 
@@ -42,7 +42,7 @@ export function computeBadges(activity: number[]): Badge[] {
             id: 'streak3',
             icon: 'fas fa-fire',
             label: '3-Tage Streak',
-            desc: 'Drei Tage am Stueck aktiv - jetzt bloss nicht abbrechen.'
+            desc: 'Drei Tage am Stück aktiv - jetzt bloß nicht abbrechen.'
         })
     }
     if (streakDays >= 7) {
@@ -50,7 +50,7 @@ export function computeBadges(activity: number[]): Badge[] {
             id: 'streak7',
             icon: 'fas fa-bolt',
             label: '7-Tage Streak',
-            desc: '7 Tage am Stueck aktiv - dein neuer Standard.'
+            desc: '7 Tage am Stück aktiv - dein neuer Standard.'
         })
     }
     if (streakDays >= 14) {
@@ -75,7 +75,7 @@ export function computeBadges(activity: number[]): Badge[] {
             id: 'weekly3',
             icon: 'fas fa-running',
             label: 'Im Flow',
-            desc: '3+ Workouts diese Woche - das ist der Sweet Spot fuers Momentum.'
+            desc: '3+ Workouts diese Woche - das ist der Sweet Spot fürs Momentum.'
         })
     }
     if (weeklyWorkouts >= 5) {
@@ -83,7 +83,7 @@ export function computeBadges(activity: number[]): Badge[] {
             id: 'beast',
             icon: 'fas fa-dragon',
             label: 'Beast Mode',
-            desc: '5+ Workouts diese Woche - du laesst Ausreden keine Chance.'
+            desc: '5+ Workouts diese Woche - du lässt Ausreden keine Chance.'
         })
     }
     if (weeklyWorkouts >= 7) {
@@ -118,7 +118,7 @@ export function computeBadges(activity: number[]): Badge[] {
             id: 'volume100',
             icon: 'fas fa-trophy',
             label: '100 Workouts',
-            desc: '100 Workouts sind nicht Glueck, das ist Identitaet.'
+            desc: '100 Workouts sind nicht Glück, das ist Identität.'
         })
     }
 
@@ -127,7 +127,7 @@ export function computeBadges(activity: number[]): Badge[] {
             id: 'comeback',
             icon: 'fas fa-redo-alt',
             label: 'Comeback',
-            desc: 'Du warst raus und bist wieder drin. Genau das zaehlt.'
+            desc: 'Du warst raus und bist wieder drin. Genau das zählt.'
         })
     }
 

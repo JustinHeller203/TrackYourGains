@@ -20,7 +20,17 @@ public class CreateComplaintEntryDto
     [Required, MaxLength(20)] public string Status { get; init; } = "aktiv";
     [Required] public int Intensity { get; init; } = 5;
     [Required] public DateTime Date { get; init; }
-    [MaxLength(400)] public string? Notes { get; init; }
+    [MaxLength(2000)] public string? Notes { get; init; }
+}
+
+public class UpdateComplaintEntryDto
+{
+    [Required, MaxLength(40)] public string Area { get; init; } = string.Empty;
+    [Required, MaxLength(40)] public string Category { get; init; } = string.Empty;
+    [Required, MaxLength(20)] public string Status { get; init; } = "aktiv";
+    [Required] public int Intensity { get; init; } = 5;
+    [Required] public DateTime Date { get; init; }
+    [MaxLength(2000)] public string? Notes { get; init; }
 }
 
 public class UpdateComplaintStatusDto

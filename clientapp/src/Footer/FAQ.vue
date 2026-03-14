@@ -45,7 +45,7 @@
             <details>
                 <summary>Was bedeuten die Zahlen bei „Deine Erfolge 🏆“?</summary>
                 <p>
-                    Dort siehst du, wie viele Workouts du abgeschlossen hast, wie viele Mahlzeiten du geplant hast
+                    Dort siehst du, wie viele Workouts du abgeschlossen hast, wie viele Beschwerden du erfasst hast
                     und wie viel Gewicht du bereits verloren hast. Die Zahlen zeigen dir auf einen Blick, was du
                     schon erreicht hast.
                 </p>
@@ -63,9 +63,11 @@
                 <summary>Wohin führen die Buttons wie „Jetzt loslegen“ oder „Trainingsplan erstellen“?</summary>
                 <p>
                     Die Buttons bringen dich direkt in die passenden Bereiche:
-                    „Jetzt loslegen“ und „Fortschritt ansehen“ öffnen deine Fortschrittsseite,
-                    „Trainingsplan erstellen“ führt dich zum Training und
-                    „Mahlzeit planen“ in den Ernährungsbereich.
+                    „Jetzt loslegen“ führt dich ins Training,
+                    „Fortschritt ansehen“ öffnet deine Fortschrittsseite,
+                    „Trainingsplan erstellen“ führt dich zum Training,
+                    „Beschwerde erfassen“ in den Beschwerden-Bereich und
+                    „Tutorials öffnen“ direkt zu den Übungstutorials.
                 </p>
             </details>
 
@@ -73,7 +75,7 @@
                 <summary>Was sind die „Features“ auf der Landingpage?</summary>
                 <p>
                     Die Feature-Karten zeigen dir, was TrackYourGains alles kann:
-                    Training planen, Ernährung tracken, Fortschritt auswerten und Tutorials anschauen.
+                    Training planen, Beschwerden dokumentieren, Fortschritt auswerten und Tutorials anschauen.
                     So siehst du sofort, wofür du die App nutzen kannst.
                 </p>
             </details>
@@ -99,7 +101,7 @@
                 <summary>Muss ich direkt alles ausfüllen, wenn ich starte?</summary>
                 <p>
                     Nein. Du kannst ganz entspannt einsteigen: erst mal ein paar Workouts tracken,
-                    später Mahlzeiten hinzufügen und nach und nach deinen Fortschritt ausbauen. Die
+                    später Beschwerden ergänzen und nach und nach deinen Fortschritt ausbauen. Die
                     Landingpage hilft dir dabei, immer wieder einzusteigen.
                 </p>
             </details>
@@ -364,43 +366,55 @@
             </details>
         </section>
 
-        <!-- Ernährung -->
-        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'nutrition'">
-            <h2>Ernährung</h2>
+        <!-- Beschwerden -->
+        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'complaints'">
+            <h2>Beschwerden</h2>
 
             <details>
-                <summary>Warum steht bei „Ernährung“ noch COMING SOON?</summary>
+                <summary>Wofür ist die Beschwerden-Seite gedacht?</summary>
                 <p>
-                    Der Ernährungsbereich ist aktuell noch in Entwicklung. Deshalb liegt ein Overlay über der Seite
-                    und du kannst die Elemente noch nicht benutzen. So bekommst du schon einen ersten Eindruck,
-                    wie die Seite später aussehen wird, ohne dass alles schon fertig sein muss.
+                    Dort dokumentierst du Schmerzen, Überlastungen oder Muskelkater und behältst ihren Verlauf im Blick.
+                    So kannst du Training und Beschwerden besser zusammen denken, statt alles getrennt zu merken.
                 </p>
             </details>
 
             <details>
-                <summary>Wofür ist die Ernährungsseite gedacht?</summary>
+                <summary>Welche Informationen kann ich bei einer Beschwerde speichern?</summary>
                 <p>
-                    Hier kannst du deine Mahlzeiten, Kalorien und Makros (Protein, Carbs, Fett) tracken. Du siehst
-                    auf einen Blick, wie weit du von deinem Tagesziel entfernt bist und welche Nährstoffe du
-                    hauptsächlich isst. Das hilft dir, deine Ernährung bewusst zu steuern.
+                    Du kannst Bereich, Kategorie, Intensität, Datum, Status und optionale Notizen speichern.
+                    Dadurch siehst du nicht nur, dass etwas weh tut, sondern auch wie stark, seit wann und ob es besser wird.
                 </p>
             </details>
 
             <details>
-                <summary>Kann ich meine Ernährungsdaten exportieren?</summary>
+                <summary>Welche Status gibt es bei Beschwerden?</summary>
                 <p>
-                    Ja, über den Button „Exportieren“ kannst du deine Daten in verschiedene Formate herunterladen,
-                    zum Beispiel um sie zu sichern, mit einem Coach zu teilen oder in anderen Tools weiterzunutzen.
-                    Die Datei wird lokal auf deinem Gerät gespeichert.
+                    Aktuell gibt es „aktiv“, „besser“ und „weg“.
+                    Damit kannst du laufende Beschwerden sauber von fast abgeheilten oder erledigten Einträgen trennen.
                 </p>
             </details>
 
             <details>
-                <summary>Werden meine Einträge schon dauerhaft gespeichert?</summary>
+                <summary>Kann ich eine Beschwerde später bearbeiten oder löschen?</summary>
                 <p>
-                    In der aktuellen Version ist der Ernährungsbereich vor allem als Vorschau gedacht. Deine Daten
-                    werden noch nicht dauerhaft gespeichert und können beim Neuladen verloren gehen. Geplant ist,
-                    dass in einer späteren Version deine Einträge zuverlässig gesichert werden.
+                    Ja. Bestehende Einträge kannst du öffnen, anpassen oder wieder entfernen.
+                    Das ist wichtig, wenn sich Intensität, Status oder deine Einschätzung verändert haben.
+                </p>
+            </details>
+
+            <details>
+                <summary>Werden Beschwerden nur lokal gespeichert oder auch mit Account?</summary>
+                <p>
+                    Ohne Login werden die Einträge lokal im Browser gespeichert. Mit Account werden sie über den Store geladen
+                    und mit deinem Benutzer verknüpft. Wenn lokal gespeichert wird, gehen die Daten bei Browser-Reset oder Gerätewechsel nicht automatisch mit.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was bringt mir das für mein Training?</summary>
+                <p>
+                    Beschwerden fließen in mehrere Trainingsbereiche ein, zum Beispiel in gelenkschonendere Entscheidungen oder Auto-Plan-Anpassungen.
+                    Dadurch kann die App besser berücksichtigen, was gerade sinnvoll ist und was eher vermieden werden sollte.
                 </p>
             </details>
         </section>
@@ -506,14 +520,14 @@
     import { onMounted, onUnmounted, ref, watch, nextTick } from "vue";
     import UiSearch from "@/components/ui/kits/UiSearch.vue";
 
-    type CatKey = "all" | "landing" | "training" | "timers" | "nutrition" | "tutorials" | "settings";
+    type CatKey = "all" | "landing" | "training" | "timers" | "complaints" | "tutorials" | "settings";
 
     const categories: { key: CatKey; label: string }[] = [
         { key: "all", label: "Alle" },
         { key: "landing", label: "Landing" },
         { key: "training", label: "Training" },
         { key: "timers", label: "Timer & Stopwatch" },
-        { key: "nutrition", label: "Ernährung" },
+        { key: "complaints", label: "Beschwerden" },
         { key: "tutorials", label: "Tutorials" },
         { key: "settings", label: "Einstellungen" },
     ];

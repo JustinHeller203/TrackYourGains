@@ -1,7 +1,6 @@
 // src/composables/useGlobalAchievements.ts
 
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { LS_PROFILE_ACTIVITY, LS_PROFILE_EARNED_BADGES } from '@/constants/storageKeys'
+import { onMounted, ref } from 'vue'
 import { useAuthStore } from '@/store/authStore'
 import { useProgressStore } from '@/store/progressStore'
 import { useTrainingPlansStore } from '@/store/trainingPlansStore'
@@ -13,19 +12,6 @@ const MIN_REFRESH_INTERVAL_MS = 1500
 
 const isGuid = (v: string) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
-
-function loadJSON<T>(key: string, fallback: T): T {
-    try {
-        const raw = localStorage.getItem(key)
-        return raw ? (JSON.parse(raw) as T) : fallback
-    } catch {
-        return fallback
-    }
-}
-
-function saveJSON(key: string, val: unknown) {
-    localStorage.setItem(key, JSON.stringify(val))
-}
 
 export function useGlobalAchievements() {
     const auth = useAuthStore()
@@ -95,26 +81,20 @@ export function useGlobalAchievements() {
         const now = Date.now()
         if (!force && now - lastRefreshAt < MIN_REFRESH_INTERVAL_MS) return
         if (running) return
+        if (!auth.user) return
 
         running = true
         lastRefreshAt = now
 
         try {
             let activity: number[] = []
-            let earnedBadges: string[] = []
+            const profile = await getProfile()
+            const earnedBadges = Array.isArray(profile.earnedBadges) ? profile.earnedBadges : []
 
-            if (auth.user) {
-                const profile = await getProfile()
-                earnedBadges = Array.isArray(profile.earnedBadges) ? profile.earnedBadges : []
-
-                try {
-                    activity = await loadBackendActivity()
-                } catch {
-                    activity = Array.isArray(profile.activity) ? profile.activity : []
-                }
-            } else {
-                activity = loadJSON<number[]>(LS_PROFILE_ACTIVITY, [])
-                earnedBadges = loadJSON<string[]>(LS_PROFILE_EARNED_BADGES, [])
+            try {
+                activity = await loadBackendActivity()
+            } catch {
+                activity = Array.isArray(profile.activity) ? profile.activity : []
             }
 
             const badges = computeBadges(activity)
@@ -126,11 +106,7 @@ export function useGlobalAchievements() {
 
             const merged = Array.from(new Set([...earnedBadges, ...newly.map(b => b.id)]))
 
-            if (auth.user) {
-                await updateProfile({ earnedBadges: merged })
-            } else {
-                saveJSON(LS_PROFILE_EARNED_BADGES, merged)
-            }
+            await updateProfile({ earnedBadges: merged })
 
             for (const badge of newly) queuePopup(badge)
         } catch {
@@ -140,19 +116,8 @@ export function useGlobalAchievements() {
         }
     }
 
-    const onStorage = (ev: StorageEvent) => {
-        if (ev.key === LS_PROFILE_ACTIVITY || ev.key === LS_PROFILE_EARNED_BADGES) {
-            void refreshAchievements(true)
-        }
-    }
-
     onMounted(() => {
         void refreshAchievements(true)
-        window.addEventListener('storage', onStorage)
-    })
-
-    onBeforeUnmount(() => {
-        window.removeEventListener('storage', onStorage)
     })
 
     return {

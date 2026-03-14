@@ -22,7 +22,7 @@ public class ComplaintEntry
 
     public DateTime Date { get; set; }
 
-    [MaxLength(400)]
+    [MaxLength(2000)]
     public string? Notes { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -1,0 +1,2139 @@
+[
+  {
+    "key": "bench-press",
+    "name": "Bankdrücken",
+    "primaryMuscleGroup": "Brust",
+    "secondaryMuscleGroups": [
+      "Schultern",
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "horizontal_push",
+    "equipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "level": "intermediate",
+    "stability": "stable",
+    "axialLoad": "medium",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium",
+      "ellbogen": "medium"
+    },
+    "goalTags": [
+      "strength",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Chest Press Maschine",
+      "Liegestütze"
+    ],
+    "aliases": [
+      "Bench Press",
+      "Benchpress",
+      "Bankdruecken"
+    ]
+  },
+  {
+    "key": "incline-dumbbell-press",
+    "name": "Schrägbankdrücken Kurzhantel",
+    "primaryMuscleGroup": "Brust",
+    "secondaryMuscleGroups": [
+      "Schultern",
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "horizontal_push",
+    "equipment": [
+      "dumbbell"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Bankdrücken",
+      "Chest Press Maschine"
+    ],
+    "aliases": [
+      "Incline Dumbbell Press",
+      "Schrägbank KH",
+      "Schraegbankdruecken Kurzhantel"
+    ]
+  },
+  {
+    "key": "chest-press",
+    "name": "Chest Press Maschine",
+    "primaryMuscleGroup": "Brust",
+    "secondaryMuscleGroups": [
+      "Schultern",
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "horizontal_push",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "low"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "health"
+    ],
+    "substitutions": [
+      "Bankdrücken",
+      "Liegestütze"
+    ],
+    "aliases": [
+      "Chest Press",
+      "Brustpresse"
+    ]
+  },
+  {
+    "key": "pec-deck",
+    "name": "Butterfly",
+    "primaryMuscleGroup": "Brust",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "low"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Cable Fly"
+    ],
+    "aliases": [
+      "Pec Deck",
+      "Butterfly Maschine"
+    ]
+  },
+  {
+    "key": "cable-fly",
+    "name": "Cable Fly",
+    "primaryMuscleGroup": "Brust",
+    "secondaryMuscleGroups": [
+      "Schultern"
+    ],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "cable"
+    ],
+    "level": "intermediate",
+    "stability": "moderate",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Butterfly"
+    ],
+    "aliases": [
+      "Kabel Fly",
+      "Cable Crossover"
+    ]
+  },
+  {
+    "key": "push-up",
+    "name": "Liegestütze",
+    "primaryMuscleGroup": "Brust",
+    "secondaryMuscleGroups": [
+      "Schultern",
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "horizontal_push",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "moderate",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "handgelenk": "medium",
+      "schulter": "medium"
+    },
+    "goalTags": [
+      "general_fitness",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Chest Press Maschine"
+    ],
+    "aliases": [
+      "Push Up",
+      "Pushup",
+      "Liegestuetze"
+    ]
+  },
+  {
+    "key": "overhead-press",
+    "name": "Schulterdrücken",
+    "primaryMuscleGroup": "Schultern",
+    "secondaryMuscleGroups": [
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "vertical_push",
+    "equipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "level": "intermediate",
+    "stability": "moderate",
+    "axialLoad": "medium",
+    "overhead": true,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "high",
+      "nacken": "medium"
+    },
+    "goalTags": [
+      "strength",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Landmine Press",
+      "Seitheben"
+    ],
+    "aliases": [
+      "Shoulder Press",
+      "OHP",
+      "Schulterdruecken"
+    ]
+  },
+  {
+    "key": "landmine-press",
+    "name": "Landmine Press",
+    "primaryMuscleGroup": "Schultern",
+    "secondaryMuscleGroups": [
+      "Brust",
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "vertical_push",
+    "equipment": [
+      "barbell"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "low"
+    },
+    "goalTags": [
+      "health",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Chest Press Maschine"
+    ],
+    "aliases": [
+      "Landminepress"
+    ]
+  },
+  {
+    "key": "lateral-raise",
+    "name": "Seitheben",
+    "primaryMuscleGroup": "Schultern",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "dumbbell",
+      "cable"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Maschinen-Seitheben"
+    ],
+    "aliases": [
+      "Lateral Raise",
+      "Seitheben Kabel"
+    ]
+  },
+  {
+    "key": "rear-delt-fly",
+    "name": "Reverse Butterfly",
+    "primaryMuscleGroup": "Schultern",
+    "secondaryMuscleGroups": [
+      "Rücken"
+    ],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "machine",
+      "cable"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "low"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "health"
+    ],
+    "substitutions": [
+      "Face Pull"
+    ],
+    "aliases": [
+      "Rear Delt Fly",
+      "Reverse Fly"
+    ]
+  },
+  {
+    "key": "face-pull",
+    "name": "Face Pull",
+    "primaryMuscleGroup": "Schultern",
+    "secondaryMuscleGroups": [
+      "Rücken"
+    ],
+    "kind": "strength",
+    "movementPattern": "horizontal_pull",
+    "equipment": [
+      "cable",
+      "band"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "low",
+      "nacken": "low"
+    },
+    "goalTags": [
+      "health",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Reverse Butterfly"
+    ],
+    "aliases": [
+      "Facepull"
+    ]
+  },
+  {
+    "key": "lat-pulldown",
+    "name": "Lat Pulldown",
+    "primaryMuscleGroup": "Rücken",
+    "secondaryMuscleGroups": [
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "vertical_pull",
+    "equipment": [
+      "machine",
+      "cable"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": true,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "health"
+    ],
+    "substitutions": [
+      "Klimmzüge",
+      "Cable Row"
+    ],
+    "aliases": [
+      "Latzug",
+      "Latziehen"
+    ]
+  },
+  {
+    "key": "pull-up",
+    "name": "Klimmzüge",
+    "primaryMuscleGroup": "Rücken",
+    "secondaryMuscleGroups": [
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "vertical_pull",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "intermediate",
+    "stability": "moderate",
+    "axialLoad": "low",
+    "overhead": true,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium",
+      "ellbogen": "medium"
+    },
+    "goalTags": [
+      "strength",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Lat Pulldown"
+    ],
+    "aliases": [
+      "Pull Up",
+      "Chin-up",
+      "Klimmzuege"
+    ]
+  },
+  {
+    "key": "cable-row",
+    "name": "Cable Row",
+    "primaryMuscleGroup": "Rücken",
+    "secondaryMuscleGroups": [
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "horizontal_pull",
+    "equipment": [
+      "cable"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "low"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "health"
+    ],
+    "substitutions": [
+      "Chest Supported Row",
+      "Langhantel Rudern"
+    ],
+    "aliases": [
+      "Kabelrudern",
+      "Seated Row"
+    ]
+  },
+  {
+    "key": "barbell-row",
+    "name": "Langhantel Rudern",
+    "primaryMuscleGroup": "Rücken",
+    "secondaryMuscleGroups": [
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "horizontal_pull",
+    "equipment": [
+      "barbell"
+    ],
+    "level": "intermediate",
+    "stability": "moderate",
+    "axialLoad": "high",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "high"
+    },
+    "goalTags": [
+      "strength",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Cable Row"
+    ],
+    "aliases": [
+      "Barbell Row",
+      "LH Rudern"
+    ]
+  },
+  {
+    "key": "chest-supported-row",
+    "name": "Chest Supported Row",
+    "primaryMuscleGroup": "Rücken",
+    "secondaryMuscleGroups": [
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "horizontal_pull",
+    "equipment": [
+      "machine",
+      "dumbbell"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "low"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "health"
+    ],
+    "substitutions": [
+      "Cable Row"
+    ],
+    "aliases": [
+      "Brustgestütztes Rudern"
+    ]
+  },
+  {
+    "key": "single-arm-row",
+    "name": "Einarmiges Rudern",
+    "primaryMuscleGroup": "Rücken",
+    "secondaryMuscleGroups": [
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "horizontal_pull",
+    "equipment": [
+      "dumbbell",
+      "cable"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "low"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Cable Row"
+    ],
+    "aliases": [
+      "One Arm Row",
+      "Kurzhantel Rudern"
+    ]
+  },
+  {
+    "key": "biceps-curl",
+    "name": "Bizeps Curls",
+    "primaryMuscleGroup": "Arme",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "dumbbell",
+      "cable"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ellbogen": "medium",
+      "handgelenk": "medium"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Hammer Curl"
+    ],
+    "aliases": [
+      "Bizepscurl",
+      "Biceps Curl",
+      "Curls"
+    ]
+  },
+  {
+    "key": "hammer-curl",
+    "name": "Hammer Curl",
+    "primaryMuscleGroup": "Arme",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "dumbbell",
+      "cable"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ellbogen": "medium",
+      "handgelenk": "medium"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Bizeps Curls"
+    ],
+    "aliases": [
+      "Hammer Curls"
+    ]
+  },
+  {
+    "key": "triceps-pushdown",
+    "name": "Trizeps Pushdown",
+    "primaryMuscleGroup": "Arme",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "cable"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ellbogen": "medium"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Dips Bench"
+    ],
+    "aliases": [
+      "Trizepsdrücken",
+      "Pushdown",
+      "Trizepsdruecken"
+    ]
+  },
+  {
+    "key": "skull-crusher",
+    "name": "Skull Crusher",
+    "primaryMuscleGroup": "Arme",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "level": "intermediate",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ellbogen": "medium"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Trizeps Pushdown"
+    ],
+    "aliases": [
+      "French Press"
+    ]
+  },
+  {
+    "key": "dips-bench",
+    "name": "Bench Dips",
+    "primaryMuscleGroup": "Arme",
+    "secondaryMuscleGroups": [
+      "Brust"
+    ],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "moderate",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium",
+      "ellbogen": "medium"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Trizeps Pushdown"
+    ],
+    "aliases": [
+      "Dips Bench"
+    ]
+  },
+  {
+    "key": "back-squat",
+    "name": "Kniebeugen",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [
+      "Gesäß",
+      "Core"
+    ],
+    "kind": "strength",
+    "movementPattern": "squat",
+    "equipment": [
+      "barbell"
+    ],
+    "level": "intermediate",
+    "stability": "stable",
+    "axialLoad": "high",
+    "overhead": false,
+    "deepKneeFlexion": true,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "medium",
+      "ruecken": "medium"
+    },
+    "goalTags": [
+      "strength",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Box Squat",
+      "Leg Press"
+    ],
+    "aliases": [
+      "Squat",
+      "Back Squat"
+    ]
+  },
+  {
+    "key": "box-squat",
+    "name": "Box Squat",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [
+      "Gesäß",
+      "Core"
+    ],
+    "kind": "strength",
+    "movementPattern": "squat",
+    "equipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "medium",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "low"
+    },
+    "goalTags": [
+      "strength",
+      "muscle_gain",
+      "health"
+    ],
+    "substitutions": [
+      "Leg Press"
+    ],
+    "aliases": [
+      "Boxsquat"
+    ]
+  },
+  {
+    "key": "leg-press",
+    "name": "Leg Press",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [
+      "Gesäß"
+    ],
+    "kind": "strength",
+    "movementPattern": "squat",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": true,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "medium"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "health"
+    ],
+    "substitutions": [
+      "Box Squat"
+    ],
+    "aliases": [
+      "Beinpresse",
+      "Legpress"
+    ]
+  },
+  {
+    "key": "leg-extension",
+    "name": "Beinstrecker",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "medium"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Hack Squat"
+    ],
+    "aliases": [
+      "Leg Extension"
+    ]
+  },
+  {
+    "key": "leg-curl",
+    "name": "Beinbeuger",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "low"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Romanian Deadlift"
+    ],
+    "aliases": [
+      "Leg Curl"
+    ]
+  },
+  {
+    "key": "romanian-deadlift",
+    "name": "Romanian Deadlift",
+    "primaryMuscleGroup": "Rücken",
+    "secondaryMuscleGroups": [
+      "Gesäß",
+      "Beine"
+    ],
+    "kind": "strength",
+    "movementPattern": "hinge",
+    "equipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "level": "intermediate",
+    "stability": "stable",
+    "axialLoad": "high",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "high"
+    },
+    "goalTags": [
+      "strength",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Hip Thrust"
+    ],
+    "aliases": [
+      "RDL",
+      "Rumänisches Kreuzheben",
+      "Rumaenisches Kreuzheben"
+    ]
+  },
+  {
+    "key": "deadlift",
+    "name": "Kreuzheben",
+    "primaryMuscleGroup": "Rücken",
+    "secondaryMuscleGroups": [
+      "Gesäß",
+      "Beine",
+      "Core"
+    ],
+    "kind": "strength",
+    "movementPattern": "hinge",
+    "equipment": [
+      "barbell"
+    ],
+    "level": "advanced",
+    "stability": "stable",
+    "axialLoad": "high",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "high",
+      "handgelenk": "medium"
+    },
+    "goalTags": [
+      "strength"
+    ],
+    "substitutions": [
+      "Romanian Deadlift"
+    ],
+    "aliases": [
+      "Deadlift"
+    ]
+  },
+  {
+    "key": "hip-thrust",
+    "name": "Hip Thrust",
+    "primaryMuscleGroup": "Gesäß",
+    "secondaryMuscleGroups": [
+      "Beine"
+    ],
+    "kind": "strength",
+    "movementPattern": "hinge",
+    "equipment": [
+      "barbell",
+      "dumbbell",
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "low",
+      "knie": "low"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "health"
+    ],
+    "substitutions": [
+      "Glute Bridge"
+    ],
+    "aliases": [
+      "Hip Thrusts"
+    ]
+  },
+  {
+    "key": "glute-bridge",
+    "name": "Glute Bridge",
+    "primaryMuscleGroup": "Gesäß",
+    "secondaryMuscleGroups": [
+      "Beine"
+    ],
+    "kind": "strength",
+    "movementPattern": "hinge",
+    "equipment": [
+      "bodyweight",
+      "dumbbell"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "low"
+    },
+    "goalTags": [
+      "health",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Hip Thrust"
+    ],
+    "aliases": [
+      "Bridge"
+    ]
+  },
+  {
+    "key": "reverse-lunge",
+    "name": "Reverse Lunge",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [
+      "Gesäß"
+    ],
+    "kind": "strength",
+    "movementPattern": "lunge",
+    "equipment": [
+      "dumbbell",
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "moderate",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": true,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "medium",
+      "huefte": "medium"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Step Up"
+    ],
+    "aliases": [
+      "Ausfallschritte rückwärts"
+    ]
+  },
+  {
+    "key": "step-up",
+    "name": "Step Up",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [
+      "Gesäß"
+    ],
+    "kind": "strength",
+    "movementPattern": "lunge",
+    "equipment": [
+      "dumbbell",
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "low"
+    },
+    "goalTags": [
+      "general_fitness",
+      "health"
+    ],
+    "substitutions": [
+      "Reverse Lunge"
+    ],
+    "aliases": [
+      "Stepup"
+    ]
+  },
+  {
+    "key": "bulgarian-split-squat",
+    "name": "Bulgarian Split Squat",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [
+      "Gesäß"
+    ],
+    "kind": "strength",
+    "movementPattern": "lunge",
+    "equipment": [
+      "dumbbell",
+      "bodyweight"
+    ],
+    "level": "intermediate",
+    "stability": "moderate",
+    "axialLoad": "medium",
+    "overhead": false,
+    "deepKneeFlexion": true,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "medium",
+      "huefte": "medium"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Reverse Lunge"
+    ],
+    "aliases": [
+      "Bulgarian Split Squats",
+      "Bulgarian Lunge"
+    ]
+  },
+  {
+    "key": "calf-raise",
+    "name": "Wadenheben",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "machine",
+      "dumbbell",
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "sprunggelenk": "medium"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Seated Calf Raise"
+    ],
+    "aliases": [
+      "Calf Raise",
+      "Wadenheben stehend"
+    ]
+  },
+  {
+    "key": "plank",
+    "name": "Plank",
+    "primaryMuscleGroup": "Core",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "core",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "low"
+    },
+    "goalTags": [
+      "general_fitness",
+      "health"
+    ],
+    "substitutions": [
+      "Dead Bug"
+    ],
+    "aliases": [
+      "Unterarmstütz",
+      "Unterarmstuetz"
+    ]
+  },
+  {
+    "key": "dead-bug",
+    "name": "Dead Bug",
+    "primaryMuscleGroup": "Core",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "core",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "low"
+    },
+    "goalTags": [
+      "health",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Plank"
+    ],
+    "aliases": [
+      "Deadbug"
+    ]
+  },
+  {
+    "key": "hanging-leg-raise",
+    "name": "Hanging Leg Raise",
+    "primaryMuscleGroup": "Core",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "core",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "intermediate",
+    "stability": "moderate",
+    "axialLoad": "low",
+    "overhead": true,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Plank"
+    ],
+    "aliases": [
+      "Leg Raise hängend",
+      "Leg Raises"
+    ]
+  },
+  {
+    "key": "bike-ergometer",
+    "name": "Bike Ergometer",
+    "primaryMuscleGroup": "Cardio",
+    "secondaryMuscleGroups": [
+      "Beine"
+    ],
+    "kind": "cardio",
+    "movementPattern": "cardio",
+    "equipment": [
+      "cardio_machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "low"
+    },
+    "goalTags": [
+      "endurance",
+      "fat_loss",
+      "general_fitness",
+      "health"
+    ],
+    "substitutions": [
+      "Walking"
+    ],
+    "aliases": [
+      "Ergometer",
+      "Bike"
+    ]
+  },
+  {
+    "key": "walking",
+    "name": "Walking",
+    "primaryMuscleGroup": "Cardio",
+    "secondaryMuscleGroups": [
+      "Beine"
+    ],
+    "kind": "cardio",
+    "movementPattern": "cardio",
+    "equipment": [
+      "bodyweight",
+      "cardio_machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "low",
+      "ruecken": "low"
+    },
+    "goalTags": [
+      "fat_loss",
+      "general_fitness",
+      "health"
+    ],
+    "substitutions": [
+      "Bike Ergometer"
+    ],
+    "aliases": [
+      "Gehen",
+      "Spazieren"
+    ]
+  },
+  {
+    "key": "rowing",
+    "name": "Rudern",
+    "primaryMuscleGroup": "Cardio",
+    "secondaryMuscleGroups": [
+      "Rücken",
+      "Beine"
+    ],
+    "kind": "cardio",
+    "movementPattern": "cardio",
+    "equipment": [
+      "cardio_machine"
+    ],
+    "level": "intermediate",
+    "stability": "stable",
+    "axialLoad": "medium",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "medium"
+    },
+    "goalTags": [
+      "endurance",
+      "fat_loss"
+    ],
+    "substitutions": [
+      "Bike Ergometer"
+    ],
+    "aliases": [
+      "Rowing",
+      "Rudermaschine"
+    ]
+  },
+  {
+    "key": "elliptical",
+    "name": "Crosstrainer",
+    "primaryMuscleGroup": "Cardio",
+    "secondaryMuscleGroups": [
+      "Beine"
+    ],
+    "kind": "cardio",
+    "movementPattern": "cardio",
+    "equipment": [
+      "cardio_machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "low"
+    },
+    "goalTags": [
+      "endurance",
+      "fat_loss",
+      "health"
+    ],
+    "substitutions": [
+      "Walking"
+    ],
+    "aliases": [
+      "Elliptical"
+    ]
+  },
+  {
+    "key": "hamstring-stretch",
+    "name": "Hamstring Dehnung",
+    "primaryMuscleGroup": "Mobility",
+    "secondaryMuscleGroups": [
+      "Beine"
+    ],
+    "kind": "mobility",
+    "movementPattern": "mobility",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "low",
+      "ruecken": "low"
+    },
+    "goalTags": [
+      "health"
+    ],
+    "substitutions": [
+      "Cat Cow"
+    ],
+    "aliases": [
+      "Hamstring Stretch",
+      "Beinrückseiten Dehnung",
+      "Beinrueckseiten Dehnung"
+    ]
+  },
+  {
+    "key": "cat-cow",
+    "name": "Cat Cow",
+    "primaryMuscleGroup": "Mobility",
+    "secondaryMuscleGroups": [
+      "Rücken"
+    ],
+    "kind": "mobility",
+    "movementPattern": "mobility",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "low",
+      "nacken": "low"
+    },
+    "goalTags": [
+      "health"
+    ],
+    "substitutions": [
+      "Hamstring Dehnung"
+    ],
+    "aliases": [
+      "Katze Kuh"
+    ]
+  },
+  {
+    "key": "child-pose",
+    "name": "Child's Pose",
+    "primaryMuscleGroup": "Mobility",
+    "secondaryMuscleGroups": [
+      "Rücken"
+    ],
+    "kind": "mobility",
+    "movementPattern": "mobility",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": true,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "low",
+      "knie": "low"
+    },
+    "goalTags": [
+      "health"
+    ],
+    "substitutions": [
+      "Cat Cow"
+    ],
+    "aliases": [
+      "Kindhaltung",
+      "Child Pose"
+    ]
+  },
+  {
+    "key": "hack-squat",
+    "name": "Hack Squat",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [
+      "Ges??"
+    ],
+    "kind": "strength",
+    "movementPattern": "squat",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "medium",
+    "overhead": false,
+    "deepKneeFlexion": true,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "medium"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "strength"
+    ],
+    "substitutions": [
+      "Leg Press",
+      "Box Squat"
+    ],
+    "aliases": [
+      "Hackenschmidt",
+      "Hack Squat Maschine"
+    ]
+  },
+  {
+    "key": "goblet-squat",
+    "name": "Goblet Squat",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [
+      "Ges??",
+      "Core"
+    ],
+    "kind": "strength",
+    "movementPattern": "squat",
+    "equipment": [
+      "dumbbell"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": true,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "medium",
+      "ruecken": "low"
+    },
+    "goalTags": [
+      "general_fitness",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Box Squat",
+      "Leg Press"
+    ],
+    "aliases": [
+      "Kelchkniebeuge"
+    ]
+  },
+  {
+    "key": "smith-machine-squat",
+    "name": "Smith Machine Squat",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [
+      "Ges??"
+    ],
+    "kind": "strength",
+    "movementPattern": "squat",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "medium",
+    "overhead": false,
+    "deepKneeFlexion": true,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "medium"
+    },
+    "goalTags": [
+      "strength",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Hack Squat",
+      "Leg Press"
+    ],
+    "aliases": [
+      "Multipresse Kniebeuge",
+      "Smith Squat"
+    ]
+  },
+  {
+    "key": "hip-abduction-machine",
+    "name": "Hip Abduction Maschine",
+    "primaryMuscleGroup": "Ges??",
+    "secondaryMuscleGroups": [
+      "Beine"
+    ],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "huefte": "low",
+      "knie": "low"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "health"
+    ],
+    "substitutions": [
+      "Glute Bridge",
+      "Hip Thrust"
+    ],
+    "aliases": [
+      "Abduktorenmaschine",
+      "Hip Abductor"
+    ]
+  },
+  {
+    "key": "adductor-machine",
+    "name": "Adduktorenmaschine",
+    "primaryMuscleGroup": "Beine",
+    "secondaryMuscleGroups": [
+      "Ges??"
+    ],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "huefte": "low",
+      "knie": "low"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "health"
+    ],
+    "substitutions": [
+      "Step Up",
+      "Glute Bridge"
+    ],
+    "aliases": [
+      "Adductor Machine"
+    ]
+  },
+  {
+    "key": "assisted-pull-up",
+    "name": "Assistierte Klimmz?ge",
+    "primaryMuscleGroup": "R?cken",
+    "secondaryMuscleGroups": [
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "vertical_pull",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": true,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium",
+      "ellbogen": "medium"
+    },
+    "goalTags": [
+      "strength",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Lat Pulldown",
+      "Cable Row"
+    ],
+    "aliases": [
+      "Assisted Pull Up",
+      "Klimmzugmaschine"
+    ]
+  },
+  {
+    "key": "straight-arm-pulldown",
+    "name": "Straight Arm Pulldown",
+    "primaryMuscleGroup": "R?cken",
+    "secondaryMuscleGroups": [
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "vertical_pull",
+    "equipment": [
+      "cable"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": true,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Lat Pulldown",
+      "Pull Up"
+    ],
+    "aliases": [
+      "Lat Prayer",
+      "Gerader Armzug"
+    ]
+  },
+  {
+    "key": "cable-lateral-raise",
+    "name": "Cable Lateral Raise",
+    "primaryMuscleGroup": "Schultern",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "isolation",
+    "equipment": [
+      "cable"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium"
+    },
+    "goalTags": [
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Seitheben",
+      "Rear Delt Fly"
+    ],
+    "aliases": [
+      "Kabel Seitheben"
+    ]
+  },
+  {
+    "key": "machine-shoulder-press",
+    "name": "Shoulder Press Maschine",
+    "primaryMuscleGroup": "Schultern",
+    "secondaryMuscleGroups": [
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "vertical_push",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": true,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium",
+      "nacken": "low"
+    },
+    "goalTags": [
+      "strength",
+      "muscle_gain"
+    ],
+    "substitutions": [
+      "Landmine Press",
+      "Schulterdr?cken"
+    ],
+    "aliases": [
+      "Machine Shoulder Press"
+    ]
+  },
+  {
+    "key": "incline-chest-press-machine",
+    "name": "Schr?gbank Chest Press Maschine",
+    "primaryMuscleGroup": "Brust",
+    "secondaryMuscleGroups": [
+      "Schultern",
+      "Arme"
+    ],
+    "kind": "strength",
+    "movementPattern": "horizontal_push",
+    "equipment": [
+      "machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "schulter": "medium"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Chest Press Maschine",
+      "Schr?gbankdr?cken Kurzhantel"
+    ],
+    "aliases": [
+      "Incline Chest Press Machine"
+    ]
+  },
+  {
+    "key": "cable-crunch",
+    "name": "Cable Crunch",
+    "primaryMuscleGroup": "Core",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "core",
+    "equipment": [
+      "cable"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "medium"
+    },
+    "goalTags": [
+      "muscle_gain",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Plank",
+      "Dead Bug"
+    ],
+    "aliases": [
+      "Kabel Crunch"
+    ]
+  },
+  {
+    "key": "side-plank",
+    "name": "Side Plank",
+    "primaryMuscleGroup": "Core",
+    "secondaryMuscleGroups": [],
+    "kind": "strength",
+    "movementPattern": "core",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "low"
+    },
+    "goalTags": [
+      "health",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Plank",
+      "Dead Bug"
+    ],
+    "aliases": [
+      "Seitst?tz"
+    ]
+  },
+  {
+    "key": "pallof-press",
+    "name": "Pallof Press",
+    "primaryMuscleGroup": "Core",
+    "secondaryMuscleGroups": [
+      "Schultern"
+    ],
+    "kind": "strength",
+    "movementPattern": "core",
+    "equipment": [
+      "cable",
+      "band"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "ruecken": "low",
+      "schulter": "low"
+    },
+    "goalTags": [
+      "health",
+      "general_fitness"
+    ],
+    "substitutions": [
+      "Side Plank",
+      "Dead Bug"
+    ],
+    "aliases": [
+      "Anti Rotation Press"
+    ]
+  },
+  {
+    "key": "treadmill-incline-walk",
+    "name": "Laufband Gehen Steigung",
+    "primaryMuscleGroup": "Cardio",
+    "secondaryMuscleGroups": [
+      "Beine"
+    ],
+    "kind": "cardio",
+    "movementPattern": "cardio",
+    "equipment": [
+      "cardio_machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "low"
+    },
+    "goalTags": [
+      "endurance",
+      "fat_loss",
+      "health"
+    ],
+    "substitutions": [
+      "Walking",
+      "Elliptical"
+    ],
+    "aliases": [
+      "Incline Walk",
+      "Treadmill Incline Walk"
+    ]
+  },
+  {
+    "key": "stair-climber",
+    "name": "Stair Climber",
+    "primaryMuscleGroup": "Cardio",
+    "secondaryMuscleGroups": [
+      "Beine",
+      "Ges??"
+    ],
+    "kind": "cardio",
+    "movementPattern": "cardio",
+    "equipment": [
+      "cardio_machine"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": true,
+    "impact": "low",
+    "rotation": false,
+    "jointLoad": {
+      "knie": "medium"
+    },
+    "goalTags": [
+      "endurance",
+      "fat_loss"
+    ],
+    "substitutions": [
+      "Elliptical",
+      "Bike Ergometer"
+    ],
+    "aliases": [
+      "Stepper",
+      "Treppensteiger"
+    ]
+  },
+  {
+    "key": "thoracic-rotation",
+    "name": "Thoracic Rotation",
+    "primaryMuscleGroup": "Mobility",
+    "secondaryMuscleGroups": [
+      "R?cken"
+    ],
+    "kind": "mobility",
+    "movementPattern": "mobility",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": false,
+    "impact": "low",
+    "rotation": true,
+    "jointLoad": {
+      "ruecken": "low",
+      "nacken": "low"
+    },
+    "goalTags": [
+      "health"
+    ],
+    "substitutions": [
+      "Cat Cow",
+      "Child's Pose"
+    ],
+    "aliases": [
+      "Brustwirbels?ulen Rotation",
+      "Open Book"
+    ]
+  },
+  {
+    "key": "worlds-greatest-stretch",
+    "name": "World's Greatest Stretch",
+    "primaryMuscleGroup": "Mobility",
+    "secondaryMuscleGroups": [
+      "Beine",
+      "R?cken"
+    ],
+    "kind": "mobility",
+    "movementPattern": "mobility",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "beginner",
+    "stability": "stable",
+    "axialLoad": "low",
+    "overhead": false,
+    "deepKneeFlexion": true,
+    "impact": "low",
+    "rotation": true,
+    "jointLoad": {
+      "huefte": "low",
+      "ruecken": "low",
+      "knie": "low"
+    },
+    "goalTags": [
+      "health"
+    ],
+    "substitutions": [
+      "Hamstring Dehnung",
+      "Thoracic Rotation"
+    ],
+    "aliases": [
+      "Greatest Stretch"
+    ]
+  }
+]

@@ -201,6 +201,79 @@
 
                                 <p v-if="entry.notes" class="entry-notes">{{ entry.notes }}</p>
 
+                                <section v-if="painDiaryPreviewByComplaint[entry.id]?.length" class="pain-diary-preview">
+                                    <p class="pain-diary-preview__title">Schmerztagebuch</p>
+                                    <ul class="pain-diary-preview__list">
+                                        <li
+                                            v-for="diary in painDiaryPreviewByComplaint[entry.id]"
+                                            :key="diary.id"
+                                            class="pain-diary-preview__item">
+                                            <div class="pain-diary-preview__line">
+                                                <span class="pain-diary-preview__date">{{ formatDateTime(diary.createdAt) }}</span>
+                                                <span class="pain-diary-preview__source">{{ diarySourceLabel(diary.source) }}</span>
+                                                <span class="pain-diary-preview__actions">
+                                                    <button
+                                                        type="button"
+                                                        class="pain-diary-preview__action-btn"
+                                                        @click="startPainDiaryEdit(diary)">
+                                                        Bearbeiten
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="pain-diary-preview__action-btn pain-diary-preview__action-btn--danger"
+                                                        @click="deletePainDiaryRecord(diary.id)">
+                                                        Löschen
+                                                    </button>
+                                                </span>
+                                            </div>
+                                            <div class="pain-diary-preview__scale-row">
+                                                <div class="pain-diary-preview__scale" role="img" :aria-label="`Intensität ${diary.painLevel} von 10`">
+                                                    <div
+                                                        class="pain-diary-preview__scale-fill"
+                                                        :style="painDiaryScaleStyle(diary.painLevel)"></div>
+                                                    <span class="pain-diary-preview__scale-value">{{ diary.painLevel }}/10</span>
+                                                </div>
+                                            </div>
+                                            <p v-if="diary.note" class="pain-diary-preview__note">{{ diary.note }}</p>
+                                            <div v-if="editingPainDiaryId === diary.id" class="pain-diary-preview__editor">
+                                                <div class="pain-diary-preview__editor-head">
+                                                    <label class="field-label">Intensität</label>
+                                                    <strong>{{ editingPainDiaryLevel }}/10</strong>
+                                                </div>
+                                                <input
+                                                    v-model.number="editingPainDiaryLevel"
+                                                    class="pain-diary-preview__slider"
+                                                    type="range"
+                                                    min="0"
+                                                    max="10"
+                                                    step="1"
+                                                    :style="painDiaryEditorSliderStyle"
+                                                    aria-label="Schmerztagebuch Intensität bearbeiten" />
+                                                <textarea
+                                                    v-model="editingPainDiaryNote"
+                                                    class="pain-diary-preview__editor-note"
+                                                    rows="2"
+                                                    maxlength="220"
+                                                    placeholder="Optionale Notiz" />
+                                                <div class="pain-diary-preview__editor-actions">
+                                                    <button
+                                                        type="button"
+                                                        class="pain-diary-preview__action-btn"
+                                                        @click="cancelPainDiaryEdit">
+                                                        Abbrechen
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="pain-diary-preview__action-btn"
+                                                        @click="savePainDiaryEdit(diary.id)">
+                                                        Speichern
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </section>
+
                                 <div class="status-row">
                                     <p class="status-title">Status auswählen</p>
                                     <div class="status-actions complaint-actions" aria-label="Status aktualisieren">
@@ -268,6 +341,7 @@
     import ComplaintTrainingContextPopup from '@/components/ui/popups/ComplaintTrainingContextPopup.vue'
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
     import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
+    import { listPainDiaryEntries, removePainDiaryEntry, updatePainDiaryEntry, type PainDiaryEntry } from '@/components/ui/feedback/painDiary'
     import { useAuthStore } from '@/store/authStore'
     import { useComplaintsStore } from '@/store/complaintsStore'
     import { useProgressStore } from '@/store/progressStore'
@@ -400,6 +474,10 @@
     const trainingContextExerciseOptions = ref<string[]>([])
     const injurySummaryLine = ref('')
     const customAreaHistory = ref<string[]>(loadCustomAreaHistory())
+    const painDiaryEntries = ref<PainDiaryEntry[]>([])
+    const editingPainDiaryId = ref<string | null>(null)
+    const editingPainDiaryLevel = ref(0)
+    const editingPainDiaryNote = ref('')
     const editingEntryId = ref<string | null>(null)
     const creatorFormRef = ref<HTMLElement | null>(null)
     const injuryEstimatorRef = ref<InjuryEstimatorExpose | null>(null)
@@ -420,6 +498,27 @@
         if (byDate !== 0) return byDate
         return b.createdAt.localeCompare(a.createdAt)
     }))
+
+    const painDiaryPreviewByComplaint = computed<Record<string, PainDiaryEntry[]>>(() => {
+        const grouped: Record<string, PainDiaryEntry[]> = {}
+        const seenDayByComplaint: Record<string, Set<string>> = {}
+
+        for (const diaryEntry of painDiaryEntries.value) {
+            const day = String(diaryEntry.createdAt ?? '').slice(0, 10)
+            for (const complaintId of diaryEntry.activeComplaintIds) {
+                if (!grouped[complaintId]) grouped[complaintId] = []
+                if (!seenDayByComplaint[complaintId]) seenDayByComplaint[complaintId] = new Set<string>()
+
+                if (day && seenDayByComplaint[complaintId].has(day)) continue
+                if (grouped[complaintId].length >= 5) continue
+
+                grouped[complaintId].push(diaryEntry)
+                if (day) seenDayByComplaint[complaintId].add(day)
+            }
+        }
+
+        return grouped
+    })
 
     const activeCount = computed(() => entries.value.filter((entry) => entry.status !== 'weg').length)
 
@@ -542,6 +641,53 @@
         }
     }
 
+    function diarySourceLabel(source: PainDiaryEntry['source']) {
+        return source === 'training-simulation' ? 'Training' : 'Plan'
+    }
+
+    const painDiaryEditorSliderStyle = computed(() => {
+        const ratio = Math.max(0, Math.min(1, editingPainDiaryLevel.value / 10))
+        const hue = 120 - (120 * ratio)
+        return {
+            '--pain-thumb-color': `hsl(${hue} 85% 48%)`,
+        }
+    })
+
+    function loadPainDiaryEntries() {
+        painDiaryEntries.value = listPainDiaryEntries()
+    }
+
+    function startPainDiaryEdit(entry: PainDiaryEntry) {
+        editingPainDiaryId.value = entry.id
+        editingPainDiaryLevel.value = Math.max(0, Math.min(10, Math.round(Number(entry.painLevel) || 0)))
+        editingPainDiaryNote.value = String(entry.note ?? '').slice(0, 220)
+    }
+
+    function cancelPainDiaryEdit() {
+        editingPainDiaryId.value = null
+        editingPainDiaryLevel.value = 0
+        editingPainDiaryNote.value = ''
+    }
+
+    function savePainDiaryEdit(id: string) {
+        const success = updatePainDiaryEntry({
+            id,
+            painLevel: editingPainDiaryLevel.value,
+            note: editingPainDiaryNote.value,
+        })
+        if (!success) return
+        loadPainDiaryEntries()
+        cancelPainDiaryEdit()
+    }
+
+    function deletePainDiaryRecord(id: string) {
+        if (!window.confirm('Schmerztagebuch-Eintrag wirklich löschen?')) return
+        const success = removePainDiaryEntry(id)
+        if (!success) return
+        if (editingPainDiaryId.value === id) cancelPainDiaryEdit()
+        loadPainDiaryEntries()
+    }
+
     function hexToRgb(hex: string) {
         const clean = hex.replace('#', '')
         const n = Number.parseInt(clean, 16)
@@ -591,6 +737,14 @@
         return {
             width: `${value * 10}%`,
             background: intensityFillColor(value),
+        }
+    }
+
+    function painDiaryScaleStyle(valueRaw: number) {
+        const value = Math.max(0, Math.min(10, Math.round(Number(valueRaw) || 0)))
+        return {
+            width: `${value * 10}%`,
+            background: intensityFillColor(value === 0 ? 1 : value),
         }
     }
 
@@ -980,6 +1134,7 @@
 
     onMounted(() => {
         void complaintsStore.load()
+        loadPainDiaryEntries()
     })
 </script>
 
@@ -1381,6 +1536,212 @@
         overflow-wrap: anywhere;
         padding-top: 0.15rem;
         border-top: 1px dashed rgba(148, 163, 184, 0.24);
+    }
+
+    .pain-diary-preview {
+        margin-top: 0.2rem;
+        padding: 0.65rem 0.7rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: rgba(15, 23, 42, 0.08);
+        display: grid;
+        gap: 0.45rem;
+    }
+
+    .pain-diary-preview__title {
+        margin: 0;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: var(--text-secondary);
+    }
+
+    .pain-diary-preview__list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.45rem;
+    }
+
+    .pain-diary-preview__item {
+        display: grid;
+        gap: 0.18rem;
+    }
+
+    .pain-diary-preview__line {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+
+    .pain-diary-preview__scale-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+    }
+
+    .pain-diary-preview__actions {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .pain-diary-preview__action-btn {
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        background: rgba(15, 23, 42, 0.12);
+        color: var(--text-primary);
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.22rem 0.48rem;
+        cursor: pointer;
+        transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+    }
+
+    .pain-diary-preview__action-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .pain-diary-preview__action-btn--danger {
+        border-color: rgba(239, 68, 68, 0.28);
+        color: #b91c1c;
+    }
+
+    .pain-diary-preview__date {
+        color: var(--text-primary);
+        font-weight: 650;
+    }
+
+    .pain-diary-preview__scale {
+        position: relative;
+        width: min(100%, 380px);
+        min-width: 240px;
+        height: 24px;
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        background: color-mix(in srgb, var(--bg-card) 84%, #0f172a 16%);
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.35);
+    }
+
+    .pain-diary-preview__scale-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: inherit;
+        transition: width 220ms ease, background-color 220ms ease, background 220ms ease;
+    }
+
+    .pain-diary-preview__scale-value {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: #f8fafc;
+        text-shadow: 0 1px 2px rgba(2, 6, 23, 0.85);
+    }
+
+    .pain-diary-preview__source {
+        font-weight: 600;
+    }
+
+    .pain-diary-preview__note {
+        margin: 0;
+        font-size: 0.82rem;
+        line-height: 1.4;
+        color: var(--text-secondary);
+        overflow-wrap: anywhere;
+    }
+
+    .pain-diary-preview__editor {
+        display: grid;
+        gap: 0.4rem;
+        margin-top: 0.15rem;
+        padding-top: 0.45rem;
+        border-top: 1px dashed rgba(148, 163, 184, 0.24);
+    }
+
+    .pain-diary-preview__editor-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        color: var(--text-primary);
+    }
+
+    .pain-diary-preview__slider {
+        width: 100%;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        background: transparent;
+        margin: 0;
+    }
+
+    .pain-diary-preview__slider::-webkit-slider-runnable-track {
+        height: 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.32);
+        background: linear-gradient(90deg,
+                rgba(34, 197, 94, 0.72) 0%,
+                rgba(249, 115, 22, 0.8) 55%,
+                rgba(239, 68, 68, 0.85) 100%);
+    }
+
+    .pain-diary-preview__slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        margin-top: -3px;
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        background: var(--pain-thumb-color, var(--accent-primary));
+        box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.24);
+    }
+
+    .pain-diary-preview__slider::-moz-range-track {
+        height: 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.32);
+        background: linear-gradient(90deg,
+                rgba(34, 197, 94, 0.72) 0%,
+                rgba(249, 115, 22, 0.8) 55%,
+                rgba(239, 68, 68, 0.85) 100%);
+    }
+
+    .pain-diary-preview__slider::-moz-range-thumb {
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        background: var(--pain-thumb-color, var(--accent-primary));
+        box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.24);
+    }
+
+    .pain-diary-preview__editor-note {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        background: rgba(15, 23, 42, 0.1);
+        color: var(--text-primary);
+        padding: 0.45rem 0.55rem;
+        resize: vertical;
+        min-height: 56px;
+    }
+
+    .pain-diary-preview__editor-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.35rem;
+        flex-wrap: wrap;
     }
 
     .entry-chip {
