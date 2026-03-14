@@ -22,7 +22,7 @@
                 Abbrechen
             </PopupActionButton>
             <PopupActionButton :disabled="!modelValue || submitting" @click="$emit('submit')">
-                {{ submitting ? 'Aktualisiert...' : 'Senden' }}
+                {{ submitting ? 'Aktualisiert' : 'Senden' }}
             </PopupActionButton>
         </template>
     </BasePopup>
