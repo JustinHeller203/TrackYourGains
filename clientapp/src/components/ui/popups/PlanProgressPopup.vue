@@ -818,7 +818,7 @@
         const list = plannerByDayLocal.value[day] ?? []
         const current = list.find(x => String(x.planId) === String(props.currentPlanId)) ?? list[0] ?? null
         popupPlanId.value = current?.planId ?? props.currentPlanId ?? ''
-        const planColor = current?.color ?? trainingPlansStore.items.find(p => p.id === popupPlanId.value)?.color ?? ''
+        const planColor = current?.color ?? trainingPlansStore.items.find((p: { id: string; color?: string | null }) => p.id === popupPlanId.value)?.color ?? ''
         popupColor.value = planColor || ''
         showDayPopup.value = true
     }
@@ -853,7 +853,7 @@
             const next = { ...plannerByDayLocal.value }
             const list = next[payload.day] ?? []
             if (!list.some(x => String(x.planId) === String(payload.planId))) {
-                const planName = trainingPlansStore.items.find(p => p.id === payload.planId)?.name ?? ''
+                const planName = trainingPlansStore.items.find((p: { id: string; name: string }) => p.id === payload.planId)?.name ?? ''
                 list.push({ planId: payload.planId, planName, color: payload.color ?? null })
                 next[payload.day] = list
                 savePlannerLocal(next)
@@ -890,7 +890,7 @@
             const next = { ...plannerByDayLocal.value }
             const list = next[payload.day] ?? []
             const filtered = list.filter(x => String(x.planId) !== String(current.planId))
-            const planName = trainingPlansStore.items.find(p => p.id === payload.planId)?.name ?? ''
+            const planName = trainingPlansStore.items.find((p: { id: string; name: string }) => p.id === payload.planId)?.name ?? ''
             filtered.push({ planId: payload.planId, planName, color: payload.color ?? null })
             next[payload.day] = filtered
             savePlannerLocal(next)
@@ -2121,7 +2121,7 @@
     const popupAllowClear = computed(() => popupIsPlanned.value || popupIsRest.value)
 
     const planOptions = computed(() =>
-        (trainingPlansStore.items ?? []).map(p => ({
+        (trainingPlansStore.items ?? []).map((p: { id: string; name: string }) => ({
             label: p.name,
             value: p.id,
         }))

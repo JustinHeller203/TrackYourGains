@@ -925,12 +925,12 @@
         }
 
         const planIds = trainingPlansStore.items
-            .map((p) => String(p?.id ?? ''))
-            .filter((id) => guidRx.test(id))
+            .map((p: { id?: string | null }) => String(p?.id ?? ''))
+            .filter((id: string) => guidRx.test(id))
 
         if (!planIds.length) return []
 
-        await Promise.all(planIds.map(async (planId) => {
+        await Promise.all(planIds.map(async (planId: string) => {
             try {
                 await progressStore.load(planId)
             } catch {

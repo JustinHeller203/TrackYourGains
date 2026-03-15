@@ -50,12 +50,12 @@ export function useGlobalAchievements() {
         await trainingPlansStore.loadList()
 
         const planIds = trainingPlansStore.items
-            .map(p => p.id)
-            .filter(id => isGuid(id))
+            .map((p: { id: string }) => p.id)
+            .filter((id: string) => isGuid(id))
 
         if (!planIds.length) return Array(ACTIVITY_DAYS).fill(0)
 
-        await Promise.all(planIds.map(id => progressStore.load(id, true)))
+        await Promise.all(planIds.map((id: string) => progressStore.load(id, true)))
 
         const counts = new Map<string, number>()
         for (const id of planIds) {

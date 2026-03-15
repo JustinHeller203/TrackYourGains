@@ -838,9 +838,9 @@
         const dto = trainingPlansStore.items.find((p: TrainingPlanDto) => p.id === id)
         if (!dto || !Array.isArray(dto.days)) return []
 
-        const names = dto.days.flatMap((d: TrainingDay) =>
+        const names: string[] = dto.days.flatMap((d: TrainingDay) =>
             Array.isArray(d.exercises) ? d.exercises.map((x: TrainingExercise) => String(x.name ?? "").trim()) : []
-        ).filter((name): name is string => Boolean(name))
+        ).filter((name: string): name is string => Boolean(name))
 
         // unique + sort
         return Array.from(new Set(names)).sort((a: string, b: string) => a.localeCompare(b, "de"))
