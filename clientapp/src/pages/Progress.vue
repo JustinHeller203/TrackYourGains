@@ -840,7 +840,7 @@
 
         const names = dto.days.flatMap((d: TrainingDay) =>
             Array.isArray(d.exercises) ? d.exercises.map((x: TrainingExercise) => String(x.name ?? "").trim()) : []
-        ).filter(Boolean)
+        ).filter((name): name is string => Boolean(name))
 
         // unique + sort
         return Array.from(new Set(names)).sort((a: string, b: string) => a.localeCompare(b, "de"))

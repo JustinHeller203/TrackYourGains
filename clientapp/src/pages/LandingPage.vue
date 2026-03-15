@@ -770,16 +770,18 @@
             return
         }
 
-        const planIds = trainingPlansStore.items.map((p) => p.id).filter((id) => isGuid(id))
+        const planIds = trainingPlansStore.items
+            .map((p: { id: string }) => p.id)
+            .filter((id: string) => isGuid(id))
 
         if (!planIds.length) {
             workoutsCompleted.value = 0
             return
         }
 
-        await Promise.all(planIds.map((id) => progressStore.load(id, true)))
+        await Promise.all(planIds.map((id: string) => progressStore.load(id, true)))
 
-        const total = planIds.reduce((sum, id) => {
+        const total = planIds.reduce((sum: number, id: string) => {
             const items = progressStore.byPlan?.[id]?.items ?? []
             return sum + items.length
         }, 0)

@@ -1494,18 +1494,18 @@
         }
 
         const planIds = trainingPlansStore.items
-            .map(p => p.id)
-            .filter(id => isGuid(id))
+            .map((p: { id: string }) => p.id)
+            .filter((id: string) => isGuid(id))
 
         if (!planIds.length) {
             activity.value = Array(ACTIVITY_DAYS).fill(0)
             return
         }
 
-        await Promise.all(planIds.map(id => progressStore.load(id, true)))
+        await Promise.all(planIds.map((id: string) => progressStore.load(id, true)))
 
         const counts = new Map<string, number>()
-        planIds.forEach(id => {
+        planIds.forEach((id: string) => {
             const items = progressStore.byPlan?.[id]?.items ?? []
             items.forEach(it => {
                 const day = String(it.date ?? '').slice(0, 10)
