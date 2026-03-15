@@ -679,7 +679,7 @@
     import { useProgressStore } from "@/store/progressStore"
     import { useComplaintsStore } from "@/store/complaintsStore"
     import type { CreateProgressEntry, UpdateProgressEntry } from "@/types/Progress"
-    import type { TrainingDay, TrainingExercise, TrainingPlan as TrainingPlanDto } from "@/types/trainingPlan"
+    import type { TrainingDay, TrainingExercise, TrainingPlan as TrainingPlanDto } from "@/types/TrainingPlan"
     import {
         detectPersonalRecordHits,
         personalRecordMetricLabel,

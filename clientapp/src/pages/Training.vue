@@ -113,7 +113,7 @@
 
     import { useTrainingPlansStore } from "@/store/trainingPlansStore";
     import { useAuthStore } from '@/store/authStore';
-    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan";
+    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan";
     import type { TimerInstance } from '@/types/training';
     import {
         LS_AUTH_TOKEN,

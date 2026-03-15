@@ -592,7 +592,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     import { generateAutoPlan, regenerateAutoPlanDay } from '@/services/training/autoPlanGeneratorService'
     import { normalizeExerciseText, resolveExerciseReference } from '@/services/training/exerciseLibrary'
 
-    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan"
+    import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/TrainingPlan"
     import { useAuthStore } from "@/store/authStore";
     import type { GeneratorExerciseReference, GoalType, GeneratorInput, TrainingLevel } from '@/types/autoPlan'
 

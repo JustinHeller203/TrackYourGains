@@ -410,7 +410,7 @@
 
     import { useTrainingPlansStore } from '@/store/trainingPlansStore'
     import { useAuthStore } from '@/store/authStore'
-    import type { TrainingPlan as TrainingPlanDto } from '@/types/trainingPlan'
+    import type { TrainingPlan as TrainingPlanDto } from '@/types/TrainingPlan'
     import { getTrainingPlanByCode, installTrainingPlanByCode } from "@/services/trainingPlans"
 
     import PlanCreatedTutorial from "@/components/ui/TygTutorials/PlanCreatedTutorial.vue"

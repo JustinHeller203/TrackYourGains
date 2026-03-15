@@ -245,7 +245,7 @@
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import CalendarDayPopup from '@/components/ui/popups/CalendarDayPopup.vue'
     import { LS_TRAINING_PLANNER, LS_TRAINING_PLAN_COLORS, LS_TRAINING_REST_DAYS, LS_TRAINING_PLANNER_COMPLETED, LS_CONFIRM_DELETE_ENABLED } from '@/constants/storageKeys'
-    import type { TrainingPlan as TrainingPlanDto } from "@/types/trainingPlan"
+    import type { TrainingPlan as TrainingPlanDto } from "@/types/TrainingPlan"
     import { useAuthStore } from '@/store/authStore'
     import { useSettingsStore } from '@/store/settingsStore'
     import { addTrainingPlanner, addTrainingPlannerRestDay, deleteTrainingPlanner, deleteTrainingPlannerRestDay, listTrainingPlanner, setTrainingPlannerCompletion } from '@/services/trainingPlanner'
