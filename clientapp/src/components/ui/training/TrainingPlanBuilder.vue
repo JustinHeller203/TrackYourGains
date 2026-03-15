@@ -4,8 +4,13 @@
     <div class="workout-list builder-section"
          :class="{ 'builder-section--report-tutorial-active': showAutoPlanReportTutorial }"
          ref="builderSection">
+        <div
+            v-if="isPhonePreviewBuilderDemo && previewTouch.visible"
+            class="preview-touch"
+            :style="{ left: `${previewTouch.x}px`, top: `${previewTouch.y}px` }">
+            <span class="preview-touch__dot"></span>
+        </div>
         <h3 class="section-title">Trainingsplan erstellen/bearbeiten</h3>
-
         <form @submit.prevent="createOrUpdatePlan" class="form-card builder-grid">
             <div class="mode-switch mode-switch--top">
                 <span class="field-label">Erstellungsmodus</span>
@@ -567,6 +572,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
 <script setup lang="ts">
     import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+    import { useRoute } from 'vue-router'
     import UiSelect from '@/components/ui/kits/UiSelect.vue'
     import AutoExerciseSelector from '@/components/ui/training/AutoExerciseSelector.vue'
     import AxialLoadExplain from '@/components/ui/explain/AxialLoadExplain.vue'
@@ -615,6 +621,12 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     const customExercisesState = ref<Array<{ name: string; muscle: string; type: CustomExerciseType }>>(
         Array.isArray(props.customExercises) ? [...props.customExercises] : []
+    )
+    const route = useRoute()
+    const previewBuilderTimers: number[] = []
+    const previewTouch = ref({ visible: false, x: 0, y: 0 })
+    const isPhonePreviewBuilderDemo = computed(
+        () => route.query.preview === 'phone' && route.query.demo === 'builder'
     )
 
     const sameCustom = (
@@ -1857,10 +1869,178 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         autoFocusMuscleDraft.value = ''
     }
 
+    function queuePreviewBuilderStep(delay: number, task: () => void) {
+        previewBuilderTimers.push(window.setTimeout(task, delay))
+    }
+
+    function clearPreviewBuilderTimers() {
+        previewBuilderTimers.forEach(id => window.clearTimeout(id))
+        previewBuilderTimers.length = 0
+    }
+
+    function movePreviewTouch(selector: string, xFactor = 0.5, yFactor = 0.5) {
+        const target = document.querySelector<HTMLElement>(selector)
+        if (!target) return
+
+        const rect = target.getBoundingClientRect()
+        previewTouch.value = {
+            visible: true,
+            x: rect.left + rect.width * xFactor,
+            y: rect.top + rect.height * yFactor,
+        }
+    }
+
+    function typePreviewValue(
+        setter: (next: string) => void,
+        value: string,
+        startDelay: number,
+        cadence = 90
+    ) {
+        value.split('').forEach((_, index) => {
+            queuePreviewBuilderStep(startDelay + index * cadence, () => {
+                setter(value.slice(0, index + 1))
+            })
+        })
+    }
+
+    function clickPreviewSelector(selector: string) {
+        const target = document.querySelector<HTMLElement>(selector)
+        target?.click()
+    }
+
+    function scrollPreviewToElement(selector: string, delay: number, offset = 18) {
+        queuePreviewBuilderStep(delay, () => {
+            const target = document.querySelector<HTMLElement>(selector)
+            if (!target) return
+            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            const top = target.getBoundingClientRect().top + window.scrollY - offset
+            window.scrollTo({ top, behavior: prefersReduced ? 'auto' : 'smooth' })
+        })
+    }
+
+    function notifyPreviewBuilderCompleted() {
+        if (!isPhonePreviewBuilderDemo.value || typeof window === 'undefined') return
+        window.parent?.postMessage?.(
+            {
+                type: 'landing-phone-demo-complete',
+                demo: 'builder',
+                run: Number(route.query?.run ?? 0),
+            },
+            window.location.origin
+        )
+    }
+
+    function completePreviewBuilderDemo() {
+        const submitButton = document.querySelector<HTMLElement>('.plan-submit-btn')
+        const builder = builderSection.value
+
+        submitButton?.classList.add('preview-builder-submit-pulse')
+        submitButton?.classList.add('preview-builder-submit-success')
+        builder?.classList.add('preview-builder-created')
+
+        window.setTimeout(() => {
+            submitButton?.classList.remove('preview-builder-submit-pulse')
+            submitButton?.classList.remove('preview-builder-submit-success')
+            builder?.classList.remove('preview-builder-created')
+        }, 1500)
+    }
+
+    function startPreviewBuilderDemo() {
+        if (!isPhonePreviewBuilderDemo.value) return
+
+        clearPreviewBuilderTimers()
+        resetBuilder()
+        builderMode.value = 'manual'
+        trainingType.value = 'kraft'
+
+        queuePreviewBuilderStep(700, () => {
+            movePreviewTouch('#plan-name', 0.45, 0.5)
+        })
+
+        typePreviewValue((next) => { planName.value = next }, 'Push Day Fokus', 980, 145)
+
+        queuePreviewBuilderStep(3400, () => {
+            scrollPreviewToElement('.field-row-stack', 0, 56)
+            movePreviewTouch('.field-row-stack .ui-select-trigger', 0.5, 0.5)
+        })
+
+        queuePreviewBuilderStep(3920, () => {
+            clickPreviewSelector('.field-row-stack .ui-select-trigger')
+        })
+
+        queuePreviewBuilderStep(4560, () => {
+            movePreviewTouch('.field-row-stack .ui-select-menu .ui-select-option:not(.is-custom)', 0.5, 0.5)
+        })
+
+        queuePreviewBuilderStep(5120, () => {
+            const firstStrengthExercise =
+                filteredExercises.value
+                    .map(option => typeof option === 'string' ? option : String((option as any)?.value ?? ''))
+                    .find(option => option.trim() && option !== 'custom')
+
+            if (firstStrengthExercise) {
+                newExercise.value = String(firstStrengthExercise)
+            }
+            clickPreviewSelector('.field-row-stack .ui-select-option:not(.is-custom)')
+        })
+
+        queuePreviewBuilderStep(6100, () => {
+            movePreviewTouch('#strength-sets', 0.5, 0.5)
+        })
+
+        typePreviewValue((next) => { newSets.value = next ? Number(next) : null }, '4', 6400, 220)
+
+        queuePreviewBuilderStep(7180, () => {
+            movePreviewTouch('#strength-reps', 0.5, 0.5)
+        })
+
+        typePreviewValue((next) => { newReps.value = next ? Number(next) : null }, '10', 7480, 220)
+
+        scrollPreviewToElement('.add-exercise-btn', 8480, 94)
+
+        queuePreviewBuilderStep(9040, () => {
+            movePreviewTouch('.add-exercise-btn', 0.5, 0.5)
+        })
+
+        queuePreviewBuilderStep(9460, () => {
+            addExerciseToPlan()
+        })
+
+        scrollPreviewToElement('.plan-submit-btn', 10450, 96)
+
+        queuePreviewBuilderStep(11050, () => {
+            movePreviewTouch('.plan-submit-btn', 0.5, 0.5)
+        })
+
+        queuePreviewBuilderStep(11520, () => {
+            completePreviewBuilderDemo()
+        })
+
+        queuePreviewBuilderStep(13200, () => {
+            notifyPreviewBuilderCompleted()
+        })
+    }
+
     // ===== Actions (1:1) =====
     // REPLACE in components/ui/training/TrainingPlanBuilder.vue (addExerciseToPlan)
     const addExerciseToPlan = () => {
         generatedAutoPlans.value = []
+        if (isPhonePreviewBuilderDemo.value) {
+            const previewExercise =
+                String(newExercise.value || filteredExercises.value[0] || '').trim()
+
+            if (!previewExercise) return
+
+            selectedPlanExercises.value.push({
+                exercise: previewExercise,
+                sets: Number(newSets.value ?? 4),
+                reps: Number(newReps.value ?? 10),
+                goal: selectedGoal.value || undefined,
+                type: trainingType.value,
+            })
+            return
+        }
+
         const errors = collectValidationErrors()
         if (errors.length > 0) { props.openValidationPopup(errors); return }
 
@@ -2411,11 +2591,15 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 console.error('[TrainingPlanBuilder] onMounted init crashed:', err)
             }
         })
+        queuePreviewBuilderStep(250, () => {
+            startPreviewBuilderDemo()
+        })
     })
 
     onUnmounted(() => {
         activeDragCleanup?.()
         activeDragCleanup = null
+        clearPreviewBuilderTimers()
         teardownHeaderShorteningFallback()
     })
 </script>
@@ -2444,6 +2628,67 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         font-weight: 700;
         color: var(--text-primary);
         text-align: center;
+    }
+
+    .preview-touch {
+        position: fixed;
+        z-index: 60;
+        width: 1.4rem;
+        height: 1.4rem;
+        margin-left: -0.7rem;
+        margin-top: -0.7rem;
+        pointer-events: none;
+    }
+
+    .preview-touch__dot {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.96);
+        border: 2px solid rgba(29, 78, 216, 0.92);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.3);
+        animation: previewTouchPulse 1.45s ease-out infinite;
+    }
+
+    :deep(.preview-builder-submit-pulse) {
+        animation: previewBuilderPulse 1.1s ease;
+    }
+
+    :deep(.preview-builder-submit-success) {
+        background: linear-gradient(135deg, #16a34a, #22c55e) !important;
+        border-color: rgba(34, 197, 94, 0.65) !important;
+        color: #f8fffb !important;
+    }
+
+    .preview-builder-created :deep(.form-card) {
+        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.18), 0 18px 36px rgba(34, 197, 94, 0.12);
+    }
+
+    @keyframes previewBuilderPulse {
+        0%,
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 rgba(35, 110, 200, 0);
+        }
+        35% {
+            transform: scale(1.03);
+            box-shadow: 0 0 0 0.45rem rgba(35, 110, 200, 0.16);
+        }
+    }
+
+    @keyframes previewTouchPulse {
+        0% {
+            transform: scale(0.88);
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.34);
+        }
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0.7rem rgba(59, 130, 246, 0);
+        }
+        100% {
+            transform: scale(0.9);
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        }
     }
     /* Smooth landing highlight when jumping to the builder */
     @keyframes builderPop {

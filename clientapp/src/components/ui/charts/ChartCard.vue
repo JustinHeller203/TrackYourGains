@@ -10,13 +10,13 @@
             <slot />
         </div>
 
-        <div v-if="!isEmpty" class="card-footer">
+        <div v-if="!isEmpty" class="card-footer" @click.stop>
             <ExportButton v-if="exportable"
                           class="footer-btn"
                           :title="useShortLabels ? 'Export' : 'Exportieren'"
                           :aria-label="useShortLabels ? 'Export' : 'Exportieren'"
                           :data-short="iconOnly ? '' : 'Export'"
-                          @click.stop="$emit('export')">
+                          @click="$emit('export')">
                 {{ iconOnly ? '' : (useShortLabels ? 'Export' : 'Exportieren') }}
             </ExportButton>
 
@@ -24,7 +24,7 @@
                          :title="useShortLabels ? 'Reset' : 'Zurücksetzen'"
                          :aria-label="useShortLabels ? 'Reset' : 'Zurücksetzen'"
                          :data-short="iconOnly ? '' : 'Reset'"
-                         @click.stop="$emit('reset')">
+                         @click="$emit('reset')">
                 {{ iconOnly ? '' : (useShortLabels ? 'Reset' : 'Zurücksetzen') }}
             </ResetButton>
         </div>

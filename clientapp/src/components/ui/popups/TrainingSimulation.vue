@@ -2,7 +2,7 @@
 <template>
     <BasePopup :show="show"
                :title="popupTitle"
-               overlayClass="training-sim-popup"
+               :overlayClass="popupOverlayClass"
                :showClose="true"
                :show-actions="false"
                @cancel="emitClose()">
@@ -338,7 +338,7 @@
 
 <script setup lang="ts">
     import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue"
-    import { useRouter } from "vue-router"
+    import { useRoute, useRouter } from "vue-router"
     import BasePopup from "@/components/ui/popups/BasePopup.vue"
     import PopupActionButton from "@/components/ui/buttons/popup/PopupActionButton.vue"
     import UiPopupSelect from "@/components/ui/kits/selects/UiPopupSelect.vue"
@@ -369,7 +369,16 @@
     const progressStore = useProgressStore()
     const complaintsStore = useComplaintsStore()
     const auth = useAuthStore()
+    const route = useRoute()
     const router = useRouter()
+    const isPhonePreviewSimulationDemo = computed(
+        () => route.query.preview === 'phone' && route.query.demo === 'simulation'
+    )
+    const popupOverlayClass = computed(() =>
+        isPhonePreviewSimulationDemo.value
+            ? ['training-sim-popup', 'training-sim-popup--phone-preview']
+            : ['training-sim-popup']
+    )
 
     const mottoLocal = ref('')
 
@@ -2929,6 +2938,17 @@
     :global(.popup-overlay.sim-rest-done-popup),
     :global(.popup-overlay.sim-rest-done-popup .popup) {
         z-index: 11000;
+    }
+
+    :global(.fade-enter-active.popup-overlay.training-sim-popup--phone-preview),
+    :global(.fade-leave-active.popup-overlay.training-sim-popup--phone-preview) {
+        transition: none !important;
+    }
+
+    :global(.popup-overlay.training-sim-popup--phone-preview .popup) {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
     }
 
     /* =========================

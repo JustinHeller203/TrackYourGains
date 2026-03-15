@@ -1,6 +1,13 @@
 <!--Progress.vue-->
 <template>
     <div class="progress">
+        <div
+            v-if="isPhonePreviewProgressDemo && previewTouch.visible"
+            class="preview-touch"
+            :class="{ 'is-pressing': previewTouch.pressing }"
+            :style="{ left: `${previewTouch.x}px`, top: `${previewTouch.y}px` }">
+            <span class="preview-touch__dot"></span>
+        </div>
         <!-- ===================== HEADER / INTRO ===================== -->
         <h2 class="page-title">📊 Dein Fortschritt</h2>
         <p class="page-subtext">Alles Wichtige auf einen Blick.</p>
@@ -672,6 +679,7 @@
     import { useProgressStore } from "@/store/progressStore"
     import { useComplaintsStore } from "@/store/complaintsStore"
     import type { CreateProgressEntry, UpdateProgressEntry } from "@/types/Progress"
+    import type { TrainingDay, TrainingExercise, TrainingPlan as TrainingPlanDto } from "@/types/trainingPlan"
     import {
         detectPersonalRecordHits,
         personalRecordMetricLabel,
@@ -827,15 +835,15 @@
         const id = activePlanId.value
         if (!id) return []
 
-        const dto = trainingPlansStore.items.find(p => p.id === id)
+        const dto = trainingPlansStore.items.find((p: TrainingPlanDto) => p.id === id)
         if (!dto || !Array.isArray(dto.days)) return []
 
-        const names = dto.days.flatMap(d =>
-            Array.isArray(d.exercises) ? d.exercises.map(x => String((x as any).name ?? "").trim()) : []
+        const names = dto.days.flatMap((d: TrainingDay) =>
+            Array.isArray(d.exercises) ? d.exercises.map((x: TrainingExercise) => String(x.name ?? "").trim()) : []
         ).filter(Boolean)
 
         // unique + sort
-        return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b, "de"))
+        return Array.from(new Set(names)).sort((a: string, b: string) => a.localeCompare(b, "de"))
     })
 
     // ====== CHARTS UND COPY >>>>>>>>>>
@@ -1813,6 +1821,158 @@
     const route = useRoute()
     const router = useRouter()
     const progressStore = useProgressStore()
+    const previewProgressTimers: number[] = []
+    const previewTouch = ref({ visible: false, x: 0, y: 0, pressing: false })
+    const isPhonePreviewProgressDemo = computed(
+        () => route.query.preview === 'phone' && route.query.demo === 'progress-tour'
+    )
+
+    function clearPreviewProgressTimers() {
+        previewProgressTimers.forEach(id => window.clearTimeout(id))
+        previewProgressTimers.length = 0
+    }
+
+    function queuePreviewProgressStep(delay: number, task: () => void) {
+        previewProgressTimers.push(window.setTimeout(task, delay))
+    }
+
+    function movePreviewTouch(selector: string, xFactor = 0.5, yFactor = 0.5) {
+        const target = document.querySelector<HTMLElement>(selector)
+        if (!target) return
+
+        const rect = target.getBoundingClientRect()
+        previewTouch.value = {
+            visible: true,
+            x: rect.left + rect.width * xFactor,
+            y: rect.top + rect.height * yFactor,
+            pressing: false,
+        }
+    }
+
+    function pressPreviewTouch(duration = 220) {
+        previewTouch.value = {
+            ...previewTouch.value,
+            pressing: true,
+        }
+
+        queuePreviewProgressStep(duration, () => {
+            previewTouch.value = {
+                ...previewTouch.value,
+                pressing: false,
+            }
+        })
+    }
+
+    function clickSelector(selector: string) {
+        const target = document.querySelector<HTMLElement>(selector)
+        target?.click()
+    }
+
+    function touchAndClickSelector(selector: string, touchDelay: number, clickLeadMs: number, xFactor = 0.5, yFactor = 0.5) {
+        queuePreviewProgressStep(touchDelay, () => {
+            movePreviewTouch(selector, xFactor, yFactor)
+        })
+
+        queuePreviewProgressStep(touchDelay + clickLeadMs, () => {
+            pressPreviewTouch()
+        })
+
+        queuePreviewProgressStep(touchDelay + clickLeadMs + 280, () => {
+            clickSelector(selector)
+        })
+    }
+
+    function swipePreviewOnSelector(
+        selector: string,
+        startDelay: number,
+        fromXFactor: number,
+        toXFactor: number,
+        yFactor = 0.5,
+        durationMs = 900,
+        steps = 7
+    ) {
+        queuePreviewProgressStep(startDelay, () => {
+            const target = document.querySelector<HTMLElement>(selector)
+            if (!target) return
+
+            const maxScrollLeft = Math.max(0, target.scrollWidth - target.clientWidth)
+            if (maxScrollLeft > 0) {
+                target.scrollLeft = maxScrollLeft
+            }
+
+            for (let step = 0; step <= steps; step++) {
+                const progress = step / steps
+                queuePreviewProgressStep(step * Math.floor(durationMs / steps), () => {
+                    const liveTarget = document.querySelector<HTMLElement>(selector)
+                    if (!liveTarget) return
+
+                    const rect = liveTarget.getBoundingClientRect()
+                    previewTouch.value = {
+                        visible: true,
+                        x: rect.left + rect.width * (fromXFactor + ((toXFactor - fromXFactor) * progress)),
+                        y: rect.top + rect.height * yFactor,
+                        pressing: step > 0 && step < steps,
+                    }
+
+                    if (maxScrollLeft > 0) {
+                        liveTarget.scrollLeft = Math.max(0, maxScrollLeft * (1 - progress))
+                    }
+                })
+            }
+        })
+    }
+
+    function notifyPreviewProgressCompleted() {
+        if (!isPhonePreviewProgressDemo.value) return
+
+        window.parent?.postMessage(
+            {
+                type: 'landing-phone-demo-complete',
+                demo: 'progress-tour',
+                run: Number(route.query?.run ?? 0),
+            },
+            window.location.origin
+        )
+    }
+
+    function startPreviewProgressTour() {
+        if (!isPhonePreviewProgressDemo.value) return
+
+        clearPreviewProgressTimers()
+        activeTab.value = 'stats'
+        previewTouch.value = { visible: false, x: 0, y: 0, pressing: false }
+
+        queuePreviewProgressStep(500, () => {
+            const plansSection = document.querySelector<HTMLElement>('.plans-section')
+            plansSection?.scrollIntoView({ behavior: 'auto', block: 'start' })
+        })
+
+        swipePreviewOnSelector('.tabs__segmented', 1200, 0.26, 0.78, 0.5, 1100, 8)
+
+        touchAndClickSelector('.tabs__tab:nth-child(3)', 2900, 780)
+
+        queuePreviewProgressStep(4200, () => {
+            activeTab.value = 'plans'
+            const plansSection = document.querySelector<HTMLElement>('.plans-section')
+            plansSection?.scrollIntoView({ behavior: 'auto', block: 'start' })
+        })
+
+        queuePreviewProgressStep(5800, () => {
+            const firstPlanId =
+                String(trainingPlansStore.items?.[0]?.id ?? '').trim()
+
+            if (firstPlanId) {
+                touchAndClickSelector('.plans-section .plan-item .open-btn', 0, 720)
+                queuePreviewProgressStep(1100, () => {
+                    void openPlanProgress(firstPlanId, 'list')
+                })
+                touchAndClickSelector('.popup-overlay.plan-progress-popup .progress-topbar .progress-btn:last-child', 3000, 980)
+                queuePreviewProgressStep(5000, () => {
+                    notifyPreviewProgressCompleted()
+                })
+            }
+        })
+    }
 
     async function jumpToCalculatorsFromRoute() {
         const tab = String(route.query.tab || '')
@@ -2567,7 +2727,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .map(w => w.planId)
             .find(id => !!id && isGuid(id))
-        const firstApiPlan = trainingPlansStore.items.find(p => isGuid(p.id))?.id ?? null
+        const firstApiPlan = trainingPlansStore.items.find((p: TrainingPlanDto) => isGuid(p.id))?.id ?? null
         const planId = current ?? last ?? fromLatestWorkout ?? firstApiPlan
 
         if (!planId) {
@@ -2597,6 +2757,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
         jumpToCalculatorsFromRoute()
         await maybeOpenPlanProgressFromRoute()
+        startPreviewProgressTour()
     })
 
     watch(
@@ -2604,8 +2765,20 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         async () => {
             jumpToCalculatorsFromRoute()
             await maybeOpenPlanProgressFromRoute()
+            startPreviewProgressTour()
         }
     )
+
+    watch(
+        () => trainingPlansStore.items.length,
+        () => {
+            startPreviewProgressTour()
+        }
+    )
+
+    onUnmounted(() => {
+        clearPreviewProgressTimers()
+    })
 
     //ProgressEntryModal
 
@@ -2759,14 +2932,14 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const getExercisesForPlan = (planId: string | null): PlanExercise[] => {
         if (!planId) return []
         const fromStore = trainingPlansStore.items
-            .find(p => p.id === planId)?.days
-            ?.flatMap(d => d.exercises ?? [])
-            .map(ex => ({
+            .find((p: TrainingPlanDto) => p.id === planId)?.days
+            ?.flatMap((d: TrainingDay) => d.exercises ?? [])
+            .map((ex: TrainingExercise) => ({
                 exercise: String(ex.name ?? '').trim(),
                 sets: Number(ex.sets ?? 0) || 0,
                 reps: Number(ex.reps ?? 0) || 0,
             }))
-            .filter(e => e.exercise.length > 0) ?? []
+            .filter((e: PlanExercise) => e.exercise.length > 0) ?? []
 
         if (fromStore.length) {
             const map = new Map<string, PlanExercise>()
@@ -2933,18 +3106,18 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         if (!auth.user) return
 
         const planIds = trainingPlansStore.items
-            .map(p => p.id)
-            .filter(id => isGuid(id))
+            .map((p: TrainingPlanDto) => p.id)
+            .filter((id: string) => isGuid(id))
 
         if (!planIds.length) {
             workouts.value = []
             return
         }
 
-        await Promise.all(planIds.map(id => progressStore.load(id, true)))
+        await Promise.all(planIds.map((id: string) => progressStore.load(id, true)))
 
         workouts.value = []
-        planIds.forEach(id => syncWorkoutsFromStore(id))
+        planIds.forEach((id: string) => syncWorkoutsFromStore(id))
 
         if (activeTab.value === 'stats') {
             await nextTick()
@@ -3160,7 +3333,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         const planNames = getPlanExerciseNames(planId)
         const loggedNames = getLoggedExerciseNamesForDay(planId, day)
         const typesPresent = Array.from(new Set((feedbackExercisesForPlan.value ?? [])
-            .map(e => e.type ?? 'kraft')))
+            .map((e: { type?: string | null }) => e.type ?? 'kraft'))) as string[]
 
         const startedAtUtc = getSessionStartFromEntries(planId, day)
         const finishedAtUtc = new Date().toISOString()
@@ -3890,20 +4063,20 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             }
         }
 
-        const dto = trainingPlansStore.items.find(p => p.id === planId)
+        const dto = trainingPlansStore.items.find((p: TrainingPlanDto) => p.id === planId)
         if (dto && Array.isArray(dto.days)) {
-            return dto.days.flatMap(d =>
+            return dto.days.flatMap((d: TrainingDay) =>
                 Array.isArray(d.exercises)
-                    ? d.exercises.map(x => ({
-                        exercise: String((x as any).name ?? '').trim(),
+                    ? d.exercises.map((x: TrainingExercise) => ({
+                        exercise: String(x.name ?? '').trim(),
                         type: inferFeedbackTypeFromNameAndFields(
-                            String((x as any).name ?? '').trim(),
-                            (x as any).category ?? (x as any).type ?? (x as any).exerciseType,
+                            String(x.name ?? '').trim(),
+                            x.category ?? null,
                             x
                         ),
                     }))
                     : []
-            ).filter(x => !!x.exercise)
+            ).filter((x: { exercise: string }) => !!x.exercise)
         }
 
         const names = trainingPlans.value.find(p => p.id === planId)?.exercises ?? []
@@ -5125,6 +5298,47 @@ Notiz: ${e.note ?? '-'}\n`
 </script>
 
 <style scoped>
+
+    .preview-touch {
+        position: fixed;
+        z-index: 12050;
+        width: 1.15rem;
+        height: 1.15rem;
+        margin-left: -0.575rem;
+        margin-top: -0.575rem;
+        pointer-events: none;
+    }
+
+    .preview-touch__dot {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.96);
+        border: 2px solid rgba(29, 78, 216, 0.92);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.3);
+        animation: previewTouchPulse 1.2s ease-out infinite;
+    }
+
+    .preview-touch.is-pressing .preview-touch__dot {
+        transform: scale(0.72);
+        box-shadow: 0 0 0 0.4rem rgba(59, 130, 246, 0.12);
+        transition: transform 90ms ease, box-shadow 90ms ease;
+    }
+
+    @keyframes previewTouchPulse {
+        0% {
+            transform: scale(0.88);
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.34);
+        }
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0.7rem rgba(59, 130, 246, 0);
+        }
+        100% {
+            transform: scale(0.9);
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        }
+    }
 
     .progress {
         padding: clamp(1.4rem, 3vw, 2.4rem);

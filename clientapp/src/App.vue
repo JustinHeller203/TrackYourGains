@@ -3,7 +3,7 @@
 <template>
     <div class="app-container">
         <!-- ✅ Navbar -->
-        <nav class="main-nav" ref="navRef">
+        <nav v-if="!isPhonePreview" class="main-nav" ref="navRef">
             <div class="nav-content">
                 <router-link to="/">
                     <img src="/Logo.png" alt="Logo" class="logo" @error="handleLogoError" />
@@ -50,8 +50,8 @@
         </nav>
 
         <!-- ✅ Overlay -->
-        <div v-if="menuOpen" class="nav-overlay" @click="closeMenu"></div>
-        <div v-if="isGlobalApiLoading" class="global-loading-overlay" role="status" aria-live="polite" aria-busy="true">
+        <div v-if="!isPhonePreview && menuOpen" class="nav-overlay" @click="closeMenu"></div>
+        <div v-if="!isPhonePreview && isGlobalApiLoading" class="global-loading-overlay" role="status" aria-live="polite" aria-busy="true">
             <div class="global-loading-card">
                 <span class="global-loading-spinner" aria-hidden="true"></span>
                 <span>Lädt gerade Daten...</span>
@@ -59,7 +59,7 @@
         </div>
 
         <!-- ✅ Sticky Timer -->
-        <StickyTimerCard v-for="timer in (stickyTimersEnabled ? timers.filter((t: AppTimer) => t.shouldStaySticky) : [])"
+        <StickyTimerCard v-if="!isPhonePreview" v-for="timer in (stickyTimersEnabled ? timers.filter((t: AppTimer) => t.shouldStaySticky) : [])"
                          :key="'timer-' + timer.id"
                          :timer="timer"
                          :sticky-enabled="stickyTimersEnabled"
@@ -72,7 +72,7 @@
                          @apply-style-all="onApplyStyleAll" />
 
         <!-- ✅ Sticky Stopwatch -->
-        <StickyStopwatchCard v-for="sw in (stickyStopwatchesEnabled ? stopwatches.filter((sw: AppStopwatch) => sw.shouldStaySticky) : [])"
+        <StickyStopwatchCard v-if="!isPhonePreview" v-for="sw in (stickyStopwatchesEnabled ? stopwatches.filter((sw: AppStopwatch) => sw.shouldStaySticky) : [])"
                              :key="'sw-' + sw.id"
                              :stopwatch="sw"
                              :sticky-enabled="stickyStopwatchesEnabled"
@@ -85,21 +85,21 @@
                              @apply-style-all="onApplyStyleAll" />
 
         <!-- ✅ Validation-Popup -->
-        <ValidationPopup :show="showValidationPopup"
+        <ValidationPopup v-if="!isPhonePreview" :show="showValidationPopup"
                          :errors="validationErrorMessages"
                          @close="closeValidationPopup" />
 
         <!-- ✅ Neuigkeiten-Popup -->
-        <GlobalNewsPopup :show="showNewsPopup"
+        <GlobalNewsPopup v-if="!isPhonePreview" :show="showNewsPopup"
                          title="Was ist neu?"
                          :items="newsItems"
                          @close="onNewsClose" />
-        <GlobalAchievementPopup :show="showAchievementPopup"
+        <GlobalAchievementPopup v-if="!isPhonePreview" :show="showAchievementPopup"
                                 :badge="latestAchievement"
                                 @close="closeAchievementPopup" />
 
         <!-- ✅ Seiten-Inhalt -->
-        <main class="main-content">
+        <main class="main-content" :class="{ 'main-content--preview': isPhonePreview }">
             <router-view :timers="timers"
                          :stopwatches="stopwatches"
                          :startTimer="startTimer"
@@ -118,16 +118,16 @@
         </main>
 
         <!-- ✅ Mini-Guide: Spotlight auf ℹ️ (ExplanationPopup) -->
-        <GlobalExplainGuide :version="NEWS_VERSION" :block="showNewsPopup" />
+        <GlobalExplainGuide v-if="!isPhonePreview" :version="NEWS_VERSION" :block="showNewsPopup" />
 
-        <AppFooter />
+        <AppFooter v-if="!isPhonePreview" />
 
-        <BackToTopButton />
+        <BackToTopButton v-if="!isPhonePreview" />
     </div>
 </template>
 
 <script setup lang="ts">
-    import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
+    import { computed, ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { useAuthStore } from '@/store/authStore'
     import StickyTimerCard from '@/components/ui/global/StickyTimerCard.vue'
@@ -216,6 +216,7 @@
     const stopwatches = ref<AppStopwatch[]>([])
 
     const route = useRoute()
+    const isPhonePreview = computed(() => route.query.preview === 'phone')
     const navRef = ref<HTMLElement | null>(null)
     const router = useRouter()
     const {
@@ -276,6 +277,12 @@
             text: 'Akzent & Progress-Bar upgraded. Jede Toast-Art hat jetzt einen klaren Farb-Accent + smoother Verlauf.'
         }
     ]
+
+    const syncPhonePreviewClass = (enabled: boolean) => {
+        if (typeof document === 'undefined') return
+        document.documentElement.classList.toggle('phone-preview', enabled)
+        document.body.classList.toggle('phone-preview', enabled)
+    }
 
 
     function onNewsClose(payload: { action: 'cancel' | 'save'; dontShowAgain: boolean }) {
@@ -816,11 +823,17 @@
     onMounted(() => {
         setSBW()
         window.addEventListener('resize', setSBW)
+        syncPhonePreviewClass(isPhonePreview.value)
     })
 
     onBeforeUnmount(() => {
         window.removeEventListener('resize', setSBW)
+        syncPhonePreviewClass(false)
     })
+
+    watch(isPhonePreview, (enabled) => {
+        syncPhonePreviewClass(enabled)
+    }, { immediate: true })
 
 
     // Load saved data
@@ -925,6 +938,394 @@
         flex: 1;
         padding: 60px 1rem 2rem; /* Platz für Navbar + etwas Rand */
         background: transparent; /* Body-Gradient überall sichtbar */
+    }
+
+    .main-content--preview {
+        padding: 0;
+        min-height: 100vh;
+        overflow: hidden;
+    }
+
+    :global(html.phone-preview),
+    :global(body.phone-preview) {
+        overflow: hidden;
+        background: var(--bg-primary, #0b1220);
+    }
+
+    :global(html.phone-preview .app-container) {
+        min-height: 100vh;
+    }
+
+    :global(html.phone-preview .main-content) {
+        padding: 0 !important;
+        min-height: 100vh;
+    }
+
+    :global(html.phone-preview .training),
+    :global(html.phone-preview .progress),
+    :global(html.phone-preview .tutorials-page),
+    :global(html.phone-preview .complaints-page) {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        margin: 0;
+        padding: 0.5rem 0.45rem 0.85rem;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+
+    :global(html.phone-preview .page-title) {
+        margin: 0 0 0.45rem;
+        font-size: 1.05rem !important;
+        line-height: 1.12;
+    }
+
+    :global(html.phone-preview .page-subtext),
+    :global(html.phone-preview .section-title),
+    :global(html.phone-preview .section-kicker),
+    :global(html.phone-preview .section-meta) {
+        margin-bottom: 0.4rem;
+    }
+
+    :global(html.phone-preview .dashboard-grid),
+    :global(html.phone-preview .dashboard-container),
+    :global(html.phone-preview .progress-charts),
+    :global(html.phone-preview .calculators-grid),
+    :global(html.phone-preview .builder-grid),
+    :global(html.phone-preview .field-grid),
+    :global(html.phone-preview .form-grid),
+    :global(html.phone-preview .filters-grid),
+    :global(html.phone-preview .stack-layout),
+    :global(html.phone-preview .tutorials-grid),
+    :global(html.phone-preview .upload-grid),
+    :global(html.phone-preview .command-grid) {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        grid-template-columns: 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    :global(html.phone-preview .builder-left),
+    :global(html.phone-preview .builder-right),
+    :global(html.phone-preview .upload-col),
+    :global(html.phone-preview .field),
+    :global(html.phone-preview .dashboard-grid > *),
+    :global(html.phone-preview .tutorials-grid > *),
+    :global(html.phone-preview .progress-charts > *),
+    :global(html.phone-preview .filters-grid > *),
+    :global(html.phone-preview .form-grid > *),
+    :global(html.phone-preview .field-grid > *) {
+        min-width: 0;
+        width: 100%;
+    }
+
+    :global(html.phone-preview .form-card),
+    :global(html.phone-preview .preview-card),
+    :global(html.phone-preview .timeline-card),
+    :global(html.phone-preview .tutorial-card),
+    :global(html.phone-preview .chart-card),
+    :global(html.phone-preview .dashboard-card),
+    :global(html.phone-preview .builder-section),
+    :global(html.phone-preview .section-block),
+    :global(html.phone-preview .list-item) {
+        border-radius: 14px !important;
+    }
+
+    :global(html.phone-preview .builder-head),
+    :global(html.phone-preview .mode-switch),
+    :global(html.phone-preview .goal-row),
+    :global(html.phone-preview .field-row),
+    :global(html.phone-preview .field-row-stack),
+    :global(html.phone-preview .toolbar-row),
+    :global(html.phone-preview .meta-row),
+    :global(html.phone-preview .card-actions),
+    :global(html.phone-preview .form-actions),
+    :global(html.phone-preview .entry-top),
+    :global(html.phone-preview .entry-meta-line),
+    :global(html.phone-preview .chip-row) {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.4rem !important;
+    }
+
+    :global(html.phone-preview .segmented),
+    :global(html.phone-preview .seg-mode),
+    :global(html.phone-preview .seg-type) {
+        width: 100%;
+        min-width: 0;
+    }
+
+    :global(html.phone-preview .segmented button) {
+        min-width: 0;
+        font-size: 0.72rem;
+        padding-inline: 0.45rem;
+    }
+
+    :global(html.phone-preview .chart-canvas),
+    :global(html.phone-preview canvas),
+    :global(html.phone-preview .video-frame),
+    :global(html.phone-preview iframe),
+    :global(html.phone-preview video) {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    :global(html.phone-preview .sim-scroll),
+    :global(html.phone-preview .sim-wrap),
+    :global(html.phone-preview .sim-main),
+    :global(html.phone-preview .sim-actions),
+    :global(html.phone-preview .sim-bottom),
+    :global(html.phone-preview .sim-progress) {
+        min-width: 0;
+        width: 100%;
+    }
+
+    :global(html.phone-preview .sim-actions),
+    :global(html.phone-preview .sim-bottom),
+    :global(html.phone-preview .sim-progress-row),
+    :global(html.phone-preview .sim-ex-meta),
+    :global(html.phone-preview .sim-timer-btns),
+    :global(html.phone-preview .sim-followup-actions),
+    :global(html.phone-preview .sim-followup-status) {
+        gap: 0.4rem !important;
+    }
+
+    :global(html.phone-preview .sim-actions),
+    :global(html.phone-preview .sim-bottom),
+    :global(html.phone-preview .sim-followup-actions) {
+        grid-template-columns: 1fr !important;
+        flex-direction: column !important;
+    }
+
+    :global(html.phone-preview .sim-progress-card),
+    :global(html.phone-preview .sim-setbox),
+    :global(html.phone-preview .sim-followup-card) {
+        min-width: 0;
+    }
+
+    :global(html.phone-preview .popup-overlay.sim-rest-bp) {
+        padding: 0.5rem !important;
+        align-items: center !important;
+    }
+
+    :global(html.phone-preview .popup-overlay.sim-rest-bp .popup) {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 1rem !important;
+        padding: 0.8rem 0.65rem !important;
+    }
+
+    :global(html.phone-preview .sim-rest-inner) {
+        gap: 0.7rem !important;
+        padding: 0 !important;
+    }
+
+    :global(html.phone-preview .sim-rest-title) {
+        font-size: 0.95rem !important;
+        line-height: 1.25 !important;
+    }
+
+    :global(html.phone-preview .sim-rest-sub) {
+        margin: 0 !important;
+        font-size: 0.76rem !important;
+        line-height: 1.35 !important;
+    }
+
+    :global(html.phone-preview .sim-rest-time) {
+        font-size: clamp(2rem, 9vw, 2.6rem) !important;
+        line-height: 1 !important;
+    }
+
+    :global(html.phone-preview .sim-timer-btns) {
+        grid-template-columns: 1fr !important;
+        display: grid !important;
+    }
+
+    :global(html.phone-preview .sim-timer-btns .sim-rest-input),
+    :global(html.phone-preview .sim-timer-btns .btn) {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    :global(html.phone-preview .sim-rest-input) {
+        min-height: 2.6rem !important;
+        font-size: 0.86rem !important;
+        padding-inline: 0.8rem !important;
+    }
+
+    :global(html.phone-preview .sim-rest-bp .sim-timer-btns),
+    :global(html.phone-preview .sim-rest-bp .sim-rest-setup-actions) {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    :global(html.phone-preview .training .workout-list) {
+        margin-top: 0;
+        padding: 0 0.2rem;
+        gap: 0.55rem;
+    }
+
+    :global(html.phone-preview .training .section-title) {
+        font-size: 1rem !important;
+        text-align: left;
+        margin-bottom: 0.35rem;
+    }
+
+    :global(html.phone-preview .training .form-card.builder-grid) {
+        gap: 0.6rem !important;
+        padding: 0.7rem !important;
+    }
+
+    :global(html.phone-preview .training .builder-left) {
+        gap: 0.65rem !important;
+    }
+
+    :global(html.phone-preview .training .builder-head) {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        grid-template-areas:
+            "plan"
+            "type"
+            "extras" !important;
+        gap: 0.55rem !important;
+        align-items: stretch !important;
+    }
+
+    :global(html.phone-preview .training .builder-head .plan-block),
+    :global(html.phone-preview .training .builder-head .type-block),
+    :global(html.phone-preview .training .builder-head .extras-cta),
+    :global(html.phone-preview .training .goal-row),
+    :global(html.phone-preview .training .field-block),
+    :global(html.phone-preview .training .actions-row.stack),
+    :global(html.phone-preview .training .button-group),
+    :global(html.phone-preview .training .btn-cell) {
+        width: 100%;
+        min-width: 0;
+    }
+
+    :global(html.phone-preview .training .builder-head .type-block.desktop-only) {
+        display: none !important;
+    }
+
+    :global(html.phone-preview .training .builder-head .type-block.mobile-only) {
+        display: block !important;
+    }
+
+    :global(html.phone-preview .training .builder-head .extras-cta) {
+        justify-self: stretch !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+    }
+
+    :global(html.phone-preview .training .plan-name-input),
+    :global(html.phone-preview .training .plan-name-input.slim),
+    :global(html.phone-preview .training .goal-select),
+    :global(html.phone-preview .training .filter-input),
+    :global(html.phone-preview .training .seg-type-select) {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    :global(html.phone-preview .training .field-label),
+    :global(html.phone-preview .training .type-heading),
+    :global(html.phone-preview .training .field > label) {
+        font-size: 0.78rem !important;
+    }
+
+    :global(html.phone-preview .training .segmented.seg-mode),
+    :global(html.phone-preview .training .segmented.seg-type) {
+        gap: 0.25rem !important;
+        padding: 0.2rem !important;
+        border-radius: 10px !important;
+    }
+
+    :global(html.phone-preview .training .segmented.seg-mode > button),
+    :global(html.phone-preview .training .segmented.seg-type > button) {
+        padding: 0.42rem 0.35rem !important;
+        font-size: 0.68rem !important;
+        line-height: 1.15;
+    }
+
+    :global(html.phone-preview .training .field-grid) {
+        grid-template-columns: 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    :global(html.phone-preview .training .field-row),
+    :global(html.phone-preview .training .field-row-stack) {
+        gap: 0.45rem !important;
+    }
+
+    :global(html.phone-preview .training .button-group .btn-cell > .add-exercise-btn),
+    :global(html.phone-preview .training .plan-submit-btn) {
+        width: 100% !important;
+    }
+
+    :global(html.phone-preview .training .builder-right),
+    :global(html.phone-preview .training .preview-card) {
+        display: none !important;
+    }
+
+    :global(html.phone-preview .tutorials .tut-modal) {
+        padding: 0.45rem !important;
+        align-items: stretch !important;
+    }
+
+    :global(html.phone-preview .tutorials .tut-modal-card) {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 1rem !important;
+        padding: 0.7rem !important;
+        max-height: calc(100vh - 0.9rem) !important;
+        overflow: auto !important;
+    }
+
+    :global(html.phone-preview .tutorials .tut-modal-card--preview-fullscreen) {
+        width: 100% !important;
+        min-height: calc(100vh - 0.9rem) !important;
+        max-height: calc(100vh - 0.9rem) !important;
+        border-radius: 1rem !important;
+        padding: 0.55rem !important;
+    }
+
+    :global(html.phone-preview .tutorials .tut-modal-card--preview-fullscreen .tut-modal-head),
+    :global(html.phone-preview .tutorials .tut-modal-card--preview-fullscreen .tut-modal-desc),
+    :global(html.phone-preview .tutorials .tut-modal-card--preview-fullscreen .tut-modal-meta),
+    :global(html.phone-preview .tutorials .tut-modal-card--preview-fullscreen .tut-modal-actions) {
+        display: none !important;
+    }
+
+    :global(html.phone-preview .tutorials .tut-modal-card--preview-fullscreen .video-frame) {
+        min-height: calc(100vh - 2.2rem) !important;
+        height: calc(100vh - 2.2rem) !important;
+        border-radius: 0.85rem !important;
+        object-fit: cover !important;
+    }
+
+    :global(html.phone-preview .main-content * ) {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    :global(html.phone-preview a),
+    :global(html.phone-preview button),
+    :global(html.phone-preview input),
+    :global(html.phone-preview select),
+    :global(html.phone-preview textarea),
+    :global(html.phone-preview summary),
+    :global(html.phone-preview label),
+    :global(html.phone-preview [role="button"]),
+    :global(html.phone-preview [tabindex]) {
+        pointer-events: none !important;
+        cursor: default !important;
+    }
+
+    :global(html.phone-preview video),
+    :global(html.phone-preview iframe) {
+        pointer-events: none !important;
     }
 
     .burger-menu {

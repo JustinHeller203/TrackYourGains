@@ -112,6 +112,9 @@
                                 </span>
 
                                 <ActionIconButton class="play-btn"
+                                                  :data-preview-play="isPhonePreviewSimulationDemo ? 'simulation-demo' : null"
+                                                  :data-tyg-play-button="plan.id"
+                                                  :data-tyg-tutorial-play="props.planTutActive && props.planTutPlanId === plan.id ? 'true' : null"
                                                   title="Starten"
                                                   aria-label="Training starten"
                                                   @click.stop="startSimulation(plan)">
@@ -194,6 +197,9 @@
                                 </span>
 
                                 <ActionIconButton class="play-btn"
+                                                  :data-preview-play="isPhonePreviewSimulationDemo ? 'simulation-demo' : null"
+                                                  :data-tyg-play-button="plan.id"
+                                                  :data-tyg-tutorial-play="props.planTutActive && props.planTutPlanId === plan.id ? 'true' : null"
                                                   title="Starten"
                                                   aria-label="Training starten"
                                                   @click.stop="startSimulation(plan)">
@@ -389,6 +395,7 @@
 </template>
 <script setup lang="ts">
     import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+    import { useRoute } from 'vue-router'
     import Draggable from 'vuedraggable'
 
     import UiSearch from '@/components/ui/kits/UiSearch.vue'
@@ -480,6 +487,10 @@
     const dismissPlanTutIfActive = () => {
         if (props.planTutActive) closePlanTut()
     }
+    const route = useRoute()
+    const isPhonePreviewSimulationDemo = computed(
+        () => route.query.preview === 'phone' && route.query.demo === 'simulation'
+    )
     const openDeletePopupUi = (action: () => void) => {
         dismissPlanTutIfActive()
         props.openDeletePopup(action)
@@ -1154,6 +1165,7 @@
 
     /* -------------------- Plans + Favoriten -------------------- */
     const plans = computed<ViewPlan[]>(() => {
+        if (isPhonePreviewSimulationDemo.value) return (props.guestPlans ?? [])
         if (!auth.user) return (props.guestPlans ?? [])
         return trainingPlansStore.items.map(flattenDto)
     })
@@ -1781,6 +1793,20 @@
 
     defineExpose({
         openPlanForTutorial: (planId: string) => loadPlan(planId),
+        openSimulationForPreview: (planId: string) => {
+            const plan =
+                plans.value.find(p => p.id === planId)
+                ?? (props.guestPlans ?? []).find(p => p.id === planId)
+                ?? null
+            if (!plan) return
+
+            simPlan.value = plan
+            simFollowupMode.value = false
+            simFollowupSessionId.value = null
+            simFollowupFeedback.value = null
+            simFollowupPainDiaryToday.value = false
+            simOpen.value = true
+        },
     })
 
 </script>

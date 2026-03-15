@@ -86,6 +86,7 @@
                @dismiss="onToastDismiss" />
 
         <PlanBuilderTutorial
+            v-if="route.query?.preview !== 'phone'"
             :isActive="showPlanBuilderTut"
             :steps="planBuilderSteps"
             @done="showPlanBuilderTut = false" />
@@ -348,6 +349,8 @@
     const maybeShowPlanBuilderTut = () => {
         if (showPlanBuilderTut.value) return
         const isQuickStart = route.query?.tut === 'plan'
+        const isPhonePreviewDemo = route.query?.preview === 'phone' && route.query?.demo === 'builder'
+        if (isPhonePreviewDemo) return
         const hasCreated = !!auth.user?.hasCreatedTrainingPlan
         if (!isQuickStart || hasCreated) return
         showPlanBuilderTut.value = true
@@ -1093,7 +1096,7 @@
             const storePlan =
                 trainingPlansStore.selected?.id === id
                     ? trainingPlansStore.selected
-                    : trainingPlansStore.items.find(p => p.id === id) ?? null
+                    : trainingPlansStore.items.find((p: TrainingPlanDto) => p.id === id) ?? null
 
             // Fallback: falls du doch irgendwann plans.value befüllst
             const localPlan = (plans.value ?? []).find(p => p.id === id) ?? null

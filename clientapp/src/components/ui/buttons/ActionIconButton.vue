@@ -6,6 +6,7 @@
                     :title="title"
                     :aria-label="ariaLabel || title"
                     :disabled="disabled"
+                    v-bind="attrs"
                     class="action-btn download-btn"
                     :class="extraClass"
                     @click="$emit('click', $event)">
@@ -15,7 +16,14 @@
 </template>
 
 <script setup lang="ts">
+    defineOptions({
+        inheritAttrs: false,
+    })
+
+    import { useAttrs } from 'vue'
     import BaseButton from '@/components/ui/buttons/BaseButton.vue'
+
+    const attrs = useAttrs()
 
     defineProps<{
         type?: 'button' | 'submit' | 'reset'

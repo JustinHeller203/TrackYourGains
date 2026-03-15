@@ -2674,6 +2674,25 @@
         }
     }
 
+    :global(html.phone-preview) .set-row,
+    :global(body.phone-preview) .set-row {
+        grid-template-columns: 1fr;
+        gap: .38rem;
+    }
+
+    :global(html.phone-preview) .set-row > :nth-child(2),
+    :global(html.phone-preview) .set-row > :nth-child(3),
+    :global(body.phone-preview) .set-row > :nth-child(2),
+    :global(body.phone-preview) .set-row > :nth-child(3) {
+        width: 100%;
+    }
+
+    :global(html.phone-preview) .set-row-head,
+    :global(body.phone-preview) .set-row-head {
+        padding-top: 0;
+        margin-bottom: .1rem;
+    }
+
     .extras-align {
         justify-self: end;
         align-self: center;
@@ -2931,5 +2950,39 @@
             .modal-grid.grid-2:not(.grid-cardio) > div:nth-child(2) {
                 grid-area: weight;
             }
+    }
+
+    :global(html.phone-preview .popup-overlay.progress-entry-popup .set-row),
+    :global(body.phone-preview .popup-overlay.progress-entry-popup .set-row) {
+        grid-template-columns: 1fr !important;
+        gap: .45rem !important;
+    }
+
+    :global(html.phone-preview .popup-overlay.progress-entry-popup .set-row-head),
+    :global(body.phone-preview .popup-overlay.progress-entry-popup .set-row-head) {
+        width: 100%;
+        padding-top: 0 !important;
+        margin-bottom: .08rem !important;
+    }
+
+    :global(html.phone-preview .popup-overlay.progress-entry-popup .set-row > :nth-child(2)),
+    :global(html.phone-preview .popup-overlay.progress-entry-popup .set-row > :nth-child(3)),
+    :global(body.phone-preview .popup-overlay.progress-entry-popup .set-row > :nth-child(2)),
+    :global(body.phone-preview .popup-overlay.progress-entry-popup .set-row > :nth-child(3)) {
+        width: 100% !important;
+        max-width: 100% !important;
+        display: block !important;
+    }
+
+    :global(html.phone-preview .popup-overlay.progress-entry-popup .set-row :deep(.set-cell-input.popinp)),
+    :global(body.phone-preview .popup-overlay.progress-entry-popup .set-row :deep(.set-cell-input.popinp)) {
+        width: 100% !important;
+    }
+
+    :global(html.phone-preview .popup-overlay.progress-entry-popup .set-row :deep(.set-cell-input .popinp__field)),
+    :global(body.phone-preview .popup-overlay.progress-entry-popup .set-row :deep(.set-cell-input .popinp__field)),
+    :global(html.phone-preview .popup-overlay.progress-entry-popup .set-row :deep(.set-cell-input .popinp__control)),
+    :global(body.phone-preview .popup-overlay.progress-entry-popup .set-row :deep(.set-cell-input .popinp__control)) {
+        width: 100% !important;
     }
 </style>

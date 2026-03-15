@@ -1,6 +1,12 @@
-<!--src/pages/Tutorial.vue-->
+﻿<!--src/pages/Tutorial.vue-->
 <template>
     <div class="tutorials" :class="{ 'dark-mode': darkMode }">
+        <div
+            v-if="isPhonePreviewTutorialDemo && previewTouch.visible"
+            class="preview-touch"
+            :style="{ left: `${previewTouch.x}px`, top: `${previewTouch.y}px` }">
+            <span class="preview-touch__dot"></span>
+        </div>
         <h2 class="page-title">🎥 Übungstutorials</h2>
         <div class="search-and-filter">
             <UiSearch v-model="searchQuery"
@@ -217,7 +223,9 @@
 
             <!-- Modal -->
             <div v-if="activeTutorial" class="tut-modal" @click="closeTutorial" role="dialog" aria-modal="true">
-                <div class="tut-modal-card" @click.stop>
+                <div class="tut-modal-card"
+                     :class="{ 'tut-modal-card--preview-fullscreen': previewTutorialFullscreen }"
+                     @click.stop>
                     <div class="tut-modal-head">
                         <div class="tut-modal-title">
                             <h3>{{ activeTutorial.title }}</h3>
@@ -287,12 +295,52 @@
 
 <script setup lang="ts">
     import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+    import { useRoute } from 'vue-router'
     import UiSearch from '@/components/ui/kits/UiSearch.vue'
     import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
 
     const searchQuery = ref('');
     const loading = ref(true);
     const darkMode = ref(false);
+    const route = useRoute()
+    const previewTutorialTimers: number[] = []
+    const previewTouch = ref({ visible: false, x: 0, y: 0 })
+
+    const isPhonePreviewTutorialDemo = computed(
+        () => route.query.preview === 'phone' && route.query.demo === 'tutorial'
+    )
+
+    function movePreviewTouch(selector: string, xFactor = 0.5, yFactor = 0.5) {
+        const target = document.querySelector<HTMLElement>(selector)
+        if (!target) return
+
+        const rect = target.getBoundingClientRect()
+        previewTouch.value = {
+            visible: true,
+            x: rect.left + rect.width * xFactor,
+            y: rect.top + rect.height * yFactor,
+        }
+    }
+
+    function queuePreviewTutorialStep(delay: number, task: () => void) {
+        previewTutorialTimers.push(window.setTimeout(task, delay))
+    }
+
+    function clearPreviewTutorialTimers() {
+        previewTutorialTimers.forEach(id => window.clearTimeout(id))
+        previewTutorialTimers.length = 0
+    }
+
+    function scrollPreviewToElement(selector: string, delay: number, offset = 20) {
+        queuePreviewTutorialStep(delay, () => {
+            const target = document.querySelector<HTMLElement>(selector)
+            if (!target) return
+
+            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            const top = target.getBoundingClientRect().top + window.scrollY - offset
+            window.scrollTo({ top, behavior: prefersReduced ? 'auto' : 'smooth' })
+        })
+    }
 
     // --- Upload (ohne Backend) ---
     const showUpload = ref(false)
@@ -450,6 +498,7 @@
         await hydrateCustomTutorials();
 
         loading.value = false;
+        startPreviewTutorialDemo()
     });
 
 
@@ -672,12 +721,62 @@
     const favoriteIds = ref<number[]>([]);
 
     const activeTutorial = ref<Tutorial | null>(null);
+    const previewTutorialFullscreen = ref(false)
 
     function openTutorial(t: Tutorial) {
         activeTutorial.value = t;
     }
     function closeTutorial() {
         activeTutorial.value = null;
+        previewTutorialFullscreen.value = false
+    }
+
+    function notifyPreviewTutorialCompleted() {
+        if (!isPhonePreviewTutorialDemo.value || typeof window === 'undefined') return
+        window.parent?.postMessage?.(
+            {
+                type: 'landing-phone-demo-complete',
+                demo: 'tutorial',
+                run: Number(route.query?.run ?? 0),
+            },
+            window.location.origin
+        )
+    }
+
+    function startPreviewTutorialDemo() {
+        if (!isPhonePreviewTutorialDemo.value) return
+
+        clearPreviewTutorialTimers()
+        previewTutorialFullscreen.value = false
+
+        const firstWithVideo = tutorials.value.find(t => !!t.videoUrl) ?? tutorials.value[0] ?? null
+        if (!firstWithVideo) return
+
+        scrollPreviewToElement('.tutorials-grid', 520, 24)
+
+        queuePreviewTutorialStep(1600, () => {
+            movePreviewTouch('.tutorial-card', 0.5, 0.34)
+        })
+
+        queuePreviewTutorialStep(2300, () => {
+            openTutorial(firstWithVideo)
+        })
+
+        queuePreviewTutorialStep(3250, () => {
+            movePreviewTouch('.tut-modal .video-frame', 0.5, 0.34)
+        })
+
+        queuePreviewTutorialStep(4300, () => {
+            movePreviewTouch('.tut-modal .video-frame', 0.5, 0.34)
+        })
+
+        queuePreviewTutorialStep(4700, () => {
+            previewTutorialFullscreen.value = true
+        })
+
+        queuePreviewTutorialStep(6400, () => {
+            notifyPreviewTutorialCompleted()
+        })
     }
 
     function loadFavorites() {
@@ -786,6 +885,8 @@
     });
 
     onBeforeUnmount(() => {
+        clearPreviewTutorialTimers()
+
         // ObjectURLs sauber wegballern
         for (const url of objectUrls) URL.revokeObjectURL(url)
 
@@ -800,6 +901,41 @@
 </script>
 
 <style scoped>
+    .preview-touch {
+        position: fixed;
+        z-index: 1200;
+        width: 1.15rem;
+        height: 1.15rem;
+        margin-left: -0.575rem;
+        margin-top: -0.575rem;
+        pointer-events: none;
+    }
+
+    .preview-touch__dot {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.96);
+        border: 2px solid rgba(29, 78, 216, 0.92);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.3);
+        animation: previewTouchPulse 1.2s ease-out infinite;
+    }
+
+    @keyframes previewTouchPulse {
+        0% {
+            transform: scale(0.88);
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.34);
+        }
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0.7rem rgba(59, 130, 246, 0);
+        }
+        100% {
+            transform: scale(0.9);
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        }
+    }
+
     .tutorials {
         padding: clamp(1.4rem, 3vw, 2.4rem);
         min-height: 100vh;
@@ -943,6 +1079,18 @@
         border-radius: 18px;
         box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
         padding: 1rem;
+    }
+
+    .tut-modal-card--preview-fullscreen {
+        width: min(96vw, 980px);
+        border-color: rgba(96, 165, 250, 0.65);
+        box-shadow: 0 34px 100px rgba(15, 23, 42, 0.44);
+    }
+
+    .tut-modal-card--preview-fullscreen .video-frame {
+        min-height: 52vh;
+        border-radius: 18px;
+        box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.22);
     }
 
     .tut-modal-head {
@@ -1274,3 +1422,4 @@
     }
 
 </style>
+

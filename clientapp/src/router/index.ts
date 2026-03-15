@@ -8,6 +8,7 @@ import Settings from '@/pages/Settings.vue'
 import Tutorials from '@/pages/Tutorials.vue'
 import AuthLogin from '@/pages/AuthLogin.vue'
 import Profile from '@/pages/Profile.vue'
+import TrainingSimulationPreview from '@/pages/TrainingSimulationPreview.vue'
 import LegalNotice from '@/Footer/LegalNotice.vue'
 import Terms from '@/Footer/Terms.vue'
 import Privacy from '@/Footer/Privacy.vue'
@@ -38,6 +39,7 @@ const router = createRouter({
         { path: '/faq', name: 'faq', component: FAQ },
         { path: '/about', name: 'about', component: About },
         { path: '/profile', name: 'profile', component: Profile, meta: { requiresAuth: true } },
+        { path: '/preview/training-simulation', name: 'training-simulation-preview', component: TrainingSimulationPreview },
         { path: '/login', name: 'login', component: AuthLogin, meta: { guestOnly: true } },
         { path: '/register', redirect: { name: 'login', query: { mode: 'register' } } },
         { path: '/:pathMatch(.*)*', redirect: { name: 'home' } },
