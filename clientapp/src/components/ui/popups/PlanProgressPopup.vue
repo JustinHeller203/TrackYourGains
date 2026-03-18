@@ -680,6 +680,42 @@
         feedbackStatusByDay?: Record<string, boolean>
     }>()
 
+    const PREVIEW_PROGRESS_PLAN_ID = 'preview-progress-plan'
+    const previewPlanWorkouts: WorkoutLike[] = [
+        {
+            id: 'preview-progress-entry-1',
+            planId: PREVIEW_PROGRESS_PLAN_ID,
+            exercise: 'Bankdruecken',
+            date: '2026-03-14T18:00:00',
+            type: 'kraft',
+            sets: 3,
+            reps: 8,
+            weight: 80,
+            setDetails: [
+                { reps: 8, weight: 80, label: 'Aufwaermen' },
+                { reps: 8, weight: 82.5, label: 'Arbeitssatz 1' },
+                { reps: 7, weight: 82.5, label: 'Arbeitssatz 2' },
+            ],
+            note: 'Sauberer Demo-Eintrag',
+        },
+        {
+            id: 'preview-progress-entry-2',
+            planId: PREVIEW_PROGRESS_PLAN_ID,
+            exercise: 'Klimmzuege',
+            date: '2026-03-14T18:12:00',
+            type: 'calisthenics',
+            sets: 3,
+            reps: 10,
+            weight: 0,
+            setDetails: [
+                { reps: 10, weight: 0, label: 'Satz 1' },
+                { reps: 9, weight: 0, label: 'Satz 2' },
+                { reps: 8, weight: 0, label: 'Satz 3' },
+            ],
+            note: 'Bodyweight Demo',
+        },
+    ]
+
     const emit = defineEmits<{
         (e: 'close'): void
         (e: 'add-entry', payload: { planId: string; keepOpen: boolean }): void
@@ -1086,6 +1122,7 @@
     const apiWorkouts = computed<WorkoutLike[]>(() => {
         const planId = props.currentPlanId
         if (!planId) return []
+        if (planId === PREVIEW_PROGRESS_PLAN_ID) return previewPlanWorkouts
 
         const state =
             (byPlan.value instanceof Map)
@@ -4093,6 +4130,7 @@
 
     .progress-topbar {
         display: flex;
+        flex-wrap: nowrap;
         gap: .5rem;
         margin-bottom: .75rem;
         position: sticky;
@@ -4100,11 +4138,84 @@
         z-index: 5;
         padding: .25rem 0 .6rem;
         background: linear-gradient(180deg, rgba(0,0,0,0.08), transparent);
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    .progress-topbar::-webkit-scrollbar {
+        height: 7px;
+    }
+
+    .progress-topbar::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.32);
+        border-radius: 999px;
     }
 
     .progress-btn--active {
         border-color: rgba(129, 140, 248, 0.70);
         box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22), 0 0 18px rgba(129, 140, 248, 0.10);
         filter: brightness(1.03);
+    }
+
+    :global(html.phone-preview) .plan-progress-popup .modal--progress {
+        max-height: min(60vh, calc(100vh - 170px));
+        padding-right: 0.12rem;
+    }
+
+    :global(html.phone-preview) .plan-progress-popup .progress-topbar {
+        gap: 0.35rem;
+        margin-bottom: 0.55rem;
+        padding: 0.18rem 0 0.42rem;
+        scrollbar-gutter: stable;
+    }
+
+    :global(html.phone-preview) .plan-progress-popup .progress-btn {
+        padding: 0.36rem 0.55rem;
+        font-size: 0.68rem;
+        min-height: 0;
+    }
+
+    :global(html.phone-preview) .plan-progress-popup .plan-last-summary,
+    :global(html.phone-preview) .plan-progress-popup .plan-completion-praise,
+    :global(html.phone-preview) .plan-progress-popup .plan-rotation-notice {
+        padding: 0.55rem 0.65rem;
+        margin-bottom: 0.55rem;
+        border-radius: 12px;
+    }
+
+    :global(html.phone-preview) .plan-progress-popup .day-card-list {
+        gap: 0.5rem;
+    }
+
+    :global(html.phone-preview) .plan-progress-popup .day-card {
+        border-radius: 12px;
+    }
+
+    :global(html.phone-preview) .plan-progress-popup .day-card-row {
+        padding: 0.55rem 0.65rem;
+    }
+
+    :global(html.phone-preview) .plan-progress-popup .day-date {
+        font-size: 0.76rem;
+        line-height: 1.15;
+    }
+
+    :global(html.phone-preview) .plan-progress-popup .day-meta,
+    :global(html.phone-preview) .plan-progress-popup .count,
+    :global(html.phone-preview) .plan-progress-popup .summary-label,
+    :global(html.phone-preview) .plan-progress-popup .summary-body {
+        font-size: 0.64rem;
+    }
+
+    :global(html.phone-preview) .plan-progress-popup .exercise-header {
+        font-size: 0.82rem;
+    }
+
+    :global(html.phone-preview) .plan-progress-popup .journal-entry,
+    :global(html.phone-preview) .plan-progress-popup .set-details,
+    :global(html.phone-preview) .plan-progress-popup .stat-row {
+        border-radius: 10px;
     }
 </style>

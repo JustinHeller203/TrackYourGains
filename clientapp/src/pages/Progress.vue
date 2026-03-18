@@ -497,7 +497,7 @@
                         <div v-if="favoritePlans.length">
                             <h4 class="section-title" style="margin-top: .5rem;">Favoriten</h4>
                             <div v-for="plan in favoritePlans" :key="plan.id" class="list-item plan-item">
-                                <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
+                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exercises.length} Übungen)` }}</span>
                                 <div class="list-item-actions">
                                     <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
@@ -507,7 +507,7 @@
                         <div v-if="otherPlans.length">
                             <h4 class="section-title" style="margin-top: .5rem;">Weitere Pläne</h4>
                             <div v-for="plan in otherPlans" :key="plan.id" class="list-item plan-item">
-                                <span>{{ plan.name }} ({{ plan.exercises.length }} Übungen)</span>
+                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exercises.length} Übungen)` }}</span>
                                 <div class="list-item-actions">
                                     <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
                                 </div>
@@ -1896,8 +1896,12 @@
             if (!target) return
 
             const maxScrollLeft = Math.max(0, target.scrollWidth - target.clientWidth)
+            const fingerMovesRight = toXFactor > fromXFactor
+            const startScrollLeft = fingerMovesRight ? maxScrollLeft : 0
+            const endScrollLeft = fingerMovesRight ? 0 : maxScrollLeft
+
             if (maxScrollLeft > 0) {
-                target.scrollLeft = maxScrollLeft
+                target.scrollLeft = startScrollLeft
             }
 
             for (let step = 0; step <= steps; step++) {
@@ -1915,8 +1919,96 @@
                     }
 
                     if (maxScrollLeft > 0) {
-                        liveTarget.scrollLeft = Math.max(0, maxScrollLeft * (1 - progress))
+                        liveTarget.scrollLeft = startScrollLeft + ((endScrollLeft - startScrollLeft) * progress)
                     }
+                })
+            }
+        })
+    }
+
+    function swipePreviewWindowToSelector(
+        anchorSelector: string,
+        targetSelector: string,
+        startDelay: number,
+        durationMs = 1100,
+        steps = 8
+    ) {
+        queuePreviewProgressStep(startDelay, () => {
+            const anchor = document.querySelector<HTMLElement>(anchorSelector)
+            const target = document.querySelector<HTMLElement>(targetSelector)
+            if (!anchor || !target) return
+
+            const startRect = anchor.getBoundingClientRect()
+            const targetRect = target.getBoundingClientRect()
+            const startScrollY = window.scrollY
+            const targetScrollY = Math.max(0, startScrollY + targetRect.top - 18)
+            const scrollDelta = targetScrollY - startScrollY
+
+            for (let step = 0; step <= steps; step++) {
+                const progress = step / steps
+                queuePreviewProgressStep(step * Math.floor(durationMs / steps), () => {
+                    const liveAnchor = document.querySelector<HTMLElement>(anchorSelector)
+                    const liveTarget = document.querySelector<HTMLElement>(targetSelector)
+                    if (!liveAnchor || !liveTarget) return
+
+                    const liveAnchorRect = liveAnchor.getBoundingClientRect()
+                    const liveTargetRect = liveTarget.getBoundingClientRect()
+
+                    previewTouch.value = {
+                        visible: true,
+                        x: liveAnchorRect.left + liveAnchorRect.width * 0.52,
+                        y: liveAnchorRect.top + liveAnchorRect.height * (0.74 - (0.5 * progress)),
+                        pressing: step > 0 && step < steps,
+                    }
+
+                    const nextScrollY = startScrollY + (scrollDelta * progress)
+                    window.scrollTo({ top: nextScrollY, behavior: 'auto' })
+
+                    if (step === steps) {
+                        previewTouch.value = {
+                            visible: true,
+                            x: liveTargetRect.left + liveTargetRect.width * 0.5,
+                            y: liveTargetRect.top + liveTargetRect.height * 0.55,
+                            pressing: false,
+                        }
+                    }
+                })
+            }
+        })
+    }
+
+    function swipePreviewContainerDown(
+        selector: string,
+        startDelay: number,
+        durationMs = 1100,
+        steps = 8
+    ) {
+        queuePreviewProgressStep(startDelay, () => {
+            const target = document.querySelector<HTMLElement>(selector)
+            if (!target) return
+
+            const maxScrollTop = Math.max(0, target.scrollHeight - target.clientHeight)
+            if (maxScrollTop <= 0) return
+
+            const rect = target.getBoundingClientRect()
+            const startScrollTop = 0
+            const endScrollTop = Math.min(maxScrollTop, Math.max(120, maxScrollTop * 0.72))
+
+            for (let step = 0; step <= steps; step++) {
+                const progress = step / steps
+                queuePreviewProgressStep(step * Math.floor(durationMs / steps), () => {
+                    const liveTarget = document.querySelector<HTMLElement>(selector)
+                    if (!liveTarget) return
+
+                    const liveRect = liveTarget.getBoundingClientRect()
+                    previewTouch.value = {
+                        visible: true,
+                        x: liveRect.left + liveRect.width * 0.56,
+                        y: liveRect.top + liveRect.height * (0.72 - (0.34 * progress)),
+                        pressing: step > 0 && step < steps,
+                    }
+
+                    liveTarget.scrollTop = startScrollTop + ((endScrollTop - startScrollTop) * progress)
                 })
             }
         })
@@ -1943,31 +2035,36 @@
         previewTouch.value = { visible: false, x: 0, y: 0, pressing: false }
 
         queuePreviewProgressStep(500, () => {
-            const plansSection = document.querySelector<HTMLElement>('.plans-section')
-            plansSection?.scrollIntoView({ behavior: 'auto', block: 'start' })
+            window.scrollTo({ top: 0, behavior: 'auto' })
         })
 
-        swipePreviewOnSelector('.tabs__segmented', 1200, 0.26, 0.78, 0.5, 1100, 8)
+        swipePreviewWindowToSelector('.dashboard-grid', '.tabs__segmented', 1100, 1200, 9)
 
-        touchAndClickSelector('.tabs__tab:nth-child(3)', 2900, 780)
+        swipePreviewOnSelector('.tabs__segmented', 2650, 0.78, 0.26, 0.5, 1100, 8)
 
-        queuePreviewProgressStep(4200, () => {
-            activeTab.value = 'plans'
-            const plansSection = document.querySelector<HTMLElement>('.plans-section')
-            plansSection?.scrollIntoView({ behavior: 'auto', block: 'start' })
-        })
+        touchAndClickSelector('.tabs__tab:nth-child(3)', 4350, 780, 0.5, 0.7)
 
-        queuePreviewProgressStep(5800, () => {
+        queuePreviewProgressStep(7250, () => {
             const firstPlanId =
-                String(trainingPlansStore.items?.[0]?.id ?? '').trim()
+                String(trainingPlans.value?.[0]?.id ?? '').trim()
 
             if (firstPlanId) {
                 touchAndClickSelector('.plans-section .plan-item .open-btn', 0, 720)
                 queuePreviewProgressStep(1100, () => {
                     void openPlanProgress(firstPlanId, 'list')
                 })
-                touchAndClickSelector('.popup-overlay.plan-progress-popup .progress-topbar .progress-btn:last-child', 3000, 980)
-                queuePreviewProgressStep(5000, () => {
+                swipePreviewOnSelector('.popup-overlay.plan-progress-popup .progress-topbar', 3000, 0.78, 0.22, 0.62, 1050, 8)
+                queuePreviewProgressStep(4450, () => {
+                    movePreviewTouch('.popup-overlay.plan-progress-popup .progress-topbar .progress-btn:last-child', 0.5, 0.62)
+                })
+                queuePreviewProgressStep(5200, () => {
+                    pressPreviewTouch(240)
+                })
+                queuePreviewProgressStep(5520, () => {
+                    clickSelector('.popup-overlay.plan-progress-popup .progress-topbar .progress-btn:last-child')
+                })
+                swipePreviewContainerDown('.popup-overlay.plan-progress-popup .modal--progress', 6100, 1250, 9)
+                queuePreviewProgressStep(8000, () => {
                     notifyPreviewProgressCompleted()
                 })
             }
@@ -2659,6 +2756,14 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         exercises: string[]
     }
 
+    const PREVIEW_PROGRESS_PLAN_ID = 'preview-progress-plan'
+    const previewProgressPlan: ViewPlan = {
+        id: PREVIEW_PROGRESS_PLAN_ID,
+        name: 'Beispiel Trainingsplan',
+        isFavorite: true,
+        exercises: ['Bankdruecken', 'Klimmzuege', 'Kniebeugen'],
+    }
+
     const toViewPlan = (dto: any): ViewPlan => ({
         id: dto.id,
         name: dto.name,
@@ -2676,7 +2781,12 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     const trainingPlans = computed<ViewPlan[]>(() => {
         const api = trainingPlansStore.items.map(toViewPlan)
-        return api.length ? api : localPlans.value
+        const base = api.length ? api : localPlans.value
+
+        if (!isPhonePreviewProgressDemo.value) return base
+        if (base.some(plan => plan.id === PREVIEW_PROGRESS_PLAN_ID)) return base
+
+        return [previewProgressPlan, ...base]
     })
 
     const favoritePlans = computed(() =>
@@ -2693,6 +2803,14 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
 
     const openPlanProgress = async (planId: string, initialView: 'list' | 'calendar' | 'stats' = 'list') => {
+        if (isPhonePreviewProgressDemo.value && planId === PREVIEW_PROGRESS_PLAN_ID) {
+            currentPlanId.value = planId
+            lastPlanId.value = planId
+            planProgressInitialView.value = initialView
+            showPlanProgressPopup.value = true
+            return
+        }
+
         currentPlanId.value = planId
         lastPlanId.value = planId
         planProgressInitialView.value = initialView
@@ -4215,6 +4333,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     watch(showPlanProgressPopup, async (open) => {
         if (!open) return
         const planId = currentPlanId.value ?? lastPlanId.value
+        if (isPhonePreviewProgressDemo.value && planId === PREVIEW_PROGRESS_PLAN_ID) return
         if (auth.user && planId) {
             await loadTrainingFeedbackFromBackendForPlan(planId)
         }
@@ -5301,7 +5420,7 @@ Notiz: ${e.note ?? '-'}\n`
 
     .preview-touch {
         position: fixed;
-        z-index: 12050;
+        z-index: 20050;
         width: 1.15rem;
         height: 1.15rem;
         margin-left: -0.575rem;
@@ -5355,6 +5474,10 @@ Notiz: ${e.note ?? '-'}\n`
     /* Dark Mode soll auch keinen eigenen Background setzen */
     html.dark-mode .progress {
         background: transparent;
+    }
+
+    :global(html.phone-preview) .progress {
+        isolation: auto;
     }
 
     .progress::before {
@@ -6032,6 +6155,50 @@ Notiz: ${e.note ?? '-'}\n`
     .list-item-actions {
         display: flex;
         gap: .5rem;
+    }
+
+    :global(html.phone-preview .progress .plans-section .workout-list) {
+        padding: 0.72rem 0.72rem 0.62rem;
+        border-radius: 14px;
+    }
+
+    :global(html.phone-preview .progress .plans-section .section-title) {
+        margin: 0 0 0.45rem;
+        font-size: 0.62rem;
+        letter-spacing: 0.09em;
+        line-height: 1.15;
+    }
+
+    :global(html.phone-preview .progress .plans-section .plan-item) {
+        gap: 0.42rem;
+        padding: 0.42rem 0.52rem;
+        margin-bottom: 0.36rem;
+        border-radius: 10px;
+        min-height: 0;
+    }
+
+    :global(html.phone-preview .progress .plans-section .plan-item span) {
+        min-width: 0;
+        font-size: 0.72rem;
+        line-height: 1.15;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :global(html.phone-preview .progress .plans-section .list-item-actions) {
+        margin-left: 0.35rem;
+        flex-shrink: 0;
+    }
+
+    :global(html.phone-preview .progress .plans-section .open-btn) {
+        padding: 0.28rem 0.58rem;
+        min-width: 0;
+        font-size: 0.68rem;
+        line-height: 1;
+        white-space: nowrap;
+        box-shadow: 0 7px 16px rgba(15, 23, 42, 0.38), 0 0 0 1px rgba(15, 23, 42, 0.58);
     }
 
 
