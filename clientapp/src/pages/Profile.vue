@@ -387,10 +387,35 @@
         </section>
 
         <div class="profile-footer-actions">
-            <button class="btn logout-footer-btn" @click="logout">
-                <i class="fas fa-sign-out-alt"></i>
-                Logout
-            </button>
+            <div
+                ref="logoutSwipeTrackEl"
+                class="logout-swipe"
+                :class="{ 'is-dragging': logoutSwipeDragging, 'is-ready': logoutSwipeReady, 'is-loading': logoutSwipeLoading }"
+                @pointerdown="onLogoutSwipePointerDown"
+                @pointermove="onLogoutSwipePointerMove"
+                @pointerup="onLogoutSwipePointerUp"
+                @pointercancel="onLogoutSwipePointerCancel"
+            >
+                <div class="logout-swipe-copy">
+                    <strong>Logout</strong>
+                    <span>{{ logoutSwipeReady ? 'Loslassen zum Ausloggen' : 'Nach rechts wischen zum Ausloggen' }}</span>
+                </div>
+
+                <div class="logout-swipe-progress" :style="{ width: `${logoutSwipeProgress}%` }"></div>
+
+                <button
+                    ref="logoutSwipeThumbEl"
+                    type="button"
+                    class="logout-swipe-thumb"
+                    :style="{ transform: `translateX(${logoutSwipeOffset}px)` }"
+                    :disabled="logoutSwipeLoading"
+                    aria-label="Zum Ausloggen nach rechts wischen"
+                    @keydown.right.prevent="triggerLogoutSwipe()"
+                    @keydown.end.prevent="triggerLogoutSwipe()"
+                >
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
         </div>
 
         <!-- === Popups === -->
@@ -641,6 +666,11 @@
     const showDeleteAvatarPopup = ref(false)
     const showValidation = ref(false)
     const validationErrors = ref<string[]>([])
+    const logoutSwipeTrackEl = ref<HTMLElement | null>(null)
+    const logoutSwipeThumbEl = ref<HTMLElement | null>(null)
+    const logoutSwipeOffset = ref(0)
+    const logoutSwipeDragging = ref(false)
+    const logoutSwipeLoading = ref(false)
     const suppressNextClick = ref(false)
     const viewerScale = ref(1);
     const viewerTx = ref(0);
@@ -651,6 +681,21 @@
         width: '220px',
         maxWidth: '220px',
     }))
+    const logoutSwipeMax = computed(() => {
+        const track = logoutSwipeTrackEl.value
+        const thumb = logoutSwipeThumbEl.value
+        if (!track || !thumb) return 0
+        return Math.max(0, track.clientWidth - thumb.clientWidth - 10)
+    })
+    const logoutSwipeProgress = computed(() => {
+        const max = logoutSwipeMax.value
+        if (!max) return 0
+        return Math.min(100, Math.max(0, (logoutSwipeOffset.value / max) * 100))
+    })
+    const logoutSwipeReady = computed(() => logoutSwipeProgress.value >= 82)
+    let logoutSwipePointerId: number | null = null
+    let logoutSwipeStartX = 0
+    let logoutSwipeStartOffset = 0
 
     function queueProfileSave(patch: UpdateProfileDto) {
         if (!auth.user || !profileLoaded.value) return
@@ -665,6 +710,62 @@
                 addToast('Profil konnte nicht gespeichert werden.', 'delete')
             }
         }, 500)
+    }
+
+    function clampLogoutSwipeOffset(next: number) {
+        const max = logoutSwipeMax.value
+        return Math.min(max, Math.max(0, next))
+    }
+
+    function resetLogoutSwipe() {
+        logoutSwipeOffset.value = 0
+        logoutSwipeDragging.value = false
+        logoutSwipePointerId = null
+    }
+
+    async function triggerLogoutSwipe() {
+        if (logoutSwipeLoading.value) return
+        logoutSwipeLoading.value = true
+        logoutSwipeDragging.value = false
+        logoutSwipeOffset.value = logoutSwipeMax.value
+        try {
+            await logout()
+        } finally {
+            logoutSwipeLoading.value = false
+            resetLogoutSwipe()
+        }
+    }
+
+    function onLogoutSwipePointerDown(e: PointerEvent) {
+        if (logoutSwipeLoading.value) return
+        if (e.pointerType === 'mouse' && e.button !== 0) return
+        logoutSwipeDragging.value = true
+        logoutSwipePointerId = e.pointerId
+        logoutSwipeStartX = e.clientX
+        logoutSwipeStartOffset = logoutSwipeOffset.value
+        ;(e.currentTarget as HTMLElement)?.setPointerCapture?.(e.pointerId)
+    }
+
+    function onLogoutSwipePointerMove(e: PointerEvent) {
+        if (!logoutSwipeDragging.value || logoutSwipePointerId !== e.pointerId) return
+        logoutSwipeOffset.value = clampLogoutSwipeOffset(logoutSwipeStartOffset + (e.clientX - logoutSwipeStartX))
+    }
+
+    async function onLogoutSwipePointerUp(e: PointerEvent) {
+        if (logoutSwipePointerId !== e.pointerId) return
+        ;(e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId)
+        const shouldLogout = logoutSwipeReady.value
+        if (shouldLogout) {
+            await triggerLogoutSwipe()
+            return
+        }
+        resetLogoutSwipe()
+    }
+
+    function onLogoutSwipePointerCancel(e: PointerEvent) {
+        if (logoutSwipePointerId !== e.pointerId) return
+        ;(e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId)
+        resetLogoutSwipe()
     }
 
     function resetViewerTransform() {
@@ -2145,20 +2246,102 @@
         justify-content: flex-end;
     }
 
-    .logout-footer-btn {
-        justify-content: center;
-        gap: .65rem;
-        padding: .8rem 1rem;
-        border-radius: 14px;
-        background: linear-gradient(135deg, color-mix(in srgb, #0f172a 82%, var(--bg-secondary) 18%), color-mix(in srgb, #334155 76%, var(--bg-secondary) 24%));
-        border: 1px solid color-mix(in srgb, #64748b 62%, transparent);
-        color: #f8fafc;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
-        text-align: center;
+    .logout-swipe {
+        position: relative;
+        width: min(100%, 360px);
+        min-height: 56px;
+        border-radius: 16px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        padding: 7px;
+        border: 1px solid color-mix(in srgb, rgba(220,38,38,.42) 55%, var(--border-color) 45%);
+        background:
+            radial-gradient(circle at left center, color-mix(in srgb, rgba(220,38,38,.10) 70%, transparent), transparent 42%),
+            color-mix(in srgb, var(--bg-card) 92%, #020617 8%);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+        user-select: none;
+        touch-action: pan-y;
+        cursor: grab;
     }
 
-    .logout-footer-btn i {
-        font-size: 1rem;
+    .logout-swipe-copy {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: .08rem;
+        padding: 0 .85rem 0 3.7rem;
+        color: var(--text-primary);
+        pointer-events: none;
+    }
+
+    .logout-swipe-copy strong {
+        font-size: .88rem;
+        font-weight: 700;
+        letter-spacing: .01em;
+    }
+
+    .logout-swipe-copy span {
+        font-size: .74rem;
+        color: var(--text-secondary);
+    }
+
+    .logout-swipe-progress {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 0;
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgba(239, 68, 68, .10), rgba(248, 113, 113, .08));
+        pointer-events: none;
+        transition: width .18s ease;
+    }
+
+    .logout-swipe-thumb {
+        position: relative;
+        z-index: 2;
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+        border: 0;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        color: rgba(220,38,38,.92);
+        background:
+            radial-gradient(circle at left center, color-mix(in srgb, rgba(220,38,38,.10) 70%, transparent), transparent 42%),
+            color-mix(in srgb, var(--bg-card) 92%, #020617 8%);
+        box-shadow: 0 6px 16px rgba(15, 23, 42, .10);
+        pointer-events: none;
+        transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
+    }
+
+    .logout-swipe-thumb i {
+        font-size: .92rem;
+    }
+
+    .logout-swipe.is-dragging .logout-swipe-thumb {
+        transition: none;
+    }
+
+    .logout-swipe.is-dragging {
+        cursor: grabbing;
+    }
+
+    .logout-swipe.is-ready .logout-swipe-progress {
+        background: linear-gradient(135deg, rgba(34, 197, 94, .12), rgba(74, 222, 128, .10));
+    }
+
+    .logout-swipe.is-ready .logout-swipe-thumb {
+        color: #166534;
+        background:
+            radial-gradient(circle at left center, color-mix(in srgb, rgba(34,197,94,.12) 70%, transparent), transparent 42%),
+            color-mix(in srgb, var(--bg-card) 92%, #020617 8%);
+        box-shadow: 0 6px 16px rgba(21, 128, 61, .12);
+    }
+
+    .logout-swipe.is-loading .logout-swipe-thumb {
+        cursor: progress;
+        filter: saturate(.85);
     }
 
     @media (max-width: 640px) {
@@ -2167,10 +2350,12 @@
             padding-top: .8rem;
         }
 
-        .logout-footer-btn {
+        .logout-swipe {
             width: 100%;
-            min-height: 48px;
-            justify-content: center;
+        }
+
+        .logout-swipe-copy {
+            padding-right: .45rem;
         }
     }
 

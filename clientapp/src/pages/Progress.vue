@@ -485,31 +485,66 @@
 
             <!-- ===================== PLÄNE TAB ===================== -->
             <div v-show="activeTab === 'plans'" class="plans-section">
-                <!-- Progress.vue – REPLACE in "Pläne" -> "Trainingspläne" -->
+                <!-- Progress.vue ? REPLACE in "Pl?ne" -> "Trainingspl?ne" -->
                 <div class="workout-list">
                     <h3 class="section-title">Deine Trainingspläne</h3>
 
-                    <div v-if="!trainingPlans.length" class="list-item">
-                        Noch keine Trainingspläne – erstelle welche unter „Training“.
+                    <div v-if="!trainingPlans.length" class="list-item empty plans-empty-state">
+                        <div class="plans-empty-state__content">
+                            <p class="plans-empty-state__title">Noch keine Trainingspläne vorhanden</p>
+                            <p class="plans-empty-state__text">
+                                Erstelle jetzt deinen ersten Plan und tracke danach hier deinen Fortschritt pro Training.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            class="open-btn plans-empty-state__cta"
+                            @click="goToTrainingPlanBuilder">
+                            Plan erstellen
+                        </button>
                     </div>
 
                     <template v-else>
-                        <div v-if="favoritePlans.length">
-                            <h4 class="section-title" style="margin-top: .5rem;">Favoriten</h4>
-                            <div v-for="plan in favoritePlans" :key="plan.id" class="list-item plan-item">
-                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exercises.length} Übungen)` }}</span>
+                        <div v-if="freshPlans.length" class="plan-group">
+                            <div class="plan-group-head plan-group-head--fresh">
+                                <h4 class="section-title">Neu erstellt</h4>
+                                <p>Frisch erstellt oder gerade aktualisiert.</p>
+                            </div>
+                            <div v-for="plan in freshPlans" :key="plan.id" class="list-item plan-item plan-item--fresh">
+                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exerciseCount} &Uuml;bungen)` }}</span>
                                 <div class="list-item-actions">
-                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
+                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">&Ouml;ffnen</button>
                                 </div>
                             </div>
                         </div>
 
-                        <div v-if="otherPlans.length">
-                            <h4 class="section-title" style="margin-top: .5rem;">Weitere Pläne</h4>
-                            <div v-for="plan in otherPlans" :key="plan.id" class="list-item plan-item">
-                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exercises.length} Übungen)` }}</span>
+                        <div class="plan-group">
+                            <div class="plan-group-head">
+                                <h4 class="section-title">Aktiv</h4>
+                                <p>Deine aktuell genutzten oder k&uuml;rzlich bearbeiteten Pl&auml;ne.</p>
+                            </div>
+                            <div v-if="!activePlans.length" class="plan-group-empty">
+                                Gerade ist kein Plan als aktiv einsortiert.
+                            </div>
+                            <div v-for="plan in activePlans" :key="plan.id" class="list-item plan-item">
+                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exerciseCount} &Uuml;bungen)` }}</span>
                                 <div class="list-item-actions">
-                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">Öffnen</button>
+                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">&Ouml;ffnen</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="plan-group">
+                            <div class="plan-group-head plan-group-head--muted">
+                                <h4 class="section-title">Unbenutzt</h4>
+                                <p>Pl&auml;ne ohne aktuelle Nutzung, jederzeit wieder startklar.</p>
+                            </div>
+                            <div v-if="!inactivePlans.length" class="plan-group-empty">
+                                Aktuell ist kein Plan als unbenutzt einsortiert.
+                            </div>
+                            <div v-for="plan in inactivePlans" :key="plan.id" class="list-item plan-item plan-item--inactive">
+                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exerciseCount} &Uuml;bungen)` }}</span>
+                                <div class="list-item-actions">
+                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">&Ouml;ffnen</button>
                                 </div>
                             </div>
                         </div>
@@ -578,7 +613,7 @@
                    :show-actions="false"
                    @cancel="closeTrainingCompletePrompt">
             <div class="training-complete-body">
-                Du hast heute alle Übungen erfasst. War das Training abgeschlossen?
+                Du hast heute alle &Uuml;bungen erfasst. War das Training abgeschlossen?
             </div>
             <div class="training-complete-actions">
                 <PopupActionButton variant="ghost" @click="closeTrainingCompletePrompt">
@@ -1827,6 +1862,13 @@
         () => route.query.preview === 'phone' && route.query.demo === 'progress-tour'
     )
 
+    function goToTrainingPlanBuilder() {
+        router.push({
+            path: '/training',
+            query: { tut: 'plan' },
+        })
+    }
+
     function clearPreviewProgressTimers() {
         previewProgressTimers.forEach(id => window.clearTimeout(id))
         previewProgressTimers.length = 0
@@ -2747,13 +2789,16 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         if (autoCalcEnabled.value) debouncedCalcWater()
     })
 
-    // ======== Pläne-Tab: State =======
+    // ======== Pl\u00E4ne-Tab: State =======
 
     type ViewPlan = {
         id: string
         name: string
         isFavorite: boolean
         exercises: string[]
+        exerciseCount: number
+        createdUtc?: string | null
+        updatedUtc?: string | null
     }
 
     const PREVIEW_PROGRESS_PLAN_ID = 'preview-progress-plan'
@@ -2762,20 +2807,30 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         name: 'Beispiel Trainingsplan',
         isFavorite: true,
         exercises: ['Bankdruecken', 'Klimmzuege', 'Kniebeugen'],
+        exerciseCount: 3,
     }
 
-    const toViewPlan = (dto: any): ViewPlan => ({
-        id: dto.id,
-        name: dto.name,
-        isFavorite: !!dto.isFavorite,
-        exercises: Array.isArray(dto.days)
+    const toViewPlan = (dto: any): ViewPlan => {
+        const exercises = Array.isArray(dto.days)
             ? dto.days.flatMap((d: any) =>
                 Array.isArray(d.exercises)
                     ? d.exercises.map((x: any) => String(x.name ?? x.exercise ?? '').trim()).filter(Boolean)
                     : []
             )
-            : [],
-    })
+            : []
+        const fallbackCount =
+            Number(dto?.exerciseCount ?? dto?.exercisesCount ?? dto?.exercise_count ?? 0) || 0
+
+        return {
+            id: dto.id,
+            name: dto.name,
+            isFavorite: !!dto.isFavorite,
+            exercises,
+            exerciseCount: exercises.length > 0 ? exercises.length : fallbackCount,
+            createdUtc: typeof dto?.createdUtc === 'string' ? dto.createdUtc : null,
+            updatedUtc: typeof dto?.updatedUtc === 'string' ? dto.updatedUtc : null,
+        }
+    }
 
     const localPlans = ref<ViewPlan[]>([])
 
@@ -2789,15 +2844,83 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         return [previewProgressPlan, ...base]
     })
 
-    const favoritePlans = computed(() =>
-        trainingPlans.value.filter(p => p.isFavorite)
+    const PLAN_FRESH_MS = 1000 * 60 * 60 * 48
+    const PLAN_ACTIVE_MS = 1000 * 60 * 60 * 24 * 21
+
+    const parseUtcMs = (value?: string | null) => {
+        const ms = value ? new Date(value).getTime() : NaN
+        return Number.isFinite(ms) ? ms : 0
+    }
+
+    const isFreshPlan = (plan: ViewPlan) => {
+        const now = Date.now()
+        const newest = Math.max(parseUtcMs(plan.createdUtc), parseUtcMs(plan.updatedUtc))
+        return newest > 0 && (now - newest) <= PLAN_FRESH_MS
+    }
+
+    const isActivePlan = (plan: ViewPlan) => {
+        if (currentPlanId.value === plan.id || lastPlanId.value === plan.id) return true
+        if (getProgressForPlan(plan.id).length > 0) return true
+
+        const now = Date.now()
+        const newest = Math.max(parseUtcMs(plan.createdUtc), parseUtcMs(plan.updatedUtc))
+        return newest > 0 && (now - newest) <= PLAN_ACTIVE_MS
+    }
+
+    const sortPlansByRecency = (plans: ViewPlan[]) =>
+        [...plans].sort((a, b) => {
+            const aFresh = isFreshPlan(a) ? 1 : 0
+            const bFresh = isFreshPlan(b) ? 1 : 0
+            if (aFresh !== bFresh) return bFresh - aFresh
+
+            const aCurrent = (currentPlanId.value === a.id || lastPlanId.value === a.id) ? 1 : 0
+            const bCurrent = (currentPlanId.value === b.id || lastPlanId.value === b.id) ? 1 : 0
+            if (aCurrent !== bCurrent) return bCurrent - aCurrent
+
+            const aWorked = getProgressForPlan(a.id).length
+            const bWorked = getProgressForPlan(b.id).length
+            if (aWorked !== bWorked) return bWorked - aWorked
+
+            const aTime = Math.max(parseUtcMs(a.updatedUtc), parseUtcMs(a.createdUtc))
+            const bTime = Math.max(parseUtcMs(b.updatedUtc), parseUtcMs(b.createdUtc))
+            return bTime - aTime || a.name.localeCompare(b.name, 'de')
+        })
+
+    const freshPlans = computed(() =>
+        sortPlansByRecency(trainingPlans.value.filter((plan) => isFreshPlan(plan)))
     )
 
-    const otherPlans = computed(() =>
-        trainingPlans.value.filter(p => !p.isFavorite)
+    const activePlans = computed(() =>
+        sortPlansByRecency(
+            trainingPlans.value.filter((plan) => !isFreshPlan(plan) && isActivePlan(plan))
+        )
     )
 
-    // ======= Pläne-Tab: Aktionen =======
+    const inactivePlans = computed(() =>
+        sortPlansByRecency(
+            trainingPlans.value.filter((plan) => !isFreshPlan(plan) && !isActivePlan(plan))
+        )
+    )
+
+    // ======= Pl\u00E4ne-Tab: Aktionen =======
+
+    const ensureProgressPlanExerciseCountsLoaded = async () => {
+        if (!auth.user) return
+
+        const missingIds = trainingPlansStore.items
+            .filter((plan: any) => {
+                const hasDays = Array.isArray(plan?.days) && plan.days.some((day: any) => Array.isArray(day?.exercises) && day.exercises.length > 0)
+                const fallbackCount = Number(plan?.exerciseCount ?? plan?.exercisesCount ?? plan?.exercise_count ?? 0) || 0
+                return !hasDays && fallbackCount <= 0 && isGuid(String(plan?.id ?? ''))
+            })
+            .map((plan: TrainingPlanDto) => plan.id)
+
+        if (!missingIds.length) return
+
+        await Promise.all(missingIds.map(async (id: string) => {
+            try { await trainingPlansStore.loadOne(id) } catch { }
+        }))
+    }
 
     const isGuid = (v: string) =>
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
@@ -2815,7 +2938,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         lastPlanId.value = planId
         planProgressInitialView.value = initialView
 
-        // Legacy/Local IDs blocken (keine Ghost-Pläne)
+        // Legacy/Local IDs blocken (keine Ghost-Pl\u00E4ne)
         if (!isGuid(planId)) {
             showToast({ message: "Dieser Plan ist lokal/alt und hat keinen Online-Fortschritt.", type: "default" })
             return
@@ -2862,13 +2985,13 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         return name.toLowerCase().includes(planSearchQuery.value.toLowerCase());
     };
 
-    // === Pläne-Tab: Initiales Laden aus localStorage ===
+    // === Pl\u00E4ne-Tab: Initiales Laden aus localStorage ===
 
     onMounted(async () => {
         try {
             await trainingPlansStore.loadList()
         } catch {
-            showToast({ message: "Pläne konnten nicht geladen werden.", type: "default" })
+            showToast({ message: "Pl\u00E4ne konnten nicht geladen werden.", type: "default" })
         }
 
         await loadAllProgressForPlans()
@@ -2892,6 +3015,15 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         () => {
             startPreviewProgressTour()
         }
+    )
+
+    watch(
+        () => activeTab.value,
+        async (tab) => {
+            if (tab !== 'plans') return
+            await ensureProgressPlanExerciseCountsLoaded()
+        },
+        { immediate: true }
     )
 
     onUnmounted(() => {
@@ -5596,8 +5728,43 @@ Notiz: ${e.note ?? '-'}\n`
 
     /* leerer Zustand übernimmt den gleichen Card-Look */
     .workout-list .list-item.empty {
-        justify-content: center;
+        justify-content: space-between;
         color: var(--text-secondary);
+        border: 0;
+        box-shadow: none;
+        background: transparent;
+    }
+
+    .plans-empty-state {
+        align-items: center;
+        gap: 1rem;
+        padding: 0.35rem 0 0.1rem;
+        text-align: left;
+    }
+
+    .plans-empty-state__content {
+        display: grid;
+        gap: 0.35rem;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .plans-empty-state__title {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .plans-empty-state__text {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .plans-empty-state__cta {
+        flex-shrink: 0;
+        margin-top: 0;
     }
 
     /* Mobile Feinschliff */
@@ -5618,6 +5785,12 @@ Notiz: ${e.note ?? '-'}\n`
         .open-btn {
             padding: .4rem .7rem;
             font-size: .95rem;
+        }
+
+        .plans-empty-state {
+            align-items: flex-start;
+            flex-direction: column;
+            padding: 0.25rem 0 0;
         }
     }
 
@@ -5919,6 +6092,56 @@ Notiz: ${e.note ?? '-'}\n`
             max-width: 100%;
         }
 
+    .plan-group {
+        display: grid;
+        gap: .55rem;
+        margin-top: .8rem;
+    }
+
+    .plan-group-head {
+        display: grid;
+        gap: .18rem;
+        padding: .2rem .1rem .35rem;
+    }
+
+    .plan-group-head p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: .92rem;
+        line-height: 1.45;
+    }
+
+    .plan-group-head--fresh {
+        padding: .25rem .1rem .45rem;
+        border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 18%, var(--border-color) 82%);
+    }
+
+    .plan-group-head--muted {
+        opacity: .9;
+    }
+
+    .plan-item--fresh {
+        border-color: color-mix(in srgb, var(--accent-primary) 20%, var(--border-color) 80%);
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+    }
+
+    .plan-item--inactive {
+        opacity: .88;
+    }
+
+    .plan-group-empty {
+        padding: .8rem .95rem;
+        border-radius: 14px;
+        border: 1px dashed color-mix(in srgb, var(--border-color) 88%, var(--accent-primary) 12%);
+        color: var(--text-secondary);
+        background: color-mix(in srgb, var(--bg-card) 96%, transparent);
+        font-size: .92rem;
+    }
+
+    .plan-group > h4.section-title[style] {
+        display: none;
+    }
+
     /* ===================== BERECHNEN BUTTON ===================== */
     .set-table-wrapper {
         overflow-x: auto;
@@ -6051,7 +6274,7 @@ Notiz: ${e.note ?? '-'}\n`
         }
     }
 
-    /* ===== Trainingspläne-Liste (Pläne-Tab) ===== */
+    /* ===== Trainingspl?ne-Liste (Pl?ne-Tab) ===== */
 
     .modal-overlay {
         position: fixed;
@@ -6371,7 +6594,7 @@ Notiz: ${e.note ?? '-'}\n`
     .day-card-actions {
         display: flex;
         align-items: center;
-        gap: .4rem; /* Abstand zwischen "Bearbeiten" und "Öffnen/Schließen" */
+        gap: .4rem; /* Abstand zwischen "Bearbeiten" und "?ffnen/Schlie?en" */
     }
 
     .day-details {

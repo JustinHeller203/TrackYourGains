@@ -127,10 +127,12 @@
     import { useStopwatchesStore } from '@/store/stopwatchesStore'
 
     // Typ-Definitionen (bleiben unverändert)
+    type RangeCapableValue = number | string;
+
     interface PlanExercise {
         exercise: string;
-        sets: number;
-        reps: number;
+        sets: RangeCapableValue;
+        reps: RangeCapableValue;
         goal?: string;
         type?: 'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung';
     }
@@ -792,6 +794,39 @@
         showCustomExercises.value = !showCustomExercises.value;
     };
 
+    const validateRangeCapableInt = (
+        value: RangeCapableValue | null | undefined,
+        label: string,
+        min: number,
+        max: number
+    ) => {
+        if (value == null) return `${label} müssen eine Zahl oder einen Bereich wie 8-10 sein`;
+
+        const text = String(value).trim();
+        if (!text) return `${label} müssen eine Zahl oder einen Bereich wie 8-10 sein`;
+
+        if (/^\d+$/.test(text)) {
+            const num = Number(text);
+            if (num < min || num > max) return `${label} müssen zwischen ${min} und ${max} liegen`;
+            return null;
+        }
+
+        const rangeMatch = text.match(/^(\d+)\s*-\s*(\d+)$/);
+        if (!rangeMatch) return `${label} müssen eine Ganzzahl oder einen Bereich wie 8-10 sein`;
+
+        const start = Number(rangeMatch[1]);
+        const end = Number(rangeMatch[2]);
+        if (start < min || end > max) return `${label} müssen zwischen ${min} und ${max} liegen`;
+        if (start > end) return `${label}: Bereich muss aufsteigend sein`;
+        return null;
+    };
+
+    const validateSetsRange = (sets: RangeCapableValue | null | undefined) =>
+        validateRangeCapableInt(sets, 'Sätze', 1, 20);
+
+    const validateRepsRange = (reps: RangeCapableValue | null | undefined) =>
+        validateRangeCapableInt(reps, 'Wiederholungen/Sekunden', 1, 1000);
+
     const validateReps = (reps: number | null | undefined) => {
         if (reps == null || isNaN(reps)) return 'Wiederholungen/Sekunden müssen eine Zahl sein';
         if (!Number.isFinite(reps)) return 'Ungültige Zahl';
@@ -863,6 +898,24 @@
         return null
     }
 
+    const parseRangeCapableNumber = (value: unknown): number | null => {
+        if (typeof value === 'number') return Number.isFinite(value) ? value : null
+        const text = String(value ?? '').trim().replace(',', '.')
+        if (!text) return null
+        const rangeMatch = text.match(/^(\d+)\s*-\s*(\d+)$/)
+        if (rangeMatch) return Number(rangeMatch[1])
+        const numeric = Number(text)
+        return Number.isFinite(numeric) ? numeric : null
+    }
+
+    const composeRangeNotes = (exercise: PlanExercise) => {
+        const lines = String((exercise as any).notes ?? '').split(/\r?\n/).map((line: string) => line.trim()).filter(Boolean)
+        const kept = lines.filter((line: string) => !/^Sätze:\s*/i.test(line) && !/^Wiederholungen:\s*/i.test(line))
+        if (typeof exercise.sets === 'string' && exercise.type !== 'ausdauer') kept.push(`Sätze: ${exercise.sets}`)
+        if (typeof exercise.reps === 'string' && exercise.type !== 'ausdauer') kept.push(`Wiederholungen: ${exercise.reps}`)
+        return kept.length ? kept.join('\n') : null
+    }
+
     const openValidationPopup = (errors: string[]) => {
         validationErrorMessages.value = Array.isArray(errors) ? errors : [String(errors)];
         showValidationPopup.value = true;
@@ -886,13 +939,13 @@
             name: ex.exercise,
             category: mapTypeToCategory(ex.type),
             sortOrder: index,
-            sets: ex.type === 'ausdauer' ? null : ex.sets,
-            reps: ex.type === 'ausdauer' ? null : ex.reps,
+            sets: ex.type === 'ausdauer' ? null : (parseRangeCapableNumber(ex.sets) ?? null),
+            reps: ex.type === 'ausdauer' ? null : (parseRangeCapableNumber(ex.reps) ?? null),
             targetWeight: null,
             restSeconds: null,
-            durationMin: ex.type === 'ausdauer' ? ex.sets : null,
-            distanceKm: ex.type === 'ausdauer' ? (ex.reps ? ex.reps : null) : null,
-            notes: null,
+            durationMin: ex.type === 'ausdauer' ? (parseRangeCapableNumber(ex.sets) ?? null) : null,
+            distanceKm: ex.type === 'ausdauer' ? (parseRangeCapableNumber(ex.reps) ?? null) : null,
+            notes: composeRangeNotes(ex),
         }));
 
     const removeExerciseFromPlan = (index: number) => {
@@ -1191,14 +1244,14 @@
 
             // Kraft/Calisthenics/Dehnung
             if (editCellIndex.value === 1) {
-                const sets = Number(editValue.value)
-                const setsError = validateSets(sets)
+                const sets = editValue.value.trim()
+                const setsError = validateSetsRange(sets)
                 if (setsError) { openValidationPopup([setsError]); return }
                 builderRef.value?.updatePreviewExercise?.(i, { sets })
                 addToast('Sätze aktualisiert', 'save')
             } else if (editCellIndex.value === 2) {
-                const reps = Number(editValue.value)
-                const repsError = validateReps(reps)
+                const reps = editValue.value.trim()
+                const repsError = validateRepsRange(reps)
                 if (repsError) { openValidationPopup([repsError]); return }
                 builderRef.value?.updatePreviewExercise?.(i, { reps })
                 addToast(ex.type === 'dehnung' ? 'Sekunden aktualisiert' : 'Wiederholungen aktualisiert', 'save')
@@ -1249,15 +1302,15 @@
             }
 
             if (editCellIndex.value === 1) {
-                const sets = Number(editValue.value);
-                const setsError = validateSets(sets);
+                const sets = editValue.value.trim();
+                const setsError = validateSetsRange(sets);
                 if (setsError) { openValidationPopup([setsError]); return; }
                 exercise.sets = sets;
                 updatePlanInStorage();
                 addToast('Sätze aktualisiert', 'save');
             } else if (editCellIndex.value === 2) {
-                const reps = Number(editValue.value);
-                const repsError = validateReps(reps);
+                const reps = editValue.value.trim();
+                const repsError = validateRepsRange(reps);
                 if (repsError) { openValidationPopup([repsError]); return; }
                 exercise.reps = reps;
                 updatePlanInStorage();

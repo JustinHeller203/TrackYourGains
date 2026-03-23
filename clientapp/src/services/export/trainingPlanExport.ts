@@ -6,8 +6,8 @@ type ExportMode = 'file' | 'share'
 
 type PlanExercise = {
     exercise: string
-    sets: number
-    reps: number
+    sets: number | string
+    reps: number | string
     goal?: string
     type?: 'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung'
 }

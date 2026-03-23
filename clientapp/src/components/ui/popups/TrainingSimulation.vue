@@ -438,6 +438,16 @@
         return 'kraft'
     }
 
+    type RangeCapableValue = number | string
+
+    type RawPlanExercise = {
+        exercise: string
+        sets: RangeCapableValue
+        reps: RangeCapableValue
+        goal?: string
+        type?: ExerciseType
+    }
+
     type PlanExercise = {
         exercise: string
         sets: number
@@ -447,7 +457,9 @@
     }
 
     const normalizeNum = (v: unknown): number => {
-        const n = typeof v === 'number' ? v : Number(String(v ?? '').replace(',', '.').trim())
+        const text = String(v ?? '').replace(',', '.').trim()
+        const rangeMatch = text.match(/^(\d+)\s*-\s*(\d+)$/)
+        const n = typeof v === 'number' ? v : Number(rangeMatch?.[1] ?? text)
         return Number.isFinite(n) ? n : 0
     }
 
@@ -585,7 +597,7 @@
         name: string
         isFavorite: boolean
         code?: string | null
-        exercises: PlanExercise[]
+        exercises: RawPlanExercise[]
         exerciseCount: number
     }
 
@@ -1397,14 +1409,20 @@
         const active = Number(activeSetNumber.value ?? 1)
 
         return list.map((ex, i) => {
-            if (i !== idx) return ex
+            const normalized = {
+                ...ex,
+                sets: normalizeNum(ex.sets ?? 0),
+                reps: normalizeNum(ex.reps ?? 0),
+            }
+
+            if (i !== idx) return normalized
 
             const isTimed = normalizeExerciseType(ex.type) === "ausdauer" || normalizeExerciseType(ex.type) === "dehnung"
-            const total = isTimed ? 1 : Math.max(0, Number(ex.sets ?? 0))
-            if (!total) return ex
+            const total = isTimed ? 1 : Math.max(0, normalized.sets)
+            if (!total) return normalized
 
             const capped = Math.max(1, Math.min(total, Number.isFinite(active) ? active : 1))
-            return { ...ex, sets: capped }
+            return { ...normalized, sets: capped }
         })
     })
 

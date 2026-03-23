@@ -26,7 +26,7 @@
                 <div v-if="builderMode === 'manual'" class="builder-head">
                     <!-- NEU: Planname mit Überschrift -->
                     <div class="plan-block">
-                        <label for="plan-name" class="field-label">Planname</label>
+                        <label for="plan-name" class="field-label">Planname *</label>
                         <UiTrainingInput id="plan-name"
                                          v-model="planName"
                                          class="plan-name-input slim"
@@ -70,25 +70,45 @@
                 </div>
 
                 <div v-if="builderMode === 'manual'" v-show="showExtras" class="goal-row">
-                    <label class="field-label">Trainingsziel</label>
+                    <label class="field-label">Trainingsziel *</label>
                     <div class="field-row">
                         <UiSelect v-model="selectedGoalSafe"
                                   class="goal-select"
                                   placeholder="Trainingsziel"
                                   :options="trainingGoals" />
                     </div>
+                    <div class="field-grid manual-extras-grid">
+                        <div class="field">
+                            <label>Pause</label>
+                            <UiTrainingInput id="manual-recovery"
+                                             v-model="manualRecovery"
+                                             placeholder="z. B. 75–90 s locker" />
+                        </div>
+                        <div class="field">
+                            <label>Tempo</label>
+                            <UiTrainingInput id="manual-tempo"
+                                             v-model="manualTempo"
+                                             placeholder="z. B. 3-1-1 oder langsam runter, explosiv hoch" />
+                        </div>
+                        <div v-if="trainingType !== 'dehnung'" class="field">
+                            <label>Gerätenummer</label>
+                            <UiTrainingInput id="manual-equipment-number"
+                                             v-model="manualEquipmentNumber"
+                                             placeholder="z. B. C12 oder Rack 3" />
+                        </div>
+                    </div>
                 </div>
 
                 <div v-if="builderMode === 'auto'" class="goal-row auto-plan-section">
                     <div class="field-grid">
                         <div class="field">
-                            <label>Primärziel</label>
+                            <label>Primärziel *</label>
                             <UiSelect v-model="autoPrimaryGoal"
                                       placeholder="Ziel"
                                       :options="autoGoalOptions" />
                         </div>
                         <div class="field">
-                            <label>Level</label>
+                            <label>Level *</label>
                             <UiSelect v-model="autoLevel"
                                       placeholder="Level"
                                       :options="autoLevelOptions" />
@@ -96,18 +116,20 @@
                     </div>
                     <div class="field-grid">
                         <div class="field">
-                            <label>Training pro Woche</label>
+                            <label>Training pro Woche *</label>
                             <UiTrainingInput v-model.number="autoWeeklyFrequency"
                                              id="auto-frequency"
                                              type="number"
+                                             placeholder="z. B. 3"
                                              min="1"
                                              max="7" />
                         </div>
                         <div class="field">
-                            <label>Min pro Training</label>
+                            <label>Min pro Training *</label>
                             <UiTrainingInput v-model.number="autoSessionDuration"
                                              id="auto-duration"
                                              type="number"
+                                             placeholder="z. B. 45"
                                              min="20"
                                              max="120" />
                         </div>
@@ -116,7 +138,7 @@
                         <div v-for="(_, index) in autoPlanNames"
                              :key="`auto-plan-name-${index}`"
                              class="field">
-                            <label :for="`auto-plan-name-${index}`">Planname {{ index + 1 }}</label>
+                            <label :for="`auto-plan-name-${index}`">Planname {{ index + 1 }} *</label>
                             <UiTrainingInput :id="`auto-plan-name-${index}`"
                                              v-model="autoPlanNames[index]"
                                              :placeholder="`Planname ${index + 1}`" />
@@ -143,6 +165,7 @@
                         <label><input v-model="autoMachineFocus" type="checkbox" /> Maschinenfokus</label>
                         <label><input v-model="autoFreeWeightFocus" type="checkbox" /> Freihantelfokus</label>
                         <label><input v-model="autoJointFriendly" type="checkbox" /> Gelenkschonend</label>
+                        <label><input v-model="autoIncludeSubstitutions" type="checkbox" /> Ersatzübungen ergänzen</label>
                         <label><input v-model="autoNoCardio" type="checkbox" /> Kein Cardio</label>
                         <label>
                             <input v-model="autoNoHiiT" type="checkbox" />
@@ -295,7 +318,7 @@
 
                 <!-- Filter -->
                 <div class="field-block" v-if="builderMode === 'manual' && trainingType !== 'ausdauer'">
-                    <label class="field-label">Muskelgruppe</label>
+                    <label class="field-label">Muskelgruppe *</label>
                     <div class="field-row">
                         <UiTrainingInput id="exercise-filter"
                                          class="filter-input"
@@ -306,7 +329,7 @@
 
                 <!-- Übungsauswahl -->
                 <div class="field-block" v-if="builderMode === 'manual' && trainingType !== 'ausdauer'">
-                    <label class="field-label">Übung</label>
+                    <label class="field-label">Übung *</label>
                     <div class="field-row field-row-stack">
                         <UiSelect v-model="newExerciseSafe"
                                   placeholder="Übung wählen"
@@ -319,6 +342,15 @@
                                          id="custom-exercise"
                                          v-model="customPlanExercise"
                                          placeholder="Eigene Übung eingeben" />
+                    </div>
+                </div>
+
+                <div v-if="builderMode === 'manual' && trainingType !== 'ausdauer'" class="field-block">
+                    <label class="field-label">Ersatzübung</label>
+                    <div class="field-row">
+                        <UiSelect v-model="manualReplacementExerciseSafe"
+                                  placeholder="Ersatzübung wählen"
+                                  :options="manualReplacementOptions" />
                     </div>
                 </div>
 
@@ -335,41 +367,37 @@
                 <!-- Parameter -->
                 <div class="field-grid" v-if="builderMode === 'manual' && (trainingType === 'kraft' || trainingType === 'calisthenics')">
                     <div class="field">
-                        <label>Sätze</label>
+                        <label>Sätze *</label>
                         <UiTrainingInput id="strength-sets"
-                                         v-model.number="newSets"
-                                         type="number"
-                                         min="1"
+                                         v-model="newSetsText"
+                                         inputmode="numeric"
                                          placeholder="z. B. 4" />                    </div>
                     <div class="field">
-                        <label>Wiederholungen</label>
+                        <label>Wiederholungen *</label>
                         <UiTrainingInput id="strength-reps"
-                                         v-model.number="newReps"
-                                         type="number"
-                                         min="1"
+                                         v-model="newRepsText"
+                                         inputmode="numeric"
                                          placeholder="z. B. 8–12" />                    </div>
                 </div>
 
                 <div class="field-grid" v-else-if="builderMode === 'manual' && trainingType === 'dehnung'">
                     <div class="field">
-                        <label>Holds</label>
+                        <label>Holds *</label>
                         <UiTrainingInput id="stretch-holds"
-                                         v-model.number="newSets"
-                                         type="number"
-                                         min="1"
+                                         v-model="newSetsText"
+                                         inputmode="numeric"
                                          placeholder="z. B. 3" />                    </div>
                     <div class="field">
-                        <label>Sekunden pro Hold</label>
+                        <label>Sekunden pro Hold *</label>
                         <UiTrainingInput id="stretch-seconds"
-                                         v-model.number="newReps"
-                                         type="number"
-                                         min="1"
+                                         v-model="newRepsText"
+                                         inputmode="numeric"
                                          placeholder="z. B. 30" />                    </div>
                 </div>
 
                 <div class="field-grid" v-else-if="builderMode === 'manual'">
                     <div class="field">
-                        <label>Dauer (Min)</label>
+                        <label>Dauer (Min) *</label>
                         <UiTrainingInput id="cardio-duration"
                                          v-model.number="newDuration"
                                          type="number"
@@ -383,6 +411,66 @@
                                          min="0"
                                          step="0.1"
                                          placeholder="z. B. 5" />                    </div>
+                </div>
+
+                <div
+                    v-if="builderMode === 'manual' && !selectedGoal"
+                    class="smart-rx-card smart-rx-card--hint">
+                    <div class="smart-rx-card__head">
+                        <div>
+                            <p class="smart-rx-card__eyebrow">Hinweis</p>
+                            <h4>Trainingsziel wählen</h4>
+                            <p class="smart-rx-card__summary">
+                                Wähle zuerst bei Extras ein Trainingsziel aus. Erst danach wird eine passende Empfehlung für Sätze, Wiederholungen und Pause angezeigt.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-else-if="builderMode === 'manual' && manualPrescriptionHint" class="smart-rx-card">
+                    <div class="smart-rx-card__head">
+                        <div>
+                            <p class="smart-rx-card__eyebrow">Smart Range</p>
+                            <h4>{{ manualPrescriptionHint.title }}</h4>
+                            <p class="smart-rx-card__summary">{{ manualPrescriptionHint.summary }}</p>
+                        </div>
+                        <button
+                            type="button"
+                            class="smart-rx-card__apply"
+                            @click="applyManualPrescriptionHint(true)">
+                            Empfehlung übernehmen
+                        </button>
+                    </div>
+                    <div class="smart-rx-card__grid">
+                        <div class="smart-rx-stat">
+                            <span>Volumen</span>
+                            <strong>{{ manualPrescriptionHint.setsLabel }}</strong>
+                        </div>
+                        <div class="smart-rx-stat">
+                            <span>Range</span>
+                            <strong>{{ manualPrescriptionHint.repsLabel }}</strong>
+                        </div>
+                        <div class="smart-rx-stat">
+                            <span>Pause</span>
+                            <strong>{{ manualPrescriptionHint.restLabel }}</strong>
+                        </div>
+                        <div class="smart-rx-stat smart-rx-stat--accent">
+                            <span>Fokus</span>
+                            <strong>{{ manualPrescriptionHint.focusLabel }}</strong>
+                        </div>
+                    </div>
+                    <div class="smart-rx-card__chips">
+                        <span v-for="chip in manualPrescriptionHint.chips" :key="chip" class="smart-rx-chip">{{ chip }}</span>
+                    </div>
+                </div>
+
+                <div v-if="builderMode === 'manual'" class="field-block">
+                    <label class="field-label">Bemerkung</label>
+                    <div class="field-row">
+                        <UiTrainingInput id="manual-note"
+                                         v-model="manualNote"
+                                         placeholder="z. B. Ellbogen eng, sauberer Bewegungsradius, Maschine oft besetzt" />
+                    </div>
                 </div>
 
                 <!-- Actions -->
@@ -416,6 +504,14 @@
                         </span>
                     </div>
 
+                    <div v-if="builderMode === 'auto' && generatedAutoPlans.length" class="auto-preview-banner">
+                        <span class="auto-preview-banner__pulse"></span>
+                        <div>
+                            <strong>Adaptive Satz-/Wdh-Engine aktiv</strong>
+                            <p>Jede Übung bekommt automatisch einen passenden Belastungsbereich für Ziel, Übungstyp und Level.</p>
+                        </div>
+                    </div>
+
                     <div v-if="builderMode === 'auto' && generatedAutoPlans.length" class="auto-preview-list">
                         <div v-for="(plan, planIndex) in generatedAutoPlans"
                              :key="`${plan.name}-${planIndex}`"
@@ -434,6 +530,7 @@
                                 <table>
                                     <thead>
                                         <tr>
+                                            <th v-if="hasEquipmentNumbers(plan.exercises)">Nummer</th>
                                             <th>Übung</th>
                                             <th>{{ plan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}</th>
                                             <th>{{ plan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung') ? 'Wdh. / km / s' : 'Wiederholungen' }}</th>
@@ -441,9 +538,26 @@
                                     </thead>
                                     <tbody>
                                         <tr v-for="(ex, exIndex) in plan.exercises" :key="`${planIndex}-${exIndex}-${ex.exercise}`">
+                                            <td v-if="hasEquipmentNumbers(plan.exercises)" class="exercise-number-cell">
+                                                <span class="exercise-number-pill">{{ formatExerciseNumber(ex) }}</span>
+                                            </td>
                                             <td>
                                                 <div class="auto-exercise-cell">
-                                                    <span>{{ ex.exercise }}</span>
+                                                    <div class="auto-exercise-cell__body">
+                                                        <span>{{ ex.exercise }}</span>
+                                                        <small v-if="formatPlanExerciseMeta(ex)" class="exercise-meta-line exercise-meta-line--auto">
+                                                            <span class="exercise-meta-track">
+                                                                <span class="exercise-meta-marquee">{{ formatPlanExerciseMeta(ex) }}</span>
+                                                                <span class="exercise-meta-divider" aria-hidden="true">|</span>
+                                                                <span class="exercise-meta-marquee" aria-hidden="true">{{ formatPlanExerciseMeta(ex) }}</span>
+                                                            </span>
+                                                        </small>
+                                                        <div v-if="ex.replacementExercise" class="preview-replacement-card">
+                                                            <span class="preview-replacement-card__label">Ersatzübung</span>
+                                                            <span class="preview-replacement-card__name">{{ ex.replacementExercise }}</span>
+                                                            <span v-if="ex.replacementReason" class="preview-replacement-card__reason">{{ ex.replacementReason }}</span>
+                                                        </div>
+                                                    </div>
                                                     <button
                                                         type="button"
                                                         class="auto-exercise-report-btn"
@@ -477,18 +591,21 @@
                     <Table v-else-if="selectedPlanExercises.length"
                            class="exercise-table full-width compact"
                            density="compact">
-                        <table ref="previewTable" data-cols="4">
+                        <table ref="previewTable" :data-cols="previewHasEquipmentNumbers ? 5 : 4">
                             <thead>
                                 <tr>
-                                    <th class="resizable" :style="{ width: previewColWidths[0] + '%' }">
+                                    <th v-if="previewHasEquipmentNumbers" class="resizable" :style="{ width: activePreviewColWidths[0] + '%' }">
+                                        <span class="th-text">Nummer</span>
+                                    </th>
+                                    <th class="resizable" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 1 : 0] + '%' }">
                                         <span class="th-text">Übung</span>
                                     </th>
-                                    <th class="resizable" :style="{ width: previewColWidths[1] + '%' }">
+                                    <th class="resizable" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 2 : 1] + '%' }">
                                         <span class="th-text">
                                             {{ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
                                         </span>
                                     </th>
-                                    <th class="resizable th-wdh" :style="{ width: previewColWidths[2] + '%' }">
+                                    <th class="resizable th-wdh" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 3 : 2] + '%' }">
                                         <span class="th-text th-label">
                                             <span class="full">
                                                 {{
@@ -514,7 +631,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                                         </span>
                                     </th>
 
-                                    <th :style="{ width: previewColWidths[3] + '%' }">Aktion</th>
+                                    <th :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 4 : 3] + '%' }">Aktion</th>
                                 </tr>
                             </thead>
 
@@ -522,11 +639,33 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                                 <tr v-for="(ex, index) in selectedPlanExercises"
                                     :key="index"
                                     @dblclick="openEditPopup('table', index, $event)">
-                                    <td :style="{ width: previewColWidths[0] + '%' }">{{ ex.exercise }}</td>
-                                    <td :style="{ width: previewColWidths[1] + '%' }">
+                                    <td v-if="previewHasEquipmentNumbers" :style="{ width: activePreviewColWidths[0] + '%' }" class="exercise-number-cell">
+                                        <span class="exercise-number-pill">{{ formatExerciseNumber(ex) }}</span>
+                                    </td>
+                                    <td :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 1 : 0] + '%' }">
+                                        <div class="preview-exercise-main">
+                                            <div class="preview-exercise-title">
+                                                <span class="preview-order-badge">{{ index + 1 }}</span>
+                                                <span>{{ ex.exercise }}</span>
+                                            </div>
+                                            <small v-if="formatPlanExerciseMeta(ex)" class="exercise-meta-line exercise-meta-line--manual">
+                                                <span class="exercise-meta-track">
+                                                    <span class="exercise-meta-marquee">{{ formatPlanExerciseMeta(ex) }}</span>
+                                                    <span class="exercise-meta-divider" aria-hidden="true">|</span>
+                                                    <span class="exercise-meta-marquee" aria-hidden="true">{{ formatPlanExerciseMeta(ex) }}</span>
+                                                </span>
+                                            </small>
+                                            <div v-if="ex.replacementExercise" class="preview-replacement-card">
+                                                <span class="preview-replacement-card__label">Ersatzübung</span>
+                                                <span class="preview-replacement-card__name">{{ ex.replacementExercise }}</span>
+                                                <span v-if="ex.replacementReason" class="preview-replacement-card__reason">{{ ex.replacementReason }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 2 : 1] + '%' }">
                                         {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
                                     </td>
-                                    <td :style="{ width: previewColWidths[2] + '%' }">
+                                    <td :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 3 : 2] + '%' }">
                                         <template v-if="ex.type === 'ausdauer'">
                                             {{ ex.reps ? `${ex.reps} km` : '-' }}
                                         </template>
@@ -537,10 +676,30 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                                             {{ ex.reps }}
                                         </template>
                                     </td>
-                                    <td class="action-cell">
-                                        <DeleteButton class="table-delete-btn"
-                                                      title="Übung entfernen"
-                                                      @click="removeExerciseFromPlan(index)" />
+                                    <td class="action-cell" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 4 : 3] + '%' }">
+                                        <div class="preview-action-cell">
+                                            <div class="table-action-stack">
+                                                <button v-if="index > 0"
+                                                        type="button"
+                                                        class="reorder-btn reorder-btn--plain"
+                                                        title="Nach oben verschieben"
+                                                        aria-label="Übung nach oben verschieben"
+                                                        @click="moveExerciseInPlan(index, -1)">
+                                                    ↑
+                                                </button>
+                                                <button v-if="index < selectedPlanExercises.length - 1"
+                                                        type="button"
+                                                        class="reorder-btn reorder-btn--plain"
+                                                        title="Nach unten verschieben"
+                                                        aria-label="Übung nach unten verschieben"
+                                                        @click="moveExerciseInPlan(index, 1)">
+                                                    ↓
+                                                </button>
+                                            </div>
+                                            <DeleteButton class="table-delete-btn"
+                                                          title="Übung entfernen"
+                                                          @click="removeExerciseFromPlan(index)" />
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -591,6 +750,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     import { useExerciseLibraryStore } from '@/store/exerciseLibraryStore'
     import { generateAutoPlan, regenerateAutoPlanDay } from '@/services/training/autoPlanGeneratorService'
     import { normalizeExerciseText, resolveExerciseReference } from '@/services/training/exerciseLibrary'
+    import { getTrainingPrescriptionHint, mapManualGoalToGoalType } from '@/utils/trainingPrescriptionHints'
 
     import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan"
     import { useAuthStore } from "@/store/authStore";
@@ -665,17 +825,27 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         { deep: true }
     )
     // ===== Typen (wie in Training.vue) =====
+    type RangeCapableValue = number | string
+
     interface PlanExercise {
         exercise: string;
-        sets: number;
-        reps: number;
+        sets: RangeCapableValue;
+        reps: RangeCapableValue;
         goal?: string;
         type?: 'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung';
-        restSeconds?: number;
+        restSeconds?: number | null;
         durationMin?: number | null;
         distanceKm?: number | null;
         notes?: string;
         complaintAdjustmentReason?: string;
+        recommendationLabel?: string;
+        focusLabel?: string;
+        recoveryHint?: string;
+        tempoHint?: string;
+        equipmentNumber?: string;
+        replacementExercise?: string;
+        replacementReason?: string;
+        substitutions?: string[];
     }
 
     type AutoGeneratedPlanPreview = {
@@ -706,8 +876,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const planName = ref('')
     const newExercise = ref('')
     const customPlanExercise = ref('')
-    const newReps = ref<number | null>(null)
-    const newSets = ref<number | null>(null)
+    const newReps = ref<RangeCapableValue | null>(null)
+    const newSets = ref<RangeCapableValue | null>(null)
     const trainingType = ref<'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung'>('kraft')
     const cardioTypes = ref([
         'Laufen', 'Radfahren', 'Rudern', 'Crosstrainer', 'Seilspringen', 'Treppensteigen', 'Schwimmen'
@@ -716,16 +886,25 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const newDuration = ref<number | null>(null)
     const newDistance = ref<number | null>(null)
 
-    const previewColWidths = ref([50, 25, 19, 6])
+    const PREVIEW_COLS_WITH_NUMBER = [12, 38, 18, 24, 8]
+    const PREVIEW_COLS_WITHOUT_NUMBER = [46, 20, 26, 8]
+    const previewColWidths = ref<number[]>([...PREVIEW_COLS_WITH_NUMBER])
     const previewTable = ref<HTMLTableElement | null>(null)
 
     const editingPlanId = ref<string | null>(null)
     const selectedPlanExercises = ref<PlanExercise[]>([])
     const selectedGoal = ref('')
-    const trainingGoals = ref(['Muskelaufbau', 'Abnehmen', 'Ausdauer', 'Kraft'])
+    const trainingGoals = ref(['Muskelaufbau', 'Abnehmen', 'Ausdauer', 'Kraft', 'Gesundheit'])
     const showExtras = ref(false)
+    const manualRecovery = ref('')
+    const manualTempo = ref('')
+    const manualEquipmentNumber = ref('')
+    const manualNote = ref('')
+    const manualReplacementExercise = ref('')
     const builderMode = ref<'manual' | 'auto'>('manual')
     const generatedAutoPlans = ref<AutoGeneratedPlanPreview[]>([])
+    const manualDraftPlanName = ref('')
+    const manualDraftExercises = ref<PlanExercise[]>([])
     const regeneratingPlanIndex = ref<number | null>(null)
     const autoExerciseReportReason = ref<string | null>('')
     const autoExerciseReportState = ref<{ planIndex: number; exerciseIndex: number } | null>(null)
@@ -734,10 +913,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const showAutoPlanReportTutorial = ref(false)
     let autoPlanReportTutorialTimer: ReturnType<typeof setTimeout> | null = null
 
-    const autoPrimaryGoal = ref<GoalType>('muscle_gain')
+    const autoPrimaryGoal = ref<GoalType | ''>('')
     const autoLevel = ref<TrainingLevel>('beginner')
-    const autoWeeklyFrequency = ref(3)
-    const autoSessionDuration = ref(45)
+    const autoWeeklyFrequency = ref<number | null>(null)
+    const autoSessionDuration = ref<number | null>(null)
     const autoSplitPreference = ref<'auto' | 'full_body' | 'upper_lower' | 'ppl'>('auto')
     const autoEquipmentPreset = ref<'full_gym' | 'home_gym' | 'bodyweight_only' | 'dumbbells_only'>('full_gym')
     const autoMachineFocus = ref(false)
@@ -754,6 +933,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const autoNoJumping = ref(false)
     const autoNoRotation = ref(false)
     const autoNoUnstable = ref(false)
+    const autoIncludeSubstitutions = ref(true)
     const autoPlanNames = ref<string[]>([])
     const autoExcludedExerciseRefs = ref<GeneratorExerciseReference[]>([])
     const autoExcludedMuscles = ref<string[]>([])
@@ -814,14 +994,30 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     const builderSection = ref<HTMLElement | null>(null)
 
+    const clonePlanExercises = (exercises: PlanExercise[]) =>
+        Array.isArray(exercises) ? exercises.map((exercise) => ({ ...exercise })) : []
+
+    const syncManualDraftSnapshot = () => {
+        manualDraftPlanName.value = planName.value
+        manualDraftExercises.value = clonePlanExercises(selectedPlanExercises.value)
+    }
+
     const setBuilderMode = (mode: 'manual' | 'auto') => {
         if (builderMode.value === mode) return
 
+        if (builderMode.value === 'manual') {
+            syncManualDraftSnapshot()
+        }
+
         builderMode.value = mode
 
-        if (mode === 'manual' && !editingPlanId.value) {
-            planName.value = ''
+        if (mode === 'manual') {
+            planName.value = manualDraftPlanName.value
+            selectedPlanExercises.value = clonePlanExercises(manualDraftExercises.value)
+            return
         }
+
+        selectedPlanExercises.value = generatedAutoPlans.value[0]?.exercises.map((exercise) => ({ ...exercise })) ?? []
     }
 
     const setEditMode = (payload: {
@@ -829,10 +1025,12 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         name: string
         exercises: PlanExercise[]
     }) => {
+        builderMode.value = 'manual'
         generatedAutoPlans.value = []
         editingPlanId.value = payload.planId
         planName.value = payload.name
         selectedPlanExercises.value = Array.isArray(payload.exercises) ? [...payload.exercises] : []
+        syncManualDraftSnapshot()
 
         // ? nice default: Typ passend zum Plan
         const firstType = selectedPlanExercises.value[0]?.type
@@ -933,19 +1131,31 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         return `${fallbackBase.slice(0, maxBaseLength).trim()}${suffix}`
     }
 
-    const syncAutoPlanNames = (baseName?: string) => {
+    const syncAutoPlanNames = () => {
         const nextLength = Math.max(0, Math.min(7, Number(autoWeeklyFrequency.value) || 0))
         const current = autoPlanNames.value.slice(0, nextLength)
         while (current.length < nextLength) {
-            current.push(buildAutoPlanName(baseName ?? planName.value, current.length))
+            current.push('')
         }
         autoPlanNames.value = current
     }
 
+    const currentGeneratedPlansToPersist = computed(() =>
+        builderMode.value === 'auto'
+            ? generatedAutoPlans.value.filter((plan) => Array.isArray(plan.exercises) && plan.exercises.length > 0)
+            : []
+    )
+
+    const currentExercisesToSave = computed(() =>
+        builderMode.value === 'auto'
+            ? []
+            : selectedPlanExercises.value
+    )
+
     const hasExercisesToSave = computed(() =>
-        builderMode.value === 'auto' && generatedAutoPlans.value.length > 0
-            ? generatedAutoPlans.value.some((plan) => plan.exercises.length > 0)
-            : selectedPlanExercises.value.length > 0
+        builderMode.value === 'auto'
+            ? currentGeneratedPlansToPersist.value.some((plan) => plan.exercises.length > 0)
+            : currentExercisesToSave.value.length > 0
     )
 
     const autoGeneratedPlansToPersist = computed(() =>
@@ -968,20 +1178,57 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         return plans.some((plan) => validatePlanName(plan.name) === false)
     })
 
-    const validateReps = (reps: number | null | undefined) => {
-        if (reps == null || isNaN(reps)) return 'Wiederholungen/Sekunden müssen eine Zahl sein'
-        if (!Number.isFinite(reps)) return 'Ungültige Zahl'
-        if (!Number.isInteger(reps)) return 'Wiederholungen/Sekunden müssen eine Ganzzahl sein'
-        if (reps < 1 || reps > 1000) return 'Wiederholungen/Sekunden müssen zwischen 1 und 1000 liegen'
+    const normalizeRangeCapableInput = (value: unknown): RangeCapableValue | null => {
+        const text = String(value ?? '').trim()
+        if (!text) return null
+        return text
+    }
+
+    const parseRangeCapableNumber = (value: unknown): number | null => {
+        if (typeof value === 'number') return Number.isFinite(value) ? value : null
+
+        const text = String(value ?? '').trim().replace(',', '.')
+        if (!text) return null
+
+        const rangeMatch = text.match(/^(\d+)\s*-\s*(\d+)$/)
+        if (rangeMatch) return Number(rangeMatch[1])
+
+        const numeric = Number(text)
+        return Number.isFinite(numeric) ? numeric : null
+    }
+
+    const validateRangeCapableInt = (
+        value: RangeCapableValue | null | undefined,
+        label: string,
+        min: number,
+        max: number
+    ) => {
+        if (value == null) return `${label} müssen eine Zahl oder einen Bereich wie 8-10 sein`
+
+        const text = String(value).trim()
+        if (!text) return `${label} müssen eine Zahl oder einen Bereich wie 8-10 sein`
+
+        if (/^\d+$/.test(text)) {
+            const num = Number(text)
+            if (num < min || num > max) return `${label} müssen zwischen ${min} und ${max} liegen`
+            return null
+        }
+
+        const rangeMatch = text.match(/^(\d+)\s*-\s*(\d+)$/)
+        if (!rangeMatch) return `${label} müssen eine Ganzzahl oder einen Bereich wie 8-10 sein`
+
+        const start = Number(rangeMatch[1])
+        const end = Number(rangeMatch[2])
+        if (start < min || end > max) return `${label} müssen zwischen ${min} und ${max} liegen`
+        if (start > end) return `${label}: Bereich muss aufsteigend sein`
         return null
     }
 
-    const validateSets = (sets: number | null | undefined) => {
-        if (sets == null || isNaN(sets)) return 'Sätze müssen eine Zahl sein'
-        if (sets < 1 || sets > 20) return 'Sätze müssen zwischen 1 und 20 liegen'
-        if (!Number.isInteger(sets)) return 'Sätze müssen eine Ganzzahl sein'
-        return null
-    }
+    const validateReps = (reps: RangeCapableValue | null | undefined) =>
+        validateRangeCapableInt(reps, 'Wiederholungen/Sekunden', 1, 1000)
+
+    const validateSets = (sets: RangeCapableValue | null | undefined) =>
+        validateRangeCapableInt(sets, 'Sätze', 1, 20)
 
     const validateDurationMin = (val: number | null | undefined) => {
         if (val == null || isNaN(val)) return 'Dauer (Minuten) muss eine Zahl sein'
@@ -1087,11 +1334,20 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         syncAutoPlanNames()
     }, { immediate: true })
 
-    watch(planName, (value) => {
+    watch(planName, () => {
         if (builderMode.value !== 'auto') return
         if (autoPlanNames.value.some((entry) => entry.trim().length > 0)) return
-        syncAutoPlanNames(value)
+        syncAutoPlanNames()
     })
+
+    watch(
+        [planName, selectedPlanExercises, builderMode],
+        () => {
+            if (builderMode.value !== 'manual') return
+            syncManualDraftSnapshot()
+        },
+        { deep: true }
+    )
 
     watch(autoPlanNames, (value) => {
         if (!generatedAutoPlans.value.length) return
@@ -1102,6 +1358,19 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     }, { deep: true })
 
     const buildGeneratorInput = (): GeneratorInput => {
+        if (!autoPrimaryGoal.value) {
+            throw new Error('auto-primary-goal-missing')
+        }
+        if (!Number.isFinite(autoWeeklyFrequency.value) || autoWeeklyFrequency.value == null) {
+            throw new Error('auto-weekly-frequency-missing')
+        }
+        if (!Number.isFinite(autoSessionDuration.value) || autoSessionDuration.value == null) {
+            throw new Error('auto-session-duration-missing')
+        }
+
+        const weeklyFrequency = Math.max(1, Math.min(7, Math.round(autoWeeklyFrequency.value)))
+        const sessionDurationMin = Math.max(20, Math.min(120, Math.round(autoSessionDuration.value)))
+
         const exclusionTypes: Array<'no_jumping' | 'no_overhead' | 'no_deep_knee_flexion' | 'no_high_axial_load' | 'no_rotation' | 'no_unstable'> = []
         if (autoNoJumping.value) exclusionTypes.push('no_jumping')
         if (autoNoOverhead.value) exclusionTypes.push('no_overhead')
@@ -1128,8 +1397,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             primaryGoal: autoPrimaryGoal.value,
             secondaryGoals: [],
             level: autoLevel.value,
-            weeklyFrequency: autoWeeklyFrequency.value,
-            sessionDurationMin: autoSessionDuration.value,
+            weeklyFrequency,
+            sessionDurationMin,
             equipmentProfile: {
                 fullGym: isFullGym,
                 homeGym: isHomeGym,
@@ -1148,12 +1417,13 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 freeWeightFocusWeight: autoFreeWeightFocus.value ? autoFreeWeightFocusWeight.value : 0,
                 jointFriendly: autoJointFriendly.value,
                 jointFriendlyWeight: autoJointFriendly.value ? autoJointFriendlyWeight.value : 0,
-                shortSessions: autoSessionDuration.value <= 35,
+                shortSessions: sessionDurationMin <= 35,
                 noCardio: autoNoCardio.value,
                 noHiit: autoNoHiiT.value,
                 focusMuscleGroups: [...autoFocusMuscles.value],
                 preferredExercises: autoPreferredExerciseRefs.value.map((entry) => entry.canonicalName),
                 preferredExerciseRefs: [...autoPreferredExerciseRefs.value],
+                includeSubstitutions: autoIncludeSubstitutions.value,
             },
             activeComplaints,
             exclusions: {
@@ -1194,18 +1464,30 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         durationMin?: number
         distanceKm?: number
         notes?: string
+        substitutions?: string[]
         complaintAdjustmentReason?: string
-    }>): PlanExercise[] => generatedExercises.map((exercise) => ({
-        exercise: exercise.exerciseName,
-        sets: exercise.category === 3 ? (exercise.durationMin ?? 0) : (exercise.sets ?? 0),
-        reps: exercise.category === 3 ? Math.round(exercise.distanceKm ?? 0) : (exercise.reps ?? 0),
-        type: mapGeneratedCategoryToType(exercise.category),
-        restSeconds: exercise.restSeconds,
-        durationMin: exercise.durationMin ?? null,
-        distanceKm: exercise.distanceKm ?? null,
-        notes: exercise.notes,
-        complaintAdjustmentReason: exercise.complaintAdjustmentReason,
-    }))
+    }>): PlanExercise[] => generatedExercises.map((exercise) => {
+        const type = mapGeneratedCategoryToType(exercise.category)
+        const goalType = autoPrimaryGoal.value || 'muscle_gain'
+        const hint = buildExerciseHint(exercise.exerciseName, type, goalType)
+        const substitutions = Array.isArray(exercise.substitutions) ? exercise.substitutions.filter(Boolean) : []
+
+        return {
+            exercise: exercise.exerciseName,
+            sets: exercise.category === 3 ? (exercise.durationMin ?? hint.exact.durationMin ?? 0) : (exercise.sets ?? hint.exact.sets ?? 0),
+            reps: exercise.category === 3 ? Math.round(exercise.distanceKm ?? 0) : (exercise.reps ?? hint.exact.reps ?? 0),
+            type,
+            restSeconds: exercise.restSeconds ?? hint.exact.restSeconds ?? null,
+            durationMin: exercise.durationMin ?? hint.exact.durationMin ?? null,
+            distanceKm: exercise.distanceKm ?? hint.exact.distanceKm ?? null,
+            notes: exercise.notes,
+            complaintAdjustmentReason: exercise.complaintAdjustmentReason,
+            recommendationLabel: hint.recommendationLabel,
+            focusLabel: hint.focusLabel,
+            substitutions,
+            replacementExercise: substitutions[0],
+        }
+    })
 
     const isAutoExerciseReportOpen = (planIndex: number, exerciseIndex: number) =>
         autoExerciseReportState.value?.planIndex === planIndex && autoExerciseReportState.value?.exerciseIndex === exerciseIndex
@@ -1375,6 +1657,18 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             selectedPlanExercises.value = generatedAutoPlans.value[0]?.exercises.map((exercise) => ({ ...exercise })) ?? []
             props.addToast('Auto-Plan neu generiert', 'save')
         } catch (error) {
+            if (error instanceof Error && error.message === 'auto-primary-goal-missing') {
+                props.openValidationPopup(['Primärziel auswählen'])
+                return
+            }
+            if (error instanceof Error && error.message === 'auto-weekly-frequency-missing') {
+                props.openValidationPopup(['Training pro Woche auswählen'])
+                return
+            }
+            if (error instanceof Error && error.message === 'auto-session-duration-missing') {
+                props.openValidationPopup(['Min pro Training auswählen'])
+                return
+            }
             if (error instanceof Error && error.message === 'exercise-library-empty') {
                 props.openValidationPopup(['Die Übungsbibliothek konnte nicht geladen werden. Auto-Plan wurde nicht neu erzeugt.'])
                 return
@@ -1387,6 +1681,19 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     const generateAutoPlanIntoBuilder = async () => {
         try {
+            if (!autoPrimaryGoal.value) {
+                props.openValidationPopup(['Primärziel auswählen'])
+                return
+            }
+            if (!Number.isFinite(autoWeeklyFrequency.value) || autoWeeklyFrequency.value == null) {
+                props.openValidationPopup(['Training pro Woche auswählen'])
+                return
+            }
+            if (!Number.isFinite(autoSessionDuration.value) || autoSessionDuration.value == null) {
+                props.openValidationPopup(['Min pro Training auswählen'])
+                return
+            }
+
             const totalPreferenceWeight = getAutoPreferenceWeightTotal()
             if (totalPreferenceWeight > 100) {
                 props.openValidationPopup([`Die Summe aus Maschinenfokus, Freihantelfokus und Gelenkschonend darf zusammen maximal 100% sein. Aktuell: ${totalPreferenceWeight}%.`])
@@ -1404,7 +1711,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
             const generated = generateAutoPlan(buildGeneratorInput())
             planName.value = generated.planName
-            syncAutoPlanNames(generated.planName)
+            syncAutoPlanNames()
             generatedAutoPlans.value = generated.days.map((day, index) => ({
                 name: autoPlanNames.value[index]?.trim() || buildAutoPlanName(generated.planName, index),
                 dayName: formatAutoDayLabel(day.dayName, day.focus),
@@ -1647,6 +1954,314 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         return result
     })
 
+    const manualGoalType = computed(() => mapManualGoalToGoalType(selectedGoal.value))
+
+    const findLibraryExerciseByName = (name?: string | null) => {
+        const needle = normalizeExerciseText(name ?? '')
+        if (!needle) return null
+        return libraryEntries.value.find((entry) => (
+            normalizeExerciseText(entry.name) === needle
+            || entry.aliases.some((alias) => normalizeExerciseText(alias) === needle)
+        )) ?? null
+    }
+
+    const buildExerciseHint = (exerciseName: string | null | undefined, type: ExerciseType | PlanExercise['type'], goalType: GoalType) => (
+        getTrainingPrescriptionHint({
+            trainingType: (type ?? 'kraft') as ExerciseType,
+            goalType,
+            level: autoLevel.value,
+            exerciseName,
+            exercise: findLibraryExerciseByName(exerciseName),
+        })
+    )
+
+    const selectedManualExerciseName = computed(() => {
+        if (trainingType.value === 'ausdauer') return cardioExercise.value
+        return newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value
+    })
+
+    const manualPrescriptionHint = computed(() => {
+        if (!selectedGoal.value) return null
+        return buildExerciseHint(selectedManualExerciseName.value, trainingType.value, manualGoalType.value)
+    })
+
+    const manualReplacementOptions = computed(() => {
+        const selectedName = selectedManualExerciseName.value
+        const selectedExercise = findLibraryExerciseByName(selectedName)
+        const currentType = trainingType.value
+        const currentNeedle = normalizeExerciseText(selectedName ?? '')
+        const muscleNeedle = exerciseFilter.value.trim().toLowerCase()
+
+        const pool = libraryEntries.value.filter((entry) => {
+            if (!selectedExercise) {
+                if (currentType === 'ausdauer') return entry.kind === 'cardio'
+                if (currentType === 'dehnung') return entry.kind === 'mobility'
+                return entry.kind === 'strength'
+            }
+            return entry.kind === selectedExercise.kind
+        })
+
+        const byName = new Map(pool.map((entry) => [normalizeExerciseText(entry.name), entry]))
+        const ordered: string[] = []
+
+        const pushName = (name?: string | null) => {
+            const candidate = String(name ?? '').trim()
+            if (!candidate) return
+            const normalized = normalizeExerciseText(candidate)
+            if (!normalized || normalized === currentNeedle) return
+            const match = byName.get(normalized)
+            const resolved = match?.name ?? candidate
+            if (!ordered.some((entry) => normalizeExerciseText(entry) === normalizeExerciseText(resolved))) {
+                ordered.push(resolved)
+            }
+        }
+
+        for (const substitution of selectedExercise?.substitutions ?? []) pushName(substitution)
+
+        if (selectedExercise) {
+            const related = pool
+                .filter((entry) => normalizeExerciseText(entry.name) !== currentNeedle)
+                .map((entry) => {
+                    let score = 0
+                    if (entry.movementPattern === selectedExercise.movementPattern) score += 18
+                    if (entry.muscleGroup === selectedExercise.muscleGroup) score += 12
+                    if (selectedExercise.secondaryMuscleGroups.includes(entry.muscleGroup)) score += 6
+                    if (entry.secondaryMuscleGroups.includes(selectedExercise.muscleGroup)) score += 6
+                    if (entry.equipment.some((item) => !selectedExercise.equipment.includes(item))) score += 8
+                    if (entry.level === selectedExercise.level) score += 4
+                    if (muscleNeedle) {
+                        const primary = entry.muscleGroup.toLowerCase()
+                        const secondary = entry.secondaryMuscleGroups.map((group) => group.toLowerCase())
+                        if (primary.includes(muscleNeedle)) score += 24
+                        if (secondary.some((group) => group.includes(muscleNeedle))) score += 12
+                    }
+                    return { name: entry.name, score }
+                })
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 12)
+
+            for (const entry of related) pushName(entry.name)
+        } else {
+            const sortedPool = [...pool]
+                .sort((a, b) => {
+                    if (!muscleNeedle) return a.name.localeCompare(b.name, 'de')
+
+                    const aPrimary = a.muscleGroup.toLowerCase().includes(muscleNeedle)
+                    const bPrimary = b.muscleGroup.toLowerCase().includes(muscleNeedle)
+                    if (aPrimary !== bPrimary) return aPrimary ? -1 : 1
+
+                    const aSecondary = a.secondaryMuscleGroups.some((group) => group.toLowerCase().includes(muscleNeedle))
+                    const bSecondary = b.secondaryMuscleGroups.some((group) => group.toLowerCase().includes(muscleNeedle))
+                    if (aSecondary !== bSecondary) return aSecondary ? -1 : 1
+
+                    return a.name.localeCompare(b.name, 'de')
+                })
+                .slice(0, 12)
+
+            for (const entry of sortedPool) pushName(entry.name)
+        }
+
+        return ordered
+    })
+
+    watch(selectedManualExerciseName, () => {
+        const selectedReplacement = normalizeExerciseText(manualReplacementExercise.value)
+        if (!selectedReplacement) return
+        if (!manualReplacementOptions.value.some((entry) => normalizeExerciseText(entry) === selectedReplacement)) {
+            manualReplacementExercise.value = ''
+        }
+    })
+
+    const mapGoalTypeToManualGoalLabel = (goalType: GoalType) => {
+        if (goalType === 'strength') return 'Kraft'
+        if (goalType === 'fat_loss') return 'Abnehmen'
+        if (goalType === 'endurance') return 'Ausdauer'
+        if (goalType === 'health' || goalType === 'general_fitness') return 'Gesundheit'
+        return 'Muskelaufbau'
+    }
+
+    const EXERCISE_GUIDANCE_LABELS = {
+        recovery: 'Pause:',
+        tempo: 'Tempo:',
+        equipment: 'Gerätenummer:',
+        replacement: 'Ersatz:',
+        replacementReason: 'Ersatzgrund:',
+    } as const
+
+    const parseExerciseGuidance = (rawNotes?: string | null) => {
+        const notes = String(rawNotes ?? '').trim()
+        if (!notes) {
+            return {
+                notes: undefined,
+                setsOverride: undefined,
+                repsOverride: undefined,
+                recoveryHint: undefined,
+                tempoHint: undefined,
+                equipmentNumber: undefined,
+                replacementExercise: undefined,
+                replacementReason: undefined,
+            }
+        }
+
+        let setsOverride: string | undefined
+        let repsOverride: string | undefined
+        let recoveryHint: string | undefined
+        let tempoHint: string | undefined
+        let equipmentNumber: string | undefined
+        let replacementExercise: string | undefined
+        let replacementReason: string | undefined
+        const freeLines: string[] = []
+
+        for (const rawLine of notes.split(/\r?\n/)) {
+            const line = rawLine.trim()
+            if (!line) continue
+
+            if (/^Sätze:\s*/i.test(line)) {
+                setsOverride = line.replace(/^Sätze:\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Wiederholungen:\s*/i.test(line)) {
+                repsOverride = line.replace(/^Wiederholungen:\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^(Pause|Recovery):\s*/i.test(line)) {
+                recoveryHint = line.replace(/^(Pause|Recovery):\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Tempo:\s*/i.test(line)) {
+                tempoHint = line.replace(/^Tempo:\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Atmung:\s*/i.test(line)) {
+                freeLines.push(line)
+                continue
+            }
+            if (/^(Gerätenummer|Geraetenummer):\s*/i.test(line)) {
+                equipmentNumber = line.replace(/^(Gerätenummer|Geraetenummer):\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Ersatz:\s*/i.test(line)) {
+                replacementExercise = line.replace(/^Ersatz:\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Ersatzgrund:\s*/i.test(line)) {
+                replacementReason = line.replace(/^Ersatzgrund:\s*/i, '').trim() || undefined
+                continue
+            }
+
+            freeLines.push(line)
+        }
+
+        return {
+            notes: freeLines.join('\n') || undefined,
+            setsOverride,
+            repsOverride,
+            recoveryHint,
+            tempoHint,
+            equipmentNumber,
+            replacementExercise,
+            replacementReason,
+        }
+    }
+
+    const composeExerciseNotes = (exercise: PlanExercise) => {
+        const lines: string[] = []
+        const note = String(exercise.notes ?? '').trim()
+        const recoveryHint = String(exercise.recoveryHint ?? '').trim()
+        const tempoHint = String(exercise.tempoHint ?? '').trim()
+        const equipmentNumber = String(exercise.equipmentNumber ?? '').trim()
+        const replacementExercise = String(exercise.replacementExercise ?? '').trim()
+        const replacementReason = String(exercise.replacementReason ?? '').trim()
+        const complaintReason = String(exercise.complaintAdjustmentReason ?? '').trim()
+        const recommendationLabel = String(exercise.recommendationLabel ?? '').trim()
+        const recommendationPauseMatch = recommendationLabel.match(/(\d+(?:-\d+)?)\s*s\s*Pause/i)
+        const recommendationPause = recommendationPauseMatch?.[1]?.trim()
+
+        if (note) lines.push(note)
+        if (typeof exercise.sets === 'string' && exercise.type !== 'ausdauer') lines.push(`Sätze: ${exercise.sets}`)
+        if (typeof exercise.reps === 'string' && exercise.type !== 'ausdauer') lines.push(`Wiederholungen: ${exercise.reps}`)
+        if (recoveryHint) lines.push(`${EXERCISE_GUIDANCE_LABELS.recovery} ${recoveryHint}`)
+        else if (recommendationPause) lines.push(`${EXERCISE_GUIDANCE_LABELS.recovery} ${recommendationPause} Sek`)
+        if (tempoHint) lines.push(`${EXERCISE_GUIDANCE_LABELS.tempo} ${tempoHint}`)
+        if (equipmentNumber) lines.push(`${EXERCISE_GUIDANCE_LABELS.equipment} ${equipmentNumber}`)
+        if (replacementExercise) lines.push(`${EXERCISE_GUIDANCE_LABELS.replacement} ${replacementExercise}`)
+        if (replacementReason) lines.push(`${EXERCISE_GUIDANCE_LABELS.replacementReason} ${replacementReason}`)
+        if (complaintReason) lines.push(complaintReason)
+
+        return lines.join('\n') || null
+    }
+
+    const applyManualPrescriptionHint = (force = false) => {
+        const hint = manualPrescriptionHint.value
+        if (!hint) return
+
+        if (force) {
+            selectedGoal.value = mapGoalTypeToManualGoalLabel(manualGoalType.value)
+            manualRecovery.value = hint.restLabel
+        }
+
+        if (trainingType.value === 'ausdauer') {
+            if (force || newDuration.value == null) newDuration.value = hint.exact.durationMin ?? newDuration.value
+            return
+        }
+
+        if (force || newSets.value == null) newSets.value = hint.exact.sets ?? newSets.value
+        if (force || newReps.value == null) newReps.value = hint.exact.reps ?? newReps.value
+    }
+
+    watch(
+        [manualPrescriptionHint, trainingType],
+        ([hint, currentType], [prevHint]) => {
+            if (!hint) return
+            if (currentType === 'ausdauer') {
+                if (newDuration.value == null || newDuration.value === prevHint?.exact.durationMin) {
+                    newDuration.value = hint.exact.durationMin ?? newDuration.value
+                }
+                return
+            }
+
+            if (newSets.value == null || newSets.value === prevHint?.exact.sets) {
+                newSets.value = hint.exact.sets ?? newSets.value
+            }
+            if (newReps.value == null || newReps.value === prevHint?.exact.reps) {
+                newReps.value = hint.exact.reps ?? newReps.value
+            }
+        },
+        { immediate: true }
+    )
+
+    const formatPlanExerciseMeta = (exercise: PlanExercise) => {
+        const parts: string[] = []
+        if (exercise.recommendationLabel) parts.push(exercise.recommendationLabel)
+        if (exercise.notes) parts.push(exercise.notes)
+        const hasPauseInRecommendation = /pause/i.test(exercise.recommendationLabel ?? '')
+        if (exercise.recoveryHint) parts.push(`Pause: ${exercise.recoveryHint}`)
+        else if (exercise.restSeconds && !hasPauseInRecommendation) parts.push(`${exercise.restSeconds}s Pause`)
+        if (exercise.tempoHint) parts.push(`Tempo: ${exercise.tempoHint}`)
+        return parts.join(' · ')
+    }
+
+    const formatExerciseNumber = (exercise: PlanExercise) => {
+        const value = String(exercise.equipmentNumber ?? '').trim()
+        return value || '—'
+    }
+
+    const hasEquipmentNumbers = (exercises: PlanExercise[]) =>
+        exercises.some((exercise) => String(exercise.equipmentNumber ?? '').trim().length > 0)
+
+    const previewHasEquipmentNumbers = computed(() => hasEquipmentNumbers(selectedPlanExercises.value))
+    const activePreviewColWidths = computed(() => previewColWidths.value)
+
+    watch(
+        previewHasEquipmentNumbers,
+        (hasNumbers) => {
+            previewColWidths.value = hasNumbers
+                ? [...PREVIEW_COLS_WITH_NUMBER]
+                : [...PREVIEW_COLS_WITHOUT_NUMBER]
+        },
+        { immediate: true }
+    )
+
 
     // ===== Safe v-models (1:1) =====
     const newExerciseSafe = computed({
@@ -1667,6 +2282,21 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const selectedGoalSafe = computed({
         get: () => selectedGoal.value,
         set: (val) => { if (!val) return; selectedGoal.value = val },
+    })
+
+    const manualReplacementExerciseSafe = computed({
+        get: () => manualReplacementExercise.value,
+        set: (val) => { manualReplacementExercise.value = String(val ?? '').trim() },
+    })
+
+    const newSetsText = computed({
+        get: () => (newSets.value == null ? '' : String(newSets.value)),
+        set: (val) => { newSets.value = normalizeRangeCapableInput(val) },
+    })
+
+    const newRepsText = computed({
+        get: () => (newReps.value == null ? '' : String(newReps.value)),
+        set: (val) => { newReps.value = normalizeRangeCapableInput(val) },
     })
 
     const toggleExtras = () => {
@@ -1718,6 +2348,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const collectValidationErrors = () => {
         const errors: string[] = []
 
+        if (!selectedGoal.value) errors.push('Trainingsziel auswählen')
+
         if (trainingType.value === 'ausdauer') {
             if (!cardioExercise.value) errors.push('Cardio-Art wählen')
             const dErr = validateDurationMin(newDuration.value); if (dErr) errors.push(dErr)
@@ -1745,12 +2377,26 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
 
     // ===== DTO flatten / mapping (aus deinem Code) =====
-    const toPlanExercise = (ex: any): PlanExercise => ({
-        exercise: ex.name,
-        sets: ex.sets ?? 0,
-        reps: ex.reps ?? 0,
-        type: (ex.category === 3 ? "ausdauer" : ex.category === 2 ? "dehnung" : ex.category === 1 ? "calisthenics" : "kraft"),
-    })
+    const toPlanExercise = (ex: any): PlanExercise => {
+        const guidance = parseExerciseGuidance(ex.notes)
+
+        return {
+            exercise: ex.name,
+            sets: ex.category === 3 ? (ex.durationMin ?? ex.sets ?? 0) : (guidance.setsOverride ?? ex.sets ?? 0),
+            reps: ex.category === 3 ? Math.round(ex.distanceKm ?? 0) : (guidance.repsOverride ?? ex.reps ?? 0),
+            type: (ex.category === 3 ? "ausdauer" : ex.category === 2 ? "dehnung" : ex.category === 1 ? "calisthenics" : "kraft"),
+            restSeconds: ex.restSeconds ?? null,
+            durationMin: ex.durationMin ?? null,
+            distanceKm: ex.distanceKm ?? null,
+            notes: guidance.notes,
+            recoveryHint: guidance.recoveryHint,
+            tempoHint: guidance.tempoHint,
+            equipmentNumber: guidance.equipmentNumber,
+            replacementExercise: guidance.replacementExercise,
+            replacementReason: guidance.replacementReason,
+            substitutions: Array.isArray(ex.substitutions) ? ex.substitutions.filter(Boolean) : [],
+        }
+    }
 
     const flattenDto = (p: TrainingPlanDto): ViewPlan => {
         const flat: PlanExercise[] = []
@@ -1815,16 +2461,15 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             name: ex.exercise,
             category: mapTypeToCategory(ex.type),
             sortOrder: i,
-            sets: ex.type === "ausdauer" ? null : ex.sets,
-            reps: ex.type === "ausdauer" ? null : ex.reps,
+            sets: ex.type === "ausdauer" ? null : (parseRangeCapableNumber(ex.sets) ?? null),
+            reps: ex.type === "ausdauer" ? null : (parseRangeCapableNumber(ex.reps) ?? null),
             restSeconds: ex.restSeconds ?? null,
-            durationMin: ex.type === "ausdauer" ? (ex.durationMin ?? ex.sets ?? null) : (ex.durationMin ?? null),
-            distanceKm: ex.type === "ausdauer" ? (ex.distanceKm ?? (ex.reps ? ex.reps : null)) : (ex.distanceKm ?? null),
-            notes: ex.notes || ex.complaintAdjustmentReason || null,
+            durationMin: ex.type === "ausdauer" ? (ex.durationMin ?? parseRangeCapableNumber(ex.sets) ?? null) : (ex.durationMin ?? null),
+            distanceKm: ex.type === "ausdauer" ? (ex.distanceKm ?? parseRangeCapableNumber(ex.reps) ?? null) : (ex.distanceKm ?? null),
+            notes: composeExerciseNotes(ex),
         }))
 
-    const getGeneratedPlansToPersist = () =>
-        generatedAutoPlans.value.filter((plan) => Array.isArray(plan.exercises) && plan.exercises.length > 0)
+    const getGeneratedPlansToPersist = () => currentGeneratedPlansToPersist.value
 
     const toUpsertPayload = (
         name: string = validatePlanName(planName.value) as string,
@@ -1851,6 +2496,13 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         newDistance.value = null
 
         selectedGoal.value = ""
+        manualRecovery.value = ""
+        manualTempo.value = ""
+        manualEquipmentNumber.value = ""
+        manualNote.value = ""
+        manualReplacementExercise.value = ""
+        manualDraftPlanName.value = ""
+        manualDraftExercises.value = []
         selectedPlanExercises.value = []
         generatedAutoPlans.value = []
         editingPlanId.value = null
@@ -1859,6 +2511,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         autoMachineFocusWeight.value = 50
         autoFreeWeightFocusWeight.value = 50
         autoJointFriendlyWeight.value = 50
+        autoIncludeSubstitutions.value = true
         autoPreferredExerciseRefs.value = []
         autoExcludedExerciseRefs.value = []
         autoReportedExerciseOverrides.value = []
@@ -1867,6 +2520,9 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         autoFocusMuscles.value = []
         autoExcludedMuscleDraft.value = ''
         autoFocusMuscleDraft.value = ''
+        autoPrimaryGoal.value = ''
+        autoWeeklyFrequency.value = null
+        autoSessionDuration.value = null
     }
 
     function queuePreviewBuilderStep(delay: number, task: () => void) {
@@ -2025,6 +2681,15 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     // REPLACE in components/ui/training/TrainingPlanBuilder.vue (addExerciseToPlan)
     const addExerciseToPlan = () => {
         generatedAutoPlans.value = []
+        const errors = collectValidationErrors()
+        if (errors.length > 0) { props.openValidationPopup(errors); return }
+
+        const hint = manualPrescriptionHint.value
+        if (!hint) {
+            props.openValidationPopup(['Trainingsziel auswählen'])
+            return
+        }
+
         if (isPhonePreviewBuilderDemo.value) {
             const previewExercise =
                 String(newExercise.value || filteredExercises.value[0] || '').trim()
@@ -2033,16 +2698,20 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
             selectedPlanExercises.value.push({
                 exercise: previewExercise,
-                sets: Number(newSets.value ?? 4),
-                reps: Number(newReps.value ?? 10),
+                sets: Number(newSets.value ?? hint.exact.sets ?? 4),
+                reps: Number(newReps.value ?? hint.exact.reps ?? 10),
                 goal: selectedGoal.value || undefined,
                 type: trainingType.value,
+                restSeconds: hint.exact.restSeconds ?? null,
+                notes: manualNote.value.trim() || undefined,
+                recommendationLabel: hint.recommendationLabel,
+                recoveryHint: manualRecovery.value.trim() || undefined,
+                tempoHint: manualTempo.value.trim() || undefined,
+                equipmentNumber: manualEquipmentNumber.value.trim() || undefined,
+                replacementExercise: manualReplacementExercise.value.trim() || undefined,
             })
             return
         }
-
-        const errors = collectValidationErrors()
-        if (errors.length > 0) { props.openValidationPopup(errors); return }
 
         if (trainingType.value === 'ausdauer') {
             selectedPlanExercises.value.push({
@@ -2050,11 +2719,25 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 sets: newDuration.value!,
                 reps: newDistance.value ? Number(newDistance.value) : 0,
                 goal: selectedGoal.value || undefined,
-                type: 'ausdauer'
+                type: 'ausdauer',
+                durationMin: newDuration.value!,
+                distanceKm: newDistance.value ? Number(newDistance.value) : null,
+                restSeconds: 0,
+                notes: manualNote.value.trim() || undefined,
+                recommendationLabel: hint.recommendationLabel,
+                recoveryHint: manualRecovery.value.trim() || undefined,
+                tempoHint: manualTempo.value.trim() || undefined,
+                equipmentNumber: manualEquipmentNumber.value.trim() || undefined,
+                replacementExercise: manualReplacementExercise.value.trim() || undefined,
             })
             props.addToast('Cardio hinzugefügt', 'add')
             cardioExercise.value = ''
             selectedGoal.value = ''
+            manualRecovery.value = ''
+            manualTempo.value = ''
+            manualEquipmentNumber.value = ''
+            manualNote.value = ''
+            manualReplacementExercise.value = ''
             return
         }
 
@@ -2079,7 +2762,15 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             sets: newSets.value!,
             reps: newReps.value!,
             goal: selectedGoal.value || undefined,
-            type: trainingType.value
+            type: trainingType.value,
+            restSeconds: hint.exact.restSeconds ?? null,
+            notes: manualNote.value.trim() || undefined,
+            recommendationLabel: hint.recommendationLabel,
+            focusLabel: hint.focusLabel,
+            recoveryHint: manualRecovery.value.trim() || undefined,
+            tempoHint: manualTempo.value.trim() || undefined,
+            equipmentNumber: manualEquipmentNumber.value.trim() || undefined,
+            replacementExercise: manualReplacementExercise.value.trim() || undefined,
         })
 
         props.addToast('Übung hinzugefügt', 'add')
@@ -2087,6 +2778,11 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         newExercise.value = ''
         customPlanExercise.value = ''
         selectedGoal.value = ''
+        manualRecovery.value = ''
+        manualTempo.value = ''
+        manualEquipmentNumber.value = ''
+        manualNote.value = ''
+        manualReplacementExercise.value = ''
     }
 
     const removeExerciseFromPlan = (index: number) => {
@@ -2109,6 +2805,25 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
         // fallback: direkt löschen
         doDelete()
+    }
+
+    const moveExerciseInPlan = (index: number, direction: -1 | 1) => {
+        generatedAutoPlans.value = []
+        const targetIndex = index + direction
+
+        if (
+            index < 0 ||
+            index >= selectedPlanExercises.value.length ||
+            targetIndex < 0 ||
+            targetIndex >= selectedPlanExercises.value.length
+        ) {
+            return
+        }
+
+        const reordered = [...selectedPlanExercises.value]
+        const [exercise] = reordered.splice(index, 1)
+        reordered.splice(targetIndex, 0, exercise)
+        selectedPlanExercises.value = reordered
     }
 
     const createOrUpdatePlanLegacy = async () => {
@@ -2229,7 +2944,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     // ===== Preview-Resize (dein initPreviewResizeTable minimal übernommen) =====
     const createOrUpdatePlan = async () => {
         const validatedPlanName = validatePlanName(planName.value)
-        const generatedPlansToPersist = getGeneratedPlansToPersist()
+        const generatedPlansToPersist = currentGeneratedPlansToPersist.value
+        const manualExercisesToSave = currentExercisesToSave.value
         const autoSinglePlan = !editingPlanId.value && builderMode.value === 'auto' && generatedPlansToPersist.length === 1
             ? generatedPlansToPersist[0]
             : null
@@ -2305,14 +3021,14 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 if (firstCreatedId) emit('plan-created', { id: firstCreatedId, name: firstCreatedName })
                 props.addToast(`${generatedPlansToPersist.length} Pläne erstellt`, 'add')
             } else {
-                const id = createGuestId()
-                props.onGuestPlanCreated?.({
-                    id,
-                    name: effectiveValidatedPlanName as string,
-                    isFavorite: false,
-                    exercises: [...(autoSinglePlan?.exercises ?? selectedPlanExercises.value)],
-                    exerciseCount: (autoSinglePlan?.exercises ?? selectedPlanExercises.value).length,
-                })
+                    const id = createGuestId()
+                    props.onGuestPlanCreated?.({
+                        id,
+                        name: effectiveValidatedPlanName as string,
+                        isFavorite: false,
+                        exercises: [...(autoSinglePlan?.exercises ?? manualExercisesToSave)],
+                        exerciseCount: (autoSinglePlan?.exercises ?? manualExercisesToSave).length,
+                    })
 
                 emit('plan-created', { id, name: effectiveValidatedPlanName as string })
             }
@@ -2351,7 +3067,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             if (editingPlanId.value) {
                 const updated = await trainingPlansStore.update(
                     editingPlanId.value,
-                    toUpsertPayload(validatedPlanName as string, selectedPlanExercises.value)
+                    toUpsertPayload(validatedPlanName as string, manualExercisesToSave)
                 )
                 void updated
                 props.addToast("Plan gespeichert", "save")
@@ -2379,7 +3095,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 const created = await trainingPlansStore.create(
                     toUpsertPayload(
                         effectiveValidatedPlanName as string,
-                        autoSinglePlan?.exercises ?? selectedPlanExercises.value,
+                        autoSinglePlan?.exercises ?? manualExercisesToSave,
                         autoSinglePlan?.dayName ?? "Tag 1"
                     )
                 )
@@ -2438,7 +3154,9 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
         table.querySelectorAll('.resizer').forEach(el => el.remove())
 
-        const MIN_PX_BY_COL = [16, 16, 16, 44]
+        const MIN_PX_BY_COL = previewHasEquipmentNumbers.value
+            ? [54, 16, 16, 16, 44]
+            : [16, 16, 16, 44]
         const ths = Array.from(table.querySelectorAll('thead th')) as HTMLElement[]
         const lastIdx = ths.length - 1
 
@@ -2566,13 +3284,53 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         headerRO = null
     }
 
+    let metaLineRO: ResizeObserver | null = null
+
+    function applyExerciseMetaMarqueeState(line: HTMLElement) {
+        const track = line.querySelector('.exercise-meta-track') as HTMLElement | null
+        const marquee = line.querySelector('.exercise-meta-marquee') as HTMLElement | null
+        const divider = line.querySelector('.exercise-meta-divider') as HTMLElement | null
+        if (!track || !marquee) return
+
+        const overflow = Math.max(marquee.scrollWidth - line.clientWidth, 0)
+        const dividerWidth = divider?.getBoundingClientRect().width ?? 0
+        const gap = 16
+        const viewportWidth = window.innerWidth || 0
+        const isAutoPreviewLine = line.classList.contains('exercise-meta-line--auto')
+        const forceAnimate = isAutoPreviewLine && viewportWidth <= 1080 && marquee.scrollWidth > 0
+        line.style.setProperty('--meta-loop', `${marquee.scrollWidth + dividerWidth + gap}px`)
+        line.classList.toggle('is-animated', forceAnimate || overflow > 8)
+    }
+
+    function setupExerciseMetaMarquees() {
+        metaLineRO?.disconnect()
+        metaLineRO = new ResizeObserver((entries) => {
+            entries.forEach(entry => applyExerciseMetaMarqueeState(entry.target as HTMLElement))
+        })
+
+        const scope = builderSection.value
+        if (!scope) return
+
+        const lines = Array.from(scope.querySelectorAll('.exercise-meta-line')) as HTMLElement[]
+        lines.forEach(line => {
+            applyExerciseMetaMarqueeState(line)
+            metaLineRO?.observe(line)
+        })
+    }
+
+    function teardownExerciseMetaMarquees() {
+        metaLineRO?.disconnect()
+        metaLineRO = null
+    }
+
     watch(
-        selectedPlanExercises,
+        [selectedPlanExercises, generatedAutoPlans, builderMode],
         () => {
             nextTick(() => {
                 try {
                     initPreviewResizeTable()
                     setupHeaderShorteningFallback()
+                    setupExerciseMetaMarquees()
                 } catch (err) {
                     console.error('[TrainingPlanBuilder] preview init crashed:', err)
                 }
@@ -2587,6 +3345,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             try {
                 initPreviewResizeTable()
                 setupHeaderShorteningFallback()
+                setupExerciseMetaMarquees()
             } catch (err) {
                 console.error('[TrainingPlanBuilder] onMounted init crashed:', err)
             }
@@ -2601,6 +3360,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         activeDragCleanup = null
         clearPreviewBuilderTimers()
         teardownHeaderShorteningFallback()
+        teardownExerciseMetaMarquees()
     })
 </script>
 
@@ -2662,6 +3422,21 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     .preview-builder-created :deep(.form-card) {
         box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.18), 0 18px 36px rgba(34, 197, 94, 0.12);
+    }
+
+    @keyframes autoPreviewPulse {
+        0% {
+            transform: scale(0.92);
+            box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary) 35%, transparent);
+        }
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent-primary) 0%, transparent);
+        }
+        100% {
+            transform: scale(0.92);
+            box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary) 0%, transparent);
+        }
     }
 
     @keyframes previewBuilderPulse {
@@ -2937,6 +3712,293 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         border-radius: 999px;
         background: color-mix(in srgb, var(--bg-card) 88%, #0f172a 12%);
         border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+
+    .smart-rx-card {
+        display: grid;
+        gap: 0.95rem;
+        padding: 1rem 1.05rem;
+        border-radius: 18px;
+        border: 1px solid var(--border-color);
+        background:
+            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 6%, transparent), transparent 58%),
+            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 5%, transparent), transparent 64%),
+            var(--bg-secondary);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+    }
+
+    .smart-rx-card--hint {
+        border-color: color-mix(in srgb, var(--accent-primary) 24%, var(--border-color) 76%);
+        background:
+            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 8%, transparent), transparent 58%),
+            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 6%, transparent), transparent 64%),
+            var(--bg-secondary);
+    }
+
+    .smart-rx-card__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .smart-rx-card__eyebrow {
+        margin: 0 0 0.2rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+
+    .smart-rx-card__head h4 {
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .smart-rx-card__summary {
+        margin: 0.35rem 0 0;
+        color: var(--text-secondary);
+        line-height: 1.45;
+    }
+
+    .smart-rx-card__apply {
+        flex: 0 0 auto;
+        min-height: 40px;
+        padding: 0.55rem 0.95rem;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 42%, var(--border-color) 58%);
+        background:
+            radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 58%),
+            color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+        color: var(--text-primary);
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 12%, transparent) inset;
+        transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .smart-rx-card__apply:hover {
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, var(--accent-primary) 68%, var(--border-color) 32%);
+        background:
+            radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 58%),
+            color-mix(in srgb, var(--bg-secondary) 84%, transparent);
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 18%, transparent) inset;
+    }
+
+    .smart-rx-card__grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.7rem;
+    }
+
+    .smart-rx-stat {
+        display: grid;
+        gap: 0.2rem;
+        padding: 0.75rem 0.8rem;
+        border-radius: 14px;
+        border: 1px solid color-mix(in srgb, #64748b 18%, var(--border-color) 82%);
+        background: var(--bg-secondary);
+    }
+
+    .smart-rx-stat span {
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+
+    .smart-rx-stat strong {
+        font-size: 0.98rem;
+        color: var(--text-primary);
+    }
+
+    .smart-rx-stat--accent {
+        border-color: color-mix(in srgb, var(--accent-secondary) 18%, var(--border-color) 82%);
+        background: var(--bg-secondary);
+    }
+
+    .smart-rx-card__chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+    }
+
+    .smart-rx-chip {
+        padding: 0.34rem 0.7rem;
+        border-radius: 999px;
+        background: var(--bg-secondary);
+        border: 1px solid color-mix(in srgb, #64748b 16%, var(--border-color) 84%);
+        color: var(--text-primary);
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .exercise-meta-line {
+        display: block;
+        margin-top: 0.38rem;
+        max-width: 100%;
+        overflow: hidden;
+        color: var(--text-secondary);
+        font-size: 0.74rem;
+        line-height: 1.35;
+    }
+
+    .exercise-meta-track {
+        display: inline-flex;
+        align-items: center;
+        gap: 0;
+        min-width: max-content;
+        will-change: transform;
+    }
+
+    .exercise-meta-line:not(.is-animated) .exercise-meta-divider,
+    .exercise-meta-line:not(.is-animated) .exercise-meta-marquee[aria-hidden="true"] {
+        display: none;
+    }
+
+    .exercise-meta-divider {
+        display: inline-flex;
+        align-items: center;
+        margin-inline: 0.35rem;
+        color: color-mix(in srgb, var(--text-secondary) 86%, var(--text-muted) 14%);
+        font-weight: 600;
+        opacity: 0.92;
+        user-select: none;
+    }
+
+    .exercise-meta-marquee {
+        display: inline-block;
+        min-width: max-content;
+        white-space: nowrap;
+    }
+
+    .exercise-meta-line.is-animated .exercise-meta-track {
+        animation: previewMetaMarquee 11s linear infinite;
+    }
+
+    .exercise-number-cell {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .exercise-number-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2.5rem;
+        padding: 0.38rem 0.55rem;
+        border-radius: 12px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 14%, var(--border-color) 86%);
+        background: color-mix(in srgb, var(--bg-secondary) 88%, white 12%);
+        color: var(--text-primary);
+        font-size: 0.76rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .preview-replacement-card {
+        display: grid;
+        gap: 0.12rem;
+        margin-top: 0.46rem;
+        padding: 0.58rem 0.72rem;
+        border-radius: 14px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 12%, var(--border-color) 88%);
+        background: color-mix(in srgb, var(--accent-primary) 4%, var(--bg-secondary) 96%);
+        max-width: min(100%, 22rem);
+    }
+
+    .preview-replacement-card__label {
+        color: var(--text-secondary);
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .preview-replacement-card__name {
+        color: var(--text-primary);
+        font-size: 0.8rem;
+        font-weight: 700;
+        line-height: 1.3;
+        word-break: break-word;
+    }
+
+    .preview-replacement-card__reason {
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    @keyframes previewMetaMarquee {
+        0% {
+            transform: translateX(0);
+        }
+
+        100% {
+            transform: translateX(calc(var(--meta-loop, 0px) * -1));
+        }
+    }
+
+    .preview-exercise-main {
+        min-width: 0;
+    }
+
+    .preview-exercise-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        min-width: 0;
+    }
+
+    .preview-order-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: 1.55rem;
+        block-size: 1.55rem;
+        flex: 0 0 1.55rem;
+        border-radius: 999px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        font-size: 0.74rem;
+        font-weight: 700;
+    }
+
+    .auto-preview-banner {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: start;
+        gap: 0.75rem;
+        padding: 0.85rem 0.95rem;
+        border-radius: 16px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, rgba(148, 163, 184, 0.26) 70%);
+        background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-card) 90%);
+    }
+
+    .auto-preview-banner strong {
+        display: block;
+        margin-bottom: 0.15rem;
+    }
+
+    .auto-preview-banner p {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.4;
+        font-size: 0.82rem;
+    }
+
+    .auto-preview-banner__pulse {
+        width: 0.8rem;
+        height: 0.8rem;
+        margin-top: 0.2rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary) 35%, transparent);
+        animation: autoPreviewPulse 1.8s ease-out infinite;
     }
 
     .empty-preview {
@@ -3396,12 +4458,18 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     .auto-exercise-cell {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: .5rem;
         min-width: 0;
     }
 
-    .auto-exercise-cell > span {
+    .auto-exercise-cell__body {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .auto-exercise-cell__body > span {
+        display: block;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -3712,6 +4780,28 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             }
     }
 
+    @media (max-width: 600px) {
+        .smart-rx-card__head {
+            flex-direction: column;
+        }
+
+        .smart-rx-card__apply {
+            width: 100%;
+        }
+
+        .smart-rx-card__grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .preview-replacement-card {
+            max-width: 100%;
+        }
+
+        .preview-replacement-card__name {
+            font-size: 0.76rem;
+        }
+    }
+
     @media (max-width: 960px) {
         .builder-head .type-block.desktop-only {
             display: none !important;
@@ -3833,19 +4923,195 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     }
 
     .exercise-table.full-width {
+        position: relative;
+        isolation: isolate;
         width: 100%;
-        table-layout: fixed; /* BIG FIX: Spalten verhalten sich stabil */
-        border-collapse: collapse;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        border-radius: 18px;
+        overflow: hidden;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: box-shadow 0.24s ease, border-color 0.24s ease, background 0.24s ease;
     }
+
+    .exercise-table.full-width::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    @media (hover: hover) {
+        .exercise-table.full-width:hover {
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.28);
+            border-color: rgba(129, 140, 248, 0.55);
+        }
+    }
+
+    html.dark-mode .exercise-table.full-width {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    html.dark-mode .exercise-table.full-width::before {
+        background: linear-gradient(90deg, transparent, rgba(129, 140, 248, 0.18), transparent);
+    }
+
+    html.dark-mode .exercise-table.full-width thead {
+        background: linear-gradient(180deg, rgba(30, 41, 59, 0.78) 0%, rgba(15, 23, 42, 0.58) 100%);
+    }
+
+    html.dark-mode .exercise-table.full-width th {
+        border-bottom-color: rgba(148, 163, 184, 0.24);
+        color: rgba(226, 232, 240, 0.92);
+    }
+
+    html.dark-mode .exercise-table.full-width th:not(:last-child) {
+        border-right-color: rgba(148, 163, 184, 0.12);
+    }
+
+    html.dark-mode .exercise-table.full-width td {
+        border-top-color: rgba(148, 163, 184, 0.12);
+        background: rgba(15, 23, 42, 0.42);
+    }
+
+    html.dark-mode .exercise-table.full-width tbody tr:nth-child(odd) td {
+        background: rgba(30, 41, 59, 0.26);
+    }
+
+    html.dark-mode .exercise-table.full-width tbody tr:hover td {
+        background: color-mix(in srgb, rgba(30, 41, 59, 0.62) 78%, #6366f1 22%);
+    }
+
+        .exercise-table.full-width table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: transparent;
+        }
+
+        .exercise-table.full-width thead {
+            background: linear-gradient(180deg,
+                    color-mix(in srgb, var(--bg-card) 78%, white 22%) 0%,
+                    color-mix(in srgb, var(--bg-card) 90%, transparent) 100%);
+        }
 
         .exercise-table.full-width th,
         .exercise-table.full-width td {
-            padding: 1.5rem;
+            padding: 1rem 1.05rem;
             text-align: center;
-            min-width: 0; /* war 150px: verhindert Breiten-Inflation */
+            vertical-align: middle;
+            min-width: 0;
+            overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
         }
+
+        .exercise-table.full-width th {
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+            background: transparent;
+            color: color-mix(in srgb, var(--text-primary) 88%, white 12%);
+            font-weight: 700;
+            font-size: 0.78rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .exercise-table.full-width th:not(:last-child) {
+            border-right: 1px solid rgba(148, 163, 184, 0.10);
+        }
+
+        .exercise-table.full-width td {
+            border-top: 1px solid rgba(148, 163, 184, 0.10);
+            background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+            color: var(--text-primary);
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .exercise-table.full-width tbody tr:nth-child(odd) td {
+            background: color-mix(in srgb, var(--bg-card) 84%, transparent);
+        }
+
+        .exercise-table.full-width tbody tr {
+            transition: background 0.18s ease;
+        }
+
+        .exercise-table.full-width tbody tr:hover td {
+            background: color-mix(in srgb, var(--bg-card) 74%, var(--accent-primary) 26%);
+        }
+
+    .action-cell {
+        vertical-align: bottom;
+    }
+
+    .preview-action-cell {
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-end;
+        gap: 0.45rem;
+        min-height: 100%;
+        width: 100%;
+    }
+
+    .table-action-stack {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .reorder-btn {
+        inline-size: 2rem;
+        block-size: 2rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: 1px solid color-mix(in srgb, #64748b 18%, var(--border-color) 82%);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font: inherit;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        transition: transform .16s ease, border-color .16s ease, background .16s ease;
+    }
+
+    .reorder-btn--plain {
+        inline-size: auto;
+        block-size: auto;
+        padding: 0;
+        border: none;
+        background: transparent;
+        border-radius: 0;
+        color: color-mix(in srgb, var(--text-primary) 86%, var(--accent-primary) 14%);
+        font-size: 1.15rem;
+        font-weight: 800;
+        line-height: 1;
+        box-shadow: none;
+    }
+
+    .reorder-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-color) 72%);
+        background: color-mix(in srgb, var(--accent-primary) 6%, var(--bg-secondary) 94%);
+    }
+
+    .reorder-btn--plain:hover:not(:disabled) {
+        color: var(--accent-primary);
+        border-color: transparent;
+        background: transparent;
+        transform: translateY(-1px);
+    }
+
+    .reorder-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
 
     .add-exercise-btn,
     .plan-submit-btn {

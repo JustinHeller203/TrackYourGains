@@ -14,10 +14,35 @@
                            v-model="exerciseLocal"
                            :options="exerciseOptions" />
 
+            <div class="plan-overview-toggle-row">
+                <button type="button"
+                        class="plan-overview-toggle"
+                        @click="showPlanOverviewLocal = true">
+                    <span class="plan-overview-toggle__copy">
+                        <span class="plan-overview-toggle__eyebrow">Trainingsplan</span>
+                        <span class="plan-overview-toggle__title">Trainingsplan öffnen</span>
+                    </span>
+                    <span class="plan-overview-toggle__icon" aria-hidden="true">↗</span>
+                </button>
+            </div>
+
             <div class="exercise-gap"></div>
 
             <!-- Cardio-Inputs -->
             <div v-if="inputType === 'ausdauer'" class="modal-grid grid-2 grid-cardio">
+                <div>
+                    <UiPopupInput id="progress-weight"
+                                  ref="weightInput"
+                                  :label="`Körpergewicht (${unit ?? 'kg'})`"
+                                  type="number"
+                                  inputmode="decimal"
+                                  min="0"
+                                  step="0.5"
+                                  v-model="weightTextLocal"
+                                  :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
+                                  :readonly="false" />
+                </div>
+
                 <div>
                     <UiPopupInput id="progress-duration"
                                   ref="durationInput"
@@ -33,31 +58,23 @@
 
                 </div>
 
-                <div>
-                    <div class="input-with-extras">
-                        <UiPopupInput id="progress-weight"
-                                      ref="weightInput"
-                                      :label="`Körpergewicht (${unit ?? 'kg'})`"
-                                      type="number"
-                                      inputmode="decimal"
-                                      min="0"
-                                      step="0.5"
-                                      v-model="weightTextLocal"
-                                      :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
-                                      :readonly="false" />
-
-                        <ExtrasToggleButton :toggled="showExtrasLocal"
-                                            title="Extras einblenden"
-                                            aria-label="Extras einblenden"
-                                            :extraClass="['btn-extras-chip','extras-align', !hasExerciseSelected ? 'disabled-chip' : '']"
-                                            @click="() => { if (requireExercise('extras')) showExtrasLocal = !showExtrasLocal }" />
-                    </div>
-                </div>
-
             </div>
 
             <!-- Dehnung-Inputs -->
             <div v-else-if="inputType === 'dehnung'" class="modal-grid grid-2">
+                <div>
+                    <UiPopupInput id="stretch-weight"
+                                  ref="weightInput"
+                                  :label="`Körpergewicht (${unit})`"
+                                  type="number"
+                                  inputmode="decimal"
+                                  min="0"
+                                  step="0.5"
+                                  v-model="weightTextLocal"
+                                  :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
+                                  :readonly="false" />
+                </div>
+
                 <div>
                     <UiPopupInput id="stretch-sets"
                                   label="Sätze insgesamt"
@@ -72,32 +89,24 @@
                                   @focus="!hasExerciseSelected && requireExercise('sets')" />
                 </div>
 
-                <div>
-                    <div class="input-with-extras">
-                        <UiPopupInput id="stretch-weight"
-                                      ref="weightInput"
-                                      :label="`Körpergewicht (${unit})`"
-                                      type="number"
-                                      inputmode="decimal"
-                                      min="0"
-                                      step="0.5"
-                                      v-model="weightTextLocal"
-                                      :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
-                                      :readonly="false" />
-
-                        <ExtrasToggleButton :toggled="showExtrasLocal"
-                                            title="Extras einblenden"
-                                            aria-label="Extras einblenden"
-                                            :extraClass="['btn-extras-chip','extras-align', !hasExerciseSelected ? 'disabled-chip' : '']"
-                                            @click="() => { if (requireExercise('extras')) showExtrasLocal = !showExtrasLocal }" />
-
-                    </div>
-                </div>
             </div>
 
 
             <!-- Kraft/Calisthenics (Standard) -->
             <div v-else class="modal-grid grid-2">
+                <div>
+                    <UiPopupInput id="progress-weight"
+                                  ref="weightInput"
+                                  :label="`Körpergewicht (${unit})`"
+                                  type="number"
+                                  inputmode="decimal"
+                                  min="0"
+                                  step="0.5"
+                                  v-model="weightTextLocal"
+                                  :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
+                                  :readonly="false" />
+                </div>
+
                 <div>
                     <UiPopupInput id="progress-sets"
                                   label="Sätze insgesamt"
@@ -113,26 +122,6 @@
 
                 </div>
 
-                <div>
-                    <div class="input-with-extras">
-                        <UiPopupInput id="progress-weight"
-                                      ref="weightInput"
-                                      :label="`Körpergewicht (${unit})`"
-                                      type="number"
-                                      inputmode="decimal"
-                                      min="0"
-                                      step="0.5"
-                                      v-model="weightTextLocal"
-                                      :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
-                                      :readonly="false" />
-
-                        <ExtrasToggleButton :toggled="showExtrasLocal"
-                                            title="Extras einblenden"
-                                            aria-label="Extras einblenden"
-                                            :extraClass="['btn-extras-chip','extras-align', !hasExerciseSelected ? 'disabled-chip' : '']"
-                                            @click="() => { if (requireExercise('extras')) showExtrasLocal = !showExtrasLocal }" />
-                    </div>
-                </div>
             </div>
 
             <div v-if="visibleSetCount > 0 && (inputType === 'kraft' || inputType === 'calisthenics' || inputType === 'dehnung')"
@@ -253,6 +242,14 @@
                         + Satz
                     </button>
                 </div>
+            </div>
+
+            <div class="extras-toggle-row">
+                <ExtrasToggleButton :toggled="showExtrasLocal"
+                                    :title="showExtrasLocal ? 'Extras ausblenden' : 'Extras einblenden'"
+                                    :aria-label="showExtrasLocal ? 'Extras ausblenden' : 'Extras einblenden'"
+                                    :extraClass="['btn-extras-chip','btn-extras-chip--footer', !hasExerciseSelected ? 'disabled-chip' : '']"
+                                    @click="() => { if (requireExercise('extras')) showExtrasLocal = !showExtrasLocal }" />
             </div>
 
             <div v-if="showExtrasLocal" class="extras-section grid-2">
@@ -512,6 +509,126 @@
                          lead="Bitte wähle zuerst eine Übung aus, bevor du Sätze bearbeitest."
                          @close="closeSetActionErrorPopup" />
 
+        <BasePopup :show="showPlanOverviewLocal"
+                   :title="currentPlanName ? `Trainingsplan · ${currentPlanName}` : 'Trainingsplan ansehen'"
+                   overlayClass="progress-entry-plan-popup"
+                   :show-actions="false"
+                   @cancel="showPlanOverviewLocal = false">
+            <div class="plan-overview-popup">
+                <div class="plan-overview-popup__intro">
+                    <p class="plan-overview-popup__copy">
+                        Hier siehst du deinen kompletten Trainingsplan mit Tagesstruktur und allen hinterlegten Hinweisen.
+                    </p>
+                    <div v-if="selectedExerciseKey" class="plan-overview-popup__focus">
+                        Aktuell ausgewählt:
+                        <strong>{{ exerciseLocal || 'Keine Übung gewählt' }}</strong>
+                    </div>
+                </div>
+
+                <div v-if="planOverviewDays.length" class="plan-overview-days">
+                    <section v-for="day in planOverviewDays"
+                             :key="day.key"
+                             class="plan-overview-day">
+                        <div class="plan-overview-day__header">
+                            <h4>{{ day.label }}</h4>
+                            <span>{{ day.exercises.length }} Übungen</span>
+                        </div>
+
+                        <div class="plan-overview-list">
+                            <article v-for="exercise in day.exercises"
+                                     :key="`${day.key}-${exercise.exercise}`"
+                                     class="plan-overview-item"
+                                     :class="{ 'is-selected': selectedExerciseKey === normalizeExerciseKey(exercise.exercise) }"
+                                     role="button"
+                                     tabindex="0"
+                                     @click="openExerciseTutorial(exercise)"
+                                     @keydown.enter.prevent="openExerciseTutorial(exercise)"
+                                     @keydown.space.prevent="openExerciseTutorial(exercise)">
+                                <div class="plan-overview-item__head">
+                                    <strong>{{ exercise.exercise }}</strong>
+                                    <span>{{ formatPlanExercisePrescription(exercise) }}</span>
+                                </div>
+
+                                <div v-if="getPlanExerciseMeta(exercise).length" class="plan-overview-meta">
+                                    <span v-for="meta in getPlanExerciseMeta(exercise)"
+                                          :key="`${exercise.exercise}-${meta.label}-${meta.value}`"
+                                          class="plan-overview-meta__chip">
+                                        <strong>{{ meta.label }}</strong> {{ meta.value }}
+                                    </span>
+                                </div>
+
+                                <ul v-if="getPlanExerciseNoteLines(exercise).length" class="plan-overview-notes">
+                                    <li v-for="line in getPlanExerciseNoteLines(exercise)"
+                                        :key="`${exercise.exercise}-${line}`">
+                                        {{ line }}
+                                    </li>
+                                </ul>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+                <p v-else class="plan-overview-empty">
+                    Für diesen Plan sind aktuell keine Übungsdetails verfügbar.
+                </p>
+            </div>
+        </BasePopup>
+
+        <BasePopup :show="Boolean(activeTutorialExerciseLocal)"
+                   :title="activeTutorialExerciseLocal ? `Tutorial · ${activeTutorialExerciseLocal.exercise}` : 'Tutorial'"
+                   overlayClass="progress-entry-tutorial-popup"
+                   :show-actions="false"
+                   @cancel="closeExerciseTutorial">
+            <div class="exercise-tutorial-popup">
+                <div v-if="hasTutorialVideo" class="exercise-tutorial-popup__media">
+                    <iframe v-if="isYouTubeEmbed(activeTutorialLocal?.videoUrl)"
+                            :src="activeTutorialLocal?.videoUrl ?? undefined"
+                            class="exercise-tutorial-popup__frame"
+                            frameborder="0"
+                            allowfullscreen
+                            loading="lazy"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin"></iframe>
+
+                    <video v-else class="exercise-tutorial-popup__frame" controls playsinline preload="metadata">
+                        <source :src="activeTutorialLocal?.videoUrl ?? undefined" />
+                    </video>
+                </div>
+
+                <div v-else class="exercise-tutorial-popup__empty">
+                    Kein Tutorial-Video gefunden.
+                </div>
+
+                <div class="exercise-tutorial-popup__meta">
+                    <strong>{{ activeTutorialLocal?.title ?? activeTutorialExerciseLocal?.exercise }}</strong>
+                    <p v-if="activeTutorialLocal && !hasTutorialVideo" class="exercise-tutorial-popup__hint">
+                        Für diese Übung gibt es aktuell keinen hinterlegten Video-Link.
+                    </p>
+                </div>
+            </div>
+        </BasePopup>
+
+        <BasePopup :show="showUnsavedChangesPopup"
+                   title="Änderungen speichern?"
+                   overlayClass="progress-entry-unsaved-popup"
+                   :showClose="false"
+                   :show-actions="false"
+                   @cancel="closeUnsavedChangesPopup">
+            <p class="unsaved-popup-copy">
+                Du hast ungespeicherte Änderungen. Möchtest du vor dem Schließen speichern?
+            </p>
+            <template #actions>
+                <PopupActionButton variant="ghost" @click="closeUnsavedChangesPopup">
+                    Abbrechen
+                </PopupActionButton>
+                <PopupActionButton variant="ghost" @click="discardUnsavedChanges">
+                    Nicht speichern
+                </PopupActionButton>
+                <PopupActionButton @click="saveAndCloseFromPrompt">
+                    Speichern
+                </PopupActionButton>
+            </template>
+        </BasePopup>
+
         <EditPopup v-model="showSetLabelEditPopupLocal"
                    title="Satznamen bearbeiten"
                    inputType="text"
@@ -543,6 +660,7 @@
     import { useTrainingPlansStore } from "@/store/trainingPlansStore"
     import { useWeightStore } from '@/store/weightStore'
     import { getWeightIncreaseHint } from '@/utils/trainingWeightIncreaseHint'
+    import { findTutorialForExercise, isYouTubeEmbed, type TutorialCatalogEntry } from '@/services/tutorialCatalog'
 
     type Focusable = { focus: () => void }
 
@@ -555,9 +673,17 @@
         reps: number
         goal?: string
         type?: ExerciseType
-        // cardio extra (optional, aber für Prefill nice)
+        dayName?: string
+        daySortOrder?: number
+        exerciseSortOrder?: number
         durationMin?: number | null
         distanceKm?: number | null
+        notes?: string
+        recoveryHint?: string
+        tempoHint?: string
+        equipmentNumber?: string
+        replacementExercise?: string
+        replacementReason?: string
     }
     type Workout = {
         planId?: string
@@ -639,7 +765,10 @@
     })
 
     function closePopup() {
+        showUnsavedChangesPopup.value = false
         showExtrasLocal.value = false
+        showPlanOverviewLocal.value = false
+        closeExerciseTutorial()
         localEditingEntry.value = null
         closeSetLabelEditor()
         closeSetLabelErrorPopup()
@@ -648,6 +777,18 @@
             window.removeEventListener('resize', onWindowResizeMeasureSetTitles)
         }
         showProxy.value = false
+    }
+    function closeUnsavedChangesPopup() {
+        showUnsavedChangesPopup.value = false
+    }
+    function discardUnsavedChanges() {
+        closeUnsavedChangesPopup()
+        closePopup()
+        emit('cancel')
+    }
+    function saveAndCloseFromPrompt() {
+        closeUnsavedChangesPopup()
+        onSave()
     }
     const emit = defineEmits<{
         (e: 'update:show', v: boolean): void
@@ -786,7 +927,6 @@
 
         // ✅ Kraft / Calisthenics
         if ((planEx.type === 'kraft' || planEx.type === 'calisthenics') && shouldFillStrength()) {
-            repsLocal.value = Number(planEx.reps || 0) || null
             setsLocal.value = Number(planEx.sets || 0) || null
             // force sync in case sets value doesn't change but rows are empty
             syncSetDetailsToSets(setsLocal.value)
@@ -910,6 +1050,64 @@
         return 'kraft'
     }
 
+    const parseExerciseGuidance = (rawNotes?: string | null) => {
+        const notes = String(rawNotes ?? '').trim()
+        if (!notes) {
+            return {
+                notes: undefined,
+                recoveryHint: undefined,
+                tempoHint: undefined,
+                equipmentNumber: undefined,
+                replacementExercise: undefined,
+                replacementReason: undefined,
+            }
+        }
+
+        let recoveryHint: string | undefined
+        let tempoHint: string | undefined
+        let equipmentNumber: string | undefined
+        let replacementExercise: string | undefined
+        let replacementReason: string | undefined
+        const freeLines: string[] = []
+
+        for (const rawLine of notes.split(/\r?\n/)) {
+            const line = rawLine.trim()
+            if (!line) continue
+
+            if (/^(Pause|Recovery):\s*/i.test(line)) {
+                recoveryHint = line.replace(/^(Pause|Recovery):\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Tempo:\s*/i.test(line)) {
+                tempoHint = line.replace(/^Tempo:\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^(Gerätenummer|Geraetenummer):\s*/i.test(line)) {
+                equipmentNumber = line.replace(/^(Gerätenummer|Geraetenummer):\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Ersatz:\s*/i.test(line)) {
+                replacementExercise = line.replace(/^Ersatz:\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Ersatzgrund:\s*/i.test(line)) {
+                replacementReason = line.replace(/^Ersatzgrund:\s*/i, '').trim() || undefined
+                continue
+            }
+
+            freeLines.push(line)
+        }
+
+        return {
+            notes: freeLines.join('\n') || undefined,
+            recoveryHint,
+            tempoHint,
+            equipmentNumber,
+            replacementExercise,
+            replacementReason,
+        }
+    }
+
     const exercisesResolved = computed<PlanExercise[]>(() => {
         const id = props.planId
         const dto = id ? trainingPlansStore.items.find((p: any) => p.id === id) : null
@@ -922,6 +1120,7 @@
                         Array.isArray(d.exercises)
                             ? d.exercises.map((x: any) => {
                                 const name = String(x.name ?? x.exercise ?? '').trim()
+                                const guidance = parseExerciseGuidance(x.notes)
                                 const type = inferExerciseType({
                                     exercise: name,
                                     type: x.category ?? x.type,
@@ -945,8 +1144,17 @@
                                     sets,
                                     reps,
                                     type,
+                                    dayName: String(d?.name ?? '').trim() || 'Trainingstag',
+                                    daySortOrder: Number(d?.sortOrder ?? 0) || 0,
+                                    exerciseSortOrder: Number(x?.sortOrder ?? 0) || 0,
                                     durationMin: type === 'ausdauer' ? (x.durationMin ?? null) : null,
                                     distanceKm: type === 'ausdauer' ? (x.distanceKm ?? null) : null,
+                                    notes: guidance.notes,
+                                    recoveryHint: guidance.recoveryHint,
+                                    tempoHint: guidance.tempoHint,
+                                    equipmentNumber: guidance.equipmentNumber,
+                                    replacementExercise: guidance.replacementExercise,
+                                    replacementReason: guidance.replacementReason,
                                 }
                             })
                             : []
@@ -987,6 +1195,124 @@
         }
         return normalized
     })
+
+    const planOverviewDays = computed(() => {
+        const id = props.planId
+        const dto = id ? trainingPlansStore.items.find((p: any) => p.id === id) : null
+
+        if (dto && Array.isArray((dto as any).days) && (dto as any).days.length) {
+            return (dto as any).days
+                .map((day: any, dayIndex: number) => {
+                    const exercises = Array.isArray(day?.exercises)
+                        ? day.exercises
+                            .map((exercise: any, exerciseIndex: number) => {
+                                const name = String(exercise?.name ?? exercise?.exercise ?? '').trim()
+                                if (!name) return null
+
+                                const guidance = parseExerciseGuidance(exercise?.notes)
+                                const type = inferExerciseType({
+                                    exercise: name,
+                                    type: exercise?.category ?? exercise?.type,
+                                    durationMin: exercise?.durationMin ?? null,
+                                    distanceKm: exercise?.distanceKm ?? null,
+                                    sets: exercise?.sets ?? null,
+                                    reps: exercise?.reps ?? null,
+                                })
+
+                                return {
+                                    exercise: name,
+                                    sets: type === 'ausdauer' ? Number(exercise?.durationMin ?? 0) || 0 : Number(exercise?.sets ?? 0) || 0,
+                                    reps: type === 'ausdauer' ? Number(exercise?.distanceKm ?? 0) || 0 : Number(exercise?.reps ?? 0) || 0,
+                                    type,
+                                    dayName: String(day?.name ?? '').trim() || `Tag ${dayIndex + 1}`,
+                                    daySortOrder: Number(day?.sortOrder ?? dayIndex) || dayIndex,
+                                    exerciseSortOrder: Number(exercise?.sortOrder ?? exerciseIndex) || exerciseIndex,
+                                    durationMin: type === 'ausdauer' ? (exercise?.durationMin ?? null) : null,
+                                    distanceKm: type === 'ausdauer' ? (exercise?.distanceKm ?? null) : null,
+                                    notes: guidance.notes,
+                                    recoveryHint: guidance.recoveryHint,
+                                    tempoHint: guidance.tempoHint,
+                                    equipmentNumber: guidance.equipmentNumber,
+                                    replacementExercise: guidance.replacementExercise,
+                                    replacementReason: guidance.replacementReason,
+                                } satisfies PlanExercise
+                            })
+                            .filter(Boolean as any)
+                            .sort((a: PlanExercise, b: PlanExercise) => (a.exerciseSortOrder ?? 0) - (b.exerciseSortOrder ?? 0))
+                        : []
+
+                    return {
+                        key: String(day?.id ?? `${dayIndex}`),
+                        label: String(day?.name ?? '').trim() || `Tag ${dayIndex + 1}`,
+                        sortOrder: Number(day?.sortOrder ?? dayIndex) || dayIndex,
+                        exercises,
+                    }
+                })
+                .filter((day: { exercises: PlanExercise[] }) => day.exercises.length > 0)
+                .sort((a: { sortOrder: number }, b: { sortOrder: number }) => a.sortOrder - b.sortOrder)
+        }
+
+        if (!exercisesResolved.value.length) return []
+
+        return [{
+            key: 'overview',
+            label: 'Planübersicht',
+            sortOrder: 0,
+            exercises: [...exercisesResolved.value].sort((a, b) => a.exercise.localeCompare(b.exercise, 'de')),
+        }]
+    })
+    const currentPlanName = computed(() => {
+        const id = props.planId
+        if (!id) return ''
+        return String(trainingPlansStore.items.find((p: any) => p.id === id)?.name ?? '').trim()
+    })
+
+    const formatPlanExercisePrescription = (exercise: PlanExercise) => {
+        if (exercise.type === 'ausdauer') {
+            const parts: string[] = []
+            if (exercise.durationMin != null && Number(exercise.durationMin) > 0) parts.push(`${exercise.durationMin} Min`)
+            if (exercise.distanceKm != null && Number(exercise.distanceKm) > 0) parts.push(`${exercise.distanceKm} km`)
+            return parts.join(' · ') || 'Cardio'
+        }
+        if (exercise.type === 'dehnung') {
+            const parts: string[] = []
+            if (exercise.sets > 0) parts.push(`${exercise.sets} Sätze`)
+            if (exercise.reps > 0) parts.push(`${exercise.reps} Sek`)
+            return parts.join(' · ') || 'Dehnung'
+        }
+
+        const parts: string[] = []
+        if (exercise.sets > 0) parts.push(`${exercise.sets} Sätze`)
+        if (exercise.reps > 0) parts.push(`${exercise.reps} Wdh`)
+        return parts.join(' · ') || 'Übung'
+    }
+
+    const getPlanExerciseMeta = (exercise: PlanExercise) => {
+        const items: Array<{ label: string; value: string }> = []
+        if (exercise.recoveryHint) items.push({ label: 'Pause:', value: exercise.recoveryHint })
+        if (exercise.tempoHint) items.push({ label: exercise.type === 'ausdauer' ? 'Geschwindigkeit:' : 'Tempo:', value: exercise.tempoHint })
+        if (exercise.equipmentNumber) items.push({ label: 'Gerätenummer:', value: exercise.equipmentNumber })
+        if (exercise.replacementExercise) items.push({ label: 'Ersatz:', value: exercise.replacementExercise })
+        if (exercise.replacementReason) items.push({ label: 'Ersatzgrund:', value: exercise.replacementReason })
+        return items
+    }
+
+    const getPlanExerciseNoteLines = (exercise: PlanExercise) =>
+        String(exercise.notes ?? '')
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+    const hasTutorialVideo = computed(() => Boolean(activeTutorialLocal.value?.videoUrl))
+
+    function openExerciseTutorial(exercise: PlanExercise) {
+        activeTutorialExerciseLocal.value = exercise
+        activeTutorialLocal.value = findTutorialForExercise(exercise.exercise)
+    }
+
+    function closeExerciseTutorial() {
+        activeTutorialExerciseLocal.value = null
+        activeTutorialLocal.value = null
+    }
 
     const exerciseOptions = computed(() =>
         exercisesResolved.value.map(e => ({ label: e.exercise, value: e.exercise }))
@@ -1054,8 +1380,13 @@
 
     /* core local state */
     const showExtrasLocal = ref(false)
+    const showPlanOverviewLocal = ref(false)
+    const activeTutorialExerciseLocal = ref<PlanExercise | null>(null)
+    const activeTutorialLocal = ref<TutorialCatalogEntry | null>(null)
     const localEditingEntry = ref<Workout | null>(null)
     const localIsEditing = computed(() => !!localEditingEntry.value)
+    const showUnsavedChangesPopup = ref(false)
+    const initialDraftSnapshot = ref('')
 
     const exerciseLocal = ref('')
     const setsLocal = ref<number | null>(null)
@@ -1168,6 +1499,51 @@
 
     
     const isBlank = (v: unknown) => v == null || String(v).trim() === ''
+    const normalizeDraftNumber = (value: unknown) => {
+        const num = toNumber(value)
+        return num == null ? null : num
+    }
+    const buildDraftSnapshot = () => JSON.stringify({
+        exercise: exerciseLocal.value.trim(),
+        sets: normalizeDraftNumber(setsLocal.value),
+        weight: normalizeDraftNumber(weightLocal.value),
+        reps: normalizeDraftNumber(repsLocal.value),
+        note: noteLocal.value.trim(),
+        duration: normalizeDraftNumber(durationLocal.value),
+        distance: normalizeDraftNumber(distanceLocal.value),
+        tempo: tempoLocal.value.trim(),
+        restSeconds: normalizeDraftNumber(restSecondsLocal.value),
+        avgHr: normalizeDraftNumber(avgHrLocal.value),
+        calories: normalizeDraftNumber(caloriesLocal.value),
+        pace: paceLocal.value.trim(),
+        hrZone: normalizeDraftNumber(hrZoneLocal.value),
+        borg: normalizeDraftNumber(borgLocalNum.value),
+        painFree: normalizeDraftNumber(painFreeLocal.value),
+        equipment: equipmentLocal.value.trim(),
+        equipmentCustom: equipmentCustomLocal.value.trim(),
+        side: sideLocal.value,
+        isDropset: Boolean(isDropsetLocal.value),
+        setDetails: (setDetailsLocal.value ?? []).map((row) => ({
+            weight: normalizeDraftNumber(row.weight),
+            reps: normalizeDraftNumber(row.reps),
+            durationSec: normalizeDraftNumber(row.durationSec),
+            label: String(row.label ?? '').trim(),
+        })),
+        skippedSets: Array.from(skippedSetNumbersLocal.value).sort((a, b) => a - b),
+        dropsets: (dropsetsLocal.value ?? []).map((row) => ({
+            weight: normalizeDraftNumber(row.weight),
+            reps: normalizeDraftNumber(row.reps),
+        })),
+    })
+    const markCurrentDraftAsClean = () => {
+        initialDraftSnapshot.value = buildDraftSnapshot()
+    }
+    const hasUnsavedChanges = computed(() =>
+        Boolean(props.show) &&
+        initialDraftSnapshot.value.length > 0 &&
+        buildDraftSnapshot() !== initialDraftSnapshot.value
+    )
+    const selectedExerciseKey = computed(() => normalizeExerciseKey(exerciseLocal.value))
 
     const canAutofill = computed(() => !localIsEditing.value)
 
@@ -1733,6 +2109,7 @@
         lastAppliedExercisePrefillKeyLocal.value = ''
         lastTouchedSetNoLocal.value = null
         showExtrasLocal.value = false
+        showPlanOverviewLocal.value = false
         lastTypeLocal.value = null
 
         exerciseLocal.value = ''
@@ -1776,6 +2153,7 @@
         activeSetNumberLocalOverride.value = null
         lastAppliedExercisePrefillKeyLocal.value = ''
         lastTouchedSetNoLocal.value = null
+        showPlanOverviewLocal.value = false
         lastTypeLocal.value = detectedInputType.value
 
         exerciseLocal.value = entry.exercise || ''
@@ -1838,7 +2216,7 @@
         if (count > next.length) {
             for (let i = next.length; i < count; i++) {
                 if (inputType.value === 'dehnung') next.push({ weight: 0, reps: null, durationSec: 30 })
-                else next.push({ weight: null, reps: repsLocal.value ?? null })
+                else next.push({ weight: null, reps: null })
             }
         } else if (count < next.length) {
             next.splice(count)
@@ -1910,7 +2288,6 @@
                 next[idx] = {
                     ...next[idx],
                     weight: v?.weight ?? next[idx].weight ?? null,
-                    reps: v?.reps ?? next[idx].reps ?? null,
                 }
             }
             setDetailsLocal.value = next
@@ -1942,9 +2319,6 @@
             if (v?.weight != null && (next[idx].weight == null || next[idx].weight === 0)) {
                 next[idx] = { ...next[idx], weight: v.weight }
             }
-            if (v?.reps != null && (next[idx].reps == null || next[idx].reps === 0)) {
-                next[idx] = { ...next[idx], reps: v.reps }
-            }
         }
 
         setDetailsLocal.value = next
@@ -1956,6 +2330,8 @@
             if (typeof window !== 'undefined') {
                 window.addEventListener('resize', onWindowResizeMeasureSetTitles)
             }
+            showUnsavedChangesPopup.value = false
+            showPlanOverviewLocal.value = false
             didApplyPrefillForOpen.value = false
             lastAppliedExercisePrefillKeyLocal.value = ''
 
@@ -1976,6 +2352,7 @@
             nextTick(() => focusFirst())
             nextTick(() => openSyncBorg())
             nextTick(() => scheduleSetTitleMeasure())
+            nextTick(() => markCurrentDraftAsClean())
         } else {
             if (typeof window !== 'undefined') {
                 window.removeEventListener('resize', onWindowResizeMeasureSetTitles)
@@ -1984,6 +2361,9 @@
             lastAppliedExercisePrefillKeyLocal.value = ''
             lastTouchedSetNoLocal.value = null
             showExtrasLocal.value = false
+            showUnsavedChangesPopup.value = false
+            showPlanOverviewLocal.value = false
+            initialDraftSnapshot.value = ''
         }
     })
 
@@ -2006,6 +2386,10 @@
     })
 
     function onCancel() {
+        if (hasUnsavedChanges.value) {
+            showUnsavedChangesPopup.value = true
+            return
+        }
         closePopup()
         emit('cancel')
     }
@@ -2208,8 +2592,281 @@
 
 <style scoped>
 
+    .unsaved-popup-copy {
+        margin: 0;
+        text-align: center;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .plan-overview-toggle-row {
+        margin-top: .85rem;
+    }
+
+    .plan-overview-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .8rem;
+        padding: .9rem 1rem;
+        border-radius: 16px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 18%, var(--border-color) 82%);
+        background:
+            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 42%),
+            color-mix(in srgb, var(--bg-secondary) 94%, transparent);
+        color: var(--text-primary);
+        text-align: left;
+        transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    .plan-overview-toggle:hover {
+        border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-color) 66%);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+        transform: translateY(-1px);
+    }
+
+    .plan-overview-toggle__copy {
+        display: flex;
+        flex-direction: column;
+        gap: .12rem;
+        min-width: 0;
+    }
+
+    .plan-overview-toggle__eyebrow {
+        font-size: .74rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+
+    .plan-overview-toggle__title {
+        font-size: .98rem;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .plan-overview-toggle__icon {
+        flex: 0 0 auto;
+        font-size: 1.05rem;
+        color: var(--accent-primary);
+        transition: transform .18s ease;
+    }
+
+    .plan-overview-days {
+        display: grid;
+        gap: .85rem;
+    }
+
+    .plan-overview-day {
+        display: grid;
+        gap: .55rem;
+    }
+
+    .plan-overview-day__header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .plan-overview-day__header h4 {
+        margin: 0;
+        font-size: .98rem;
+        font-weight: 800;
+    }
+
+    .plan-overview-day__header span {
+        color: var(--text-secondary);
+        font-size: .85rem;
+        font-weight: 700;
+    }
+
+    .plan-overview-list {
+        display: grid;
+        gap: .55rem;
+    }
+
+    .plan-overview-item {
+        padding: .8rem .85rem;
+        border-radius: 14px;
+        border: 1px solid color-mix(in srgb, var(--border-color) 88%, var(--accent-primary) 12%);
+        background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
+        display: grid;
+        gap: .45rem;
+        cursor: pointer;
+        transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+
+    .plan-overview-item:hover {
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-color) 72%);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+    }
+
+    .plan-overview-item:focus-visible {
+        outline: none;
+        border-color: color-mix(in srgb, var(--accent-primary) 44%, var(--border-color) 56%);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 18%, transparent);
+    }
+
+    .plan-overview-item.is-selected {
+        border-color: color-mix(in srgb, var(--accent-primary) 44%, var(--border-color) 56%);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 18%, transparent);
+    }
+
+    .plan-overview-item__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: .45rem .8rem;
+    }
+
+    .plan-overview-item__head strong {
+        font-size: .95rem;
+    }
+
+    .plan-overview-item__head span {
+        color: var(--text-secondary);
+        font-size: .88rem;
+        font-weight: 700;
+    }
+
+    .plan-overview-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .42rem;
+    }
+
+    .plan-overview-meta__chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        padding: .3rem .55rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-primary) 90%);
+        color: var(--text-secondary);
+        font-size: .8rem;
+        line-height: 1.2;
+    }
+
+    .plan-overview-meta__chip strong {
+        color: var(--text-primary);
+    }
+
+    .plan-overview-notes {
+        margin: 0;
+        padding-left: 1.1rem;
+        color: var(--text-secondary);
+        display: grid;
+        gap: .22rem;
+    }
+
+    .plan-overview-empty {
+        margin: 0;
+        color: var(--text-secondary);
+        text-align: center;
+    }
+
+    .plan-overview-popup {
+        display: grid;
+        gap: 1rem;
+        max-height: min(68vh, 860px);
+        overflow: auto;
+        padding-right: .2rem;
+        padding-bottom: 1.35rem;
+    }
+
+    .plan-overview-popup__intro {
+        display: grid;
+        gap: .55rem;
+    }
+
+    .plan-overview-popup__copy {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .plan-overview-popup__focus {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .35rem;
+        padding: .55rem .7rem;
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--accent-primary) 9%, var(--bg-secondary) 91%);
+        color: var(--text-secondary);
+        font-size: .9rem;
+    }
+
+    .plan-overview-popup__focus strong {
+        color: var(--text-primary);
+    }
+
+    .exercise-tutorial-popup {
+        display: grid;
+        gap: .9rem;
+    }
+
+    .exercise-tutorial-popup__media {
+        border-radius: 18px;
+        overflow: hidden;
+        background: color-mix(in srgb, var(--bg-secondary) 96%, transparent);
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 14%, var(--border-color) 86%);
+    }
+
+    .exercise-tutorial-popup__frame {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        display: block;
+        background: #000;
+    }
+
+    .exercise-tutorial-popup__empty {
+        min-height: 220px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        padding: 1rem;
+        border-radius: 18px;
+        border: 1px dashed color-mix(in srgb, var(--accent-primary) 28%, var(--border-color) 72%);
+        background: color-mix(in srgb, var(--bg-secondary) 94%, transparent);
+        color: var(--text-secondary);
+        font-weight: 700;
+    }
+
+    .exercise-tutorial-popup__meta {
+        display: grid;
+        gap: .35rem;
+    }
+
+    .exercise-tutorial-popup__meta strong {
+        font-size: 1rem;
+    }
+
+    .exercise-tutorial-popup__hint {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
     :global(.popup-overlay.progress-entry-popup) {
         z-index: 10050 !important;
+    }
+
+    :global(.popup-overlay.progress-entry-plan-popup) {
+        z-index: 10140 !important;
+    }
+
+    :global(.popup-overlay.progress-entry-tutorial-popup) {
+        z-index: 10150 !important;
+    }
+
+    :global(.popup-overlay.progress-entry-unsaved-popup) {
+        z-index: 10160 !important;
     }
 
     :global(.popup-overlay.edit-popup) {
@@ -2693,29 +3350,6 @@
         margin-bottom: .1rem;
     }
 
-    .extras-align {
-        justify-self: end;
-        align-self: center;
-        margin-top: 5px; /* bei Bedarf 4px */
-    }
-
-    @media (max-width:560px) {
-        .input-with-extras {
-            gap: .4rem;
-        }
-    }
-
-    .input-with-extras {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: .5rem;
-        align-items: end; /* statt center -> Chip hängt unten an der Input-Kante */
-    }
-
-        .input-with-extras .btn-extras-chip {
-            margin-bottom: -9px;
-        }
-
     .disabled-chip {
         opacity: .6;
         cursor: not-allowed;
@@ -2734,9 +3368,6 @@
             align-items: start;
             gap: .6rem 1rem;
         }
-
-
-
             /* REMOVE-Effekt: KEIN eigenes Grid pro Zelle -> verhindert Überlappung */
             .modal-grid.grid-2 > div {
                 display: block;
@@ -2769,34 +3400,12 @@
             .modal-grid.grid-2 > div {
                 display: block;
             }
-                /* WICHTIG: Chip NICHT  berlagern -> echte 2-Spalten-Zeile */
-                .modal-grid.grid-2 > div .input-with-extras {
-                    display: grid !important;
-                    grid-template-columns: 1fr auto; /* Input | Chip */
-                    gap: .5rem;
-                    align-items: center;
-                }
-
-                /* Chip normal rechts ausrichten, ohne absolute Pos. */
-                .modal-grid.grid-2 > div .extras-align {
-                    position: static;
-                    justify-self: end;
-                }
-
-
         /* Cardio-Reihe: ebenfalls nebeneinander ohne Wrap */
         .grid-cardio {
             grid-template-columns: repeat(2, minmax(380px, 1fr));
             column-gap: 1rem;
             align-items: end;
         }
-
-            .grid-cardio .input-with-extras {
-                display: grid !important;
-                grid-template-columns: 1fr auto;
-                gap: .5rem;
-                align-items: center;
-            }
 
             .grid-cardio #progress-duration {
                 width: 100%;
@@ -2840,6 +3449,78 @@
         gap: .5rem;
         flex-wrap: wrap;
     }
+
+    .extras-toggle-row {
+        display: flex;
+        justify-content: stretch;
+        margin-top: 1rem;
+        margin-bottom: .35rem;
+        padding: .4rem;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 16%, var(--border-color) 84%);
+        border-radius: 16px;
+        background:
+            linear-gradient(180deg,
+                color-mix(in srgb, var(--accent-primary) 8%, transparent),
+                transparent 58%),
+            color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+    }
+
+    .extras-toggle-row :deep(.action-btn.btn-extras-chip--footer) {
+        width: 100%;
+        justify-content: space-between;
+        min-height: 46px;
+        padding: .78rem 1rem;
+        border-radius: 12px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 26%, var(--border-color) 74%);
+        background: color-mix(in srgb, var(--bg-primary) 78%, var(--bg-secondary) 22%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-extras-chip--footer {
+        border-radius: 12px;
+        border-color: color-mix(in srgb, var(--accent-primary) 26%, var(--border-color) 74%);
+        background: color-mix(in srgb, var(--bg-primary) 78%, var(--bg-secondary) 22%);
+        box-shadow: none;
+    }
+
+    .extras-toggle-row :deep(.btn-extras-chip--footer .extras-label) {
+        display: inline !important;
+        font-size: .96rem;
+        font-weight: 700;
+        letter-spacing: 0;
+    }
+
+    .extras-toggle-row :deep(.btn-extras-chip--footer .extras-icon) {
+        margin-right: 0;
+        color: var(--accent-primary);
+    }
+
+    .extras-toggle-row :deep(.btn-extras-chip--footer.active) {
+        background: color-mix(in srgb, var(--accent-primary) 12%, var(--bg-primary) 88%);
+        border-color: color-mix(in srgb, var(--accent-primary) 48%, var(--border-color) 52%);
+    }
+
+    .extras-toggle-row :deep(.btn-extras-chip--footer:hover) {
+        transform: none;
+        box-shadow: none;
+    }
+
+    @media (max-width: 560px) {
+        .extras-toggle-row {
+            padding: .25rem;
+            border-radius: 14px;
+        }
+
+        .extras-toggle-row :deep(.action-btn.btn-extras-chip--footer) {
+            min-height: 42px;
+            padding: .68rem .8rem;
+            justify-content: center;
+        }
+
+        .extras-toggle-row :deep(.btn-extras-chip--footer .extras-label) {
+            display: none !important;
+        }
+    }
     /* Mobile bleibt 1-spaltig */
     @media (max-width: 520px) {
         .grid-cardio {
@@ -2851,8 +3532,12 @@
         height: .85rem; /* wenn du mehr willst: 1.1rem */
     }
 
+    .note-input {
+        margin-top: .8rem;
+    }
+
     .note-input--extras {
-        margin-top: 1.05rem; /* wenn noch mehr: 1.25rem */
+        margin-top: .45rem;
     }
 
     .label-with-info {
@@ -2919,7 +3604,6 @@
                 "sets";
             gap: .10rem !important;
         }
-
         .note-input {
             margin-top: 1.05rem !important;
         }

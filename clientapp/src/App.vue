@@ -1485,6 +1485,7 @@
         place-items: center;
         padding: 1rem;
         backdrop-filter: blur(2px);
+        pointer-events: none;
     }
 
     .global-loading-card {
@@ -1498,6 +1499,7 @@
         color: var(--text-primary);
         font-weight: 700;
         box-shadow: 0 16px 36px rgba(2, 6, 23, 0.45);
+        pointer-events: none;
     }
 
     .global-loading-spinner {

@@ -1,10 +1,11 @@
-import type {
+﻿import type {
     ComplaintType,
     GeneratedExercise,
     GeneratedPlan,
     GeneratedWorkoutDay,
     GeneratorInput,
     GoalType,
+    MuscleGroupExclusionMode,
     SplitType,
     TrainingLevel,
 } from '@/types/autoPlan'
@@ -15,7 +16,7 @@ import {
     type MovementPattern,
 } from '@/services/training/exerciseLibrary'
 
-type DayFocus = 'full_body' | 'upper' | 'lower' | 'push' | 'pull' | 'legs'
+type DayFocus = 'full_body' | 'upper' | 'lower' | 'push' | 'pull' | 'legs' | 'chest' | 'back' | 'shoulders' | 'arms'
 type SlotName =
     | 'knee_dominant'
     | 'hip_dominant'
@@ -95,10 +96,23 @@ function normalizeInput(input: GeneratorInput): GeneratorInput {
         exclusions: {
             exerciseNames: (input.exclusions?.exerciseNames ?? []).map((x) => String(x).trim()).filter(Boolean),
             muscleGroups: (input.exclusions?.muscleGroups ?? []).map((x) => String(x).trim()).filter(Boolean),
+            muscleGroupRules: (input.exclusions?.muscleGroupRules ?? [])
+                .map((x) => ({
+                    muscleGroup: String(x?.muscleGroup ?? '').trim(),
+                    mode: x?.mode === 'all' ? 'all' as MuscleGroupExclusionMode : 'primary_only' as MuscleGroupExclusionMode,
+                }))
+                .filter((x) => x.muscleGroup),
             exclusionTypes: [...new Set(input.exclusions?.exclusionTypes ?? [])],
             exerciseRefs: (input.exclusions?.exerciseRefs ?? []).filter((x) => x?.canonicalName || x?.exerciseId),
         },
     }
+}
+
+function matchesMuscleGroup(ex: ExerciseMetadata, muscleGroup: string, includeSecondary = false): boolean {
+    const needle = muscleGroup.toLowerCase()
+    if (ex.muscleGroup.toLowerCase() === needle) return true
+    if (!includeSecondary) return false
+    return ex.secondaryMuscleGroups.some((group) => group.toLowerCase() === needle)
 }
 
 function resolveSplitType(input: GeneratorInput): { splitType: SplitType; dayFocuses: DayFocus[] } {
@@ -165,6 +179,7 @@ function isHardExcluded(ex: ExerciseMetadata, input: GeneratorInput): boolean {
     if ((input.exclusions?.exerciseRefs ?? []).some((ref) => exerciseMatchesReference(ex, ref))) return true
     if ((input.exclusions?.exerciseNames ?? []).some((x) => x.toLowerCase() === ex.name.toLowerCase())) return true
     if ((input.exclusions?.muscleGroups ?? []).some((x) => x.toLowerCase() === ex.muscleGroup.toLowerCase())) return true
+    if ((input.exclusions?.muscleGroupRules ?? []).some((rule) => matchesMuscleGroup(ex, rule.muscleGroup, rule.mode === 'all'))) return true
     return false
 }
 
@@ -248,6 +263,7 @@ function scoreCandidate(
 
     const focusGroups = new Set((input.preferences?.focusMuscleGroups ?? []).map((x) => x.toLowerCase()))
     if (focusGroups.has(ex.muscleGroup.toLowerCase())) score += 12
+    else if (ex.secondaryMuscleGroups.some((group) => focusGroups.has(group.toLowerCase()))) score += 5
 
     for (const ref of input.preferences?.preferredExerciseRefs ?? []) {
         if (exerciseMatchesReference(ex, ref)) score += 16
@@ -312,6 +328,53 @@ function categoryForExercise(ex: ExerciseMetadata): 0 | 1 | 2 | 3 {
     if (ex.kind === 'mobility') return 2
     if (ex.equipment.length === 1 && ex.equipment[0] === 'bodyweight') return 1
     return 0
+}
+
+function resolveExerciseSubstitutions(exercise: ExerciseMetadata, pool: ExerciseMetadata[], input: GeneratorInput): string[] {
+    if (input.preferences?.includeSubstitutions === false) return []
+
+    const selectedName = exercise.name.toLowerCase()
+    const substitutions: string[] = []
+    const pushName = (name?: string | null) => {
+        const candidate = String(name ?? '').trim()
+        if (!candidate) return
+        if (candidate.toLowerCase() === selectedName) return
+        if (!substitutions.some((entry) => entry.toLowerCase() === candidate.toLowerCase())) {
+            substitutions.push(candidate)
+        }
+    }
+
+    const poolByName = new Map(pool.map((entry) => [entry.name.toLowerCase(), entry]))
+
+    for (const substitution of exercise.substitutions ?? []) {
+        const exact = poolByName.get(String(substitution).trim().toLowerCase())
+        pushName(exact?.name ?? substitution)
+    }
+
+    const dynamicCandidates = pool
+        .filter((entry) => entry.id !== exercise.id && entry.kind === exercise.kind)
+        .map((entry) => {
+            let score = 0
+            if (entry.movementPattern === exercise.movementPattern) score += 24
+            if (entry.muscleGroup === exercise.muscleGroup) score += 16
+            if (exercise.secondaryMuscleGroups.includes(entry.muscleGroup)) score += 6
+            if (entry.secondaryMuscleGroups.includes(exercise.muscleGroup)) score += 6
+            if (entry.equipment.some((item) => !exercise.equipment.includes(item))) score += 10
+            if (entry.level === exercise.level) score += 4
+            const sharedTags = entry.similarityTags.filter((tag) => exercise.similarityTags.includes(tag)).length
+            score += sharedTags * 5
+            if ((exercise.substitutions ?? []).some((item) => item.toLowerCase() === entry.name.toLowerCase())) score += 30
+            return { name: entry.name, score }
+        })
+        .filter((entry) => entry.score > 0)
+        .sort((a, b) => b.score - a.score)
+
+    for (const entry of dynamicCandidates) {
+        pushName(entry.name)
+        if (substitutions.length >= 2) break
+    }
+
+    return substitutions.slice(0, 2)
 }
 
 function pickCandidate(
@@ -412,7 +475,7 @@ function generateWorkoutDay(
             rir: rx.rir,
             rpe: rx.rpe,
             notes: notes.length ? notes.join(' | ') : undefined,
-            substitutions: fallback.exercise.substitutions.slice(0, 2),
+            substitutions: resolveExerciseSubstitutions(fallback.exercise, basePool, input),
             complaintAdjustmentReason: fallback.complaintReasons[0],
         })
     }
@@ -451,7 +514,7 @@ function generateWorkoutDay(
                 rir: rx.rir,
                 rpe: rx.rpe,
                 notes: notes.length ? notes.join(' | ') : undefined,
-                substitutions: fallback.exercise.substitutions.slice(0, 2),
+                substitutions: resolveExerciseSubstitutions(fallback.exercise, basePool, input),
                 complaintAdjustmentReason: fallback.complaintReasons[0],
             })
         }
@@ -475,7 +538,7 @@ function generateWorkoutDay(
                 restSeconds: 60,
                 rir: 4,
                 notes: 'Fallback-Auswahl: eingeschränkte Übungspalette durch Regeln/Beschwerden',
-                substitutions: x.substitutions.slice(0, 2),
+                substitutions: resolveExerciseSubstitutions(x, basePool, input),
             })
             selectedNames.add(x.name)
             context.globalSelectedNames[x.name] = (context.globalSelectedNames[x.name] ?? 0) + 1
@@ -616,7 +679,7 @@ export function generateAutoPlan(rawInput: GeneratorInput): GeneratedPlan {
                 rir: rx.rir,
                 rpe: rx.rpe,
                 notes: notes.length ? notes.join(' | ') : undefined,
-                substitutions: fallback.exercise.substitutions.slice(0, 2),
+                substitutions: resolveExerciseSubstitutions(fallback.exercise, basePool, input),
                 complaintAdjustmentReason: fallback.complaintReasons[0],
             })
         }
@@ -655,7 +718,7 @@ export function generateAutoPlan(rawInput: GeneratorInput): GeneratedPlan {
                     rir: rx.rir,
                     rpe: rx.rpe,
                     notes: notes.length ? notes.join(' | ') : undefined,
-                    substitutions: fallback.exercise.substitutions.slice(0, 2),
+                    substitutions: resolveExerciseSubstitutions(fallback.exercise, basePool, input),
                     complaintAdjustmentReason: fallback.complaintReasons[0],
                 })
             }
@@ -679,7 +742,7 @@ export function generateAutoPlan(rawInput: GeneratorInput): GeneratedPlan {
                     restSeconds: 60,
                     rir: 4,
                     notes: 'Fallback-Auswahl: eingeschränkte Übungspalette durch Regeln/Beschwerden',
-                    substitutions: x.substitutions.slice(0, 2),
+                    substitutions: resolveExerciseSubstitutions(x, basePool, input),
                 })
                 selectedNames.add(x.name)
                 globalSelectedNames[x.name] = (globalSelectedNames[x.name] ?? 0) + 1
@@ -727,3 +790,5 @@ export function generateAutoPlan(rawInput: GeneratorInput): GeneratedPlan {
         days,
     }
 }
+
+

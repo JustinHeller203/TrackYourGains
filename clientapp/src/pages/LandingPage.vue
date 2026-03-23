@@ -382,16 +382,16 @@
                     v-for="(testimonial, index) in testimonials"
                     v-show="index === currentTestimonial"
                     :key="testimonial.id"
-                    class="testimonial-card"
-                    :title="testimonial.author"
+                    class="testimonial-card command-dashboard-card testimonial-dashboard-card"
+                    title=""
                     :info="testimonial.text"
                 >
-                    <span class="quote-mark">"</span>
+                    <span class="quote-mark" aria-hidden="true">“</span>
                     <p class="testimonial-text">{{ testimonial.text }}</p>
-                    <div class="testimonial-meta">
+                    <span class="testimonial-meta">
                         <strong>{{ testimonial.author }}</strong>
                         <span>{{ testimonial.role }}</span>
-                    </div>
+                    </span>
                 </DashboardCard>
 
                 <div class="testimonial-dots" role="tablist">
@@ -2859,34 +2859,62 @@
     }
 
     .testimonial-card {
-        min-height: 18rem;
+        min-height: 14rem;
+        justify-content: flex-start;
+        position: relative;
     }
 
     .quote-mark {
         position: absolute;
-        top: 0.7rem;
-        left: 1.3rem;
-        font-family: 'Inter', sans-serif;
-        font-size: 6rem;
-        line-height: 1;
-        color: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+        top: 0.55rem;
+        left: 1.15rem;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 4.9rem;
+        font-weight: 700;
+        line-height: 0.78;
+        letter-spacing: -0.28rem;
+        color: color-mix(in srgb, var(--accent-primary) 18%, rgba(255, 255, 255, 0.12));
+        text-shadow: 0 10px 30px color-mix(in srgb, var(--accent-primary) 10%, transparent);
+        opacity: 0.95;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .testimonial-dashboard-card :deep(.card-title) {
+        display: none;
+    }
+
+    .testimonial-dashboard-card :deep(.card-info) {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+        height: 100%;
+        font-size: inherit;
+        font-weight: inherit;
+        line-height: inherit;
+        color: inherit;
     }
 
     .testimonial-text {
         position: relative;
         z-index: 1;
-        font-size: clamp(1.2rem, 2.3vw, 1.6rem);
-        line-height: 1.55;
+        font-size: clamp(1.12rem, 2vw, 1.4rem);
+        line-height: 1.6;
         margin: 0;
         max-width: 32rem;
+        padding-left: 4.5rem;
+        padding-bottom: 3.9rem;
     }
 
     .testimonial-meta {
-        position: relative;
-        z-index: 1;
+        position: absolute;
+        right: 1.8rem;
+        bottom: 1.6rem;
+        z-index: 2;
         display: grid;
         gap: 0.2rem;
-        margin-top: 1.8rem;
+        text-align: right;
+        justify-items: end;
     }
 
     .testimonial-meta strong {
@@ -2979,6 +3007,7 @@
             box-shadow: 0 26px 60px rgba(15, 23, 42, 0.4);
             border-color: var(--landing-line-strong);
         }
+
     }
 
     :global(html.dark-mode) .landing-page {
@@ -3139,8 +3168,7 @@
         }
 
         .testimonial-card {
-            min-height: 20rem;
-            padding: 1.5rem;
+            min-height: 16rem;
         }
 
         .phone-stage {

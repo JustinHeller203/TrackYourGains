@@ -17,5 +17,6 @@ export type ExerciseLibraryEntryDto = {
     jointLoad: Record<string, string>
     goalTags: string[]
     substitutions: string[]
+    similarityTags?: string[]
     aliases: string[]
 }

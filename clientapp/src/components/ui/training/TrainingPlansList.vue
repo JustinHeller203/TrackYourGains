@@ -1,4 +1,4 @@
-<!--components/ui/training/TrainingPlansList.vue-->
+﻿<!--components/ui/training/TrainingPlansList.vue-->
 
 <template>
     <div>
@@ -13,7 +13,7 @@
             <!-- Externer Plan per Code -->
             <div v-if="externalQueryActive" class="external-plan-box">
                 <div v-if="externalLoading" class="external-plan-hint">
-                    Suche externen Plan…
+                    Suche externen Plan...
                 </div>
 
                 <div v-else-if="externalError" class="external-plan-error">
@@ -23,7 +23,7 @@
                 <div v-else-if="externalView" class="external-plan-card">
                     <div class="external-plan-left">
                         <div class="external-plan-title">
-                            ?? Externer Plan: <b>{{ externalView.name }}</b>
+                            Externer Plan: <b>{{ externalView.name }}</b>
                         </div>
                         <div class="external-plan-sub">
                             {{ externalView.exerciseCount }} Übungen · Code: {{ middleEllipsis(String(externalView.code ?? ''), 14) }}
@@ -102,7 +102,7 @@
                                     <DeleteButton title="Plan löschen" @click="openDeletePopupUi(() => deletePlan(plan.id))" />
                                     <ActionIconButton title="Exportieren"
                                                       aria-label="Trainingsplan exportieren"
-                                                      @click="downloadPlan(plan)">⬇</ActionIconButton>
+                                                      @click="downloadPlan(plan)">↓</ActionIconButton>
                                 </div>
 
                                 <span class="kebab-wrap">
@@ -187,7 +187,7 @@
                                     <DeleteButton title="Plan löschen" @click="openDeletePopupUi(() => deletePlan(plan.id))" />
                                     <ActionIconButton title="Exportieren"
                                                       aria-label="Trainingsplan exportieren"
-                                                     @click="downloadPlan(plan)">⬇</ActionIconButton>
+                                                     @click="downloadPlan(plan)">↓</ActionIconButton>
                                 </div>
 
                                 <span class="kebab-wrap">
@@ -240,18 +240,21 @@
             </div>
 
             <Table class="exercise-table full-width narrow" variant="narrow">
-                <table ref="resizeTable" data-cols="3">
+                <table ref="resizeTable" :data-cols="selectedPlanHasEquipmentNumbers ? 4 : 3">
                     <thead>
                         <tr>
-                            <th class="resizable" :style="{ width: columnWidths[0] + '%' }">
+                            <th v-if="selectedPlanHasEquipmentNumbers" class="resizable" :style="{ width: activeColumnWidths[0] + '%' }">
+                                <span class="th-text">Nummer</span>
+                            </th>
+                            <th class="resizable" :style="{ width: activeColumnWidths[selectedPlanHasEquipmentNumbers ? 1 : 0] + '%' }">
                                 <span class="th-text">Übung</span>
                             </th>
-                            <th class="resizable" :style="{ width: columnWidths[1] + '%' }">
+                            <th class="resizable" :style="{ width: activeColumnWidths[selectedPlanHasEquipmentNumbers ? 2 : 1] + '%' }">
                                 <span class="th-text">
                                     {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
                                 </span>
                             </th>
-                            <th class="resizable th-wdh" :style="{ width: columnWidths[2] + '%' }">
+                            <th class="resizable th-wdh" :style="{ width: activeColumnWidths[selectedPlanHasEquipmentNumbers ? 3 : 2] + '%' }">
                                 <span class="th-text th-label">
                                     <span class="full">
                                         {{
@@ -285,15 +288,33 @@
                             class="resizable-row"
                             :style="{ height: rowHeights[index] + 'px' }"
                             @dblclick="openEditPopupUi('selectedPlan', index, $event)">
-                            <td :style="{ width: columnWidths[0] + '%' }">{{ ex.exercise }}</td>
-
-                            <!-- Sätze/Min -->
-                            <td :style="{ width: columnWidths[1] + '%' }">
+                            <td v-if="selectedPlanHasEquipmentNumbers" :style="{ width: activeColumnWidths[0] + '%' }" class="exercise-number-cell">
+                                <span class="exercise-number-pill">{{ formatExerciseNumber(ex) }}</span>
+                            </td>
+                            <td :style="{ width: activeColumnWidths[selectedPlanHasEquipmentNumbers ? 1 : 0] + '%' }">
+                                <div class="plan-exercise-cell">
+                                    <div class="plan-exercise-main">
+                                        <span class="plan-exercise-name">{{ ex.exercise }}</span>
+                                        <div v-if="formatPauseValue(ex) || ex.tempoHint" class="plan-exercise-meta">
+                                            <span v-if="formatPauseValue(ex)" class="plan-exercise-meta__item">
+                                                <strong>Pause:</strong> {{ formatPauseValue(ex) }}
+                                            </span>
+                                            <span v-if="ex.tempoHint" class="plan-exercise-meta__item">
+                                                <strong>Tempo:</strong> {{ ex.tempoHint }}
+                                            </span>
+                                        </div>
+                                        <div v-if="ex.replacementExercise" class="plan-replacement-card">
+                                            <span class="plan-replacement-card__label">Ersatzübung</span>
+                                            <span class="plan-replacement-card__name">{{ ex.replacementExercise }}</span>
+                                            <span v-if="ex.replacementReason" class="plan-replacement-card__reason">{{ ex.replacementReason }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td :style="{ width: activeColumnWidths[selectedPlanHasEquipmentNumbers ? 2 : 1] + '%' }">
                                 {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
                             </td>
-
-                            <!-- Wdh./km/s -->
-                            <td :style="{ width: columnWidths[2] + '%' }">
+                            <td :style="{ width: activeColumnWidths[selectedPlanHasEquipmentNumbers ? 3 : 2] + '%' }">
                                 <template v-if="ex.type === 'ausdauer'">
                                     {{ ex.reps ? `${ex.reps} km` : '-' }}
                                 </template>
@@ -422,13 +443,21 @@
     /* -------------------- Types (nur Plans) -------------------- */
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
     type CustomExerciseType = Exclude<ExerciseType, 'ausdauer'>
+    type RangeCapableValue = number | string
 
     interface PlanExercise {
         exercise: string
-        sets: number
-        reps: number
+        sets: RangeCapableValue
+        reps: RangeCapableValue
         goal?: string
         type?: ExerciseType
+        restSeconds?: number | null
+        notes?: string
+        recoveryHint?: string
+        tempoHint?: string
+        equipmentNumber?: string
+        replacementExercise?: string
+        replacementReason?: string
     }
 
     type ViewPlan = {
@@ -451,7 +480,7 @@
         customExercises?: Array<{ name: string; muscle: string; type: CustomExerciseType }>
         onRemoveCustomExercise?: (index: number) => void
 
-        // ? Guest-Aktionen zurück an Parent (weil Parent die Quelle der Wahrheit ist)
+        // Guest-Aktionen zurück an Parent (weil Parent die Quelle der Wahrheit ist)
         onGuestDeletePlan?: (planId: string) => void
         onGuestEditPlan?: (planId: string) => void
 
@@ -787,6 +816,79 @@
             'roll', 'hip opener'
         ].some(k => n.includes(k))
     }
+
+    const parseExerciseGuidance = (rawNotes?: string | null) => {
+        const notes = String(rawNotes ?? '').trim()
+        if (!notes) {
+            return {
+                notes: undefined,
+                setsOverride: undefined,
+                repsOverride: undefined,
+                recoveryHint: undefined,
+                tempoHint: undefined,
+                equipmentNumber: undefined,
+                replacementExercise: undefined,
+                replacementReason: undefined,
+            }
+        }
+
+        let setsOverride: string | undefined
+        let repsOverride: string | undefined
+        let recoveryHint: string | undefined
+        let tempoHint: string | undefined
+        let equipmentNumber: string | undefined
+        let replacementExercise: string | undefined
+        let replacementReason: string | undefined
+        const freeLines: string[] = []
+
+        for (const rawLine of notes.split(/\r?\n/)) {
+            const line = rawLine.trim()
+            if (!line) continue
+
+            if (/^Sätze:\s*/i.test(line)) {
+                setsOverride = line.replace(/^Sätze:\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Wiederholungen:\s*/i.test(line)) {
+                repsOverride = line.replace(/^Wiederholungen:\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^(Pause|Recovery):\s*/i.test(line)) {
+                recoveryHint = line.replace(/^(Pause|Recovery):\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Tempo:\s*/i.test(line)) {
+                tempoHint = line.replace(/^Tempo:\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^(Gerätenummer|Geraetenummer):\s*/i.test(line)) {
+                equipmentNumber = line.replace(/^(Gerätenummer|Geraetenummer):\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Ersatz:\s*/i.test(line)) {
+                replacementExercise = line.replace(/^Ersatz:\s*/i, '').trim() || undefined
+                continue
+            }
+            if (/^Ersatzgrund:\s*/i.test(line)) {
+                replacementReason = line.replace(/^Ersatzgrund:\s*/i, '').trim() || undefined
+                continue
+            }
+
+            freeLines.push(line)
+        }
+
+        return {
+            notes: freeLines.join('\n') || undefined,
+            setsOverride,
+            repsOverride,
+            recoveryHint,
+            tempoHint,
+            equipmentNumber,
+            replacementExercise,
+            replacementReason,
+        }
+    }
+
     const mapDtoExerciseToPlanExercise = (ex: any): PlanExercise => {
         // Kraft/Calisthenics: sets/reps oder setCount/repCount etc.
         const strengthSets = normalizeNum(ex?.sets ?? ex?.setCount ?? ex?.setsCount)
@@ -796,13 +898,13 @@
         const cardioMinRaw = normalizeNum(ex?.durationMin ?? ex?.minutes ?? ex?.durationMinutes ?? ex?.timeMin)
         const cardioKmRaw = normalizeNum(ex?.distanceKm ?? ex?.kilometers ?? ex?.km ?? ex?.distance)
 
-        // Dehnung: seconds (bei dir wird reps als “s” angezeigt)
+        // Dehnung: seconds (bei dir wird reps als "s" angezeigt)
         const stretchSecRaw = normalizeNum(ex?.durationSec ?? ex?.seconds ?? ex?.durationSeconds ?? ex?.timeSec)
 
         // ? Type aus DTO (kann bei dir aber faktisch falsch sein)
         const dtoType = normalizeTypeFromDto(ex)
 
-        // ? Name für Heuristik
+        // Name für Heuristik
         const name = String(ex?.name ?? ex?.exercise ?? '').trim()
 
         // ? Candidates (Cardio/Stretch kann bei dir in sets/reps stecken)
@@ -828,7 +930,7 @@
             cardioMin = Math.max(1, Math.round(strengthReps / 60)) // 2040s -> 34min
         }
 
-        // ? Jetzt erst “has…” auf den FINALEN Candidates prüfen
+        // Jetzt erst "has..." auf den finalen Candidates prüfen
         const hasCardio = cardioMin > 0 || cardioKm > 0
         const hasStretch = stretchSec > 0
 
@@ -837,25 +939,35 @@
         if (hasCardio && !hasStretch) type = 'ausdauer'
         else if (hasStretch && !hasCardio) type = 'dehnung'
 
+        const guidance = parseExerciseGuidance(ex?.notes ?? null)
+
         // ? Output-Mapping
         const sets =
             type === 'ausdauer' ? cardioMin
-                : (type === 'dehnung' ? 1 : strengthSets)
+                : (type === 'dehnung' ? 1 : (guidance.setsOverride ?? strengthSets))
 
         const reps =
             type === 'ausdauer' ? cardioKm
-                : (type === 'dehnung' ? stretchSec : strengthReps)
+                : (type === 'dehnung' ? stretchSec : (guidance.repsOverride ?? strengthReps))
 
         return {
             exercise: name,
             sets,
             reps,
             type,
+            notes: guidance.notes,
+            recoveryHint: guidance.recoveryHint,
+            tempoHint: guidance.tempoHint,
+            equipmentNumber: guidance.equipmentNumber,
+            replacementExercise: guidance.replacementExercise,
+            replacementReason: guidance.replacementReason,
         }
     }
 
     const normalizeNum = (v: unknown): number => {
-        const n = typeof v === 'number' ? v : Number(String(v ?? '').replace(',', '.').trim())
+        const text = String(v ?? '').replace(',', '.').trim()
+        const rangeMatch = text.match(/^(\d+)\s*-\s*(\d+)$/)
+        const n = typeof v === 'number' ? v : Number(rangeMatch?.[1] ?? text)
         return Number.isFinite(n) ? n : 0
     }
 
@@ -869,7 +981,7 @@
             ex?.categoryName ??
             ex?.category
 
-        // wenn’s schon string ist -> sauber normalisieren
+        // wenn's schon string ist -> sauber normalisieren
         const s = String(raw ?? '').toLowerCase().trim()
         if (s === 'ausdauer' || s === 'cardio' || s === 'endurance' || s === 'aerobic' || s.includes('ausdauer')) return 'ausdauer'
         if (s === 'dehnung' || s === 'stretch' || s === 'stretching' || s === 'mobility' || s.includes('dehnung')) return 'dehnung'
@@ -912,7 +1024,7 @@
         if (s.length <= max) return s
         const head = Math.ceil((max - 1) / 2)
         const tail = Math.floor((max - 1) / 2)
-        return s.slice(0, head) + '…' + s.slice(-tail)
+        return s.slice(0, head) + '...' + s.slice(-tail)
     }
 
     const copyPlanCode = async (code?: string | null) => {
@@ -929,6 +1041,43 @@
 
     const typeLabel = (t: ExerciseType) =>
         ({ kraft: 'Kraft', calisthenics: 'Calisthenics', dehnung: 'Dehnung', ausdauer: 'Ausdauer' } as const)[t]
+
+    const formatExerciseNumber = (exercise: PlanExercise) => {
+        const value = String(exercise.equipmentNumber ?? '').trim()
+        return value || '—'
+    }
+
+    const hasEquipmentNumbers = (exercises: PlanExercise[]) =>
+        exercises.some((exercise) => String(exercise.equipmentNumber ?? '').trim().length > 0)
+
+    const formatPauseValue = (exercise: PlanExercise) => {
+        const recovery = String(exercise.recoveryHint ?? '').trim()
+        if (recovery) return recovery
+
+        const seconds = Number(exercise.restSeconds ?? 0)
+        if (Number.isFinite(seconds) && seconds > 0) return `${seconds}s`
+
+        return ''
+    }
+
+    const collectUniqueExerciseValues = (
+        exercises: PlanExercise[],
+        pick: (exercise: PlanExercise) => string | undefined
+    ) => {
+        const seen = new Set<string>()
+        const values: string[] = []
+
+        for (const exercise of exercises) {
+            const value = String(pick(exercise) ?? '').trim()
+            if (!value) continue
+            const key = value.toLocaleLowerCase()
+            if (seen.has(key)) continue
+            seen.add(key)
+            values.push(value)
+        }
+
+        return values
+    }
 
     const editPlanInBuilder = async (planId: string) => {
         closePlanMenu()
@@ -999,13 +1148,13 @@
 
         const countText =
             count > 0
-                ? `(${count} Übungen – easy erklärt)`
+                ? `(${count} Übungen - easy erklärt)`
                 : `(easy erklärt)`
 
         return [
             `?? Ich hab dir einen Trainingsplan gebaut: "${name}" ${countText}`,
-            `? Perfekt für den Start: einfach öffnen, nachmachen, fertig.`,
-            `?? Hier geht’s direkt los: ${url}`,
+            `Perfekt für den Start: einfach öffnen, nachmachen, fertig.`,
+            `Hier geht's direkt los: ${url}`,
         ]
     }
 /* -------------------- UI State (nur Plans) -------------------- */
@@ -1053,7 +1202,7 @@
             exercises: Array.isArray(view.exercises) ? view.exercises.map(x => ({ ...x })) : [],
         }
         rowHeights.value = Array(selectedPlan.value.exercises.length).fill(40)
-        columnWidths.value = [50, 25, 25]
+        columnWidths.value = selectedPlanHasEquipmentNumbers.value ? [...COLS_WITH_NUMBER] : [...COLS_WITHOUT_NUMBER]
         if (toastMsg) props.addToast(toastMsg, 'load')
         await scrollToSelectedPlan()
     }
@@ -1312,7 +1461,7 @@
                 exercises: Array.isArray(gp.exercises) ? gp.exercises.map(x => ({ ...x })) : [],
             }
             rowHeights.value = Array(selectedPlan.value.exercises.length).fill(40)
-            columnWidths.value = [50, 25, 25]
+            columnWidths.value = selectedPlanHasEquipmentNumbers.value ? [...COLS_WITH_NUMBER] : [...COLS_WITHOUT_NUMBER]
             props.addToast('Plan geladen', 'load')
             await scrollToSelectedPlan()
             return
@@ -1339,12 +1488,12 @@
 
             if (!dto) { props.addToast('Plan nicht gefunden', 'delete'); return }
 
-            // selected MUSS Full sein (sonst später wieder leer/buggy)
+            // selected MUSS full sein (sonst später wieder leer/buggy)
             setStoreSelectedPlan(dto)
 
             selectedPlan.value = flattenDto(dto)
             rowHeights.value = Array(selectedPlan.value.exercises.length).fill(40)
-            columnWidths.value = [50, 25, 25]
+            columnWidths.value = selectedPlanHasEquipmentNumbers.value ? [...COLS_WITH_NUMBER] : [...COLS_WITHOUT_NUMBER]
             props.addToast('Plan geladen', 'load')
             await scrollToSelectedPlan()
         } catch {
@@ -1355,7 +1504,7 @@
     const closePlan = () => {
         closePlanMenu()
         selectedPlan.value = null
-        columnWidths.value = [50, 25, 25]
+        columnWidths.value = selectedPlanHasEquipmentNumbers.value ? [...COLS_WITH_NUMBER] : [...COLS_WITHOUT_NUMBER]
         rowHeights.value = []
         props.addToast('Plan geschlossen', 'load')
     }
@@ -1467,9 +1616,13 @@
     }
 
     /* -------------------- Resizable Tables (selected plan + custom) -------------------- */
-    const columnWidths = ref([50, 25, 25])
+    const COLS_WITH_NUMBER = [12, 46, 21, 21]
+    const COLS_WITHOUT_NUMBER = [56, 22, 22]
+    const columnWidths = ref<number[]>([...COLS_WITH_NUMBER])
     const rowHeights = ref<number[]>([])
     const resizeTable = ref<HTMLTableElement | null>(null)
+    const selectedPlanHasEquipmentNumbers = computed(() => hasEquipmentNumbers(selectedPlan.value?.exercises ?? []))
+    const activeColumnWidths = computed(() => columnWidths.value)
 
     const customColWidths = ref([40, 30, 15, 15])
     const customResizeTable = ref<HTMLTableElement | null>(null)
@@ -1533,7 +1686,9 @@
 
         table.querySelectorAll('.resizer,.row-resizer').forEach(el => el.remove())
 
-        const MIN_PX_BY_COL = [16, 16, 16]
+        const MIN_PX_BY_COL = selectedPlanHasEquipmentNumbers.value
+            ? [54, 16, 16, 16]
+            : [16, 16, 16]
         const ths = Array.from(table.querySelectorAll('thead th')) as HTMLElement[]
         const lastIdx = ths.length - 1
 
@@ -1744,6 +1899,16 @@
         }
     })
 
+    watch(
+        selectedPlanHasEquipmentNumbers,
+        (hasNumbers) => {
+            columnWidths.value = hasNumbers
+                ? [...COLS_WITH_NUMBER]
+                : [...COLS_WITHOUT_NUMBER]
+        },
+        { immediate: true }
+    )
+
     watch(showCustomExercises, (val) => {
         if (!val) return
         nextTick(() => {
@@ -1813,7 +1978,7 @@
 
 
 <style scoped>
-    /* ===== 1:1 aus Training.vue (Plans + SelectedPlan) – inkl. Duplikaten ===== */
+    /* ===== 1:1 aus Training.vue (Plans + SelectedPlan) - inkl. Duplikaten ===== */
 
     .section-title {
         font-size: 1.5rem;
@@ -1955,7 +2120,7 @@
         }
 
     html.dark-mode {
-        /* in Training.vue war das auf .training, hier bleibt’s absichtlich so wie’s wirkt:
+        /* in Training.vue war das auf .training, hier bleibt's absichtlich so wie's wirkt:
            die vars existieren trotzdem global, aber wir lassen den Block drin für identische Cascade */
     }
 
@@ -1983,13 +2148,216 @@
         z-index: 1000;
     }
 
+    .exercise-table.full-width {
+        position: relative;
+        isolation: isolate;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        border-radius: 18px;
+        overflow: hidden;
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        transition: box-shadow 0.24s ease, border-color 0.24s ease, background 0.24s ease;
+    }
+
+    .exercise-table.full-width::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    @media (hover: hover) {
+        .exercise-table.full-width:hover {
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.28);
+            border-color: rgba(129, 140, 248, 0.55);
+        }
+    }
+
+    html.dark-mode .exercise-table.full-width {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    html.dark-mode .exercise-table.full-width::before {
+        background: linear-gradient(90deg, transparent, rgba(129, 140, 248, 0.18), transparent);
+    }
+
+    html.dark-mode .exercise-table.full-width thead {
+        background: linear-gradient(180deg, rgba(30, 41, 59, 0.78) 0%, rgba(15, 23, 42, 0.58) 100%);
+    }
+
+    html.dark-mode .exercise-table.full-width th {
+        border-bottom-color: rgba(148, 163, 184, 0.24);
+        color: rgba(226, 232, 240, 0.92);
+    }
+
+    html.dark-mode .exercise-table.full-width th:not(:last-child) {
+        border-right-color: rgba(148, 163, 184, 0.12);
+    }
+
+    html.dark-mode .exercise-table.full-width td {
+        border-top-color: rgba(148, 163, 184, 0.12);
+        background: rgba(15, 23, 42, 0.42);
+    }
+
+    html.dark-mode .exercise-table.full-width tbody tr:nth-child(odd) td {
+        background: rgba(30, 41, 59, 0.26);
+    }
+
+    html.dark-mode .exercise-table.full-width tbody tr:hover td {
+        background: color-mix(in srgb, rgba(30, 41, 59, 0.62) 78%, #6366f1 22%);
+    }
+
+    .exercise-table.full-width table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: transparent;
+    }
+
+    .exercise-table.full-width thead {
+        background: linear-gradient(180deg,
+            color-mix(in srgb, var(--bg-card) 78%, white 22%) 0%,
+            color-mix(in srgb, var(--bg-card) 90%, transparent) 100%);
+    }
+
     .exercise-table.full-width th,
     .exercise-table.full-width td {
-        padding: 1.5rem;
+        padding: 1rem 1.05rem;
         text-align: center;
+        vertical-align: middle;
         min-width: 0;
+        overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
+    }
+
+    .exercise-table.full-width th {
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        background: transparent;
+        color: color-mix(in srgb, var(--text-primary) 88%, white 12%);
+        font-weight: 700;
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .exercise-table.full-width th:not(:last-child) {
+        border-right: 1px solid rgba(148, 163, 184, 0.10);
+    }
+
+    .exercise-table.full-width td {
+        border-top: 1px solid rgba(148, 163, 184, 0.10);
+        background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+        color: var(--text-primary);
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .exercise-table.full-width tbody tr:nth-child(odd) td {
+        background: color-mix(in srgb, var(--bg-card) 84%, transparent);
+    }
+
+    .exercise-table.full-width tbody tr {
+        transition: background 0.18s ease;
+    }
+
+    .exercise-table.full-width tbody tr:hover td {
+        background: color-mix(in srgb, var(--bg-card) 74%, var(--accent-primary) 26%);
+    }
+
+    .exercise-number-cell {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .exercise-number-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2.5rem;
+        padding: 0.38rem 0.55rem;
+        border-radius: 12px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 14%, var(--border-color) 86%);
+        background: color-mix(in srgb, var(--bg-secondary) 88%, white 12%);
+        color: var(--text-primary);
+        font-size: 0.76rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .plan-exercise-main {
+        display: grid;
+        gap: 0.42rem;
+        justify-items: center;
+        text-align: center;
+        white-space: normal;
+        width: 100%;
+    }
+
+    .plan-exercise-cell {
+        width: 100%;
+        min-height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .plan-exercise-name {
+        color: var(--text-primary);
+        font-weight: 700;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    .plan-exercise-meta {
+        display: grid;
+        gap: 0.18rem;
+        font-size: 0.74rem;
+        color: var(--text-secondary);
+        line-height: 1.35;
+    }
+
+    .plan-exercise-meta__item strong {
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+
+    .plan-replacement-card {
+        display: grid;
+        gap: 0.12rem;
+        padding: 0.58rem 0.72rem;
+        border-radius: 14px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 12%, var(--border-color) 88%);
+        background: color-mix(in srgb, var(--accent-primary) 4%, var(--bg-secondary) 96%);
+        max-width: min(100%, 22rem);
+    }
+
+    .plan-replacement-card__label {
+        color: var(--text-secondary);
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .plan-replacement-card__name {
+        color: var(--text-primary);
+        font-size: 0.8rem;
+        font-weight: 700;
+        line-height: 1.3;
+        word-break: break-word;
+    }
+
+    .plan-replacement-card__reason {
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        line-height: 1.35;
+        word-break: break-word;
     }
 
     .custom-toggle-btn {
@@ -2038,6 +2406,14 @@
     }
 
     @media (max-width:560px) {
+        .plan-replacement-card {
+            max-width: 100%;
+        }
+
+        .plan-replacement-card__name {
+            font-size: 0.76rem;
+        }
+
         .plan-item {
             display: flex !important;
         }
@@ -2375,6 +2751,7 @@
         max-width: 100%;
     }
 
+
     /* mehr Luft zwischen Plan-Liste und anderem */
     .plans-section {
         margin-top: 2.25rem;
@@ -2441,7 +2818,7 @@
                 transform: translateY(-2px);
             }
 
-    /* ADD (only once) – put this as the ONLY max-width:560px block, at the end */
+    /* ADD (only once) - put this as the ONLY max-width:560px block, at the end */
     @media (max-width: 560px) {
 
         /* ? Draggable soll funktionieren -> Handle sichtbar lassen */
@@ -2658,4 +3035,5 @@
         font-weight: 700;
     }
 </style>
+
 

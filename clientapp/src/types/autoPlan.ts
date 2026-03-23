@@ -14,7 +14,7 @@ export type GoalType = typeof GOAL_TYPES[number]
 export const TRAINING_LEVELS = ['beginner', 'intermediate', 'advanced'] as const
 export type TrainingLevel = typeof TRAINING_LEVELS[number]
 
-export const SPLIT_TYPES = ['full_body', 'upper_lower', 'ppl', 'mixed', 'machine_focus'] as const
+export const SPLIT_TYPES = ['full_body', 'upper_lower', 'push_pull', 'ppl', 'body_part', 'mixed', 'machine_focus'] as const
 export type SplitType = typeof SPLIT_TYPES[number]
 
 export type ComplaintType = ComplaintArea
@@ -29,6 +29,7 @@ export type ExclusionType =
 
 export type ExerciseReferenceSource = 'known' | 'custom'
 export type ExerciseMatchType = 'exact' | 'alias' | 'fuzzy' | 'custom'
+export type MuscleGroupExclusionMode = 'all' | 'primary_only'
 
 export interface GeneratorExerciseReference {
     label: string
@@ -51,7 +52,7 @@ export interface EquipmentProfile {
 }
 
 export interface GeneratorPreferences {
-    splitPreference?: 'auto' | 'full_body' | 'upper_lower' | 'ppl'
+    splitPreference?: 'auto' | 'full_body' | 'upper_lower' | 'push_pull' | 'ppl' | 'body_part'
     machineFocus?: boolean
     machineFocusWeight?: number
     freeWeightFocus?: boolean
@@ -61,6 +62,7 @@ export interface GeneratorPreferences {
     shortSessions?: boolean
     noCardio?: boolean
     noHiit?: boolean
+    includeSubstitutions?: boolean
     focusMuscleGroups?: string[]
     preferredExercises?: string[]
     preferredExerciseRefs?: GeneratorExerciseReference[]
@@ -69,6 +71,10 @@ export interface GeneratorPreferences {
 export interface GeneratorExclusions {
     exerciseNames?: string[]
     muscleGroups?: string[]
+    muscleGroupRules?: Array<{
+        muscleGroup: string
+        mode: MuscleGroupExclusionMode
+    }>
     exclusionTypes?: ExclusionType[]
     exerciseRefs?: GeneratorExerciseReference[]
 }
