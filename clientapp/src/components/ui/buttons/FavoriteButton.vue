@@ -4,7 +4,9 @@
             type="button"
             :aria-pressed="active"
             :title="active ? titleActive : titleInactive"
-            @click="$emit('toggle')">
+            @click.stop="$emit('toggle')"
+            @keydown.enter.stop.prevent="$emit('toggle')"
+            @keydown.space.stop.prevent="$emit('toggle')">
         {{ active ? '★' : '☆' }}
     </button>
 </template>

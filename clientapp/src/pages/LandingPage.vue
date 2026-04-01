@@ -1,10 +1,10 @@
-<template>
+﻿<template>
     <div class="landing-page">
         <section class="hero section-shell">
             <div class="hero-copy">
-                <div class="eyebrow">TrackYourGains / adaptive performance system</div>
+                <div class="eyebrow">TrackYourGains / adaptives Performance-System</div>
                 <p v-if="auth.user?.username" class="welcome-copy">
-                    Welcome back, {{ auth.user.username }}. Dein Cockpit ist bereit.
+                    Willkommen zurück, {{ auth.user.username }}. Dein Cockpit ist bereit.
                 </p>
 
                 <h1 class="hero-title">
@@ -19,8 +19,8 @@
                 </p>
 
                 <div class="hero-actions">
-                    <router-link to="/training" class="button-primary">Session starten</router-link>
-                    <router-link to="/progress" class="button-secondary">Progress scannen</router-link>
+                    <router-link to="/training" class="button-primary">Training starten</router-link>
+                    <router-link to="/progress" class="button-secondary">Fortschritt schaffen</router-link>
                 </div>
 
                 <div class="hero-strip">
@@ -56,7 +56,7 @@
                         <div v-else class="signal-card signal-card--accent landing-dashboard-card">
                             <span class="signal-label">Heute geplant</span>
                             <strong>Noch kein Plan für heute</strong>
-                            <p>Erstelle in wenigen Schritten deine nächste Session und lege direkt los.</p>
+                            <p>Erstelle in wenigen Schritten dein nächstes Training und lege direkt los.</p>
                             <router-link :to="{ path: '/training', query: { tut: 'plan' } }" class="micro-link">
                                 Plan bauen
                             </router-link>
@@ -70,8 +70,8 @@
 
                         <div class="signal-card landing-dashboard-card">
                             <span class="signal-label">Fortschritt</span>
-                            <strong>{{ workoutsCompleted }} Sessions protokolliert</strong>
-                            <p>Jede Session wird Teil deines Verlaufs und macht Entwicklung sichtbar.</p>
+                            <strong>{{ workoutsCompleted }} Trainings protokolliert</strong>
+                            <p>Jedes Training wird Teil deines Verlaufs und macht Entwicklung sichtbar.</p>
                         </div>
                     </div>
                 </div>
@@ -80,7 +80,7 @@
                     <div class="radar-ring"></div>
                     <div class="radar-center">
                         <span class="radar-number">{{ kgLost }}</span>
-                        <span class="radar-unit">kg delta</span>
+                        <span class="radar-unit">kg Veränderung</span>
                     </div>
                     <p class="radar-copy">Dein Gewichtstrend auf einen Blick, direkt aus deinem Verlauf.</p>
                 </div>
@@ -160,7 +160,7 @@
                                             <span></span>
                                             <span></span>
                                         </span>
-                                        <span class="status-provider">TYG Mobile</span>
+                                        <span class="status-provider">TYG App</span>
                                     </div>
                                     <span class="status-time">{{ currentPhoneTime }}</span>
                                     <div class="status-cluster status-cluster--right">
@@ -249,7 +249,7 @@
                                             :aria-pressed="phoneAutoplayPaused"
                                             @click="togglePhoneAutoplay"
                                         >
-                                            {{ phoneAutoplayPaused ? 'Play' : 'Pause' }}
+                                            {{ phoneAutoplayPaused ? 'Abspielen' : 'Pausieren' }}
                                         </button>
                                         <button
                                             type="button"
@@ -423,8 +423,8 @@
                 </div>
 
                 <div class="final-actions">
-                    <router-link to="/training" class="button-primary">Jetzt eskalieren</router-link>
-                    <router-link to="/tutorials" class="button-secondary">Tutorials checken</router-link>
+                    <router-link to="/training" class="button-primary">Jetzt starten</router-link>
+                    <router-link to="/tutorials" class="button-secondary">Tutorials ansehen</router-link>
                 </div>
             </DashboardCard>
         </section>
@@ -462,7 +462,7 @@
     const kgLost = ref(0)
     const todayPlan = ref<TodayPlan | null>(null)
 
-    const heroWords = ['live', 'with intent', 'under control', 'like a machine']
+    const heroWords = ['Niveau', 'Struktur', 'Kontrolle', 'Momentum']
     const passcodeDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
     const passcodeTapClasses: Record<string, string> = {
         '1': 'passcode-key--tap-1',
@@ -483,9 +483,9 @@
     let phoneShowcaseStepTimer: number | undefined
 
     const heroStrip = ref([
-        { value: '01', label: 'Unified workflow' },
-        { value: '24/7', label: 'Pain plus progress visibility' },
-        { value: '100%', label: 'Built for momentum' },
+        { value: '01', label: 'Ein Workflow' },
+        { value: '24/7', label: 'Schmerz- und Fortschrittsblick' },
+        { value: '100%', label: 'Für Momentum gebaut' },
     ])
 
     const proofCards = [
@@ -502,7 +502,7 @@
         {
             index: '03',
             title: 'Fortschritt sehen',
-            text: 'Gewicht, Sessions und Entwicklung werden sichtbar und geben dir Motivation weiterzumachen.',
+            text: 'Gewicht, Trainings und Entwicklung werden sichtbar und geben dir Motivation weiterzumachen.',
         },
     ]
 
@@ -522,7 +522,7 @@
             to: '/beschwerden',
         },
         {
-            tag: 'Progress',
+            tag: 'Fortschritt',
             title: 'Fortschritt ansehen',
             text: 'Sieh auf einen Blick, was du schon geschafft hast und wo du als Nächstes ansetzen kannst.',
             cta: 'Zum Fortschritt',
@@ -563,7 +563,7 @@
         {
             step: '01',
             title: 'Plan anlegen',
-            text: 'Erstelle deinen Trainingsplan oder starte direkt mit einer Session, die zu deinem Ziel passt.',
+            text: 'Erstelle deinen Trainingsplan oder starte direkt mit einem Training, das zu deinem Ziel passt.',
         },
         {
             step: '02',
@@ -602,28 +602,28 @@
         {
             step: 'Schritt 1',
             title: 'Trainingsplan erstellen/bearbeiten',
-            text: 'Der Handy-Screen zeigt die echten Builder-Begriffe aus deinem Training-Bereich.',
+            text: 'Der Handy-Bildschirm zeigt die echten Planer-Begriffe aus deinem Trainingsbereich.',
             pill: 'Training',
             variant: 'plan',
         },
         {
             step: 'Schritt 2',
             title: 'Tutorials mit echten Übungsnamen',
-            text: 'Statt Demo-Text siehst du echte Tutorials wie Bankdrücken aus deinem Projekt.',
+            text: 'Statt Platzhaltertext siehst du echte Tutorials wie Bankdrücken aus deinem Projekt.',
             pill: 'Tutorials',
             variant: 'tutorial',
         },
         {
             step: 'Schritt 3',
-            title: 'TrainingsSimulation mit Fortschritt eintragen',
-            text: 'Die Vorschau orientiert sich an deiner echten Simulation mit Satz-Progress, Pause und Eintragen.',
+            title: 'Trainingssimulation mit Fortschritt eintragen',
+            text: 'Die Vorschau orientiert sich an deiner echten Simulation mit Satzfortschritt, Pause und Eintragen.',
             pill: 'Simulation',
             variant: 'session',
         },
         {
             step: 'Schritt 4',
-            title: 'Echter Fortschritt statt Demo-Werte',
-            text: 'Die letzte Ansicht zeigt deine echten Progress-Bereiche wie Gewicht, Kalorien und letztes Training.',
+            title: 'Echter Fortschritt statt Platzhalterwerte',
+            text: 'Die letzte Ansicht zeigt deine echten Fortschrittsbereiche wie Gewicht, Kalorien und letztes Training.',
             pill: 'Fortschritt',
             variant: 'progress',
         },
@@ -669,7 +669,7 @@
         const lines = [
             `Heute ist ${planName}-Tag. Keine Ausrede, nur Output.`,
             `${planName} steht bereit. Fokus rein und Tempo hoch.`,
-            `Dein ${planName} wartet schon. Schieb die Session nicht weg.`,
+            `Dein ${planName} wartet schon. Schieb das Training nicht weg.`,
             `Heute ${planName}: saubere Reps, klarer Kopf, harter Fortschritt.`,
             `${planName} ist eingeplant. Jetzt liefern.`,
         ]
@@ -3212,3 +3212,4 @@
         }
     }
 </style>
+

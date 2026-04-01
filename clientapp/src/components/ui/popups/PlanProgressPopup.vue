@@ -116,6 +116,7 @@
                           :daysWithEntries="calendarMarkedDaysArr"
                           :dayColors="calendarDayColors"
                           :dayTitles="calendarDayTitles"
+                          :firstEntryDays="firstPlanEntryDay ? [firstPlanEntryDay] : []"
                           :prDays="calendarPrDaysArr"
                           :checkDays="completedPlannedDaysArr"
                           :crossDays="missedPlannedPastDaysArr"
@@ -142,7 +143,10 @@
                                 <div class="day-date">{{ formatDayLong(c.day) }}</div>
                                 <div class="day-meta">
                                     <span class="count">{{ c.uniqueExercises }} {{ c.uniqueExercises === 1 ? 'Übung' : 'Übungen' }}</span>
-                                    <span v-if="dayPersonalRecordCount(c.day) > 0" class="day-pr-badge">
+                                    <span v-if="isFirstPlanEntryDay(c.day)" class="day-first-badge">
+                                        Starttag
+                                    </span>
+                                    <span v-if="!isFirstPlanEntryDay(c.day) && dayPersonalRecordCount(c.day) > 0" class="day-pr-badge">
                                         {{ dayPersonalRecordCount(c.day) }} PR{{ dayPersonalRecordCount(c.day) > 1 ? 's' : '' }}
                                     </span>
                                 </div>
@@ -159,6 +163,13 @@
                         <div v-if="selectedDay && c.day === selectedDay && !hasEntriesForSelectedDay"
                              class="day-empty">
                             Kein Eintrag an diesem Tag gemacht.
+                        </div>
+
+                        <div v-else-if="isFirstPlanEntryDay(c.day)" class="day-pr-summary day-pr-summary--first-entry">
+                            <span class="day-pr-summary__icon" aria-hidden="true">🚀</span>
+                            <span class="day-pr-summary__text">
+                                {{ firstPlanEntryHighlight }}
+                            </span>
                         </div>
 
                         <button v-else-if="dayPersonalRecordCount(c.day) > 0"
@@ -1197,6 +1208,7 @@
     })
 
     const strengthGroupPrMetrics = (group: StrengthGroup) => {
+        if (firstPlanEntryWorkout.value) return [] as Array<'weight' | 'reps' | 'volume' | 'oneRm'>
         const exerciseKey = personalRecordExerciseKey(group.entry.exercise)
         if (!exerciseKey) return [] as Array<'weight' | 'reps' | 'volume' | 'oneRm'>
 
@@ -2290,6 +2302,7 @@
         const entryDays = new Set(daysWithEntriesArr.value)
         const completedDays = new Set(completedPlannedDaysArr.value)
         const missedPastDays = new Set(missedPlannedPastDaysArr.value)
+        const firstEntryDay = firstPlanEntryDay.value
         for (const d of plannedDaysForCurrentPlan.value) {
             if (missedPastDays.has(d)) {
                 out[d] = '#ef4444'
@@ -2304,6 +2317,9 @@
         for (const d of daysWithEntriesArr.value) {
             if (!out[d]) out[d] = '#6366f1' // normaler Fortschrittstag
         }
+        if (firstEntryDay) {
+            out[firstEntryDay] = ['#f59e0b', '#fb7185', '#22c55e']
+        }
         return out
     })
 
@@ -2315,6 +2331,7 @@
         const prDays = new Set(calendarPrDaysArr.value)
         for (const d of calendarMarkedDaysArr.value) {
             const parts: string[] = []
+            if (isFirstPlanEntryDay(d)) parts.push('Erster Eintrag in diesem Plan')
             if (plannedSet.has(d)) {
                 if (completedSet.has(d)) parts.push('Geplant + vollständig absolviert')
                 else if (missedPastSet.has(d)) parts.push('Geplant, nicht vollständig absolviert')
@@ -2332,6 +2349,28 @@
         if (!plannedDayCompletionMap.value[today]) return null
         return `Stark! Geplantes Workout für ${props.formatDayLong(today)} vollständig absolviert. Weiter so!`
     })
+
+    const sortedApiWorkouts = computed<WorkoutLike[]>(() =>
+        [...apiWorkouts.value].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    )
+
+    const firstPlanEntryWorkout = computed<WorkoutLike | null>(() =>
+        sortedApiWorkouts.value.length === 1 ? sortedApiWorkouts.value[0] : null
+    )
+
+    const firstPlanEntryDay = computed<string | null>(() =>
+        firstPlanEntryWorkout.value ? String(firstPlanEntryWorkout.value.date ?? '').slice(0, 10) : null
+    )
+
+    const firstPlanEntryHighlight = computed<string | null>(() => {
+        const entry = firstPlanEntryWorkout.value
+        const day = firstPlanEntryDay.value
+        if (!entry || !day) return null
+        return `${entry.exercise} am ${props.formatDayLong(day)}. Genau so startet echter Fortschritt.`
+    })
+
+    const isFirstPlanEntryDay = (day: string) =>
+        !!firstPlanEntryDay.value && day === firstPlanEntryDay.value
 
     const dayCards = computed<DayCard[]>(() => {
         return [...entriesByDay.value.entries()].map(([day, items]) => {
@@ -3037,11 +3076,31 @@
         color: var(--text-secondary);
     }
 
+    .day-first-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: .2rem .58rem;
+        border-radius: 999px;
+        font-size: .76rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        color: #7c2d12;
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.32), rgba(251, 113, 133, 0.22));
+        border: 1px solid rgba(249, 115, 22, 0.28);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    }
+
 
     html.dark-mode .day-card {
         background: linear-gradient(180deg, rgba(2, 6, 23, 0.86), rgba(2, 6, 23, 0.74));
         border-color: rgba(148, 163, 184, 0.36);
         box-shadow: 0 24px 60px rgba(0, 0, 0, 0.72);
+    }
+
+    html.dark-mode .day-first-badge {
+        color: #fed7aa;
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(244, 114, 182, 0.18));
+        border-color: rgba(251, 146, 60, 0.3);
     }
 
         html.dark-mode .day-card:hover {
@@ -3237,6 +3296,15 @@
         background: linear-gradient(180deg, rgba(245, 158, 11, 0.18), rgba(234, 179, 8, 0.10));
     }
 
+    .day-pr-summary--first-entry {
+        border-color: rgba(249, 115, 22, 0.24);
+        background:
+            radial-gradient(circle at 12% 24%, rgba(251, 191, 36, 0.16), transparent 42%),
+            linear-gradient(135deg, rgba(255, 247, 237, 0.96), rgba(240, 253, 244, 0.92));
+        box-shadow: 0 16px 32px rgba(249, 115, 22, 0.14);
+        cursor: default;
+    }
+
     .day-pr-summary__icon {
         width: 1.8rem;
         height: 1.8rem;
@@ -3293,6 +3361,14 @@
         font-weight: 900;
         color: var(--text-primary);
         white-space: nowrap;
+    }
+
+    html.dark-mode .day-pr-summary--first-entry {
+        border-color: rgba(251, 146, 60, 0.3);
+        background:
+            radial-gradient(circle at 12% 24%, rgba(251, 191, 36, 0.12), transparent 42%),
+            linear-gradient(135deg, rgba(67, 20, 7, 0.5), rgba(20, 83, 45, 0.24), rgba(2, 6, 23, 0.72));
+        box-shadow: 0 18px 38px rgba(0, 0, 0, 0.56);
     }
 
     .sum-pill--sets {

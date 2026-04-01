@@ -14,6 +14,11 @@ export async function register(email: string, username: string, password: string
     return data;
 }
 
+export async function checkRegisterEmail(email: string) {
+    const { data } = await api.post<{ available: boolean }>("/auth/check-register-email", { email });
+    return data;
+}
+
 export async function login(identifier: string, password: string) {
     const { data } = await api.post<AuthResponse>("/auth/login", { username: identifier, password });
     setToken(data.token);

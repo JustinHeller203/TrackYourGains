@@ -12,7 +12,8 @@
                            label="Übung"
                            placeholder="Übung wählen"
                            v-model="exerciseLocal"
-                           :options="exerciseOptions" />
+                           :options="exerciseOptions"
+                           :error="inlineErrors.exercise" />
 
             <div class="plan-overview-toggle-row">
                 <button type="button"
@@ -53,6 +54,7 @@
                                   step="1"
                                   v-model="durationTextLocal"
                                   placeholder="z. B. 30"
+                                  :error="inlineErrors.duration"
                                   :readonly="!hasExerciseSelected"
                                   @focus="!hasExerciseSelected && requireExercise('duration')" />
 
@@ -85,6 +87,7 @@
                                   step="1"
                                   v-model="setsTextLocal"
                                   placeholder="z. B. 3"
+                                  :error="inlineErrors.sets"
                                   :readonly="!hasExerciseSelected"
                                   @focus="!hasExerciseSelected && requireExercise('sets')" />
                 </div>
@@ -117,6 +120,7 @@
                                   step="1"
                                   v-model="setsTextLocal"
                                   placeholder="z. B. 3"
+                                  :error="inlineErrors.sets"
                                   :readonly="!hasExerciseSelected"
                                   @focus="!hasExerciseSelected && requireExercise('sets')" />
 
@@ -462,6 +466,8 @@
                           :readonly="!hasExerciseSelected"
                           @focus="!hasExerciseSelected && requireExercise('note')" />
 
+            <p v-if="inlineErrors.general" class="inline-form-error">{{ inlineErrors.general }}</p>
+
         </div>
 
         <template #actions>
@@ -486,10 +492,6 @@
                 </PopupActionButton>
             </div>
         </template>
-
-        <ValidationPopup :show="Boolean(errors && errors.length)"
-                         :errors="errors || []"
-                         @close="$emit('dismissErrors')" />
 
         <ValidationPopup :show="showBorgError"
                          :errors="borgErrors"
@@ -879,48 +881,6 @@
         return 'kraft'
     }
 
-    const DEBUG_PROGRESS_TYPE = true
-
-    function dbgType(label: string, data: any) {
-        if (!DEBUG_PROGRESS_TYPE) return
-
-        // NICHT collapsed -> du siehst es sofort
-        console.group(`[ProgressEntryModal][TYPE] ${label}`)
-
-        // Deep-clone, damit Chrome dir echte Werte zeigt (nicht "live refs")
-        try {
-            const snap = JSON.parse(JSON.stringify(data))
-            console.log(snap)
-        } catch {
-            console.log(data)
-        }
-
-        console.groupEnd()
-    }
-
-    onMounted(() => {
-        watch(
-            () => exerciseLocal.value,
-            (name) => {
-                if (!DEBUG_PROGRESS_TYPE) return
-                if (!name?.trim()) return
-
-                const key = name.trim().toLowerCase()
-                const resolvedHit =
-                    exercisesResolved.value.find(e => (e.exercise || '').trim().toLowerCase() === key) ?? null
-
-                dbgType('SELECTED EXERCISE', {
-                    selected: name,
-                    resolvedHit,
-                    resolvedHit_type: resolvedHit?.type,
-                    detectedInputType: detectedInputType.value,
-                    inputType: inputType.value,
-                })
-            },
-            { flush: 'sync' }
-        )
-    })
-
     function applyPlanPrefillFromPlan(planEx: PlanExercise) {
         if (!canAutofill.value) return
         if (!planEx) return
@@ -983,35 +943,6 @@
             { flush: 'post' }
         )
 
-        watch(
-            () => plannedForSelected.value,
-            (x) => {
-                console.log('[PREFILL CHECK]', {
-                    selected: exerciseLocal.value,
-                    planned: x,
-                    type: x?.type,
-                    sets: x?.sets,
-                    reps: x?.reps,
-                    dur: x?.durationMin,
-                    dist: x?.distanceKm
-                })
-            },
-            { immediate: true }
-        )
-
-        watch(
-            () => detectedInputType.value,
-            (t, prev) => {
-                if (!DEBUG_PROGRESS_TYPE) return
-                if (!props.show) return
-                dbgType('detectedInputType changed', {
-                    prev,
-                    next: t,
-                    exercise: exerciseLocal.value,
-                    plannedForSelected: plannedForSelected.value,
-                })
-            }
-        )
     })
 
     function inferExerciseType(e: Partial<PlanExercise>): ExerciseType {
@@ -1189,10 +1120,6 @@
 
         normalized.sort((a, b) => a.exercise.localeCompare(b.exercise, 'de'))
 
-        if (DEBUG_PROGRESS_TYPE) {
-            const sample = normalized.slice(0, 12).map(x => ({ ex: x.exercise, type: x.type, sets: x.sets, reps: x.reps, dur: (x as any).durationMin, dist: (x as any).distanceKm }))
-            dbgType('exercisesResolved sample', sample)
-        }
         return normalized
     })
 
@@ -1318,22 +1245,6 @@
         exercisesResolved.value.map(e => ({ label: e.exercise, value: e.exercise }))
     )
 
-    watch(
-        () => [props.show, props.planId, props.exercises?.length, trainingPlansStore.items?.length],
-        ([show, pid, exLen, storeLen]) => {
-            console.log('[ProgressEntryModal] show=', show, 'planId=', pid, 'props.exercises=', exLen, 'store.items=', storeLen)
-        },
-        { immediate: true }
-    )
-
-    watch(
-        () => exerciseOptions.value,
-        (opts) => {
-            console.log('[ProgressEntryModal] exerciseOptions=', opts.length, opts.slice(0, 5))
-        },
-        { immediate: true }
-    )
-
     const showProxy = computed({
         get: () => props.show,
         set: (v: boolean) => emit('update:show', v),
@@ -1393,6 +1304,12 @@
     const weightLocal = ref<number | null>(null)
     const repsLocal = ref<number | null>(null)
     const noteLocal = ref('')
+    const inlineErrors = ref({
+        exercise: '',
+        sets: '',
+        duration: '',
+        general: '',
+    })
 
     const durationLocal = ref<number | null>(null)
     const distanceLocal = ref<number | null>(null)
@@ -1468,7 +1385,8 @@
     const plannedForSelected = computed<PlanExercise | null>(() => {
         const key = (exerciseLocal.value || '').trim().toLowerCase()
         if (!key) return null
-        return plannedLookup.value.get(key) ?? null
+        const lookup = plannedLookup.value instanceof Map ? plannedLookup.value : new Map<string, PlanExercise>()
+        return lookup.get(key) ?? null
     })
 
     const detectedInputType = computed<ExerciseType>(() => {
@@ -1538,6 +1456,9 @@
     const markCurrentDraftAsClean = () => {
         initialDraftSnapshot.value = buildDraftSnapshot()
     }
+    const scheduleCleanSnapshotAfterAutofill = () => {
+        nextTick(() => nextTick(() => nextTick(() => markCurrentDraftAsClean())))
+    }
     const hasUnsavedChanges = computed(() =>
         Boolean(props.show) &&
         initialDraftSnapshot.value.length > 0 &&
@@ -1566,7 +1487,8 @@
         const key = (exName || '').trim().toLowerCase()
         if (!key) return
 
-        const planEx = plannedLookup.value.get(key)
+        const lookup = plannedLookup.value instanceof Map ? plannedLookup.value : new Map<string, PlanExercise>()
+        const planEx = lookup.get(key)
         if (!planEx) return
 
         // ✅ Kraft / Calisthenics
@@ -1997,6 +1919,29 @@
         { flush: 'post' }
     )
 
+    watch(() => props.show, (open) => {
+        if (!open) return
+        inlineErrors.value.exercise = ''
+        inlineErrors.value.sets = ''
+        inlineErrors.value.duration = ''
+        inlineErrors.value.general = ''
+    })
+
+    watch(exerciseLocal, () => {
+        inlineErrors.value.exercise = ''
+        inlineErrors.value.general = ''
+    })
+
+    watch(setsLocal, () => {
+        inlineErrors.value.sets = ''
+        inlineErrors.value.general = ''
+    })
+
+    watch(durationLocal, () => {
+        inlineErrors.value.duration = ''
+        inlineErrors.value.general = ''
+    })
+
     function requireExercise(reason?: string): boolean {
         if (hasExerciseSelected.value) return true
 
@@ -2006,7 +1951,8 @@
         ])
         const silent = reason ? silentReasons.has(reason) : false
 
-        if (!silent) emit('invalid', ['Bitte wähle zuerst eine Übung, bevor du Werte eingibst.'])
+        inlineErrors.value.exercise = 'Bitte wähle zuerst eine Übung.'
+        if (!silent) inlineErrors.value.general = ''
         nextTick(() => exerciseSelect.value?.focus())
         return false
     }
@@ -2229,7 +2175,7 @@
     watch([setsLocal, inputType, effectiveActiveSetNumber], ([s]) => {
         const raw = Number(s) || 0
         if (raw > 7) {
-            emit('invalid', ['Maximal 7 Sätze erlaubt.'])
+            inlineErrors.value.sets = 'Maximal 7 Sätze erlaubt.'
             setsLocal.value = 7
             return
         }
@@ -2288,6 +2234,7 @@
                 next[idx] = {
                     ...next[idx],
                     weight: v?.weight ?? next[idx].weight ?? null,
+                    reps: v?.reps ?? next[idx].reps ?? null,
                 }
             }
             setDetailsLocal.value = next
@@ -2318,6 +2265,9 @@
             // NICHT überschreiben, wenn schon was drin ist
             if (v?.weight != null && (next[idx].weight == null || next[idx].weight === 0)) {
                 next[idx] = { ...next[idx], weight: v.weight }
+            }
+            if (v?.reps != null && (next[idx].reps == null || next[idx].reps === 0)) {
+                next[idx] = { ...next[idx], reps: v.reps }
             }
         }
 
@@ -2352,7 +2302,7 @@
             nextTick(() => focusFirst())
             nextTick(() => openSyncBorg())
             nextTick(() => scheduleSetTitleMeasure())
-            nextTick(() => markCurrentDraftAsClean())
+            scheduleCleanSnapshotAfterAutofill()
         } else {
             if (typeof window !== 'undefined') {
                 window.removeEventListener('resize', onWindowResizeMeasureSetTitles)
@@ -2403,26 +2353,28 @@
     }
 
     function onSave() {
-        const saveErrors: string[] = []
+        inlineErrors.value.exercise = ''
+        inlineErrors.value.sets = ''
+        inlineErrors.value.duration = ''
+        inlineErrors.value.general = ''
 
-        if (!exerciseLocal.value.trim()) saveErrors.push('Bitte wähle zuerst eine Übung.')
+        if (!exerciseLocal.value.trim()) inlineErrors.value.exercise = 'Bitte wähle zuerst eine Übung.'
 
         const t = detectedInputType.value
 
         if (t === 'ausdauer') {
             const dur = durationLocal.value
             if (!(typeof dur === 'number' && Number.isFinite(dur) && dur >= 1)) {
-                saveErrors.push('Bitte eine Dauer in Minuten (mind. 1) angeben.')
+                inlineErrors.value.duration = 'Bitte eine Dauer in Minuten (mind. 1) angeben.'
             }
         } else {
             const s = setsLocal.value
             if (!(typeof s === 'number' && Number.isFinite(s) && s >= 1)) {
-                saveErrors.push('Bitte mindestens 1 Satz angeben.')
+                inlineErrors.value.sets = 'Bitte mindestens 1 Satz angeben.'
             }
         }
 
-        if (saveErrors.length) {
-            emit('invalid', saveErrors)
+        if (inlineErrors.value.exercise || inlineErrors.value.sets || inlineErrors.value.duration) {
             return
         }
 
@@ -2434,7 +2386,7 @@
             .filter(x => !isSetLocked(x.setNo))
             .map(x => x.row)
         if (t !== 'ausdauer' && visibleSetCount.value > 0 && saveableSetRows.length === 0) {
-            emit('invalid', ['Mindestens 1 Satz aktiv lassen oder Satzanzahl anpassen.'])
+            inlineErrors.value.general = 'Mindestens 1 Satz aktiv lassen oder Satzanzahl anpassen.'
             return
         }
 
@@ -3534,6 +3486,13 @@
 
     .note-input {
         margin-top: .8rem;
+    }
+
+    .inline-form-error {
+        margin: 0.35rem 0 0;
+        color: #ef4444;
+        font-size: 0.9rem;
+        font-weight: 650;
     }
 
     .note-input--extras {

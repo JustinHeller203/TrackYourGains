@@ -1,46 +1,48 @@
 <template>
-    <BasePopup :show="show"
-               title="Profil löschen"
-               variant="delete-account-popup"
-               @cancel="$emit('cancel')">
+    <BasePopup
+        :show="show"
+        title="Profil loeschen"
+        variant="delete-account-popup"
+        @cancel="$emit('cancel')">
         <div class="delete-body">
             <div class="danger-box">
                 <div class="danger-icon">!</div>
                 <div class="danger-copy">
                     <p class="danger-title">Bist du dir sicher?</p>
                     <p class="danger-text">
-                        Das löscht <strong>alle</strong> deine Kontodaten unwiderruflich. Dieser Schritt kann
-                        nicht rückgängig gemacht werden.
+                        Das loescht <strong>alle</strong> deine Kontodaten unwiderruflich. Dieser Schritt kann
+                        nicht rueckgaengig gemacht werden.
                     </p>
                 </div>
             </div>
 
-            <!-- Gefahren-/Countdown-Indikator -->
             <div v-if="canArmDeletion" class="danger-progress">
-                <div class="danger-progress-inner"
-                     :style="{ width: dangerProgress + '%' }"></div>
+                <div class="danger-progress-inner" :style="{ width: dangerProgress + '%' }"></div>
             </div>
 
             <div class="form-grid">
-                <label class="label">Passwort zur Bestätigung</label>
-                <input ref="pwdRef"
-                       v-model="password"
-                       type="password"
-                       class="input"
-                       placeholder="••••••••"
-                       @keydown.enter.prevent="onConfirm" />
+                <label class="label">Passwort zur Bestaetigung</label>
+                <input
+                    ref="pwdRef"
+                    v-model="password"
+                    type="password"
+                    :class="['input', { 'has-error': !!errors.password }]"
+                    placeholder="********"
+                    @keydown.enter.prevent="onConfirm" />
+                <p v-if="errors.password" class="form-error">{{ errors.password }}</p>
 
                 <label class="label">
-                    Zum Bestätigen tippe:
+                    Zum Bestaetigen tippe:
                     <code>{{ confirmPhrase }}</code>
                 </label>
-                <input v-model.trim="phrase"
-                       type="text"
-                       class="input"
-                       :placeholder="confirmPhrase"
-                       @keydown.enter.prevent="onConfirm" />
-
-                <p v-if="error" class="form-error">{{ error }}</p>
+                <input
+                    v-model.trim="phrase"
+                    type="text"
+                    :class="['input', { 'has-error': !!errors.phrase || !!errors.general }]"
+                    :placeholder="confirmPhrase"
+                    @keydown.enter.prevent="onConfirm" />
+                <p v-if="errors.phrase" class="form-error">{{ errors.phrase }}</p>
+                <p v-if="errors.general" class="form-error">{{ errors.general }}</p>
             </div>
 
             <p class="small-hint">
@@ -53,19 +55,19 @@
                 Abbrechen
             </PopupActionButton>
 
-            <PopupActionButton autofocus
-                               danger
-                               :disabled="!canArmDeletion || countdown > 0"
-                               @click="onConfirm">
+            <PopupActionButton
+                autofocus
+                danger
+                :disabled="!canArmDeletion || countdown > 0"
+                @click="onConfirm">
                 <template v-if="canArmDeletion && countdown > 0">
-                    Endgültig löschen ({{ countdown }}s)
+                    Endgueltig loeschen ({{ countdown }}s)
                 </template>
                 <template v-else>
-                    Endgültig löschen
+                    Endgueltig loeschen
                 </template>
             </PopupActionButton>
         </template>
-
     </BasePopup>
 </template>
 
@@ -76,14 +78,13 @@
 
     const props = defineProps<{ show: boolean; confirmPhrase?: string }>()
     const emit = defineEmits<{ (e: 'cancel'): void; (e: 'confirm', p: { password: string }): void }>()
-    const confirmPhrase = props.confirmPhrase ?? 'KONTO LÖSCHEN'
+    const confirmPhrase = props.confirmPhrase ?? 'KONTO LOESCHEN'
 
     const password = ref('')
     const phrase = ref('')
-    const error = ref('')
+    const errors = ref({ password: '', phrase: '', general: '' })
     const pwdRef = ref<HTMLInputElement | null>(null)
 
-    // === 5 Sekunden Schutz-Timer ===
     const TOTAL_DELAY = 5
     const countdown = ref(TOTAL_DELAY)
     const isCountdownActive = ref(false)
@@ -127,12 +128,11 @@
         }, 1000)
     }
 
-    // Wenn Popup geöffnet wird → alles zurücksetzen
     watch(
         () => props.show,
         async (open) => {
             if (open) {
-                error.value = ''
+                errors.value = { password: '', phrase: '', general: '' }
                 password.value = ''
                 phrase.value = ''
                 resetCountdown()
@@ -144,8 +144,10 @@
         }
     )
 
-    // Timer erst starten, wenn Passwort gesetzt + Phrase exakt korrekt
     watch([password, phrase], () => {
+        errors.value.password = ''
+        errors.value.phrase = ''
+        errors.value.general = ''
         if (!canArmDeletion.value) {
             resetCountdown()
         } else {
@@ -158,23 +160,23 @@
     })
 
     function onConfirm() {
-        // Basis-Validation
+        errors.value = { password: '', phrase: '', general: '' }
+
         if (!password.value) {
-            error.value = 'Bitte Passwort eingeben.'
+            errors.value.password = 'Bitte Passwort eingeben.'
             return
         }
+
         if (phrase.value !== confirmPhrase) {
-            error.value = `Bitte exakt „${confirmPhrase}“ eingeben.`
+            errors.value.phrase = `Bitte exakt "${confirmPhrase}" eingeben.`
             return
         }
 
-        // Schutz: erst nach 5 Sekunden freigeben
         if (countdown.value > 0) {
-            error.value = `Bitte warte noch ${countdown.value} Sekunden, bevor du dein Profil löschst.`
+            errors.value.general = `Bitte warte noch ${countdown.value} Sekunden, bevor du dein Profil loeschst.`
             return
         }
 
-        error.value = ''
         resetCountdown()
         emit('confirm', { password: password.value })
     }
@@ -187,7 +189,6 @@
         gap: 0.9rem;
     }
 
-    /* Obere Warnbox – modern, Card-artig */
     .danger-box {
         display: flex;
         align-items: flex-start;
@@ -231,7 +232,6 @@
         color: #fecaca;
     }
 
-    /* Gefahren-/Countdown-Leiste */
     .danger-progress {
         position: relative;
         margin: 0.15rem 0 0.5rem;
@@ -249,7 +249,6 @@
         transition: width 0.35s ease-out;
     }
 
-    /* Formular-Grid wie bei E-Mail ändern */
     .form-grid {
         display: grid;
         gap: 0.6rem;
@@ -269,6 +268,11 @@
         color: var(--text-primary);
     }
 
+    .input.has-error {
+        border-color: rgba(239, 68, 68, 0.88);
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+    }
+
     .form-error {
         margin-top: 0.2rem;
         color: rgba(220, 38, 38, 0.95);
@@ -282,7 +286,6 @@
         color: var(--text-secondary);
     }
 
-    /* Dark-Mode Finetuning */
     html.dark-mode .danger-box {
         background: rgba(30, 64, 175, 0.16);
         border-color: rgba(248, 113, 113, 0.6);

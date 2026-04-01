@@ -31,6 +31,7 @@
                                          v-model="planName"
                                          class="plan-name-input slim"
                                          placeholder="Planname (z. B. Push Day)"
+                                         :error="builderFormErrors.planName"
                                          required />
                     </div>
 
@@ -70,13 +71,14 @@
                 </div>
 
                 <div v-if="builderMode === 'manual'" v-show="showExtras" class="goal-row">
-                    <label class="field-label">Trainingsziel *</label>
-                    <div class="field-row">
+                    <label class="field-label">Trainingsziel</label>
+                    <div class="field-row" :class="{ 'has-error': !!builderFormErrors.selectedGoal }">
                         <UiSelect v-model="selectedGoalSafe"
                                   class="goal-select"
                                   placeholder="Trainingsziel"
                                   :options="trainingGoals" />
                     </div>
+                    <p v-if="builderFormErrors.selectedGoal" class="field-error">{{ builderFormErrors.selectedGoal }}</p>
                     <div class="field-grid manual-extras-grid">
                         <div class="field">
                             <label>Pause</label>
@@ -101,11 +103,12 @@
 
                 <div v-if="builderMode === 'auto'" class="goal-row auto-plan-section">
                     <div class="field-grid">
-                        <div class="field">
+                        <div class="field" :class="{ 'has-error': !!builderFormErrors.autoPrimaryGoal }">
                             <label>Primärziel *</label>
                             <UiSelect v-model="autoPrimaryGoal"
                                       placeholder="Ziel"
                                       :options="autoGoalOptions" />
+                            <p v-if="builderFormErrors.autoPrimaryGoal" class="field-error">{{ builderFormErrors.autoPrimaryGoal }}</p>
                         </div>
                         <div class="field">
                             <label>Level *</label>
@@ -122,7 +125,8 @@
                                              type="number"
                                              placeholder="z. B. 3"
                                              min="1"
-                                             max="7" />
+                                             max="7"
+                                             :error="builderFormErrors.autoWeeklyFrequency" />
                         </div>
                         <div class="field">
                             <label>Min pro Training *</label>
@@ -131,7 +135,8 @@
                                              type="number"
                                              placeholder="z. B. 45"
                                              min="20"
-                                             max="120" />
+                                             max="120"
+                                             :error="builderFormErrors.autoSessionDuration" />
                         </div>
                     </div>
                     <div class="field-grid auto-plan-names">
@@ -141,7 +146,8 @@
                             <label :for="`auto-plan-name-${index}`">Planname {{ index + 1 }} *</label>
                             <UiTrainingInput :id="`auto-plan-name-${index}`"
                                              v-model="autoPlanNames[index]"
-                                             :placeholder="`Planname ${index + 1}`" />
+                                             :placeholder="`Planname ${index + 1}`"
+                                             :error="builderFormErrors.autoPlanNames[index] || ''" />
                         </div>
                     </div>
                     <div class="field-grid">
@@ -313,6 +319,7 @@
                                 @click="generateAutoPlanIntoBuilder">
                             Auto-Plan generieren
                         </button>
+                        <p v-if="builderFormErrors.autoGeneral" class="field-error">{{ builderFormErrors.autoGeneral }}</p>
                     </div>
                 </div>
 
@@ -330,7 +337,7 @@
                 <!-- Übungsauswahl -->
                 <div class="field-block" v-if="builderMode === 'manual' && trainingType !== 'ausdauer'">
                     <label class="field-label">Übung *</label>
-                    <div class="field-row field-row-stack">
+                    <div class="field-row field-row-stack" :class="{ 'has-error': !!builderFormErrors.exercise }">
                         <UiSelect v-model="newExerciseSafe"
                                   placeholder="Übung wählen"
                                   :options="[
@@ -341,8 +348,10 @@
                         <UiTrainingInput v-if="newExercise === 'custom'"
                                          id="custom-exercise"
                                          v-model="customPlanExercise"
-                                         placeholder="Eigene Übung eingeben" />
+                                         placeholder="Eigene Übung eingeben"
+                                         :error="builderFormErrors.customExercise" />
                     </div>
+                    <p v-if="builderFormErrors.exercise" class="field-error">{{ builderFormErrors.exercise }}</p>
                 </div>
 
                 <div v-if="builderMode === 'manual' && trainingType !== 'ausdauer'" class="field-block">
@@ -357,11 +366,12 @@
                 <!-- Cardio -->
                 <div class="field-block" v-else-if="builderMode === 'manual'">
                     <label class="field-label">Cardio-Art</label>
-                    <div class="field-row">
+                    <div class="field-row" :class="{ 'has-error': !!builderFormErrors.cardioExercise }">
                         <UiSelect v-model="cardioExerciseSafe"
                                   placeholder="Cardio-Art"
                                   :options="filteredExercises" />
                     </div>
+                    <p v-if="builderFormErrors.cardioExercise" class="field-error">{{ builderFormErrors.cardioExercise }}</p>
                 </div>
 
                 <!-- Parameter -->
@@ -371,13 +381,15 @@
                         <UiTrainingInput id="strength-sets"
                                          v-model="newSetsText"
                                          inputmode="numeric"
-                                         placeholder="z. B. 4" />                    </div>
+                                         placeholder="z. B. 4"
+                                         :error="builderFormErrors.sets" />                    </div>
                     <div class="field">
                         <label>Wiederholungen *</label>
                         <UiTrainingInput id="strength-reps"
                                          v-model="newRepsText"
                                          inputmode="numeric"
-                                         placeholder="z. B. 8–12" />                    </div>
+                                         placeholder="z. B. 8–12"
+                                         :error="builderFormErrors.reps" />                    </div>
                 </div>
 
                 <div class="field-grid" v-else-if="builderMode === 'manual' && trainingType === 'dehnung'">
@@ -386,13 +398,15 @@
                         <UiTrainingInput id="stretch-holds"
                                          v-model="newSetsText"
                                          inputmode="numeric"
-                                         placeholder="z. B. 3" />                    </div>
+                                         placeholder="z. B. 3"
+                                         :error="builderFormErrors.sets" />                    </div>
                     <div class="field">
                         <label>Sekunden pro Hold *</label>
                         <UiTrainingInput id="stretch-seconds"
                                          v-model="newRepsText"
                                          inputmode="numeric"
-                                         placeholder="z. B. 30" />                    </div>
+                                         placeholder="z. B. 30"
+                                         :error="builderFormErrors.reps" />                    </div>
                 </div>
 
                 <div class="field-grid" v-else-if="builderMode === 'manual'">
@@ -402,7 +416,8 @@
                                          v-model.number="newDuration"
                                          type="number"
                                          min="1"
-                                         placeholder="z. B. 25" />                    </div>
+                                         placeholder="z. B. 25"
+                                         :error="builderFormErrors.duration" />                    </div>
                     <div class="field">
                         <label>Distanz (km, optional)</label>
                         <UiTrainingInput id="cardio-distance"
@@ -410,7 +425,8 @@
                                          type="number"
                                          min="0"
                                          step="0.1"
-                                         placeholder="z. B. 5" />                    </div>
+                                         placeholder="z. B. 5"
+                                         :error="builderFormErrors.distance" />                    </div>
                 </div>
 
                 <div
@@ -425,6 +441,7 @@
                             </p>
                         </div>
                     </div>
+                    <p v-if="builderFormErrors.autoPreferenceWeights" class="field-error">{{ builderFormErrors.autoPreferenceWeights }}</p>
                 </div>
 
                 <div v-else-if="builderMode === 'manual' && manualPrescriptionHint" class="smart-rx-card">
@@ -482,8 +499,10 @@
                                                @click="addExerciseToPlan" />
                         </div>
                     </div>
+                    <p v-if="builderFormErrors.exercises" class="field-error">{{ builderFormErrors.exercises }}</p>
                 </div>
 
+                <p v-if="builderFormErrors.general" class="field-error">{{ builderFormErrors.general }}</p>
                 <PlanSubmitButton class="action-btn plan-submit-btn"
                                   :isEditing="!!editingPlanId"
                                   :disabled="isPlanSubmitDisabled"
@@ -730,7 +749,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 </template>
 
 <script setup lang="ts">
-    import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+    import { ref, reactive, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
     import { useRoute } from 'vue-router'
     import UiSelect from '@/components/ui/kits/UiSelect.vue'
     import AutoExerciseSelector from '@/components/ui/training/AutoExerciseSelector.vue'
@@ -989,6 +1008,48 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         { value: 'gym_missing', label: 'Hat mein Gym nicht' },
         { value: 'i_do_not_have', label: 'Habe ich nicht' },
     ]
+
+    type BuilderFormErrors = {
+        planName: string
+        selectedGoal: string
+        exercise: string
+        customExercise: string
+        cardioExercise: string
+        sets: string
+        reps: string
+        duration: string
+        distance: string
+        exercises: string
+        autoPrimaryGoal: string
+        autoWeeklyFrequency: string
+        autoSessionDuration: string
+        autoPreferenceWeights: string
+        autoPlanNames: string[]
+        autoGeneral: string
+        general: string
+    }
+
+    const createBuilderFormErrors = (): BuilderFormErrors => ({
+        planName: '',
+        selectedGoal: '',
+        exercise: '',
+        customExercise: '',
+        cardioExercise: '',
+        sets: '',
+        reps: '',
+        duration: '',
+        distance: '',
+        exercises: '',
+        autoPrimaryGoal: '',
+        autoWeeklyFrequency: '',
+        autoSessionDuration: '',
+        autoPreferenceWeights: '',
+        autoPlanNames: [],
+        autoGeneral: '',
+        general: '',
+    })
+
+    const builderFormErrors = reactive<BuilderFormErrors>(createBuilderFormErrors())
 
     const exerciseFilter = ref('')
 
@@ -1335,6 +1396,53 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     }, { immediate: true })
 
     watch(planName, () => {
+        builderFormErrors.planName = ''
+        builderFormErrors.general = ''
+    })
+
+    watch(selectedGoal, () => {
+        builderFormErrors.selectedGoal = ''
+    })
+
+    watch([newExercise, customPlanExercise], () => {
+        builderFormErrors.exercise = ''
+        builderFormErrors.customExercise = ''
+    })
+
+    watch(cardioExercise, () => {
+        builderFormErrors.cardioExercise = ''
+    })
+
+    watch([newSets, newReps], () => {
+        builderFormErrors.sets = ''
+        builderFormErrors.reps = ''
+    })
+
+    watch([newDuration, newDistance], () => {
+        builderFormErrors.duration = ''
+        builderFormErrors.distance = ''
+    })
+
+    watch(selectedPlanExercises, () => {
+        builderFormErrors.exercises = ''
+    }, { deep: true })
+
+    watch([autoPrimaryGoal, autoWeeklyFrequency, autoSessionDuration], () => {
+        builderFormErrors.autoPrimaryGoal = ''
+        builderFormErrors.autoWeeklyFrequency = ''
+        builderFormErrors.autoSessionDuration = ''
+        builderFormErrors.autoGeneral = ''
+    })
+
+    watch([autoMachineFocusWeight, autoFreeWeightFocusWeight, autoJointFriendlyWeight], () => {
+        builderFormErrors.autoPreferenceWeights = ''
+    })
+
+    watch(autoPlanNames, () => {
+        builderFormErrors.autoPlanNames = []
+    }, { deep: true })
+
+    watch(planName, () => {
         if (builderMode.value !== 'auto') return
         if (autoPlanNames.value.some((entry) => entry.trim().length > 0)) return
         syncAutoPlanNames()
@@ -1658,48 +1766,31 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             props.addToast('Auto-Plan neu generiert', 'save')
         } catch (error) {
             if (error instanceof Error && error.message === 'auto-primary-goal-missing') {
-                props.openValidationPopup(['Primärziel auswählen'])
+                builderFormErrors.autoPrimaryGoal = 'Primärziel auswählen'
                 return
             }
             if (error instanceof Error && error.message === 'auto-weekly-frequency-missing') {
-                props.openValidationPopup(['Training pro Woche auswählen'])
+                builderFormErrors.autoWeeklyFrequency = 'Training pro Woche auswählen'
                 return
             }
             if (error instanceof Error && error.message === 'auto-session-duration-missing') {
-                props.openValidationPopup(['Min pro Training auswählen'])
+                builderFormErrors.autoSessionDuration = 'Min pro Training auswählen'
                 return
             }
             if (error instanceof Error && error.message === 'exercise-library-empty') {
-                props.openValidationPopup(['Die Übungsbibliothek konnte nicht geladen werden. Auto-Plan wurde nicht neu erzeugt.'])
+                builderFormErrors.autoGeneral = 'Die Übungsbibliothek konnte nicht geladen werden. Auto-Plan wurde nicht neu erzeugt.'
                 return
             }
-            props.openValidationPopup(['Auto-Plan konnte nicht neu generiert werden. Bitte Eingaben prüfen.'])
+            builderFormErrors.autoGeneral = 'Auto-Plan konnte nicht neu generiert werden. Bitte Eingaben prüfen.'
         } finally {
             regeneratingPlanIndex.value = null
         }
     }
 
     const generateAutoPlanIntoBuilder = async () => {
+        if (!validateBuilderFields('generate')) return
+
         try {
-            if (!autoPrimaryGoal.value) {
-                props.openValidationPopup(['Primärziel auswählen'])
-                return
-            }
-            if (!Number.isFinite(autoWeeklyFrequency.value) || autoWeeklyFrequency.value == null) {
-                props.openValidationPopup(['Training pro Woche auswählen'])
-                return
-            }
-            if (!Number.isFinite(autoSessionDuration.value) || autoSessionDuration.value == null) {
-                props.openValidationPopup(['Min pro Training auswählen'])
-                return
-            }
-
-            const totalPreferenceWeight = getAutoPreferenceWeightTotal()
-            if (totalPreferenceWeight > 100) {
-                props.openValidationPopup([`Die Summe aus Maschinenfokus, Freihantelfokus und Gelenkschonend darf zusammen maximal 100% sein. Aktuell: ${totalPreferenceWeight}%.`])
-                return
-            }
-
             await Promise.all([
                 complaintsStore.load(),
                 exerciseLibraryStore.load(),
@@ -1738,10 +1829,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             props.addToast('Auto-Plan erstellt', 'save')
         } catch (error) {
             if (error instanceof Error && error.message === 'exercise-library-empty') {
-                props.openValidationPopup(['Die Übungsbibliothek konnte nicht geladen werden. Auto-Plan wurde nicht erzeugt.'])
+                builderFormErrors.autoGeneral = 'Die Übungsbibliothek konnte nicht geladen werden. Auto-Plan wurde nicht erzeugt.'
                 return
             }
-            props.openValidationPopup(['Auto-Plan konnte nicht erstellt werden. Bitte Eingaben prüfen.'])
+            builderFormErrors.autoGeneral = 'Auto-Plan konnte nicht erstellt werden. Bitte Eingaben prüfen.'
         }
     }
 
@@ -2281,7 +2372,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     const selectedGoalSafe = computed({
         get: () => selectedGoal.value,
-        set: (val) => { if (!val) return; selectedGoal.value = val },
+        set: (val) => { selectedGoal.value = String(val ?? '').trim() },
     })
 
     const manualReplacementExerciseSafe = computed({
@@ -2348,8 +2439,6 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const collectValidationErrors = () => {
         const errors: string[] = []
 
-        if (!selectedGoal.value) errors.push('Trainingsziel auswählen')
-
         if (trainingType.value === 'ausdauer') {
             if (!cardioExercise.value) errors.push('Cardio-Art wählen')
             const dErr = validateDurationMin(newDuration.value); if (dErr) errors.push(dErr)
@@ -2373,6 +2462,103 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         }
 
         return errors
+    }
+
+    const resetBuilderFormErrors = () => {
+        Object.assign(builderFormErrors, createBuilderFormErrors())
+    }
+
+    const validateBuilderFields = (context: 'add' | 'generate' | 'save'): boolean => {
+        resetBuilderFormErrors()
+
+        if (builderMode.value === 'manual') {
+            if (context === 'add') {
+                if (trainingType.value === 'ausdauer') {
+                    if (!cardioExercise.value) builderFormErrors.cardioExercise = 'Cardio-Art wählen'
+                    builderFormErrors.duration = validateDurationMin(newDuration.value) ?? ''
+                    builderFormErrors.distance = validateDistanceKm(newDistance.value) ?? ''
+                } else {
+                    const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value
+                    if (!exerciseToAdd) builderFormErrors.exercise = 'Übung auswählen oder benutzerdefinierte Übung eingeben'
+                    else if (selectedPlanExercises.value.some((ex) => ex.exercise.toLowerCase() === exerciseToAdd.toLowerCase())) {
+                        builderFormErrors.exercise = 'Übung bereits im Plan vorhanden'
+                    }
+
+                    builderFormErrors.sets = validateSets(newSets.value) ?? ''
+                    builderFormErrors.reps = validateReps(newReps.value) ?? ''
+
+                    if (newExercise.value === 'custom' && customPlanExercise.value) {
+                        const muscleGroup = exerciseFilter.value || ''
+                        const validated = validateCustomExercise(customPlanExercise.value, muscleGroup, trainingType.value)
+                        if (typeof validated === 'string') builderFormErrors.customExercise = validated
+                    }
+                }
+            }
+
+            if (context === 'save') {
+                const validatedPlanName = validatePlanName(planName.value)
+                if (validatedPlanName === false) {
+                    builderFormErrors.planName = planName.value.trim().length < 3
+                        ? 'Planname muss mindestens 3 Zeichen lang sein'
+                        : 'Planname darf maximal 20 Zeichen lang sein'
+                }
+                if (!hasExercisesToSave.value) builderFormErrors.exercises = 'Mindestens eine Übung ist erforderlich'
+            }
+        }
+
+        if (builderMode.value === 'auto') {
+            if (!autoPrimaryGoal.value) builderFormErrors.autoPrimaryGoal = 'Primärziel auswählen'
+            if (!Number.isFinite(autoWeeklyFrequency.value) || autoWeeklyFrequency.value == null) {
+                builderFormErrors.autoWeeklyFrequency = 'Training pro Woche auswählen'
+            }
+            if (!Number.isFinite(autoSessionDuration.value) || autoSessionDuration.value == null) {
+                builderFormErrors.autoSessionDuration = 'Min pro Training auswählen'
+            }
+
+            const totalPreferenceWeight = getAutoPreferenceWeightTotal()
+            if ((context === 'generate' || context === 'save') && totalPreferenceWeight > 100) {
+                builderFormErrors.autoPreferenceWeights = `Die Summe aus Maschinenfokus, Freihantelfokus und Gelenkschonend darf zusammen maximal 100% sein. Aktuell: ${totalPreferenceWeight}%.`
+            }
+
+            if (context === 'save') {
+                if (editingPlanId.value) {
+                    const validatedPlanName = validatePlanName(planName.value)
+                    if (validatedPlanName === false) {
+                        builderFormErrors.planName = planName.value.trim().length < 3
+                            ? 'Planname muss mindestens 3 Zeichen lang sein'
+                            : 'Planname darf maximal 20 Zeichen lang sein'
+                    }
+                } else if (generatedAutoPlans.value.length > 0) {
+                    builderFormErrors.autoPlanNames = generatedAutoPlans.value.map((plan) => {
+                        const validated = validatePlanName(plan.name)
+                        if (validated !== false) return ''
+                        return plan.name.trim().length < 3
+                            ? 'Planname muss mindestens 3 Zeichen lang sein'
+                            : 'Planname darf maximal 20 Zeichen lang sein'
+                    })
+                }
+
+                if (!hasExercisesToSave.value) builderFormErrors.exercises = 'Mindestens eine Übung ist erforderlich'
+            }
+        }
+
+        return !builderFormErrors.planName &&
+            !builderFormErrors.selectedGoal &&
+            !builderFormErrors.exercise &&
+            !builderFormErrors.customExercise &&
+            !builderFormErrors.cardioExercise &&
+            !builderFormErrors.sets &&
+            !builderFormErrors.reps &&
+            !builderFormErrors.duration &&
+            !builderFormErrors.distance &&
+            !builderFormErrors.exercises &&
+            !builderFormErrors.autoPrimaryGoal &&
+            !builderFormErrors.autoWeeklyFrequency &&
+            !builderFormErrors.autoSessionDuration &&
+            !builderFormErrors.autoPreferenceWeights &&
+            !builderFormErrors.autoGeneral &&
+            !builderFormErrors.general &&
+            !builderFormErrors.autoPlanNames.some(Boolean)
     }
 
 
@@ -2486,6 +2672,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     })
 
     function resetBuilder() {
+        resetBuilderFormErrors()
         planName.value = ""
         newExercise.value = ""
         customPlanExercise.value = ""
@@ -2681,14 +2868,9 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     // REPLACE in components/ui/training/TrainingPlanBuilder.vue (addExerciseToPlan)
     const addExerciseToPlan = () => {
         generatedAutoPlans.value = []
-        const errors = collectValidationErrors()
-        if (errors.length > 0) { props.openValidationPopup(errors); return }
+        if (!validateBuilderFields('add')) return
 
         const hint = manualPrescriptionHint.value
-        if (!hint) {
-            props.openValidationPopup(['Trainingsziel auswählen'])
-            return
-        }
 
         if (isPhonePreviewBuilderDemo.value) {
             const previewExercise =
@@ -2698,13 +2880,13 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
             selectedPlanExercises.value.push({
                 exercise: previewExercise,
-                sets: Number(newSets.value ?? hint.exact.sets ?? 4),
-                reps: Number(newReps.value ?? hint.exact.reps ?? 10),
+                sets: Number(newSets.value ?? hint?.exact.sets ?? 4),
+                reps: Number(newReps.value ?? hint?.exact.reps ?? 10),
                 goal: selectedGoal.value || undefined,
                 type: trainingType.value,
-                restSeconds: hint.exact.restSeconds ?? null,
+                restSeconds: hint?.exact.restSeconds ?? null,
                 notes: manualNote.value.trim() || undefined,
-                recommendationLabel: hint.recommendationLabel,
+                recommendationLabel: hint?.recommendationLabel,
                 recoveryHint: manualRecovery.value.trim() || undefined,
                 tempoHint: manualTempo.value.trim() || undefined,
                 equipmentNumber: manualEquipmentNumber.value.trim() || undefined,
@@ -2724,7 +2906,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 distanceKm: newDistance.value ? Number(newDistance.value) : null,
                 restSeconds: 0,
                 notes: manualNote.value.trim() || undefined,
-                recommendationLabel: hint.recommendationLabel,
+                recommendationLabel: hint?.recommendationLabel,
                 recoveryHint: manualRecovery.value.trim() || undefined,
                 tempoHint: manualTempo.value.trim() || undefined,
                 equipmentNumber: manualEquipmentNumber.value.trim() || undefined,
@@ -2732,7 +2914,6 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             })
             props.addToast('Cardio hinzugefügt', 'add')
             cardioExercise.value = ''
-            selectedGoal.value = ''
             manualRecovery.value = ''
             manualTempo.value = ''
             manualEquipmentNumber.value = ''
@@ -2752,7 +2933,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 props.saveToStorage?.()
                 props.addToast('Benutzerdefinierte Übung gespeichert', 'add')
             } else {
-                props.openValidationPopup([validated])
+                builderFormErrors.customExercise = validated
                 return
             }
         }
@@ -2763,10 +2944,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             reps: newReps.value!,
             goal: selectedGoal.value || undefined,
             type: trainingType.value,
-            restSeconds: hint.exact.restSeconds ?? null,
+            restSeconds: hint?.exact.restSeconds ?? null,
             notes: manualNote.value.trim() || undefined,
-            recommendationLabel: hint.recommendationLabel,
-            focusLabel: hint.focusLabel,
+            recommendationLabel: hint?.recommendationLabel,
+            focusLabel: hint?.focusLabel,
             recoveryHint: manualRecovery.value.trim() || undefined,
             tempoHint: manualTempo.value.trim() || undefined,
             equipmentNumber: manualEquipmentNumber.value.trim() || undefined,
@@ -2777,7 +2958,6 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
         newExercise.value = ''
         customPlanExercise.value = ''
-        selectedGoal.value = ''
         manualRecovery.value = ''
         manualTempo.value = ''
         manualEquipmentNumber.value = ''
@@ -2977,20 +3157,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         }
 
         if (!auth.user) {
-            if ((!isAutoMultiCreate && effectiveValidatedPlanName === false) || !hasExercisesToSave.value) {
-                const errors: string[] = []
-                if (!isAutoMultiCreate && effectiveValidatedPlanName === false) {
-                    const invalidPlanName = autoSinglePlan?.name ?? planName.value
-                    errors.push(
-                        invalidPlanName.trim().length < 3
-                            ? "Planname muss mindestens 3 Zeichen lang sein"
-                            : "Planname darf maximal 20 Zeichen lang sein"
-                    )
-                }
-                if (!hasExercisesToSave.value) errors.push("Mindestens eine Übung ist erforderlich")
-                props.openValidationPopup(errors)
-                return
-            }
+            if (!validateBuilderFields('save')) return
 
             const createGuestId = () =>
                 (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
@@ -3039,27 +3206,14 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         }
 
         if (editingPlanId.value && builderMode.value === 'auto' && generatedPlansToPersist.length > 1) {
-            props.openValidationPopup(["Mehrere Auto-Pläne können nicht in einen bestehenden Einzelplan gespeichert werden. Bitte erstelle sie als neue Pläne."])
+            builderFormErrors.general = 'Mehrere Auto-Pläne können nicht in einen bestehenden Einzelplan gespeichert werden. Bitte erstelle sie als neue Pläne.'
             return
         }
 
-        if ((!isAutoMultiCreate && effectiveValidatedPlanName === false) || (!editingPlanId.value && !hasExercisesToSave.value)) {
-            const errors: string[] = []
-            if (!isAutoMultiCreate && effectiveValidatedPlanName === false) {
-                const invalidPlanName = autoSinglePlan?.name ?? planName.value
-                errors.push(
-                    invalidPlanName.trim().length < 3
-                        ? "Planname muss mindestens 3 Zeichen lang sein"
-                        : "Planname darf maximal 20 Zeichen lang sein"
-                )
-            }
-            if (!hasExercisesToSave.value) errors.push("Mindestens eine Übung ist erforderlich")
-            props.openValidationPopup(errors)
-            return
-        }
+        if (!validateBuilderFields('save')) return
 
         if (!autoSinglePlan && !isAutoMultiCreate && isNameTaken(effectiveValidatedPlanName as string, editingPlanId.value)) {
-            props.openValidationPopup(["Planname bereits vergeben. Bitte wähle einen anderen Namen."])
+            builderFormErrors.planName = 'Planname bereits vergeben. Bitte wähle einen anderen Namen.'
             return
         }
 
@@ -3114,16 +3268,16 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             const status = e?.response?.status
 
             if (!isAutoMultiCreate && status === 500 && isNameTaken(effectiveValidatedPlanName as string, editingPlanId.value)) {
-                props.openValidationPopup(["Planname bereits vergeben. Bitte wähle einen anderen Namen."])
+                builderFormErrors.planName = 'Planname bereits vergeben. Bitte wähle einen anderen Namen.'
                 return
             }
 
             if (status === 409) {
-                props.openValidationPopup(["Planname bereits vergeben. Bitte wähle einen anderen Namen."])
+                builderFormErrors.planName = 'Planname bereits vergeben. Bitte wähle einen anderen Namen.'
                 return
             }
 
-            props.openValidationPopup(["Speichern fehlgeschlagen. Bitte versuch’s nochmal."])
+            builderFormErrors.general = 'Speichern fehlgeschlagen. Bitte versuch’s nochmal.'
         }
     }
 
@@ -3597,6 +3751,19 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         display: flex;
         flex-direction: column;
         gap: .4rem;
+    }
+
+    .field-error {
+        margin: 0;
+        color: #ef4444;
+        font-size: 0.9rem;
+        font-weight: 650;
+    }
+
+    .field.has-error :deep(.ui-select-trigger),
+    .field-row.has-error :deep(.ui-select-trigger) {
+        border-color: rgba(239, 68, 68, 0.88);
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.10), 0 10px 22px rgba(15, 23, 42, 0.12);
     }
 
     .actions-row.stack {

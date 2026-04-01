@@ -235,26 +235,26 @@
         </template>
 
         <!-- Inputs -->
-        <template #inputs="{ maybeAutoCalc }">
+        <template #inputs="{ maybeAutoCalc, errorFor }">
             <UiCalculatorInput :modelValue="weight ?? ''"
                                type="number"
-                               inputmode="decimal"
-                               :label="`Körpergewicht (${unit === 'kg' ? 'kg' : 'lbs'})`"
+                               :label="`Körpergewicht (${unit === 'kg' ? 'kg' : 'lbs'}) *`"
                                :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
+                               :error="errorFor('gewicht')"
                                @update:modelValue="(v) => { emit('update:ffmiWeight', v === '' ? null : Number(v)); maybeAutoCalc() }" />
 
             <UiCalculatorInput :modelValue="height ?? ''"
                                type="number"
-                               inputmode="numeric"
-                               label="Körpergröße (cm)"
+                               label="Körpergröße (cm) *"
                                placeholder="z.B. 175"
+                               :error="errorFor('gr')"
                                @update:modelValue="(v) => { emit('update:ffmiHeight', v === '' ? null : Number(v)); maybeAutoCalc() }" />
 
             <UiCalculatorInput :modelValue="bodyFat ?? ''"
                                type="number"
-                               inputmode="decimal"
-                               label="Körperfettanteil (%)"
+                               label="Körperfettanteil (%) *"
                                placeholder="z.B. 15"
+                               :error="errorFor('fett')"
                                @update:modelValue="(v) => { emit('update:ffmiBodyFat', v === '' ? null : Number(v)); maybeAutoCalc() }" />
         </template>
 

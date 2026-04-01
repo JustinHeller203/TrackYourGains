@@ -212,29 +212,31 @@
         </template>
 
         <!-- Inputs -->
-        <template #inputs="{ maybeAutoCalc, normalizeNumberInput }">
+        <template #inputs="{ maybeAutoCalc, normalizeNumberInput, errorFor }">
             <UiCalculatorInput :modelValue="exercise"
-                               label="Übung"
+                               label="Übung *"
                                type="text"
                                placeholder="z. B. Bankdrücken"
                                autocomplete="off"
+                               :error="errorFor('übung')"
                                @update:modelValue="(v) => { emit('update:oneRmExercise', String(v)); maybeAutoCalc() }" />
 
             <UiCalculatorInput :modelValue="weightInputValue"
-                               label="Gewicht"
+                               :label="`Gewicht (${String(unit).toLowerCase() === 'kg' ? 'kg' : 'lbs'}) *`"
                                type="text"
                                inputmode="decimal"
                                autocomplete="off"
                                :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
+                               :error="errorFor('gewicht')"
                                @update:modelValue="(v) => { onWeightInputValue(v, normalizeNumberInput); maybeAutoCalc() }" />
 
-
             <UiCalculatorInput :modelValue="repsInputValue"
-                               label="Wiederholungen"
+                               label="Wiederholungen *"
                                type="text"
                                inputmode="numeric"
                                autocomplete="off"
                                placeholder="z. B. 8"
+                               :error="errorFor('wiederholungen')"
                                @update:modelValue="(v) => { onRepsInputValue(v); maybeAutoCalc() }" />
         </template>
 

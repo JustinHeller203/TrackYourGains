@@ -9,6 +9,7 @@
                     :info="info || defaultInfo"
                     :autoCalcEnabled="autoCalcEnabled"
                     :validate="validateProtein"
+                    :externalErrors="inlineErrors"
                     :isFavorite="isFavorite"
                     :showCalculateButton="!autoCalcEnabled"
                     :showCopyButton="hasValidResult"
@@ -18,7 +19,7 @@
                     @copy="$emit('copy')"
                     @export="$emit('export')"
                     @reset="$emit('reset')"
-                    @invalid="(errors) => $emit('invalid', errors)">
+                    @invalid="handleInvalid">
 
         <!-- Graphic -->
         <template #graphic="{ jumpTo }">
@@ -211,7 +212,7 @@
                         <div class="calc-formula">
                             <span class="calc-formula-k">Protein</span>
                             <span class="calc-formula-eq">=</span>
-                            <span class="calc-formula-v">Gewicht (kg) × Faktor (g/kg)</span>
+                            <span class="calc-formula-v">gewicht * (kg) × Faktor (g/kg)</span>
                         </div>
                         <div class="calc-note">
                             Hinweis: Bei lbs wird intern in kg umgerechnet.
@@ -281,18 +282,20 @@
         </template>
 
         <!-- Inputs -->
-        <template #inputs="{ maybeAutoCalc, normalizeNumberInput }">
+        <template #inputs="{ maybeAutoCalc, normalizeNumberInput, errorFor }">
             <UiCalculatorInput :modelValue="weightInputValue"
-                               :label="`Körpergewicht (${unitNormalized === 'kg' ? 'kg' : 'lbs'})`"
+                               :label="`Körpergewicht (${unitNormalized === 'kg' ? 'kg' : 'lbs'}) *`"
                                type="text"
                                inputmode="decimal"
                                autocomplete="off"
                                :placeholder="unitNormalized === 'kg' ? 'z. B. 75' : 'z. B. 165'"
+                               :error="errorFor('gewicht')"
                                @update:modelValue="(v) => { onWeightInputValue(v, normalizeNumberInput); maybeAutoCalc() }" />
 
             <UiCalculatorInput :modelValue="goal"
                                as="select"
-                               label="Ziel"
+                               label="Ziel *"
+                               :error="errorFor('ziel')"
                                @update:modelValue="(v) => { emit('update:proteinGoal', String(v) as Goal); maybeAutoCalc() }"
                                :options="[
                            { label: 'Fettverlust', value: 'cut' },
@@ -302,7 +305,8 @@
 
             <UiCalculatorInput :modelValue="activityEffective"
                                as="select"
-                               label="Aktivität"
+                               label="Aktivität *"
+                               :error="errorFor('aktivit')"
                                @update:modelValue="(v) => { emit('update:proteinActivity', String(v) as Activity); maybeAutoCalc() }"
                                :options="[
                            { label: 'Niedrig', value: 'low' },
@@ -314,6 +318,7 @@
                                label="Mahlzeiten/Tag (optional)"
                                type="text"
                                inputmode="numeric"
+                               :error="errorFor('mahlzeiten')"
                                autocomplete="off"
                                placeholder="z. B. 3"
                                hint="Wenn gesetzt, zeigen wir zusätzlich g pro Mahlzeit."
@@ -379,6 +384,12 @@
         (e: 'reset'): void
         (e: 'invalid', errors: string[]): void
     }>()
+    const inlineErrors = ref<string[]>([])
+
+    function handleInvalid(errors: string[]) {
+        inlineErrors.value = errors
+        emit('invalid', errors)
+    }
 
     const copyText = computed<string | null>(() => {
         if (!hasValidResult.value) return null
@@ -436,9 +447,11 @@
         }
 
         if (errors.length) {
-            emit('invalid', errors)
+            handleInvalid(errors)
             return null
         }
+
+        inlineErrors.value = []
 
         const weightKg = unitNormalized.value === 'lbs' ? (wRaw! * LBS_TO_KG) : wRaw!
         const factor = proteinFactor(props.proteinGoal, activityEffective.value)

@@ -56,6 +56,7 @@
                   :UiCalculatorInput="UiCalculatorInput"
                   :maybeAutoCalc="maybeAutoCalc"
                   :normalizeNumberInput="normalizeNumberInput"
+                  :errorFor="errorFor"
                   :openInfo="openInfo"
                   :openInfoAndJump="openInfoAndJump"
                   :jumpTo="jumpTo"
@@ -90,14 +91,14 @@
                              class="calc-footer-btn calc-reset-btn"
                              aria-label="Zurücksetzen"
                              data-short="Zurücksetzen"
-                             @click="$emit('reset')" />
+                             @click="handleReset" />
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-    import { computed, nextTick, ref, useSlots, Comment, Text, Fragment } from 'vue'
+    import { computed, nextTick, ref, watch, useSlots, Comment, Text, Fragment } from 'vue'
     import { useCalcJumpTo } from '@/composables/useCalcJumpTo'
     import ExplanationPopup from '@/components/ui/popups/ExplanationPopup.vue'
     import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
@@ -125,6 +126,7 @@
 
         /* Validation */
         validate?: () => string[]
+        externalErrors?: string[]
 
         /* Buttons / UI */
         showFavorite?: boolean
@@ -173,13 +175,17 @@
         (e: 'invalid', errors: string[]): void
     }>()
 
+    const inlineErrors = ref<string[]>([])
+
     const runValidation = (): boolean => {
         if (!props.validate) return true
         const errors = props.validate() ?? []
         if (errors.length) {
+            inlineErrors.value = errors
             emit('invalid', errors)
             return false
         }
+        inlineErrors.value = []
         return true
     }
     const infoText = computed(() => props.info ?? '')
@@ -212,6 +218,24 @@
         if (!props.autoCalcEnabled) return
         emitCalculate()
     }
+
+    function errorFor(patterns: string | string[]) {
+        const list = Array.isArray(patterns) ? patterns : [patterns]
+        return inlineErrors.value.find((error) =>
+            list.some((pattern) => error.toLowerCase().includes(pattern.toLowerCase()))
+        ) ?? ''
+    }
+
+    function handleReset() {
+        inlineErrors.value = []
+        emit('reset')
+    }
+
+    const externalErrorsKey = computed(() => JSON.stringify(props.externalErrors ?? []))
+
+    watch(externalErrorsKey, () => {
+        inlineErrors.value = [...(props.externalErrors ?? [])]
+    }, { immediate: true })
 
 
     /* ===== Copy ===== */
@@ -362,6 +386,7 @@
         margin-bottom: 1rem;
     }
 
+
     .result {
         margin-top: 1rem;
         padding: 1rem;
@@ -371,11 +396,19 @@
         border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
     }
     .result-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        justify-content: stretch;
         gap: .75rem;
         margin-bottom: .35rem;
+        width: 100%;
+    }
+
+    .result-main {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .card-footer {

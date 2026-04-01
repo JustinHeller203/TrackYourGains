@@ -1,6 +1,7 @@
 <!-- src/components/ui/calculators/CaloriesCalculator.vue -->
 <template>
     <BaseCalculator :title="title || 'Kalorienbedarfsrechner'"
+                    cardClass="calories-calculator-card calc-card--wide"
                     :showInfo="!!infoText"
                     infoTitle="Kalorienbedarf"
                     infoKicker="Rechner erklärt"
@@ -11,7 +12,7 @@
                     :validate="validateCalories"
                     :isFavorite="isFavorite"
                     :showCalculateButton="!autoCalcEnabled"
-                    :showCopyButton="!!result"
+                    :showCopyButton="false"
                     :copyText="copyText"
                     @toggleFavorite="$emit('toggleFavorite')"
                     @calculate="$emit('calculate')"
@@ -28,7 +29,7 @@
                 </div>
 
                 <div class="calc-hero-sub">
-                    Der Rechner schätzt deinen <strong>Tagesbedarf</strong> aus Grundumsatz + Aktivität und passt ihn fürs Ziel an. 
+                    Der Rechner schätzt deinen <strong>Tagesbedarf</strong> aus Grundumsatz + Aktivität und passt ihn fürs Ziel an.
                 </div>
 
                 <div class="calc-hero-pills" aria-label="Schnellnavigation">
@@ -258,17 +259,19 @@
         </template>
 
         <!-- Inputs -->
-        <template #inputs="{ openInfoAndJump, maybeAutoCalc }">
+        <template #inputs="{ openInfoAndJump, maybeAutoCalc, errorFor }">
             <UiCalculatorInput :modelValue="age ?? ''"
                                type="number"
                                inputmode="numeric"
-                               label="Alter (Jahre)"
+                               label="Alter (Jahre) *"
                                placeholder="z.B. 30"
+                               :error="errorFor('alter')"
                                @update:modelValue="(v) => { emit('update:calorieAge', v === '' ? null : Number(v)); maybeAutoCalc() }" />
 
             <UiCalculatorInput :modelValue="gender"
                                as="select"
-                               label="Geschlecht"
+                               label="Geschlecht *"
+                               :error="errorFor('geschlecht')"
                                :options="[
       { label: 'Männlich', value: 'male' },
       { label: 'Weiblich', value: 'female' }
@@ -277,21 +280,21 @@
 
             <UiCalculatorInput :modelValue="weight ?? ''"
                                type="number"
-                               inputmode="decimal"
-                               :label="`Körpergewicht (${unit === 'kg' ? 'kg' : 'lbs'})`"
+                               :label="`Körpergewicht (${unit === 'kg' ? 'kg' : 'lbs'}) *`"
                                :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
+                               :error="errorFor('gewicht')"
                                @update:modelValue="(v) => { emit('update:calorieWeight', v === '' ? null : Number(v)); maybeAutoCalc() }" />
 
             <UiCalculatorInput :modelValue="height ?? ''"
                                type="number"
-                               inputmode="numeric"
-                               label="Körpergröße (cm)"
+                               label="Körpergröße (cm) *"
                                placeholder="z.B. 175"
+                               :error="errorFor('gr')"
                                @update:modelValue="(v) => { emit('update:calorieHeight', v === '' ? null : Number(v)); maybeAutoCalc() }" />
 
             <div class="input-pair-tight">
                 <label class="label-with-info">
-                    Aktivitätslevel
+                    Aktivitätslevel *
                     <button type="button"
                             class="info-btn"
                             aria-label="Aktivitätslevel Erklärung öffnen"
@@ -303,6 +306,7 @@
 
                 <UiCalculatorInput :modelValue="activity"
                                    as="select"
+                                   :error="errorFor('aktivit')"
                                    :options="[
           { label: 'Sitzend', value: '1.2' },
           { label: 'Leicht aktiv', value: '1.375' },
@@ -315,7 +319,7 @@
 
             <div class="input-pair-tight">
                 <label class="label-with-info">
-                    Kalorienziel
+                    Kalorienziel *
                     <button type="button"
                             class="info-btn"
                             aria-label="Kalorienziel Erklärung öffnen"
@@ -327,6 +331,7 @@
 
                 <UiCalculatorInput :modelValue="goal"
                                    as="select"
+                                   :error="errorFor('kalorienziel')"
                                    :options="[
                                    { label: 'Erhaltung' , value: 0 },
                                    ...steps.map(n=>
@@ -341,19 +346,51 @@
 
         <!-- Result -->
         <template #result>
-            <div v-if="result">
-                <p><strong>Gesamtkalorienbedarf:</strong> {{ result.total.toFixed(0) }} kcal</p>
-                <ul class="result-list">
-                    <li>Kohlenhydrate (50%): {{ result.macros.carbs.toFixed(0) }} g</li>
-                    <li>Eiweiß (30%): {{ result.macros.protein.toFixed(0) }} g</li>
-                    <li>Fett (20%): {{ result.macros.fat.toFixed(0) }} g</li>
-                </ul>
-            </div>
-        </template>
+            <div v-if="result" class="calories-result">
+                <div class="calories-result__hero">
+                    <div class="calories-result__hero-topbar">
+                        <CopyButton @click="$emit('copy')" />
+                    </div>
 
-        <template #result-sub>
-            <div v-if="result" class="chart-container">
-                <canvas id="macroChart"></canvas>
+                    <div class="calories-result__hero-copy">
+                        <span class="calories-result__eyebrow">Daily Target</span>
+                        <strong class="calories-result__total">{{ result.total.toFixed(0) }}</strong>
+                        <span class="calories-result__unit">kcal / Tag</span>
+                    </div>
+                </div>
+
+                <div class="calories-result__macros">
+                    <div class="calories-result__macro calories-result__macro--carbs">
+                        <span class="calories-result__macro-label">Kohlenhydrate</span>
+                        <strong class="calories-result__macro-value">{{ result.macros.carbs.toFixed(0) }} g</strong>
+                        <span class="calories-result__macro-share">50%</span>
+                    </div>
+                    <div class="calories-result__macro calories-result__macro--protein">
+                        <span class="calories-result__macro-label">Eiweiß</span>
+                        <strong class="calories-result__macro-value">{{ result.macros.protein.toFixed(0) }} g</strong>
+                        <span class="calories-result__macro-share">30%</span>
+                    </div>
+                    <div class="calories-result__macro calories-result__macro--fat">
+                        <span class="calories-result__macro-label">Fett</span>
+                        <strong class="calories-result__macro-value">{{ result.macros.fat.toFixed(0) }} g</strong>
+                        <span class="calories-result__macro-share">20%</span>
+                    </div>
+                </div>
+
+                <div class="calories-result__bars" aria-hidden="true">
+                    <div class="calories-result__bar-row">
+                        <span class="calories-result__bar-label">KH</span>
+                        <span class="calories-result__bar-track"><span class="calories-result__bar-fill calories-result__bar-fill--carbs"></span></span>
+                    </div>
+                    <div class="calories-result__bar-row">
+                        <span class="calories-result__bar-label">EW</span>
+                        <span class="calories-result__bar-track"><span class="calories-result__bar-fill calories-result__bar-fill--protein"></span></span>
+                    </div>
+                    <div class="calories-result__bar-row">
+                        <span class="calories-result__bar-label">F</span>
+                        <span class="calories-result__bar-track"><span class="calories-result__bar-fill calories-result__bar-fill--fat"></span></span>
+                    </div>
+                </div>
             </div>
         </template>
 
@@ -363,6 +400,7 @@
 <script setup lang="ts">
     import { computed } from 'vue'
     import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
+    import CopyButton from '@/components/ui/buttons/CopyButton.vue'
     import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
 
     type Gender = 'male' | 'female'
@@ -526,9 +564,265 @@
         grid-column: 1 / -1;
     }
 
-    .chart-container {
-        height: 240px;
-        margin-top: .5rem;
+    .calories-result {
+        display: grid;
+        gap: .85rem;
+        width: 100%;
+        margin: 0 auto;
+        justify-items: stretch;
+        align-items: start;
+        text-align: center;
+    }
+
+    .calories-result__hero {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: .9rem;
+        align-items: center;
+        justify-items: stretch;
+        width: 100%;
+        box-sizing: border-box;
+        padding: .95rem 1rem;
+        border-radius: 18px;
+        background:
+            radial-gradient(circle at top right, rgba(251, 146, 60, 0.18), transparent 28%),
+            linear-gradient(135deg, rgba(255, 247, 237, 0.96), rgba(255, 255, 255, 0.92) 45%, rgba(255, 244, 230, 0.96));
+        border: 1px solid rgba(251, 146, 60, 0.18);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.62),
+            0 12px 28px rgba(15, 23, 42, 0.08);
+    }
+
+    .calories-result__hero-topbar {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        width: 100%;
+    }
+
+    .calories-result__hero-copy {
+        display: grid;
+        justify-items: center;
+        width: 100%;
+        text-align: center;
+    }
+
+    .calories-result__eyebrow {
+        display: block;
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: #c2410c;
+    }
+
+    .calories-result__total {
+        display: block;
+        margin-top: .24rem;
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        line-height: .92;
+        letter-spacing: -.05em;
+        color: #111827;
+    }
+
+    .calories-result__unit {
+        display: block;
+        margin-top: .18rem;
+        font-size: .88rem;
+        font-weight: 700;
+        color: #6b7280;
+    }
+
+    .calories-result__macros {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .65rem;
+        width: 100%;
+        margin: 0 auto;
+        justify-items: stretch;
+    }
+
+    .calories-result__macro {
+        display: grid;
+        justify-items: center;
+        padding: .78rem .82rem;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.9));
+        text-align: center;
+    }
+
+    .calories-result__macro--carbs {
+        border-color: rgba(249, 115, 22, 0.22);
+    }
+
+    .calories-result__macro--protein {
+        border-color: rgba(245, 158, 11, 0.24);
+    }
+
+    .calories-result__macro--fat {
+        border-color: rgba(107, 114, 128, 0.18);
+    }
+
+    .calories-result__macro-label {
+        display: block;
+        font-size: .66rem;
+        font-weight: 900;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: #6b7280;
+    }
+
+    .calories-result__macro-value {
+        display: block;
+        margin-top: .22rem;
+        font-size: 1.08rem;
+        color: #111827;
+    }
+
+    .calories-result__macro-share {
+        display: block;
+        margin-top: .16rem;
+        font-size: .78rem;
+        font-weight: 800;
+        color: #c2410c;
+    }
+
+    .calories-result__bars {
+        display: grid;
+        gap: .45rem;
+        width: 100%;
+        margin: 0 auto;
+        box-sizing: border-box;
+        padding: .75rem .82rem;
+        border-radius: 16px;
+        background: rgba(248, 250, 252, 0.86);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    .calories-result__bar-row {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: .5rem;
+        align-items: center;
+        width: 100%;
+    }
+
+    .calories-result__bar-label {
+        font-size: .72rem;
+        font-weight: 900;
+        color: #6b7280;
+    }
+
+    .calories-result__bar-track {
+        position: relative;
+        overflow: hidden;
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.08);
+    }
+
+    .calories-result__bar-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: inherit;
+    }
+
+    .calories-result__bar-fill--carbs {
+        width: 50%;
+        background: linear-gradient(90deg, #f97316, #fb923c);
+    }
+
+    .calories-result__bar-fill--protein {
+        width: 30%;
+        background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+
+    .calories-result__bar-fill--fat {
+        width: 20%;
+        background: linear-gradient(90deg, #64748b, #94a3b8);
+    }
+
+    :deep(.calories-calculator-card .result) {
+        position: relative;
+        display: grid;
+        width: 100%;
+        max-width: 100%;
+        padding: 1rem;
+        box-sizing: border-box;
+        justify-items: stretch;
+    }
+
+    :deep(.calories-calculator-card .result-header) {
+        display: grid;
+        width: 100%;
+        margin-bottom: 0;
+        justify-items: stretch;
+    }
+
+    :deep(.calories-calculator-card .result-main) {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        flex: none;
+        min-width: 0;
+        margin: 0 auto;
+    }
+
+    :deep(.calories-calculator-card .result-main > .calories-result) {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    html.dark-mode .calories-result__hero {
+        background:
+            radial-gradient(circle at top right, rgba(249, 115, 22, 0.18), transparent 28%),
+            linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.96));
+        border-color: rgba(148, 163, 184, 0.16);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.04),
+            0 14px 30px rgba(2, 6, 23, 0.34);
+    }
+
+    html.dark-mode .calories-result__eyebrow,
+    html.dark-mode .calories-result__macro-share {
+        color: #f59e0b;
+    }
+
+    html.dark-mode .calories-result__total,
+    html.dark-mode .calories-result__macro-value {
+        color: #f8fafc;
+    }
+
+    html.dark-mode .calories-result__unit,
+    html.dark-mode .calories-result__macro-label,
+    html.dark-mode .calories-result__bar-label {
+        color: #94a3b8;
+    }
+
+    html.dark-mode .calories-result__macro,
+    html.dark-mode .calories-result__bars {
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.94));
+        border-color: rgba(148, 163, 184, 0.14);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    html.dark-mode .calories-result__bar-track {
+        background: rgba(148, 163, 184, 0.12);
+    }
+
+    html.dark-mode .calories-result__gauge-core {
+        background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+        box-shadow: 0 14px 28px rgba(2, 6, 23, 0.42);
+    }
+
+    html.dark-mode .calories-result__gauge-ring--a {
+        border-color: rgba(249, 115, 22, 0.28) rgba(249, 115, 22, 0.08) rgba(245, 158, 11, 0.26) rgba(245, 158, 11, 0.06);
+    }
+
+    html.dark-mode .calories-result__gauge-ring--b {
+        border-color: rgba(251, 191, 36, 0.38) transparent rgba(251, 146, 60, 0.28) transparent;
     }
 
     .input-pair-tight {
@@ -536,4 +830,21 @@
         flex-direction: column;
         gap: .4rem; /* tighter label -> select spacing */
     }
+
+    @media (max-width: 820px) {
+        .calories-result__hero {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .calories-result__macros {
+            grid-template-columns: 1fr;
+        }
+
+        .calories-result__hero-topbar {
+            justify-content: flex-end;
+        }
+    }
+
 </style>

@@ -213,18 +213,19 @@
         </template>
 
         <!-- Inputs -->
-        <template #inputs="{ maybeAutoCalc, normalizeNumberInput }">
+        <template #inputs="{ maybeAutoCalc, normalizeNumberInput, errorFor }">
             <UiCalculatorInput :modelValue="weightInputValue"
-                               :label="`Körpergewicht (${unitNormalized === 'kg' ? 'kg' : 'lbs'})`"
+                               :label="`Körpergewicht (${unitNormalized === 'kg' ? 'kg' : 'lbs'}) *`"
                                type="text"
                                inputmode="decimal"
                                autocomplete="off"
                                :placeholder="unitNormalized === 'kg' ? 'z.B. 70' : 'z.B. 155'"
+                               :error="errorFor('gewicht')"
                                @update:modelValue="(v) => { onWeightInputValue(v, normalizeNumberInput); maybeAutoCalc() }" />
 
             <UiCalculatorInput :modelValue="activity"
                                as="select"
-                               label="Aktivitätslevel"
+                               label="Aktivitätslevel *"
                                @update:modelValue="(v) => { emit('update:waterActivity', String(v) as Activity); maybeAutoCalc() }"
                                :options="[
         { label: 'Niedrig (kein Sport)', value: 'low' },
@@ -234,7 +235,8 @@
 
             <UiCalculatorInput :modelValue="climate"
                                as="select"
-                               label="Klima"
+                               :error="errorFor('klima')"
+                               label="Klima *"
                                @update:modelValue="(v) => { emit('update:waterClimate', String(v) as Climate); maybeAutoCalc() }"
                                :options="[
         { label: 'Gemäßigt', value: 'temperate' },

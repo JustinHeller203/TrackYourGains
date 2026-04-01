@@ -37,7 +37,7 @@
                     <div class="form-grid form-grid--double">
                         <UiPopupSelect
                             v-model="form.area"
-                            label="Körperstelle"
+                            label="Körperstelle *"
                             placeholder="Bereich wählen"
                             quick-jump-value="benutzerdefiniert"
                             quick-jump-title="Zu Benutzerdefiniert springen"
@@ -46,7 +46,7 @@
 
                         <UiPopupInput
                             v-model="form.date"
-                            label="Datum"
+                            label="Datum *"
                             type="date"
                             :max="today"
                             :error="errors.date" />
@@ -62,7 +62,7 @@
 
                         <UiPopupInput
                             v-model="form.customAreaName"
-                            label="Benutzerdefinierte Körperstelle"
+                            label="Benutzerdefinierte Körperstelle *"
                             placeholder="z. B. Schulterblatt links"
                             :maxlength="50"
                             :error="errors.customAreaName" />
@@ -71,14 +71,14 @@
                     <div class="form-grid form-grid--double">
                         <UiPopupSelect
                             v-model="form.category"
-                            label="Art"
+                            label="Art *"
                             placeholder="Art wählen"
                             :options="categoryOptions"
                             :error="errors.category" />
 
                         <UiPopupSelect
                             v-model="form.status"
-                            label="Status"
+                            label="Status *"
                             placeholder="Status wählen"
                             :options="statusOptions"
                             :error="errors.status" />
@@ -108,7 +108,7 @@
 
                     <div class="intensity-field" :class="{ 'has-error': !!errors.intensity }">
                         <div class="intensity-head">
-                            <label class="field-label">Intensität</label>
+                            <label class="field-label">Intensität *</label>
                             <strong>{{ form.intensity }}/10</strong>
                         </div>
 
@@ -237,7 +237,7 @@
                                             <p v-if="diary.note" class="pain-diary-preview__note">{{ diary.note }}</p>
                                             <div v-if="editingPainDiaryId === diary.id" class="pain-diary-preview__editor">
                                                 <div class="pain-diary-preview__editor-head">
-                                                    <label class="field-label">Intensität</label>
+                                                    <label class="field-label">Intensität *</label>
                                                     <strong>{{ editingPainDiaryLevel }}/10</strong>
                                                 </div>
                                                 <input
@@ -2102,9 +2102,3 @@
         }
     }
 </style>
-
-
-
-
-
-

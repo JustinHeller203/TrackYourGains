@@ -325,31 +325,34 @@
 
         <!-- Inputs -->
         <!-- Inputs -->
-        <template #inputs="{ openInfoAndJump, maybeAutoCalc }">
+        <template #inputs="{ openInfoAndJump, maybeAutoCalc, errorFor }">
             <GlTablePopup ref="glTablePopup" @apply="applyFromGlTable" />
 
             <UiCalculatorInput :modelValue="food"
-                               label="Lebensmittel"
+                               label="Lebensmittel *"
+                               :error="errorFor('lebensmittel')"
                                placeholder="z. B. Reis, Banane …"
                                @update:modelValue="(v) => { emit('update:glFood', String(v)); maybeAutoCalc() }" />
 
             <UiCalculatorInput :modelValue="serving ?? ''"
                                type="number"
                                inputmode="decimal"
-                               label="Portionsgröße (g)"
+                               :error="errorFor('portionsgr')"
+                               label="Portionsgröße (g) *"
                                placeholder="z. B. 150"
                                @update:modelValue="(v) => { emit('update:glServing', toNumberOrNull(v)); maybeAutoCalc() }" />
 
             <UiCalculatorInput :modelValue="carbs100 ?? ''"
                                type="number"
                                inputmode="decimal"
-                               label="Kohlenhydrate pro 100 (g)"
+                               :error="errorFor('kohlenhydrate pro 100')"
+                               label="Kohlenhydrate pro 100 (g) *"
                                placeholder="z. B. 28"
                                hint="Falls bekannt: Ballaststoffe von den Gesamt-KH abziehen."
                                @update:modelValue="(v) => { emit('update:glCarbs100', toNumberOrNull(v)); maybeAutoCalc() }" />
 
             <div class="label-with-info">
-                <span>Glykämischer Index (0–110)</span>
+                <span>Glykämischer Index (0–110) *</span>
                 <button class="info-btn"
                         type="button"
                         aria-label="GI Erklärung öffnen"
@@ -362,6 +365,7 @@
             <UiCalculatorInput :modelValue="gi ?? ''"
                                type="number"
                                inputmode="decimal"
+                               :error="errorFor('glyk')"
                                placeholder="z. B. 55"
                                @update:modelValue="(v) => { emit('update:glGi', clampGi(toNumberOrNull(v))); maybeAutoCalc() }" />
         </template>

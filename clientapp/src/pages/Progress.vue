@@ -54,6 +54,15 @@
 
             <!-- ===================== STATISTIKEN TAB ===================== -->
             <div v-show="activeTab === 'stats'" class="progress-charts">
+                <div class="progress-charts__hero">
+                <ProgressConsistencyHeatmap :days="consistencyHeatmapDays"
+                                            :currentStreak="consistencyCurrentStreak"
+                                            :bestStreak="consistencyBestStreak"
+                                            :activeDaysLast30="consistencyActiveDaysLast30"
+                                            :sessionsLast30="consistencySessionsLast30" />
+                </div>
+
+                <div class="progress-charts__row">
                 <ChartCard title="Gewichtsverlauf"
                            :hasData="hasWeightStats"
                            exportable
@@ -77,6 +86,7 @@
                     </template>
                     <canvas id="workoutChart" class="chart-canvas"></canvas>
                 </ChartCard>
+                </div>
             </div>
 
             <!-- ===================== CALCULATORS TAB ===================== -->
@@ -654,11 +664,6 @@
                      @confirm="confirmDownload"
                      @cancel="closeDownloadPopup" />
 
-        <!-- Validation Popup-->
-        <ValidationPopup :show="calcValidationErrors.length > 0"
-                         :errors="calcValidationErrors"
-                         @close="clearCalcValidation" />
-
         <!-- Delete Confirm Popup (für Stats-Resets) -->
         <DeleteConfirmPopup :show="showDeleteConfirmPopup"
                             @confirm="confirmDeleteNow"
@@ -686,6 +691,7 @@
     import ProgressCaloriesTodayCard from '@/components/ui/progress/ProgressCaloriesTodayCard.vue'
     import ProgressWeightCard from '@/components/ui/progress/ProgressWeightCard.vue'
     import ProgressGoalWeightCard from '@/components/ui/progress/ProgressGoalWeightCard.vue'
+    import ProgressConsistencyHeatmap from '@/components/ui/progress/ProgressConsistencyHeatmap.vue'
     import ExportPopup from '@/components/ui/popups/ExportPopup.vue'
     import TabsBar from '@/components/ui/TabsBar.vue'
     import ChartCard from '@/components/ui/charts/ChartCard.vue'
@@ -1265,6 +1271,190 @@
 
     const hasWorkoutStats = computed(() => strengthWorkouts.value.length > 0)
 
+    const consistencyDayMetrics = computed(() => {
+        const byDay = new Map<string, {
+            sessions: number
+            load: number
+            durationMin: number
+            typeCounts: Record<WorkoutType, number>
+        }>()
+
+        for (const workout of workouts.value) {
+            const day = toDayKey(workout.date)
+            if (!day) continue
+
+            const type = getWorkoutTypeForStats(workout)
+            const current = byDay.get(day) ?? {
+                sessions: 0,
+                load: 0,
+                durationMin: 0,
+                typeCounts: { kraft: 0, calisthenics: 0, dehnung: 0, ausdauer: 0 },
+            }
+
+            current.sessions += 1
+            current.typeCounts[type] += 1
+
+            const setDetails = Array.isArray(workout.setDetails) ? workout.setDetails : []
+            const detailsLoad = setDetails.reduce((sum, set) =>
+                sum + ((Number(set?.weight ?? 0) || 0) * (Number(set?.reps ?? 0) || 0)), 0)
+            const fallbackLoad = (Number(workout.weight ?? 0) || 0) * (Number(workout.reps ?? 0) || 0) * Math.max(1, Number(workout.sets ?? 0) || 0)
+            current.load += Math.max(detailsLoad, fallbackLoad, 0)
+
+            const explicitDuration =
+                Number(workout.durationMin ?? 0) ||
+                Math.round(setDetails.reduce((sum, set) => sum + (Number(set?.durationSec ?? 0) || 0), 0) / 60)
+            const fallbackDuration =
+                type === 'ausdauer'
+                    ? Math.max(0, Number(workout.durationMin ?? workout.sets ?? 0) || 0)
+                    : type === 'dehnung'
+                        ? Math.round((Math.max(0, Number(workout.reps ?? 0) || 0) * Math.max(0, Number(workout.sets ?? 0) || 0)) / 60)
+                        : Math.max(12, (Number(workout.sets ?? 0) || 0) * 4)
+            current.durationMin += Math.max(explicitDuration, fallbackDuration, 0)
+
+            byDay.set(day, current)
+        }
+
+        return byDay
+    })
+
+    const consistencyCurrentStreak = computed(() => {
+        let streak = 0
+        const cursor = new Date()
+        while (true) {
+            const key = toDayKey(cursor.toISOString())
+            if (!key || !consistencyDayMetrics.value.has(key)) break
+            streak += 1
+            cursor.setDate(cursor.getDate() - 1)
+        }
+        return streak
+    })
+
+    const consistencyBestStreak = computed(() => {
+        const days = [...consistencyDayMetrics.value.keys()].sort()
+        let best = 0
+        let current = 0
+        let previous: Date | null = null
+        for (const day of days) {
+            const date = new Date(`${day}T00:00:00`)
+            if (previous) {
+                const diffDays = Math.round((date.getTime() - previous.getTime()) / 86400000)
+                current = diffDays === 1 ? current + 1 : 1
+            } else {
+                current = 1
+            }
+            if (current > best) best = current
+            previous = date
+        }
+        return best
+    })
+
+    const consistencyActiveDaysLast30 = computed(() => {
+        const start = new Date()
+        start.setDate(start.getDate() - 29)
+        const startKey = toDayKey(start.toISOString()) ?? ''
+        return [...consistencyDayMetrics.value.keys()].filter(day => day >= startKey).length
+    })
+
+    const consistencySessionsLast30 = computed(() => {
+        const start = new Date()
+        start.setDate(start.getDate() - 29)
+        const startKey = toDayKey(start.toISOString()) ?? ''
+        let total = 0
+        for (const [day, metrics] of consistencyDayMetrics.value.entries()) {
+            if (day < startKey) continue
+            total += metrics.sessions
+        }
+        return total
+    })
+
+    const consistencyHeatmapDays = computed(() => {
+        const out: Array<{
+            key: string
+            dayOfMonth: string
+            inCurrentRange: boolean
+            sessions: number
+            intensity: 0 | 1 | 2 | 3 | 4
+            load: number
+            durationMin: number
+            typeLabel: string
+            statusLabel: string
+            loadLabel: string
+            durationLabel: string
+            isToday: boolean
+            isFuture: boolean
+        }> = []
+
+        const today = new Date()
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+        const currentWeekMonday = new Date(todayStart)
+        currentWeekMonday.setDate(currentWeekMonday.getDate() - ((currentWeekMonday.getDay() + 6) % 7))
+        const start = new Date(currentWeekMonday)
+        start.setDate(start.getDate() - (23 * 7))
+
+        const sortedActiveDays = [...consistencyDayMetrics.value.values()]
+        const maxLoad = Math.max(1, ...sortedActiveDays.map(x => x.load))
+        const maxDuration = Math.max(1, ...sortedActiveDays.map(x => x.durationMin))
+        const todayKey = toDayKey(todayStart.toISOString()) ?? ''
+
+        for (let i = 0; i < 24 * 7; i++) {
+            const date = new Date(start)
+            date.setDate(start.getDate() + i)
+            const key = toDayKey(date.toISOString()) ?? ''
+            const metrics = consistencyDayMetrics.value.get(key)
+            const sessions = metrics?.sessions ?? 0
+            const load = Math.round(metrics?.load ?? 0)
+            const durationMin = Math.round(metrics?.durationMin ?? 0)
+            const score = sessions <= 0
+                ? 0
+                : Math.max(
+                    sessions * 0.9,
+                    (load / maxLoad) * 4,
+                    (durationMin / maxDuration) * 3.4
+                )
+
+            const intensity: 0 | 1 | 2 | 3 | 4 =
+                sessions <= 0 ? 0
+                    : score >= 3.35 ? 4
+                        : score >= 2.3 ? 3
+                            : score >= 1.2 ? 2
+                                : 1
+
+            const typeEntries = Object.entries(metrics?.typeCounts ?? {}) as Array<[WorkoutType, number]>
+            typeEntries.sort((a, b) => b[1] - a[1])
+            const topType = typeEntries[0]?.[0] ?? 'kraft'
+            const typeLabel =
+                topType === 'ausdauer' ? 'Ausdauer'
+                    : topType === 'dehnung' ? 'Mobility'
+                        : topType === 'calisthenics' ? 'Calisthenics'
+                            : 'Kraft'
+
+            const statusLabel =
+                intensity === 0 ? 'Kein Training'
+                    : intensity === 1 ? 'Aktiver Easy Day'
+                        : intensity === 2 ? 'Solider Trainingstag'
+                            : intensity === 3 ? 'Starker Trainingstag'
+                                : 'Peak Performance Tag'
+
+            out.push({
+                key,
+                dayOfMonth: String(date.getDate()),
+                inCurrentRange: true,
+                sessions,
+                intensity,
+                load,
+                durationMin,
+                typeLabel,
+                statusLabel,
+                loadLabel: load > 0 ? `${load.toLocaleString('de-DE')}` : '—',
+                durationLabel: durationMin > 0 ? `${durationMin} Min` : '—',
+                isToday: key === todayKey,
+                isFuture: key > todayKey,
+            })
+        }
+
+        return out
+    })
+
     watch(
         [activeTab, unit, strengthWorkouts],
         async () => {
@@ -1843,13 +2033,8 @@
 
     //=============== Validation Rechner ===========
 
-    const calcValidationErrors = ref<string[]>([])
-
-    function onCalcInvalid(errors: string[]) {
-        calcValidationErrors.value = errors
-    }
-    function clearCalcValidation() {
-        calcValidationErrors.value = []
+    function onCalcInvalid(_errors: string[]) {
+        // Rechner zeigen Validierungsfehler jetzt inline im Card-Body.
     }
     //=============== Jump to Rechner Infos ===========
 
@@ -3420,6 +3605,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         const planId = workout.planId
         if (!planId) return
 
+        const hadEntriesBeforeSave = getProgressForPlan(planId).length > 0
         const prHits = detectPersonalRecordHits(
             getProgressForPlan(planId),
             workout,
@@ -3515,7 +3701,9 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             await progressStore.load(planId, true)
             syncWorkoutsFromStore(planId)
 
-            if (!showPersonalRecordToast(workout.exercise, prHits)) {
+            if (!hadEntriesBeforeSave) {
+                showFirstPlanEntryToast(planId, workout.exercise)
+            } else if (!showPersonalRecordToast(workout.exercise, prHits)) {
                 showToast({ message: "Fortschritt gespeichert!", type: "success", emoji: "✅" })
             }
         }
@@ -5242,6 +5430,17 @@ Notiz: ${e.note ?? '-'}\n`
         return true
     }
 
+    const showFirstPlanEntryToast = (planId: string, exercise: string) => {
+        const planName = trainingPlans.value.find(p => p.id === planId)?.name?.trim() || 'dein Plan'
+        showToast({
+            message: `Starker Start: Dein erster Eintrag in ${planName} ist drin. ${exercise} steht. Weiter so.`,
+            type: 'success',
+            emoji: '🔥',
+        })
+        confetti({ particleCount: 140, spread: 82, origin: { y: 0.6 } })
+        return true
+    }
+
 
     //Validation Error Popup
 
@@ -5894,13 +6093,24 @@ Notiz: ${e.note ?? '-'}\n`
 
     .progress-charts {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); /* flexibler */
+        grid-template-columns: 1fr;
         gap: 1.5rem;
         margin-bottom: 2rem;
         max-width: 100%;
         /* Hover-Effekte der ChartCards sollen nicht abgeschnitten werden */
         overflow: visible;
     }
+
+        .progress-charts__hero {
+            min-width: 0;
+        }
+
+        .progress-charts__row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            min-width: 0;
+        }
 
         .progress-charts .card-info {
             margin: 0;
@@ -5914,8 +6124,15 @@ Notiz: ${e.note ?? '-'}\n`
             min-width: 0;
         }
 
+    @media (min-width: 980px) {
+        .progress-charts__row {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: stretch;
+        }
+    }
+
     .calculator-card {
-        display: inline-block;
+        display: block;
         width: 100%;
         break-inside: avoid;
         margin: 0 0 1.5rem;

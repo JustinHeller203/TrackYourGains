@@ -8,6 +8,7 @@
     <GoalPopup :show="showGoalPopup"
                v-model="newGoalDisplay"
                :placeholder="unit === 'kg' ? 'Ziel in kg' : 'Ziel in lbs'"
+               :validate="validateGoal"
                @save="saveGoal"
                @cancel="closeGoalPopup" />
 </template>

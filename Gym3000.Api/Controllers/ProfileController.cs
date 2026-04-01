@@ -37,6 +37,8 @@ public class ProfileController : ControllerBase
     };
 
     private static string[] DefaultGoalOrder() => new[] { "muscle", "weight", "nutrition" };
+    private static int[] DefaultTutorialFavoriteIds() => Array.Empty<int>();
+    private static Dictionary<string, string> DefaultTutorialRecentViewed() => new();
 
     private static T DeserializeOr<T>(string? json, T fallback)
     {
@@ -82,6 +84,8 @@ public class ProfileController : ControllerBase
                 ProgressJson = Serialize(DefaultProgress()),
                 GoalOrderJson = Serialize(DefaultGoalOrder()),
                 EarnedBadgesJson = Serialize(Array.Empty<string>()),
+                TutorialFavoriteIdsJson = Serialize(DefaultTutorialFavoriteIds()),
+                TutorialRecentViewedJson = Serialize(DefaultTutorialRecentViewed()),
                 FavoriteTimers = 2,
                 MemberSinceUtc = DateTime.UtcNow.Date,
                 UpdatedUtc = DateTime.UtcNow
@@ -104,6 +108,15 @@ public class ProfileController : ControllerBase
         var progress = DeserializeOr(profile.ProgressJson, DefaultProgress());
         var goalOrder = DeserializeOr(profile.GoalOrderJson, DefaultGoalOrder());
         var earnedBadges = DeserializeOr(profile.EarnedBadgesJson, Array.Empty<string>());
+        var tutorialFavoriteIds = DeserializeOr(profile.TutorialFavoriteIdsJson, DefaultTutorialFavoriteIds())
+            .Where(x => x > 0)
+            .Distinct()
+            .ToArray();
+        var tutorialRecentViewed = DeserializeOr(profile.TutorialRecentViewedJson, DefaultTutorialRecentViewed())
+            .Where(x => int.TryParse(x.Key, out var id) && id > 0 && !string.IsNullOrWhiteSpace(x.Value))
+            .OrderByDescending(x => DateTime.TryParse(x.Value, out var ts) ? ts : DateTime.MinValue)
+            .Take(60)
+            .ToDictionary(x => x.Key, x => x.Value);
 
         return Ok(new ProfileDto
         {
@@ -117,7 +130,9 @@ public class ProfileController : ControllerBase
             Activity = activity,
             Progress = progress,
             GoalOrder = goalOrder,
-            EarnedBadges = earnedBadges
+            EarnedBadges = earnedBadges,
+            TutorialFavoriteIds = tutorialFavoriteIds,
+            TutorialRecentViewed = tutorialRecentViewed
         });
     }
 
@@ -180,6 +195,8 @@ public class ProfileController : ControllerBase
                 ProgressJson = Serialize(DefaultProgress()),
                 GoalOrderJson = Serialize(DefaultGoalOrder()),
                 EarnedBadgesJson = Serialize(Array.Empty<string>()),
+                TutorialFavoriteIdsJson = Serialize(DefaultTutorialFavoriteIds()),
+                TutorialRecentViewedJson = Serialize(DefaultTutorialRecentViewed()),
                 FavoriteTimers = 2,
                 MemberSinceUtc = DateTime.UtcNow.Date,
                 UpdatedUtc = DateTime.UtcNow
@@ -214,6 +231,20 @@ public class ProfileController : ControllerBase
         if (dto.EarnedBadges is not null)
             profile.EarnedBadgesJson = Serialize(dto.EarnedBadges);
 
+        if (dto.TutorialFavoriteIds is not null)
+            profile.TutorialFavoriteIdsJson = Serialize(dto.TutorialFavoriteIds.Where(x => x > 0).Distinct().ToArray());
+
+        if (dto.TutorialRecentViewed is not null)
+        {
+            var sanitized = dto.TutorialRecentViewed
+                .Where(x => int.TryParse(x.Key, out var id) && id > 0 && !string.IsNullOrWhiteSpace(x.Value))
+                .OrderByDescending(x => DateTime.TryParse(x.Value, out var ts) ? ts : DateTime.MinValue)
+                .Take(60)
+                .ToDictionary(x => x.Key, x => x.Value);
+
+            profile.TutorialRecentViewedJson = Serialize(sanitized);
+        }
+
         profile.UpdatedUtc = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
@@ -224,6 +255,15 @@ public class ProfileController : ControllerBase
         var progress = DeserializeOr(profile.ProgressJson, DefaultProgress());
         var goalOrder = DeserializeOr(profile.GoalOrderJson, DefaultGoalOrder());
         var earnedBadges = DeserializeOr(profile.EarnedBadgesJson, Array.Empty<string>());
+        var tutorialFavoriteIds = DeserializeOr(profile.TutorialFavoriteIdsJson, DefaultTutorialFavoriteIds())
+            .Where(x => x > 0)
+            .Distinct()
+            .ToArray();
+        var tutorialRecentViewed = DeserializeOr(profile.TutorialRecentViewedJson, DefaultTutorialRecentViewed())
+            .Where(x => int.TryParse(x.Key, out var id) && id > 0 && !string.IsNullOrWhiteSpace(x.Value))
+            .OrderByDescending(x => DateTime.TryParse(x.Value, out var ts) ? ts : DateTime.MinValue)
+            .Take(60)
+            .ToDictionary(x => x.Key, x => x.Value);
 
         return Ok(new ProfileDto
         {
@@ -237,7 +277,9 @@ public class ProfileController : ControllerBase
             Activity = activity,
             Progress = progress,
             GoalOrder = goalOrder,
-            EarnedBadges = earnedBadges
+            EarnedBadges = earnedBadges,
+            TutorialFavoriteIds = tutorialFavoriteIds,
+            TutorialRecentViewed = tutorialRecentViewed
         });
     }
 

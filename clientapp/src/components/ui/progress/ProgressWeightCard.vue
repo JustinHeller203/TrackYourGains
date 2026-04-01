@@ -11,6 +11,7 @@
     <WeightPopup :show="showWeightPopup"
                  v-model="newWeightDisplay"
                  :placeholder="unit === 'kg' ? 'Gewicht in kg' : 'Gewicht in lbs'"
+                 :validate="validateWeight"
                  @save="saveWeight"
                  @cancel="closeWeightPopup" />
 </template>

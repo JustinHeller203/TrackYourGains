@@ -20,6 +20,8 @@ public class UserProfile
     public string ProgressJson { get; set; } = "{\"muscle\":40,\"weight\":60,\"nutrition\":55}";
     public string GoalOrderJson { get; set; } = "[\"muscle\",\"weight\",\"nutrition\"]";
     public string EarnedBadgesJson { get; set; } = "[]";
+    public string TutorialFavoriteIdsJson { get; set; } = "[]";
+    public string TutorialRecentViewedJson { get; set; } = "{}";
 
     public int FavoriteTimers { get; set; } = 2;
 

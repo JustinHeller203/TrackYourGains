@@ -51,7 +51,7 @@
 
         <!-- ✅ Overlay -->
         <div v-if="!isPhonePreview && menuOpen" class="nav-overlay" @click="closeMenu"></div>
-        <div v-if="!isPhonePreview && isGlobalApiLoading" class="global-loading-overlay" role="status" aria-live="polite" aria-busy="true">
+        <div v-if="!isPhonePreview && isGlobalLoading" class="global-loading-overlay" role="status" aria-live="polite" aria-busy="true">
             <div class="global-loading-card">
                 <span class="global-loading-spinner" aria-hidden="true"></span>
                 <span>Lädt gerade Daten...</span>
@@ -94,6 +94,12 @@
                          title="Was ist neu?"
                          :items="newsItems"
                          @close="onNewsClose" />
+        <GlobalGuestConversionPopup v-if="!isPhonePreview"
+                                    :show="showGuestConversionPopup"
+                                    @close="dismissGuestConversionPopup"
+                                    @later="dismissGuestConversionPopup"
+                                    @login="goToGuestLogin"
+                                    @register="goToGuestRegister" />
         <GlobalAchievementPopup v-if="!isPhonePreview" :show="showAchievementPopup"
                                 :badge="latestAchievement"
                                 @close="closeAchievementPopup" />
@@ -134,10 +140,11 @@
     import StickyStopwatchCard from '@/components/ui/global/StickyStopwatchCard.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
     import GlobalNewsPopup from '@/components/ui/popups/global/GlobalNewsPopup.vue'
+    import GlobalGuestConversionPopup from '@/components/ui/popups/global/GlobalGuestConversionPopup.vue'
     import GlobalExplainGuide from '@/components/ui/popups/global/GlobalExplainGuide.vue'
     import GlobalAchievementPopup from '@/components/ui/popups/global/GlobalAchievementPopup.vue'
     import { useGlobalAchievements } from '@/composables/useGlobalAchievements'
-    import { isGlobalApiLoading } from '@/lib/api'
+    import { isGlobalLoading } from '@/lib/api'
 
     import AppFooter from '@/AppFooter.vue'
     import BackToTopButton from '@/components/ui/buttons/BackToTopButton.vue'
@@ -230,6 +237,7 @@
     const STOPWATCH_KEY = LS_TRAINING_STOPWATCHES_V1
     const NEWS_SEEN_KEY = LS_NEWS_SEEN_VERSION
     const NEWS_VISIT_COUNT_KEY = 'tyg_news_visit_count'
+    const GUEST_CONVERSION_CLICK_COUNT_KEY = 'tyg_guest_conversion_click_count'
 
 
     // === neue Refs & Konstanten oben zu den anderen Refs ===
@@ -251,6 +259,10 @@
     const NEWS_VERSION = '2025-12-17' // <- ändere das bei jedem Release/Update
 
     const showNewsPopup = ref(false)
+    const showGuestConversionPopup = ref(false)
+    let guestConversionTimer: number | null = null
+    let pendingGuestConversionTarget: HTMLElement | null = null
+    let suppressGuestConversionClickOnce = false
     const newsItems = [
         {
             tag: 'Neu',
@@ -297,6 +309,119 @@
             window.setTimeout(() => {
                 window.dispatchEvent(new Event('tyg:explain-guide'))
             }, 120)
+        }
+    }
+
+    const guestConversionEligible = computed(() => {
+        if (isPhonePreview.value) return false
+        if (auth.loading || auth.isAuthenticated) return false
+        if (route.path === '/login' || route.path === '/register') return false
+        if (showNewsPopup.value) return false
+
+        return true
+    })
+
+    function clearGuestConversionTimer() {
+        if (guestConversionTimer != null) {
+            window.clearTimeout(guestConversionTimer)
+            guestConversionTimer = null
+        }
+    }
+
+    function hideGuestConversionPopup() {
+        showGuestConversionPopup.value = false
+        clearGuestConversionTimer()
+    }
+
+    function clearPendingGuestConversionTarget() {
+        pendingGuestConversionTarget = null
+    }
+
+    function replayPendingGuestConversionTarget() {
+        const target = pendingGuestConversionTarget
+        clearPendingGuestConversionTarget()
+        if (!target) return
+        if (!target.isConnected) return
+
+        suppressGuestConversionClickOnce = true
+        window.setTimeout(() => {
+            try {
+                target.click()
+            } finally {
+                window.setTimeout(() => {
+                    suppressGuestConversionClickOnce = false
+                }, 0)
+            }
+        }, 0)
+    }
+
+    function resetGuestConversionClickCount() {
+        sessionStorage.setItem(GUEST_CONVERSION_CLICK_COUNT_KEY, '0')
+    }
+
+    function dismissGuestConversionPopup() {
+        resetGuestConversionClickCount()
+        hideGuestConversionPopup()
+        replayPendingGuestConversionTarget()
+    }
+
+    function scheduleGuestConversionPopup() {
+        clearGuestConversionTimer()
+        if (!guestConversionEligible.value) return
+
+        const rawClicks = Number(sessionStorage.getItem(GUEST_CONVERSION_CLICK_COUNT_KEY) ?? '0')
+        const clicks = Number.isFinite(rawClicks) ? Math.max(0, Math.floor(rawClicks)) : 0
+        if (clicks < 5) return
+
+        guestConversionTimer = window.setTimeout(() => {
+            if (!guestConversionEligible.value) return
+
+            showGuestConversionPopup.value = true
+        }, 4200)
+    }
+
+    function openGuestConversionPopupNow() {
+        clearGuestConversionTimer()
+        if (!guestConversionEligible.value) return
+
+        showGuestConversionPopup.value = true
+    }
+
+    function goToGuestLogin() {
+        clearPendingGuestConversionTarget()
+        dismissGuestConversionPopup()
+        router.push({ name: 'login', query: { redirect: route.fullPath } })
+    }
+
+    function goToGuestRegister() {
+        clearPendingGuestConversionTarget()
+        dismissGuestConversionPopup()
+        router.push({ name: 'login', query: { mode: 'register', redirect: route.fullPath } })
+    }
+
+    function onGuestConversionClick(event: MouseEvent) {
+        if (suppressGuestConversionClickOnce) return
+        if (!guestConversionEligible.value) return
+        if (showGuestConversionPopup.value) return
+        if (showNewsPopup.value) return
+
+        const target = event.target as HTMLElement | null
+        if (!target) return
+
+        const ignoredControl = target.closest('input, select, textarea, option')
+        if (ignoredControl) return
+
+        const rawClicks = Number(sessionStorage.getItem(GUEST_CONVERSION_CLICK_COUNT_KEY) ?? '0')
+        const clicks = Number.isFinite(rawClicks) ? Math.max(0, Math.floor(rawClicks)) : 0
+        const nextClicks = clicks + 1
+        sessionStorage.setItem(GUEST_CONVERSION_CLICK_COUNT_KEY, String(nextClicks))
+
+        if (nextClicks >= 5) {
+            pendingGuestConversionTarget = target
+            event.preventDefault()
+            event.stopPropagation()
+            event.stopImmediatePropagation()
+            openGuestConversionPopupNow()
         }
     }
 
@@ -445,6 +570,22 @@
         if (menuOpen.value) closeMenu()
         refreshStickyPrefs()
         void refreshAchievements()
+        if (!guestConversionEligible.value) {
+            hideGuestConversionPopup()
+            return
+        }
+
+        if (!showGuestConversionPopup.value) {
+            scheduleGuestConversionPopup()
+        }
+    })
+    watch(guestConversionEligible, (eligible) => {
+        if (!eligible) {
+            hideGuestConversionPopup()
+            return
+        }
+
+        scheduleGuestConversionPopup()
     })
     function handleDocClick(e: MouseEvent) {
         if (!menuOpen.value) return
@@ -470,6 +611,7 @@
         window.addEventListener('focus', onWindowFocus)
 
         document.addEventListener('click', handleDocClick, true)
+        document.addEventListener('click', onGuestConversionClick, true)
     })
 
     onBeforeUnmount(() => {
@@ -477,6 +619,8 @@
         window.removeEventListener('storage', onStickyPrefsChanged)
         window.removeEventListener('focus', onWindowFocus)
         document.removeEventListener('click', handleDocClick, true)
+        document.removeEventListener('click', onGuestConversionClick, true)
+        clearGuestConversionTimer()
     })
 
     function reorderTimers(newList: any[]) {
@@ -848,6 +992,8 @@
         if (nextVisitCount > 1 && seen !== NEWS_VERSION) {
             showNewsPopup.value = true
         }
+
+        scheduleGuestConversionPopup()
 
         // Timer rehydrieren
         timers.value.forEach(t => {
@@ -1383,7 +1529,7 @@
         position: fixed;
         top: 0;
         left: 0;
-        width: 100vw;
+        right: 0;
         background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
         padding: 0.5rem 0 !important;
         z-index: 1000;
@@ -1395,18 +1541,6 @@
 
     .footer-link {
         margin: 0 0.75rem;
-    }
-
-    .main-nav::after {
-        content: "";
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: var(--sbw);
-        height: var(--nav-h);
-        background: inherit;
-        pointer-events: none;
-        z-index: 1000;
     }
 
     html.dark-mode .main-nav {

@@ -13,4 +13,6 @@ public class ProfileDto
     public Dictionary<string, double> Progress { get; init; } = new();
     public string[] GoalOrder { get; init; } = Array.Empty<string>();
     public string[] EarnedBadges { get; init; } = Array.Empty<string>();
+    public int[] TutorialFavoriteIds { get; init; } = Array.Empty<int>();
+    public Dictionary<string, string> TutorialRecentViewed { get; init; } = new();
 }

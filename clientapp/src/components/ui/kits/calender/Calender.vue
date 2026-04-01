@@ -69,6 +69,7 @@
                     :class="{
                         'is-out': !cell.inMonth,
                         'has-entry': !!cell.day && hasEntries(cell.day),
+                        'is-first-entry': !!cell.day && isFirstEntry(cell.day),
                         'has-pr': !!cell.day && hasPr(cell.day),
                         'has-check': !!cell.day && hasCheck(cell.day),
                         'has-cross': !!cell.day && hasCross(cell.day),
@@ -81,6 +82,10 @@
                     @click="cell.day && emit('select', cell.day)"
                     @dblclick.stop="cell.day && emit('dblclick', cell.day)">
                 <span class="cal-num">{{ cell.num }}</span>
+                <span v-if="cell.day && isFirstEntry(cell.day)"
+                      class="cal-first-badge"
+                      :title="dotTitle(cell.day)"
+                      aria-hidden="true">🚀</span>
                 <span v-if="cell.day && hasEntries(cell.day)"
                       class="cal-dot"
                       :style="dotStyle(cell.day)"
@@ -118,6 +123,7 @@
         dayColors?: Record<string, string | string[]>
         dayTitles?: Record<string, string>
         dayTrends?: Record<string, 'up' | 'down' | 'same'>
+        firstEntryDays?: string[]
         prDays?: string[]
         selectedDays?: string[]
         checkDays?: string[]
@@ -216,7 +222,9 @@
     const checkSet = computed(() => new Set(props.checkDays ?? []))
     const crossSet = computed(() => new Set(props.crossDays ?? []))
     const prSet = computed(() => new Set(props.prDays ?? []))
+    const firstEntrySet = computed(() => new Set(props.firstEntryDays ?? []))
     const hasEntries = (day: string) => daysSet.value.has(day)
+    const isFirstEntry = (day: string) => firstEntrySet.value.has(day)
     const hasPr = (day: string) => prSet.value.has(day)
     const hasCheck = (day: string) => checkSet.value.has(day)
     const hasCross = (day: string) => crossSet.value.has(day)
@@ -406,6 +414,29 @@
             background: radial-gradient(circle at 20% 25%, rgba(129,140,248,0.14), transparent 62%), rgba(148, 163, 184, 0.06);
         }
 
+        .cal-cell.is-first-entry {
+            border-color: rgba(249, 115, 22, 0.52);
+            background:
+                radial-gradient(circle at 22% 22%, rgba(251, 191, 36, 0.26), transparent 46%),
+                radial-gradient(circle at 78% 18%, rgba(244, 114, 182, 0.18), transparent 34%),
+                linear-gradient(135deg, rgba(255, 247, 237, 0.98), rgba(240, 253, 244, 0.94));
+            box-shadow:
+                inset 0 0 0 1px rgba(251, 146, 60, 0.22),
+                0 0 0 2px rgba(251, 191, 36, 0.18),
+                0 10px 22px rgba(249, 115, 22, 0.12);
+            animation: cal-first-entry-pulse 1.8s ease-out 1;
+        }
+
+        .cal-cell.is-first-entry::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 16px;
+            border: 2px solid rgba(251, 191, 36, 0.65);
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.14);
+            pointer-events: none;
+        }
+
         .cal-cell.has-pr {
             border-color: rgba(245, 158, 11, 0.78);
             box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.24);
@@ -431,6 +462,27 @@
         color: var(--text-primary);
     }
 
+    .cal-cell.is-first-entry .cal-num {
+        color: #7c2d12;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.38);
+    }
+
+    .cal-first-badge {
+        position: absolute;
+        top: -.18rem;
+        right: -.16rem;
+        width: 1.1rem;
+        height: 1.1rem;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        font-size: .72rem;
+        line-height: 1;
+        background: linear-gradient(135deg, #f59e0b, #fb7185);
+        box-shadow: 0 6px 14px rgba(249, 115, 22, 0.28);
+        z-index: 3;
+    }
+
     .cal-dot {
         position: absolute;
         top: .35rem;
@@ -454,6 +506,30 @@
             opacity: .18;
             transform: scale(.82);
             box-shadow: 0 0 0 0 rgba(129, 140, 248, 0), 0 0 6px rgba(129, 140, 248, 0.08);
+        }
+    }
+
+    @keyframes cal-first-entry-pulse {
+        0% {
+            transform: scale(0.94);
+            box-shadow:
+                inset 0 0 0 1px rgba(251, 146, 60, 0.18),
+                0 0 0 0 rgba(251, 191, 36, 0.00),
+                0 8px 18px rgba(249, 115, 22, 0.08);
+        }
+        45% {
+            transform: scale(1.03);
+            box-shadow:
+                inset 0 0 0 1px rgba(251, 146, 60, 0.28),
+                0 0 0 6px rgba(251, 191, 36, 0.12),
+                0 14px 28px rgba(249, 115, 22, 0.18);
+        }
+        100% {
+            transform: scale(1);
+            box-shadow:
+                inset 0 0 0 1px rgba(251, 146, 60, 0.22),
+                0 0 0 2px rgba(251, 191, 36, 0.18),
+                0 10px 22px rgba(249, 115, 22, 0.12);
         }
     }
 
@@ -617,6 +693,23 @@
             background: radial-gradient(circle at 18% 22%, rgba(129,140,248,0.14), transparent 62%), color-mix(in srgb, #020617 78%, var(--bg-card) 22%);
         }
 
+        html.dark-mode .cal-cell.is-first-entry {
+            border-color: rgba(251, 146, 60, 0.56);
+            background:
+                radial-gradient(circle at 22% 22%, rgba(251, 191, 36, 0.18), transparent 46%),
+                radial-gradient(circle at 78% 18%, rgba(244, 114, 182, 0.14), transparent 34%),
+                linear-gradient(135deg, rgba(67, 20, 7, 0.56), rgba(20, 83, 45, 0.26), rgba(2, 6, 23, 0.82));
+            box-shadow:
+                inset 0 0 0 1px rgba(251, 146, 60, 0.24),
+                0 0 0 2px rgba(251, 191, 36, 0.14),
+                0 12px 28px rgba(0, 0, 0, 0.42);
+        }
+
+        html.dark-mode .cal-cell.is-first-entry::before {
+            border-color: rgba(251, 191, 36, 0.55);
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+        }
+
         html.dark-mode .cal-cell.has-pr {
             border-color: rgba(245, 158, 11, 0.86);
             box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.30), 0 0 0 1px rgba(245, 158, 11, 0.10);
@@ -639,6 +732,11 @@
 
     html.dark-mode .cal-num {
         color: rgba(226, 232, 240, 0.95);
+    }
+
+    html.dark-mode .cal-cell.is-first-entry .cal-num {
+        color: #ffedd5;
+        text-shadow: 0 1px 0 rgba(0, 0, 0, 0.38);
     }
 
     html.dark-mode .cal-dot {

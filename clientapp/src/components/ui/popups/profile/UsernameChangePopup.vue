@@ -1,18 +1,20 @@
 <template>
-    <BasePopup :show="show"
-               :title="hasUsername ? 'Username ändern' : 'Username hinzufügen'"
-               variant="username-change-popup"
-               @cancel="$emit('cancel')">
+    <BasePopup
+        :show="show"
+        :title="hasUsername ? 'Username aendern' : 'Username hinzufuegen'"
+        variant="username-change-popup"
+        @cancel="$emit('cancel')">
         <div class="form-grid">
             <label class="label">Username</label>
-            <input ref="usernameRef"
-                   v-model.trim="nextUsername"
-                   type="text"
-                   class="input"
-                   :placeholder="hasUsername ? 'Neuer Username' : 'Username hinzufügen'"
-                   @keydown.enter.prevent="onSave" />
+            <input
+                ref="usernameRef"
+                v-model.trim="nextUsername"
+                type="text"
+                :class="['input', { 'has-error': !!errors.username }]"
+                :placeholder="hasUsername ? 'Neuer Username' : 'Username hinzufuegen'"
+                @keydown.enter.prevent="onSave" />
 
-            <p v-if="error" class="form-error">{{ error }}</p>
+            <p v-if="errors.username" class="form-error">{{ errors.username }}</p>
         </div>
 
         <template #actions>
@@ -36,13 +38,13 @@
     const emit = defineEmits<{ (e: 'cancel'): void; (e: 'save', payload: { username: string }): void }>()
 
     const nextUsername = ref('')
-    const error = ref('')
+    const errors = ref({ username: '' })
     const usernameRef = ref<HTMLInputElement | null>(null)
     const hasUsername = computed(() => !!props.currentUsername.trim())
 
     watch(() => props.show, async (open) => {
         if (!open) return
-        error.value = ''
+        errors.value.username = ''
         nextUsername.value = props.currentUsername
         await nextTick()
         usernameRef.value?.focus()
@@ -52,11 +54,11 @@
     function onSave() {
         const username = nextUsername.value.trim()
         if (!username) {
-            error.value = 'Bitte einen Username eingeben.'
+            errors.value.username = 'Bitte einen Username eingeben.'
             return
         }
 
-        error.value = ''
+        errors.value.username = ''
         emit('save', { username })
     }
 </script>
@@ -64,26 +66,31 @@
 <style scoped>
     .form-grid {
         display: grid;
-        gap: .6rem;
+        gap: 0.6rem;
     }
 
     .label {
-        font-size: .9rem;
+        font-size: 0.9rem;
         color: var(--text-secondary);
     }
 
     .input {
         width: 100%;
-        padding: .6rem .7rem;
+        padding: 0.6rem 0.7rem;
         border-radius: 10px;
         border: 1px solid var(--border-color);
         background: var(--bg-secondary);
         color: var(--text-primary);
     }
 
+    .input.has-error {
+        border-color: rgba(239, 68, 68, 0.88);
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+    }
+
     .form-error {
-        margin-top: .2rem;
-        color: rgba(220, 38, 38, .95);
-        font-size: .9rem;
+        margin-top: 0.2rem;
+        color: rgba(220, 38, 38, 0.95);
+        font-size: 0.9rem;
     }
 </style>

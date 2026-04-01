@@ -199,8 +199,19 @@
         cursor: not-allowed;
     }
 
-    .has-error .ui-control {
-        border-color: color-mix(in srgb, #ff4d6d 70%, var(--border-color) 30%);
-        box-shadow: 0 0 0 3px color-mix(in srgb, #ff4d6d 18%, transparent), 0 12px 26px rgba(15,23,42,.16);
+    .has-error .ui-control,
+    .has-error .ui-control:hover,
+    .has-error .ui-control:focus,
+    .has-error .ui-control:focus-visible {
+        border-color: rgba(239, 68, 68, 0.9);
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14), 0 12px 26px rgba(15, 23, 42, 0.16);
+    }
+
+    html.dark-mode .has-error .ui-control,
+    html.dark-mode .has-error .ui-control:hover,
+    html.dark-mode .has-error .ui-control:focus,
+    html.dark-mode .has-error .ui-control:focus-visible {
+        border-color: rgba(248, 113, 113, 0.94);
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18), 0 18px 38px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255,255,255,.03);
     }
 </style>

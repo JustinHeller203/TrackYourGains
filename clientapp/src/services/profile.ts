@@ -12,6 +12,8 @@ export type ProfileDto = {
     progress: Record<string, number>;
     goalOrder: string[];
     earnedBadges: string[];
+    tutorialFavoriteIds: number[];
+    tutorialRecentViewed: Record<string, string>;
 };
 
 export type UpdateProfileDto = {
@@ -26,6 +28,8 @@ export type UpdateProfileDto = {
     progress?: Record<string, number>;
     goalOrder?: string[];
     earnedBadges?: string[];
+    tutorialFavoriteIds?: number[];
+    tutorialRecentViewed?: Record<string, string>;
 };
 
 export async function getProfile() {

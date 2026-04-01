@@ -21,7 +21,9 @@ export const api = axios.create({
 });
 
 const pendingApiRequests = ref(0);
+const pendingManualLoads = ref(0);
 export const isGlobalApiLoading = computed(() => pendingApiRequests.value > 0);
+export const isGlobalLoading = computed(() => pendingApiRequests.value > 0 || pendingManualLoads.value > 0);
 
 function incGlobalLoading() {
     pendingApiRequests.value += 1;
@@ -29,6 +31,14 @@ function incGlobalLoading() {
 
 function decGlobalLoading() {
     pendingApiRequests.value = Math.max(0, pendingApiRequests.value - 1);
+}
+
+export function beginGlobalLoading() {
+    pendingManualLoads.value += 1;
+}
+
+export function endGlobalLoading() {
+    pendingManualLoads.value = Math.max(0, pendingManualLoads.value - 1);
 }
 
 // ---- Token Handling ----

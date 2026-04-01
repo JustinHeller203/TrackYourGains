@@ -339,17 +339,17 @@
         </template>
 
         <!-- Inputs -->
-        <template #inputs="{ openInfoAndJump, maybeAutoCalc }">
+        <template #inputs="{ openInfoAndJump, maybeAutoCalc, errorFor }">
             <UiCalculatorInput :modelValue="weight ?? ''"
                                type="number"
-                               inputmode="decimal"
-                               :label="`Körpergewicht (${unit === 'kg' ? 'kg' : 'lbs'})`"
+                               :label="`Körpergewicht (${unit === 'kg' ? 'kg' : 'lbs'}) *`"
                                :placeholder="unit === 'kg' ? 'z.B. 75' : 'z.B. 165'"
+                               :error="errorFor('gewicht')"
                                @update:modelValue="(v) => { emit('update:cafWeight', v === '' ? null : Number(v)); maybeAutoCalc() }" />
 
             <div class="input-pair-tight">
                 <label class="label-with-info">
-                    Empfindlichkeit
+                    Empfindlichkeit *
                     <button type="button"
                             class="info-btn"
                             aria-label="Was bedeutet Empfindlichkeit?"
@@ -361,6 +361,7 @@
 
                 <UiCalculatorInput :modelValue="sensitivity"
                                    as="select"
+                                   :error="errorFor('empfindlichkeit')"
                                    :options="[
         { label: 'Empfindlich (≈ 3 mg/kg)', value: 'low' },
         { label: 'Normal (≈ 4 mg/kg)', value: 'normal' },
@@ -372,7 +373,8 @@
 
             <UiCalculatorInput :modelValue="status"
                                as="select"
-                               label="Besonderheit"
+                               label="Besonderheit *"
+                               :error="errorFor('status')"
                                :options="[
   { label: 'Keine', value: 'none' },
   { label: 'Schwanger/Stillend (≤ 200 mg/Tag)', value: 'pregnant' }

@@ -150,7 +150,7 @@
                         <div class="calc-formula">
                             <span class="calc-formula-k">BMI</span>
                             <span class="calc-formula-eq">=</span>
-                            <span class="calc-formula-v">Gewicht (kg) ÷ Größe² (m)</span>
+                            <span class="calc-formula-v">gewicht * (kg) ÷ Größe² (m)</span>
                         </div>
                         <div class="calc-note">
                             Tipp: 180&nbsp;cm = <strong>1,80&nbsp;m</strong> (also durch 100 teilen).
@@ -234,10 +234,10 @@
         </template>
 
         <!-- Inputs -->
-        <template #inputs="{ UiCalculatorInput, maybeAutoCalc }">
+        <template #inputs="{ UiCalculatorInput, maybeAutoCalc, errorFor }">
             <UiCalculatorInput :modelValue="gender"
                                as="select"
-                               label="Geschlecht"
+                               label="Geschlecht *"
                                :options="[
                          { label: 'Männlich', value: 'male' },
                          { label: 'Weiblich', value: 'female' }
@@ -245,17 +245,17 @@
                                @change="(v) => { emit('update:bmiGender', v as any); maybeAutoCalc?.() }" />
 
             <UiCalculatorInput :modelValue="weight ?? ''"
-                               type="number"
-                               :label="`Körpergewicht (${unit === 'kg' ? 'kg' : 'lbs'})`"
+                               :label="`Körpergewicht (${unit === 'kg' ? 'kg' : 'lbs'}) *`"
                                :placeholder="unit === 'kg' ? 'z.B. 70' : 'z.B. 155'"
                                inputmode="decimal"
+                               :error="errorFor('gewicht')"
                                @update:modelValue="(v) => { emit('update:bmiWeight', v === '' ? null : Number(v)); maybeAutoCalc?.() }" />
 
             <UiCalculatorInput :modelValue="height ?? ''"
-                               type="number"
-                               label="Körpergröße (cm)"
+                               label="Körpergröße (cm) *"
                                placeholder="z.B. 175"
                                inputmode="numeric"
+                               :error="errorFor('gr')"
                                @update:modelValue="(v) => { emit('update:bmiHeight', v === '' ? null : Number(v)); maybeAutoCalc?.() }" />
         </template>
 

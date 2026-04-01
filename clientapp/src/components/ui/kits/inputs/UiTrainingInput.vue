@@ -283,9 +283,24 @@ const onInput = (e: Event) => {
         color: #ef4444;
     }
 
-    .has-error .ti-control {
-        border-color: rgba(239, 68, 68, 0.65);
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12), 0 16px 36px rgba(15, 23, 42, 0.18);
+    .has-error .ti-control,
+    .has-error .ti-control:hover,
+    .has-error .ti-control:focus,
+    .has-error .ti-control:focus-visible {
+        border-color: rgba(239, 68, 68, 0.88);
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14), 0 16px 36px rgba(15, 23, 42, 0.18);
+    }
+
+    :root.dark .has-error .ti-control,
+    :root.dark .has-error .ti-control:hover,
+    :root.dark .has-error .ti-control:focus,
+    :root.dark .has-error .ti-control:focus-visible,
+    html.dark-mode .has-error .ti-control,
+    html.dark-mode .has-error .ti-control:hover,
+    html.dark-mode .has-error .ti-control:focus,
+    html.dark-mode .has-error .ti-control:focus-visible {
+        border-color: rgba(248, 113, 113, 0.94);
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18), 0 16px 36px rgba(0, 0, 0, 0.34);
     }
 
     :root.dark .ti-control,

@@ -141,6 +141,12 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             e.Property(x => x.EarnedBadgesJson)
              .HasColumnType("text");
 
+            e.Property(x => x.TutorialFavoriteIdsJson)
+             .HasColumnType("text");
+
+            e.Property(x => x.TutorialRecentViewedJson)
+             .HasColumnType("text");
+
             e.Property(x => x.UpdatedUtc)
              .IsRequired();
         });

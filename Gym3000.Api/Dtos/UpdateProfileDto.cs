@@ -13,4 +13,6 @@ public class UpdateProfileDto
     public Dictionary<string, double>? Progress { get; init; }
     public string[]? GoalOrder { get; init; }
     public string[]? EarnedBadges { get; init; }
+    public int[]? TutorialFavoriteIds { get; init; }
+    public Dictionary<string, string>? TutorialRecentViewed { get; init; }
 }

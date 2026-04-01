@@ -203,6 +203,19 @@ public class AuthController : ControllerBase
 
     // ===== Endpoints =====
 
+    [HttpPost("check-register-email")]
+    [EnableRateLimiting("auth-register")]
+    public async Task<IActionResult> CheckRegisterEmail([FromBody] CheckRegisterEmailDto dto)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var existing = await _um.FindByEmailAsync(dto.Email);
+        if (existing is not null)
+            return Conflict(new { message = "E-Mail ist bereits registriert." });
+
+        return Ok(new { available = true });
+    }
+
     [HttpPost("register")]
     [EnableRateLimiting("auth-register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
