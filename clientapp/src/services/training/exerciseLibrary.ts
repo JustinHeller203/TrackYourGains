@@ -270,13 +270,31 @@ const KNOWN_TEXT_FIXES: Record<string, string> = {
     'Assistierte Klimmz?ge': 'Assistierte Klimmzüge',
     'Schr?gbank Chest Press Maschine': 'Schrägbank Chest Press Maschine',
     'Schr?gbankdr?cken': 'Schrägbankdrücken',
+    'Ges??': 'Gesäß',
+    'R?cken': 'Rücken',
+    'Brustwirbels?ule': 'Brustwirbelsäule',
+    'H?fte': 'Hüfte',
+    'Schr?gbank': 'Schrägbank',
+    'Seitst?tz': 'Seitstütz',
 }
+
+const PARTIAL_TEXT_FIXES: Array<[RegExp, string]> = [
+    [/\bGes\?\?\b/g, 'Gesäß'],
+    [/\bR\?cken\b/g, 'Rücken'],
+    [/Brustwirbels\?ule/g, 'Brustwirbelsäule'],
+    [/H\?fte/g, 'Hüfte'],
+    [/Seitst\?tz/g, 'Seitstütz'],
+    [/Schr\?g/g, 'Schräg'],
+    [/dr\?cken/g, 'drücken'],
+    [/z\?ge/g, 'züge'],
+]
 
 function sanitizeDisplayText(value?: string | null): string {
     let sanitized = String(value ?? '').trim()
     if (!sanitized) return ''
     for (const [pattern, replacement] of DISPLAY_TEXT_FIXES) sanitized = sanitized.replace(pattern, replacement)
     sanitized = sanitized.replace(/\uFFFD/g, '?')
+    for (const [pattern, replacement] of PARTIAL_TEXT_FIXES) sanitized = sanitized.replace(pattern, replacement)
     return KNOWN_TEXT_FIXES[sanitized] ?? sanitized
 }
 

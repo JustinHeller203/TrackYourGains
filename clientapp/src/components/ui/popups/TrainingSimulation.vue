@@ -82,6 +82,13 @@
                             </div>
 
                         <div class="sim-ex-name">{{ current.exercise }}</div>
+                        <div v-if="currentExerciseGoals.length" class="sim-goal-hints">
+                            <div v-for="goal in currentExerciseGoals" :key="goal.goal.id" class="sim-goal-hint" :class="`is-${goal.status}`">
+                                <span class="sim-goal-hint__title">{{ goal.goal.title }}</span>
+                                <span class="sim-goal-hint__meta">{{ goal.currentLabel }} / {{ goal.targetLabel }}</span>
+                                <span class="sim-goal-hint__copy">{{ goal.primaryText }}</span>
+                            </div>
+                        </div>
                         <div v-if="mottoDisplay" class="sim-motto">“{{ mottoDisplay }}”</div>
 
                             <div class="sim-ex-meta">
@@ -164,6 +171,9 @@
                                     <div class="sim-progress-title">Fortschritt eintragen</div>
                                     <div class="sim-progress-sub">
                                         Für <b>{{ current.exercise }}</b> direkt eintragen.
+                                    </div>
+                                    <div v-if="currentExerciseGoals.length" class="sim-progress-goal-copy">
+                                        Ziel im Blick: <b>{{ currentExerciseGoals[0].currentLabel }}</b> / {{ currentExerciseGoals[0].targetLabel }}
                                     </div>
 
                                     <button type="button" class="btn primary" @click="openProgressModal()">
@@ -345,6 +355,7 @@
     import ProgressEntryModal from "@/components/ui/popups/ProgressEntryModal.vue"
     import InfoPopup from "@/components/ui/popups/InfoPopup.vue"
     import { useWeightStore } from "@/store/weightStore"
+    import { useGoalsStore } from "@/store/goalsStore"
     import TrainingSessionSummary from "@/components/ui/training/TrainingSessionSummary.vue"
     import TrainingFeedbackForm from "@/components/ui/popups/feedback/TrainingFeedbackForm.vue"
     import PainFeedbackPopup from "@/components/ui/feedback/PainFeedbackPopup.vue"
@@ -357,7 +368,9 @@
     import { getProfile } from "@/services/profile"
     import { createTrainingSession, upsertTrainingSessionFeedback, type TrainingSessionFeedbackPayload } from "@/services/trainingSessions"
     import { getWeightIncreaseHint } from "@/utils/trainingWeightIncreaseHint"
-    import { LS_OPEN_PLAN_ID } from "@/constants/storageKeys"
+    import { evaluateTrainingGoals, goalMatchesExerciseName } from "@/utils/goalTracking"
+    import type { GoalWeightSample, GoalWorkoutSample, TrainingGoalEvaluation } from "@/types/goals"
+    import { LS_OPEN_PLAN_ID, LS_PROGRESS_WEIGHTS, LS_PROGRESS_WORKOUTS } from "@/constants/storageKeys"
 
     const DEBUG_SIM = true
     function dlog(...a: any[]) {
@@ -369,6 +382,7 @@
     const progressStore = useProgressStore()
     const complaintsStore = useComplaintsStore()
     const auth = useAuthStore()
+    const goalsStore = useGoalsStore()
     const route = useRoute()
     const router = useRouter()
     const isPhonePreviewSimulationDemo = computed(
@@ -383,6 +397,40 @@
     const mottoLocal = ref('')
 
     const pendingProgressSaves = ref<any[]>([])
+    const localGoalWeightHistory = ref<GoalWeightSample[]>([])
+    const localGoalWorkouts = ref<GoalWorkoutSample[]>([])
+
+    function loadGoalTrackingLocalData() {
+        try {
+            const weights = JSON.parse(localStorage.getItem(LS_PROGRESS_WEIGHTS) || '[]')
+            localGoalWeightHistory.value = Array.isArray(weights)
+                ? weights.map((entry: any) => ({
+                    date: String(entry?.date ?? ''),
+                    weight: Number(entry?.weight ?? entry?.weightKg ?? 0),
+                })).filter((entry: GoalWeightSample) => entry.date && Number.isFinite(entry.weight) && entry.weight > 0)
+                : []
+        } catch {
+            localGoalWeightHistory.value = []
+        }
+
+        try {
+            const workouts = JSON.parse(localStorage.getItem(LS_PROGRESS_WORKOUTS) || '[]')
+            localGoalWorkouts.value = Array.isArray(workouts)
+                ? workouts.map((entry: any) => ({
+                    id: entry?.id ?? null,
+                    exercise: String(entry?.exercise ?? '').trim(),
+                    date: String(entry?.date ?? ''),
+                    type: entry?.type ?? 'kraft',
+                    weight: Number.isFinite(Number(entry?.weight)) ? Number(entry.weight) : null,
+                    sets: Number.isFinite(Number(entry?.sets)) ? Number(entry.sets) : null,
+                    reps: Number.isFinite(Number(entry?.reps)) ? Number(entry.reps) : null,
+                    setDetails: Array.isArray(entry?.setDetails) ? entry.setDetails : null,
+                })).filter((entry: GoalWorkoutSample) => entry.exercise && entry.date)
+                : []
+        } catch {
+            localGoalWorkouts.value = []
+        }
+    }
 
     const finalizeTrainingSession = () => {
         const planId = props.plan?.id ?? null
@@ -1403,6 +1451,23 @@
         console.log('[SIM][CARDIO_RAW_EX]', currentRaw.value)
     }, { immediate: true })
 
+    watch(() => props.show, async (open) => {
+        if (!open) return
+        goalsStore.load()
+        if (!auth.user) {
+            loadGoalTrackingLocalData()
+            return
+        }
+        try {
+            await weightStore.loadEntries()
+        } catch { }
+        if (props.plan?.id) {
+            try {
+                await progressStore.load(props.plan.id)
+            } catch { }
+        }
+    }, { immediate: true })
+
     const exercisesForModal = computed(() => {
         const list = props.plan?.exercises ?? []
         const idx = exIndex.value
@@ -1438,6 +1503,49 @@
         const total = props.plan?.exercises?.length ?? 0
         if (!total) return 0
         return Math.round(((exIndex.value) / total) * 100)
+    })
+
+    const goalWeightHistory = computed<GoalWeightSample[]>(() =>
+        auth.user
+            ? (weightStore.entries ?? []).map((entry: any) => ({
+                date: String(entry?.date ?? ''),
+                weight: Number(entry?.weightKg ?? entry?.weight ?? 0),
+            })).filter((entry: GoalWeightSample) => entry.date && Number.isFinite(entry.weight) && entry.weight > 0)
+            : localGoalWeightHistory.value
+    )
+
+    const goalWorkouts = computed<GoalWorkoutSample[]>(() => {
+        if (!auth.user) return localGoalWorkouts.value
+
+        return Object.values(progressStore.byPlan ?? {})
+            .flatMap((state: any) => state?.items ?? [])
+            .map((entry: any) => ({
+                id: entry?.id ?? null,
+                exercise: String(entry?.exercise ?? '').trim(),
+                date: String(entry?.date ?? ''),
+                type: entry?.type ?? 'kraft',
+                weight: Number.isFinite(Number(entry?.weightKg)) ? Number(entry.weightKg) : null,
+                sets: Number.isFinite(Number(entry?.sets)) ? Number(entry.sets) : null,
+                reps: Number.isFinite(Number(entry?.reps)) ? Number(entry.reps) : null,
+                setDetails: Array.isArray(entry?.setDetails) ? entry.setDetails : null,
+            }))
+            .filter((entry: GoalWorkoutSample) => entry.exercise && entry.date)
+    })
+
+    const evaluatedGoals = computed<TrainingGoalEvaluation[]>(() =>
+        evaluateTrainingGoals(goalsStore.activeGoals, {
+            workouts: goalWorkouts.value,
+            weights: goalWeightHistory.value,
+        })
+    )
+
+    const currentExerciseGoals = computed<TrainingGoalEvaluation[]>(() => {
+        const name = String(current.value?.exercise ?? '').trim()
+        if (!name) return []
+        return evaluatedGoals.value.filter(goal =>
+            (goal.goal.type === 'exercise_weight' || goal.goal.type === 'exercise_reps')
+            && goalMatchesExerciseName(goal.goal, name)
+        )
     })
 
     const isFirstStart = computed(() =>
@@ -2190,6 +2298,47 @@
         color: var(--text-secondary);
         font-size: .88rem;
         line-height: 1.35;
+    }
+
+    .sim-goal-hints {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .sim-goal-hint {
+        display: grid;
+        gap: 2px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(59, 130, 246, 0.08);
+        border: 1px solid rgba(59, 130, 246, 0.16);
+    }
+
+    .sim-goal-hint.is-achieved {
+        background: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .sim-goal-hint.is-needs_attention {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.22);
+    }
+
+    .sim-goal-hint__title {
+        font-size: 0.82rem;
+        font-weight: 900;
+    }
+
+    .sim-goal-hint__meta,
+    .sim-goal-hint__copy,
+    .sim-progress-goal-copy {
+        font-size: 0.78rem;
+        opacity: 0.86;
+    }
+
+    .sim-progress-goal-copy {
+        margin: 8px 0 10px;
     }
 
     .sim-followup-actions {

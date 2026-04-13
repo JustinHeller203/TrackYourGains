@@ -14,7 +14,6 @@
     import { computed } from 'vue'
     import BaseButton from '@/components/ui/buttons/BaseButton.vue'
 
-    // self-contained types (kein externes types/ui)
     type ClassLike = string | Record<string, boolean>
     type ClassProp = ClassLike | ClassLike[]
 
@@ -32,7 +31,6 @@
 
     defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
 
-    // flach mergen, damit kein verschachteltes Array entsteht
     const mergedClass = computed<ClassLike[]>(() => [
         'add-exercise-btn',
         'primary-btn',

@@ -63,6 +63,11 @@
                         @click.stop="pickAvatar"
                         :title="avatarUrl ? 'Profilbild ändern' : 'Profilbild hinzufügen'"
                         :aria-label="avatarUrl ? 'Profilbild ändern' : 'Profilbild hinzufügen'"></button>
+                <Transition name="avatar-guide-pill">
+                    <span v-if="avatarGuideActive" class="avatar-guide-pill">
+                        {{ avatarUrl ? 'Profilbild ändern' : 'Profilbild hinzufügen' }}
+                    </span>
+                </Transition>
             </div>
             <input ref="avatarInput"
                    type="file"
@@ -74,8 +79,18 @@
                 <h1 class="title">Profil</h1>
                 <p class="muted">
                     Username
-                    <strong :title="username || 'Kein Username gesetzt'">
-                        {{ username || 'Kein Username gesetzt' }}
+                    <strong ref="usernameValueEl"
+                            class="profile-identity-value"
+                            :class="{ 'profile-identity-value--rename-forge': usernameRenameActive && !!usernameRenamePayload }"
+                            :title="username || 'Kein Username gesetzt'">
+                        <span class="profile-identity-value__live">{{ username || 'Kein Username gesetzt' }}</span>
+                        <span v-if="usernameRenameActive && usernameRenamePayload"
+                              class="profile-identity-rename-overlay"
+                              aria-hidden="true">
+                            <span class="profile-identity-rename-overlay__old">{{ usernameRenamePayload.oldName }}</span>
+                            <span class="profile-identity-rename-overlay__handwrite">{{ usernameRenamePayload.newName }}</span>
+                            <span class="profile-identity-rename-overlay__final">{{ usernameRenamePayload.newName }}</span>
+                        </span>
                     </strong>
                 </p>
                 <div class="actions">
@@ -258,9 +273,8 @@
             </div>
         </section>
 
-        <!-- About + Ziele -->
-        <section class="grid two">
-            <div ref="goalsCardEl" class="card">
+        <section>
+            <div class="card">
                 <h3 class="card-title"><i class="fas fa-user-circle"></i> Über dich</h3>
                 <ul class="list">
                     <li class="about-name-row">
@@ -274,15 +288,25 @@
                             </template>
                             <template v-else>
                                 <span class="name-text"
-                                      @dblclick.prevent="editingName = true"
-                                      title="Doppelklick: Name bearbeiten">{{ displayName || '—' }}</span>
+                                      :class="{ 'name-text--rename-forge': renameForgeActive && !!renameForgePayload }"
+                                      @dblclick.prevent="openDisplayNameEdit"
+                                      title="Doppelklick: Name bearbeiten">
+                                    <span class="name-text__live">{{ displayName || '—' }}</span>
+                                    <span v-if="renameForgeActive && renameForgePayload"
+                                          class="name-text-rename-overlay"
+                                          aria-hidden="true">
+                                        <span class="name-text-rename-overlay__old">{{ renameForgePayload.oldName }}</span>
+                                        <span class="name-text-rename-overlay__handwrite">{{ renameForgePayload.newName }}</span>
+                                        <span class="name-text-rename-overlay__final">{{ renameForgePayload.newName }}</span>
+                                    </span>
+                                </span>
 
                                 <!-- REPLACE im Name-Button-Inhalt -->
                                 <button type="button"
                                         class="name-edit-btn"
                                         title="Name bearbeiten"
                                         aria-label="Name bearbeiten"
-                                        @click="editingName = true">
+                                        @click="openDisplayNameEdit">
                                     <i class="fas fa-pencil-alt" aria-hidden="true"></i>
                                     <span class="name-edit-label">Bearbeiten</span>
                                 </button>
@@ -294,10 +318,19 @@
 
                     <li>
                         <span class="key">E-Mail</span>
-                        <span class="val email-text"
+                        <span ref="emailValueEl"
+                              class="val email-text"
+                              :class="{ 'email-text--rename-forge': emailRenameActive && !!emailRenamePayload }"
                               @dblclick.prevent="openEmailPopup"
                               :title="fullEmail || 'Doppelklick: E-Mail ändern'">
-                            {{ shortEmail }}
+                            <span class="email-text__live">{{ shortEmail }}</span>
+                            <span v-if="emailRenameActive && emailRenamePayload"
+                                  class="profile-identity-rename-overlay"
+                                  aria-hidden="true">
+                                <span class="profile-identity-rename-overlay__old">{{ emailRenamePayload.oldName }}</span>
+                                <span class="profile-identity-rename-overlay__handwrite">{{ emailRenamePayload.newName }}</span>
+                                <span class="profile-identity-rename-overlay__final">{{ emailRenamePayload.newName }}</span>
+                            </span>
                         </span>
                     </li>
                     <li><span class="key">Mitglied seit</span><span class="val">{{ memberSinceDisplay }}</span></li>
@@ -305,35 +338,11 @@
                 </ul>
             </div>
 
-            <div class="card">
-                <h3 class="card-title"><i class="fas fa-bullseye"></i> Ziele</h3>
-                <!-- REPLACE innerhalb der Ziele-Card (.goals + goal-controls) -->
-                <Draggable v-model="goalOrder"
-                           item-key="key"
-                           handle=".goal-handle"
-                           ghost-class="goal-ghost"
-                           drag-class="goal-drag"
-                           animation="160"
-                           aria-label="Ziele per Drag and Drop sortieren">
-                    <template #item="{ element: key, index: idx }">
-                        <div class="goal" :data-key="key">
-                            <div class="goal-top">
-                                <span class="goal-handle" title="Ziehen zum Sortieren" aria-label="Ziehen zum Sortieren" tabindex="0">≡</span>
-                                <span class="goal-name">{{ goalLabels[key as GoalKey] }}</span>
-                                <span class="goal-value">{{ progress[key as GoalKey] }}%</span>
-                            </div>
-                            <div class="bar">
-                                <div :style="{ width: progress[key as GoalKey] + '%' }"></div>
-                            </div>
-                        </div>
-                    </template>
-                </Draggable>
-                <div class="goal-controls">
-                    <EditInput @click="resetProgress" title="Ziele Reset" ariaLabel="Ziele Reset">Reset</EditInput>
-                </div>
-
-            </div>
         </section>
+
+        <GoalsManagerPanel class="profile-goals-panel"
+                           :workouts="trainingGoalWorkouts"
+                           :weight-history="trainingGoalWeightHistory" />
 
         <!-- Motto (inline editierbar, localStorage) -->
         <section ref="mottoCardEl" class="card motto-card">
@@ -345,8 +354,17 @@
                    class="input motto-input"
                    placeholder="Dein Motto…"
                    @keyup.enter="saveMotto" />
-            <p v-else class="motto" lang="de">
-                {{ mottoView || 'Kein Motto gesetzt' }}
+            <p v-else class="motto"
+               :class="{ 'motto--rename-forge': mottoRenameActive && !!mottoRenamePayload }"
+               lang="de">
+                <span class="motto__live">{{ mottoView || 'Kein Motto gesetzt' }}</span>
+                <span v-if="mottoRenameActive && mottoRenamePayload"
+                      class="motto-rename-overlay"
+                      aria-hidden="true">
+                    <span class="motto-rename-overlay__old">{{ mottoRenamePayload.oldName }}</span>
+                    <span class="motto-rename-overlay__handwrite">{{ mottoRenamePayload.newName }}</span>
+                    <span class="motto-rename-overlay__final">{{ mottoRenamePayload.newName }}</span>
+                </span>
             </p>
 
             <div class="motto-actions">
@@ -379,7 +397,7 @@
                                :ghost="true"
                                title="Motto löschen"
                                ariaLabel="Motto löschen"
-                               @click="clearMotto">
+                               @click="requestClearMotto($event)">
                         Löschen
                     </EditInput>
                 </div>
@@ -452,6 +470,18 @@
         <DeleteConfirmPopup :show="showDeleteAvatarPopup"
                             @cancel="closeDeleteAvatarPopup"
                             @confirm="onConfirmDeleteAvatar" />
+
+        <Transition name="delete-trash">
+            <div v-if="deleteTrashState.visible" class="delete-trash-overlay" aria-hidden="true">
+                <div v-if="deleteTrashState.itemName" class="delete-trash-flight" :style="deleteTrashFlightStyle">
+                    <span class="delete-trash-flight__title">{{ deleteTrashState.itemName }}</span>
+                </div>
+                <div class="delete-trash-bin">
+                    <div class="delete-trash-bin__lid"></div>
+                    <div class="delete-trash-bin__body"></div>
+                </div>
+            </div>
+        </Transition>
 
         <div v-if="showAvatarViewer"
              class="image-viewer-overlay"
@@ -558,8 +588,8 @@
 
 
 <script setup lang="ts">
-    import { computed, ref, watch, onMounted, nextTick } from 'vue'
-    import { useRouter } from 'vue-router'
+    import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+    import { useRoute, useRouter } from 'vue-router'
     import { useAuthStore } from '@/store/authStore'
     import { useTrainingPlansStore } from '@/store/trainingPlansStore'
     import { useProgressStore } from '@/store/progressStore'
@@ -573,18 +603,21 @@
     import SavePopup from '@/components/ui/popups/SavePopup.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
     import EditInput from '@/components/ui/buttons/EditInput.vue'
-    import Draggable from 'vuedraggable'
     import HoldMenu from '@/components/ui/menu/HoldMenu.vue'
     import ShortcardPopup from '@/components/ui/popups/ShortcardPopup.vue'
+    import GoalsManagerPanel from '@/components/ui/goals/GoalsManagerPanel.vue'
     import { useAutoGoals, type AutoGoalResult, type TrainingEntry } from '@/composables/useAutoGoals'
     import { getProfile, updateProfile, type UpdateProfileDto } from '@/services/profile'
     import { getRandomMotto } from '@/services/mottos'
     import { computeBadges } from '@/utils/achievements'
+    import { useWeightStore } from '@/store/weightStore'
     import {
         LS_ALL_KEYS,
         wipeLocalStorage,
 
         LS_AUTH_EMAIL,
+        LS_PROGRESS_WORKOUTS,
+        LS_PROGRESS_WEIGHTS,
         LS_PROFILE_ACTIVITY,
         LS_PROFILE_AVATAR,
         LS_PROFILE_DISPLAY_NAME,
@@ -629,7 +662,6 @@
                 weightTracking: progress.value.weight,
                 nutrition: progress.value.nutrition
             }
-            goalOrder.value = (data.goalOrder?.length ? data.goalOrder : DEFAULT_GOAL_ORDER) as GoalKey[]
             earnedBadges.value = Array.isArray(data.earnedBadges) ? data.earnedBadges : []
             const since = data.memberSinceUtc ? String(data.memberSinceUtc).slice(0, 10) : ''
             memberSince.value = since || new Date().toISOString().slice(0, 10)
@@ -646,7 +678,6 @@
         favoriteTimers.value = Number(localStorage.getItem(LS_KEYS.favorites) ?? 2)
         activity.value = loadJSON(LS_KEYS.activity, [1, 0, 2, 1, 3, 2, 2, 1, 0, 2])
         progress.value = loadJSON(LS_KEYS.progress, { ...DEFAULT_PROGRESS })
-        goalOrder.value = loadJSON<GoalKey[]>(LS_PROFILE_GOAL_ORDER, [...DEFAULT_GOAL_ORDER])
         earnedBadges.value = loadJSON(LS_KEYS.earnedBadges, [])
         const savedMember = localStorage.getItem(LS_KEYS.memberSince)
         memberSince.value = savedMember ?? new Date().toISOString().slice(0, 10)
@@ -655,12 +686,54 @@
         profileLoaded.value = true
     }
 
+    async function loadGoalDataSources() {
+        if (auth.user) {
+            try {
+                await weightStore.loadEntries()
+            } catch { }
+            return
+        }
+
+        localGoalWeightHistory.value = loadJSON<Array<{ date: string; weight: number }>>(LS_PROGRESS_WEIGHTS, [])
+            .map((entry: any) => ({
+                date: String(entry?.date ?? ''),
+                weight: Number(entry?.weight ?? entry?.weightKg ?? 0),
+            }))
+            .filter(entry => entry.date && Number.isFinite(entry.weight) && entry.weight > 0)
+
+        localGoalWorkouts.value = loadJSON<any[]>(LS_PROGRESS_WORKOUTS, [])
+            .map((entry: any) => ({
+                id: entry?.id ?? null,
+                exercise: String(entry?.exercise ?? '').trim(),
+                date: String(entry?.date ?? ''),
+                type: entry?.type ?? 'kraft',
+                weight: Number.isFinite(Number(entry?.weight)) ? Number(entry.weight) : null,
+                sets: Number.isFinite(Number(entry?.sets)) ? Number(entry.sets) : null,
+                reps: Number.isFinite(Number(entry?.reps)) ? Number(entry.reps) : null,
+                setDetails: Array.isArray(entry?.setDetails) ? entry.setDetails : null,
+            }))
+            .filter(entry => entry.exercise && entry.date)
+    }
+
     // --- Stores / Router ---
     const auth = useAuthStore()
     const trainingPlansStore = useTrainingPlansStore()
     const progressStore = useProgressStore()
+    const weightStore = useWeightStore()
     const router = useRouter()
+    const route = useRoute()
     const profileLoaded = ref(false)
+    const localGoalWeightHistory = ref<Array<{ date: string; weight: number }>>([])
+    const localGoalWorkouts = ref<Array<{
+        id?: string | null
+        exercise: string
+        date: string
+        type?: 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer' | null
+        weight?: number | null
+        sets?: number | null
+        reps?: number | null
+        setDetails?: Array<{ weight: number | null; reps: number | null; durationSec?: number | null; label?: string | null }> | null
+    }>>([])
     const pendingProfilePatch = ref<UpdateProfileDto>({})
     let saveProfileTimer: number | null = null
     const showDeleteAvatarPopup = ref(false)
@@ -778,25 +851,7 @@
     type GoalKey = 'muscle' | 'weight' | 'nutrition';
     const DEFAULT_ACTIVITY = Array.from({ length: 21 }, () => 0)
     const DEFAULT_PROGRESS = { muscle: 40, weight: 60, nutrition: 55 }
-    const DEFAULT_GOAL_ORDER: GoalKey[] = ['muscle', 'weight', 'nutrition']
     const DEFAULT_MOTTO = 'No excuses. Just results.'
-    const goalLabels: Record<GoalKey, string> = {
-        muscle: 'Muskeln aufbauen',
-        weight: 'Gewicht tracken',
-        nutrition: 'Ernährung loggen'
-    };
-
-    const goalOrder = ref<GoalKey[]>([...DEFAULT_GOAL_ORDER])
-
-    // INSERT Move-Funktion
-    function moveGoal(index: number, dir: -1 | 1) {
-        const arr = goalOrder.value.slice();
-        const j = index + dir;
-        if (j < 0 || j >= arr.length) return;
-        const [item] = arr.splice(index, 1);
-        arr.splice(j, 0, item);
-        goalOrder.value = arr;
-    }
     function startAddMotto() {
         editingMotto.value = true;
         nextTick(() => {
@@ -867,7 +922,69 @@
             } else {
                 localStorage.setItem(LS_PROFILE_MOTTO, prev)
             }
-        }, 5000)
+        }, 2450)
+    }
+    const deleteTrashState = ref({
+        visible: false,
+        itemName: '',
+        startX: 0,
+        startY: 0,
+        deltaX: 0,
+        deltaY: 0,
+    })
+    let deleteTrashTimer: ReturnType<typeof setTimeout> | null = null
+
+    const deleteTrashFlightStyle = computed(() => ({
+        left: `${deleteTrashState.value.startX}px`,
+        top: `${deleteTrashState.value.startY}px`,
+        '--delete-fly-x': `${deleteTrashState.value.deltaX}px`,
+        '--delete-fly-y': `${deleteTrashState.value.deltaY}px`,
+    }))
+
+    function clearDeleteTrashTimer() {
+        if (deleteTrashTimer) {
+            clearTimeout(deleteTrashTimer)
+            deleteTrashTimer = null
+        }
+    }
+
+    function hideDeleteTrash() {
+        clearDeleteTrashTimer()
+        deleteTrashState.value = {
+            visible: false,
+            itemName: '',
+            startX: 0,
+            startY: 0,
+            deltaX: 0,
+            deltaY: 0,
+        }
+    }
+
+    function requestClearMotto(event?: MouseEvent) {
+        const prev = (motto.value || '').trim()
+        if (!prev) return
+
+        clearDeleteTrashTimer()
+        const trigger = event?.currentTarget instanceof HTMLElement ? event.currentTarget : mottoCardEl.value
+        const rect = trigger?.getBoundingClientRect()
+        const startX = rect ? rect.left + rect.width / 2 : window.innerWidth / 2
+        const startY = rect ? rect.top + rect.height / 2 : Math.max(120, window.innerHeight * 0.28)
+        const targetX = window.innerWidth / 2
+        const targetY = window.innerHeight - 76
+
+        deleteTrashState.value = {
+            visible: true,
+            itemName: prev.length > 36 ? `${prev.slice(0, 35)}…` : prev,
+            startX,
+            startY,
+            deltaX: targetX - startX,
+            deltaY: targetY - startY,
+        }
+
+        deleteTrashTimer = setTimeout(() => {
+            clearMotto()
+            hideDeleteTrash()
+        }, 860)
     }
     function onViewerKeydown(e: KeyboardEvent) {
         // Seite nicht scrollen lassen, wenn der Viewer aktiv ist
@@ -1137,19 +1254,29 @@
 
     const profileHeaderEl = ref<HTMLElement | null>(null)
     const aboutCardEl = ref<HTMLElement | null>(null)
-    const goalsCardEl = ref<HTMLElement | null>(null)
     const mottoCardEl = ref<HTMLElement | null>(null)
     const weeklyGoalCardEl = ref<HTMLElement | null>(null)
+    const usernameValueEl = ref<HTMLElement | null>(null)
+    const emailValueEl = ref<HTMLElement | null>(null)
     const avatarGuideActive = ref(false)
     const avatarUrl = ref<string | null>(null)
     let avatarGuideTimer: ReturnType<typeof setTimeout> | null = null
 
     const username = ref<string>('');
     const displayName = ref<string>('');
+    const displayNameBeforeEdit = ref<string>('')
+    const usernameRenameActive = ref(false)
+    const usernameRenamePayload = ref<{ oldName: string; newName: string } | null>(null)
+    let usernameRenameTimer: number | null = null
+    const emailRenameActive = ref(false)
+    const emailRenamePayload = ref<{ oldName: string; newName: string } | null>(null)
+    let emailRenameTimer: number | null = null
+    const renameForgeActive = ref(false)
+    const renameForgePayload = ref<{ oldName: string; newName: string } | null>(null)
+    let renameForgeTimer: number | null = null
     const profileSteps = computed(() => {
         const hasGoals = progress.value.muscle + progress.value.weight + progress.value.nutrition > 0
         return [
-            { key: 'name', label: 'Name setzen', hint: 'Gib deinem Profil eine klare Identität.', done: !!displayName.value.trim(), icon: 'A' },
             { key: 'avatar', label: 'Profilbild hinzufügen', hint: 'Ein Bild macht dein Profil sofort vollständiger.', done: !!avatarUrl.value, icon: '◉' },
             { key: 'motto', label: 'Motto speichern', hint: 'Ein Motto gibt deinem Profil Charakter.', done: !!motto.value.trim(), icon: '“' },
             { key: 'workout', label: 'Erstes Workout tracken', hint: 'Mindestens ein Workout bringt echtes Leben ins Profil.', done: weeklyWorkouts.value > 0, icon: '1' },
@@ -1170,13 +1297,21 @@
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
 
+    async function handleProfileRouteFocus() {
+        if (route.query.focus !== 'goals') return
+        await nextTick()
+        scrollToProfileTarget(weeklyGoalCardEl.value)
+        const { focus, ...restQuery } = route.query
+        void router.replace({ query: restQuery })
+    }
+
     function startAvatarGuide() {
         avatarGuideActive.value = true
         if (avatarGuideTimer) clearTimeout(avatarGuideTimer)
         avatarGuideTimer = setTimeout(() => {
             avatarGuideActive.value = false
             avatarGuideTimer = null
-        }, 5000)
+        }, 2200)
     }
 
     async function jumpToProfileStep(stepKey: string) {
@@ -1207,7 +1342,7 @@
         }
 
         if (stepKey === 'goals') {
-            scrollToProfileTarget(goalsCardEl.value)
+            scrollToProfileTarget(weeklyGoalCardEl.value)
             return
         }
 
@@ -1222,6 +1357,10 @@
     watch(displayName, v => {
         if (!auth.user) localStorage.setItem(LS_PROFILE_DISPLAY_NAME, v)
     });
+    watch(() => route.query.focus, async (focus) => {
+        if (focus !== 'goals') return
+        await handleProfileRouteFocus()
+    })
     watch(avatarUrl, v => {
         if (v) {
             avatarGuideActive.value = false
@@ -1271,13 +1410,38 @@
         }
     }
 
+    function openDisplayNameEdit() {
+        displayNameBeforeEdit.value = (displayName.value || '').trim()
+        editingName.value = true
+    }
+
     function saveDisplayName() {
+        const oldName = displayNameBeforeEdit.value.trim()
+        const nextName = (displayName.value || '').trim()
         if (auth.user) {
             queueProfileSave({ displayName: displayName.value || '' })
         } else {
             localStorage.setItem(LS_PROFILE_DISPLAY_NAME, displayName.value || '');
         }
         editingName.value = false;
+        if (oldName && nextName && oldName === nextName) {
+            addToast('Name gespeichert', 'save');
+            return
+        }
+        if (nextName && oldName !== nextName) {
+            if (renameForgeTimer) {
+                clearTimeout(renameForgeTimer)
+                renameForgeTimer = null
+            }
+            renameForgePayload.value = { oldName: oldName || '—', newName: nextName }
+            renameForgeActive.value = true
+            renameForgeTimer = window.setTimeout(() => {
+                renameForgeActive.value = false
+                renameForgePayload.value = null
+                renameForgeTimer = null
+            }, 1650)
+        }
+        displayNameBeforeEdit.value = nextName
         addToast('Name gespeichert', 'save');
     }
     function closeDeleteAvatarPopup() {
@@ -1630,11 +1794,14 @@
 
     onMounted(async () => {
         if (auth.user) {
+            await loadGoalDataSources()
             await loadProfileFromBackend()
             await loadActivityFromBackend()
         } else {
             loadLocalProfile()
+            await loadGoalDataSources()
         }
+        await handleProfileRouteFocus()
     })
 
     const earnedBadges = ref<string[]>([])
@@ -1676,6 +1843,10 @@
 
     const favoriteTimers = ref<number>(2)
     const motto = ref<string>(DEFAULT_MOTTO)
+    const mottoBeforeEdit = ref('')
+    const mottoRenameActive = ref(false)
+    const mottoRenamePayload = ref<{ oldName: string; newName: string } | null>(null)
+    let mottoRenameTimer: number | null = null
     const memberSince = ref<string>('')
     const memberSinceDisplay = computed(() => {
         if (!memberSince.value) return '—'
@@ -1687,6 +1858,31 @@
     const streakDays = computed(() => calcStreak(activity.value))
     const todayCount = computed(() => activity.value.at(-1) ?? 0)
     const avgActivity = computed(() => (sumLastDays(activity.value, activity.value.length) / Math.max(activity.value.length, 1)).toFixed(1))
+    const trainingGoalWeightHistory = computed(() =>
+        auth.user
+            ? (weightStore.entries ?? []).map((entry: any) => ({
+                date: String(entry?.date ?? ''),
+                weight: Number(entry?.weightKg ?? entry?.weight ?? 0),
+            })).filter((entry: { date: string; weight: number }) => entry.date && Number.isFinite(entry.weight) && entry.weight > 0)
+            : localGoalWeightHistory.value
+    )
+    const trainingGoalWorkouts = computed(() => {
+        if (!auth.user) return localGoalWorkouts.value
+
+        return Object.values(progressStore.byPlan ?? {})
+            .flatMap((state: any) => state?.items ?? [])
+            .map((entry: any) => ({
+                id: entry?.id ?? null,
+                exercise: String(entry?.exercise ?? '').trim(),
+                date: String(entry?.date ?? ''),
+                type: entry?.type ?? 'kraft',
+                weight: Number.isFinite(Number(entry?.weightKg)) ? Number(entry.weightKg) : null,
+                sets: Number.isFinite(Number(entry?.sets)) ? Number(entry.sets) : null,
+                reps: Number.isFinite(Number(entry?.reps)) ? Number(entry.reps) : null,
+                setDetails: Array.isArray(entry?.setDetails) ? entry.setDetails : null,
+            }))
+            .filter((entry: { exercise: string; date: string }) => entry.exercise && entry.date)
+    })
 
     // Sparkline Points
     const sparkPoints = computed(() => {
@@ -1705,20 +1901,42 @@
 
     // --- UI: Motto Edit ---
     const editingMotto = ref(false)
+    function triggerMottoRename(oldValue: string, newValue: string) {
+        const oldName = oldValue.trim()
+        const newName = newValue.trim()
+        if (!newName || oldName === newName) return
+        if (mottoRenameTimer) {
+            window.clearTimeout(mottoRenameTimer)
+            mottoRenameTimer = null
+        }
+        mottoRenamePayload.value = { oldName: oldName || 'Kein Motto gesetzt', newName }
+        mottoRenameActive.value = true
+        mottoRenameTimer = window.setTimeout(() => {
+            mottoRenameActive.value = false
+            mottoRenamePayload.value = null
+            mottoRenameTimer = null
+        }, 1650)
+    }
     function toggleMotto() {
         if (editingMotto.value) saveMotto()
+        else mottoBeforeEdit.value = (motto.value || '').trim()
         editingMotto.value = !editingMotto.value
     }
     function saveMotto() {
+        const oldValue = mottoBeforeEdit.value
+        const nextValue = (motto.value || '').trim()
         if (auth.user) {
             queueProfileSave({ motto: motto.value || '' })
         } else {
             localStorage.setItem(LS_KEYS.motto, motto.value || '')
         }
+        triggerMottoRename(oldValue, nextValue)
+        mottoBeforeEdit.value = nextValue
         addToast('Motto gespeichert', 'save')
     }
     async function applyRandomMotto() {
         try {
+            const previous = (motto.value || '').trim()
             const { text } = await getRandomMotto()
             motto.value = text || DEFAULT_MOTTO
             if (auth.user) {
@@ -1726,6 +1944,8 @@
             } else {
                 localStorage.setItem(LS_KEYS.motto, motto.value || '')
             }
+            triggerMottoRename(previous, motto.value || '')
+            mottoBeforeEdit.value = (motto.value || '').trim()
             addToast('Motto gesetzt', 'save')
         } catch {
             addToast('Konnte kein Motto laden.', 'delete')
@@ -1766,8 +1986,20 @@
 
     async function handleUsernameChange({ username: nextUsername }: { username: string }) {
         try {
+            const previous = (username.value || '').trim()
             await saveUsername(nextUsername)
             closeUsernamePopup()
+            const current = (username.value || '').trim()
+            if (previous && current && previous !== current) {
+                if (usernameRenameTimer) window.clearTimeout(usernameRenameTimer)
+                usernameRenamePayload.value = { oldName: previous, newName: current }
+                usernameRenameActive.value = true
+                usernameRenameTimer = window.setTimeout(() => {
+                    usernameRenameActive.value = false
+                    usernameRenamePayload.value = null
+                    usernameRenameTimer = null
+                }, 1650)
+            }
         } catch {
             // Toast wird bereits in saveUsername gezeigt.
         }
@@ -1778,9 +2010,25 @@
 
     async function handleEmailChange({ newEmail, password }: { newEmail: string; password: string }) {
         try {
+            const previousFull = fullEmail.value.trim()
             await auth.changeEmail(newEmail, password)
             addToast('E-Mail aktualisiert ✅', 'save')
             closeEmailPopup()
+            if (auth.user) auth.user.email = newEmail.trim()
+            localStorage.setItem(LS_KEYS.email, newEmail.trim())
+            await nextTick()
+            scrollToProfileTarget(emailValueEl.value)
+            const currentFull = fullEmail.value.trim()
+            if (previousFull && currentFull && previousFull !== currentFull) {
+                if (emailRenameTimer) window.clearTimeout(emailRenameTimer)
+                emailRenamePayload.value = { oldName: previousFull, newName: currentFull }
+                emailRenameActive.value = true
+                emailRenameTimer = window.setTimeout(() => {
+                    emailRenameActive.value = false
+                    emailRenamePayload.value = null
+                    emailRenameTimer = null
+                }, 1650)
+            }
         } catch (e: any) {
             emailError.value = e?.response?.data?.message || 'E-Mail ändern fehlgeschlagen.'
         }
@@ -1951,12 +2199,6 @@
         else saveJSON(LS_KEYS.progress, v)
     }, { deep: true })
 
-    watch(goalOrder, v => {
-        if (!profileLoaded.value) return
-        if (auth.user) queueProfileSave({ goalOrder: v })
-        else saveJSON(LS_PROFILE_GOAL_ORDER, v)
-    }, { deep: true })
-
     watch(favoriteTimers, v => {
         if (!profileLoaded.value) return
         if (auth.user) queueProfileSave({ favoriteTimers: v })
@@ -2026,6 +2268,10 @@
 
         return result
     }
+
+    onUnmounted(() => {
+        clearDeleteTrashTimer()
+    })
 </script>
 
 <style scoped>
@@ -3021,6 +3267,75 @@
         cursor: pointer;
     }
 
+    .profile-identity-value,
+    .email-text {
+        position: relative;
+        display: inline-block;
+    }
+
+    .profile-identity-value__live,
+    .email-text__live {
+        display: inline-block;
+    }
+
+    .profile-identity-value--rename-forge,
+    .email-text--rename-forge {
+        overflow: visible;
+        animation: profile-rename-title-settle 1.02s cubic-bezier(0.18, 0.9, 0.2, 1) both;
+    }
+
+    .profile-identity-value--rename-forge > .profile-identity-value__live,
+    .email-text--rename-forge > .email-text__live {
+        opacity: 0.02;
+    }
+
+    .profile-identity-rename-overlay {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        display: grid;
+        grid-template-areas: "stack";
+        align-items: center;
+        pointer-events: none;
+        z-index: 6;
+        white-space: nowrap;
+        min-width: max-content;
+    }
+
+    .profile-identity-rename-overlay__old,
+    .profile-identity-rename-overlay__handwrite,
+    .profile-identity-rename-overlay__final {
+        grid-area: stack;
+        font-weight: inherit;
+        letter-spacing: inherit;
+        white-space: nowrap;
+    }
+
+    .profile-identity-rename-overlay__old {
+        color: inherit;
+        text-shadow: none;
+        animation: profile-rename-old .46s ease-in both;
+    }
+
+    .profile-identity-rename-overlay__handwrite {
+        color: inherit;
+        font-family: inherit;
+        font-weight: inherit;
+        text-shadow: none;
+        overflow: hidden;
+        width: 0;
+        border-right: 2px solid currentColor;
+        animation: profile-rename-handwrite .82s steps(24, end) .44s both;
+    }
+
+    .profile-identity-rename-overlay__final {
+        color: inherit;
+        text-shadow: none;
+        opacity: 0;
+        animation: profile-rename-final .14s linear 1.22s both;
+    }
+
     .image-viewer-img {
         max-width: 90vw;
         max-height: 90vh;
@@ -3175,44 +3490,122 @@
     .avatar-wrap {
         position: relative;
         display: inline-block;
+        isolation: isolate;
     }
 
-    .avatar-wrap.is-guided::after {
-        content: '';
+    .avatar-wrap.is-guided .avatar {
+        animation:
+            avatar-guide-pop .58s cubic-bezier(0.2, 0.9, 0.24, 1.18),
+            avatar-guide-breathe .72s ease-in-out .58s 1;
+        box-shadow:
+            0 0 0 10px color-mix(in srgb, var(--accent-primary) 14%, transparent),
+            0 22px 42px rgba(15, 23, 42, 0.18);
+    }
+
+    .avatar-wrap.is-guided .avatar.clickable::after {
+        background:
+            radial-gradient(circle at 50% 35%, rgba(255,255,255,.3), transparent 54%),
+            linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 72%);
+        animation: avatar-guide-sheen .8s ease-out;
+    }
+
+    .avatar-wrap.is-guided .avatar-plus {
+        transform: scale(1.08);
+    }
+
+    .avatar-wrap.is-guided .avatar-plus::before,
+    .avatar-wrap.is-guided .avatar-plus::after {
+        background: color-mix(in srgb, var(--accent-primary) 82%, white 18%);
+        filter:
+            drop-shadow(0 0 4px rgba(255,255,255,.45))
+            drop-shadow(0 6px 14px color-mix(in srgb, var(--accent-primary) 26%, transparent));
+    }
+
+    .avatar-guide-pill {
         position: absolute;
-        inset: -8px;
-        border-radius: 50%;
-        border: 2px dashed color-mix(in srgb, var(--accent-primary) 72%, white 28%);
-        opacity: .95;
+        left: 50%;
+        bottom: -2.9rem;
+        transform: translateX(-50%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2rem;
+        padding: .42rem .78rem;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 26%, rgba(148, 163, 184, 0.28));
+        background:
+            linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.94));
+        color: var(--text-primary);
+        font-size: .8rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        white-space: nowrap;
         pointer-events: none;
-        animation: avatar-guide-orbit 2.2s linear infinite;
+        box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14);
+        z-index: 6;
     }
 
-    .avatar-wrap.is-guided::before {
-        content: '';
-        position: absolute;
-        inset: -4px;
-        border-radius: 50%;
-        background: radial-gradient(circle, color-mix(in srgb, var(--accent-primary) 18%, transparent) 0%, transparent 70%);
-        opacity: .8;
-        pointer-events: none;
+    html.dark-mode .avatar-guide-pill {
+        background: linear-gradient(180deg, rgba(15, 23, 42, .98), rgba(2, 6, 23, .94));
+        border-color: rgba(96, 165, 250, 0.28);
+        box-shadow: 0 20px 38px rgba(0, 0, 0, 0.34);
     }
 
-    html.dark-mode .avatar-wrap.is-guided::after {
-        border-color: color-mix(in srgb, #93c5fd 72%, transparent 28%);
+    .avatar-guide-pill-enter-active {
+        transition: opacity .14s ease, transform .16s ease;
     }
 
-    @keyframes avatar-guide-orbit {
-        from {
-            transform: rotate(0deg) scale(1);
+    .avatar-guide-pill-leave-active {
+        transition: opacity .08s linear, transform .08s linear;
+    }
+
+    .avatar-guide-pill-enter-from,
+    .avatar-guide-pill-leave-to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(8px) scale(.96);
+    }
+
+    @keyframes avatar-guide-pop {
+        0% {
+            transform: translateY(12px) scale(.96);
+        }
+
+        62% {
+            transform: translateY(-2px) scale(1.03);
+        }
+
+        100% {
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes avatar-guide-breathe {
+        0%, 100% {
+            box-shadow:
+                0 0 0 10px color-mix(in srgb, var(--accent-primary) 14%, transparent),
+                0 22px 42px rgba(15, 23, 42, 0.18);
         }
 
         50% {
-            transform: rotate(180deg) scale(1.03);
+            box-shadow:
+                0 0 0 16px color-mix(in srgb, var(--accent-primary) 10%, transparent),
+                0 26px 48px rgba(15, 23, 42, 0.2);
+        }
+    }
+
+    @keyframes avatar-guide-sheen {
+        0% {
+            opacity: 0;
+            transform: scale(.94);
         }
 
-        to {
-            transform: rotate(360deg) scale(1);
+        35% {
+            opacity: 1;
+        }
+
+        100% {
+            opacity: .78;
+            transform: scale(1);
         }
     }
 
@@ -3232,6 +3625,168 @@
 
     .avatar-plus:hover {
         transform: translateY(-1px);
+    }
+
+    .delete-trash-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2800;
+    }
+
+    .delete-trash-flight {
+        position: fixed;
+        left: 0;
+        top: 0;
+        transform: translate(-50%, -50%);
+        padding: 10px 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(248, 113, 113, 0.28);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(254, 242, 242, 0.92));
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+        animation: delete-trash-flight .86s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        will-change: transform, opacity;
+    }
+
+    .delete-trash-flight__title {
+        display: block;
+        max-width: min(46vw, 320px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #b91c1c;
+        font-weight: 800;
+        font-size: 0.92rem;
+        letter-spacing: 0.01em;
+    }
+
+    .delete-trash-bin {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        width: 72px;
+        height: 82px;
+        transform: translateX(-50%);
+        animation: delete-trash-bin-pop .3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+
+    .delete-trash-bin__lid {
+        position: absolute;
+        top: 0;
+        left: 10px;
+        width: 52px;
+        height: 12px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #475569, #334155);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
+    }
+
+    .delete-trash-bin__lid::before {
+        content: '';
+        position: absolute;
+        left: 18px;
+        top: -6px;
+        width: 16px;
+        height: 8px;
+        border-radius: 999px 999px 4px 4px;
+        border: 2px solid rgba(71, 85, 105, 0.92);
+        border-bottom: 0;
+    }
+
+    .delete-trash-bin__body {
+        position: absolute;
+        left: 14px;
+        top: 12px;
+        width: 44px;
+        height: 58px;
+        border-radius: 0 0 16px 16px;
+        background: linear-gradient(180deg, #64748b, #475569);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 18px 32px rgba(15, 23, 42, 0.22);
+    }
+
+    .delete-trash-bin__body::before,
+    .delete-trash-bin__body::after {
+        content: '';
+        position: absolute;
+        top: 10px;
+        bottom: 10px;
+        width: 3px;
+        border-radius: 999px;
+        background: rgba(226, 232, 240, 0.48);
+    }
+
+    .delete-trash-bin__body::before {
+        left: 12px;
+        box-shadow: 9px 0 0 rgba(226, 232, 240, 0.36), 18px 0 0 rgba(226, 232, 240, 0.3);
+    }
+
+    .delete-trash-enter-active,
+    .delete-trash-leave-active {
+        transition: opacity .18s ease;
+    }
+
+    .delete-trash-enter-from,
+    .delete-trash-leave-to {
+        opacity: 0;
+    }
+
+    @keyframes delete-trash-bin-pop {
+        0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(12px) scale(0.9);
+        }
+
+        100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+    }
+
+    @keyframes delete-trash-flight {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.94) rotate(0deg);
+        }
+
+        18% {
+            opacity: 1;
+        }
+
+        72% {
+            opacity: 1;
+            transform: translate(calc(-50% + var(--delete-fly-x) * .82), calc(-50% + var(--delete-fly-y) * .82)) scale(.78) rotate(-10deg);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% + var(--delete-fly-x)), calc(-50% + var(--delete-fly-y))) scale(.26) rotate(-18deg);
+        }
+    }
+
+    html.dark-mode .delete-trash-flight {
+        border-color: rgba(248, 113, 113, 0.32);
+        background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(69, 10, 10, 0.88));
+        box-shadow: 0 20px 42px rgba(2, 6, 23, 0.42);
+    }
+
+    html.dark-mode .delete-trash-flight__title {
+        color: #fca5a5;
+    }
+
+    html.dark-mode .delete-trash-bin__lid {
+        background: linear-gradient(180deg, #94a3b8, #64748b);
+    }
+
+    html.dark-mode .delete-trash-bin__lid::before {
+        border-color: rgba(148, 163, 184, 0.92);
+    }
+
+    html.dark-mode .delete-trash-bin__body {
+        background: linear-gradient(180deg, #64748b, #334155);
+    }
+
+    html.dark-mode .delete-trash-bin__body::before {
+        box-shadow: 9px 0 0 rgba(226, 232, 240, 0.26), 18px 0 0 rgba(226, 232, 240, 0.2);
     }
     /* Motto */
     .motto-row {
@@ -3453,10 +4008,73 @@
 
     /* Name-Text läuft sauber aus ohne Sprünge */
     .name-text {
+        position: relative;
+        display: inline-block;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         max-width: 60%;
+    }
+
+    .name-text__live {
+        display: inline-block;
+    }
+
+    .name-text--rename-forge {
+        overflow: visible;
+        text-overflow: unset;
+        animation: profile-rename-title-settle 1.02s cubic-bezier(0.18, 0.9, 0.2, 1) both;
+    }
+
+    .name-text--rename-forge > .name-text__live {
+        opacity: 0.02;
+    }
+
+    .name-text-rename-overlay {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        display: grid;
+        grid-template-areas: "stack";
+        align-items: center;
+        pointer-events: none;
+        z-index: 6;
+        white-space: nowrap;
+        min-width: max-content;
+    }
+
+    .name-text-rename-overlay__old,
+    .name-text-rename-overlay__handwrite,
+    .name-text-rename-overlay__final {
+        grid-area: stack;
+        font-weight: inherit;
+        letter-spacing: inherit;
+        white-space: nowrap;
+    }
+
+    .name-text-rename-overlay__old {
+        color: inherit;
+        text-shadow: none;
+        animation: profile-rename-old .46s ease-in both;
+    }
+
+    .name-text-rename-overlay__handwrite {
+        color: inherit;
+        font-family: inherit;
+        font-weight: inherit;
+        text-shadow: none;
+        overflow: hidden;
+        width: 0;
+        border-right: 2px solid currentColor;
+        animation: profile-rename-handwrite .82s steps(24, end) .44s both;
+    }
+
+    .name-text-rename-overlay__final {
+        color: inherit;
+        text-shadow: none;
+        opacity: 0;
+        animation: profile-rename-final .14s linear 1.22s both;
     }
 
     /* Mobile darf der Zeile notfalls umbrechen, aber sauber */
@@ -3502,6 +4120,8 @@
     .motto {
         min-width: 0;
         max-width: 100%;
+        position: relative;
+        display: inline-block;
         font-style: italic;
         color: var(--text-secondary);
         font-size: 1rem;
@@ -3510,6 +4130,66 @@
         -webkit-hyphens: auto;
         overflow-wrap: anywhere;
         word-break: normal;
+    }
+
+    .motto__live {
+        display: inline-block;
+    }
+
+    .motto--rename-forge {
+        overflow: visible;
+        animation: profile-rename-title-settle 1.02s cubic-bezier(0.18, 0.9, 0.2, 1) both;
+    }
+
+    .motto--rename-forge > .motto__live {
+        opacity: 0.02;
+    }
+
+    .motto-rename-overlay {
+        position: absolute;
+        left: 0;
+        top: 0;
+        display: grid;
+        grid-template-areas: "stack";
+        align-items: start;
+        pointer-events: none;
+        z-index: 6;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+
+    .motto-rename-overlay__old,
+    .motto-rename-overlay__handwrite,
+    .motto-rename-overlay__final {
+        grid-area: stack;
+        font-style: inherit;
+        font-weight: inherit;
+        letter-spacing: inherit;
+        white-space: nowrap;
+    }
+
+    .motto-rename-overlay__old {
+        color: inherit;
+        text-shadow: none;
+        animation: profile-rename-old .46s ease-in both;
+    }
+
+    .motto-rename-overlay__handwrite {
+        color: inherit;
+        font-family: inherit;
+        font-weight: inherit;
+        text-shadow: none;
+        overflow: hidden;
+        width: 0;
+        border-right: 2px solid currentColor;
+        animation: profile-rename-handwrite .82s steps(24, end) .44s both;
+    }
+
+    .motto-rename-overlay__final {
+        color: inherit;
+        text-shadow: none;
+        opacity: 0;
+        animation: profile-rename-final .14s linear 1.22s both;
     }
 
     .motto-input {
@@ -3558,6 +4238,10 @@
     .profile > section.card:nth-of-type(2) {
         /* extra Abstand zwischen Profil-Check (1) und Wochenziel (2) */
         margin-top: 1.0rem;
+    }
+
+    .profile-goals-panel {
+        margin-top: 1rem;
     }
 
     @media (max-width: 480px) {
@@ -3812,6 +4496,75 @@
 
         .motto-random-label {
             display: none;
+        }
+    }
+
+    @keyframes profile-rename-old {
+        0% {
+            opacity: 1;
+            filter: blur(0);
+            clip-path: inset(0 0 0 0);
+            transform: translateX(0);
+        }
+
+        35% {
+            opacity: 1;
+            clip-path: inset(0 0 0 0);
+            transform: translateX(0);
+        }
+
+        100% {
+            opacity: 0;
+            filter: blur(2px);
+            clip-path: inset(0 0 0 100%);
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes profile-rename-handwrite {
+        0% {
+            width: 0;
+            opacity: 1;
+            border-right-color: currentColor;
+        }
+
+        92% {
+            width: 100%;
+            opacity: 1;
+            border-right-color: currentColor;
+        }
+
+        100% {
+            width: 100%;
+            opacity: 1;
+            border-right-color: transparent;
+        }
+    }
+
+    @keyframes profile-rename-final {
+        0% {
+            opacity: 0;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+
+    @keyframes profile-rename-title-settle {
+        0% {
+            filter: brightness(1);
+            transform: translateY(0) scale(1);
+        }
+
+        34% {
+            filter: brightness(1.08);
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        100% {
+            filter: brightness(1);
+            transform: translateY(0) scale(1);
         }
     }
 </style>

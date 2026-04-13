@@ -291,210 +291,22 @@
         </div>
       </div>
 
-      <BasePopup
+      <TutorialDetailsPopup
         :show="!!activeTutorial"
-        :show-actions="false"
+        :tutorial="activeTutorial"
+        :related-tutorials="similarTutorials"
+        :status-badges="activeTutorial ? tutorialStatusBadges(activeTutorial) : []"
+        :status-badge-resolver="tutorialStatusBadges"
+        :favorite-active="activeTutorial ? isFavorite(activeTutorial.id) : false"
+        :show-favorite="!!activeTutorial"
+        :show-delete="activeTutorial?.source === 'custom'"
         :overlay-class="tutorialPopupOverlayClass"
-        @cancel="closeTutorial">
-        <template v-if="activeTutorial">
-          <div class="modal-head">
-            <div>
-              <div class="modal-head-meta">
-                <span class="category-chip" :class="`is-${normalizeText(activeTutorial.category).replace(/\s+/g, '-')}`">
-                  <span class="category-chip-dot" aria-hidden="true"></span>
-                  {{ activeTutorial.category }}
-                </span>
-                <strong class="level-chip">{{ activeTutorial.level || 'Alle Levels' }}</strong>
-                <span
-                  v-for="badge in tutorialStatusBadges(activeTutorial)"
-                  :key="`modal-${activeTutorial.id}-${badge.kind}`"
-                  class="status-pill"
-                  :class="`is-${badge.kind}`">
-                  {{ badge.label }}
-                </span>
-              </div>
-              <h3>{{ activeTutorial.title }}</h3>
-              <p v-if="activeTutorial.source === 'custom'" class="section-note modal-head-note">Lokal gespeichert</p>
-            </div>
-          </div>
-
-          <div class="modal-layout">
-            <div class="modal-media">
-              <iframe
-                v-if="activeTutorial.videoUrl && isYouTubeEmbed(activeTutorial.videoUrl)"
-                :src="activeTutorial.videoUrl"
-                class="video-frame"
-                frameborder="0"
-                allowfullscreen
-                loading="lazy"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerpolicy="strict-origin-when-cross-origin" />
-
-              <video v-else-if="activeTutorial.videoUrl" class="video-frame" controls playsinline preload="metadata">
-                <source :src="activeTutorial.videoUrl" />
-              </video>
-
-              <div v-else class="video-placeholder"><p>Video wird bald hinzugefügt</p></div>
-            </div>
-
-            <div class="modal-copy">
-              <div
-                v-if="activeTutorial.cues?.length || activeTutorial.steps?.length || activeTutorial.mistakes?.length"
-                class="tutorial-coaching-grid">
-                <section v-if="activeTutorial.cues?.length" class="coaching-card">
-                  <span class="coaching-kicker">Technik-Hinweise</span>
-                  <ul class="coaching-list">
-                    <li v-for="cue in activeTutorial.cues" :key="cue">{{ cue }}</li>
-                  </ul>
-                </section>
-
-                <section v-if="activeTutorial.steps?.length" class="coaching-card">
-                  <span class="coaching-kicker">Schritt für Schritt</span>
-                  <ol class="coaching-list coaching-list--ordered">
-                    <li v-for="step in activeTutorial.steps" :key="step">{{ step }}</li>
-                  </ol>
-                </section>
-
-                <section v-if="activeTutorial.mistakes?.length" class="coaching-card">
-                  <span class="coaching-kicker">Häufige Fehler</span>
-                  <ul class="coaching-list">
-                    <li v-for="mistake in activeTutorial.mistakes" :key="mistake">{{ mistake }}</li>
-                  </ul>
-                </section>
-              </div>
-
-              <section v-if="similarTutorials.length" class="related-section">
-                <div class="related-head">
-                  <span class="coaching-kicker">Ähnliche Übungen</span>
-                  <span class="related-note">Direkt im Popup weiterspringen</span>
-                </div>
-                <div class="related-grid">
-                  <button
-                    v-for="tutorial in similarTutorials"
-                    :key="`related-${tutorial.id}`"
-                    type="button"
-                    class="related-card"
-                    :class="tutorialCardLevelClass(tutorial.level)"
-                    @click="openTutorial(tutorial)">
-                    <span class="related-top">
-                      <span class="pill">{{ tutorial.category }}</span>
-                      <span v-if="tutorial.level" class="pill subtle">{{ tutorial.level }}</span>
-                    </span>
-                    <div v-if="tutorialStatusBadges(tutorial).length" class="tutorial-status-row">
-                      <span
-                        v-for="badge in tutorialStatusBadges(tutorial)"
-                        :key="`related-${tutorial.id}-${badge.kind}`"
-                        class="status-pill"
-                        :class="`is-${badge.kind}`">
-                        {{ badge.label }}
-                      </span>
-                    </div>
-                    <strong>{{ tutorial.title }}</strong>
-                    <span>{{ tutorial.description }}</span>
-                  </button>
-                </div>
-              </section>
-
-              <p class="card-text modal-description">{{ activeTutorial.description }}</p>
-
-              <div class="modal-meta-grid">
-                <div class="info-box info-box--category">
-                  <span class="category-label">Kategorie</span>
-                  <div class="category-detail">
-                    <strong class="category-pill" :class="`is-${normalizeText(activeTutorial.category).replace(/\s+/g, '-')}`">
-                      <span class="category-pill-dot" aria-hidden="true"></span>
-                      {{ activeTutorial.category }}
-                    </strong>
-                    <span class="category-note">Bewegungsmuster und Fokus dieses Tutorials</span>
-                  </div>
-                </div>
-                <div class="info-box info-box--level">
-                  <div class="level-label-row">
-                    <span>Level</span>
-                    <strong class="level-chip">{{ activeTutorial.level || 'Nicht angegeben' }}</strong>
-                  </div>
-                  <div class="level-visual" :class="`is-${(activeTutorial.level || 'none').toLowerCase()}`">
-                    <span v-if="activeTutorial.level" class="level-caption">Technik und Anspruch auf einen Blick</span>
-                    <div v-if="activeTutorial.level" class="level-meter" :aria-label="`Level ${activeTutorial.level}`">
-                      <span
-                        v-for="bar in 3"
-                        :key="bar"
-                        class="level-meter-bar"
-                        :class="{ 'is-active': bar <= getLevelBars(activeTutorial.level) }"></span>
-                    </div>
-                    <div v-if="activeTutorial.level" class="level-scale" aria-hidden="true">
-                      <span>Easy</span>
-                      <span>Solid</span>
-                      <span>Elite</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="info-box info-box--muscles">
-                  <span class="muscle-label">Muskelgruppen</span>
-                  <div class="muscle-detail">
-                    <div class="muscle-list">
-                      <strong
-                        v-for="group in getTutorialMuscleGroups(activeTutorial)"
-                        :key="group"
-                        class="muscle-pill">
-                        <span class="muscle-pill-dot" aria-hidden="true"></span>
-                        {{ group }}
-                      </strong>
-                    </div>
-                    <span class="muscle-note">Diese Bereiche trainierst du mit dem Tutorial</span>
-                  </div>
-                </div>
-                <div class="info-box modal-meta-card--full">
-                  <span class="equipment-label">Equipment</span>
-                  <div class="equipment-detail">
-                    <div v-if="activeTutorial.equipment?.length" class="equipment-list">
-                      <strong
-                        v-for="item in activeTutorial.equipment"
-                        :key="item"
-                        class="equipment-pill">
-                        <span class="equipment-pill-dot" aria-hidden="true"></span>
-                        {{ item }}
-                      </strong>
-                    </div>
-                    <strong v-else>Kein Equipment angegeben</strong>
-                    <span class="equipment-note">Das brauchst du für dieses Tutorial</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card-actions modal-actions">
-            <FavoriteButton
-              class="tutorial-modal-favorite"
-              :active="isFavorite(activeTutorial.id)"
-              titleActive="Aus Favoriten entfernen"
-              titleInactive="Zu Favoriten hinzufügen"
-              @toggle="toggleFavorite(activeTutorial.id)" />
-            <div class="tutorial-modal-actions-right">
-            <PopupActionButton
-              class="tutorial-modal-btn"
-              :disabled="!activeTutorial.videoUrl"
-              @click="openOnYouTube(activeTutorial)">
-              Video öffnen
-            </PopupActionButton>
-            <PopupActionButton
-              class="tutorial-modal-btn"
-              variant="ghost"
-              @click="copyLink(activeTutorial)">
-              Link kopieren
-            </PopupActionButton>
-            <PopupActionButton
-              v-if="activeTutorial.source === 'custom'"
-              class="tutorial-modal-btn"
-              danger
-              @click="deleteTutorial(activeTutorial)">
-              Löschen
-            </PopupActionButton>
-            </div>
-          </div>
-        </template>
-      </BasePopup>
+        @close="closeTutorial"
+        @open="openTutorial"
+        @toggle-favorite="toggleFavorite($event.id)"
+        @open-video="openOnYouTube"
+        @copy-link="copyLink"
+        @delete="deleteTutorial" />
     </section>
   </div>
 </template>
@@ -505,47 +317,30 @@ import { useRoute } from 'vue-router'
 import UiSearch from '@/components/ui/kits/UiSearch.vue'
 import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
 import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
-import BasePopup from '@/components/ui/popups/BasePopup.vue'
+import TutorialDetailsPopup from '@/components/ui/popups/tutorial/TutorialDetailsPopup.vue'
 import { useTrainingPlansStore } from '@/store/trainingPlansStore'
 import { useAuthStore } from '@/store/authStore'
 import { beginGlobalLoading, endGlobalLoading } from '@/lib/api'
 import { getProfile, updateProfile } from '@/services/profile'
+import { getSimilarTutorials, mergeTutorialsWithExerciseLibrary, normalizeTutorialText } from '@/services/tutorialEntries'
+import type { TutorialEntry, TutorialStatusBadge } from '@/types/tutorials'
 import type { TrainingPlan as TrainingPlanDto } from '@/types/trainingPlan'
 
-interface Tutorial {
-  id: number
-  title: string
-  description: string
-  videoUrl: string | null
-  category: string
-  level?: 'Anfänger' | 'Fortgeschritten' | 'Pro'
-  equipment?: string[]
-  muscleGroups?: string[]
-  matchTerms?: string[]
-  cues?: string[]
-  steps?: string[]
-  mistakes?: string[]
-  source?: 'builtin' | 'custom'
-  videoRef?: string | null
-  communityScore?: number
-}
-
 type StoredVideo = { id: string; blob: Blob; type: string; createdAt: number }
-type TutorialStatusBadge = { kind: 'recent' | 'plan'; label: string }
 
 const route = useRoute()
 const auth = useAuthStore()
 const trainingPlansStore = useTrainingPlansStore()
 const INITIAL_VISIBLE_TUTORIALS = 8
 const LOAD_MORE_STEP = 6
-const tutorials = ref<Tutorial[]>([])
+const tutorials = ref<TutorialEntry[]>([])
 const searchQuery = ref('')
 const selectedCategory = ref<string>('Alle')
 const sortMode = ref<'az' | 'category' | 'fav' | 'recent'>('az')
 const showUpload = ref(false)
 const showFilters = ref(false)
 const visibleCount = ref(INITIAL_VISIBLE_TUTORIALS)
-const activeTutorial = ref<Tutorial | null>(null)
+const activeTutorial = ref<TutorialEntry | null>(null)
 const previewTutorialFullscreen = ref(false)
 const resultsRef = ref<HTMLElement | null>(null)
 const tutorialPopupOverlayClass = computed<Record<string, boolean>>(() => ({
@@ -576,19 +371,14 @@ let tutorialPrefsSaveTimer: number | null = null
 const isPhonePreviewTutorialDemo = computed(() => route.query.preview === 'phone' && route.query.demo === 'tutorial')
 const canUpload = computed(() => !!uploadFile.value && uploadTitle.value.trim().length >= 2)
 function normalizeText(value: string) {
-  return String(value ?? '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
+  return normalizeTutorialText(value)
 }
 function daysSinceIso(iso: string | null | undefined) {
   const ts = Date.parse(String(iso ?? ''))
   if (!Number.isFinite(ts)) return Number.POSITIVE_INFINITY
   return (Date.now() - ts) / 86400000
 }
-function isPlanTutorialMatch(tutorial: Tutorial, needle: string) {
+function isPlanTutorialMatch(tutorial: TutorialEntry, needle: string) {
   const normalizedNeedle = normalizeText(needle)
   if (!normalizedNeedle || normalizedNeedle.length < 3) return false
   const haystack = [
@@ -603,32 +393,6 @@ function isPlanTutorialMatch(tutorial: Tutorial, needle: string) {
     || entry.split(' ').some(part => part.length >= 4 && normalizedNeedle.includes(part))
   )
 }
-function getTutorialMuscleGroups(tutorial: Tutorial): string[] {
-  if (tutorial.muscleGroups?.length) return tutorial.muscleGroups
-
-  const text = [tutorial.title, tutorial.description, tutorial.category, ...(tutorial.matchTerms ?? [])]
-    .map(normalizeText)
-    .join(' ')
-
-  if (/bankdruck|bench press|chest press|fly|incline press|schragbank|dip/.test(text)) return ['Brust', 'Trizeps', 'Vordere Schulter']
-  if (/schulterdruck|shoulder press|overhead press|military press|seitheben/.test(text)) return ['Schultern', 'Trizeps']
-  if (/klimmzug|pull up|chin up|latziehen|pulldown|rudern|row|face pull/.test(text)) return ['Latissimus', 'Oberer Rücken', 'Bizeps']
-  if (/bizepscurl|curl/.test(text)) return ['Bizeps', 'Unterarme']
-  if (/pushdown|trizeps/.test(text)) return ['Trizeps']
-  if (/kniebeuge|squat|beinpresse|leg press|leg extension|beinstrecker|ausfallschritt|lunge|goblet squat/.test(text)) return ['Quadrizeps', 'Gesäß']
-  if (/kreuzheben|deadlift|rdl|rumanisches kreuzheben|leg curl|beinbeuger/.test(text)) return ['Hintere Kette', 'Beinbeuger', 'Gesäß']
-  if (/hip thrust|glute bridge|bridge/.test(text)) return ['Gesäß', 'Beinbeuger']
-  if (/wadenheben|calf raise/.test(text)) return ['Waden']
-  if (/plank|russian twist|bird dog|mountain climber|core|hollow|stutz|rotation/.test(text)) return ['Bauch', 'Core', 'Unterer Rücken']
-  if (/burpee/.test(text)) return ['Ganzkörper', 'Beine', 'Core']
-  return tutorial.category === 'Oberkörper'
-    ? ['Oberkörper']
-    : tutorial.category === 'Unterkörper'
-      ? ['Unterkörper']
-      : tutorial.category === 'Core'
-        ? ['Core']
-        : ['Ganzkörper']
-}
 const sortedPlans = computed(() =>
   [...trainingPlansStore.items].sort((a: TrainingPlanDto, b: TrainingPlanDto) => {
     const favDelta = Number(b.isFavorite) - Number(a.isFavorite)
@@ -639,7 +403,7 @@ const sortedPlans = computed(() =>
 const recentPlans = computed(() => sortedPlans.value.filter((plan: TrainingPlanDto) => daysSinceIso(plan.updatedUtc) <= 21))
 const inactivePlans = computed(() => sortedPlans.value.filter((plan: TrainingPlanDto) => daysSinceIso(plan.updatedUtc) > 21))
 const planMatchedTutorials = computed(() => {
-  const scored = new Map<number, { tutorial: Tutorial; score: number }>()
+  const scored = new Map<number, { tutorial: TutorialEntry; score: number }>()
   const candidates = sortedPlans.value.slice(0, 6)
 
   for (const [planIndex, plan] of candidates.entries()) {
@@ -703,41 +467,7 @@ const favoriteTutorials = computed(() =>
     .filter(t => isFavorite(t.id))
     .sort((a, b) => a.title.localeCompare(b.title, 'de'))
 )
-const similarTutorials = computed(() => {
-  const current = activeTutorial.value
-  if (!current) return []
-
-  const currentTerms = new Set(
-    [current.title, ...(current.matchTerms ?? [])]
-      .map(normalizeText)
-      .filter(Boolean)
-  )
-
-  return tutorials.value
-    .filter(t => t.id !== current.id)
-    .map(t => {
-      let score = 0
-      if (t.category === current.category) score += 4
-      if (t.level && current.level && t.level === current.level) score += 2
-      const candidateTerms = [t.title, ...(t.matchTerms ?? [])]
-        .map(normalizeText)
-        .filter(Boolean)
-      for (const term of candidateTerms) {
-        if ([...currentTerms].some(currentTerm =>
-          currentTerm.includes(term) ||
-          term.includes(currentTerm) ||
-          currentTerm.split(' ').some(part => part.length >= 4 && term.includes(part))
-        )) {
-          score += 3
-        }
-      }
-      return { tutorial: t, score }
-    })
-    .filter(entry => entry.score > 0)
-    .sort((a, b) => b.score - a.score || a.tutorial.title.localeCompare(b.tutorial.title, 'de'))
-    .slice(0, 3)
-    .map(entry => entry.tutorial)
-})
+const similarTutorials = computed(() => getSimilarTutorials(tutorials.value, activeTutorial.value, 3))
 const resultsHeadline = computed(() => {
   if (searchQuery.value.trim()) return `Suchergebnisse für "${searchQuery.value.trim()}"`
   if (selectedCategory.value !== 'Alle') return `${selectedCategory.value} entdecken`
@@ -790,14 +520,14 @@ function scrollToResults() {
 function formatLastViewedLabel(iso: string) {
   return 'Zuletzt angesehen'
 }
-function tutorialStatusBadges(tutorial: Tutorial): TutorialStatusBadge[] {
+function tutorialStatusBadges(tutorial: TutorialEntry): TutorialStatusBadge[] {
   const badges: TutorialStatusBadge[] = []
   const lastViewed = recentViewedMap.value[tutorial.id]
   if (lastViewed) badges.push({ kind: 'recent', label: formatLastViewedLabel(lastViewed) })
   if (planMatchedTutorialIds.value.has(tutorial.id)) badges.push({ kind: 'plan', label: 'Für deinen Plan empfohlen' })
   return badges
 }
-function nonRecentTutorialStatusBadges(tutorial: Tutorial) {
+function nonRecentTutorialStatusBadges(tutorial: TutorialEntry) {
   return tutorialStatusBadges(tutorial).filter((badge) => badge.kind !== 'recent')
 }
 function normalizeFavoriteIds(raw: unknown) {
@@ -907,7 +637,7 @@ function markTutorialViewed(id: number) {
   recentViewedMap.value = { ...recentViewedMap.value, [id]: new Date().toISOString() }
   scheduleTutorialPreferencesSave()
 }
-function openTutorial(t: Tutorial) {
+function openTutorial(t: TutorialEntry) {
   activeTutorial.value = t
   markTutorialViewed(t.id)
 }
@@ -915,13 +645,7 @@ function closeTutorial() {
   activeTutorial.value = null
   previewTutorialFullscreen.value = false
 }
-function getLevelBars(level?: Tutorial['level']) {
-  if (level === 'Anfänger') return 1
-  if (level === 'Fortgeschritten') return 2
-  if (level === 'Pro') return 3
-  return 0
-}
-function tutorialCardLevelClass(level?: Tutorial['level']) {
+function tutorialCardLevelClass(level?: TutorialEntry['level']) {
   if (level === 'Anfänger') return 'tutorial-card--level-beginner'
   if (level === 'Fortgeschritten') return 'tutorial-card--level-medium'
   if (level === 'Pro') return 'tutorial-card--level-hard'
@@ -1009,10 +733,10 @@ async function idbDeleteVideo(id: string) {
     tx.onerror = () => reject(tx.error)
   })
 }
-function persistCustomTutorials(list: Array<Omit<Tutorial, 'videoUrl'> & { videoRef?: string | null }>) {
+function persistCustomTutorials(list: Array<Omit<TutorialEntry, 'videoUrl'> & { videoRef?: string | null }>) {
   localStorage.setItem(LS_CUSTOM, JSON.stringify(list))
 }
-function loadCustomTutorials(): Array<Omit<Tutorial, 'videoUrl'> & { videoRef?: string | null }> {
+function loadCustomTutorials(): Array<Omit<TutorialEntry, 'videoUrl'> & { videoRef?: string | null }> {
   try {
     const raw = localStorage.getItem(LS_CUSTOM)
     const parsed = raw ? JSON.parse(raw) : []
@@ -1045,7 +769,7 @@ async function createUploadedTutorial() {
     const url = URL.createObjectURL(file)
     objectUrls.add(url)
     const equipment = uploadEquipmentRaw.value.split(',').map(s => s.trim()).filter(Boolean)
-    const t: Tutorial = { id, title, description: uploadDesc.value.trim() || 'User Upload', videoUrl: url, category: uploadCategory.value, level: uploadLevel.value || undefined, equipment: equipment.length ? equipment : undefined, source: 'custom', videoRef }
+    const t: TutorialEntry = { id, title, description: uploadDesc.value.trim() || 'User Upload', videoUrl: url, category: uploadCategory.value, level: uploadLevel.value || undefined, equipment: equipment.length ? equipment : undefined, source: 'custom', videoRef }
     tutorials.value.unshift(t)
     const current = loadCustomTutorials()
     current.unshift({ id: t.id, title: t.title, description: t.description, category: t.category, level: t.level, equipment: t.equipment, videoRef })
@@ -1056,13 +780,13 @@ async function createUploadedTutorial() {
     console.error(err)
   }
 }
-function isCustomTutorial(t: Tutorial) { return t.source === 'custom' }
+function isCustomTutorial(t: TutorialEntry) { return t.source === 'custom' }
 function isFavorite(id: number) { return favoriteIds.value.includes(id) }
 function toggleFavorite(id: number) {
   favoriteIds.value = isFavorite(id) ? favoriteIds.value.filter(x => x !== id) : [...favoriteIds.value, id]
   scheduleTutorialPreferencesSave()
 }
-async function deleteTutorial(t: Tutorial) {
+async function deleteTutorial(t: TutorialEntry) {
   if (!isCustomTutorial(t)) return
   if (!confirm(`Tutorial "${t.title}" wirklich löschen?`)) return
   tutorials.value = tutorials.value.filter(x => x.id !== t.id)
@@ -1083,11 +807,11 @@ function toYouTubeWatchUrl(embedUrl: string) {
   const m = embedUrl.match(/youtube\.com\/embed\/([^?]+)/)
   return m?.[1] ? `https://www.youtube.com/watch?v=${m[1]}` : embedUrl
 }
-function openOnYouTube(t: Tutorial) {
+function openOnYouTube(t: TutorialEntry) {
   if (!t.videoUrl) return
   window.open(isYouTubeEmbed(t.videoUrl) ? toYouTubeWatchUrl(t.videoUrl) : t.videoUrl, '_blank', 'noopener,noreferrer')
 }
-async function copyLink(t: Tutorial) {
+async function copyLink(t: TutorialEntry) {
   const link = !t.videoUrl ? `${location.origin}${location.pathname}#tutorial-${t.id}` : isYouTubeEmbed(t.videoUrl) ? toYouTubeWatchUrl(t.videoUrl) : t.videoUrl
   try { await navigator.clipboard.writeText(link) } catch {
     const el = document.createElement('textarea')
@@ -1128,7 +852,7 @@ onMounted(async () => {
     await loadTutorialPreferences()
     try { await trainingPlansStore.loadList() } catch {}
     await new Promise(resolve => setTimeout(resolve, 1000))
-    tutorials.value = [
+    tutorials.value = mergeTutorialsWithExerciseLibrary([
     { id: 1, title: 'Bankdrücken', description: 'Lerne die korrekte Technik für Bankdrücken.', videoUrl: 'https://www.youtube.com/embed/Br8FJCuR4a4', category: 'Oberkörper', level: 'Anfänger', equipment: ['Bank', 'Langhantel'], matchTerms: ['bankdrücken', 'bench press', 'chest press', 'brust'], cues: ['Schulterblätter hinten und unten fixieren.', 'Füße fest in den Boden drücken.', 'Stange kontrolliert zur unteren Brust führen.'], steps: ['Sauber auf der Bank einrichten und Griffbreite wählen.', 'Stange ausheben und über der Brust stabilisieren.', 'Langsam ablassen, kurz kontrollieren, kraftvoll hochdrücken.'], mistakes: ['Ellbogen zu weit abspreizen.', 'Po oder Füße verlieren den Kontakt.', 'Stange unkontrolliert auf die Brust fallen lassen.'], source: 'builtin', communityScore: 98 },
     { id: 2, title: 'Kniebeugen', description: 'Meistere die Kniebeuge für starke Beine.', videoUrl: 'https://www.youtube.com/embed/GBsAXMvZGwc', category: 'Unterkörper', level: 'Fortgeschritten', matchTerms: ['kniebeuge', 'squat', 'back squat', 'front squat'], cues: ['Rumpf vor jeder Wiederholung fest anspannen.', 'Knie folgen der Fußspitze.', 'Druck gleichmäßig über den ganzen Fuß halten.'], steps: ['Stand stabil wählen und tief einatmen.', 'Hüfte und Knie gleichzeitig beugen.', 'Kontrolliert in die Tiefe gehen und aus dem Mittelfuß aufstehen.'], mistakes: ['Fersen heben ab.', 'Knie kippen nach innen.', 'Oberkörper kollabiert nach vorn.'], source: 'builtin', communityScore: 97 },
     { id: 3, title: 'Kreuzheben', description: 'Perfektioniere deine Kreuzhebe-Technik.', videoUrl: 'https://www.youtube.com/embed/eUhawFmUXZ0', category: 'Ganzkörper', level: 'Pro', matchTerms: ['kreuzheben', 'deadlift', 'romanian deadlift', 'rdl'], cues: ['Lat aktiv halten und die Stange nah am Körper führen.', 'Rücken neutral, Brust stolz.', 'Druck aus Beinen und Hüfte kombinieren.'], steps: ['Stange über dem Mittelfuß platzieren und Griff setzen.', 'Spannung aufbauen, Hüfte fixieren, Luft holen.', 'Stange eng am Körper hochziehen und kontrolliert absetzen.'], mistakes: ['Runder Rücken beim Abheben.', 'Stange wandert nach vorn weg.', 'Zu frühes Hochschießen der Hüfte.'], source: 'builtin', communityScore: 96 },
@@ -1157,7 +881,7 @@ onMounted(async () => {
     { id: 26, title: 'Glute Bridge', description: 'Einfacher Einstieg für Gesäßaktivierung und Hüftstabilität.', videoUrl: 'https://www.youtube.com/embed/MsoX1M8_GSs', category: 'Unterkörper', level: 'Anfänger', matchTerms: ['glute bridge', 'bridge', 'hip bridge'], cues: ['Fersen aktiv in den Boden drücken.', 'Oben Gesäß fest anspannen.', 'Rippen unten halten.'], steps: ['Rückenlage einnehmen und Füße aufstellen.', 'Hüfte nach oben drücken.', 'Kurz halten und kontrolliert absenken.'], mistakes: ['Nur ins Hohlkreuz schieben.', 'Füße zu weit weg stellen.', 'Oben ohne Spannung sofort ablassen.'], source: 'builtin' },
     { id: 27, title: 'Goblet Squat', description: 'Sehr guter Squat-Einstieg mit sauberer Rumpfspannung.', videoUrl: 'https://www.youtube.com/embed/8VrXHfHH5PM', category: 'Unterkörper', level: 'Anfänger', equipment: ['Kurzhantel'], matchTerms: ['goblet squat', 'squat', 'front squat'], cues: ['Gewicht eng vor dem Körper halten.', 'Brust hoch und Ellbogen unter dem Gewicht.', 'Knie aktiv nach außen führen.'], steps: ['Hantel vor der Brust aufnehmen.', 'Kontrolliert in die Kniebeuge gehen.', 'Über den ganzen Fuß wieder aufstehen.'], mistakes: ['Hantel zu weit weg vom Körper.', 'Rücken rundet unten ein.', 'Knie kollabieren nach innen.'], source: 'builtin', communityScore: 83 },
     { id: 28, title: 'Incline Dumbbell Press', description: 'Obere Brust und Schulterlinie kontrolliert aufbauen.', videoUrl: 'https://www.youtube.com/embed/0WPRqCYF4pA', category: 'Oberkörper', level: 'Fortgeschritten', equipment: ['Bank', 'Kurzhanteln'], matchTerms: ['incline press', 'schrägbank', 'dumbbell press'], cues: ['Schultern stabil in die Bank ziehen.', 'Hanteln kontrolliert leicht bogenförmig bewegen.', 'Handgelenke über den Ellbogen halten.'], steps: ['Bank schräg einstellen und Hanteln sauber aufnehmen.', 'Aus stabiler Schulterposition nach oben drücken.', 'Langsam bis zur Dehnung absenken.'], mistakes: ['Schultern wandern nach vorn.', 'Hanteln stoßen oben unkontrolliert zusammen.', 'Zu steiler Winkel macht es zur Schulterübung.'], source: 'builtin', communityScore: 80 },
-  ]
+  ])
     await hydrateCustomTutorials()
     startPreviewTutorialDemo()
   } finally {

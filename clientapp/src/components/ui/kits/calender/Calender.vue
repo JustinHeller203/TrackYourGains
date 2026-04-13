@@ -61,11 +61,15 @@
             <span v-for="d in weekdayLabels" :key="d" class="cal-wd">{{ d }}</span>
         </div>
 
-        <div class="cal-grid">
+        <div class="cal-grid-shell">
+            <Transition :name="monthTransitionName" mode="out-in">
+                <div :key="monthTransitionKey" class="cal-grid">
             <button v-for="cell in monthCells"
                     :key="cell.key"
+                    :data-day="cell.day || ''"
                     type="button"
                     class="cal-cell"
+                    :style="cell.day ? cellStyle(cell.day) : undefined"
                     :class="{
                         'is-out': !cell.inMonth,
                         'has-entry': !!cell.day && hasEntries(cell.day),
@@ -76,7 +80,14 @@
                         'is-today': cell.day === todayKey,
                         'is-selected': !!cell.day && isSelected(cell.day),
                         'is-past': !!cell.day && isPast(cell.day),
-                        'is-rest': !!cell.day && isRest(cell.day)
+                        'is-rest': !!cell.day && isRest(cell.day),
+                        'is-pulse-target': !!cell.day && isPulseTarget(cell.day),
+                        'is-preview-target': !!cell.day && isPreviewDay(cell.day),
+                        'is-wave-target': !!cell.day && isWaveTarget(cell.day),
+                        'is-conflict-target': !!cell.day && isConflictTarget(cell.day),
+                        'is-rest-stamp-target': !!cell.day && isRestStampTarget(cell.day),
+                        'is-range-bridge-left': !!cell.day && isRangeBridgeLeft(cell.day),
+                        'is-range-bridge-right': !!cell.day && isRangeBridgeRight(cell.day)
                     }"
                     :disabled="!cell.day ? true : isPast(cell.day)"
                     @click="cell.day && emit('select', cell.day)"
@@ -102,6 +113,8 @@
                       class="cal-cross"
                       aria-hidden="true">✕</span>
             </button>
+                </div>
+            </Transition>
         </div>
 
         <div class="cal-hint">
@@ -130,6 +143,17 @@
         crossDays?: string[]
         minDate?: string
         restDays?: string[]
+        pulseDay?: string
+        pulseNonce?: number
+        previewDays?: string[]
+        previewColor?: string
+        waveDays?: string[]
+        waveColor?: string
+        waveNonce?: number
+        conflictDays?: string[]
+        conflictNonce?: number
+        restStampDays?: string[]
+        restStampNonce?: number
     }>()
 
     const emit = defineEmits<{
@@ -181,6 +205,14 @@
         const d = monthCursor.value
         return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
     })
+    const monthTransitionDirection = ref<'forward' | 'backward'>('forward')
+    const monthTransitionName = computed(() =>
+        monthTransitionDirection.value === 'forward' ? 'cal-slide-forward' : 'cal-slide-backward'
+    )
+    const monthTransitionKey = computed(() => {
+        const d = monthCursor.value
+        return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`
+    })
 
     const startOfGrid = (d: Date) => {
         const first = new Date(d.getFullYear(), d.getMonth(), 1)
@@ -229,19 +261,75 @@
     const hasCheck = (day: string) => checkSet.value.has(day)
     const hasCross = (day: string) => crossSet.value.has(day)
     const isSelected = (day: string) => selectedSet.value.has(day)
+    const shiftDay = (day: string, amount: number) => {
+        const date = new Date(`${day}T00:00:00`)
+        date.setDate(date.getDate() + amount)
+        return toKey(date)
+    }
+    const isRangeBridgeLeft = (day: string) => isSelected(day) && isSelected(shiftDay(day, -1))
+    const isRangeBridgeRight = (day: string) => isSelected(day) && isSelected(shiftDay(day, 1))
     const restSet = computed(() => new Set(props.restDays ?? []))
     const isRest = (day: string) => restSet.value.has(day)
     const minDateKey = computed(() => props.minDate ?? '')
     const isPast = (day: string) => !!minDateKey.value && day < minDateKey.value
+    const pulsingDay = ref('')
+    let pulseTimer: ReturnType<typeof setTimeout> | null = null
+    const isPulseTarget = (day: string) => pulsingDay.value === day
+    const previewSet = computed(() => new Set(props.previewDays ?? []))
+    const isPreviewDay = (day: string) => previewSet.value.has(day)
+    const waveIndexByDay = computed(() => {
+        const map = new Map<string, number>()
+        for (const [index, day] of (props.waveDays ?? []).filter(Boolean).entries()) {
+            if (!map.has(day)) map.set(day, index)
+        }
+        return map
+    })
+    const previewIndexByDay = computed(() => {
+        const map = new Map<string, number>()
+        for (const [index, day] of (props.previewDays ?? []).filter(Boolean).entries()) {
+            if (!map.has(day)) map.set(day, index)
+        }
+        return map
+    })
+    const cellStyle = (day: string) => {
+        const style: Record<string, string> = {}
+        if (isPreviewDay(day) && props.previewColor) {
+            style['--preview-color'] = props.previewColor
+            const previewIndex = previewIndexByDay.value.get(day) ?? 0
+            style['--preview-delay'] = `${Math.min(previewIndex, 18) * 60}ms`
+        }
+        if (isWaveTarget(day)) {
+            const index = waveIndexByDay.value.get(day) ?? 0
+            if (props.waveColor) style['--wave-color'] = props.waveColor
+            style['--wave-delay'] = `${Math.min(index, 18) * 55}ms`
+        }
+        return Object.keys(style).length ? style : undefined
+    }
+    const wavingDays = ref<string[]>([])
+    let waveTimer: ReturnType<typeof setTimeout> | null = null
+    const isWaveTarget = (day: string) => wavingDays.value.includes(day)
+    const conflictDays = ref<string[]>([])
+    let conflictTimer: ReturnType<typeof setTimeout> | null = null
+    const isConflictTarget = (day: string) => conflictDays.value.includes(day)
+    const restStampDays = ref<string[]>([])
+    let restStampTimer: ReturnType<typeof setTimeout> | null = null
+    const isRestStampTarget = (day: string) => restStampDays.value.includes(day)
+
+    const setMonthCursor = (nextDate: Date) => {
+        const currentIndex = monthCursor.value.getFullYear() * 12 + monthCursor.value.getMonth()
+        const nextIndex = nextDate.getFullYear() * 12 + nextDate.getMonth()
+        monthTransitionDirection.value = nextIndex >= currentIndex ? 'forward' : 'backward'
+        monthCursor.value = nextDate
+    }
 
     const prevMonth = () => {
         const d = monthCursor.value
-        monthCursor.value = new Date(d.getFullYear(), d.getMonth() - 1, 1)
+        setMonthCursor(new Date(d.getFullYear(), d.getMonth() - 1, 1))
     }
 
     const nextMonth = () => {
         const d = monthCursor.value
-        monthCursor.value = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+        setMonthCursor(new Date(d.getFullYear(), d.getMonth() + 1, 1))
     }
 
     const monthNames = [
@@ -278,7 +366,7 @@
         if (!Number.isFinite(y) || y < 1900 || y > 2100) return
         if (!Number.isFinite(m) || m < 0 || m > 11) return
 
-        monthCursor.value = new Date(y, m, 1)
+        setMonthCursor(new Date(y, m, 1))
         showPicker.value = false
     }
 
@@ -293,8 +381,56 @@
         else window.removeEventListener('keydown', onKeydown)
     })
 
+    watch(() => props.pulseNonce, () => {
+        const day = String(props.pulseDay ?? '').trim()
+        if (!day) return
+        pulsingDay.value = day
+        if (pulseTimer) clearTimeout(pulseTimer)
+        pulseTimer = setTimeout(() => {
+            pulsingDay.value = ''
+            pulseTimer = null
+        }, 900)
+    })
+
+    watch(() => props.waveNonce, () => {
+        const days = (props.waveDays ?? []).filter(Boolean)
+        if (!days.length) return
+        wavingDays.value = days
+        if (waveTimer) clearTimeout(waveTimer)
+        waveTimer = setTimeout(() => {
+            wavingDays.value = []
+            waveTimer = null
+        }, 1100)
+    })
+
+    watch(() => props.conflictNonce, () => {
+        const days = (props.conflictDays ?? []).filter(Boolean)
+        if (!days.length) return
+        conflictDays.value = days
+        if (conflictTimer) clearTimeout(conflictTimer)
+        conflictTimer = setTimeout(() => {
+            conflictDays.value = []
+            conflictTimer = null
+        }, 1100)
+    })
+
+    watch(() => props.restStampNonce, () => {
+        const days = (props.restStampDays ?? []).filter(Boolean)
+        if (!days.length) return
+        restStampDays.value = days
+        if (restStampTimer) clearTimeout(restStampTimer)
+        restStampTimer = setTimeout(() => {
+            restStampDays.value = []
+            restStampTimer = null
+        }, 950)
+    })
+
     onBeforeUnmount(() => {
         window.removeEventListener('keydown', onKeydown)
+        if (pulseTimer) clearTimeout(pulseTimer)
+        if (waveTimer) clearTimeout(waveTimer)
+        if (conflictTimer) clearTimeout(conflictTimer)
+        if (restStampTimer) clearTimeout(restStampTimer)
     })
 </script>
 
@@ -344,6 +480,64 @@
         display: grid;
         grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: .35rem;
+    }
+
+    .cal-grid-shell {
+        position: relative;
+        overflow-x: clip;
+        overflow-y: visible;
+        padding: 6px;
+        margin: -6px;
+    }
+
+    .cal-slide-forward-enter-active,
+    .cal-slide-forward-leave-active,
+    .cal-slide-backward-enter-active,
+    .cal-slide-backward-leave-active {
+        transition: transform .36s cubic-bezier(.22, 1, .36, 1), opacity .24s ease;
+        will-change: transform, opacity;
+    }
+
+    .cal-slide-forward-enter-active .cal-dot,
+    .cal-slide-forward-enter-active .cal-ghost-dot,
+    .cal-slide-forward-enter-active .cal-trend,
+    .cal-slide-forward-enter-active .cal-first-badge,
+    .cal-slide-forward-leave-active .cal-dot,
+    .cal-slide-forward-leave-active .cal-ghost-dot,
+    .cal-slide-forward-leave-active .cal-trend,
+    .cal-slide-forward-leave-active .cal-first-badge {
+        animation: cal-marker-drift-forward .44s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .cal-slide-backward-enter-active .cal-dot,
+    .cal-slide-backward-enter-active .cal-ghost-dot,
+    .cal-slide-backward-enter-active .cal-trend,
+    .cal-slide-backward-enter-active .cal-first-badge,
+    .cal-slide-backward-leave-active .cal-dot,
+    .cal-slide-backward-leave-active .cal-ghost-dot,
+    .cal-slide-backward-leave-active .cal-trend,
+    .cal-slide-backward-leave-active .cal-first-badge {
+        animation: cal-marker-drift-backward .44s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .cal-slide-forward-enter-from {
+        opacity: 0;
+        transform: translateX(28px);
+    }
+
+    .cal-slide-forward-leave-to {
+        opacity: 0;
+        transform: translateX(-28px);
+    }
+
+    .cal-slide-backward-enter-from {
+        opacity: 0;
+        transform: translateX(-28px);
+    }
+
+    .cal-slide-backward-leave-to {
+        opacity: 0;
+        transform: translateX(28px);
     }
 
     .cal-cell {
@@ -447,9 +641,54 @@
             outline-offset: 2px;
         }
 
+        .cal-cell.is-pulse-target {
+            animation: cal-today-pulse .78s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        .cal-cell.is-pulse-target::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 16px;
+            border: 2px solid rgba(99, 102, 241, 0.55);
+            box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.28);
+            animation: cal-today-ring .78s cubic-bezier(.22, 1, .36, 1);
+            pointer-events: none;
+        }
+
         .cal-cell.is-selected {
             border-color: rgba(34, 197, 94, 0.55);
-            box-shadow: inset 0 0 0 2px rgba(34, 197, 94, 0.22);
+            background:
+                radial-gradient(circle at 24% 24%, rgba(34, 197, 94, 0.12), transparent 56%),
+                rgba(148, 163, 184, 0.07);
+            box-shadow: inset 0 0 0 2px rgba(34, 197, 94, 0.22), 0 6px 16px rgba(34, 197, 94, 0.08);
+            z-index: 1;
+        }
+
+        .cal-cell.is-range-bridge-left::before,
+        .cal-cell.is-range-bridge-right::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 18px;
+            height: 2px;
+            background: rgba(34, 197, 94, 0.34);
+            pointer-events: none;
+            z-index: 0;
+            transform: translateY(-50%);
+            opacity: 1;
+        }
+
+        .cal-cell.is-range-bridge-left::before {
+            left: -9px;
+            border-radius: 999px 0 0 999px;
+            animation: cal-range-sweep .42s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        .cal-cell.is-range-bridge-right::after {
+            right: -9px;
+            border-radius: 0 999px 999px 0;
+            animation: cal-range-sweep .42s cubic-bezier(.22, 1, .36, 1);
         }
 
         .cal-cell.is-past {
@@ -458,6 +697,8 @@
         }
 
     .cal-num {
+        position: relative;
+        z-index: 1;
         font-weight: 950;
         color: var(--text-primary);
     }
@@ -495,6 +736,66 @@
         animation: cal-dot-blink .9s steps(1, end) infinite;
     }
 
+    .cal-cell.is-preview-target:not(.has-entry):not(.is-rest) {
+        border-color: color-mix(in srgb, var(--preview-color, rgba(148, 163, 184, 0.92)) 68%, rgba(148, 163, 184, 0.18));
+        background:
+            radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.14), transparent 58%),
+            linear-gradient(180deg, rgba(148, 163, 184, 0.08), rgba(148, 163, 184, 0.04));
+        box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+            0 0 0 1px color-mix(in srgb, var(--preview-color, rgba(148, 163, 184, 0.92)) 26%, transparent),
+            0 12px 22px rgba(15, 23, 42, 0.12);
+        overflow: hidden;
+        animation:
+            cal-preview-outline 1.55s ease-in-out infinite,
+            cal-preview-pop .8s cubic-bezier(.22, 1, .36, 1) both;
+        animation-delay: var(--preview-delay, 0ms), var(--preview-delay, 0ms);
+    }
+
+    .cal-cell.is-preview-target:not(.has-entry):not(.is-rest)::before {
+        content: '';
+        position: absolute;
+        inset: 4px;
+        border-radius: 10px;
+        border: 1.5px solid color-mix(in srgb, var(--preview-color, rgba(148, 163, 184, 0.92)) 72%, white 14%);
+        box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+            0 0 0 0 color-mix(in srgb, var(--preview-color, rgba(148, 163, 184, 0.92)) 0%, transparent);
+        opacity: .88;
+        pointer-events: none;
+        animation: cal-preview-ring 1.55s ease-in-out infinite;
+        animation-delay: var(--preview-delay, 0ms);
+    }
+
+    .cal-cell.is-preview-target:not(.has-entry):not(.is-rest)::after {
+        content: '';
+        position: absolute;
+        inset: -16%;
+        border-radius: inherit;
+        background:
+            linear-gradient(112deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.46) 42%,
+                transparent 62%);
+        opacity: .18;
+        transform: translateX(-135%) skewX(-16deg);
+        pointer-events: none;
+        mix-blend-mode: screen;
+        animation: cal-preview-sheen 2.4s ease-in-out infinite;
+        animation-delay: calc(var(--preview-delay, 0ms) + 120ms);
+    }
+
+    .cal-cell.is-wave-target {
+        animation: cal-wave-cell .9s cubic-bezier(.22, 1, .36, 1);
+        animation-delay: var(--wave-delay, 0ms);
+    }
+
+    .cal-cell.is-wave-target .cal-dot {
+        animation: cal-dot-wave .9s cubic-bezier(.22, 1, .36, 1);
+        animation-delay: var(--wave-delay, 0ms);
+        background: var(--wave-color, rgba(129, 140, 248, 0.85));
+    }
+
     @keyframes cal-dot-blink {
         0%, 49% {
             opacity: 1;
@@ -506,6 +807,207 @@
             opacity: .18;
             transform: scale(.82);
             box-shadow: 0 0 0 0 rgba(129, 140, 248, 0), 0 0 6px rgba(129, 140, 248, 0.08);
+        }
+    }
+
+    @keyframes cal-preview-outline {
+        0%, 100% {
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+                0 0 0 1px color-mix(in srgb, var(--preview-color, rgba(148, 163, 184, 0.92)) 18%, transparent),
+                0 10px 18px rgba(15, 23, 42, 0.1);
+            filter: brightness(.99);
+        }
+
+        50% {
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+                0 0 0 1px color-mix(in srgb, var(--preview-color, rgba(148, 163, 184, 0.92)) 30%, transparent),
+                0 16px 24px rgba(15, 23, 42, 0.14);
+            filter: brightness(1.02);
+        }
+    }
+
+    @keyframes cal-preview-ring {
+        0%, 100% {
+            opacity: .72;
+            transform: scale(.985);
+            box-shadow: 0 0 0 0 color-mix(in srgb, var(--preview-color, rgba(148, 163, 184, 0.92)) 0%, transparent);
+        }
+
+        50% {
+            opacity: 1;
+            transform: scale(1);
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--preview-color, rgba(148, 163, 184, 0.92)) 16%, transparent);
+        }
+    }
+
+    @keyframes cal-preview-pop {
+        0% {
+            transform: scale(.92) translateY(7px);
+            opacity: .18;
+        }
+
+        60% {
+            transform: scale(1.02) translateY(-1px);
+            opacity: 1;
+        }
+
+        100% {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes cal-preview-sheen {
+        0%, 100% {
+            opacity: 0;
+            transform: translateX(-135%) skewX(-16deg);
+        }
+
+        18% {
+            opacity: .12;
+        }
+
+        46% {
+            opacity: .24;
+            transform: translateX(132%) skewX(-16deg);
+        }
+
+        60% {
+            opacity: 0;
+            transform: translateX(132%) skewX(-16deg);
+        }
+    }
+
+    @keyframes cal-wave-cell {
+        0% {
+            box-shadow: inset 0 0 0 0 rgba(129, 140, 248, 0), 0 0 0 0 rgba(129, 140, 248, 0);
+        }
+
+        35% {
+            box-shadow:
+                inset 0 0 0 2px color-mix(in srgb, var(--wave-color, rgba(129, 140, 248, 0.85)) 28%, transparent),
+                0 0 0 8px color-mix(in srgb, var(--wave-color, rgba(129, 140, 248, 0.85)) 18%, transparent);
+        }
+
+        100% {
+            box-shadow: inset 0 0 0 0 rgba(129, 140, 248, 0), 0 0 0 0 rgba(129, 140, 248, 0);
+        }
+    }
+
+    @keyframes cal-dot-wave {
+        0% {
+            transform: scale(1);
+            box-shadow:
+                0 0 0 0 color-mix(in srgb, var(--wave-color, rgba(129, 140, 248, 0.85)) 18%, transparent),
+                0 0 14px color-mix(in srgb, var(--wave-color, rgba(129, 140, 248, 0.85)) 26%, transparent);
+        }
+
+        40% {
+            transform: scale(1.6);
+            box-shadow:
+                0 0 0 6px color-mix(in srgb, var(--wave-color, rgba(129, 140, 248, 0.85)) 18%, transparent),
+                0 0 22px color-mix(in srgb, var(--wave-color, rgba(129, 140, 248, 0.85)) 42%, transparent);
+        }
+
+        100% {
+            transform: scale(1);
+            box-shadow:
+                0 0 0 0 color-mix(in srgb, var(--wave-color, rgba(129, 140, 248, 0.85)) 0%, transparent),
+                0 0 14px color-mix(in srgb, var(--wave-color, rgba(129, 140, 248, 0.85)) 26%, transparent);
+        }
+    }
+
+    @keyframes cal-marker-drift-forward {
+        0% {
+            opacity: 0;
+            transform: translateX(10px) scale(.9);
+        }
+
+        100% {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+        }
+    }
+
+    @keyframes cal-marker-drift-backward {
+        0% {
+            opacity: 0;
+            transform: translateX(-10px) scale(.9);
+        }
+
+        100% {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+        }
+    }
+
+    @keyframes cal-range-sweep {
+        0% {
+            opacity: 0;
+            transform: scaleX(.4);
+        }
+
+        100% {
+            opacity: 1;
+            transform: scaleX(1);
+        }
+    }
+
+    @keyframes cal-rest-stamp {
+        0% {
+            opacity: .12;
+            transform: scale(1.18) rotate(-10deg);
+            filter: saturate(1.35);
+        }
+
+        38% {
+            opacity: 1;
+            transform: scale(.94) rotate(-2deg);
+        }
+
+        100% {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+            filter: saturate(1);
+        }
+    }
+
+    @keyframes cal-conflict-pulse {
+        0% {
+            transform: scale(1);
+        }
+
+        30% {
+            transform: scale(1.04);
+            border-color: rgba(245, 158, 11, 0.82);
+            background: rgba(245, 158, 11, 0.16);
+        }
+
+        65% {
+            transform: scale(.985);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    @keyframes cal-conflict-ring {
+        0% {
+            opacity: 0;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+
+        35% {
+            opacity: 1;
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.16);
+        }
+
+        100% {
+            opacity: 0;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
         }
     }
 
@@ -572,6 +1074,26 @@
         );
         pointer-events: none;
         mix-blend-mode: multiply;
+    }
+
+    .cal-cell.is-rest-stamp-target::after {
+        animation: cal-rest-stamp .82s cubic-bezier(.2, .9, .25, 1);
+        transform-origin: center;
+    }
+
+    .cal-cell.is-conflict-target {
+        animation: cal-conflict-pulse .96s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .cal-cell.is-conflict-target::before {
+        content: '';
+        position: absolute;
+        inset: -3px;
+        border-radius: 16px;
+        border: 2px solid rgba(245, 158, 11, 0.74);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.16);
+        pointer-events: none;
+        animation: cal-conflict-ring .96s cubic-bezier(.22, 1, .36, 1);
     }
 
     .cal-hint {
@@ -715,14 +1237,62 @@
             box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.30), 0 0 0 1px rgba(245, 158, 11, 0.10);
         }
 
-        html.dark-mode .cal-cell.is-today {
-            outline-color: rgba(99, 102, 241, 0.18);
-            outline-width: 3px;
+    html.dark-mode .cal-cell.is-today {
+        outline-color: rgba(99, 102, 241, 0.18);
+        outline-width: 3px;
+    }
+
+    html.dark-mode .cal-cell.is-pulse-target::before {
+        border-color: rgba(129, 140, 248, 0.62);
+        box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.26);
+    }
+
+    @keyframes cal-today-pulse {
+        0% {
+            transform: translateY(0) scale(1);
+            filter: saturate(1);
         }
+
+        38% {
+            transform: translateY(-2px) scale(1.05);
+            filter: saturate(1.1);
+        }
+
+        100% {
+            transform: translateY(0) scale(1);
+            filter: saturate(1);
+        }
+    }
+
+    @keyframes cal-today-ring {
+        0% {
+            opacity: 0;
+            transform: scale(.9);
+            box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.3);
+        }
+
+        20% {
+            opacity: 1;
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(1.12);
+            box-shadow: 0 0 0 14px rgba(99, 102, 241, 0);
+        }
+    }
 
         html.dark-mode .cal-cell.is-selected {
             border-color: rgba(34, 197, 94, 0.65);
-            box-shadow: inset 0 0 0 2px rgba(34, 197, 94, 0.28);
+            background:
+                radial-gradient(circle at 24% 24%, rgba(34, 197, 94, 0.16), transparent 56%),
+                color-mix(in srgb, #020617 78%, var(--bg-card) 22%);
+            box-shadow: inset 0 0 0 2px rgba(34, 197, 94, 0.28), 0 10px 22px rgba(2, 6, 23, 0.22);
+        }
+
+        html.dark-mode .cal-cell.is-range-bridge-left::before,
+        html.dark-mode .cal-cell.is-range-bridge-right::after {
+            background: rgba(34, 197, 94, 0.42);
         }
 
         html.dark-mode .cal-cell.is-past {

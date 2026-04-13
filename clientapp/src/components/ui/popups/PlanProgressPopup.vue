@@ -601,6 +601,23 @@
                             @cancel="cancelDelete"
                             @confirm="confirmDelete" />
 
+        <Transition name="delete-trash">
+            <div v-if="deleteTrashState.visible" class="delete-trash-overlay" aria-hidden="true">
+                <div class="delete-trash-stack" :style="deleteTrashFlightStyle">
+                    <span
+                        v-for="chip in deleteTrashChips"
+                        :key="chip"
+                        class="delete-trash-chip">
+                        {{ chip }}
+                    </span>
+                </div>
+                <div class="delete-trash-bin">
+                    <div class="delete-trash-bin__lid"></div>
+                    <div class="delete-trash-bin__body"></div>
+                </div>
+            </div>
+        </Transition>
+
     </BasePopup>
 </template>
 
@@ -1122,6 +1139,7 @@
     )
 
     onBeforeUnmount(() => {
+        clearDeleteTrashTimer()
         window.removeEventListener('keydown', onSpaceToggle)
         window.removeEventListener('resize', onWindowResizeMeasureSetNames)
         if (setNameMeasureRaf != null && typeof window !== 'undefined') {
@@ -1802,6 +1820,15 @@
         return `${t}|${e.exercise}|${side}`
     }
 
+    const deleteChipLabelForEntry = (entry: WorkoutLike) => {
+        const side = (entry.side ?? '').toString().trim().toLowerCase()
+        const sideTag =
+            ['rechts', 'right', 'r', 'r.'].includes(side) ? ' (R)'
+                : ['links', 'left', 'l', 'l.'].includes(side) ? ' (L)'
+                    : ''
+        return `${entry.exercise}${sideTag}`.trim()
+    }
+
     const typeLabel = (t: WorkoutLike['type']) =>
         t === 'calisthenics' ? 'Calisthenics'
             : t === 'ausdauer' ? 'Cardio'
@@ -1881,6 +1908,31 @@
         return { all, ids: Array.isArray(ids) ? ids : [] }
     }
 
+    const launchDeleteTrash = (chips: string[], onDone: () => void) => {
+        clearDeleteTrashTimer()
+
+        const fallbackX = typeof window !== 'undefined' ? window.innerWidth / 2 : 0
+        const fallbackY = typeof window !== 'undefined' ? window.innerHeight / 2 : 0
+        const startX = fallbackX
+        const startY = Math.max(160, fallbackY - 40)
+        const targetX = typeof window !== 'undefined' ? window.innerWidth / 2 : startX
+        const targetY = typeof window !== 'undefined' ? window.innerHeight - 84 : startY
+
+        deleteTrashChips.value = chips.slice(0, 6)
+        deleteTrashState.value = {
+            visible: true,
+            startX,
+            startY,
+            deltaX: targetX - startX,
+            deltaY: targetY - startY,
+        }
+
+        deleteTrashTimer = setTimeout(() => {
+            hideDeleteTrash()
+            onDone()
+        }, 860)
+    }
+
     const onEntryPickConfirm = (payload: any) => {
         const planId = props.currentPlanId
         const day = entryPickDay.value
@@ -1905,7 +1957,9 @@
         const entries = ids.flatMap(id => entryPickMap.value.get(id)?.entries ?? [])
         if (!entries.length) return
 
+        const chips = Array.from(new Set(entries.map(deleteChipLabelForEntry)))
         pendingDeleteEntries.value = entries
+        deleteTrashChips.value = chips.slice(0, 6)
         closeEntryPickPopup()
         showDeletePopup.value = true
     }
@@ -1995,10 +2049,46 @@
 
     const showDeletePopup = ref(false)
     const pendingDeleteDays = ref<string[]>([])
+    const deleteTrashState = ref({
+        visible: false,
+        startX: 0,
+        startY: 0,
+        deltaX: 0,
+        deltaY: 0,
+    })
+    const deleteTrashChips = ref<string[]>([])
+    let deleteTrashTimer: ReturnType<typeof setTimeout> | null = null
+
+    const clearDeleteTrashTimer = () => {
+        if (deleteTrashTimer) {
+            clearTimeout(deleteTrashTimer)
+            deleteTrashTimer = null
+        }
+    }
+
+    const hideDeleteTrash = () => {
+        clearDeleteTrashTimer()
+        deleteTrashState.value = {
+            visible: false,
+            startX: 0,
+            startY: 0,
+            deltaX: 0,
+            deltaY: 0,
+        }
+        deleteTrashChips.value = []
+    }
+
+    const deleteTrashFlightStyle = computed(() => ({
+        left: `${deleteTrashState.value.startX}px`,
+        top: `${deleteTrashState.value.startY}px`,
+        '--delete-fly-x': `${deleteTrashState.value.deltaX}px`,
+        '--delete-fly-y': `${deleteTrashState.value.deltaY}px`,
+    }))
 
     const cancelDelete = () => {
         showDeletePopup.value = false
         pendingDeleteEntries.value = []
+        pendingDeleteDays.value = []
     }
 
     const confirmDelete = async () => {
@@ -2006,13 +2096,22 @@
         if (!planId) { cancelDelete(); return }
 
         const entries = pendingDeleteEntries.value
-        if (!entries.length) { cancelDelete(); return }
+        if (entries.length) {
+            const chips = deleteTrashChips.value.length ? [...deleteTrashChips.value] : Array.from(new Set(entries.map(deleteChipLabelForEntry))).slice(0, 6)
+            launchDeleteTrash(chips, () => {
+                emit('delete', { planId, entries })
+            })
+            cancelDelete()
+            return
+        }
 
-        const ids = entries
-            .map(e => e.id)
-            .filter((x): x is string => typeof x === "string" && x.length > 0)
-
-        emit('delete', { planId, entries })
+        const days = pendingDeleteDays.value
+        if (days.length) {
+            const chips = deleteTrashChips.value.length ? [...deleteTrashChips.value] : days.map((day) => props.formatDayLong(day)).slice(0, 6)
+            launchDeleteTrash(chips, () => {
+                days.forEach((day) => emit('delete-day', day))
+            })
+        }
 
         cancelDelete()
     }
@@ -2063,6 +2162,12 @@
         // delete: erst bestätigen lassen (dein Popup auto-confirmed wenn setting aus)
         pendingDeleteDays.value = picked
         closeDayPickPopup()
+
+        const chips = Array.from(new Set(
+            picked.flatMap((day) => (entriesByDay.value.get(day) ?? []).map(deleteChipLabelForEntry))
+        ))
+
+        deleteTrashChips.value = (chips.length ? chips : picked.map((day) => props.formatDayLong(day))).slice(0, 6)
         showDeletePopup.value = true
     }
 
@@ -2813,6 +2918,163 @@
 </script>
 
 <style scoped>
+    .delete-trash-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1300;
+        pointer-events: none;
+    }
+
+    .delete-trash-stack {
+        position: fixed;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: .45rem;
+        max-width: min(420px, calc(100vw - 2rem));
+        transform: translate(-50%, -50%);
+        animation: delete-trash-flight .86s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    .delete-trash-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: .45rem .8rem;
+        border-radius: 999px;
+        border: 1px solid rgba(239, 68, 68, 0.24);
+        background: radial-gradient(circle at top left, color-mix(in srgb, #ef4444 12%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, white 6%);
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+        color: var(--text-primary);
+        font-size: .85rem;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .delete-trash-bin {
+        position: fixed;
+        left: 50%;
+        bottom: 1.25rem;
+        width: 90px;
+        height: 92px;
+        transform: translateX(-50%);
+        filter: drop-shadow(0 20px 30px rgba(15, 23, 42, 0.26));
+        animation: delete-trash-bin-pop .3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+
+    .delete-trash-bin__lid {
+        position: absolute;
+        left: 50%;
+        top: 2px;
+        width: 62px;
+        height: 12px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #94a3b8, #64748b);
+        transform: translateX(-50%);
+    }
+
+    .delete-trash-bin__lid::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -6px;
+        width: 22px;
+        height: 6px;
+        border-radius: 999px 999px 0 0;
+        background: #64748b;
+        transform: translateX(-50%);
+    }
+
+    .delete-trash-bin__body {
+        position: absolute;
+        inset: 14px 12px 0;
+        border-radius: 18px 18px 22px 22px;
+        border: 2px solid rgba(71, 85, 105, 0.8);
+        background: linear-gradient(180deg, rgba(226, 232, 240, 0.96), rgba(148, 163, 184, 0.88));
+        overflow: hidden;
+    }
+
+    .delete-trash-bin__body::before,
+    .delete-trash-bin__body::after {
+        content: "";
+        position: absolute;
+        top: 12px;
+        bottom: 12px;
+        width: 4px;
+        border-radius: 999px;
+        background: rgba(71, 85, 105, 0.38);
+    }
+
+    .delete-trash-bin__body::before {
+        left: 22px;
+        box-shadow: 14px 0 0 rgba(71, 85, 105, 0.38), 28px 0 0 rgba(71, 85, 105, 0.38);
+    }
+
+    .delete-trash-enter-active,
+    .delete-trash-leave-active {
+        transition: opacity .22s ease;
+    }
+
+    .delete-trash-enter-from,
+    .delete-trash-leave-to {
+        opacity: 0;
+    }
+
+    @keyframes delete-trash-bin-pop {
+        0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(18px) scale(.92);
+        }
+
+        100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+    }
+
+    @keyframes delete-trash-flight {
+        0% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        }
+
+        68% {
+            opacity: 1;
+            transform: translate(calc(-50% + var(--delete-fly-x) * .82), calc(-50% + var(--delete-fly-y) * .82)) scale(.78) rotate(-10deg);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% + var(--delete-fly-x)), calc(-50% + var(--delete-fly-y))) scale(.26) rotate(-18deg);
+        }
+    }
+
+    html.dark-mode .delete-trash-chip {
+        border-color: rgba(248, 113, 113, 0.28);
+        background: radial-gradient(circle at top left, rgba(239, 68, 68, 0.18), transparent 60%), rgba(2, 6, 23, 0.94);
+        box-shadow: 0 20px 44px rgba(0, 0, 0, 0.42);
+        color: #f8fafc;
+    }
+
+    html.dark-mode .delete-trash-bin__lid {
+        background: linear-gradient(180deg, #64748b, #334155);
+    }
+
+    html.dark-mode .delete-trash-bin__lid::before {
+        background: #475569;
+    }
+
+    html.dark-mode .delete-trash-bin__body {
+        border-color: rgba(148, 163, 184, 0.62);
+        background: linear-gradient(180deg, rgba(51, 65, 85, 0.96), rgba(15, 23, 42, 0.94));
+    }
+
+    html.dark-mode .delete-trash-bin__body::before {
+        box-shadow: 14px 0 0 rgba(148, 163, 184, 0.26), 28px 0 0 rgba(148, 163, 184, 0.26);
+        background: rgba(148, 163, 184, 0.26);
+    }
     /* ===== Buttons (Open/Actions) ===== */
 
     /* REPLACE: .progress-btn base -> match popup surface 1:1 */

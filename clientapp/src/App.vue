@@ -58,31 +58,67 @@
             </div>
         </div>
 
-        <!-- ✅ Sticky Timer -->
-        <StickyTimerCard v-if="!isPhonePreview" v-for="timer in (stickyTimersEnabled ? timers.filter((t: AppTimer) => t.shouldStaySticky) : [])"
-                         :key="'timer-' + timer.id"
-                         :timer="timer"
-                         :sticky-enabled="stickyTimersEnabled"
-                         :format-timer="formatTimer"
-                         :start-timer="startTimer"
-                         :stop-timer="stopTimer"
-                         :reset-timer="resetTimer"
-                         :start-drag="startDrag"
-                         :focus-in-training="focusInTraining"
-                         @apply-style-all="onApplyStyleAll" />
+        <div v-if="!isPhonePreview" ref="stickyFlightOverlayRef" class="sticky-flight-overlay" aria-hidden="true"></div>
 
-        <!-- ✅ Sticky Stopwatch -->
-        <StickyStopwatchCard v-if="!isPhonePreview" v-for="sw in (stickyStopwatchesEnabled ? stopwatches.filter((sw: AppStopwatch) => sw.shouldStaySticky) : [])"
-                             :key="'sw-' + sw.id"
-                             :stopwatch="sw"
-                             :sticky-enabled="stickyStopwatchesEnabled"
-                             :format-stopwatch="formatStopwatch"
-                             :toggle-stopwatch="toggleStopwatch"
-                             :reset-stopwatch="resetStopwatch"
-                             :add-lap="addLap"
+        <div v-if="!isPhonePreview" ref="timerStackRef" class="sticky-cluster sticky-cluster--timer">
+            <button v-if="visibleStickyTimers.length > 1"
+                    type="button"
+                    class="sticky-stack-toggle"
+                    :class="{ 'is-expanded': expandedStickyGroup === 'timer' }"
+                    :style="timerStackToggleStyle"
+                    @click.stop="toggleStickyGroup('timer')">
+                {{ expandedStickyGroup === 'timer' ? '⋯' : `${visibleStickyTimers.length - 1}+` }}
+            </button>
+
+            <StickyTimerCard v-for="entry in visibleStickyTimers"
+                             :key="'timer-' + entry.timer.id"
+                             :timer="entry.timer"
+                             :sticky-enabled="stickyTimersEnabled"
+                             :format-timer="formatTimer"
+                             :start-timer="startTimer"
+                             :stop-timer="stopTimer"
+                             :reset-timer="resetTimer"
                              :start-drag="startDrag"
                              :focus-in-training="focusInTraining"
+                             :stack-index="entry.stackIndex"
+                             :stack-count="entry.stackCount"
+                             :stack-expanded="entry.stackExpanded"
+                             :stack-bump-nonce="entry.stackBumpNonce"
+                             :dock-nonce="entry.dock.nonce"
+                             :dock-from-x="entry.dock.fromX"
+                             :dock-from-y="entry.dock.fromY"
                              @apply-style-all="onApplyStyleAll" />
+        </div>
+
+        <div v-if="!isPhonePreview" ref="stopwatchStackRef" class="sticky-cluster sticky-cluster--stopwatch">
+            <button v-if="visibleStickyStopwatches.length > 1"
+                    type="button"
+                    class="sticky-stack-toggle sticky-stack-toggle--stopwatch"
+                    :class="{ 'is-expanded': expandedStickyGroup === 'stopwatch' }"
+                    :style="stopwatchStackToggleStyle"
+                    @click.stop="toggleStickyGroup('stopwatch')">
+                {{ expandedStickyGroup === 'stopwatch' ? '⋯' : `${visibleStickyStopwatches.length - 1}+` }}
+            </button>
+
+            <StickyStopwatchCard v-for="entry in visibleStickyStopwatches"
+                                 :key="'sw-' + entry.stopwatch.id"
+                                 :stopwatch="entry.stopwatch"
+                                 :sticky-enabled="stickyStopwatchesEnabled"
+                                 :format-stopwatch="formatStopwatch"
+                                 :toggle-stopwatch="toggleStopwatch"
+                                 :reset-stopwatch="resetStopwatch"
+                                 :add-lap="addLap"
+                                 :start-drag="startDrag"
+                                 :focus-in-training="focusInTraining"
+                                 :stack-index="entry.stackIndex"
+                                 :stack-count="entry.stackCount"
+                                 :stack-expanded="entry.stackExpanded"
+                                 :stack-bump-nonce="entry.stackBumpNonce"
+                                 :dock-nonce="entry.dock.nonce"
+                                 :dock-from-x="entry.dock.fromX"
+                                 :dock-from-y="entry.dock.fromY"
+                                 @apply-style-all="onApplyStyleAll" />
+        </div>
 
         <!-- ✅ Validation-Popup -->
         <ValidationPopup v-if="!isPhonePreview" :show="showValidationPopup"
@@ -98,7 +134,6 @@
                                     :show="showGuestConversionPopup"
                                     @close="dismissGuestConversionPopup"
                                     @later="dismissGuestConversionPopup"
-                                    @login="goToGuestLogin"
                                     @register="goToGuestRegister" />
         <GlobalAchievementPopup v-if="!isPhonePreview" :show="showAchievementPopup"
                                 :badge="latestAchievement"
@@ -136,6 +171,8 @@
     import { computed, ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { useAuthStore } from '@/store/authStore'
+    import { useTimersStore } from '@/store/timersStore'
+    import { useStopwatchesStore } from '@/store/stopwatchesStore'
     import StickyTimerCard from '@/components/ui/global/StickyTimerCard.vue'
     import StickyStopwatchCard from '@/components/ui/global/StickyStopwatchCard.vue'
     import ValidationPopup from '@/components/ui/popups/ValidationPopup.vue'
@@ -158,6 +195,8 @@
         LS_STICKY_STOPWATCH_ENABLED,
     } from '@/constants/storageKeys'
     const auth = useAuthStore()
+    const timersStore = useTimersStore()
+    const stopwatchesStore = useStopwatchesStore()
 
     async function logoutAndClose() {
         await auth.signOut()
@@ -238,6 +277,7 @@
     const NEWS_SEEN_KEY = LS_NEWS_SEEN_VERSION
     const NEWS_VISIT_COUNT_KEY = 'tyg_news_visit_count'
     const GUEST_CONVERSION_CLICK_COUNT_KEY = 'tyg_guest_conversion_click_count'
+    const GUEST_CONVERSION_LAST_SHOWN_AT_KEY = 'tyg_guest_conversion_last_shown_at'
 
 
     // === neue Refs & Konstanten oben zu den anderen Refs ===
@@ -359,6 +399,15 @@
         sessionStorage.setItem(GUEST_CONVERSION_CLICK_COUNT_KEY, '0')
     }
 
+    function getGuestConversionLastShownAt() {
+        const raw = Number(localStorage.getItem(GUEST_CONVERSION_LAST_SHOWN_AT_KEY) ?? '0')
+        return Number.isFinite(raw) ? Math.max(0, raw) : 0
+    }
+
+    function setGuestConversionLastShownAt(ts: number) {
+        localStorage.setItem(GUEST_CONVERSION_LAST_SHOWN_AT_KEY, String(ts))
+    }
+
     function dismissGuestConversionPopup() {
         resetGuestConversionClickCount()
         hideGuestConversionPopup()
@@ -371,11 +420,15 @@
 
         const rawClicks = Number(sessionStorage.getItem(GUEST_CONVERSION_CLICK_COUNT_KEY) ?? '0')
         const clicks = Number.isFinite(rawClicks) ? Math.max(0, Math.floor(rawClicks)) : 0
-        if (clicks < 5) return
+        if (clicks < 10) return
+
+        const lastShownAt = getGuestConversionLastShownAt()
+        if (Date.now() - lastShownAt < 60_000) return
 
         guestConversionTimer = window.setTimeout(() => {
             if (!guestConversionEligible.value) return
 
+            setGuestConversionLastShownAt(Date.now())
             showGuestConversionPopup.value = true
         }, 4200)
     }
@@ -384,13 +437,11 @@
         clearGuestConversionTimer()
         if (!guestConversionEligible.value) return
 
-        showGuestConversionPopup.value = true
-    }
+        const lastShownAt = getGuestConversionLastShownAt()
+        if (Date.now() - lastShownAt < 60_000) return
 
-    function goToGuestLogin() {
-        clearPendingGuestConversionTarget()
-        dismissGuestConversionPopup()
-        router.push({ name: 'login', query: { redirect: route.fullPath } })
+        setGuestConversionLastShownAt(Date.now())
+        showGuestConversionPopup.value = true
     }
 
     function goToGuestRegister() {
@@ -416,7 +467,7 @@
         const nextClicks = clicks + 1
         sessionStorage.setItem(GUEST_CONVERSION_CLICK_COUNT_KEY, String(nextClicks))
 
-        if (nextClicks >= 5) {
+        if (nextClicks >= 10) {
             pendingGuestConversionTarget = target
             event.preventDefault()
             event.stopPropagation()
@@ -426,9 +477,12 @@
     }
 
 
+    let lastViewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0
+    let lastViewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0
+
     function clampObjToViewport(obj: any, elW?: number, elH?: number) {
-        const w = elW ?? 200
-        const h = elH ?? 80
+        const w = elW ?? obj.width ?? obj._w ?? 200
+        const h = elH ?? obj.height ?? obj._h ?? 80
         const navH = navRef.value?.offsetHeight ?? 0
         const minLeft = EDGE_PAD
         const maxLeft = Math.max(minLeft, window.innerWidth - w - EDGE_PAD)
@@ -439,14 +493,46 @@
         obj.top = Math.min(Math.max(obj.top ?? minTop, minTop), maxTop)
     }
 
-    function clampAllSticky() {
-        timers.value
-            .filter((t: AppTimer) => t.shouldStaySticky)
-            .forEach((t: AppTimer) => clampObjToViewport(t, (t as any)._w, (t as any)._h))
+    function syncStickyToViewport(obj: any, prevWidth: number, prevHeight: number) {
+        const w = obj.width ?? obj._w ?? 200
+        const h = obj.height ?? obj._h ?? 80
+        const navH = navRef.value?.offsetHeight ?? 0
+        const minLeft = EDGE_PAD
+        const minTop = navH + EDGE_PAD
+        const prevMaxLeft = Math.max(minLeft, prevWidth - w - EDGE_PAD)
+        const prevMaxTop = Math.max(minTop, prevHeight - h - EDGE_PAD)
+        const nextMaxLeft = Math.max(minLeft, window.innerWidth - w - EDGE_PAD)
+        const nextMaxTop = Math.max(minTop, window.innerHeight - h - EDGE_PAD)
+        const edgeSnap = 18
 
-        stopwatches.value
+        const left = obj.left ?? minLeft
+        const top = obj.top ?? minTop
+        const wasRightAnchored = Math.abs(left - prevMaxLeft) <= edgeSnap
+        const wasBottomAnchored = Math.abs(top - prevMaxTop) <= edgeSnap
+
+        if (wasRightAnchored) obj.left = nextMaxLeft
+        if (wasBottomAnchored) obj.top = nextMaxTop
+
+        clampObjToViewport(obj, w, h)
+    }
+
+    function clampAllSticky(prevWidth = window.innerWidth, prevHeight = window.innerHeight) {
+        stickyTimerSource.value
+            .filter((t: AppTimer) => t.shouldStaySticky)
+            .forEach((t: AppTimer) => syncStickyToViewport(t, prevWidth, prevHeight))
+
+        stickyStopwatchSource.value
             .filter((s: AppStopwatch) => s.shouldStaySticky)
-            .forEach((s: AppStopwatch) => clampObjToViewport(s, (s as any)._w, (s as any)._h))
+            .forEach((s: AppStopwatch) => syncStickyToViewport(s, prevWidth, prevHeight))
+    }
+
+    function handleViewportResize() {
+        setSBW()
+        const prevWidth = lastViewportWidth || window.innerWidth
+        const prevHeight = lastViewportHeight || window.innerHeight
+        clampAllSticky(prevWidth, prevHeight)
+        lastViewportWidth = window.innerWidth
+        lastViewportHeight = window.innerHeight
     }
 
     function saveAll() {
@@ -467,11 +553,326 @@
 
     const stickyTimersEnabled = ref(readBool(LS_STICKY_TIMER_ENABLED, true))
     const stickyStopwatchesEnabled = ref(readBool(LS_STICKY_STOPWATCH_ENABLED, true))
+    const stickyStopwatchTick = ref(0)
+    const expandedStickyGroup = ref<null | 'timer' | 'stopwatch'>(null)
+    const timerStackRef = ref<HTMLElement | null>(null)
+    const stopwatchStackRef = ref<HTMLElement | null>(null)
+    const stickyFlightOverlayRef = ref<HTMLElement | null>(null)
+    const stickyTimerDock = ref<Record<string, { nonce: number; fromX: number; fromY: number }>>({})
+    const stickyStopwatchDock = ref<Record<string, { nonce: number; fromX: number; fromY: number }>>({})
+    const stickyTimerStackBump = ref(0)
+    const stickyStopwatchStackBump = ref(0)
+    let stickyFlightCleanup: ReturnType<typeof setTimeout> | null = null
+
+    const stickyTimerSource = computed<AppTimer[]>(() => {
+        const storeItems = (timersStore.items ?? []) as AppTimer[]
+        return storeItems.length ? storeItems : timers.value
+    })
+
+    function getStopwatchRuntime(sw: any) {
+        const startedAtMs =
+            typeof sw?.startedAtMs === 'number' ? sw.startedAtMs :
+                (typeof sw?.startedAtUtc === 'string' ? Date.parse(sw.startedAtUtc) : null)
+
+        const offsetMs =
+            typeof sw?.offsetMs === 'number' ? sw.offsetMs :
+                (typeof sw?.elapsedMs === 'number' ? sw.elapsedMs : 0)
+
+        const isRunning = typeof startedAtMs === 'number' && Number.isFinite(startedAtMs) && startedAtMs > 0
+        const elapsedMs = offsetMs + (isRunning ? (Date.now() - startedAtMs) : 0)
+
+        return {
+            startedAtMs,
+            offsetMs,
+            isRunning,
+            elapsedMs: Math.max(0, elapsedMs),
+        }
+    }
+
+    function syncTimerStoreStateFromLocal() {
+        const localById = new Map((timers.value ?? []).map((t: any) => [t.id, t]))
+        for (const storeTimer of (timersStore.items ?? []) as any[]) {
+            const local = localById.get(storeTimer.id)
+            if (!local) continue
+
+            storeTimer.time = local.time
+            storeTimer.isRunning = local.isRunning
+            storeTimer.shouldStaySticky = local.shouldStaySticky
+            storeTimer.endAt = local.endAt
+            storeTimer.interval = local.interval ?? null
+            storeTimer.left = local.left
+            storeTimer.top = local.top
+            storeTimer.width = local.width
+            storeTimer.height = local.height
+            storeTimer.zIndex = local.zIndex
+            storeTimer.bgColor = local.bgColor
+            storeTimer.btnColor = local.btnColor
+            storeTimer.timeColor = local.timeColor
+            storeTimer.shape = local.shape
+            storeTimer.customSeconds = local.customSeconds
+            storeTimer.seconds = local.seconds
+        }
+    }
+
+    function syncStopwatchStoreStateFromLocal() {
+        const localById = new Map((stopwatches.value ?? []).map((sw: any) => [sw.id, sw]))
+        for (const storeStopwatch of (stopwatchesStore.items ?? []) as any[]) {
+            const local = localById.get(storeStopwatch.id)
+            if (!local) continue
+
+            storeStopwatch.shouldStaySticky = local.shouldStaySticky
+            storeStopwatch.isVisible = local.isVisible ?? storeStopwatch.isVisible
+            storeStopwatch.left = local.left
+            storeStopwatch.top = local.top
+            storeStopwatch.width = local.width
+            storeStopwatch.height = local.height
+            storeStopwatch.zIndex = local.zIndex
+            storeStopwatch.bgColor = local.bgColor
+            storeStopwatch.btnColor = local.btnColor
+            storeStopwatch.timeColor = local.timeColor
+            storeStopwatch.shape = local.shape
+        }
+    }
+
+    const stickyStopwatchSource = computed<AppStopwatch[]>(() => {
+        void stickyStopwatchTick.value
+        const storeItems = (stopwatchesStore.items ?? []) as unknown as AppStopwatch[]
+        return storeItems.length ? storeItems : stopwatches.value
+    })
+
+    const visibleStickyTimers = computed(() => {
+        const list = stickyTimersEnabled.value
+            ? stickyTimerSource.value.filter((t: AppTimer) => t.shouldStaySticky)
+            : []
+        const expanded = expandedStickyGroup.value === 'timer'
+        return list.map((timer, stackIndex) => ({
+            timer,
+            stackIndex,
+            stackCount: list.length,
+            stackExpanded: expanded,
+            stackBumpNonce: stickyTimerStackBump.value,
+            dock: stickyTimerDock.value[timer.id] ?? { nonce: 0, fromX: 0, fromY: 0 },
+        }))
+    })
+
+    const visibleStickyStopwatches = computed(() => {
+        const list = stickyStopwatchesEnabled.value
+            ? stickyStopwatchSource.value.filter((sw: AppStopwatch) => sw.shouldStaySticky)
+            : []
+        const expanded = expandedStickyGroup.value === 'stopwatch'
+        return list.map((stopwatch, stackIndex) => ({
+            stopwatch,
+            stackIndex,
+            stackCount: list.length,
+            stackExpanded: expanded,
+            stackBumpNonce: stickyStopwatchStackBump.value,
+            dock: stickyStopwatchDock.value[stopwatch.id] ?? { nonce: 0, fromX: 0, fromY: 0 },
+        }))
+    })
+
+    const timerStackToggleStyle = computed(() => {
+        const first = visibleStickyTimers.value[0]?.timer
+        if (!first) return {}
+        return {
+            left: `${(first.left ?? 24) + 12}px`,
+            top: `${(first.top ?? 24) - 16}px`,
+            zIndex: String((first.zIndex ?? 2000) + 20),
+        }
+    })
+
+    const stopwatchStackToggleStyle = computed(() => {
+        const first = visibleStickyStopwatches.value[0]?.stopwatch
+        if (!first) return {}
+        return {
+            left: `${(first.left ?? 24) + 12}px`,
+            top: `${(first.top ?? 24) - 16}px`,
+            zIndex: String((first.zIndex ?? 2000) + 20),
+        }
+    })
+
+    function syncStickyStopwatchRuntime() {
+        const storeItems = (stopwatchesStore.items ?? []) as any[]
+        if (!storeItems.length) return
+
+        for (const sw of storeItems) {
+            const runtime = getStopwatchRuntime(sw)
+            sw.startedAtMs = runtime.startedAtMs ?? undefined
+            sw.offsetMs = runtime.offsetMs
+            sw.isRunning = runtime.isRunning
+            sw.time = runtime.elapsedMs / 1000
+        }
+    }
 
 
     function refreshStickyPrefs() {
         stickyTimersEnabled.value = readBool(LS_STICKY_TIMER_ENABLED, true)
         stickyStopwatchesEnabled.value = readBool(LS_STICKY_STOPWATCH_ENABLED, true)
+    }
+
+    function toggleStickyGroup(kind: 'timer' | 'stopwatch') {
+        expandedStickyGroup.value = expandedStickyGroup.value === kind ? null : kind
+    }
+
+    function clearStickyFlightTimer() {
+        if (stickyFlightCleanup) {
+            clearTimeout(stickyFlightCleanup)
+            stickyFlightCleanup = null
+        }
+        stickyFlightOverlayRef.value?.replaceChildren()
+    }
+
+    function getFlightTargetSelector(kind: 'timer' | 'stopwatch', id: string) {
+        return kind === 'timer'
+            ? `.sticky-timer-card[data-sticky-timer-id="${id}"]`
+            : `.sticky-stopwatch-card[data-sticky-stopwatch-id="${id}"]`
+    }
+
+    function getFlightSourceSelector(kind: 'timer' | 'stopwatch', id: string) {
+        return kind === 'timer'
+            ? `.timer-card[data-timer-id="${id}"]`
+            : `.timer-card[data-stopwatch-id="${id}"]`
+    }
+
+    function launchStickyFlight(
+        kind: 'timer' | 'stopwatch',
+        direction: 'dock' | 'return',
+        item: AppTimer | AppStopwatch,
+        sourceRect: DOMRect | null,
+        targetRect: DOMRect | null,
+        cloneSourceEl: HTMLElement | null,
+    ) {
+        if (!sourceRect || !targetRect || !cloneSourceEl || !stickyFlightOverlayRef.value) return
+        const startX = sourceRect.left + sourceRect.width / 2
+        const startY = sourceRect.top + sourceRect.height / 2
+        const targetX = targetRect.left + targetRect.width / 2
+        const targetY = targetRect.top + targetRect.height / 2
+        const flightRect = direction === 'dock' ? targetRect : sourceRect
+        const startScaleX = Math.max(0.56, Math.min(1.8, sourceRect.width / flightRect.width))
+        const startScaleY = Math.max(0.56, Math.min(1.8, sourceRect.height / flightRect.height))
+        const endScaleX = Math.max(0.56, Math.min(1.8, targetRect.width / flightRect.width))
+        const endScaleY = Math.max(0.56, Math.min(1.8, targetRect.height / flightRect.height))
+        clearStickyFlightTimer()
+        const clone = cloneSourceEl.cloneNode(true) as HTMLElement
+        clone.classList.add('sticky-flight-clone')
+        clone.classList.add(`sticky-flight-clone--${direction}`)
+        clone.style.position = 'fixed'
+        clone.style.left = `${flightRect.left}px`
+        clone.style.top = `${flightRect.top}px`
+        clone.style.width = `${flightRect.width}px`
+        clone.style.height = `${flightRect.height}px`
+        clone.style.margin = '0'
+        clone.style.zIndex = '2601'
+        clone.style.pointerEvents = 'none'
+        clone.style.transition = 'none'
+        clone.querySelectorAll<HTMLElement>('*').forEach((el) => {
+            el.style.pointerEvents = 'none'
+        })
+        stickyFlightOverlayRef.value.appendChild(clone)
+        const animation = clone.animate(
+            direction === 'dock'
+                ? [
+                    {
+                        opacity: 0,
+                        transform: `translate(${startX - targetX}px, ${startY - targetY}px) scale(${startScaleX}, ${startScaleY}) rotate(-4deg)`,
+                        boxShadow: '0 10px 22px rgba(15, 23, 42, 0.12)',
+                    },
+                    {
+                        opacity: 1,
+                        transform: `translate(${(startX - targetX) * 0.16}px, ${(startY - targetY) * 0.16 - 18}px) scale(1.05) rotate(1deg)`,
+                        boxShadow: '0 0 0 1px rgba(129, 140, 248, 0.34), 0 30px 72px rgba(59, 130, 246, 0.24)',
+                        offset: 0.58,
+                    },
+                    {
+                        opacity: 0,
+                        transform: 'translate(0px, 0px) scale(1, 1) rotate(0deg)',
+                        boxShadow: '0 18px 40px rgba(15, 23, 42, 0.12)',
+                    },
+                ]
+                : [
+                    {
+                        opacity: 1,
+                        transform: 'translate(0px, 0px) scale(1, 1) rotate(0deg)',
+                        boxShadow: '0 24px 60px rgba(15, 23, 42, 0.2)',
+                    },
+                    {
+                        opacity: 1,
+                        transform: `translate(${(targetX - startX) * 0.34}px, ${(targetY - startY) * 0.34 + 10}px) scale(.96, .96) rotate(-1.5deg)`,
+                        boxShadow: '0 22px 50px rgba(15, 23, 42, 0.16)',
+                        offset: 0.38,
+                    },
+                    {
+                        opacity: .92,
+                        transform: `translate(${(targetX - startX) * 0.88}px, ${(targetY - startY) * 0.88 - 10}px) scale(${endScaleX * 1.03}, ${endScaleY * 1.03}) rotate(1deg)`,
+                        boxShadow: '0 16px 34px rgba(15, 23, 42, 0.12)',
+                        offset: 0.78,
+                    },
+                    {
+                        opacity: 0,
+                        transform: `translate(${targetX - startX}px, ${targetY - startY}px) scale(${endScaleX}, ${endScaleY}) rotate(0deg)`,
+                        boxShadow: '0 8px 18px rgba(15, 23, 42, 0.08)',
+                    },
+                ],
+            {
+                duration: 820,
+                easing: 'cubic-bezier(.18, .9, .2, 1)',
+                fill: 'forwards',
+            },
+        )
+        stickyFlightCleanup = setTimeout(() => {
+            animation.cancel()
+            clone.remove()
+            stickyFlightCleanup = null
+        }, 840)
+    }
+
+    async function captureDockMotion(kind: 'timer' | 'stopwatch', item: AppTimer | AppStopwatch) {
+        if (typeof window === 'undefined') return
+        const sourceSelector = getFlightSourceSelector(kind, item.id)
+        const source = document.querySelector(sourceSelector) as HTMLElement | null
+        const rect = source?.getBoundingClientRect()
+        await nextTick()
+        const targetEl = document.querySelector(getFlightTargetSelector(kind, item.id)) as HTMLElement | null
+        const targetRect = targetEl?.getBoundingClientRect()
+        const targetX = targetRect
+            ? targetRect.left + targetRect.width / 2
+            : (item.left ?? 24) + ((item.width ?? rect?.width ?? 260) / 2)
+        const targetY = targetRect
+            ? targetRect.top + targetRect.height / 2
+            : (item.top ?? 24) + ((item.height ?? rect?.height ?? 84) / 2)
+        const fromX = rect ? (rect.left + rect.width / 2) - targetX : 36
+        const fromY = rect ? (rect.top + rect.height / 2) - targetY : 84
+        const bucket = kind === 'timer' ? stickyTimerDock.value : stickyStopwatchDock.value
+        const prev = bucket[item.id]
+        bucket[item.id] = {
+            nonce: (prev?.nonce ?? 0) + 1,
+            fromX,
+            fromY,
+        }
+        launchStickyFlight(kind, 'dock', item, rect ?? null, targetRect ?? null, targetEl)
+    }
+
+    function captureReturnMotion(kind: 'timer' | 'stopwatch', item: AppTimer | AppStopwatch) {
+        if (typeof window === 'undefined') return
+        const sourceEl = document.querySelector(getFlightTargetSelector(kind, item.id)) as HTMLElement | null
+        const targetEl = document.querySelector(getFlightSourceSelector(kind, item.id)) as HTMLElement | null
+        launchStickyFlight(
+            kind,
+            'return',
+            item,
+            sourceEl?.getBoundingClientRect() ?? null,
+            targetEl?.getBoundingClientRect() ?? null,
+            sourceEl,
+        )
+    }
+
+    function handleStickyOutsidePointer(ev: PointerEvent) {
+        if (!expandedStickyGroup.value) return
+        const target = ev.target as Node | null
+        if (!target) return
+        const timerRoot = timerStackRef.value
+        const stopwatchRoot = stopwatchStackRef.value
+        if (timerRoot?.contains(target) || stopwatchRoot?.contains(target)) return
+        expandedStickyGroup.value = null
     }
 
     function onApplyStyleAll(payload: {
@@ -587,6 +988,20 @@
 
         scheduleGuestConversionPopup()
     })
+    watch(
+        () => timersStore.items,
+        () => {
+            syncTimerStoreStateFromLocal()
+        },
+        { deep: false }
+    )
+    watch(
+        () => stopwatchesStore.items,
+        () => {
+            syncStopwatchStoreStateFromLocal()
+        },
+        { deep: false }
+    )
     function handleDocClick(e: MouseEvent) {
         if (!menuOpen.value) return
         const target = e.target as Node
@@ -605,6 +1020,12 @@
 
     onMounted(() => {
         refreshStickyPrefs()
+        syncStickyStopwatchRuntime()
+        const tickId = window.setInterval(() => {
+            syncStickyStopwatchRuntime()
+            stickyStopwatchTick.value++
+        }, 100)
+        ;(window as any).__tygStickyStopwatchTickId = tickId
 
         window.addEventListener('tyg:sticky-prefs-changed', onStickyPrefsChanged as any)
         window.addEventListener('storage', onStickyPrefsChanged) // falls anderer Tab
@@ -615,6 +1036,11 @@
     })
 
     onBeforeUnmount(() => {
+        const tickId = (window as any).__tygStickyStopwatchTickId
+        if (typeof tickId === 'number') {
+            window.clearInterval(tickId)
+            delete (window as any).__tygStickyStopwatchTickId
+        }
         window.removeEventListener('tyg:sticky-prefs-changed', onStickyPrefsChanged as any)
         window.removeEventListener('storage', onStickyPrefsChanged)
         window.removeEventListener('focus', onWindowFocus)
@@ -714,7 +1140,7 @@
     }
 
     function startTimer(timer: AppTimer) {
-        const running = timers.value.filter((t: AppTimer) => t.isRunning)
+        const running = stickyTimerSource.value.filter((t: AppTimer) => t.isRunning)
 
         if (running.length >= 3) {
             openValidationPopup(['Maximal 3 Timer dürfen gleichzeitig laufen!'])
@@ -783,8 +1209,39 @@
             sw.name = 'Stoppuhr'
         }
 
+        const storeBase = stopwatchesStore.items.find((x: any) => x.id === sw.id) as any
+        if (storeBase) {
+            const running = stickyStopwatchSource.value.filter(s => s.isRunning)
+            const runtime = getStopwatchRuntime(storeBase)
+
+            if (!runtime.isRunning && running.length >= 3) {
+                openValidationPopup(['Maximal 3 Stoppuhren dÃ¼rfen gleichzeitig laufen!'])
+                return
+            }
+
+            if (runtime.isRunning) {
+                storeBase.offsetMs = runtime.elapsedMs
+                storeBase.elapsedMs = runtime.elapsedMs
+                storeBase.startedAtMs = null
+                storeBase.startedAtUtc = null
+                storeBase.isRunning = false
+            } else {
+                storeBase.offsetMs = runtime.offsetMs
+                storeBase.elapsedMs = runtime.offsetMs
+                storeBase.startedAtMs = Date.now()
+                storeBase.startedAtUtc = new Date().toISOString()
+                storeBase.isRunning = true
+                storeBase.shouldStaySticky = true
+                if (storeBase.left == null) storeBase.left = 20
+                if (storeBase.top == null) storeBase.top = 140
+            }
+
+            stopwatchesStore.items = [...(stopwatchesStore.items as any)]
+            return
+        }
+
         if (!sw.isRunning) {
-            const running = stopwatches.value.filter(s => s.isRunning)
+            const running = stickyStopwatchSource.value.filter(s => s.isRunning)
             if (running.length >= 3) {
                 openValidationPopup(['Maximal 3 Stoppuhren dürfen gleichzeitig laufen!'])
                 return
@@ -816,6 +1273,20 @@
     }
 
     function resetStopwatch(sw: AppStopwatch) {
+        const storeBase = stopwatchesStore.items.find((x: any) => x.id === sw.id) as any
+        if (storeBase) {
+            storeBase.isRunning = false
+            storeBase.startedAtMs = null
+            storeBase.startedAtUtc = null
+            storeBase.offsetMs = 0
+            storeBase.elapsedMs = 0
+            storeBase.time = 0
+            storeBase.laps = []
+            storeBase.shouldStaySticky = false
+            stopwatchesStore.items = [...(stopwatchesStore.items as any)]
+            return
+        }
+
         if (sw.interval) clearInterval(sw.interval)
         sw.interval = null
         sw.isRunning = false
@@ -828,8 +1299,38 @@
     }
 
     const addLap = (sw: AppStopwatch) => {
-        if (!sw.laps) sw.laps = []
-        sw.laps.push(sw.time ?? 0)
+        const storeBase = stopwatchesStore.items.find((x: any) => x.id === sw.id) as any
+        if (storeBase) {
+            storeBase.laps = Array.isArray(storeBase.laps) ? storeBase.laps : []
+
+            const elapsedByLaps = storeBase.laps.reduce((sum: number, lap: any) => {
+                if (typeof lap === 'number') return sum + lap
+                if (typeof lap?.time === 'number') return sum + lap.time
+                if (typeof lap?.ms === 'number') return sum + (lap.ms / 1000)
+                if (typeof lap?.splitMs === 'number') return sum + (lap.splitMs / 1000)
+                if (typeof lap?.atMs === 'number') return sum + (lap.atMs / 1000)
+                return sum
+            }, 0)
+
+            const lapDuration = Math.max(0, (sw.time ?? 0) - elapsedByLaps)
+            storeBase.laps.push({ time: lapDuration, name: '' })
+            storeBase.laps = [...storeBase.laps]
+            stopwatchesStore.items = [...(stopwatchesStore.items as any)]
+            return
+        }
+
+        sw.laps = Array.isArray(sw.laps) ? sw.laps : []
+        const elapsedByLaps = sw.laps.reduce((sum: number, lap: any) => {
+            if (typeof lap === 'number') return sum + lap
+            if (typeof lap?.time === 'number') return sum + lap.time
+            if (typeof lap?.ms === 'number') return sum + (lap.ms / 1000)
+            if (typeof lap?.splitMs === 'number') return sum + (lap.splitMs / 1000)
+            if (typeof lap?.atMs === 'number') return sum + (lap.atMs / 1000)
+            return sum
+        }, 0)
+
+        const lapDuration = Math.max(0, (sw.time ?? 0) - elapsedByLaps)
+        sw.laps.push({ time: lapDuration, name: '' })
     }
 
     // === startDrag anpassen ===
@@ -965,19 +1466,55 @@
     }
 
     onMounted(() => {
-        setSBW()
-        window.addEventListener('resize', setSBW)
+        handleViewportResize()
+        window.addEventListener('resize', handleViewportResize)
         syncPhonePreviewClass(isPhonePreview.value)
     })
 
     onBeforeUnmount(() => {
-        window.removeEventListener('resize', setSBW)
+        window.removeEventListener('resize', handleViewportResize)
         syncPhonePreviewClass(false)
     })
 
     watch(isPhonePreview, (enabled) => {
         syncPhonePreviewClass(enabled)
     }, { immediate: true })
+
+    watch(
+        () => stickyTimerSource.value.filter((t: AppTimer) => t.shouldStaySticky).map((t: AppTimer) => t.id),
+        (ids, prevIds = []) => {
+            const prev = new Set(prevIds)
+            const current = new Set(ids)
+            const currentItems = stickyTimerSource.value.filter((t: AppTimer) => t.shouldStaySticky)
+            for (const item of currentItems) {
+                if (!prev.has(item.id)) captureDockMotion('timer', item)
+            }
+            for (const id of prevIds) {
+                if (current.has(id)) continue
+                const item = stickyTimerSource.value.find((t: AppTimer) => t.id === id)
+                if (item) captureReturnMotion('timer', item)
+            }
+            if (ids.length > prevIds.length && ids.length > 1) stickyTimerStackBump.value += 1
+        }
+    )
+
+    watch(
+        () => stickyStopwatchSource.value.filter((sw: AppStopwatch) => sw.shouldStaySticky).map((sw: AppStopwatch) => sw.id),
+        (ids, prevIds = []) => {
+            const prev = new Set(prevIds)
+            const current = new Set(ids)
+            const currentItems = stickyStopwatchSource.value.filter((sw: AppStopwatch) => sw.shouldStaySticky)
+            for (const item of currentItems) {
+                if (!prev.has(item.id)) captureDockMotion('stopwatch', item)
+            }
+            for (const id of prevIds) {
+                if (current.has(id)) continue
+                const item = stickyStopwatchSource.value.find((sw: AppStopwatch) => sw.id === id)
+                if (item) captureReturnMotion('stopwatch', item)
+            }
+            if (ids.length > prevIds.length && ids.length > 1) stickyStopwatchStackBump.value += 1
+        }
+    )
 
 
     // Load saved data
@@ -996,7 +1533,7 @@
         scheduleGuestConversionPopup()
 
         // Timer rehydrieren
-        timers.value.forEach(t => {
+        stickyTimerSource.value.forEach(t => {
             if (t.isRunning && t.endAt) {
                 t.time = Math.max(0, Math.ceil((t.endAt - Date.now()) / 1000))
                 if (t.time > 0) {
@@ -1020,21 +1557,9 @@
             }
         })
 
-        stopwatches.value.forEach((sw: AppStopwatch) => {
-            if (sw.isRunning && sw.startedAtMs != null) {
-                const elapsedMs = Date.now() - sw.startedAtMs
-                sw.offsetMs = sw.offsetMs ?? 0
-                sw.time = (sw.offsetMs + elapsedMs) / 1000
-
-                if (sw.interval) clearInterval(sw.interval)
-                sw.interval = window.setInterval(() => {
-                    const eMs = Date.now() - (sw.startedAtMs ?? Date.now())
-                    sw.time = ((sw.offsetMs ?? 0) + eMs) / 1000
-                }, 100)
-            }
-        })
         saveAll()
         window.addEventListener('keydown', handleKeydown, { capture: true })
+        window.addEventListener('pointerdown', handleStickyOutsidePointer, true)
 
     })
 
@@ -1043,6 +1568,8 @@
         window.removeEventListener('mousemove', onDrag)
         window.removeEventListener('mouseup', stopDrag)
         window.removeEventListener('keydown', handleKeydown, { capture: true } as any)
+        window.removeEventListener('pointerdown', handleStickyOutsidePointer, true)
+        clearStickyFlightTimer()
     })
 
 </script>
@@ -1072,6 +1599,231 @@
         font-family: 'Inter', sans-serif;
         background: transparent; /* Body-Gradient durchlassen */
         transition: all 0.3s ease;
+    }
+
+    .sticky-cluster {
+        position: relative;
+        z-index: 2100;
+    }
+
+    .sticky-cluster > * {
+        pointer-events: auto;
+    }
+
+    .sticky-stack-toggle {
+        position: fixed;
+        pointer-events: auto;
+        min-width: 44px;
+        height: 32px;
+        padding: 0 .7rem;
+        border-radius: 999px;
+        border: 1px solid rgba(129, 140, 248, 0.32);
+        background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(226,232,240,.88));
+        color: #334155;
+        font-size: .82rem;
+        font-weight: 900;
+        letter-spacing: .02em;
+        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        transition: transform .22s cubic-bezier(.22, 1, .36, 1), box-shadow .22s ease, opacity .2s ease;
+    }
+
+    .sticky-stack-toggle:hover {
+        transform: translateY(-2px) scale(1.04);
+        box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+    }
+
+    .sticky-stack-toggle.is-expanded {
+        transform: scale(1.06);
+        box-shadow: 0 20px 44px rgba(59, 130, 246, 0.2);
+    }
+
+    html.dark-mode .sticky-stack-toggle {
+        background: linear-gradient(180deg, rgba(15,23,42,.96), rgba(2,6,23,.92));
+        color: #e2e8f0;
+        border-color: rgba(129, 140, 248, 0.4);
+        box-shadow: 0 18px 42px rgba(2, 6, 23, 0.42);
+    }
+
+    .sticky-flight-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2600;
+    }
+
+    .sticky-flight-card {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: var(--sticky-flight-w, 320px);
+        height: var(--sticky-flight-h, 84px);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto auto;
+        align-items: center;
+        gap: .7rem;
+        padding: .82rem 1.08rem;
+        border-radius: var(--sticky-flight-radius, 24px);
+        border: 1px solid rgba(129, 140, 248, 0.32);
+        background:
+            linear-gradient(155deg, color-mix(in srgb, var(--sticky-flight-bg, rgba(255,255,255,.96)) 90%, #ffffff 10%), rgba(226,232,240,.9)),
+            radial-gradient(circle at top left, rgba(99,102,241,.18), transparent 46%),
+            radial-gradient(circle at bottom right, rgba(34,197,94,.14), transparent 52%);
+        box-shadow:
+            0 24px 60px rgba(15, 23, 42, 0.18),
+            inset 0 1px 0 rgba(255,255,255,0.55);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        transform: translate(-50%, -50%);
+        animation: sticky-flight-card-launch .82s cubic-bezier(.18, .9, .2, 1) forwards;
+        will-change: transform, opacity;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .sticky-flight-card--return {
+        animation-name: sticky-flight-card-return;
+    }
+
+    .sticky-flight-card__name {
+        font-size: .88rem;
+        font-weight: 800;
+        color: #334155;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .sticky-flight-card__time {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 1rem;
+        font-weight: 900;
+        color: var(--sticky-flight-time-color, #4f46e5);
+        letter-spacing: .03em;
+        white-space: nowrap;
+    }
+
+    .sticky-flight-card__action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 64px;
+        height: 38px;
+        padding: 0 .78rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--sticky-flight-btn-bg, rgba(255,255,255,.9)) 82%, #ffffff 18%);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        color: #334155;
+        font-size: .82rem;
+        font-weight: 800;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+        white-space: nowrap;
+    }
+
+    .sticky-flight-card__action--primary {
+        background: color-mix(in srgb, var(--sticky-flight-btn-bg, #cbd5e1) 92%, #ffffff 8%);
+    }
+
+    .sticky-flight-card__action--muted {
+        opacity: .54;
+    }
+
+    .sticky-flight-card--stopwatch {
+        background:
+            linear-gradient(155deg, rgba(255,255,255,.96), rgba(226,232,240,.92)),
+            radial-gradient(circle at top left, rgba(14,165,233,.16), transparent 44%),
+            radial-gradient(circle at bottom right, rgba(59,130,246,.14), transparent 52%);
+        border-color: rgba(14, 165, 233, 0.26);
+    }
+
+    .sticky-flight-card--stopwatch .sticky-flight-card__time {
+        color: #0f766e;
+    }
+
+    html.dark-mode .sticky-flight-card {
+        background:
+            linear-gradient(155deg, rgba(15,23,42,.98), rgba(2,6,23,.94)),
+            radial-gradient(circle at top left, rgba(99,102,241,.2), transparent 46%),
+            radial-gradient(circle at bottom right, rgba(34,197,94,.16), transparent 52%);
+        border-color: rgba(129, 140, 248, 0.4);
+        box-shadow: 0 28px 70px rgba(2, 6, 23, 0.44);
+    }
+
+    html.dark-mode .sticky-flight-card__name {
+        color: #e2e8f0;
+    }
+
+    html.dark-mode .sticky-flight-card__time {
+        color: var(--sticky-flight-time-color, #a5b4fc);
+    }
+
+    html.dark-mode .sticky-flight-card__action {
+        background: color-mix(in srgb, var(--sticky-flight-btn-bg, rgba(30,41,59,.92)) 86%, rgba(255,255,255,.08) 14%);
+        border-color: rgba(129, 140, 248, 0.18);
+        color: #e2e8f0;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    html.dark-mode .sticky-flight-card--stopwatch {
+        background:
+            linear-gradient(155deg, rgba(15,23,42,.98), rgba(2,6,23,.94)),
+            radial-gradient(circle at top left, rgba(14,165,233,.18), transparent 44%),
+            radial-gradient(circle at bottom right, rgba(59,130,246,.16), transparent 52%);
+        border-color: rgba(56, 189, 248, 0.32);
+    }
+
+    html.dark-mode .sticky-flight-card--stopwatch .sticky-flight-card__time {
+        color: #67e8f9;
+    }
+
+    @keyframes sticky-flight-card-launch {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(var(--sticky-flight-scale-x, .88), var(--sticky-flight-scale-y, .88)) rotate(-4deg);
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+        }
+
+        18% {
+            opacity: 1;
+        }
+
+        58% {
+            transform: translate(calc(-50% + var(--sticky-flight-x) * .84), calc(-50% + var(--sticky-flight-y) * .84 - 18px)) scale(1.05) rotate(1deg);
+            box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.34), 0 30px 72px rgba(59, 130, 246, 0.24);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% + var(--sticky-flight-x)), calc(-50% + var(--sticky-flight-y))) scale(1) rotate(0deg);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+        }
+    }
+
+    @keyframes sticky-flight-card-return {
+        0% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+        }
+
+        38% {
+            opacity: 1;
+            transform: translate(calc(-50% + var(--sticky-flight-x) * .34), calc(-50% + var(--sticky-flight-y) * .34 + 10px)) scale(.96) rotate(-1.5deg);
+            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.16);
+        }
+
+        78% {
+            opacity: .92;
+            transform: translate(calc(-50% + var(--sticky-flight-x) * .88), calc(-50% + var(--sticky-flight-y) * .88 - 10px)) scale(calc(var(--sticky-flight-end-scale-x, .92) * 1.03), calc(var(--sticky-flight-end-scale-y, .92) * 1.03)) rotate(1deg);
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% + var(--sticky-flight-x)), calc(-50% + var(--sticky-flight-y))) scale(var(--sticky-flight-end-scale-x, .92), var(--sticky-flight-end-scale-y, .92)) rotate(0deg);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+        }
     }
 
     /* REPLACE in App.vue <style scoped> – Block html.dark-mode .app-container */

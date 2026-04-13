@@ -1,8 +1,6 @@
 <template>
-    <section class="consistency-card">
-        <div class="consistency-card__glow consistency-card__glow--a" aria-hidden="true"></div>
-        <div class="consistency-card__glow consistency-card__glow--b" aria-hidden="true"></div>
-
+    <section class="consistency-card"
+             :class="{ 'is-peak-day': peakDisplayActive, 'is-peak-wash': peakWaveActive }">
         <header class="consistency-card__head">
             <div class="consistency-card__copy">
                 <div class="consistency-card__eyebrow">Momentum</div>
@@ -44,6 +42,11 @@
         </header>
 
         <div class="consistency-card__body">
+            <div v-if="peakDisplayActive" class="consistency-card__peak-anchor" aria-hidden="true">
+                <div class="consistency-card__peak-sign" :style="{ transform: peakSignTransform }">
+                    <span class="consistency-card__peak-sign-face">PEAK</span>
+                </div>
+            </div>
             <div class="consistency-heatmap">
                 <div class="consistency-heatmap__toolbar">
                     <button
@@ -115,10 +118,15 @@
 
                 <div class="consistency-spotlight__metric consistency-spotlight__metric--status" :class="`is-${selectedDay.intensity}`">
                     <div class="consistency-spotlight__metric-main">
-                        <span class="consistency-spotlight__metric-label">Tagesstatus</span>
+                        <div class="consistency-spotlight__metric-topline">
+                            <span class="consistency-spotlight__metric-label">Tagesstatus</span>
+                            <span v-if="selectedDay.intensity === 4" class="consistency-spotlight__peak-badge">Peak</span>
+                        </div>
                         <strong class="consistency-spotlight__metric-value consistency-spotlight__metric-value--status">{{ selectedDay.statusLabel }}</strong>
+                        <span class="consistency-spotlight__metric-subline">
+                            {{ selectedDay.sessions }} Session{{ selectedDay.sessions === 1 ? '' : 's' }}
+                        </span>
                     </div>
-                    <span class="consistency-spotlight__metric-chip">{{ selectedDay.sessions }} Session{{ selectedDay.sessions === 1 ? '' : 's' }}</span>
                 </div>
 
                 <div class="consistency-spotlight__metrics">
@@ -139,22 +147,13 @@
                 <p class="consistency-spotlight__text">
                     {{ spotlightCopy(selectedDay) }}
                 </p>
-
-                <div class="consistency-legend">
-                    <span class="consistency-legend__label">Intensität</span>
-                    <span class="consistency-legend__item is-0">Leer</span>
-                    <span class="consistency-legend__item is-1">Easy</span>
-                    <span class="consistency-legend__item is-2">Solide</span>
-                    <span class="consistency-legend__item is-3">Stark</span>
-                    <span class="consistency-legend__item is-4">Peak</span>
-                </div>
             </aside>
         </div>
     </section>
 </template>
 
 <script setup lang="ts">
-    import { computed, ref, watch } from 'vue'
+    import { computed, onUnmounted, ref, watch } from 'vue'
 
     type HeatmapDay = {
         key: string
@@ -317,6 +316,14 @@
         props.days.find(day => day.key === selectedKey.value) ?? latestActiveDay.value ?? props.days[props.days.length - 1]
     )
 
+    const peakWaveActive = ref(false)
+    const peakDisplayActive = ref(false)
+    const peakSignTransform = ref('rotate(0deg) translate3d(0, 0, 0)')
+    let peakWaveTimer: ReturnType<typeof setTimeout> | null = null
+    let peakSwingFrame: number | null = null
+    let peakSwingStart = 0
+    let peakSwingBoost = 0
+
     const summaryLine = computed(() => {
         if (!props.activeDaysLast30 && !props.sessionsLast30) {
             return 'Noch keine Sessions geloggt. Sobald du trainierst, baut sich hier dein Momentum auf.'
@@ -336,11 +343,89 @@
         return 'Der Anfang steht. Bleib morgen direkt dran.'
     })
 
+    function stopPeakSwing() {
+        if (peakSwingFrame !== null) {
+            cancelAnimationFrame(peakSwingFrame)
+            peakSwingFrame = null
+        }
+        peakSwingStart = 0
+        peakSwingBoost = 0
+        peakSignTransform.value = 'rotate(0deg) translate3d(0, 0, 0)'
+    }
+
+    function startPeakSwing(boost = 0) {
+        if (peakSwingFrame !== null) {
+            peakSwingBoost = Math.max(peakSwingBoost, boost)
+            return
+        }
+
+        peakSwingBoost = Math.max(peakSwingBoost, boost)
+
+        const animate = (timestamp: number) => {
+            if (!peakDisplayActive.value) {
+                peakSwingFrame = null
+                return
+            }
+
+            if (!peakSwingStart) peakSwingStart = timestamp
+            const elapsed = timestamp - peakSwingStart
+            peakSwingBoost *= 0.985
+
+            const idleAngle = Math.sin(elapsed / 900) * 3.4
+            const settlingAngle = Math.sin(elapsed / 235) * peakSwingBoost
+            const angle = idleAngle + settlingAngle
+            const offsetX = Math.sin(elapsed / 720) * 1.1
+            const offsetY = Math.abs(Math.sin(elapsed / 720)) * 1.6
+            peakSignTransform.value = `rotate(${angle.toFixed(2)}deg) translate3d(${offsetX.toFixed(2)}px, ${offsetY.toFixed(2)}px, 0)`
+            peakSwingFrame = requestAnimationFrame(animate)
+        }
+
+        peakSwingFrame = requestAnimationFrame(animate)
+    }
+
+    function triggerPeakSequence() {
+        if (peakWaveTimer) clearTimeout(peakWaveTimer)
+
+        peakWaveActive.value = false
+        peakDisplayActive.value = false
+        stopPeakSwing()
+
+        requestAnimationFrame(() => {
+            peakWaveActive.value = true
+            peakDisplayActive.value = true
+            startPeakSwing(10)
+        })
+
+        peakWaveTimer = setTimeout(() => {
+            peakWaveActive.value = false
+            peakWaveTimer = null
+        }, 1380)
+    }
+
     const selectDay = (day: HeatmapDay) => {
         if (toMonthKey(parseLocalDate(day.key)) !== activeMonthKey.value) return
         if (!props.days.some(entry => entry.key === day.key)) return
         selectedKey.value = day.key
+        if (day.intensity === 4) {
+            triggerPeakSequence()
+            return
+        }
+        peakWaveActive.value = false
+        peakDisplayActive.value = false
+        stopPeakSwing()
     }
+
+    watch(selectedDay, (day) => {
+        if (!day) return
+        if (day.intensity === 4) {
+            peakDisplayActive.value = true
+            startPeakSwing()
+            return
+        }
+        peakWaveActive.value = false
+        peakDisplayActive.value = false
+        stopPeakSwing()
+    }, { immediate: true })
 
     const goToPrevMonth = () => {
         if (!hasPrevMonth.value) return
@@ -387,77 +472,257 @@
         if (day.intensity === 2) return 'Solider Trainingstag. Konstanz auf diesem Level baut zuverlässig Momentum auf.'
         return 'Leichter aktiver Tag. Perfekt, um die Serie aufrechtzuerhalten und im Rhythmus zu bleiben.'
     }
+
+    onUnmounted(() => {
+        if (peakWaveTimer) clearTimeout(peakWaveTimer)
+        stopPeakSwing()
+    })
 </script>
 
 <style scoped>
     .consistency-card {
         position: relative;
-        overflow: hidden;
         display: flex;
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
         text-align: left;
-        margin-bottom: 1rem;
         padding: 1.6rem 1.8rem 1.1rem;
         border-radius: 18px;
-        border: 1px solid color-mix(in srgb, var(--border-color) 76%, var(--accent-primary) 24%);
-        background:
-            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 55%),
-            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 10%, transparent), transparent 60%),
-            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 96%, white 4%), color-mix(in srgb, var(--bg-card) 92%, var(--bg-secondary) 8%));
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
         box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
-        gap: 0.55rem;
+        gap: 0.75rem;
         color: var(--text-primary);
-        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 260ms cubic-bezier(0.22, 0.61, 0.36, 1), border-color 220ms ease-out, background 260ms ease-out;
+        will-change: transform, box-shadow;
+        overflow: hidden;
     }
 
     .consistency-card::before {
         content: '';
         position: absolute;
-        inset: 0;
-        background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 32%),
-            radial-gradient(circle at 15% 18%, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 42%);
-        opacity: .9;
+        inset: -24% -30%;
         pointer-events: none;
+        z-index: 0;
+        opacity: 0;
+        background:
+            linear-gradient(108deg,
+                transparent 0%,
+                transparent 12%,
+                color-mix(in srgb, var(--accent-primary) 8%, transparent) 24%,
+                color-mix(in srgb, var(--accent-primary) 22%, transparent) 38%,
+                color-mix(in srgb, var(--accent-secondary) 24%, transparent) 50%,
+                color-mix(in srgb, var(--accent-primary) 16%, transparent) 62%,
+                color-mix(in srgb, var(--accent-secondary) 8%, transparent) 72%,
+                transparent 86%,
+                transparent 100%);
+        mix-blend-mode: screen;
+        transform: translateX(-118%) skewX(-14deg);
+        will-change: transform, opacity;
+    }
+
+    .consistency-card.is-peak-wash::before {
+        opacity: 1;
+        animation: consistency-peak-color-wash 1.38s cubic-bezier(0.18, 0.78, 0.22, 1) both;
+    }
+
+    .consistency-card.is-peak-wash {
+        border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--accent-secondary) 34%);
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--accent-primary) 10%, transparent),
+            0 22px 52px color-mix(in srgb, var(--accent-primary) 12%, transparent),
+            0 12px 30px rgba(15, 23, 42, 0.22);
+    }
+
+    .consistency-card__peak-anchor {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        z-index: 4;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+    }
+
+    .consistency-card__peak-sign {
+        display: inline-block;
+        filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--accent-primary) 10%, transparent));
+        transform-origin: 50% 0;
+        will-change: transform;
+    }
+
+    .consistency-card__peak-sign::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 2px;
+        height: 18px;
+        background: color-mix(in srgb, var(--accent-primary) 34%, var(--accent-secondary) 34%);
+        border-radius: 999px;
+        box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary) 10%, transparent);
+    }
+
+    .consistency-card__peak-sign-face {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 132px;
+        min-height: 52px;
+        padding: .58rem 1.1rem;
+        margin-top: 16px;
+        border-radius: 18px 18px 20px 20px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--accent-secondary) 28%);
+        background:
+            radial-gradient(circle at 18% 22%, color-mix(in srgb, var(--accent-primary) 22%, transparent), transparent 48%),
+            radial-gradient(circle at 82% 78%, color-mix(in srgb, var(--accent-secondary) 18%, transparent), transparent 54%),
+            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 86%, white 14%), color-mix(in srgb, var(--bg-secondary) 68%, var(--accent-secondary) 32%));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            0 0 0 1px color-mix(in srgb, var(--accent-primary) 8%, transparent),
+            0 8px 16px color-mix(in srgb, var(--accent-primary) 10%, transparent);
+        color: color-mix(in srgb, var(--text-primary) 94%, white 6%);
+        font-size: .96rem;
+        font-weight: 1000;
+        letter-spacing: .2em;
+        text-transform: uppercase;
+        line-height: 1;
+        animation: consistency-peak-sign-pulse 2.2s ease-in-out infinite;
+        will-change: transform, box-shadow, filter;
+    }
+
+    .consistency-card.is-peak-day {
+        border-color: color-mix(in srgb, var(--accent-primary) 44%, var(--accent-secondary) 44%);
+        background:
+            radial-gradient(circle at 12% 12%, color-mix(in srgb, var(--accent-primary) 24%, transparent), transparent 34%),
+            radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--accent-secondary) 20%, transparent), transparent 38%),
+            radial-gradient(circle at 78% 86%, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 34%),
+            linear-gradient(165deg, color-mix(in srgb, var(--bg-card) 88%, white 12%), color-mix(in srgb, var(--bg-card) 72%, var(--accent-secondary) 28%));
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--accent-primary) 14%, transparent),
+            0 24px 60px color-mix(in srgb, var(--accent-primary) 18%, transparent),
+            0 12px 32px rgba(15, 23, 42, 0.24);
+        animation: consistency-peak-card-throb 2.8s ease-in-out infinite;
+    }
+
+    .consistency-card.is-peak-day::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: inherit;
+        pointer-events: none;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 22%, var(--accent-secondary) 22%);
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--accent-primary) 12%, transparent) inset,
+            0 0 40px color-mix(in srgb, var(--accent-primary) 14%, transparent);
+        opacity: .92;
+    }
+
+    .consistency-card__head,
+    .consistency-card__eyebrow,
+    .consistency-card__title,
+    .consistency-card__subtitle,
+    .consistency-streak,
+    .consistency-card__body,
+    .consistency-heatmap__summary-item,
+    .consistency-spotlight__metric,
+    .consistency-spotlight__metric--status,
+    .consistency-spotlight__metric-subline {
+        transition:
+            background 420ms cubic-bezier(0.2, 0.8, 0.2, 1),
+            border-color 420ms cubic-bezier(0.2, 0.8, 0.2, 1),
+            box-shadow 420ms cubic-bezier(0.2, 0.8, 0.2, 1),
+            color 320ms ease,
+            opacity 260ms ease,
+            transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1),
+            filter 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
     @media (hover: hover) {
         .consistency-card:hover {
-            transform: translateY(-3px) scale(1.01);
-            box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
-            border-color: rgba(129, 140, 248, 0.55);
+            transform: translateY(-4px);
+            box-shadow: 0 26px 60px rgba(15, 23, 42, 0.4);
+            border-color: rgba(129, 140, 248, 0.7);
+            background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 11%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 90%, #020617 10%);
+        }
+
+        .consistency-card.is-peak-day:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow:
+                0 0 0 1px color-mix(in srgb, var(--accent-primary) 16%, transparent),
+                0 30px 72px color-mix(in srgb, var(--accent-primary) 22%, transparent),
+                0 18px 42px rgba(15, 23, 42, 0.28);
+            border-color: color-mix(in srgb, var(--accent-primary) 52%, var(--accent-secondary) 52%);
         }
     }
 
-    .consistency-card__glow {
-        position: absolute;
-        border-radius: 999px;
-        filter: blur(40px);
-        opacity: .42;
-        pointer-events: none;
+    html.dark-mode .consistency-card {
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
+        border-color: rgba(148, 163, 184, 0.45);
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
-    .consistency-card__glow--a {
-        width: 220px;
-        height: 220px;
-        top: -110px;
-        right: -40px;
-        background: rgba(59, 130, 246, 0.18);
+    html.dark-mode .consistency-card::before {
+        background:
+            linear-gradient(108deg,
+                transparent 0%,
+                transparent 12%,
+                rgba(167, 139, 250, 0.1) 24%,
+                rgba(167, 139, 250, 0.24) 38%,
+                rgba(96, 165, 250, 0.24) 50%,
+                rgba(167, 139, 250, 0.16) 62%,
+                rgba(96, 165, 250, 0.08) 72%,
+                transparent 86%,
+                transparent 100%);
     }
 
-    .consistency-card__glow--b {
-        width: 180px;
-        height: 180px;
-        bottom: -80px;
-        left: -30px;
-        background: rgba(16, 185, 129, 0.16);
+    html.dark-mode .consistency-card.is-peak-day {
+        border-color: rgba(167, 139, 250, 0.6);
+        background:
+            radial-gradient(circle at 12% 12%, rgba(167, 139, 250, 0.28), transparent 34%),
+            radial-gradient(circle at 88% 18%, rgba(96, 165, 250, 0.24), transparent 38%),
+            radial-gradient(circle at 78% 86%, rgba(167, 139, 250, 0.12), transparent 34%),
+            linear-gradient(165deg, rgba(30, 41, 59, 0.96), rgba(79, 70, 229, 0.34));
+        box-shadow:
+            0 0 0 1px rgba(167, 139, 250, 0.16),
+            0 28px 70px rgba(79, 70, 229, 0.28),
+            0 18px 42px rgba(0, 0, 0, 0.34);
     }
 
-    .consistency-card__head,
-    .consistency-card__body {
-        position: relative;
-        z-index: 1;
+    html.dark-mode .consistency-card__peak-sign {
+        filter: drop-shadow(0 10px 22px rgba(79, 70, 229, 0.22));
+    }
+
+    html.dark-mode .consistency-card__peak-sign::before {
+        background: rgba(167, 139, 250, 0.56);
+        box-shadow: 0 0 12px rgba(167, 139, 250, 0.22);
+    }
+
+    html.dark-mode .consistency-card__peak-sign-face {
+        color: #f8fafc;
+        border-color: rgba(167, 139, 250, 0.34);
+        background:
+            radial-gradient(circle at 18% 22%, rgba(167, 139, 250, 0.26), transparent 48%),
+            radial-gradient(circle at 82% 78%, rgba(96, 165, 250, 0.2), transparent 54%),
+            linear-gradient(180deg, rgba(51, 65, 85, 0.94), rgba(79, 70, 229, 0.36));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 0 0 1px rgba(167, 139, 250, 0.16),
+            0 12px 24px rgba(79, 70, 229, 0.2);
+    }
+
+    html.dark-mode .consistency-card.is-peak-day::after {
+        border-color: rgba(167, 139, 250, 0.3);
+        box-shadow:
+            0 0 0 1px rgba(167, 139, 250, 0.12) inset,
+            0 0 42px rgba(167, 139, 250, 0.16);
+    }
+
+    @media (max-width: 600px) {
+        .consistency-card {
+            padding: 1.25rem 1.2rem 0.9rem;
+            border-radius: 16px;
+        }
     }
 
     .consistency-card__head {
@@ -466,6 +731,16 @@
         gap: 1rem;
         align-items: start;
         margin-bottom: .35rem;
+    }
+
+    .consistency-card.is-peak-day .consistency-card__head {
+        padding: .2rem 0 .35rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .consistency-card.is-peak-wash .consistency-card__head {
+        filter: saturate(1.04);
     }
 
     .consistency-card__eyebrow {
@@ -477,12 +752,22 @@
         color: color-mix(in srgb, var(--text-secondary) 82%, #9ca3af 18%);
     }
 
+    .consistency-card.is-peak-day .consistency-card__eyebrow {
+        color: color-mix(in srgb, var(--accent-primary) 52%, var(--text-primary) 48%);
+        text-shadow: 0 0 18px color-mix(in srgb, var(--accent-primary) 14%, transparent);
+    }
+
     .consistency-card__title {
         margin: 0;
         font-size: 1.2rem;
         line-height: 1.15;
         letter-spacing: -0.02em;
         color: var(--text-primary);
+    }
+
+    .consistency-card.is-peak-day .consistency-card__title {
+        font-size: clamp(1.28rem, 1.02rem + .6vw, 1.62rem);
+        letter-spacing: -0.03em;
     }
 
     .consistency-card__subtitle {
@@ -492,6 +777,10 @@
         line-height: 1.5;
     }
 
+    .consistency-card.is-peak-day .consistency-card__subtitle {
+        color: color-mix(in srgb, var(--text-primary) 78%, var(--accent-primary) 22%);
+    }
+
     .consistency-streak {
         display: flex;
         flex-direction: column;
@@ -499,6 +788,26 @@
         justify-content: flex-start;
         min-width: 0;
         padding-top: .1rem;
+    }
+
+    .consistency-card.is-peak-day .consistency-streak {
+        padding: .1rem 0 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        animation: none;
+    }
+
+    .consistency-card.is-peak-wash .consistency-card__body,
+    .consistency-card.is-peak-wash .consistency-heatmap__summary-item,
+    .consistency-card.is-peak-wash .consistency-spotlight__metric,
+    .consistency-card.is-peak-wash .consistency-spotlight__metric--status {
+        filter: saturate(1.12) brightness(1.03);
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, var(--accent-primary) 24%, var(--border-color) 76%);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.22),
+            0 12px 28px color-mix(in srgb, var(--accent-primary) 8%, transparent);
     }
 
     .consistency-streak__head {
@@ -682,6 +991,85 @@
             0 12px 28px rgba(15, 23, 42, 0.07);
     }
 
+    .consistency-card.is-peak-day .consistency-card__body {
+        padding-top: 2.45rem;
+        border-color: color-mix(in srgb, var(--accent-primary) 26%, var(--accent-secondary) 20%);
+        background:
+            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 46%),
+            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 10%, transparent), transparent 52%),
+            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 96%, white 4%), color-mix(in srgb, var(--bg-card) 86%, var(--bg-secondary) 14%));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.24),
+            0 16px 34px color-mix(in srgb, var(--accent-primary) 10%, transparent);
+        position: relative;
+        z-index: 1;
+    }
+
+    @keyframes consistency-peak-sign-pulse {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.34),
+                0 0 0 1px color-mix(in srgb, var(--accent-primary) 10%, transparent),
+                0 8px 16px color-mix(in srgb, var(--accent-primary) 10%, transparent);
+        }
+        50% {
+            transform: scale(1.02);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.36),
+                0 0 0 1px color-mix(in srgb, var(--accent-primary) 12%, transparent),
+                0 10px 20px color-mix(in srgb, var(--accent-primary) 14%, transparent);
+        }
+    }
+
+    @keyframes consistency-peak-color-wash {
+        0% {
+            transform: translateX(-118%) skewX(-14deg);
+            opacity: 0;
+        }
+        16% {
+            opacity: .9;
+        }
+        44% {
+            opacity: 1;
+        }
+        74% {
+            opacity: .84;
+        }
+        100% {
+            transform: translateX(112%) skewX(-14deg);
+            opacity: 0;
+        }
+    }
+
+    @keyframes consistency-peak-card-throb {
+        0%, 100% {
+            box-shadow:
+                0 0 0 1px color-mix(in srgb, var(--accent-primary) 14%, transparent),
+                0 24px 60px color-mix(in srgb, var(--accent-primary) 18%, transparent),
+                0 12px 32px rgba(15, 23, 42, 0.24);
+        }
+        50% {
+            box-shadow:
+                0 0 0 1px color-mix(in srgb, var(--accent-primary) 20%, transparent),
+                0 30px 72px color-mix(in srgb, var(--accent-primary) 28%, transparent),
+                0 16px 36px rgba(15, 23, 42, 0.28);
+        }
+    }
+
+    @keyframes consistency-peak-panel-glow {
+        0%, 100% {
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.22),
+                0 10px 22px color-mix(in srgb, var(--accent-primary) 10%, transparent);
+        }
+        50% {
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.26),
+                0 14px 28px color-mix(in srgb, var(--accent-primary) 18%, transparent);
+        }
+    }
+
     .consistency-card__body::before {
         content: '';
         position: absolute;
@@ -707,10 +1095,9 @@
         align-self: start;
         overflow: visible;
         box-sizing: border-box;
-        padding: .95rem;
         display: grid;
-        grid-template-columns: 26px 1fr;
-        gap: .35rem .5rem;
+        grid-template-columns: 1fr;
+        gap: .35rem;
         align-items: start;
         position: relative;
         padding: 0 0 .3rem;
@@ -738,11 +1125,12 @@
     .consistency-heatmap__summary-item {
         padding: .58rem .62rem;
         border-radius: 12px;
-        border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
+        border: 1px solid color-mix(in srgb, var(--border-color) 88%, transparent);
         background:
-            radial-gradient(circle at top right, color-mix(in srgb, var(--accent-primary) 7%, transparent), transparent 58%),
-            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 96%, white 4%), color-mix(in srgb, var(--bg-secondary) 90%, white 10%));
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 4%, transparent), transparent 54%),
+            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 4%, transparent), transparent 58%),
+            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 97%, white 3%), color-mix(in srgb, var(--bg-card) 93%, var(--bg-secondary) 7%));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
         min-width: 0;
     }
 
@@ -816,20 +1204,18 @@
 
     .consistency-heatmap__weekdays {
         display: grid;
-        grid-template-rows: repeat(7, var(--heatmap-cell-size));
-        row-gap: var(--heatmap-cell-gap-y);
+        grid-template-columns: repeat(7, minmax(0, 1fr));
         column-gap: var(--heatmap-cell-gap);
-        padding-top: 0;
-        padding-right: .3rem;
-        border-right: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
+        padding: 0 0 .35rem;
+        border-bottom: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
     }
 
     .consistency-heatmap__weekday {
-        height: var(--heatmap-cell-size);
+        min-height: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: .58rem;
+        font-size: .62rem;
         font-weight: 900;
         color: color-mix(in srgb, var(--text-secondary) 72%, #94a3b8 28%);
         letter-spacing: .04em;
@@ -839,8 +1225,8 @@
 
     .consistency-heatmap__grid {
         display: grid;
-        grid-template-columns: repeat(var(--week-count), minmax(0, 1fr));
-        gap: var(--heatmap-cell-gap);
+        grid-template-columns: 1fr;
+        row-gap: var(--heatmap-cell-gap-y);
         align-items: start;
         min-width: 0;
         width: 100%;
@@ -850,9 +1236,8 @@
 
     .consistency-heatmap__week {
         display: grid;
-        grid-template-rows: repeat(7, var(--heatmap-cell-size));
-        row-gap: var(--heatmap-cell-gap-y);
-        column-gap: var(--heatmap-cell-gap);
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: var(--heatmap-cell-gap);
         overflow: visible;
     }
 
@@ -986,19 +1371,24 @@
     }
 
     .consistency-heatmap__cell.level-4 {
-        border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--accent-secondary) 28%);
+        border-color: color-mix(in srgb, var(--accent-primary) 44%, var(--accent-secondary) 44%);
         background:
-            radial-gradient(circle at top right, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 56%),
-            radial-gradient(circle at bottom left, color-mix(in srgb, var(--accent-secondary) 12%, transparent), transparent 56%),
-            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 93%, white 7%), color-mix(in srgb, var(--bg-secondary) 82%, var(--accent-secondary) 18%));
+            radial-gradient(circle at 22% 20%, color-mix(in srgb, var(--accent-primary) 28%, transparent), transparent 46%),
+            radial-gradient(circle at 82% 82%, color-mix(in srgb, var(--accent-secondary) 24%, transparent), transparent 52%),
+            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 88%, white 12%), color-mix(in srgb, var(--bg-secondary) 72%, var(--accent-secondary) 28%));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.34),
+            0 0 0 1px color-mix(in srgb, var(--accent-primary) 20%, transparent),
+            0 10px 24px color-mix(in srgb, var(--accent-primary) 16%, transparent);
     }
 
     .consistency-heatmap__cell.level-4::after {
-        width: 5px;
-        height: 5px;
+        width: 8px;
+        height: 8px;
         opacity: 1;
         transform: translateX(-50%) scale(1);
-        background: linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 72%, white 28%), color-mix(in srgb, var(--accent-secondary) 72%, white 28%));
+        background: linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 82%, white 18%), color-mix(in srgb, var(--accent-secondary) 82%, white 18%));
+        box-shadow: 0 0 14px color-mix(in srgb, var(--accent-primary) 38%, transparent);
     }
 
     .consistency-heatmap__cell.is-selected {
@@ -1040,39 +1430,54 @@
     }
 
     .consistency-spotlight__metric--status {
-        display: flex;
-        justify-content: space-between;
-        align-items: end;
-        gap: .8rem;
+        display: block;
         margin-top: .95rem;
-        min-height: 112px;
+        min-height: 132px;
+        padding: 1rem 1rem 1.05rem;
+        overflow: hidden;
     }
 
     .consistency-spotlight__metric-main {
-        min-height: 68px;
+        min-height: 0;
         display: flex;
         flex-direction: column;
-        justify-content: flex-end;
+        justify-content: flex-start;
+        gap: .45rem;
+    }
+
+    .consistency-spotlight__metric-topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
     }
 
     .consistency-spotlight__metric--status.is-1 {
-        background: linear-gradient(160deg, color-mix(in srgb, var(--accent-primary) 12%, var(--bg-card) 88%), color-mix(in srgb, var(--accent-primary) 7%, var(--bg-secondary) 93%));
-        border-color: color-mix(in srgb, var(--accent-primary) 36%, var(--border-color) 64%);
+        background: linear-gradient(160deg, color-mix(in srgb, var(--bg-card) 96%, white 4%), color-mix(in srgb, var(--bg-card) 91%, var(--bg-secondary) 9%));
+        border-color: color-mix(in srgb, var(--accent-primary) 20%, var(--border-color) 80%);
     }
 
     .consistency-spotlight__metric--status.is-2 {
-        background: linear-gradient(160deg, color-mix(in srgb, var(--accent-primary) 18%, var(--bg-card) 82%), color-mix(in srgb, var(--accent-primary) 10%, var(--bg-secondary) 90%));
-        border-color: color-mix(in srgb, var(--accent-primary) 46%, var(--border-color) 54%);
+        background: linear-gradient(160deg, color-mix(in srgb, var(--bg-card) 96%, white 4%), color-mix(in srgb, var(--bg-card) 91%, var(--bg-secondary) 9%));
+        border-color: color-mix(in srgb, var(--accent-primary) 24%, var(--border-color) 76%);
     }
 
     .consistency-spotlight__metric--status.is-3 {
-        background: linear-gradient(160deg, color-mix(in srgb, var(--accent-secondary) 16%, var(--bg-card) 84%), color-mix(in srgb, var(--accent-secondary) 10%, var(--bg-secondary) 90%));
-        border-color: color-mix(in srgb, var(--accent-secondary) 42%, var(--border-color) 58%);
+        background: linear-gradient(160deg, color-mix(in srgb, var(--bg-card) 96%, white 4%), color-mix(in srgb, var(--bg-card) 91%, var(--bg-secondary) 9%));
+        border-color: color-mix(in srgb, var(--accent-secondary) 22%, var(--border-color) 78%);
     }
 
     .consistency-spotlight__metric--status.is-4 {
-        background: linear-gradient(160deg, color-mix(in srgb, var(--accent-primary) 18%, var(--bg-card) 82%), color-mix(in srgb, var(--accent-secondary) 16%, var(--bg-secondary) 84%));
-        border-color: color-mix(in srgb, var(--accent-primary) 44%, var(--accent-secondary) 56%);
+        background:
+            radial-gradient(circle at 16% 18%, color-mix(in srgb, var(--accent-primary) 28%, transparent), transparent 42%),
+            radial-gradient(circle at 86% 18%, color-mix(in srgb, var(--accent-secondary) 24%, transparent), transparent 44%),
+            radial-gradient(circle at 82% 82%, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 48%),
+            linear-gradient(155deg, color-mix(in srgb, var(--bg-card) 86%, white 14%), color-mix(in srgb, var(--bg-secondary) 68%, var(--accent-secondary) 32%));
+        border-color: color-mix(in srgb, var(--accent-primary) 42%, var(--accent-secondary) 42%);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.34),
+            0 0 0 1px color-mix(in srgb, var(--accent-primary) 18%, transparent),
+            0 14px 34px color-mix(in srgb, var(--accent-primary) 18%, transparent);
     }
 
     .consistency-spotlight__metric-label {
@@ -1084,16 +1489,36 @@
         color: var(--text-secondary);
     }
 
-    .consistency-spotlight__metric-chip {
-        align-self: start;
-        padding: .35rem .6rem;
+    .consistency-spotlight__peak-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28px;
+        padding: .2rem .62rem;
         border-radius: 999px;
-        font-size: .75rem;
+        font-size: .68rem;
         font-weight: 900;
-        color: var(--text-primary);
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--text-primary) 94%, white 6%);
         background:
-            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 94%, white 6%), color-mix(in srgb, var(--bg-secondary) 88%, white 12%));
-        border: 1px solid color-mix(in srgb, var(--border-color) 80%, var(--accent-primary) 20%);
+            linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 22%, white 78%), color-mix(in srgb, var(--accent-secondary) 26%, white 74%));
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 24%, var(--accent-secondary) 24%);
+        box-shadow: 0 6px 16px color-mix(in srgb, var(--accent-primary) 16%, transparent);
+    }
+
+    .consistency-spotlight__metric-subline {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        min-height: 30px;
+        padding: .34rem .62rem;
+        border-radius: 999px;
+        font-size: .74rem;
+        font-weight: 800;
+        color: color-mix(in srgb, var(--text-primary) 88%, #475569 12%);
+        background: color-mix(in srgb, var(--bg-card) 84%, white 16%);
+        border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
     }
 
     .consistency-spotlight__metrics {
@@ -1107,9 +1532,10 @@
         padding: .72rem .78rem;
         border-radius: 16px;
         background:
-            radial-gradient(circle at top right, color-mix(in srgb, var(--accent-primary) 6%, transparent), transparent 58%),
-            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 96%, white 4%), color-mix(in srgb, var(--bg-card) 89%, var(--bg-secondary) 11%));
-        border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
+            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 4%, transparent), transparent 54%),
+            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 4%, transparent), transparent 58%),
+            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 97%, white 3%), color-mix(in srgb, var(--bg-card) 93%, var(--bg-secondary) 7%));
+        border: 1px solid color-mix(in srgb, var(--border-color) 88%, transparent);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
     }
 
@@ -1120,10 +1546,11 @@
     }
 
     .consistency-spotlight__metric-value--status {
-        margin-top: .3rem;
-        font-size: 1.18rem;
-        line-height: 1.2;
-        min-height: 2.4em;
+        margin-top: 0;
+        font-size: clamp(1.28rem, 1.05rem + .55vw, 1.62rem);
+        line-height: 1.08;
+        min-height: 0;
+        letter-spacing: -.03em;
     }
 
     .consistency-spotlight__text {
@@ -1132,38 +1559,6 @@
         line-height: 1.55;
     }
 
-    .consistency-legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: .45rem;
-        margin-top: 1rem;
-    }
-
-    .consistency-legend__label {
-        align-self: center;
-        margin-right: .15rem;
-        font-size: .72rem;
-        font-weight: 900;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-        color: var(--text-secondary);
-    }
-
-    .consistency-legend__item {
-        padding: .26rem .5rem;
-        border-radius: 999px;
-        font-size: .72rem;
-        font-weight: 800;
-        border: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
-        background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 95%, white 5%), color-mix(in srgb, var(--bg-secondary) 88%, white 12%));
-        color: color-mix(in srgb, var(--text-primary) 84%, #475569 16%);
-    }
-
-    .consistency-legend__item.is-1 { background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-card) 90%); }
-    .consistency-legend__item.is-2 { background: color-mix(in srgb, var(--accent-primary) 16%, var(--bg-card) 84%); }
-    .consistency-legend__item.is-3 { background: color-mix(in srgb, var(--accent-secondary) 14%, var(--bg-card) 86%); }
-    .consistency-legend__item.is-4 { background: color-mix(in srgb, var(--accent-primary) 16%, color-mix(in srgb, var(--accent-secondary) 12%, var(--bg-card) 88%)); }
-
     html.dark-mode .consistency-card {
         border-color: rgba(148, 163, 184, 0.45);
         background:
@@ -1171,12 +1566,6 @@
             radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 12%, transparent), transparent 60%),
             linear-gradient(180deg, rgba(10, 17, 33, 0.96), rgba(2, 6, 23, 0.98));
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
-    }
-
-    html.dark-mode .consistency-card::before {
-        background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%),
-            radial-gradient(circle at 15% 18%, rgba(99, 102, 241, 0.12), transparent 42%);
     }
 
     html.dark-mode .consistency-heatmap,
@@ -1199,6 +1588,17 @@
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
     }
 
+    html.dark-mode .consistency-card.is-peak-day .consistency-card__body {
+        border-color: rgba(167, 139, 250, 0.26);
+        background:
+            radial-gradient(circle at top left, rgba(167, 139, 250, 0.14), transparent 46%),
+            radial-gradient(circle at bottom right, rgba(96, 165, 250, 0.1), transparent 52%),
+            linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.98));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.06),
+            0 16px 34px rgba(79, 70, 229, 0.16);
+    }
+
     html.dark-mode .consistency-card__body::before {
         border-color: rgba(148, 163, 184, 0.1);
         background: linear-gradient(180deg, rgba(30, 41, 59, 0.24), transparent 42%);
@@ -1212,6 +1612,18 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+        .consistency-card.is-peak-day,
+        .consistency-card.is-peak-wash::before,
+        .consistency-card__peak-sign,
+        .consistency-card__peak-sign-face,
+        .consistency-card.is-peak-day .consistency-streak {
+            animation: none !important;
+        }
+
+        .consistency-card.is-peak-wash::before {
+            opacity: 0 !important;
+        }
+
         .consistency-flame,
         .consistency-flame__outer,
         .consistency-flame__inner {
@@ -1222,17 +1634,17 @@
     html.dark-mode .consistency-heatmap__month,
     html.dark-mode .consistency-heatmap__summary-label,
     html.dark-mode .consistency-streak__label,
-    html.dark-mode .consistency-spotlight__metric-label,
-    html.dark-mode .consistency-legend__label {
+    html.dark-mode .consistency-spotlight__metric-label {
         color: #94a3b8;
     }
 
     html.dark-mode .consistency-heatmap__summary-item {
         background:
-            radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 58%),
-            linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.94));
-        border-color: rgba(148, 163, 184, 0.14);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            radial-gradient(circle at top left, rgba(99, 102, 241, 0.05), transparent 54%),
+            radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.05), transparent 58%),
+            linear-gradient(180deg, rgba(30, 41, 59, 0.88), rgba(15, 23, 42, 0.94));
+        border-color: rgba(148, 163, 184, 0.18);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
 
     html.dark-mode .consistency-heatmap__summary-value {
@@ -1309,15 +1721,28 @@
     }
 
     html.dark-mode .consistency-heatmap__cell.level-4 {
-        border-color: rgba(147, 197, 253, 0.38);
+        border-color: rgba(196, 181, 253, 0.58);
         background:
-            radial-gradient(circle at top right, rgba(167, 139, 250, 0.16), transparent 56%),
-            radial-gradient(circle at bottom left, rgba(96, 165, 250, 0.14), transparent 56%),
-            linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(55, 48, 163, 0.2));
+            radial-gradient(circle at 22% 20%, rgba(167, 139, 250, 0.28), transparent 46%),
+            radial-gradient(circle at 82% 82%, rgba(96, 165, 250, 0.22), transparent 52%),
+            linear-gradient(180deg, rgba(30, 41, 59, 0.94), rgba(79, 70, 229, 0.34));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 0 0 1px rgba(167, 139, 250, 0.22),
+            0 12px 26px rgba(79, 70, 229, 0.22);
     }
 
     html.dark-mode .consistency-heatmap__cell.level-4::after {
-        background: linear-gradient(180deg, rgba(233, 213, 255, 0.98), rgba(220, 252, 231, 0.98));
+        width: 8px;
+        height: 8px;
+        background: linear-gradient(180deg, rgba(233, 213, 255, 1), rgba(220, 252, 231, 1));
+        box-shadow: 0 0 16px rgba(167, 139, 250, 0.45);
+    }
+
+    html.dark-mode .consistency-spotlight__metric--status.is-4 .consistency-spotlight__metric-value--status::before {
+        color: #f8fafc;
+        background: linear-gradient(180deg, rgba(99, 102, 241, 0.34), rgba(59, 130, 246, 0.28));
+        border-color: rgba(167, 139, 250, 0.34);
     }
 
     html.dark-mode .consistency-heatmap__cell.is-selected {
@@ -1335,11 +1760,40 @@
             inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
 
-    html.dark-mode .consistency-spotlight__metric-chip,
-    html.dark-mode .consistency-legend__item {
+    html.dark-mode .consistency-spotlight__metric-subline {
         background: linear-gradient(180deg, rgba(30, 41, 59, 0.84), rgba(15, 23, 42, 0.9));
         border-color: rgba(148, 163, 184, 0.14);
         color: #e2e8f0;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    html.dark-mode .consistency-spotlight__peak-badge {
+        color: #f8fafc;
+        background: linear-gradient(180deg, rgba(99, 102, 241, 0.36), rgba(59, 130, 246, 0.3));
+        border-color: rgba(167, 139, 250, 0.34);
+        box-shadow: 0 8px 18px rgba(99, 102, 241, 0.22);
+    }
+
+    html.dark-mode .consistency-spotlight__metric {
+        background:
+            radial-gradient(circle at top left, rgba(99, 102, 241, 0.05), transparent 54%),
+            radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.05), transparent 58%),
+            linear-gradient(180deg, rgba(30, 41, 59, 0.88), rgba(15, 23, 42, 0.94));
+        border-color: rgba(148, 163, 184, 0.18);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    html.dark-mode .consistency-spotlight__metric--status.is-4 {
+        background:
+            radial-gradient(circle at 16% 18%, rgba(167, 139, 250, 0.3), transparent 42%),
+            radial-gradient(circle at 86% 18%, rgba(96, 165, 250, 0.24), transparent 44%),
+            radial-gradient(circle at 82% 82%, rgba(167, 139, 250, 0.12), transparent 48%),
+            linear-gradient(155deg, rgba(30, 41, 59, 0.94), rgba(79, 70, 229, 0.36));
+        border-color: rgba(167, 139, 250, 0.5);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 0 0 1px rgba(167, 139, 250, 0.18),
+            0 16px 34px rgba(79, 70, 229, 0.24);
     }
 
     @media (max-width: 980px) {

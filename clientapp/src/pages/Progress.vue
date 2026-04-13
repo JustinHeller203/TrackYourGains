@@ -16,32 +16,37 @@
             <!-- ===================== DASHBOARD-CARDS ===================== -->
             <div class="dashboard-grid">
 
-                <ProgressWeightCard v-model:weightHistory="weightHistory"
-                                    :unit="unit"
-                                    :compact="compactCards"
-                                    :formatWeight="formatWeight"
-                                    :kgToDisplay="kgToDisplay"
-                                    :displayToKg="displayToKg"
-                                    @saved="onWeightSaved"
-                                    @invalid="openValidationPopupError" />
+                <div ref="weightCardGuideRef"
+                     class="progress-guide-target"
+                     :class="{ 'is-guided': guidedTarget === 'weight' }">
+                    <ProgressWeightCard ref="weightCardComponentRef"
+                                        v-model:weightHistory="weightHistory"
+                                        :unit="unit"
+                                        :formatWeight="formatWeight"
+                                        :kgToDisplay="kgToDisplay"
+                                        :displayToKg="displayToKg"
+                                        @saved="onWeightSaved"
+                                        @invalid="openValidationPopupError" />
+                </div>
 
-                <ProgressCaloriesTodayCard :meals="meals"
-                                           :compact="compactCards"
-                                           :targetCalories="2500" />
+                <ProgressComplaintsCard :complaints="complaintsStore.entries" />
 
-                <ProgressLastWorkoutCard :workouts="workouts"
-                                         :compact="compactCards"
-                                         :formatWeight="formatWeight" />
+                <div ref="lastTrainingCardRef">
+                    <ProgressLastWorkoutCard :workouts="workouts"
+                                             :formatWeight="formatWeight" />
+                </div>
 
                 <ProgressGoalWeightCard v-model:goalKg="goal"
                                         :unit="unit"
-                                        :compact="compactCards"
                                         :formatWeight="formatWeight"
                                         :kgToDisplay="kgToDisplay"
                                         :displayToKg="displayToKg"
                                         @saved="onGoalSaved"
                                         @invalid="openValidationPopupError" />
             </div>
+
+            <GoalsProgressPanel :workouts="workouts"
+                                :weight-history="weightHistory" />
 
             <!-- ===================== TABS ===================== -->
             <TabsBar v-model:modelValue="activeTab"
@@ -69,23 +74,67 @@
                            @click="openWeightHistoryCalendarPopup"
                            @export="openDownloadPopup('weightStats')"
                            @reset="resetWeightStats">
+                    <template #empty>
+                        <div class="chart-empty-guide">
+                            <div class="chart-empty-guide__content">
+                                <span class="chart-empty-guide__eyebrow">Noch keine Daten</span>
+                                <h4 class="chart-empty-guide__title">Gewichtsverlauf freischalten</h4>
+                                <p class="chart-empty-guide__text">
+                                    Trage zuerst dein aktuelles Gewicht ein, dann erscheint hier dein Verlauf.
+                                </p>
+                            </div>
+                            <button type="button"
+                                    class="chart-empty-guide__action"
+                                    @click.stop="focusWeightEntryGuide">
+                                Aktuelles Gewicht öffnen
+                            </button>
+                        </div>
+                    </template>
                     <canvas id="weightChart"
                             class="chart-canvas chart-canvas--clickable"
                             title="Gewichtsverlauf im Kalender öffnen"
                             aria-label="Gewichtsverlauf im Kalender öffnen"></canvas>
                 </ChartCard>
 
-                <ChartCard title="Trainingsstatistik"
-                           :hasData="hasWorkoutStats"
-                           exportable
-                           @click="openTrainingStatsDetails"
-                           @export="openDownloadPopup('workoutStats')"
-                           @reset="resetWorkoutStats">
-                    <template #subtitle>
-                        <p class="card-info">Gesamt-Workouts: {{ strengthWorkouts.length }}</p>
-                    </template>
-                    <canvas id="workoutChart" class="chart-canvas"></canvas>
-                </ChartCard>
+                <div ref="trainingStatsSectionRef" class="training-stats-stage">
+                    <ChartCard title="Trainingsstatistik"
+                               :hasData="hasWorkoutStats"
+                               exportable
+                               @click="openTrainingStatsDetails"
+                               @export="openDownloadPopup('workoutStats')"
+                               @reset="resetWorkoutStats">
+                        <template #subtitle>
+                            <p class="card-info">Gesamt-Workouts: {{ strengthWorkouts.length }}</p>
+                        </template>
+                        <template #empty>
+                            <div class="chart-empty-guide">
+                                <div class="chart-empty-guide__content">
+                                    <span class="chart-empty-guide__eyebrow">Noch keine Daten</span>
+                                    <h4 class="chart-empty-guide__title">Trainingsstatistik starten</h4>
+                                    <p class="chart-empty-guide__text">
+                                        Lege einen Trainingsplan an und trage dort dein erstes Training ein.
+                                    </p>
+                                </div>
+                                <button type="button"
+                                        class="chart-empty-guide__action"
+                                        @click.stop="focusTrainingPlansGuide">
+                                    Zu Trainingsplänen
+                                </button>
+                            </div>
+                        </template>
+                        <canvas id="workoutChart" class="chart-canvas"></canvas>
+                    </ChartCard>
+
+                    <div v-if="workoutStatsBarOverlay.visible"
+                         class="workout-stats-bar-overlay"
+                         :class="{ 'is-growing': workoutStatsBarOverlay.growing }"
+                         :style="{
+                             left: `${workoutStatsBarOverlay.left}px`,
+                             top: `${workoutStatsBarOverlay.top}px`,
+                             width: `${workoutStatsBarOverlay.width}px`,
+                             height: `${workoutStatsBarOverlay.height}px`,
+                         }"></div>
+                </div>
                 </div>
             </div>
 
@@ -95,7 +144,8 @@
                 <!-- ======= FAVORITEN-BEREICH (oben) ======= -->
                 <template v-if="favoriteCalcs.length">
                     <!-- BMI Favorit -->
-                    <BmiCalculator v-if="isFavorite('BMI') && matchesCalc('BMI')"
+                    <div v-if="isFavorite('BMI')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('BMI') }">
+                    <BmiCalculator
                                    title="BMI-Rechner"
                                    info="Der BMI (Body-Mass-Index) misst das Verhältnis von Gewicht zu Größe."
                                    :unit="unit"
@@ -113,9 +163,11 @@
                                    @copy="copyBMI"
                                    @reset="resetCalculator('bmi')"
                                    @invalid="onCalcInvalid" />
+                    </div>
 
                     <!-- Kalorien Favorit -->
-                    <CaloriesCalculator v-if="isFavorite('Kalorienbedarf') && matchesCalc('Kalorienbedarf')"
+                    <div v-if="isFavorite('Kalorienbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Kalorienbedarf') }">
+                    <CaloriesCalculator
                                         :unit="unit"
                                         :autoCalcEnabled="autoCalcEnabled"
                                         :calorieAge="calorieAge"
@@ -137,9 +189,11 @@
                                         @copy="copyCalories"
                                         @reset="resetCalculator('calories')"
                                         @invalid="onCalcInvalid" />
+                    </div>
 
                     <!-- Burn Rate Favorit -->
-                    <BurnRateCalculator v-if="isFavorite('Burn Rate') && matchesCalc('Burn Rate')"
+                    <div v-if="isFavorite('Burn Rate')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Burn Rate') }">
+                    <BurnRateCalculator
                                         :unit="unit"
                                         :autoCalcEnabled="autoCalcEnabled"
                                         :burnStartWeight="burnStartWeight"
@@ -157,9 +211,11 @@
                                         @copy="copyBurnRate"
                                         @reset="resetCalculator('burnRate')"
                                         @invalid="onCalcInvalid" />
+                    </div>
 
                     <!-- Protein Favorit -->
-                    <ProteinCalculator v-if="isFavorite('Proteinbedarf') && matchesCalc('Proteinbedarf')"
+                    <div v-if="isFavorite('Proteinbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Proteinbedarf') }">
+                    <ProteinCalculator
                                        :unit="unit"
                                        :autoCalcEnabled="autoCalcEnabled"
                                        :proteinWeight="proteinWeight"
@@ -177,9 +233,11 @@
                                        @copy="copyProtein"
                                        @reset="resetCalculator('protein')"
                                        @invalid="onCalcInvalid" />
+                    </div>
 
                     <!-- 1RM Favorit -->
-                    <OneRmCalculator v-if="isFavorite('1RM') && matchesCalc('1RM')"
+                    <div v-if="isFavorite('1RM')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('1RM') }">
+                    <OneRmCalculator
                                      :unit="unit"
                                      :autoCalcEnabled="autoCalcEnabled"
                                      :oneRmExercise="oneRmExercise"
@@ -196,9 +254,11 @@
                                      @copy="copyOneRm"
                                      @reset="resetCalculator('oneRm')"
                                      @invalid="onCalcInvalid" />
+                    </div>
 
                     <!-- Körperfett Favorit -->
-                    <BodyFatCalculator v-if="isFavorite('Körperfett') && matchesCalc('Körperfett')"
+                    <div v-if="isFavorite('Körperfett')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Körperfett') }">
+                    <BodyFatCalculator
                                        :autoCalcEnabled="autoCalcEnabled"
                                        :bodyFatGender="bodyFatGender"
                                        :bodyFatWaist="bodyFatWaist"
@@ -217,9 +277,11 @@
                                        @copy="copyBodyFat"
                                        @reset="resetCalculator('bodyFat')"
                                        @invalid="onCalcInvalid" />
+                    </div>
 
                     <!-- Koffein Favorit -->
-                    <CaffeineSafeDoseCalculator v-if="isFavorite('Koffein') && matchesCalc('Koffein')"
+                    <div v-if="isFavorite('Koffein')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Koffein') }">
+                    <CaffeineSafeDoseCalculator
                                                 :unit="unit"
                                                 :autoCalcEnabled="autoCalcEnabled"
                                                 :cafWeight="cafWeight"
@@ -235,9 +297,11 @@
                                                 @copy="copyCaffeine"
                                                 @reset="onCafReset"
                                                 @invalid="onCalcInvalid" />
+                    </div>
 
                     <!-- FFMI Favorit -->
-                    <FfmiCalculator v-if="isFavorite('FFMI') && matchesCalc('FFMI')"
+                    <div v-if="isFavorite('FFMI')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('FFMI') }">
+                    <FfmiCalculator
                                     :unit="unit"
                                     :autoCalcEnabled="autoCalcEnabled"
                                     :ffmiWeight="ffmiWeight"
@@ -253,8 +317,10 @@
                                     @copy="copyFFMI"
                                     @reset="resetCalculator('ffmi')"
                                     @invalid="onCalcInvalid" />
+                    </div>
                     <!-- GL Favorit -->
-                    <GlycemicLoadCalculator v-if="isFavorite('Glykämische Last') && matchesCalc('Glykämische Last')"
+                    <div v-if="isFavorite('Glykämische Last')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Glykämische Last') }">
+                    <GlycemicLoadCalculator
                                             :autoCalcEnabled="autoCalcEnabled"
                                             :glFood="glFood"
                                             :glServing="glServing"
@@ -273,10 +339,12 @@
                                             @copy="copyGlyLoad"
                                             @reset="resetCalculator('glyload')"
                                             @invalid="onCalcInvalid" />
+                    </div>
 
 
                     <!-- Wasser Favorit -->
-                    <WaterCalculator v-if="isFavorite('Wasserbedarf') && matchesCalc('Wasserbedarf')"
+                    <div v-if="isFavorite('Wasserbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Wasserbedarf') }">
+                    <WaterCalculator
                                      :unit="unit"
                                      :autoCalcEnabled="autoCalcEnabled"
                                      :waterWeight="waterWeight"
@@ -292,11 +360,13 @@
                                      @copy="copyWater"
                                      @reset="resetCalculator('water')"
                                      @invalid="onCalcInvalid" />
+                    </div>
                 </template>
 
 
                 <!-- ======= STANDARD-BEREICH (ohne Favoriten-Duplikate) ======= -->
-                <BmiCalculator v-if="!isFavorite('BMI') && matchesCalc('BMI')"
+                <div v-if="!isFavorite('BMI')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('BMI') }">
+                <BmiCalculator
                                title="BMI-Rechner"
                                info="Der BMI (Body-Mass-Index) misst das Verhältnis von Gewicht zu Größe."
                                :unit="unit"
@@ -314,9 +384,11 @@
                                @copy="copyBMI"
                                @reset="resetCalculator('bmi')"
                                @invalid="onCalcInvalid" />
+                </div>
 
                 <!-- ========== Kalorienbedarfsrechner ========== -->
-                <CaloriesCalculator v-if="matchesCalc('Kalorienbedarf') && !isFavorite('Kalorienbedarf')"
+                <div v-if="!isFavorite('Kalorienbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Kalorienbedarf') }">
+                <CaloriesCalculator
                                     :unit="unit"
                                     :autoCalcEnabled="autoCalcEnabled"
                                     :calorieAge="calorieAge"
@@ -338,9 +410,11 @@
                                     @copy="copyCalories"
                                     @reset="resetCalculator('calories')"
                                     @invalid="onCalcInvalid" />
+                </div>
 
                 <!-- Burn Rate Standard -->
-                <BurnRateCalculator v-if="matchesCalc('Burn Rate') && !isFavorite('Burn Rate')"
+                <div v-if="!isFavorite('Burn Rate')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Burn Rate') }">
+                <BurnRateCalculator
                                     :unit="unit"
                                     :autoCalcEnabled="autoCalcEnabled"
                                     :burnStartWeight="burnStartWeight"
@@ -358,8 +432,10 @@
                                     @copy="copyBurnRate"
                                     @reset="resetCalculator('burnRate')"
                                     @invalid="onCalcInvalid" />
+                </div>
 
-                <ProteinCalculator v-if="matchesCalc('Proteinbedarf') && !isFavorite('Proteinbedarf')"
+                <div v-if="!isFavorite('Proteinbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Proteinbedarf') }">
+                <ProteinCalculator
                                    :unit="unit"
                                    :autoCalcEnabled="autoCalcEnabled"
                                    :proteinWeight="proteinWeight"
@@ -377,9 +453,11 @@
                                    @copy="copyProtein"
                                    @reset="resetCalculator('protein')"
                                    @invalid="onCalcInvalid" />
+                </div>
 
                 <!-- ========== 1RM Rechner ========== -->
-                <OneRmCalculator v-if="matchesCalc('1RM') && !isFavorite('1RM')"
+                <div v-if="!isFavorite('1RM')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('1RM') }">
+                <OneRmCalculator
                                  :unit="unit"
                                  :autoCalcEnabled="autoCalcEnabled"
                                  :oneRmExercise="oneRmExercise"
@@ -396,8 +474,10 @@
                                  @copy="copyOneRm"
                                  @reset="resetCalculator('oneRm')"
                                  @invalid="onCalcInvalid" />
+                </div>
                 <!-- Koffein Standard -->
-                <CaffeineSafeDoseCalculator v-if="matchesCalc('Koffein') && !isFavorite('Koffein')"
+                <div v-if="!isFavorite('Koffein')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Koffein') }">
+                <CaffeineSafeDoseCalculator
                                             :unit="unit"
                                             :autoCalcEnabled="autoCalcEnabled"
                                             :cafWeight="cafWeight"
@@ -413,9 +493,11 @@
                                             @copy="copyCaffeine"
                                             @reset="onCafReset"
                                             @invalid="onCalcInvalid" />
+                </div>
 
                 <!-- ========== Körperfett Rechner ========== -->
-                <BodyFatCalculator v-if="matchesCalc('Körperfett') && !isFavorite('Körperfett')"
+                <div v-if="!isFavorite('Körperfett')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Körperfett') }">
+                <BodyFatCalculator
                                    :autoCalcEnabled="autoCalcEnabled"
                                    :bodyFatGender="bodyFatGender"
                                    :bodyFatWaist="bodyFatWaist"
@@ -434,9 +516,11 @@
                                    @copy="copyBodyFat"
                                    @reset="resetCalculator('bodyFat')"
                                    @invalid="onCalcInvalid" />
+                </div>
 
                 <!-- ========== FFMI Rechner ========== -->
-                <FfmiCalculator v-if="matchesCalc('FFMI') && !isFavorite('FFMI')"
+                <div v-if="!isFavorite('FFMI')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('FFMI') }">
+                <FfmiCalculator
                                 :unit="unit"
                                 :autoCalcEnabled="autoCalcEnabled"
                                 :ffmiWeight="ffmiWeight"
@@ -452,8 +536,10 @@
                                 @copy="copyFFMI"
                                 @reset="resetCalculator('ffmi')"
                                 @invalid="onCalcInvalid" />
+                </div>
                 <!-- GL Standard -->
-                <GlycemicLoadCalculator v-if="matchesCalc('Glykämische Last') && !isFavorite('Glykämische Last')"
+                <div v-if="!isFavorite('Glykämische Last')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Glykämische Last') }">
+                <GlycemicLoadCalculator
                                         :autoCalcEnabled="autoCalcEnabled"
                                         :glFood="glFood"
                                         :glServing="glServing"
@@ -472,10 +558,12 @@
                                         @copy="copyGlyLoad"
                                         @reset="resetCalculator('glyload')"
                                         @invalid="onCalcInvalid" />
+                </div>
 
 
                 <!-- ========== Wasserbedarfsrechner ========== -->
-                <WaterCalculator v-if="matchesCalc('Wasserbedarf') && !isFavorite('Wasserbedarf')"
+                <div v-if="!isFavorite('Wasserbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Wasserbedarf') }">
+                <WaterCalculator
                                  :unit="unit"
                                  :autoCalcEnabled="autoCalcEnabled"
                                  :waterWeight="waterWeight"
@@ -491,12 +579,15 @@
                                  @copy="copyWater"
                                  @reset="resetCalculator('water')"
                                  @invalid="onCalcInvalid" />
+                </div>
             </div>
 
             <!-- ===================== PLÄNE TAB ===================== -->
             <div v-show="activeTab === 'plans'" class="plans-section">
                 <!-- Progress.vue ? REPLACE in "Pl?ne" -> "Trainingspl?ne" -->
-                <div class="workout-list">
+                <div ref="trainingPlansGuideRef"
+                     class="workout-list progress-guide-target"
+                     :class="{ 'is-guided': guidedTarget === 'plans' }">
                     <h3 class="section-title">Deine Trainingspläne</h3>
 
                     <div v-if="!trainingPlans.length" class="list-item empty plans-empty-state">
@@ -520,7 +611,10 @@
                                 <h4 class="section-title">Neu erstellt</h4>
                                 <p>Frisch erstellt oder gerade aktualisiert.</p>
                             </div>
-                            <div v-for="plan in freshPlans" :key="plan.id" class="list-item plan-item plan-item--fresh">
+                            <div v-for="plan in freshPlans"
+                                 :key="plan.id"
+                                 class="list-item plan-item plan-item--fresh"
+                                 :class="{ 'is-guided': guidedPlanId === plan.id }">
                                 <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exerciseCount} &Uuml;bungen)` }}</span>
                                 <div class="list-item-actions">
                                     <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">&Ouml;ffnen</button>
@@ -536,7 +630,10 @@
                             <div v-if="!activePlans.length" class="plan-group-empty">
                                 Gerade ist kein Plan als aktiv einsortiert.
                             </div>
-                            <div v-for="plan in activePlans" :key="plan.id" class="list-item plan-item">
+                            <div v-for="plan in activePlans"
+                                 :key="plan.id"
+                                 class="list-item plan-item"
+                                 :class="{ 'is-guided': guidedPlanId === plan.id }">
                                 <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exerciseCount} &Uuml;bungen)` }}</span>
                                 <div class="list-item-actions">
                                     <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">&Ouml;ffnen</button>
@@ -551,7 +648,10 @@
                             <div v-if="!inactivePlans.length" class="plan-group-empty">
                                 Aktuell ist kein Plan als unbenutzt einsortiert.
                             </div>
-                            <div v-for="plan in inactivePlans" :key="plan.id" class="list-item plan-item plan-item--inactive">
+                            <div v-for="plan in inactivePlans"
+                                 :key="plan.id"
+                                 class="list-item plan-item plan-item--inactive"
+                                 :class="{ 'is-guided': guidedPlanId === plan.id }">
                                 <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exerciseCount} &Uuml;bungen)` }}</span>
                                 <div class="list-item-actions">
                                     <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">&Ouml;ffnen</button>
@@ -677,18 +777,30 @@
                :autoDismiss="true"
                :position="toastPosition"
                @dismiss="onToastDismiss" />
+
+        <div v-if="workoutStatsFlyLabel.visible"
+             class="workout-stats-fly-label"
+             :class="{ 'is-flying': workoutStatsFlyLabel.flying }"
+             :style="{
+                 left: `${workoutStatsFlyLabel.x}px`,
+                 top: `${workoutStatsFlyLabel.y}px`,
+                 transform: `translate(-50%, -50%) scale(${workoutStatsFlyLabel.scale})`,
+             }">
+            {{ workoutStatsFlyLabel.text }}
+        </div>
+
     </div>
 </template>
 
 <script setup lang="ts">
-    import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+    import { ref, computed, onMounted, onUnmounted, nextTick, watch, reactive } from 'vue';
     import { useRouter } from 'vue-router'
     import Chart from 'chart.js/auto';
     import confetti from 'canvas-confetti';
     import { jsPDF } from 'jspdf';
     import { useUnits, KG_PER_LB } from '@/composables/useUnits'
     import Toast from '@/components/ui/Toast.vue'
-    import ProgressCaloriesTodayCard from '@/components/ui/progress/ProgressCaloriesTodayCard.vue'
+    import ProgressComplaintsCard from '@/components/ui/progress/ProgressComplaintsCard.vue'
     import ProgressWeightCard from '@/components/ui/progress/ProgressWeightCard.vue'
     import ProgressGoalWeightCard from '@/components/ui/progress/ProgressGoalWeightCard.vue'
     import ProgressConsistencyHeatmap from '@/components/ui/progress/ProgressConsistencyHeatmap.vue'
@@ -729,6 +841,7 @@
     import { useTrainingPlansStore } from "@/store/trainingPlansStore"
     import { useAuthStore } from "@/store/authStore"
     import ProgressLastWorkoutCard from '@/components/ui/progress/ProgressLastWorkoutCard.vue'
+    import GoalsProgressPanel from '@/components/ui/goals/GoalsProgressPanel.vue'
     import { useWeightStore } from "@/store/weightStore"
     import {
         createTrainingSession,
@@ -893,7 +1006,102 @@
 
     let weightChart: Chart | null = null;
     let workoutChart: Chart | null = null;
+    const workoutChartAnimateNext = ref(false)
+    const pendingWorkoutStatsReveal = ref(false)
+    const pendingWorkoutStatsIntro = ref<{ exercise: string; date: string; weight: number } | null>(null)
+    const weightCardComponentRef = ref<{ openWeightPopup?: () => void } | null>(null)
+    const weightCardGuideRef = ref<HTMLElement | null>(null)
+    const trainingStatsSectionRef = ref<HTMLElement | null>(null)
+    const trainingPlansGuideRef = ref<HTMLElement | null>(null)
+    const lastTrainingCardRef = ref<HTMLElement | null>(null)
+    const guidedTarget = ref<'weight' | 'plans' | null>(null)
+    const guidedPlanId = ref<string | null>(null)
+    const workoutStatsFlyLabel = reactive({
+        visible: false,
+        flying: false,
+        text: '',
+        x: 0,
+        y: 0,
+        scale: 1,
+    })
+    const workoutStatsBarOverlay = reactive({
+        visible: false,
+        growing: false,
+        left: 0,
+        top: 0,
+        width: 28,
+        height: 0,
+    })
     let macroChart: Chart | null = null;
+    let guideHighlightTimeout: number | null = null
+
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+    const clearGuideHighlight = () => {
+        if (guideHighlightTimeout !== null) {
+            window.clearTimeout(guideHighlightTimeout)
+            guideHighlightTimeout = null
+        }
+        guidedTarget.value = null
+        guidedPlanId.value = null
+    }
+
+    const startGuideHighlight = (target: 'weight' | 'plans') => {
+        clearGuideHighlight()
+        guidedTarget.value = target
+        guideHighlightTimeout = window.setTimeout(() => {
+            if (guidedTarget.value === target) guidedTarget.value = null
+            guideHighlightTimeout = null
+        }, 2200)
+    }
+
+    const startPlanGuideHighlight = (planId: string | null) => {
+        clearGuideHighlight()
+        guidedTarget.value = 'plans'
+        guidedPlanId.value = planId
+        guideHighlightTimeout = window.setTimeout(() => {
+            guidedTarget.value = null
+            guidedPlanId.value = null
+            guideHighlightTimeout = null
+        }, 2200)
+    }
+
+    const focusWeightEntryGuide = async () => {
+        activeTab.value = 'stats'
+        await nextTick()
+
+        weightCardGuideRef.value?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+        })
+        startGuideHighlight('weight')
+        await sleep(520)
+        weightCardComponentRef.value?.openWeightPopup?.()
+    }
+
+    const focusTrainingPlansGuide = async () => {
+        if (!trainingPlans.value.length) {
+            clearGuideHighlight()
+            goToTrainingPlanBuilder()
+            return
+        }
+
+        const topPlanId =
+            freshPlans.value[0]?.id
+            ?? activePlans.value[0]?.id
+            ?? inactivePlans.value[0]?.id
+            ?? null
+
+        activeTab.value = 'plans'
+        await nextTick()
+        await sleep(30)
+
+        trainingPlansGuideRef.value?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+        })
+        startPlanGuideHighlight(topPlanId)
+    }
 
     //Funktionen
 
@@ -1002,6 +1210,18 @@
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         const statWorkouts = strengthWorkouts.value;
+        const targetData = statWorkouts.map((w) => kgToDisplay(w.weight))
+        const shouldAnimateIntro = workoutChartAnimateNext.value && targetData.length > 0
+        const introIndex = shouldAnimateIntro ? findWorkoutIntroIndex() : -1
+        const baseBarColor = document.documentElement.classList.contains('dark-mode') ? '#818cf8' : '#6366f1'
+        const baseBorderColor = document.documentElement.classList.contains('dark-mode') ? '#4b5563' : '#4338ca'
+        const introBarColor = document.documentElement.classList.contains('dark-mode') ? '#c4b5fd' : '#4f46e5'
+        const introBorderColor = document.documentElement.classList.contains('dark-mode') ? '#e9d5ff' : '#312e81'
+        const introData = targetData.map((value, index) => (index === introIndex ? 0 : value))
+        const backgroundColors = targetData.map((_, index) => index === introIndex ? introBarColor : baseBarColor)
+        const borderColors = targetData.map((_, index) => index === introIndex ? introBorderColor : baseBorderColor)
+        const borderWidths = targetData.map((_, index) => index === introIndex ? 2 : 1)
+        workoutChartAnimateNext.value = false
 
         workoutChart = new Chart(ctx, {
             type: 'bar',
@@ -1010,16 +1230,19 @@
                 datasets: [
                     {
                         label: `Gewicht (${unit.value})`,
-                        data: statWorkouts.map((w) => kgToDisplay(w.weight)),
-                        backgroundColor: '#6366f1',
-                        borderColor: '#4338ca',
-                        borderWidth: 1,
+                        data: shouldAnimateIntro && introIndex >= 0 ? introData : targetData,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: borderWidths,
+                        borderRadius: 10,
+                        maxBarThickness: 38,
                     },
                 ],
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
                 plugins: {
                     tooltip: { backgroundColor: '#ffffff', titleColor: '#1f2937', bodyColor: '#6b7280' },
                     legend: { labels: { color: '#1f2937' } },
@@ -1038,11 +1261,174 @@
             workoutChart.options.plugins!.legend!.labels!.color = '#e5e7eb';
             workoutChart.options.scales!.x!.ticks!.color = '#9ca3af';
             workoutChart.options.scales!.y!.ticks!.color = '#9ca3af';
-            workoutChart.data.datasets[0].backgroundColor = '#818cf8';
-            workoutChart.data.datasets[0].borderColor = '#4b5563';
+            workoutChart.data.datasets[0].backgroundColor = backgroundColors;
+            workoutChart.data.datasets[0].borderColor = borderColors;
             workoutChart.update();
         }
+
     };
+
+    function findWorkoutIntroIndex() {
+        const introTarget = pendingWorkoutStatsIntro.value
+        if (!introTarget) return -1
+
+        const candidates = [...strengthWorkouts.value].map((workout, index) => ({ workout, index })).reverse()
+        const sameExercise = (value: string) =>
+            value.trim().toLowerCase() === introTarget.exercise.trim().toLowerCase()
+        const sameDay = (value: string) =>
+            toDayKey(value) === toDayKey(introTarget.date)
+        const sameWeight = (value: number) =>
+            Math.abs(kgToDisplay(value) - introTarget.weight) < 0.0001
+
+        return candidates.find(({ workout }) =>
+            sameExercise(workout.exercise)
+            && sameDay(workout.date)
+            && sameWeight(workout.weight)
+        )?.index
+            ?? candidates.find(({ workout }) =>
+                sameExercise(workout.exercise)
+                && sameDay(workout.date)
+            )?.index
+            ?? candidates.find(({ workout }) =>
+                sameExercise(workout.exercise)
+            )?.index
+            ?? candidates[0]?.index
+            ?? -1
+    }
+
+    function getWorkoutStatsLabelPoint(index: number) {
+        const canvas = document.getElementById('workoutChart') as HTMLCanvasElement | null
+        const xScale = workoutChart?.scales?.x as any
+        if (!canvas || !workoutChart || !xScale) return null
+
+        const rect = canvas.getBoundingClientRect()
+        return {
+            x: rect.left + xScale.getPixelForValue(index),
+            y: rect.top + workoutChart.chartArea.bottom + 24,
+        }
+    }
+
+    function getWorkoutStatsBarPoint(index: number, value: number) {
+        const canvas = document.getElementById('workoutChart') as HTMLCanvasElement | null
+        const xScale = workoutChart?.scales?.x as any
+        const yScale = workoutChart?.scales?.y as any
+        const stage = trainingStatsSectionRef.value
+        if (!canvas || !workoutChart || !xScale || !yScale || !stage) return null
+
+        const rect = canvas.getBoundingClientRect()
+        const stageRect = stage.getBoundingClientRect()
+        const centerX = rect.left + xScale.getPixelForValue(index)
+        const topY = rect.top + yScale.getPixelForValue(value)
+        const bottomY = rect.top + workoutChart.chartArea.bottom
+
+        return {
+            left: centerX - stageRect.left - 14,
+            top: topY - stageRect.top,
+            height: Math.max(0, bottomY - topY),
+            width: 28,
+            bottomY: bottomY - stageRect.top,
+        }
+    }
+
+    function getLastTrainingCardPoint() {
+        const cardInfo = lastTrainingCardRef.value?.querySelector('.card-info') as HTMLElement | null
+        const source = cardInfo ?? lastTrainingCardRef.value
+        if (!source) return null
+
+        const rect = source.getBoundingClientRect()
+        return {
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2,
+        }
+    }
+
+    async function animateWorkoutLabelIntoStats(index: number) {
+        const introTarget = pendingWorkoutStatsIntro.value
+        const start = getLastTrainingCardPoint()
+        const target = getWorkoutStatsLabelPoint(index)
+        if (!introTarget || !start || !target) return
+
+        workoutStatsFlyLabel.visible = true
+        workoutStatsFlyLabel.flying = false
+        workoutStatsFlyLabel.text = introTarget.exercise
+        workoutStatsFlyLabel.x = start.x
+        workoutStatsFlyLabel.y = start.y
+        workoutStatsFlyLabel.scale = 1.02
+
+        await nextTick()
+        requestAnimationFrame(() => {
+            workoutStatsFlyLabel.flying = true
+            workoutStatsFlyLabel.x = target.x
+            workoutStatsFlyLabel.y = target.y
+            workoutStatsFlyLabel.scale = 0.78
+        })
+
+        await sleep(760)
+        workoutStatsFlyLabel.visible = false
+        workoutStatsFlyLabel.flying = false
+    }
+
+    async function animateWorkoutBarGrowth(index: number) {
+        const introTarget = pendingWorkoutStatsIntro.value
+        if (!introTarget) return
+
+        const target = getWorkoutStatsBarPoint(index, introTarget.weight)
+        if (!target) return
+
+        workoutStatsBarOverlay.visible = true
+        workoutStatsBarOverlay.growing = false
+        workoutStatsBarOverlay.left = target.left
+        workoutStatsBarOverlay.width = target.width
+        workoutStatsBarOverlay.top = target.bottomY
+        workoutStatsBarOverlay.height = 0
+
+        await nextTick()
+        requestAnimationFrame(() => {
+            workoutStatsBarOverlay.growing = true
+            workoutStatsBarOverlay.top = target.top
+            workoutStatsBarOverlay.height = target.height
+        })
+
+        await sleep(1080)
+        workoutStatsBarOverlay.visible = false
+        workoutStatsBarOverlay.growing = false
+    }
+
+    async function runPendingWorkoutStatsReveal() {
+        if (!pendingWorkoutStatsReveal.value || activeTab.value !== 'stats') return
+
+        await nextTick()
+        updateWorkoutChart()
+
+        trainingStatsSectionRef.value?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+        })
+        await sleep(560)
+
+        const introIndex = findWorkoutIntroIndex()
+        if (introIndex < 0) {
+            pendingWorkoutStatsReveal.value = false
+            pendingWorkoutStatsIntro.value = null
+            return
+        }
+
+        workoutChartAnimateNext.value = true
+        updateWorkoutChart()
+        await nextTick()
+        await animateWorkoutLabelIntoStats(introIndex)
+        await animateWorkoutBarGrowth(introIndex)
+
+        if (workoutChart && pendingWorkoutStatsIntro.value) {
+            const targetData = strengthWorkouts.value.map((w) => kgToDisplay(w.weight))
+            workoutChart.data.datasets[0].data = targetData as any
+            workoutChart.options.animation = false
+            workoutChart.update()
+        }
+
+        pendingWorkoutStatsReveal.value = false
+        pendingWorkoutStatsIntro.value = null
+    }
 
     function normalizeWorkoutType(rawTypeInput: unknown, exerciseInput = '', workoutLike?: Partial<Workout>): WorkoutType {
         const rawType = String(rawTypeInput ?? '').trim().toLowerCase()
@@ -1180,22 +1566,11 @@
     const goal = ref<number | null>(null)
 
     const weightStore = useWeightStore()
-    // Tabs + Responsive-Handling für :compact in DashboardCard
-
-    const mq = window.matchMedia('(max-width: 600px)')
-    const isMobile = ref<boolean>(mq.matches)
-
-    const handleMqChange = (e: MediaQueryListEvent | MediaQueryList) => {
-        isMobile.value = 'matches' in e ? e.matches : (e as MediaQueryList).matches
-    }
-
     onMounted(async () => {
-        handleMqChange(mq)
-        mq.addEventListener?.('change', handleMqChange as any)
-
         await Promise.all([
             weightStore.loadEntries(),
             weightStore.loadSummary(),
+            complaintsStore.load().catch(() => undefined),
         ])
 
         weightHistory.value = (weightStore.entries ?? []).map((x: any) => ({
@@ -1207,7 +1582,7 @@
     })
 
     onUnmounted(() => {
-        mq.removeEventListener?.('change', handleMqChange as any)
+        clearGuideHighlight()
     })
 
     const onWeightSaved = async () => {
@@ -1236,10 +1611,6 @@
         addToast('Zielgewicht gespeichert', 'default')
     }
 
-    // 👉 wird in allen 4 DashboardCards als :compact benutzt
-
-    const compactCards = computed(() => activeTab.value === 'stats' && isMobile.value)
-
     //  Validierung für Gewicht & Zielgewicht
     const validationErrorMessages = ref<string[]>([]);
 
@@ -1250,7 +1621,9 @@
     const searchQuery = ref<string>('');
     const planSearchQuery = ref<string>('');
 
+    const PROGRESS_ACTIVE_TAB_KEY = 'gym3000:progress-active-tab'
     const activeTab = ref<'stats' | 'calculators' | 'plans'>('stats');
+    const hasHydratedActiveTab = ref(false)
 
     // ===== Stats-Tab: ChartCard Gewichtsverlauf & Trainingsstatistik =====
 
@@ -1459,6 +1832,10 @@
         [activeTab, unit, strengthWorkouts],
         async () => {
             if (activeTab.value !== 'stats') return
+            if (pendingWorkoutStatsReveal.value) {
+                await runPendingWorkoutStatsReveal()
+                return
+            }
             await nextTick()
             updateWorkoutChart()
         },
@@ -3054,6 +3431,10 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     const sortPlansByRecency = (plans: ViewPlan[]) =>
         [...plans].sort((a, b) => {
+            const aFavorite = a.isFavorite ? 1 : 0
+            const bFavorite = b.isFavorite ? 1 : 0
+            if (aFavorite !== bFavorite) return bFavorite - aFavorite
+
             const aFresh = isFreshPlan(a) ? 1 : 0
             const bFresh = isFreshPlan(b) ? 1 : 0
             if (aFresh !== bFresh) return bFresh - aFresh
@@ -3174,6 +3555,17 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     onMounted(async () => {
         try {
+            const routeTab = String(route.query.tab ?? '').trim()
+            if (!routeTab) {
+                const persistedActiveTab = localStorage.getItem(PROGRESS_ACTIVE_TAB_KEY)
+                if (persistedActiveTab === 'stats' || persistedActiveTab === 'calculators' || persistedActiveTab === 'plans') {
+                    activeTab.value = persistedActiveTab
+                }
+            }
+        } catch { }
+        hasHydratedActiveTab.value = true
+
+        try {
             await trainingPlansStore.loadList()
         } catch {
             showToast({ message: "Pl\u00E4ne konnten nicht geladen werden.", type: "default" })
@@ -3205,6 +3597,14 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     watch(
         () => activeTab.value,
         async (tab) => {
+            if (!hasHydratedActiveTab.value) {
+                if (tab !== 'plans') return
+                await ensureProgressPlanExerciseCountsLoaded()
+                return
+            }
+            try {
+                localStorage.setItem(PROGRESS_ACTIVE_TAB_KEY, tab)
+            } catch { }
             if (tab !== 'plans') return
             await ensureProgressPlanExerciseCountsLoaded()
         },
@@ -3696,6 +4096,15 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             } catch (e: any) {
                 showToast({ message: e?.message ?? "Speichern fehlgeschlagen.", type: "default" })
                 return
+            }
+
+            if (getWorkoutTypeForStats(workout) === 'kraft') {
+                pendingWorkoutStatsReveal.value = true
+                pendingWorkoutStatsIntro.value = {
+                    exercise: workout.exercise,
+                    date: workout.date,
+                    weight: kgToDisplay(workout.weight),
+                }
             }
 
             await progressStore.load(planId, true)
@@ -6054,6 +6463,11 @@ Notiz: ${e.note ?? '-'}\n`
         max-width: 100%;
     }
 
+    .dashboard-grid > * {
+        min-width: 0;
+        height: 100%;
+    }
+
     /* Feintuning für sehr kleine Screens: 1 Spalte hart erzwingen */
     @media (max-width: 520px) {
         .dashboard-grid {
@@ -6112,6 +6526,11 @@ Notiz: ${e.note ?? '-'}\n`
             min-width: 0;
         }
 
+        .progress-charts__row > * {
+            min-width: 0;
+            height: 100%;
+        }
+
         .progress-charts .card-info {
             margin: 0;
             margin-top: 0.2rem;
@@ -6136,6 +6555,43 @@ Notiz: ${e.note ?? '-'}\n`
         width: 100%;
         break-inside: avoid;
         margin: 0 0 1.5rem;
+    }
+
+    .calculators-grid {
+        overflow: visible;
+        padding-top: 0.35rem;
+        margin-top: -0.35rem;
+    }
+
+    .calc-search-item {
+        display: block;
+        min-width: 0;
+        max-height: 1600px;
+        overflow: visible;
+        transform-origin: top center;
+        transition:
+            transform 0.25s ease,
+            box-shadow 0.25s ease,
+            border-color 0.25s ease,
+            background 0.25s ease,
+            opacity 0.24s ease,
+            max-height 0.26s ease,
+            padding 0.26s ease,
+            margin 0.26s ease,
+            filter 0.24s ease;
+    }
+
+    .calc-search-item--hidden {
+        opacity: 0;
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        overflow: hidden;
+        transform: translateY(-10px) scale(0.985);
+        filter: blur(8px);
+        pointer-events: none;
     }
 
 
@@ -6344,6 +6800,14 @@ Notiz: ${e.note ?? '-'}\n`
 
     .plan-item--inactive {
         opacity: .88;
+    }
+
+    .plan-item.is-guided {
+        border-color: color-mix(in srgb, var(--accent-primary) 72%, white 8%);
+        box-shadow:
+            0 0 0 3px color-mix(in srgb, var(--accent-primary) 22%, transparent),
+            0 18px 40px color-mix(in srgb, var(--accent-primary) 18%, transparent);
+        animation: progress-guide-pulse 1.8s ease-out;
     }
 
     .plan-group-empty {
@@ -7223,6 +7687,180 @@ Notiz: ${e.note ?? '-'}\n`
 </style>
 
 <style scoped>
+    .chart-empty-guide {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: min(100%, 360px);
+        max-width: 360px;
+        margin: 0 auto;
+        padding: 0;
+        text-align: center;
+    }
+
+    .chart-empty-guide__content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .chart-empty-guide__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 18%, transparent);
+        background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+        color: color-mix(in srgb, var(--text-secondary) 88%, white 12%);
+        font-size: 0.73rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .chart-empty-guide__title {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: 1.06rem;
+        line-height: 1.25;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        max-width: 24ch;
+    }
+
+    .chart-empty-guide__text {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.55;
+        max-width: 34ch;
+        font-size: 0.92rem;
+    }
+
+    .chart-empty-guide__action {
+        appearance: none;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 38%, transparent);
+        background:
+            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 58%),
+            color-mix(in srgb, var(--bg-card) 92%, #0f172a 8%);
+        color: var(--text-primary);
+        border-radius: 999px;
+        padding: 0.72rem 1rem;
+        min-height: 42px;
+        font: inherit;
+        font-weight: 700;
+        line-height: 1.2;
+        cursor: pointer;
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+        margin-top: 0.15rem;
+        align-self: center;
+    }
+
+    .chart-empty-guide__action:hover {
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, var(--accent-primary) 58%, transparent);
+        box-shadow: 0 10px 24px color-mix(in srgb, var(--accent-primary) 14%, transparent);
+    }
+
+    @media (max-width: 640px) {
+        .chart-empty-guide {
+            width: 100%;
+        }
+    }
+
+    .progress-guide-target {
+        position: relative;
+        border-radius: 20px;
+    }
+
+    .progress-guide-target.is-guided {
+        animation: progress-guide-pulse 1.8s ease-out;
+    }
+
+    .progress-guide-target.is-guided :deep(.card),
+    .progress-guide-target.is-guided.workout-list {
+        border-color: color-mix(in srgb, var(--accent-primary) 74%, white 8%);
+        box-shadow:
+            0 0 0 3px color-mix(in srgb, var(--accent-primary) 24%, transparent),
+            0 18px 44px color-mix(in srgb, var(--accent-primary) 18%, transparent);
+    }
+
+    @keyframes progress-guide-pulse {
+        0% {
+            transform: translateY(0);
+        }
+
+        35% {
+            transform: translateY(-3px);
+        }
+
+        100% {
+            transform: translateY(0);
+        }
+    }
+
+    .training-stats-stage {
+        position: relative;
+        min-width: 0;
+        height: 100%;
+    }
+
+    .workout-stats-fly-label {
+        position: fixed;
+        z-index: 1200;
+        pointer-events: none;
+        padding: 0.42rem 0.78rem;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 34%, transparent);
+        background:
+            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 58%),
+            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 96%, white 4%), color-mix(in srgb, var(--bg-card) 88%, var(--accent-secondary) 12%));
+        color: var(--text-primary);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        box-shadow:
+            0 16px 34px rgba(15, 23, 42, 0.2),
+            0 0 0 1px color-mix(in srgb, var(--accent-primary) 12%, transparent);
+        opacity: 0.98;
+        transition:
+            left 720ms cubic-bezier(0.16, 0.84, 0.2, 1),
+            top 720ms cubic-bezier(0.16, 0.84, 0.2, 1),
+            transform 720ms cubic-bezier(0.16, 0.84, 0.2, 1),
+            opacity 180ms ease;
+        white-space: nowrap;
+    }
+
+    .workout-stats-fly-label.is-flying {
+        opacity: 0.94;
+    }
+
+    .workout-stats-bar-overlay {
+        position: absolute;
+        z-index: 4;
+        pointer-events: none;
+        border-radius: 10px 10px 0 0;
+        background: linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 86%, white 14%) 0%, color-mix(in srgb, var(--accent-primary) 72%, #312e81 28%) 100%);
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 58%, #312e81 42%);
+        box-shadow:
+            0 8px 18px color-mix(in srgb, var(--accent-primary) 18%, transparent),
+            0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+        transition:
+            top 920ms cubic-bezier(0.22, 0.76, 0.2, 1),
+            height 920ms cubic-bezier(0.22, 0.76, 0.2, 1),
+            opacity 180ms ease;
+        opacity: 0.96;
+        transform-origin: bottom center;
+    }
+
+    .workout-stats-bar-overlay.is-growing {
+        opacity: 1;
+    }
+
     .training-complete-body {
         text-align: center;
         color: var(--text-secondary);

@@ -172,13 +172,49 @@
         background: transparent;
         margin-top: 0; /* kill old spacing */
     }
-    /* Fade */
-    .fade-enter-active, .fade-leave-active {
-        transition: opacity .18s ease;
+    /* Fade + Popup-Aufklappen mit leichter Feder */
+    .fade-enter-active,
+    .fade-leave-active {
+        transition: opacity .22s ease;
     }
 
-    .fade-enter-from, .fade-leave-to {
+    .fade-enter-active .popup {
+        transition:
+            transform .34s cubic-bezier(0.18, 0.89, 0.32, 1.28),
+            opacity .22s ease;
+        will-change: transform, opacity;
+    }
+
+    .fade-leave-active .popup {
+        transition:
+            transform .18s ease,
+            opacity .18s ease;
+        will-change: transform, opacity;
+    }
+
+    .fade-enter-from,
+    .fade-leave-to {
         opacity: 0;
+    }
+
+    .fade-enter-from .popup {
+        opacity: 0;
+        transform: translateY(18px) scale(0.98);
+    }
+
+    .fade-enter-to .popup {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    .fade-leave-from .popup {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    .fade-leave-to .popup {
+        opacity: 0;
+        transform: translateY(8px) scale(0.985);
     }
     .popup {
         width: min(620px, 94vw);

@@ -25,6 +25,7 @@ export const LS_TRAINING_PLANNER = 'training_planner' as const
 export const LS_TRAINING_PLAN_COLORS = 'training_plan_colors' as const
 export const LS_TRAINING_REST_DAYS = 'training_rest_days' as const
 export const LS_TRAINING_PLANNER_COMPLETED = 'training_planner_completed' as const
+export const LS_TRAINING_GOALS_V1 = 'training_goals_v1' as const
 
 // Training data / plans
 export const LS_TRAINING_DATA = 'trainingData' as const
@@ -129,6 +130,7 @@ export const LS_TRAINING_KEYS = [
     LS_TRAINING_PLAN_COLORS,
     LS_TRAINING_REST_DAYS,
     LS_TRAINING_PLANNER_COMPLETED,
+    LS_TRAINING_GOALS_V1,
 ] as const
 
 export const LS_PROGRESS_KEYS = [

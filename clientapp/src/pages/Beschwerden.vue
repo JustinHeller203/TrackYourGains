@@ -6,26 +6,59 @@
             <h3 class="section-title">Deine Übersicht</h3>
 
             <div class="dashboard-grid">
-                <DashboardCard title="Aktive Beschwerden"
-                               :info="String(activeCount)"
-                               :muted="!entries.length"
-                               compact />
+                <div
+                    class="dashboard-card-shell"
+                    :class="{ 'is-dashboard-visible': dashboardCardsVisible }"
+                    style="--dashboard-delay: 0ms;">
+                    <DashboardCard
+                        title="Aktive Beschwerden"
+                        :info="activeCountDisplay"
+                        :muted="!entries.length"
+                        :class="{ 'is-dashboard-glowing': activeCountGlowActive }">
+                        <AnimatedReelValue
+                            :text="activeCountDisplay"
+                            :muted="!entries.length"
+                            :jump-nonce="activeCountJumpNonce" />
+                    </DashboardCard>
+                </div>
 
-                <DashboardCard title="Durchschnittliche Intensität"
-                               :info="averageIntensityInfo"
-                               :muted="!entries.length"
-                               compact />
+                <div
+                    class="dashboard-card-shell"
+                    :class="{ 'is-dashboard-visible': dashboardCardsVisible }"
+                    style="--dashboard-delay: 60ms;">
+                    <DashboardCard
+                        title="Durchschnittliche Intensität"
+                        :info="averageIntensityInfo"
+                        :muted="!entries.length">
+                        <AnimatedReelValue
+                            :text="averageIntensityInfo"
+                            :muted="!entries.length"
+                            :animate-from="averageIntensityAnimateFrom"
+                            :animate-to="averageIntensityAnimateTo"
+                            :animate-nonce="averageIntensityAnimateNonce" />
+                    </DashboardCard>
+                </div>
 
-                <DashboardCard title="Häufigste Körperstelle"
-                               :info="hotspotLabel"
-                               :muted="!entries.length" />
+                <div
+                    class="dashboard-card-shell"
+                    :class="{ 'is-dashboard-visible': dashboardCardsVisible }"
+                    style="--dashboard-delay: 120ms;">
+                    <DashboardCard
+                        title="Häufigste Körperstelle"
+                        :info="hotspotLabel"
+                        :muted="!entries.length" />
+                </div>
             </div>
         </section>
 
         <section class="stack-layout">
             <h3 class="section-title">Neue Beschwerde anlegen</h3>
 
-            <form ref="creatorFormRef" class="form-card builder-grid creator-card" @submit.prevent="submitEntry">
+            <form
+                ref="creatorFormRef"
+                class="form-card builder-grid creator-card"
+                :class="{ 'creator-card--editing': !!editingEntryId }"
+                @submit.prevent="submitEntry">
                 <div class="builder-left">
                     <div class="card-header creator-header">
                         <div>
@@ -119,6 +152,8 @@
                                 type="button"
                                 class="intensity-pill"
                                 :class="{ 'is-selected': form.intensity === value }"
+                                :style="{ '--intensity-accent': intensityFillColor(value) }"
+                                :aria-pressed="form.intensity === value"
                                 @click="form.intensity = value">
                                 {{ value }}
                             </button>
@@ -137,13 +172,16 @@
                          />
 
                     <div class="form-actions">
-                        <button type="submit" class="primary-button">
+                        <button
+                            type="submit"
+                            class="primary-button"
+                            :class="{ 'builder-edit-action-btn': !!editingEntryId }">
                             {{ editingEntryId ? 'Beschwerde aktualisieren' : 'Beschwerde speichern' }}
                         </button>
                         <button
                             v-if="editingEntryId"
                             type="button"
-                            class="secondary-button"
+                            class="secondary-button builder-edit-action-btn"
                             @click="cancelEditing">
                             Bearbeitung abbrechen
                         </button>
@@ -172,7 +210,12 @@
                     </div>
 
                     <div v-if="sortedFilteredEntries.length" class="timeline-list">
-                        <article v-for="entry in sortedFilteredEntries" :key="entry.id" class="list-item complaint-item">
+                        <article
+                            v-for="entry in sortedFilteredEntries"
+                            :key="entry.id"
+                            :ref="(el) => setComplaintItemRef(entry.id, el)"
+                            class="list-item complaint-item"
+                            :class="{ 'is-created-highlight': highlightedEntryId === entry.id }">
                             <div class="complaint-main">
                                 <div class="entry-top">
                                     <div>
@@ -221,7 +264,7 @@
                                                     <button
                                                         type="button"
                                                         class="pain-diary-preview__action-btn pain-diary-preview__action-btn--danger"
-                                                        @click="deletePainDiaryRecord(diary.id)">
+                                                        @click="requestDeletePainDiaryRecord(diary, $event)">
                                                         Löschen
                                                     </button>
                                                 </span>
@@ -303,7 +346,7 @@
                                              title="Löschen"
                                              aria-label="Löschen"
                                              data-short="Löschen"
-                                             @click="requestDeleteEntry(entry.id)">
+                                             @click="requestDeleteEntry(entry, $event)">
                                     Löschen
                                 </ResetButton>
                             </div>
@@ -329,12 +372,48 @@
             :show="showDeletePopup"
             @confirm="confirmDeleteEntry"
             @cancel="cancelDeleteEntry" />
+
+        <Transition name="delete-trash">
+            <div v-if="deleteTrashState.visible" class="delete-trash-overlay" aria-hidden="true">
+                <div v-if="deleteTrashState.itemName" class="delete-trash-flight" :style="deleteTrashFlightStyle">
+                    <span class="delete-trash-flight__title">{{ deleteTrashState.itemName }}</span>
+                </div>
+                <div class="delete-trash-bin">
+                    <div class="delete-trash-bin__lid"></div>
+                    <div class="delete-trash-bin__body"></div>
+                </div>
+            </div>
+        </Transition>
+
+        <Transition name="create-flight">
+            <div v-if="createFlightState.visible" class="create-flight-overlay" aria-hidden="true">
+                <div class="create-flight-card" :style="createFlightStyle">
+                    <span class="create-flight-card__area">{{ createFlightState.area }}</span>
+                    <span class="create-flight-card__meta">
+                        <span class="create-flight-card__chip">{{ createFlightState.intensity }}/10</span>
+                        <span class="create-flight-card__status">{{ createFlightState.status }}</span>
+                    </span>
+                </div>
+            </div>
+        </Transition>
+
+        <div v-if="builderActionLabel.visible"
+             :key="`builder-action-${builderActionLabel.seq}`"
+             class="builder-action-label"
+             aria-hidden="true">
+            <span class="builder-action-label__spark builder-action-label__spark--left"></span>
+            <span class="builder-action-label__spark builder-action-label__spark--right"></span>
+            <span class="builder-action-label__kicker">Builder Aktiv</span>
+            <strong class="builder-action-label__main">{{ builderActionLabel.label }}</strong>
+            <span class="builder-action-label__sub">Beschwerde wird jetzt direkt oben umgebaut</span>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-    import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+    import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
     import DashboardCard from '@/components/ui/DashboardCard.vue'
+    import AnimatedReelValue from '@/components/ui/progress/AnimatedReelValue.vue'
     import ResetButton from '@/components/ui/buttons/ResetButton.vue'
     import ComplaintInjuryEstimator from '@/components/ui/complaints/ComplaintInjuryEstimator.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
@@ -348,7 +427,7 @@
     import { useSettingsStore } from '@/store/settingsStore'
     import { useTrainingPlansStore } from '@/store/trainingPlansStore'
     import { LS_COMPLAINTS_CUSTOM_AREAS, LS_CONFIRM_DELETE_ENABLED } from '@/constants/storageKeys'
-    import type { ComplaintArea, ComplaintCategory, ComplaintStatus } from '@/types/complaint'
+    import type { ComplaintArea, ComplaintCategory, ComplaintEntry, ComplaintStatus } from '@/types/complaint'
 
     const complaintsStore = useComplaintsStore()
     const authStore = useAuthStore()
@@ -479,10 +558,38 @@
     const editingPainDiaryLevel = ref(0)
     const editingPainDiaryNote = ref('')
     const editingEntryId = ref<string | null>(null)
+    const builderActionLabel = ref<{ visible: boolean; label: string; seq: number }>({ visible: false, label: '', seq: 0 })
     const creatorFormRef = ref<HTMLElement | null>(null)
     const injuryEstimatorRef = ref<InjuryEstimatorExpose | null>(null)
     const showDeletePopup = ref(false)
     const pendingDeleteEntryId = ref<string | null>(null)
+    const pendingDeletePainDiaryId = ref<string | null>(null)
+    const pendingDeleteEntryEvent = ref<MouseEvent | null>(null)
+    const pendingDeletePainDiaryEvent = ref<MouseEvent | null>(null)
+    const complaintItemRefs = new Map<string, HTMLElement>()
+    const highlightedEntryId = ref<string | null>(null)
+    const createFlightState = ref({
+        visible: false,
+        area: '',
+        intensity: 0,
+        status: '',
+        startX: 0,
+        startY: 0,
+        deltaX: 0,
+        deltaY: 0,
+    })
+    const deleteTrashState = ref({
+        visible: false,
+        itemName: '',
+        startX: 0,
+        startY: 0,
+        deltaX: 0,
+        deltaY: 0,
+    })
+    let deleteTrashTimer: ReturnType<typeof setTimeout> | null = null
+    let createFlightTimer: ReturnType<typeof setTimeout> | null = null
+    let highlightTimer: ReturnType<typeof setTimeout> | null = null
+    let builderActionTimer: ReturnType<typeof setTimeout> | null = null
     let trainingContextResolver: ((payload: { duringTraining: boolean; exercise?: string }) => void) | null = null
 
     const entries = computed(() => complaintsStore.entries)
@@ -497,6 +604,20 @@
         const byDate = b.date.localeCompare(a.date)
         if (byDate !== 0) return byDate
         return b.createdAt.localeCompare(a.createdAt)
+    }))
+
+    const deleteTrashFlightStyle = computed(() => ({
+        left: `${deleteTrashState.value.startX}px`,
+        top: `${deleteTrashState.value.startY}px`,
+        '--delete-fly-x': `${deleteTrashState.value.deltaX}px`,
+        '--delete-fly-y': `${deleteTrashState.value.deltaY}px`,
+    }))
+
+    const createFlightStyle = computed(() => ({
+        left: `${createFlightState.value.startX}px`,
+        top: `${createFlightState.value.startY}px`,
+        '--create-fly-x': `${createFlightState.value.deltaX}px`,
+        '--create-fly-y': `${createFlightState.value.deltaY}px`,
     }))
 
     const painDiaryPreviewByComplaint = computed<Record<string, PainDiaryEntry[]>>(() => {
@@ -521,6 +642,7 @@
     })
 
     const activeCount = computed(() => entries.value.filter((entry) => entry.status !== 'weg').length)
+    const activeCountDisplay = computed(() => String(activeCount.value))
 
     const averageIntensity = computed(() => {
         if (!entries.value.length) return '-'
@@ -531,6 +653,65 @@
     const averageIntensityInfo = computed(() => (
         entries.value.length ? `${averageIntensity.value}/10` : 'Keine Einträge'
     ))
+
+    const dashboardCardsVisible = ref(false)
+    const activeCountJumpNonce = ref(0)
+    const activeCountGlowActive = ref(false)
+    const averageIntensityAnimateFrom = ref<string | null>(null)
+    const averageIntensityAnimateTo = ref<string | null>(null)
+    const averageIntensityAnimateNonce = ref(0)
+    let activeCountGlowTimer: ReturnType<typeof setTimeout> | null = null
+    let dashboardRevealTimer: ReturnType<typeof setTimeout> | null = null
+    let hasSeenActiveCount = false
+    let hasSeenAverageIntensity = false
+
+    function clearDashboardRevealTimer() {
+        if (dashboardRevealTimer) {
+            clearTimeout(dashboardRevealTimer)
+            dashboardRevealTimer = null
+        }
+    }
+
+    function scheduleDashboardReveal() {
+        clearDashboardRevealTimer()
+        dashboardCardsVisible.value = false
+        dashboardRevealTimer = setTimeout(() => {
+                dashboardCardsVisible.value = true
+                dashboardRevealTimer = null
+            }, 32)
+    }
+
+    watch(activeCount, (next, previous) => {
+        if (!hasSeenActiveCount) {
+            hasSeenActiveCount = true
+            return
+        }
+        if (previous === undefined) return
+        activeCountJumpNonce.value += 1
+
+        if (next > previous) {
+            if (activeCountGlowTimer) clearTimeout(activeCountGlowTimer)
+            activeCountGlowActive.value = false
+            requestAnimationFrame(() => {
+                activeCountGlowActive.value = true
+                activeCountGlowTimer = setTimeout(() => {
+                    activeCountGlowActive.value = false
+                    activeCountGlowTimer = null
+                }, 320)
+            })
+        }
+    })
+
+    watch(averageIntensityInfo, (next, previous) => {
+        if (!hasSeenAverageIntensity) {
+            hasSeenAverageIntensity = true
+            return
+        }
+        if (previous === undefined || next === previous) return
+        averageIntensityAnimateFrom.value = previous
+        averageIntensityAnimateTo.value = next
+        averageIntensityAnimateNonce.value += 1
+    })
 
     const hotspotLabel = computed(() => {
         if (!entries.value.length) return 'Noch offen'
@@ -680,12 +861,32 @@
         cancelPainDiaryEdit()
     }
 
-    function deletePainDiaryRecord(id: string) {
-        if (!window.confirm('Schmerztagebuch-Eintrag wirklich löschen?')) return
-        const success = removePainDiaryEntry(id)
-        if (!success) return
-        if (editingPainDiaryId.value === id) cancelPainDiaryEdit()
-        loadPainDiaryEntries()
+    function requestDeletePainDiaryRecord(entry: PainDiaryEntry, event?: MouseEvent) {
+        const id = entry.id
+        const confirmDeleteEnabled = resolveConfirmDeleteEnabled()
+
+        try {
+            localStorage.setItem(LS_CONFIRM_DELETE_ENABLED, String(confirmDeleteEnabled))
+            window.dispatchEvent(new CustomEvent('confirm-delete-changed', { detail: confirmDeleteEnabled }))
+        } catch {
+            // ignore
+        }
+
+        if (!confirmDeleteEnabled) {
+            launchDeleteTrashFlight(`Schmerztagebuch ${formatDateTime(entry.createdAt)}`, event)
+            deleteTrashTimer = setTimeout(() => {
+                hideDeleteTrash()
+                const success = removePainDiaryEntry(id)
+                if (!success) return
+                if (editingPainDiaryId.value === id) cancelPainDiaryEdit()
+                loadPainDiaryEntries()
+            }, 860)
+            return
+        }
+
+        pendingDeletePainDiaryId.value = id
+        pendingDeletePainDiaryEvent.value = event ?? null
+        showDeletePopup.value = true
     }
 
     function hexToRgb(hex: string) {
@@ -989,10 +1190,12 @@
             notes: combinedNotes,
         }
 
+        let createdEntry: ComplaintEntry | null = null
+
         if (editingEntryId.value) {
             await complaintsStore.updateEntry(editingEntryId.value, payload)
         } else {
-            await complaintsStore.addEntry(payload)
+            createdEntry = await complaintsStore.addEntry(payload)
         }
 
         if (form.area === 'benutzerdefiniert' || form.area === 'sonstiges') {
@@ -1009,13 +1212,35 @@
         }
 
         resetForm()
+
+        if (createdEntry) {
+            await playCreateFlight(createdEntry)
+        }
     }
 
     async function updateStatus(id: string, status: string) {
         await complaintsStore.updateStatus(id, status as ComplaintStatus)
     }
 
+    function triggerBuilderActionLabel(label: string) {
+        if (builderActionTimer) clearTimeout(builderActionTimer)
+        builderActionLabel.value = {
+            visible: true,
+            label,
+            seq: builderActionLabel.value.seq + 1,
+        }
+        builderActionTimer = setTimeout(() => {
+            builderActionLabel.value = {
+                visible: false,
+                label: '',
+                seq: builderActionLabel.value.seq,
+            }
+            builderActionTimer = null
+        }, 2200)
+    }
+
     function startEditing(entry: (typeof entries.value)[number]) {
+        triggerBuilderActionLabel('Bearbeiten')
         editingEntryId.value = entry.id
         form.area = entry.area
         form.customAreaSuggestion = ''
@@ -1047,7 +1272,127 @@
         resetForm()
     }
 
-    function requestDeleteEntry(id: string) {
+    function clearDeleteTrashTimer() {
+        if (deleteTrashTimer) {
+            clearTimeout(deleteTrashTimer)
+            deleteTrashTimer = null
+        }
+    }
+
+    function clearCreateFlightTimer() {
+        if (createFlightTimer) {
+            clearTimeout(createFlightTimer)
+            createFlightTimer = null
+        }
+    }
+
+    function clearHighlightTimer() {
+        if (highlightTimer) {
+            clearTimeout(highlightTimer)
+            highlightTimer = null
+        }
+    }
+
+    function hideDeleteTrash() {
+        clearDeleteTrashTimer()
+        deleteTrashState.value = {
+            visible: false,
+            itemName: '',
+            startX: 0,
+            startY: 0,
+            deltaX: 0,
+            deltaY: 0,
+        }
+    }
+
+    function hideCreateFlight() {
+        clearCreateFlightTimer()
+        createFlightState.value = {
+            visible: false,
+            area: '',
+            intensity: 0,
+            status: '',
+            startX: 0,
+            startY: 0,
+            deltaX: 0,
+            deltaY: 0,
+        }
+    }
+
+    function setComplaintItemRef(id: string, el: unknown) {
+        if (el instanceof HTMLElement) {
+            complaintItemRefs.set(id, el)
+            return
+        }
+        complaintItemRefs.delete(id)
+    }
+
+    function triggerCreatedHighlight(id: string) {
+        clearHighlightTimer()
+        highlightedEntryId.value = id
+        highlightTimer = setTimeout(() => {
+            highlightedEntryId.value = null
+            highlightTimer = null
+        }, 1400)
+    }
+
+    async function playCreateFlight(entry: ComplaintEntry) {
+        if (typeof window === 'undefined') return
+
+        const formRect = creatorFormRef.value?.getBoundingClientRect()
+        const fallbackX = window.innerWidth / 2
+        const fallbackY = Math.max(140, window.innerHeight / 2)
+        const startX = formRect ? formRect.left + Math.min(formRect.width * 0.74, formRect.width - 110) : fallbackX
+        const startY = formRect ? formRect.top + Math.min(formRect.height - 70, formRect.height * 0.82) : fallbackY
+
+        await nextTick()
+
+        const targetEl = complaintItemRefs.get(entry.id)
+        if (!targetEl) {
+            triggerCreatedHighlight(entry.id)
+            return
+        }
+
+        const targetRect = targetEl.getBoundingClientRect()
+        createFlightState.value = {
+            visible: true,
+            area: displayAreaLabel(entry),
+            intensity: entry.intensity,
+            status: statusLabel(entry.status),
+            startX,
+            startY,
+            deltaX: targetRect.left + 28 - startX,
+            deltaY: targetRect.top + 22 - startY,
+        }
+
+        createFlightTimer = setTimeout(() => {
+            hideCreateFlight()
+            triggerCreatedHighlight(entry.id)
+        }, 820)
+    }
+
+    function launchDeleteTrashFlight(itemName: string, event?: MouseEvent) {
+        clearDeleteTrashTimer()
+
+        const fallbackX = typeof window !== 'undefined' ? window.innerWidth / 2 : 0
+        const fallbackY = typeof window !== 'undefined' ? window.innerHeight / 2 : 0
+        const startX = event?.clientX ?? fallbackX
+        const startY = event?.clientY ?? Math.max(140, fallbackY - 40)
+        const targetX = typeof window !== 'undefined' ? window.innerWidth / 2 : startX
+        const targetY = typeof window !== 'undefined' ? window.innerHeight - 84 : startY
+
+        deleteTrashState.value = {
+            visible: true,
+            itemName,
+            startX,
+            startY,
+            deltaX: targetX - startX,
+            deltaY: targetY - startY,
+        }
+    }
+
+    function requestDeleteEntry(entry: ComplaintEntry, event?: MouseEvent) {
+        const id = entry.id
         const confirmDeleteEnabled = resolveConfirmDeleteEnabled()
 
         // DeleteConfirmPopup liest intern localStorage + Event.
@@ -1060,32 +1405,64 @@
         }
 
         if (!confirmDeleteEnabled) {
-            void complaintsStore.removeEntry(id)
-            if (editingEntryId.value === id) {
-                resetForm()
-            }
+            launchDeleteTrashFlight(displayAreaLabel(entry), event)
+            deleteTrashTimer = setTimeout(() => {
+                hideDeleteTrash()
+                void complaintsStore.removeEntry(id)
+                if (editingEntryId.value === id) {
+                    resetForm()
+                }
+            }, 860)
             return
         }
 
         pendingDeleteEntryId.value = id
+        pendingDeleteEntryEvent.value = event ?? null
         showDeletePopup.value = true
     }
 
     function cancelDeleteEntry() {
         showDeletePopup.value = false
         pendingDeleteEntryId.value = null
+        pendingDeletePainDiaryId.value = null
+        pendingDeleteEntryEvent.value = null
+        pendingDeletePainDiaryEvent.value = null
     }
 
     function confirmDeleteEntry() {
-        const id = pendingDeleteEntryId.value
-        if (id) {
-            void complaintsStore.removeEntry(id)
-            if (editingEntryId.value === id) {
-                resetForm()
-            }
+        const complaintId = pendingDeleteEntryId.value
+        const painDiaryId = pendingDeletePainDiaryId.value
+
+        if (complaintId) {
+            const complaint = entries.value.find((entry) => entry.id === complaintId)
+            launchDeleteTrashFlight(complaint ? displayAreaLabel(complaint) : 'Beschwerde', pendingDeleteEntryEvent.value ?? undefined)
+            deleteTrashTimer = setTimeout(() => {
+                hideDeleteTrash()
+                void complaintsStore.removeEntry(complaintId)
+                if (editingEntryId.value === complaintId) {
+                    resetForm()
+                }
+            }, 860)
         }
+
+        if (painDiaryId) {
+            const diary = painDiaryEntries.value.find((entry) => entry.id === painDiaryId)
+            launchDeleteTrashFlight(diary ? `Schmerztagebuch ${formatDateTime(diary.createdAt)}` : 'Schmerztagebuch', pendingDeletePainDiaryEvent.value ?? undefined)
+            deleteTrashTimer = setTimeout(() => {
+                hideDeleteTrash()
+                const success = removePainDiaryEntry(painDiaryId)
+                if (success) {
+                    if (editingPainDiaryId.value === painDiaryId) cancelPainDiaryEdit()
+                    loadPainDiaryEntries()
+                }
+            }, 860)
+        }
+
         showDeletePopup.value = false
         pendingDeleteEntryId.value = null
+        pendingDeletePainDiaryId.value = null
+        pendingDeleteEntryEvent.value = null
+        pendingDeletePainDiaryEvent.value = null
     }
 
     function readConfirmDeleteEnabledFromStorage() {
@@ -1135,10 +1512,394 @@
     onMounted(() => {
         void complaintsStore.load()
         loadPainDiaryEntries()
+        scheduleDashboardReveal()
+    })
+
+    onActivated(() => {
+        scheduleDashboardReveal()
+    })
+
+    onDeactivated(() => {
+        clearDashboardRevealTimer()
+        dashboardCardsVisible.value = false
+    })
+
+    onUnmounted(() => {
+        clearDashboardRevealTimer()
+        if (activeCountGlowTimer) clearTimeout(activeCountGlowTimer)
+        clearCreateFlightTimer()
+        clearHighlightTimer()
+        clearDeleteTrashTimer()
+        if (builderActionTimer) clearTimeout(builderActionTimer)
     })
 </script>
 
 <style scoped>
+    .builder-action-label {
+        position: fixed;
+        left: 50%;
+        top: 46%;
+        z-index: 1400;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        display: grid;
+        justify-items: center;
+        gap: .3rem;
+        min-width: min(88vw, 460px);
+        padding: 1rem 1.4rem 1.05rem;
+        border-radius: 1.6rem;
+        border: 1px solid rgba(250, 204, 21, 0.72);
+        background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 55%),
+            linear-gradient(180deg, rgba(255, 251, 235, 0.99), rgba(255, 244, 214, 0.96));
+        color: #b45309;
+        line-height: 1;
+        text-align: center;
+        overflow: hidden;
+        box-shadow:
+            0 22px 42px rgba(245, 158, 11, 0.24),
+            0 0 0 1px rgba(255, 248, 220, 0.76),
+            0 0 0 10px rgba(250, 204, 21, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.94);
+        animation: builder-action-label-rise 2.2s cubic-bezier(0.2, 0.82, 0.24, 1) both, builder-action-label-glow 2.2s ease-in-out both;
+    }
+
+    .builder-action-label__kicker {
+        padding: .26rem .7rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: #92400e;
+        font-size: .74rem;
+        font-weight: 900;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.2);
+    }
+
+    .builder-action-label__main {
+        display: block;
+        font-size: clamp(1.6rem, 4.8vw, 2.5rem);
+        font-weight: 1000;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: #b45309;
+        text-shadow:
+            0 2px 0 rgba(255, 255, 255, 0.7),
+            0 0 22px rgba(250, 204, 21, 0.18);
+    }
+
+    .builder-action-label__sub {
+        display: block;
+        font-size: .9rem;
+        font-weight: 800;
+        letter-spacing: .05em;
+        color: #a16207;
+        opacity: .9;
+    }
+
+    .builder-action-label__spark {
+        position: absolute;
+        top: 50%;
+        width: 76px;
+        height: 76px;
+        border-radius: 999px;
+        background:
+            radial-gradient(circle, rgba(250, 204, 21, 0.9) 0 12%, rgba(250, 204, 21, 0.18) 34%, rgba(250, 204, 21, 0) 72%);
+        filter: blur(2px);
+        opacity: 0;
+        animation: builder-action-spark 2.2s ease-out both;
+    }
+
+    .builder-action-label__spark--left {
+        left: -8px;
+    }
+
+    .builder-action-label__spark--right {
+        right: -8px;
+        animation-delay: .12s;
+    }
+
+    @keyframes builder-action-label-rise {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -28%) scale(.72) rotate(-5deg);
+            filter: blur(10px);
+            letter-spacing: .08em;
+        }
+
+        18% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.06) rotate(.5deg);
+            filter: blur(0);
+            letter-spacing: .12em;
+        }
+
+        62% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            filter: blur(0);
+            letter-spacing: .12em;
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(-50%, -68%) scale(.95) rotate(1deg);
+            filter: blur(6px);
+            letter-spacing: .14em;
+        }
+    }
+
+    @keyframes builder-action-label-glow {
+        0%, 100% {
+            text-shadow: 0 0 0 rgba(255, 248, 220, 0), 0 0 0 rgba(250, 204, 21, 0);
+        }
+
+        50% {
+            text-shadow: 0 0 18px rgba(255, 248, 220, 0.82), 0 0 36px rgba(250, 204, 21, 0.46);
+        }
+    }
+
+    @keyframes builder-action-spark {
+        0%, 20% {
+            opacity: 0;
+            transform: translateY(-50%) scale(.2);
+        }
+
+        40% {
+            opacity: .9;
+            transform: translateY(-50%) scale(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translateY(-50%) scale(1.45);
+        }
+    }
+
+    .delete-trash-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1300;
+        pointer-events: none;
+    }
+
+    .create-flight-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1280;
+        pointer-events: none;
+    }
+
+    .create-flight-card {
+        position: fixed;
+        min-width: 188px;
+        max-width: 240px;
+        display: grid;
+        gap: 0.35rem;
+        padding: 0.8rem 0.9rem;
+        border-radius: 16px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, rgba(148, 163, 184, 0.26));
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 18%, transparent), transparent 58%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 12%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
+        box-shadow: 0 24px 56px rgba(15, 23, 42, 0.34), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 18%, transparent) inset;
+        transform: translate(-50%, -50%);
+        animation: complaint-create-flight .82s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        will-change: transform, opacity;
+    }
+
+    .create-flight-card__area {
+        font-size: 0.98rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .create-flight-card__meta {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+    }
+
+    .create-flight-card__chip,
+    .create-flight-card__status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0.24rem 0.58rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        background: rgba(15, 23, 42, 0.14);
+        color: var(--text-primary);
+    }
+
+    .create-flight-card__chip {
+        border-color: color-mix(in srgb, var(--accent-primary) 38%, rgba(148, 163, 184, 0.24));
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 16%, transparent) inset;
+    }
+
+    .complaint-item.is-created-highlight {
+        animation: complaint-created-highlight 1.2s ease-out;
+    }
+
+    .delete-trash-flight {
+        position: fixed;
+        min-width: 180px;
+        max-width: min(280px, calc(100vw - 2rem));
+        padding: .8rem 1rem;
+        border-radius: 16px;
+        border: 1px solid rgba(239, 68, 68, 0.24);
+        background: radial-gradient(circle at top left, color-mix(in srgb, #ef4444 12%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, white 6%);
+        box-shadow: 0 18px 38px rgba(15, 23, 42, 0.2);
+        transform: translate(-50%, -50%);
+        animation: delete-trash-flight .86s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    .delete-trash-flight__title {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: .92rem;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    .delete-trash-bin {
+        position: fixed;
+        left: 50%;
+        bottom: 1.25rem;
+        width: 90px;
+        height: 92px;
+        transform: translateX(-50%);
+        filter: drop-shadow(0 20px 30px rgba(15, 23, 42, 0.26));
+        animation: delete-trash-bin-pop .3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+
+    .delete-trash-bin__lid {
+        position: absolute;
+        left: 50%;
+        top: 2px;
+        width: 62px;
+        height: 12px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #94a3b8, #64748b);
+        transform: translateX(-50%);
+    }
+
+    .delete-trash-bin__lid::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -6px;
+        width: 22px;
+        height: 6px;
+        border-radius: 999px 999px 0 0;
+        background: #64748b;
+        transform: translateX(-50%);
+    }
+
+    .delete-trash-bin__body {
+        position: absolute;
+        inset: 14px 12px 0;
+        border-radius: 18px 18px 22px 22px;
+        border: 2px solid rgba(71, 85, 105, 0.8);
+        background: linear-gradient(180deg, rgba(226, 232, 240, 0.96), rgba(148, 163, 184, 0.88));
+        overflow: hidden;
+    }
+
+    .delete-trash-bin__body::before,
+    .delete-trash-bin__body::after {
+        content: "";
+        position: absolute;
+        top: 12px;
+        bottom: 12px;
+        width: 4px;
+        border-radius: 999px;
+        background: rgba(71, 85, 105, 0.38);
+    }
+
+    .delete-trash-bin__body::before {
+        left: 22px;
+        box-shadow: 14px 0 0 rgba(71, 85, 105, 0.38), 28px 0 0 rgba(71, 85, 105, 0.38);
+    }
+
+    .delete-trash-enter-active,
+    .delete-trash-leave-active {
+        transition: opacity .22s ease;
+    }
+
+    .delete-trash-enter-from,
+    .delete-trash-leave-to {
+        opacity: 0;
+    }
+
+    @keyframes delete-trash-bin-pop {
+        0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(18px) scale(.92);
+        }
+
+        100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+    }
+
+    @keyframes delete-trash-flight {
+        0% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        }
+
+        68% {
+            opacity: 1;
+            transform: translate(calc(-50% + var(--delete-fly-x) * .82), calc(-50% + var(--delete-fly-y) * .82)) scale(.78) rotate(-10deg);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% + var(--delete-fly-x)), calc(-50% + var(--delete-fly-y))) scale(.26) rotate(-18deg);
+        }
+    }
+
+    @keyframes complaint-create-flight {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.92) rotate(-4deg);
+        }
+        16% {
+            opacity: 1;
+            transform: translate(calc(-50% + var(--create-fly-x) * 0.1), calc(-50% + var(--create-fly-y) * 0.08)) scale(1.02) rotate(-2deg);
+        }
+        72% {
+            opacity: 1;
+            transform: translate(calc(-50% + var(--create-fly-x) * 0.84), calc(-50% + var(--create-fly-y) * 0.84)) scale(0.92) rotate(1deg);
+        }
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% + var(--create-fly-x)), calc(-50% + var(--create-fly-y))) scale(0.78) rotate(0deg);
+        }
+    }
+
+    @keyframes complaint-created-highlight {
+        0% {
+            transform: translateY(8px);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        }
+        28% {
+            transform: translateY(0);
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent) inset, 0 0 0 12px color-mix(in srgb, var(--accent-primary) 12%, transparent), 0 22px 48px rgba(15, 23, 42, 0.28);
+        }
+        100% {
+            transform: translateY(0);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        }
+    }
+
     .complaints-page {
         padding: 1rem;
         background: transparent;
@@ -1212,6 +1973,38 @@
         max-width: 100%;
     }
 
+    .dashboard-card-shell {
+        opacity: 0;
+        transform: translateY(22px);
+        transition:
+            opacity 380ms ease-out var(--dashboard-delay, 0ms),
+            transform 520ms cubic-bezier(0.22, 1, 0.36, 1) var(--dashboard-delay, 0ms);
+    }
+
+    .dashboard-card-shell.is-dashboard-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .is-dashboard-glowing {
+        animation: complaints-dashboard-rise-glow 320ms ease-out;
+    }
+
+    @keyframes complaints-dashboard-rise-glow {
+        0% {
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        }
+        45% {
+            box-shadow:
+                0 20px 46px rgba(15, 23, 42, 0.28),
+                0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent) inset,
+                0 0 0 10px color-mix(in srgb, var(--accent-primary) 10%, transparent);
+        }
+        100% {
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        }
+    }
+
     .stack-layout {
         gap: 0.75rem;
         grid-template-columns: minmax(0, 1fr);
@@ -1248,6 +2041,41 @@
         gap: 1rem;
         width: 100%;
         box-sizing: border-box;
+    }
+
+    .creator-card--editing {
+        border-color: rgba(250, 204, 21, 0.92) !important;
+        box-shadow:
+            0 0 0 2px rgba(250, 204, 21, 0.96),
+            0 0 0 10px rgba(250, 204, 21, 0.16),
+            0 30px 60px rgba(217, 119, 6, 0.2) !important;
+        animation: builder-form-edit-ring 1.95s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    @keyframes builder-form-edit-ring {
+        0% {
+            box-shadow:
+                0 0 0 0 rgba(250, 204, 21, 0.08),
+                0 0 0 0 rgba(250, 204, 21, 0.08),
+                0 12px 24px rgba(217, 119, 6, 0.08);
+            transform: translateY(0) scale(.995);
+        }
+
+        35% {
+            box-shadow:
+                0 0 0 2px rgba(250, 204, 21, 0.96),
+                0 0 0 14px rgba(250, 204, 21, 0.22),
+                0 30px 60px rgba(217, 119, 6, 0.24);
+            transform: translateY(-2px) scale(1.002);
+        }
+
+        100% {
+            box-shadow:
+                0 0 0 2px rgba(250, 204, 21, 0.96),
+                0 0 0 10px rgba(250, 204, 21, 0.16),
+                0 30px 60px rgba(217, 119, 6, 0.2);
+            transform: translateY(0) scale(1);
+        }
     }
 
     .builder-left,
@@ -1433,15 +2261,113 @@
     }
 
     .intensity-pill {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
         min-height: 44px;
         cursor: pointer;
         font-weight: 700;
+        background: rgba(15, 23, 42, 0.08);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 8px 18px rgba(15, 23, 42, 0.08);
+        transition:
+            transform 0.18s ease,
+            border-color 0.18s ease,
+            background 0.18s ease,
+            color 0.18s ease,
+            box-shadow 0.22s ease;
+    }
+
+    .intensity-pill::before,
+    .intensity-pill::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+    }
+
+    .intensity-pill::before {
+        inset: -2px;
+        z-index: 2;
+        padding: 2.5px;
+        background: conic-gradient(from 0deg,
+                rgba(255, 255, 255, 0) 0deg,
+                rgba(255, 255, 255, 0) 220deg,
+                color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 92%, white 8%) 262deg,
+                white 298deg,
+                color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 98%, white 2%) 334deg,
+                rgba(255, 255, 255, 0) 360deg);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+        opacity: 0;
+        transform: rotate(0deg);
+        filter:
+            drop-shadow(0 0 8px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 58%, transparent))
+            drop-shadow(0 0 18px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 28%, transparent));
+        transition: opacity 0.2s ease;
+    }
+
+    .intensity-pill::after {
+        inset: 1px;
+        z-index: -1;
+        background:
+            radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 16%, transparent), transparent 68%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 46%);
+        opacity: 0.55;
     }
 
     .intensity-pill.is-selected,
     .status-pill.is-active {
         border-color: rgba(249, 115, 22, 0.42);
         background: linear-gradient(180deg, rgba(249, 115, 22, 0.18), rgba(245, 158, 11, 0.08));
+    }
+
+    .intensity-pill:hover {
+        border-color: color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 58%, rgba(148, 163, 184, 0.3));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            0 12px 22px rgba(15, 23, 42, 0.12);
+    }
+
+    .intensity-pill:focus-visible {
+        outline: none;
+        border-color: color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 72%, white 28%);
+        box-shadow:
+            0 0 0 3px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 18%, transparent),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14),
+            0 12px 24px rgba(15, 23, 42, 0.14);
+    }
+
+    .intensity-pill.is-selected {
+        color: #fff7ed;
+        border-color: transparent;
+        background:
+            radial-gradient(circle at 20% 18%, color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 34%, white 8%), transparent 52%),
+            linear-gradient(180deg,
+                color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 34%, rgba(15, 23, 42, 0.18)),
+                color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 18%, rgba(15, 23, 42, 0.22)));
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 34%, transparent) inset,
+            0 0 0 4px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 12%, transparent),
+            0 18px 34px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 20%, rgba(15, 23, 42, 0.18));
+    }
+
+    .intensity-pill.is-selected::before {
+        opacity: 1;
+        animation: intensity-pill-border-run 0.62s linear infinite;
+    }
+
+    @keyframes intensity-pill-border-run {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(-360deg);
+        }
     }
 
     .field-error {
@@ -1480,6 +2406,39 @@
 
     .secondary-button {
         background: rgba(15, 23, 42, 0.05);
+    }
+
+    .builder-edit-action-btn {
+        width: auto;
+        flex: 1 1 0;
+        min-height: 48px;
+        padding: 0 1.5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 1rem;
+        border: 1px solid rgba(180, 83, 9, 0.22);
+        background: linear-gradient(180deg, rgba(255, 251, 235, 0.96), rgba(255, 244, 214, 0.9));
+        color: #9a3412;
+        font-size: .95rem;
+        font-weight: 900;
+        letter-spacing: .02em;
+        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+    }
+
+    .builder-edit-action-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        border-color: rgba(180, 83, 9, 0.34) !important;
+        box-shadow: 0 16px 30px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+    }
+
+    .builder-edit-action-btn:focus {
+        outline: none;
+    }
+
+    .builder-edit-action-btn:focus-visible {
+        box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.28), 0 16px 30px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
     }
 
     .filters-grid {
@@ -1942,10 +2901,84 @@
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
+    html.dark-mode .creator-card--editing {
+        border-color: rgba(251, 191, 36, 0.92) !important;
+        box-shadow:
+            0 0 0 2px rgba(251, 191, 36, 0.92),
+            0 0 0 10px rgba(251, 191, 36, 0.14),
+            0 28px 54px rgba(0, 0, 0, 0.34) !important;
+    }
+
+    html.dark-mode .delete-trash-flight {
+        border-color: rgba(248, 113, 113, 0.28);
+        background: radial-gradient(circle at top left, rgba(239, 68, 68, 0.18), transparent 60%), rgba(2, 6, 23, 0.94);
+        box-shadow: 0 20px 44px rgba(0, 0, 0, 0.42);
+    }
+
+    html.dark-mode .delete-trash-flight__title {
+        color: #f8fafc;
+    }
+
+    html.dark-mode .delete-trash-bin__lid {
+        background: linear-gradient(180deg, #64748b, #334155);
+    }
+
+    html.dark-mode .delete-trash-bin__lid::before {
+        background: #475569;
+    }
+
+    html.dark-mode .delete-trash-bin__body {
+        border-color: rgba(148, 163, 184, 0.62);
+        background: linear-gradient(180deg, rgba(51, 65, 85, 0.96), rgba(15, 23, 42, 0.94));
+    }
+
+    html.dark-mode .delete-trash-bin__body::before {
+        box-shadow: 14px 0 0 rgba(148, 163, 184, 0.26), 28px 0 0 rgba(148, 163, 184, 0.26);
+        background: rgba(148, 163, 184, 0.26);
+    }
+
     html.dark-mode .plan-card {
         background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62%), #020617;
         border-color: rgba(148, 163, 184, 0.5);
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    html.dark-mode .builder-action-label {
+        border-color: rgba(251, 191, 36, 0.54);
+        background:
+            radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.16), rgba(251, 191, 36, 0) 55%),
+            linear-gradient(180deg, rgba(120, 53, 15, 0.98), rgba(92, 39, 12, 0.94));
+        color: #fde68a;
+        box-shadow:
+            0 18px 34px rgba(0, 0, 0, 0.42),
+            0 0 0 1px rgba(255, 244, 214, 0.12),
+            0 0 22px rgba(250, 204, 21, 0.18),
+            0 0 0 10px rgba(250, 204, 21, 0.08);
+    }
+
+    html.dark-mode .builder-action-label__kicker {
+        background: rgba(255, 248, 220, 0.08);
+        color: #fde68a;
+        box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.18);
+    }
+
+    html.dark-mode .builder-action-label__main {
+        color: #fde68a;
+        text-shadow:
+            0 2px 0 rgba(120, 53, 15, 0.6),
+            0 0 22px rgba(250, 204, 21, 0.22);
+    }
+
+    html.dark-mode .builder-action-label__sub {
+        color: #fde68a;
+        opacity: .82;
+    }
+
+    html.dark-mode .builder-edit-action-btn {
+        border-color: rgba(251, 191, 36, 0.28);
+        background: linear-gradient(180deg, rgba(120, 53, 15, 0.94), rgba(92, 39, 12, 0.92));
+        color: #fde68a;
+        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
     @supports not (backdrop-filter: blur(10px)) or not (color-mix(in srgb, black 10%, white 90%)) {
@@ -2003,6 +3036,45 @@
         }
     }
 
+    @media (prefers-reduced-motion: reduce) {
+        .dashboard-card-shell,
+        .dashboard-card-shell.is-dashboard-visible {
+            opacity: 1;
+            transform: none;
+            transition: none;
+        }
+
+        .create-flight-card,
+        .complaint-item.is-created-highlight {
+            animation: none;
+        }
+
+        .is-dashboard-glowing {
+            animation: none;
+        }
+
+        .intensity-pill,
+        .intensity-pill.is-selected {
+            animation: none;
+        }
+
+        .intensity-pill::after,
+        .intensity-pill.is-selected::after {
+            animation: none;
+            opacity: 0;
+        }
+
+        .intensity-pill::before,
+        .intensity-pill.is-selected::before {
+            animation: none;
+        }
+
+        .builder-action-label,
+        .builder-action-label__spark {
+            animation: none;
+        }
+    }
+
     @media (max-width: 620px) {
         .form-card,
         .plan-card,
@@ -2050,6 +3122,10 @@
             width: 100%;
         }
 
+        .builder-edit-action-btn {
+            width: auto;
+        }
+
         .section-meta {
             width: 100%;
             text-align: center;
@@ -2082,6 +3158,24 @@
     @media (max-width: 420px) {
         .complaints-page {
             padding: 1rem;
+        }
+
+        .builder-action-label {
+            min-width: min(92vw, 360px);
+            padding: .9rem 1rem;
+            top: 44%;
+        }
+
+        .builder-action-label__kicker {
+            font-size: .62rem;
+        }
+
+        .builder-action-label__main {
+            font-size: 1.18rem;
+        }
+
+        .builder-action-label__sub {
+            font-size: .74rem;
         }
 
         .page-title {

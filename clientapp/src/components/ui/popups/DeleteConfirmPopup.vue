@@ -31,9 +31,13 @@
     import BasePopup from './BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import { LS_CONFIRM_DELETE_ENABLED } from '@/constants/storageKeys'
+    import { useAuthStore } from '@/store/authStore'
+    import { useSettingsStore } from '@/store/settingsStore'
 
     const props = defineProps<{ show: boolean }>()
     const emit = defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
+    const authStore = useAuthStore()
+    const settingsStore = useSettingsStore()
 
     const confirmDeleteEnabled = ref(true)
 
@@ -50,16 +54,30 @@
 
     const dontShowAgain = ref(false)
 
-    const setConfirmDeleteEnabled = (enabled: boolean) => {
+    const setConfirmDeleteEnabled = async (enabled: boolean) => {
         localStorage.setItem(LS_CONFIRM_DELETE_ENABLED, String(enabled))
-        window.dispatchEvent(new CustomEvent('confirm-delete-changed', { detail: enabled }))
         confirmDeleteEnabled.value = enabled
+
+        settingsStore.dto = {
+            ...settingsStore.dto,
+            confirmDeleteEnabled: enabled,
+        }
+
+        if (authStore.user) {
+            try {
+                await settingsStore.saveToBackend()
+            } catch {
+                // Fallback bleibt lokal + im Store aktiv.
+            }
+        } else {
+            window.dispatchEvent(new CustomEvent('confirm-delete-changed', { detail: enabled }))
+        }
     }
 
-    const onConfirm = () => {
+    const onConfirm = async () => {
         // User will "Nicht mehr anzeigen" -> Confirm-Dialog künftig AUS
         // (sonst bleibt er AN)
-        setConfirmDeleteEnabled(!dontShowAgain.value)
+        await setConfirmDeleteEnabled(!dontShowAgain.value)
 
         emit('confirm')
     }

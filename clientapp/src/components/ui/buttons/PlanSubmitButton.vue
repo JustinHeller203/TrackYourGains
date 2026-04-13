@@ -1,7 +1,7 @@
 <!--Pfad: components/ui/buttons/PlanSubmitButton.vue-->
 <template>
-    <button class="primary-btn plan-submit-btn"
-            :class="[block ? 'block' : '', extraClass]"
+    <button class="plan-submit-btn"
+            :class="[isEditing ? '' : 'primary-btn', block ? 'block' : '', extraClass]"
             :type="type"
             :disabled="disabled"
             :title="computedTitle"

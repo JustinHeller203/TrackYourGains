@@ -76,6 +76,9 @@
         flex-direction: column;
         align-items: flex-start;
         text-align: left;
+        justify-content: space-between;
+        height: 100%;
+        min-height: 152px;
         padding: 1.6rem 1.8rem;
         border-radius: 18px;
         background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 7%, transparent), transparent 60%), color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
@@ -128,7 +131,7 @@
     /* Basis-Wert – klar, hell, gut lesbar auf dem dunklen Card-Background */
     .card-info {
         font-size: 1.3rem;
-        font-weight: 700;
+        font-weight: 800;
         line-height: 1.3;
         letter-spacing: -0.01em;
         color: var(--text-primary); /* kein Gradient, kein Blau-Zwang */
@@ -136,27 +139,41 @@
 
         /* Placeholder / Muted: etwas kleiner & dezenter */
         .card-info.is-muted,
-        .card-info :is(.is-muted, .muted, .placeholder) {
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            opacity: 0.9;
+        .card-info :deep(.is-muted),
+        .card-info :deep(.muted),
+        .card-info :deep(.placeholder) {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 800;
+            font-style: normal;
+            line-height: 1.3;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+            opacity: 1;
+            font-variant-numeric: normal;
         }
 
         /* Kompaktmodus: etwas größerer, “wichtigerer” Wert */
         .card-info.is-compact {
-            font-size: 1.5rem;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 1.3rem;
             font-weight: 800;
+            font-style: normal;
+            line-height: 1.3;
+            letter-spacing: -0.01em;
+            font-variant-numeric: normal;
         }
 
         /* Slot-Content erbt weiterhin sauber */
-        .card-info * {
+        .card-info :deep(*) {
             font-family: inherit;
             font-size: inherit;
             font-weight: inherit;
+            font-style: inherit;
             letter-spacing: inherit;
             line-height: inherit;
             color: inherit;
+            font-variant-numeric: inherit;
         }
 
 

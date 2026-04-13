@@ -20,14 +20,14 @@
                 Abbrechen
             </PopupActionButton>
 
-            <PopupActionButton autofocus @click="onSave">
-                Speichern
+            <PopupActionButton autofocus @click="onPrimaryAction">
+                {{ primaryActionLabel }}
             </PopupActionButton>
         </template>
     </BasePopup>
 </template>
 <script setup lang="ts">
-    import { ref, watch } from 'vue'
+    import { computed, ref, watch } from 'vue'
     import BasePopup from './BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
@@ -37,15 +37,21 @@
         modelValue: number | null
         placeholder?: string
         validate?: (value: number | null) => string | null
+        isDirty?: boolean
+        allowReset?: boolean
     }>()
 
     const emit = defineEmits<{
         (e: 'update:modelValue', value: number | null): void
         (e: 'save'): void
+        (e: 'reset'): void
         (e: 'cancel'): void
     }>()
 
     const error = ref('')
+    const primaryActionLabel = computed(() =>
+        !props.isDirty && props.allowReset ? 'Zurücksetzen' : 'Speichern'
+    )
 
     watch(() => props.show, (open) => {
         if (open) error.value = ''
@@ -73,5 +79,15 @@
 
         error.value = ''
         emit('save')
+    }
+
+    function onPrimaryAction() {
+        if (!props.isDirty && props.allowReset) {
+            error.value = ''
+            emit('reset')
+            return
+        }
+
+        onSave()
     }
 </script>

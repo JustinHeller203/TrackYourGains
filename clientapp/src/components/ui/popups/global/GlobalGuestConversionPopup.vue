@@ -36,12 +36,6 @@
                     Später
                 </button>
 
-                <PopupActionButton variant="ghost"
-                                   class="conversion-popup__button conversion-popup__button--secondary"
-                                   @click="emit('login')">
-                    Anmelden
-                </PopupActionButton>
-
                 <PopupActionButton class="conversion-popup__button conversion-popup__button--primary"
                                    @click="emit('register')">
                     Registrieren
@@ -62,7 +56,6 @@
     const emit = defineEmits<{
         (e: 'close'): void
         (e: 'later'): void
-        (e: 'login'): void
         (e: 'register'): void
     }>()
 
@@ -249,7 +242,7 @@
 
     .conversion-popup__actions {
         display: grid;
-        grid-template-columns: 1fr auto auto;
+        grid-template-columns: 1fr auto;
         gap: 0.7rem;
         align-items: center;
         width: 100%;
@@ -266,6 +259,7 @@
     .conversion-popup__later {
         justify-self: start;
         padding: 0.55rem 0.1rem;
+        border: none;
         background: transparent;
         color: var(--text-secondary);
         font-size: 0.92rem;
@@ -279,7 +273,7 @@
         letter-spacing: 0.01em;
     }
 
-    .conversion-popup__button:deep(.pab-btn) {
+    .conversion-popup__button {
         width: 100%;
         min-height: 3.1rem;
         border-radius: 16px;
@@ -289,13 +283,7 @@
         justify-content: center;
     }
 
-    .conversion-popup__button--secondary:deep(.pab-btn) {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(148, 163, 184, 0.24);
-        color: var(--text-primary);
-    }
-
-    .conversion-popup__button--primary:deep(.pab-btn) {
+    .conversion-popup__button--primary {
         background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 84%, #ffffff 16%), color-mix(in srgb, var(--accent-secondary) 72%, #ffffff 28%));
         color: #f8fafc;
         border: 1px solid rgba(129, 140, 248, 0.38);
@@ -312,20 +300,14 @@
             color: var(--text-primary);
         }
 
-        .conversion-popup__button--secondary:hover:deep(.pab-btn) {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(129, 140, 248, 0.28);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
-        }
-
-        .conversion-popup__button--primary:hover:deep(.pab-btn) {
+        .conversion-popup__button--primary:hover {
             box-shadow: 0 20px 42px rgba(15, 23, 42, 0.3);
             filter: saturate(1.04);
         }
     }
 
     .conversion-popup__later:focus-visible,
-    .conversion-popup__button:deep(.pab-btn:focus-visible) {
+    .conversion-popup__button:focus-visible {
         outline: none;
         box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.2);
     }
@@ -336,21 +318,34 @@
         }
 
         .popup-overlay.global-guest-conversion-popup .popup-actions {
-            padding: 0 1rem 1rem;
+            padding: 0.35rem 1rem 1.15rem;
         }
 
-        .conversion-popup__benefits,
-        .conversion-popup__actions {
+        .conversion-popup__benefits {
             grid-template-columns: 1fr;
         }
 
         .conversion-popup__later {
-            justify-self: center;
-            order: 3;
+            justify-self: start;
+            order: 0;
         }
 
         .conversion-popup__button {
-            width: 100%;
+            min-width: 0;
+        }
+
+        .conversion-popup__button {
+            min-height: 2rem;
+            padding: 0.42rem 0.88rem;
+            font-size: 0.88rem;
+        }
+
+        .conversion-popup__button--primary {
+            min-height: 0;
+            height: 2.2rem;
+            padding-top: 0;
+            padding-bottom: 0;
+            line-height: 1;
         }
     }
 

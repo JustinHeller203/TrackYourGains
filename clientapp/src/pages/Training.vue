@@ -3,23 +3,67 @@
     <div class="training">
         <h2 class="page-title">💪 Training</h2>
         <!-- Trainingsplan Formular -->
-        <TrainingPlanBuilder ref="builderRef"
-                             :openEditPopup="openEditPopup"
-                             :addToast="addToast"
-                             :openValidationPopup="openValidationPopup"
-                             :openDeletePopup="openDeletePopup"
-                             :onGuestPlanCreated="onGuestPlanCreated"
-                             v-model:customExercises="customExercises"
-                             :saveToStorage="saveToStorage"
-                             @plan-created="onPlanCreated" />
+        <div ref="builderSection"
+             class="builder-shell"
+             :class="{ 'builder-shell--edit-morphing': builderPlanMorph.visible }">
+            <TrainingPlanBuilder ref="builderRef"
+                                 :openEditPopup="openEditPopup"
+                                 :addToast="addToast"
+                                 :openValidationPopup="openValidationPopup"
+                                 :openDeletePopup="openDeletePopup"
+                                 :onGuestPlanCreated="onGuestPlanCreated"
+                                 v-model:customExercises="customExercises"
+                                 :saveToStorage="saveToStorage"
+                                 @plan-created="onPlanCreated"
+                                 @plan-updated-with-exercise-changes="onPlanUpdatedWithExerciseChanges" />
 
-        <TrainingPlansList :guestPlans="guestPlans"
+            <Transition name="builder-edit-morph">
+                <div v-if="builderPlanMorph.visible"
+                     :key="`builder-plan-morph-${builderPlanMorph.seq}`"
+                     class="builder-edit-morph"
+                     :style="builderPlanMorphStyle"
+                     aria-hidden="true">
+                    <div class="builder-edit-morph__beam"></div>
+
+                    <div class="builder-edit-morph__card builder-edit-morph__card--old">
+                        <span class="builder-edit-morph__eyebrow">Alter Plan</span>
+                        <strong class="builder-edit-morph__title">{{ builderPlanMorph.oldName }}</strong>
+                        <span class="builder-edit-morph__meta">{{ builderPlanMorph.beforeCount }} Übung{{ builderPlanMorph.beforeCount === 1 ? '' : 'en' }}</span>
+                        <span class="builder-edit-morph__tear builder-edit-morph__tear--one"></span>
+                        <span class="builder-edit-morph__tear builder-edit-morph__tear--two"></span>
+                        <span class="builder-edit-morph__tear builder-edit-morph__tear--three"></span>
+                    </div>
+
+                    <div class="builder-edit-morph__card builder-edit-morph__card--new">
+                        <span class="builder-edit-morph__eyebrow builder-edit-morph__eyebrow--new">Neu geformt</span>
+                        <strong class="builder-edit-morph__title">{{ builderPlanMorph.newName }}</strong>
+                        <span class="builder-edit-morph__meta">{{ builderPlanMorph.afterCount }} Übung{{ builderPlanMorph.afterCount === 1 ? '' : 'en' }}</span>
+                    </div>
+                </div>
+            </Transition>
+        </div>
+
+        <div v-if="builderActionLabel.visible"
+             :key="`builder-action-${builderActionLabel.seq}`"
+             class="builder-action-label"
+             aria-hidden="true">
+            <span class="builder-action-label__spark builder-action-label__spark--left"></span>
+            <span class="builder-action-label__spark builder-action-label__spark--right"></span>
+            <span class="builder-action-label__kicker">Builder Aktiv</span>
+            <strong class="builder-action-label__main">{{ builderActionLabel.label }}</strong>
+            <span class="builder-action-label__sub">Plan wird jetzt direkt oben umgebaut</span>
+        </div>
+
+        <TrainingPlansList ref="plansListRef"
+                           :guestPlans="guestPlans"
                            :customExercises="customExercises"
                            :onRemoveCustomExercise="removeCustomExercise"
                            :onGuestDeletePlan="onGuestDeletePlan"
                            :onGuestEditPlan="onGuestEditPlan"
+                           :onGuestPlanCreated="onGuestPlanCreated"
                            :onEditInBuilder="onEditPlanInBuilder"
                            :selectedPlanOverride="selectedPlan"
+                           :renameEffect="planRenameEffect"
                            :onSelectedPlanChange="onSelectedPlanChange"
                            :openEditPopup="openEditPopup"
                            :openDeletePopup="openDeletePopup"
@@ -117,12 +161,14 @@
     import type { TimerInstance } from '@/types/training';
     import {
         LS_AUTH_TOKEN,
+        LS_CONFIRM_DELETE_ENABLED,
         LS_TRAINING_FOCUS_ID,
         LS_TRAINING_FOCUS_TYPE,
         LS_TRAINING_OPEN_PLAN_ID,
         LS_STICKY_TIMER_ENABLED,
         LS_STICKY_STOPWATCH_ENABLED,
     } from '@/constants/storageKeys'
+    import { useSettingsStore } from '@/store/settingsStore'
     import { useTimersStore } from '@/store/timersStore'
     import { useStopwatchesStore } from '@/store/stopwatchesStore'
 
@@ -135,6 +181,14 @@
         reps: RangeCapableValue;
         goal?: string;
         type?: 'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung';
+    }
+
+    interface BuilderPlanMorphPayload {
+        planId: string
+        oldName: string
+        newName: string
+        beforeExercises: PlanExercise[]
+        afterExercises: PlanExercise[]
     }
 
     type ViewPlan = {
@@ -212,6 +266,89 @@
         }
     }
     const builderRef = ref<InstanceType<typeof TrainingPlanBuilder> | null>(null)
+    const plansListRef = ref<InstanceType<typeof TrainingPlansList> | null>(null)
+    const builderActionLabel = ref<{ visible: boolean; label: string; seq: number }>({ visible: false, label: '', seq: 0 })
+    const builderPlanMorph = ref<{
+        visible: boolean
+        seq: number
+        oldName: string
+        newName: string
+        beforeCount: number
+        afterCount: number
+        anchorX: number
+        anchorY: number
+    }>({
+        visible: false,
+        seq: 0,
+        oldName: '',
+        newName: '',
+        beforeCount: 0,
+        afterCount: 0,
+        anchorX: 0,
+        anchorY: 0,
+    })
+    let builderActionTimer: ReturnType<typeof setTimeout> | null = null
+    let builderPlanMorphTimer: ReturnType<typeof setTimeout> | null = null
+
+    const triggerBuilderActionLabel = (label: string) => {
+        if (builderActionTimer) clearTimeout(builderActionTimer)
+        builderActionLabel.value = {
+            visible: true,
+            label,
+            seq: builderActionLabel.value.seq + 1,
+        }
+        builderActionTimer = setTimeout(() => {
+            builderActionLabel.value = {
+                visible: false,
+                label: '',
+                seq: builderActionLabel.value.seq,
+            }
+            builderActionTimer = null
+        }, 3900)
+    }
+
+    const builderPlanMorphStyle = computed(() => ({
+        '--builder-morph-anchor-x': `${builderPlanMorph.value.anchorX || 50}%`,
+        '--builder-morph-anchor-y': `${builderPlanMorph.value.anchorY || 78}%`,
+    }))
+
+    const triggerBuilderPlanMorph = (payload: BuilderPlanMorphPayload) => {
+        if (builderPlanMorphTimer) clearTimeout(builderPlanMorphTimer)
+        const shell = builderSection.value
+        const submitButton = shell?.querySelector('.plan-submit-btn') as HTMLElement | null
+        const shellRect = shell?.getBoundingClientRect()
+        const buttonRect = submitButton?.getBoundingClientRect()
+        const anchorX = shellRect && buttonRect
+            ? ((buttonRect.left + buttonRect.width / 2 - shellRect.left) / shellRect.width) * 100
+            : 50
+        const anchorY = shellRect && buttonRect
+            ? ((buttonRect.top + buttonRect.height / 2 - shellRect.top) / shellRect.height) * 100
+            : 78
+        builderPlanMorph.value = {
+            visible: true,
+            seq: builderPlanMorph.value.seq + 1,
+            oldName: payload.oldName,
+            newName: payload.newName,
+            beforeCount: payload.beforeExercises.length,
+            afterCount: payload.afterExercises.length,
+            anchorX,
+            anchorY,
+        }
+        builderPlanMorphTimer = setTimeout(() => {
+            builderPlanMorph.value = {
+                visible: false,
+                seq: builderPlanMorph.value.seq,
+                oldName: '',
+                newName: '',
+                beforeCount: 0,
+                afterCount: 0,
+                anchorX: 0,
+                anchorY: 0,
+            }
+            builderPlanMorphTimer = null
+        }, 2250)
+    }
+
     function canUseLocalStorage(): boolean {
         // SSR / Tests / Privacy Mode guard
         if (typeof window === 'undefined') return false
@@ -228,7 +365,12 @@
     const onEditPlanInBuilder = (payload: { planId: string; name: string; exercises: any[] }) => {
         const b = builderRef.value as any
         b?.setEditMode?.({ planId: payload.planId, name: payload.name, exercises: payload.exercises })
+        triggerBuilderActionLabel('Bearbeiten')
         b?.scrollToBuilder?.()
+    }
+
+    const onPlanUpdatedWithExerciseChanges = (payload: BuilderPlanMorphPayload) => {
+        triggerBuilderPlanMorph(payload)
     }
 
     const cloneViewPlan = (plan: ViewPlan | null): ViewPlan | null => {
@@ -261,6 +403,7 @@
 
     // ===== Crash-Fix: fehlende Refs/Handler die im Template + Reset genutzt werden =====
     const guestPlans = ref<ViewPlan[]>([])
+    const planRenameEffect = ref<{ planId: string; oldName: string; newName: string; nonce: number } | null>(null)
     const selectedPlan = ref<ViewPlan | null>(null)
 
     const planSearch = ref('')
@@ -334,6 +477,7 @@
     }
 
     const auth = useAuthStore()
+    const settingsStore = useSettingsStore()
     const route = useRoute()
     const router = useRouter()
 
@@ -575,6 +719,17 @@
     };
 
     const onGuestPlanCreated = (plan: ViewPlan) => {
+        const existingIndex = guestPlans.value.findIndex(entry => entry.id === plan.id)
+
+        if (existingIndex >= 0) {
+            guestPlans.value.splice(existingIndex, 1, plan)
+            if (selectedPlan.value?.id === plan.id) {
+                selectedPlan.value = cloneViewPlan(plan)
+            }
+            addToast('Plan gespeichert', 'save')
+            return
+        }
+
         guestPlans.value.unshift(plan)
         addToast('Plan erstellt', 'add')
     }
@@ -1044,6 +1199,13 @@
     }
 
     const openDeletePopup = (action: () => void) => {
+        const confirmDeleteEnabled = settingsStore?.dto?.confirmDeleteEnabled ?? true
+        try {
+            localStorage.setItem(LS_CONFIRM_DELETE_ENABLED, String(confirmDeleteEnabled))
+            window.dispatchEvent(new CustomEvent('confirm-delete-changed', { detail: confirmDeleteEnabled }))
+        } catch {
+            // ignore
+        }
         deleteAction.value = action;
         showDeletePopup.value = true;
     };
@@ -1153,8 +1315,9 @@
 
             // Fallback: falls du doch irgendwann plans.value befüllst
             const localPlan = (plans.value ?? []).find(p => p.id === id) ?? null
+            const guestPlan = guestPlans.value.find(p => p.id === id) ?? null
 
-            const planLike: any = storePlan ?? localPlan
+            const planLike: any = storePlan ?? localPlan ?? guestPlan ?? (selectedPlan.value?.id === id ? selectedPlan.value : null)
 
             if (!planLike) { openValidationPopup(['Plan nicht gefunden']); return; }
 
@@ -1323,6 +1486,7 @@
 
         // === 3) Restliche Edit-Fälle ===============================================
         else if (editType.value === 'planName' && typeof editIndex.value === 'string') {
+            const planId = editIndex.value
             const validatedName = validatePlanName(editValue.value);
             if (validatedName === false) {
                 openValidationPopup([
@@ -1333,9 +1497,12 @@
                 return;
             }
 
-            setPlanNameInStore(editIndex.value, validatedName);
+            closeEditPopup();
+            setPlanNameInStore(planId, validatedName);
             addToast('Planname aktualisiert', 'save');
+            return;
         } else if (editType.value === 'selectedPlanName' && selectedPlan.value) {
+            const selectedPlanId = selectedPlan.value.id
             const validatedName = validatePlanName(editValue.value);
             if (validatedName === false) {
                 openValidationPopup([
@@ -1346,8 +1513,10 @@
                 return;
             }
 
-            setPlanNameInStore(selectedPlan.value.id, validatedName);
+            closeEditPopup();
+            setPlanNameInStore(selectedPlanId, validatedName);
             addToast('Planname aktualisiert', 'save');
+            return;
         }
 
         // === NEU: Typ einer benutzerdefinierten Übung ==============================
@@ -1490,29 +1659,61 @@
         }
     };
 
-    const setPlanNameInStore = (planId: string, newName: string) => {
-        // ✅ Gast: nur in guestPlans + selectedPlan ändern
+    const emitPlanRenameEffect = (planId: string, oldName: string, newName: string) => {
+        const previous = oldName.trim();
+        const next = newName.trim();
+        if (!planId || !previous || !next || previous === next) return;
+        const payload = {
+            planId,
+            oldName: previous,
+            newName: next,
+            nonce: Date.now() + Math.random(),
+        }
+        planRenameEffect.value = payload
+        void nextTick(() => {
+            ;(plansListRef.value as any)?.playRenameEffect?.(payload)
+        })
+    };
+
+    const applyPlanNameInStore = (planId: string, newName: string) => {
+        const trimmedName = newName.trim();
+
         if (!auth.user) {
             const gp = guestPlans.value.find(p => p.id === planId)
-            if (gp) gp.name = newName
-            if (selectedPlan.value?.id === planId) selectedPlan.value.name = newName
+            if (gp) gp.name = trimmedName
+            if (selectedPlan.value?.id === planId) selectedPlan.value.name = trimmedName
             return
         }
 
-        // ✅ Account: wie gehabt
         const dto = trainingPlansStore.items.find((p: TrainingPlanDto) => p.id === planId);
-        if (dto) dto.name = newName;
+        if (dto) dto.name = trimmedName;
 
         if (trainingPlansStore.selected?.id === planId) {
-            (trainingPlansStore.selected as any).name = newName;
+            (trainingPlansStore.selected as any).name = trimmedName;
         }
 
         if (selectedPlan.value?.id === planId) {
-            selectedPlan.value.name = newName;
+            selectedPlan.value.name = trimmedName;
         }
 
-        void persistPlanName(planId, newName);
+        void persistPlanName(planId, trimmedName);
         saveToStorage();
+    }
+
+    const setPlanNameInStore = (planId: string, newName: string) => {
+        const trimmedName = newName.trim();
+        const oldName = !auth.user
+            ? (guestPlans.value.find(p => p.id === planId)?.name ?? (selectedPlan.value?.id === planId ? (selectedPlan.value?.name ?? '') : ''))
+            : (trainingPlansStore.items.find((p: TrainingPlanDto) => p.id === planId)?.name
+                ?? ((trainingPlansStore.selected?.id === planId ? trainingPlansStore.selected?.name : '')
+                    || (selectedPlan.value?.id === planId ? selectedPlan.value.name : '')))
+
+        if (!oldName || oldName.trim() === trimmedName) {
+            applyPlanNameInStore(planId, trimmedName)
+            return
+        }
+        applyPlanNameInStore(planId, trimmedName)
+        void nextTick(() => emitPlanRenameEffect(planId, oldName, trimmedName))
     };
 
     const removeCustomExercise = (index: number) => {
@@ -2049,6 +2250,8 @@
 
         if (onBeforeUnload) window.removeEventListener('beforeunload', onBeforeUnload)
         if (onVisChange) document.removeEventListener('visibilitychange', onVisChange)
+        if (builderActionTimer) clearTimeout(builderActionTimer)
+        if (builderPlanMorphTimer) clearTimeout(builderPlanMorphTimer)
 
         onBeforeUnload = null
         onVisChange = null
@@ -2079,10 +2282,525 @@
         align-items: stretch;
     }
 
+    .builder-shell {
+        position: relative;
+        isolation: isolate;
+    }
+
+    .builder-shell--edit-morphing::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 2rem;
+        pointer-events: none;
+        background:
+            radial-gradient(circle at 50% 38%, rgba(248, 113, 113, 0.12), transparent 34%),
+            radial-gradient(circle at 50% 56%, rgba(250, 204, 21, 0.12), transparent 40%);
+        animation: builder-shell-edit-pulse 1.9s ease-out both;
+    }
+
+    .builder-shell--edit-morphing :deep(.form-card.builder-grid) {
+        border-color: rgba(250, 204, 21, 0.92) !important;
+        box-shadow:
+            0 0 0 2px rgba(250, 204, 21, 0.96),
+            0 0 0 10px rgba(250, 204, 21, 0.16),
+            0 30px 60px rgba(217, 119, 6, 0.2) !important;
+        animation: builder-form-edit-ring 1.95s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .builder-edit-morph {
+        position: absolute;
+        inset: 0;
+        z-index: 18;
+        pointer-events: none;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+    }
+
+    .builder-edit-morph__beam {
+        position: absolute;
+        left: var(--builder-morph-anchor-x, 50%);
+        top: calc(var(--builder-morph-anchor-y, 78%) - 34%);
+        width: min(44vw, 540px);
+        height: clamp(200px, 42vw, 360px);
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background:
+            linear-gradient(180deg, rgba(250, 204, 21, 0.18), rgba(248, 113, 113, 0.08) 48%, rgba(255, 255, 255, 0));
+        filter: blur(10px);
+        opacity: 0;
+        animation: builder-edit-beam 1.95s ease-out both;
+    }
+
+    .builder-edit-morph__card {
+        position: absolute;
+        left: 50%;
+        width: min(78vw, 420px);
+        padding: 1rem 1.2rem;
+        border-radius: 1.4rem;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .builder-edit-morph__card--old {
+        top: calc(var(--builder-morph-anchor-y, 78%) - 4%);
+        transform: translate(-50%, -50%);
+        border: 1px solid rgba(239, 68, 68, 0.24);
+        background: linear-gradient(180deg, rgba(255, 250, 250, 0.95), rgba(255, 238, 238, 0.92));
+        color: #7f1d1d;
+        box-shadow: 0 18px 36px rgba(127, 29, 29, 0.16);
+        animation: builder-edit-old-plan 1.95s cubic-bezier(0.18, 0.8, 0.22, 1) both;
+    }
+
+    .builder-edit-morph__card--new {
+        top: calc(var(--builder-morph-anchor-y, 78%) - 20%);
+        transform: translate(-50%, -50%);
+        border: 1px solid rgba(250, 204, 21, 0.36);
+        background: linear-gradient(180deg, rgba(255, 251, 235, 0.98), rgba(255, 244, 214, 0.93));
+        color: #854d0e;
+        box-shadow:
+            0 20px 42px rgba(217, 119, 6, 0.18),
+            0 0 0 1px rgba(255, 248, 220, 0.64),
+            inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        opacity: 0;
+        animation: builder-edit-new-plan 1.95s cubic-bezier(0.18, 0.8, 0.22, 1) both;
+    }
+
+    .builder-edit-morph__eyebrow {
+        display: block;
+        margin-bottom: .45rem;
+        font-size: .7rem;
+        font-weight: 900;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        opacity: .82;
+    }
+
+    .builder-edit-morph__eyebrow--new {
+        color: #b45309;
+    }
+
+    .builder-edit-morph__title {
+        display: block;
+        font-size: 1.18rem;
+        font-weight: 900;
+        letter-spacing: -.02em;
+    }
+
+    .builder-edit-morph__meta {
+        display: block;
+        margin-top: .45rem;
+        font-size: .78rem;
+        font-weight: 700;
+        opacity: .78;
+    }
+
+    .builder-edit-morph__tear {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 2px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(239, 68, 68, 0.92), rgba(255, 255, 255, 0.02));
+        box-shadow: 0 0 18px rgba(248, 113, 113, 0.32);
+        opacity: 0;
+    }
+
+    .builder-edit-morph__tear--one {
+        height: 132%;
+        animation: builder-edit-tear-one 1.95s ease-out both;
+    }
+
+    .builder-edit-morph__tear--two {
+        height: 108%;
+        animation: builder-edit-tear-two 1.95s ease-out both;
+    }
+
+    .builder-edit-morph__tear--three {
+        height: 88%;
+        animation: builder-edit-tear-three 1.95s ease-out both;
+    }
+
+    .builder-action-label {
+        position: fixed;
+        left: 50%;
+        top: 46%;
+        z-index: 1400;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        display: grid;
+        justify-items: center;
+        gap: .3rem;
+        min-width: min(88vw, 460px);
+        padding: 1rem 1.4rem 1.05rem;
+        border-radius: 1.6rem;
+        border: 1px solid rgba(250, 204, 21, 0.72);
+        background:
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 55%),
+            linear-gradient(180deg, rgba(255, 251, 235, 0.99), rgba(255, 244, 214, 0.96));
+        color: #b45309;
+        line-height: 1;
+        text-align: center;
+        overflow: hidden;
+        box-shadow:
+            0 22px 42px rgba(245, 158, 11, 0.24),
+            0 0 0 1px rgba(255, 248, 220, 0.76),
+            0 0 0 10px rgba(250, 204, 21, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.94);
+        animation: builder-action-label-rise 2.2s cubic-bezier(0.2, 0.82, 0.24, 1) both, builder-action-label-glow 2.2s ease-in-out both;
+    }
+
+    .builder-action-label__kicker {
+        padding: .26rem .7rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: #92400e;
+        font-size: .74rem;
+        font-weight: 900;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.2);
+    }
+
+    .builder-action-label__main {
+        display: block;
+        font-size: clamp(1.6rem, 4.8vw, 2.5rem);
+        font-weight: 1000;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: #b45309;
+        text-shadow:
+            0 2px 0 rgba(255, 255, 255, 0.7),
+            0 0 22px rgba(250, 204, 21, 0.18);
+    }
+
+    .builder-action-label__sub {
+        display: block;
+        font-size: .9rem;
+        font-weight: 800;
+        letter-spacing: .05em;
+        color: #a16207;
+        opacity: .9;
+    }
+
+    .builder-action-label__spark {
+        position: absolute;
+        top: 50%;
+        width: 76px;
+        height: 76px;
+        border-radius: 999px;
+        background:
+            radial-gradient(circle, rgba(250, 204, 21, 0.9) 0 12%, rgba(250, 204, 21, 0.18) 34%, rgba(250, 204, 21, 0) 72%);
+        filter: blur(2px);
+        opacity: 0;
+        animation: builder-action-spark 2.2s ease-out both;
+    }
+
+    .builder-action-label__spark--left {
+        left: -8px;
+    }
+
+    .builder-action-label__spark--right {
+        right: -8px;
+        animation-delay: .12s;
+    }
+
+    @keyframes builder-action-label-rise {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -28%) scale(.72) rotate(-5deg);
+            filter: blur(10px);
+            letter-spacing: .08em;
+        }
+
+        18% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.06) rotate(.5deg);
+            filter: blur(0);
+            letter-spacing: .12em;
+        }
+
+        62% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            filter: blur(0);
+            letter-spacing: .12em;
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(-50%, -68%) scale(.95) rotate(1deg);
+            filter: blur(6px);
+            letter-spacing: .14em;
+        }
+    }
+
+    @keyframes builder-action-label-glow {
+        0%, 100% {
+            text-shadow: 0 0 0 rgba(255, 248, 220, 0), 0 0 0 rgba(250, 204, 21, 0);
+        }
+
+        50% {
+            text-shadow: 0 0 18px rgba(255, 248, 220, 0.82), 0 0 36px rgba(250, 204, 21, 0.46);
+        }
+    }
+
+    @keyframes builder-action-spark {
+        0%, 20% {
+            opacity: 0;
+            transform: translateY(-50%) scale(.2);
+        }
+
+        40% {
+            opacity: .9;
+            transform: translateY(-50%) scale(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translateY(-50%) scale(1.45);
+        }
+    }
+
+    @keyframes builder-form-edit-ring {
+        0% {
+            box-shadow:
+                0 0 0 0 rgba(250, 204, 21, 0.08),
+                0 0 0 0 rgba(250, 204, 21, 0.08),
+                0 12px 24px rgba(217, 119, 6, 0.08);
+            transform: translateY(0) scale(.995);
+        }
+
+        35% {
+            box-shadow:
+                0 0 0 2px rgba(250, 204, 21, 0.96),
+                0 0 0 14px rgba(250, 204, 21, 0.22),
+                0 30px 60px rgba(217, 119, 6, 0.24);
+            transform: translateY(-2px) scale(1.002);
+        }
+
+        100% {
+            box-shadow:
+                0 0 0 2px rgba(250, 204, 21, 0.96),
+                0 0 0 10px rgba(250, 204, 21, 0.16),
+                0 30px 60px rgba(217, 119, 6, 0.2);
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes builder-shell-edit-pulse {
+        0% {
+            opacity: 0;
+            transform: scale(.97);
+        }
+
+        24% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(1.02);
+        }
+    }
+
+    @keyframes builder-edit-beam {
+        0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(16px) scaleY(.76);
+        }
+
+        25%,
+        70% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scaleY(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-18px) scaleY(1.08);
+        }
+    }
+
+    @keyframes builder-edit-old-plan {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, 22%) scale(.84) rotate(-5deg);
+            filter: blur(10px);
+        }
+
+        28% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.02) rotate(-1deg);
+            filter: blur(0);
+        }
+
+        46% {
+            opacity: 1;
+            transform: translate(-50%, -56%) scale(.99) rotate(0deg);
+            filter: blur(0);
+        }
+
+        68% {
+            opacity: .82;
+            transform: translate(calc(-50% - 34px), -70%) scale(.95) rotate(-7deg);
+            filter: blur(1px);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% - 60px), -92%) scale(.82) rotate(-15deg);
+            filter: blur(12px);
+        }
+    }
+
+    @keyframes builder-edit-new-plan {
+        0%,
+        48% {
+            opacity: 0;
+            transform: translate(-50%, -26%) scale(.7);
+            filter: blur(12px);
+            letter-spacing: .08em;
+        }
+
+        72% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.04);
+            filter: blur(0);
+            letter-spacing: 0;
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(-50%, -62%) scale(.98);
+            filter: blur(6px);
+            letter-spacing: .04em;
+        }
+    }
+
+    @keyframes builder-edit-tear-one {
+        0%,
+        32% {
+            opacity: 0;
+            transform: translate(-50%, -50%) rotate(-6deg) scaleY(.2);
+        }
+
+        46% {
+            opacity: 1;
+            transform: translate(-50%, -50%) rotate(-10deg) scaleY(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% - 42px), calc(-50% + 24px)) rotate(-26deg) scaleY(.62);
+        }
+    }
+
+    @keyframes builder-edit-tear-two {
+        0%,
+        34% {
+            opacity: 0;
+            transform: translate(-50%, -50%) rotate(4deg) scaleY(.2);
+        }
+
+        48% {
+            opacity: 1;
+            transform: translate(-50%, -50%) rotate(0deg) scaleY(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% + 8px), calc(-50% + 38px)) rotate(10deg) scaleY(.4);
+        }
+    }
+
+    @keyframes builder-edit-tear-three {
+        0%,
+        36% {
+            opacity: 0;
+            transform: translate(-50%, -50%) rotate(10deg) scaleY(.2);
+        }
+
+        50% {
+            opacity: 1;
+            transform: translate(-50%, -50%) rotate(12deg) scaleY(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% + 36px), calc(-50% + 20px)) rotate(26deg) scaleY(.56);
+        }
+    }
+
     html.dark-mode .training {
         background: transparent;
         --resize-color: #64748b;
         --resize-color-hover: #3b82f6;
+    }
+
+    html.dark-mode .builder-action-label {
+        border-color: rgba(251, 191, 36, 0.54);
+        background:
+            radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.16), rgba(251, 191, 36, 0) 55%),
+            linear-gradient(180deg, rgba(120, 53, 15, 0.98), rgba(92, 39, 12, 0.94));
+        color: #fde68a;
+        box-shadow:
+            0 18px 34px rgba(0, 0, 0, 0.42),
+            0 0 0 1px rgba(255, 244, 214, 0.12),
+            0 0 22px rgba(250, 204, 21, 0.18),
+            0 0 0 10px rgba(250, 204, 21, 0.08);
+    }
+
+    html.dark-mode .builder-shell--edit-morphing :deep(.form-card.builder-grid) {
+        border-color: rgba(251, 191, 36, 0.92) !important;
+        box-shadow:
+            0 0 0 2px rgba(251, 191, 36, 0.92),
+            0 0 0 10px rgba(251, 191, 36, 0.14),
+            0 28px 54px rgba(0, 0, 0, 0.34) !important;
+    }
+
+    html.dark-mode .builder-action-label__kicker {
+        background: rgba(255, 248, 220, 0.08);
+        color: #fde68a;
+        box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.18);
+    }
+
+    html.dark-mode .builder-action-label__main {
+        color: #fde68a;
+        text-shadow:
+            0 2px 0 rgba(120, 53, 15, 0.6),
+            0 0 22px rgba(250, 204, 21, 0.22);
+    }
+
+    html.dark-mode .builder-action-label__sub {
+        color: #fde68a;
+        opacity: .82;
+    }
+
+    html.dark-mode .builder-shell--edit-morphing::after {
+        background:
+            radial-gradient(circle at 50% 38%, rgba(248, 113, 113, 0.16), transparent 34%),
+            radial-gradient(circle at 50% 56%, rgba(250, 204, 21, 0.14), transparent 40%);
+    }
+
+    html.dark-mode .builder-edit-morph__card--old {
+        border-color: rgba(248, 113, 113, 0.26);
+        background: linear-gradient(180deg, rgba(69, 10, 10, 0.94), rgba(44, 12, 12, 0.92));
+        color: #fecaca;
+        box-shadow: 0 22px 42px rgba(0, 0, 0, 0.42);
+    }
+
+    html.dark-mode .builder-edit-morph__card--new {
+        border-color: rgba(250, 204, 21, 0.34);
+        background: linear-gradient(180deg, rgba(120, 53, 15, 0.96), rgba(92, 39, 12, 0.94));
+        color: #fde68a;
+        box-shadow:
+            0 22px 44px rgba(0, 0, 0, 0.42),
+            0 0 0 1px rgba(255, 244, 214, 0.08),
+            0 0 24px rgba(250, 204, 21, 0.14);
     }
 
     .page-title {
@@ -2100,6 +2818,33 @@
             --control-padding-x: 1rem;
         }
 
+        .builder-action-label {
+            min-width: min(92vw, 360px);
+            padding: .9rem 1rem;
+            top: 44%;
+        }
+
+        .builder-action-label__kicker {
+            font-size: .62rem;
+        }
+
+        .builder-action-label__main {
+            font-size: 1.18rem;
+        }
+
+        .builder-action-label__sub {
+            font-size: .74rem;
+        }
+
+        .builder-edit-morph__card {
+            width: min(88vw, 360px);
+            padding: .92rem 1rem;
+        }
+
+        .builder-edit-morph__title {
+            font-size: 1.02rem;
+        }
+
         .page-title {
             font-size: 1.9rem;
         }
@@ -2112,5 +2857,3 @@
     }
 
 </style>
-
-

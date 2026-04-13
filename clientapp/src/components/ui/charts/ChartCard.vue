@@ -1,6 +1,6 @@
 <!--ChartCard.vue-->
 <template>
-    <div class="chart-card" @click="$emit('click')">
+    <div class="chart-card" :class="{ 'is-empty': isEmpty }" @click="$emit('click')">
         <h3 class="card-title">{{ title }}</h3>
 
         <!-- optionaler Subtext -->
@@ -30,7 +30,9 @@
         </div>
 
         <div v-else class="empty-state">
-            Hier werden deine Statistiken angezeigt.
+            <slot name="empty">
+                Hier werden deine Statistiken angezeigt.
+            </slot>
         </div>
     </div>
 </template>
@@ -77,6 +79,7 @@
         display: flex;
         flex-direction: column;
         align-items: flex-start;
+        height: 100%;
         text-align: left;
         padding: 1.6rem 1.8rem 1.1rem;
         border-radius: 18px;
@@ -88,12 +91,20 @@
         transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     }
 
+    .chart-card.is-empty {
+        box-shadow: none;
+    }
+
     /* Hover wie bei DashboardCard */
     @media (hover: hover) {
         .chart-card:hover {
             transform: translateY(-3px) scale(1.01);
             box-shadow: 0 22px 50px rgba(15, 23, 42, 0.32);
             border-color: rgba(129, 140, 248, 0.55);
+        }
+
+        .chart-card.is-empty:hover {
+            box-shadow: none;
         }
     }
 
@@ -102,6 +113,10 @@
         background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 14%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 10%, transparent), transparent 60%), #020617;
         border-color: rgba(148, 163, 184, 0.45);
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
+    }
+
+    html.dark-mode .chart-card.is-empty {
+        box-shadow: none;
     }
 
     /* Titel wie bei den DashboardCards (kleines Label oben) */
@@ -125,14 +140,15 @@
 
     .empty-state {
         height: 240px;
-        margin-top: 0.6rem;
+        margin-top: 0.35rem;
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
         color: var(--text-secondary);
         font-size: 0.95rem;
-        padding: 0 1rem;
+        padding: 0.4rem 0 0;
+        width: 100%;
     }
 
     /* Footer wie bisher, nur an Card-Optik angepasst */
