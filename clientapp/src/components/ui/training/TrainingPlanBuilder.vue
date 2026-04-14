@@ -17,21 +17,43 @@
             :class="{ 'builder-card--editing': !!editingPlanId }">
             <div class="mode-switch mode-switch--top" :class="landingClass()" :style="{ '--builder-landing-delay': '70ms' }">
                 <span class="field-label">Erstellungsmodus</span>
-                <div class="segmented seg-mode">
-                    <button type="button"
-                            :class="{ on: builderMode === 'manual', 'is-swipe-animated': builderMode === 'manual' }"
-                            @click="handleBuilderModeSwitchClick('manual')">
-                        <span class="builder-mode-manual-content">
-                            <span class="builder-mode-manual-label">Manuell</span>
-                            <span v-if="builderMode === 'manual'"
-                                  :key="`builder-mode-swipe-hint-${modeSwipeHintCycle}`"
-                                  class="builder-mode-swipe-inline"
-                                  aria-hidden="true">
-                                ›››
+                <div ref="modeSwitchTrack"
+                     class="segmented seg-mode"
+                     :class="{ 'is-dragging': modeSwitchDrag.active }"
+                     @pointerdown="handleModeSwitchPointerDown">
+                    <span ref="modeSwitchThumb"
+                          class="seg-mode__thumb"
+                          :class="{ 'seg-mode__thumb--auto': builderMode === 'auto', 'seg-mode__thumb--dragging': modeSwitchDrag.active }"
+                          :style="modeSwitchThumbStyle"
+                          aria-hidden="true">
+                        <span class="seg-mode__thumb-labels">
+                            <span class="seg-mode__thumb-label seg-mode__thumb-label--manual"
+                                  :style="modeSwitchManualLabelStyle">
+                                <span class="builder-mode-manual-content">
+                                    <span class="builder-mode-manual-label">Manuell</span>
+                                    <span v-if="showModeSwitchThumbHint"
+                                          :key="`builder-mode-thumb-swipe-hint-${modeSwipeHintCycle}`"
+                                          class="builder-mode-swipe-inline seg-mode__thumb-hint">
+                                        ›››
+                                    </span>
+                                </span>
+                            </span>
+                            <span class="seg-mode__thumb-label seg-mode__thumb-label--auto"
+                                  :style="modeSwitchAutoLabelStyle">
+                                Automatisch generieren
                             </span>
                         </span>
-                    </button>
-                    <button type="button" :class="{ on: builderMode === 'auto' }" @click="handleBuilderModeSwitchClick('auto')">Automatisch generieren</button>
+                    </span>
+                    <button type="button"
+                            class="seg-mode__option"
+                            :class="{ on: builderMode === 'manual' }"
+                            @pointerdown.stop="handleModeSwitchPointerDown"
+                            @click="handleBuilderModeSwitchClick('manual')">Manuell</button>
+                    <button type="button"
+                            class="seg-mode__option"
+                            :class="{ on: builderMode === 'auto' }"
+                            @pointerdown.stop="handleModeSwitchPointerDown"
+                            @click="handleBuilderModeSwitchClick('auto')">Automatisch generieren</button>
                 </div>
             </div>
 
@@ -1185,6 +1207,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     let pendingTrainingTypeSourceEl: HTMLElement | null = null
 
     const editingPlanId = ref<string | null>(null)
+    const modeSwitchTrack = ref<HTMLElement | null>(null)
+    const modeSwitchThumb = ref<HTMLElement | null>(null)
     const selectedPlanExercises = ref<PlanExercise[]>([])
     const editOriginPlanName = ref('')
     const editOriginExercisesSnapshot = ref<PlanExercise[]>([])
@@ -1351,6 +1375,64 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const clonePlanExercises = (exercises: PlanExercise[]) =>
         Array.isArray(exercises) ? exercises.map((exercise) => ({ ...exercise })) : []
 
+    const MODE_SWITCH_DRAG_THRESHOLD_PX = 18
+    const modeSwitchDragSuppressClickUntil = ref(0)
+    const modeSwitchTravelPx = ref(0)
+    const modeSwitchDrag = reactive({
+        active: false,
+        pointerId: null as number | null,
+        startX: 0,
+        startTranslate: 0,
+        translate: 0,
+        didMove: false,
+    })
+    let modeSwitchResizeObserver: ResizeObserver | null = null
+
+    const getBuilderModeTranslate = (mode: 'manual' | 'auto') => (
+        mode === 'auto' ? modeSwitchTravelPx.value : 0
+    )
+
+    const clampModeSwitchTranslate = (value: number) => (
+        Math.min(Math.max(value, 0), modeSwitchTravelPx.value)
+    )
+
+    const modeSwitchThumbStyle = computed(() => ({
+        '--mode-switch-thumb-translate': `${Math.round(
+            clampModeSwitchTranslate(modeSwitchDrag.active ? modeSwitchDrag.translate : getBuilderModeTranslate(builderMode.value))
+        )}px`,
+    }))
+
+    const modeSwitchProgress = computed(() => {
+        if (modeSwitchTravelPx.value <= 0) return builderMode.value === 'auto' ? 1 : 0
+        const activeTranslate = modeSwitchDrag.active
+            ? modeSwitchDrag.translate
+            : getBuilderModeTranslate(builderMode.value)
+        return clampModeSwitchTranslate(activeTranslate) / modeSwitchTravelPx.value
+    })
+
+    const showModeSwitchThumbHint = computed(() => (
+        !modeSwitchDrag.active && modeSwitchProgress.value < 0.08
+    ))
+
+    const modeSwitchManualLabelStyle = computed(() => ({
+        opacity: `${Math.max(0, 1 - modeSwitchProgress.value * 1.6)}`,
+        transform: `translateX(${Math.round(modeSwitchProgress.value * -18)}px)`,
+    }))
+
+    const modeSwitchAutoLabelStyle = computed(() => ({
+        opacity: `${Math.min(1, Math.max(0, (modeSwitchProgress.value - 0.2) / 0.8))}`,
+        transform: `translateX(${Math.round((1 - modeSwitchProgress.value) * 18)}px)`,
+    }))
+
+    const measureModeSwitch = () => {
+        const nextTravel = Math.max(0, modeSwitchThumb.value?.getBoundingClientRect().width ?? 0)
+        modeSwitchTravelPx.value = nextTravel
+
+        if (!modeSwitchDrag.active) {
+            modeSwitchDrag.translate = getBuilderModeTranslate(builderMode.value)
+        }
+    }
+
     const normalizePlanExerciseValue = (value: unknown): unknown => {
         if (Array.isArray(value)) {
             return value.map((entry) => normalizePlanExerciseValue(entry))
@@ -1382,7 +1464,85 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         hasDismissedModeSwipeHint.value = true
     }
 
+    const cleanupModeSwitchPointerListeners = () => {
+        window.removeEventListener('pointermove', onModeSwitchPointerMove)
+        window.removeEventListener('pointerup', onModeSwitchPointerUp)
+        window.removeEventListener('pointercancel', onModeSwitchPointerUp)
+    }
+
+    const finishModeSwitchDrag = (event?: PointerEvent) => {
+        if (modeSwitchDrag.pointerId != null) {
+            try {
+                modeSwitchTrack.value?.releasePointerCapture?.(modeSwitchDrag.pointerId)
+            } catch { }
+        }
+
+        const shouldToggle = modeSwitchDrag.didMove
+        const nextMode = modeSwitchDrag.translate >= modeSwitchTravelPx.value / 2 ? 'auto' : 'manual'
+
+        cleanupModeSwitchPointerListeners()
+
+        modeSwitchDrag.active = false
+        modeSwitchDrag.pointerId = null
+        modeSwitchDrag.startX = 0
+        modeSwitchDrag.startTranslate = 0
+        modeSwitchDrag.translate = getBuilderModeTranslate(shouldToggle ? nextMode : builderMode.value)
+
+        if (shouldToggle) {
+            modeSwitchDragSuppressClickUntil.value = Date.now() + 320
+            setBuilderMode(nextMode)
+        }
+
+        modeSwitchDrag.didMove = false
+        if (event?.cancelable && shouldToggle) event.preventDefault()
+    }
+
+    function onModeSwitchPointerMove(event: PointerEvent) {
+        if (!modeSwitchDrag.active || event.pointerId !== modeSwitchDrag.pointerId) return
+
+        const nextTranslate = clampModeSwitchTranslate(
+            modeSwitchDrag.startTranslate + (event.clientX - modeSwitchDrag.startX)
+        )
+
+        modeSwitchDrag.translate = nextTranslate
+
+        if (!modeSwitchDrag.didMove && Math.abs(event.clientX - modeSwitchDrag.startX) >= MODE_SWITCH_DRAG_THRESHOLD_PX) {
+            modeSwitchDrag.didMove = true
+        }
+
+        if (event.cancelable) event.preventDefault()
+    }
+
+    function onModeSwitchPointerUp(event: PointerEvent) {
+        if (!modeSwitchDrag.active || event.pointerId !== modeSwitchDrag.pointerId) return
+        finishModeSwitchDrag(event)
+    }
+
+    const handleModeSwitchPointerDown = (event: PointerEvent) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return
+
+        dismissModeSwipeHint()
+        measureModeSwitch()
+
+        modeSwitchDrag.active = true
+        modeSwitchDrag.pointerId = event.pointerId
+        modeSwitchDrag.startX = event.clientX
+        modeSwitchDrag.startTranslate = getBuilderModeTranslate(builderMode.value)
+        modeSwitchDrag.translate = modeSwitchDrag.startTranslate
+        modeSwitchDrag.didMove = false
+
+        try {
+            modeSwitchTrack.value?.setPointerCapture?.(event.pointerId)
+        } catch { }
+
+        cleanupModeSwitchPointerListeners()
+        window.addEventListener('pointermove', onModeSwitchPointerMove)
+        window.addEventListener('pointerup', onModeSwitchPointerUp)
+        window.addEventListener('pointercancel', onModeSwitchPointerUp)
+    }
+
     const handleBuilderModeSwitchClick = (mode: 'manual' | 'auto') => {
+        if (Date.now() < modeSwitchDragSuppressClickUntil.value) return
         if (builderMode.value !== mode) dismissModeSwipeHint()
         setBuilderMode(mode)
     }
@@ -4522,6 +4682,14 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 console.error('[TrainingPlanBuilder] onMounted init crashed:', err)
             }
         })
+        nextTick(() => {
+            measureModeSwitch()
+            if (!modeSwitchTrack.value || typeof ResizeObserver === 'undefined') return
+            modeSwitchResizeObserver = new ResizeObserver(() => {
+                measureModeSwitch()
+            })
+            modeSwitchResizeObserver.observe(modeSwitchTrack.value)
+        })
         hasDismissedModeSwipeHint.value = false
         restartModeSwipeHintCycle()
         queuePreviewBuilderStep(250, () => {
@@ -4541,6 +4709,9 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     onUnmounted(() => {
         activeDragCleanup?.()
         activeDragCleanup = null
+        cleanupModeSwitchPointerListeners()
+        modeSwitchResizeObserver?.disconnect()
+        modeSwitchResizeObserver = null
         clearAutoGenerationProgressTimer()
         clearPreviewBuilderTimers()
         clearCardioRunnerTimer()
@@ -5863,17 +6034,77 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     .segmented.seg-mode {
         width: 100%;
+        position: relative;
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: .5rem;
+        gap: 0;
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
         border-radius: 12px;
         padding: .3rem;
         align-items: center;
+        overflow: hidden;
+        touch-action: pan-y;
     }
 
-    .segmented.seg-mode > button {
+    .seg-mode__thumb {
+        position: absolute;
+        top: .3rem;
+        bottom: .3rem;
+        left: .3rem;
+        width: calc((100% - .6rem) / 2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 1px 2px rgba(0,0,0,.06);
+        transform: translateX(var(--mode-switch-thumb-translate, 0px));
+        transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+        will-change: transform;
+        pointer-events: none;
+    }
+
+    .seg-mode__thumb--dragging {
+        transition: none;
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.16);
+    }
+
+    .seg-mode__thumb-labels {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .seg-mode__thumb-label {
+        position: absolute;
+        inset: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: .45rem .9rem;
+        font-weight: 700;
+        font-size: .89rem;
+        line-height: 1.15;
+        color: var(--text-primary);
+        transition: opacity .16s ease, transform .16s ease;
+        white-space: nowrap;
+    }
+
+    .seg-mode__thumb-label--auto {
+        font-size: .84rem;
+        letter-spacing: -.01em;
+        text-align: center;
+    }
+
+    .seg-mode__thumb-hint {
+        right: .25rem;
+    }
+
+    .seg-mode__option {
         width: 100%;
         position: relative;
         display: inline-flex;
@@ -5886,13 +6117,16 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         font-weight: 600;
         font-size: .89rem;
         cursor: pointer;
-        transition: all .15s ease;
-        color: var(--text-primary);
+        transition: color .15s ease, transform .15s ease;
+        color: color-mix(in srgb, var(--text-primary) 68%, transparent);
+        z-index: 1;
+        user-select: none;
+        -webkit-user-select: none;
+        overflow: hidden;
     }
 
-    .segmented.seg-mode > button.is-swipe-animated {
-        animation: builder-mode-button-shift 12s ease-in-out infinite;
-        will-change: transform;
+    .seg-mode__option.on {
+        color: transparent;
     }
 
     .builder-mode-manual-content {
@@ -6005,10 +6239,14 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         }
     }
 
+    .segmented.seg-mode.is-dragging .seg-mode__option {
+        transition: none;
+    }
+
     .segmented.seg-mode > button.on {
-        background: var(--bg-card);
-        border-color: var(--border-color);
-        box-shadow: 0 1px 2px rgba(0,0,0,.06);
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
     }
 
     .auto-plan-section {

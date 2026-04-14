@@ -45,69 +45,49 @@
                             </router-link>
                         </li>
                     </template>
+
+                    <li class="nav-links__footer">
+                        <span class="nav-links__footer-title">Mehr</span>
+                        <div class="nav-links__footer-links">
+                            <router-link to="/faq" class="nav-footer-link" @click="closeMenu">FAQ</router-link>
+                            <router-link to="/legal-notice" class="nav-footer-link" @click="closeMenu">Impressum</router-link>
+                            <router-link to="/privacy" class="nav-footer-link" @click="closeMenu">Datenschutz</router-link>
+                        </div>
+                    </li>
                 </ul>
             </div>
         </nav>
 
-        <!-- ✅ Overlay -->
-        <div v-if="!isPhonePreview && menuOpen" class="nav-overlay" @click="closeMenu"></div>
-        <div v-if="!isPhonePreview && isGlobalLoading" class="global-loading-overlay" role="status" aria-live="polite" aria-busy="true">
-            <div class="global-loading-card">
-                <span class="global-loading-spinner" aria-hidden="true"></span>
-                <span>Lädt gerade Daten...</span>
+        <div class="app-shell" :class="{ 'app-shell--menu-open': !isPhonePreview && menuOpen }">
+            <!-- ✅ Overlay -->
+            <div v-if="!isPhonePreview && menuOpen" class="nav-overlay" @click="closeMenu"></div>
+            <div v-if="!isPhonePreview && isGlobalLoading" class="global-loading-overlay" role="status" aria-live="polite" aria-busy="true">
+                <div class="global-loading-card">
+                    <span class="global-loading-spinner" aria-hidden="true"></span>
+                    <span>Lädt gerade Daten...</span>
+                </div>
             </div>
-        </div>
 
-        <div v-if="!isPhonePreview" ref="stickyFlightOverlayRef" class="sticky-flight-overlay" aria-hidden="true"></div>
+            <div v-if="!isPhonePreview" ref="stickyFlightOverlayRef" class="sticky-flight-overlay" aria-hidden="true"></div>
 
-        <div v-if="!isPhonePreview" ref="timerStackRef" class="sticky-cluster sticky-cluster--timer">
-            <button v-if="visibleStickyTimers.length > 1"
-                    type="button"
-                    class="sticky-stack-toggle"
-                    :class="{ 'is-expanded': expandedStickyGroup === 'timer' }"
-                    :style="timerStackToggleStyle"
-                    @click.stop="toggleStickyGroup('timer')">
-                {{ expandedStickyGroup === 'timer' ? '⋯' : `${visibleStickyTimers.length - 1}+` }}
-            </button>
+            <div v-if="!isPhonePreview" ref="timerStackRef" class="sticky-cluster sticky-cluster--timer">
+                <button v-if="visibleStickyTimers.length > 1"
+                        type="button"
+                        class="sticky-stack-toggle"
+                        :class="{ 'is-expanded': expandedStickyGroup === 'timer' }"
+                        :style="timerStackToggleStyle"
+                        @click.stop="toggleStickyGroup('timer')">
+                    {{ expandedStickyGroup === 'timer' ? '⋯' : `${visibleStickyTimers.length - 1}+` }}
+                </button>
 
-            <StickyTimerCard v-for="entry in visibleStickyTimers"
-                             :key="'timer-' + entry.timer.id"
-                             :timer="entry.timer"
-                             :sticky-enabled="stickyTimersEnabled"
-                             :format-timer="formatTimer"
-                             :start-timer="startTimer"
-                             :stop-timer="stopTimer"
-                             :reset-timer="resetTimer"
-                             :start-drag="startDrag"
-                             :focus-in-training="focusInTraining"
-                             :stack-index="entry.stackIndex"
-                             :stack-count="entry.stackCount"
-                             :stack-expanded="entry.stackExpanded"
-                             :stack-bump-nonce="entry.stackBumpNonce"
-                             :dock-nonce="entry.dock.nonce"
-                             :dock-from-x="entry.dock.fromX"
-                             :dock-from-y="entry.dock.fromY"
-                             @apply-style-all="onApplyStyleAll" />
-        </div>
-
-        <div v-if="!isPhonePreview" ref="stopwatchStackRef" class="sticky-cluster sticky-cluster--stopwatch">
-            <button v-if="visibleStickyStopwatches.length > 1"
-                    type="button"
-                    class="sticky-stack-toggle sticky-stack-toggle--stopwatch"
-                    :class="{ 'is-expanded': expandedStickyGroup === 'stopwatch' }"
-                    :style="stopwatchStackToggleStyle"
-                    @click.stop="toggleStickyGroup('stopwatch')">
-                {{ expandedStickyGroup === 'stopwatch' ? '⋯' : `${visibleStickyStopwatches.length - 1}+` }}
-            </button>
-
-            <StickyStopwatchCard v-for="entry in visibleStickyStopwatches"
-                                 :key="'sw-' + entry.stopwatch.id"
-                                 :stopwatch="entry.stopwatch"
-                                 :sticky-enabled="stickyStopwatchesEnabled"
-                                 :format-stopwatch="formatStopwatch"
-                                 :toggle-stopwatch="toggleStopwatch"
-                                 :reset-stopwatch="resetStopwatch"
-                                 :add-lap="addLap"
+                <StickyTimerCard v-for="entry in visibleStickyTimers"
+                                 :key="'timer-' + entry.timer.id"
+                                 :timer="entry.timer"
+                                 :sticky-enabled="stickyTimersEnabled"
+                                 :format-timer="formatTimer"
+                                 :start-timer="startTimer"
+                                 :stop-timer="stopTimer"
+                                 :reset-timer="resetTimer"
                                  :start-drag="startDrag"
                                  :focus-in-training="focusInTraining"
                                  :stack-index="entry.stackIndex"
@@ -118,52 +98,83 @@
                                  :dock-from-x="entry.dock.fromX"
                                  :dock-from-y="entry.dock.fromY"
                                  @apply-style-all="onApplyStyleAll" />
+            </div>
+
+            <div v-if="!isPhonePreview" ref="stopwatchStackRef" class="sticky-cluster sticky-cluster--stopwatch">
+                <button v-if="visibleStickyStopwatches.length > 1"
+                        type="button"
+                        class="sticky-stack-toggle sticky-stack-toggle--stopwatch"
+                        :class="{ 'is-expanded': expandedStickyGroup === 'stopwatch' }"
+                        :style="stopwatchStackToggleStyle"
+                        @click.stop="toggleStickyGroup('stopwatch')">
+                    {{ expandedStickyGroup === 'stopwatch' ? '⋯' : `${visibleStickyStopwatches.length - 1}+` }}
+                </button>
+
+                <StickyStopwatchCard v-for="entry in visibleStickyStopwatches"
+                                     :key="'sw-' + entry.stopwatch.id"
+                                     :stopwatch="entry.stopwatch"
+                                     :sticky-enabled="stickyStopwatchesEnabled"
+                                     :format-stopwatch="formatStopwatch"
+                                     :toggle-stopwatch="toggleStopwatch"
+                                     :reset-stopwatch="resetStopwatch"
+                                     :add-lap="addLap"
+                                     :start-drag="startDrag"
+                                     :focus-in-training="focusInTraining"
+                                     :stack-index="entry.stackIndex"
+                                     :stack-count="entry.stackCount"
+                                     :stack-expanded="entry.stackExpanded"
+                                     :stack-bump-nonce="entry.stackBumpNonce"
+                                     :dock-nonce="entry.dock.nonce"
+                                     :dock-from-x="entry.dock.fromX"
+                                     :dock-from-y="entry.dock.fromY"
+                                     @apply-style-all="onApplyStyleAll" />
+            </div>
+
+            <!-- ✅ Validation-Popup -->
+            <ValidationPopup v-if="!isPhonePreview" :show="showValidationPopup"
+                             :errors="validationErrorMessages"
+                             @close="closeValidationPopup" />
+
+            <!-- ✅ Neuigkeiten-Popup -->
+            <GlobalNewsPopup v-if="!isPhonePreview" :show="showNewsPopup"
+                             title="Was ist neu?"
+                             :items="newsItems"
+                             @close="onNewsClose" />
+            <GlobalGuestConversionPopup v-if="!isPhonePreview"
+                                        :show="showGuestConversionPopup"
+                                        @close="dismissGuestConversionPopup"
+                                        @later="dismissGuestConversionPopup"
+                                        @register="goToGuestRegister" />
+            <GlobalAchievementPopup v-if="!isPhonePreview" :show="showAchievementPopup"
+                                    :badge="latestAchievement"
+                                    @close="closeAchievementPopup" />
+
+            <!-- ✅ Seiten-Inhalt -->
+            <main class="main-content" :class="{ 'main-content--preview': isPhonePreview }">
+                <router-view :timers="timers"
+                             :stopwatches="stopwatches"
+                             :startTimer="startTimer"
+                             :stopTimer="stopTimer"
+                             :resetTimer="resetTimer"
+                             :toggleStopwatch="toggleStopwatch"
+                             :resetStopwatch="resetStopwatch"
+                             :removeTimer="removeTimer"
+                             :removeStopwatch="removeStopwatch"
+                             @add-timer="addTimer"
+                             @add-stopwatch="addStopwatch"
+                             @remove-timer="removeTimer"
+                             @remove-stopwatch="removeStopwatch"
+                             @reorder-timers="reorderTimers"
+                             @reorder-stopwatches="reorderStopwatches" />
+            </main>
+
+            <!-- ✅ Mini-Guide: Spotlight auf ℹ️ (ExplanationPopup) -->
+            <GlobalExplainGuide v-if="!isPhonePreview" :version="NEWS_VERSION" :block="showNewsPopup" />
+
+            <AppFooter v-if="!isPhonePreview" />
+
+            <BackToTopButton v-if="!isPhonePreview" />
         </div>
-
-        <!-- ✅ Validation-Popup -->
-        <ValidationPopup v-if="!isPhonePreview" :show="showValidationPopup"
-                         :errors="validationErrorMessages"
-                         @close="closeValidationPopup" />
-
-        <!-- ✅ Neuigkeiten-Popup -->
-        <GlobalNewsPopup v-if="!isPhonePreview" :show="showNewsPopup"
-                         title="Was ist neu?"
-                         :items="newsItems"
-                         @close="onNewsClose" />
-        <GlobalGuestConversionPopup v-if="!isPhonePreview"
-                                    :show="showGuestConversionPopup"
-                                    @close="dismissGuestConversionPopup"
-                                    @later="dismissGuestConversionPopup"
-                                    @register="goToGuestRegister" />
-        <GlobalAchievementPopup v-if="!isPhonePreview" :show="showAchievementPopup"
-                                :badge="latestAchievement"
-                                @close="closeAchievementPopup" />
-
-        <!-- ✅ Seiten-Inhalt -->
-        <main class="main-content" :class="{ 'main-content--preview': isPhonePreview }">
-            <router-view :timers="timers"
-                         :stopwatches="stopwatches"
-                         :startTimer="startTimer"
-                         :stopTimer="stopTimer"
-                         :resetTimer="resetTimer"
-                         :toggleStopwatch="toggleStopwatch"
-                         :resetStopwatch="resetStopwatch"
-                         :removeTimer="removeTimer"
-                         :removeStopwatch="removeStopwatch"
-                         @add-timer="addTimer"
-                         @add-stopwatch="addStopwatch"
-                         @remove-timer="removeTimer"
-                         @remove-stopwatch="removeStopwatch"
-                         @reorder-timers="reorderTimers"
-                         @reorder-stopwatches="reorderStopwatches" />
-        </main>
-
-        <!-- ✅ Mini-Guide: Spotlight auf ℹ️ (ExplanationPopup) -->
-        <GlobalExplainGuide v-if="!isPhonePreview" :version="NEWS_VERSION" :block="showNewsPopup" />
-
-        <AppFooter v-if="!isPhonePreview" />
-
-        <BackToTopButton v-if="!isPhonePreview" />
     </div>
 </template>
 
@@ -964,6 +975,32 @@
         timeColor: null as string | null,
         shape: null as 'square' | 'rounded' | 'oval' | null,
     })
+    const pageScrollLockState = {
+        bodyOverflow: '',
+        htmlOverflow: '',
+    }
+
+    function syncPageScrollLock() {
+        if (typeof document === 'undefined') return
+
+        const shouldLock = menuOpen.value && !isPhonePreview.value
+        const htmlEl = document.documentElement
+        const bodyEl = document.body
+
+        if (shouldLock) {
+            if (!pageScrollLockState.bodyOverflow) pageScrollLockState.bodyOverflow = bodyEl.style.overflow
+            if (!pageScrollLockState.htmlOverflow) pageScrollLockState.htmlOverflow = htmlEl.style.overflow
+            bodyEl.style.overflow = 'hidden'
+            htmlEl.style.overflow = 'hidden'
+            return
+        }
+
+        bodyEl.style.overflow = pageScrollLockState.bodyOverflow
+        htmlEl.style.overflow = pageScrollLockState.htmlOverflow
+        pageScrollLockState.bodyOverflow = ''
+        pageScrollLockState.htmlOverflow = ''
+    }
+
     function closeMenu() {
         menuOpen.value = false
     }
@@ -1002,6 +1039,9 @@
         },
         { deep: false }
     )
+    watch([menuOpen, isPhonePreview], () => {
+        syncPageScrollLock()
+    })
     function handleDocClick(e: MouseEvent) {
         if (!menuOpen.value) return
         const target = e.target as Node
@@ -1047,6 +1087,7 @@
         document.removeEventListener('click', handleDocClick, true)
         document.removeEventListener('click', onGuestConversionClick, true)
         clearGuestConversionTimer()
+        syncPageScrollLock()
     })
 
     function reorderTimers(newList: any[]) {
@@ -1599,6 +1640,12 @@
         font-family: 'Inter', sans-serif;
         background: transparent; /* Body-Gradient durchlassen */
         transition: all 0.3s ease;
+    }
+
+    .app-shell {
+        min-height: 100vh;
+        transition: transform .26s cubic-bezier(0.22, 0.61, 0.36, 1);
+        will-change: transform;
     }
 
     .sticky-cluster {
@@ -2228,8 +2275,8 @@
 
     .burger-menu {
         display: none; /* wird nur im Mobile-Viewport sichtbar */
-        width: 32px;
-        height: var(--nav-h);
+        width: 44px;
+        height: var(--nav-h, 72px);
         background: none;
         border: none;
         cursor: pointer;
@@ -2239,21 +2286,28 @@
         padding: 0;
         align-items: center;
         justify-content: center;
+        transition: opacity .18s ease;
     }
 
         .burger-menu span {
             position: relative;
             display: block;
-            width: 18px;
-            height: 2px;
-            background: rgba(248, 250, 252, 0.92);
+            width: 24px;
+            height: 3px;
+            background: rgba(248, 250, 252, 0.96);
             border-radius: 999px;
+            transform-origin: center;
             transition: transform 0.25s ease, opacity 0.2s ease, top 0.25s ease, bottom 0.25s ease;
         }
 
-            .burger-menu span:not(:last-child) {
-                margin-bottom: 4px;
-            }
+        .burger-menu span:not(:last-child) {
+            margin-bottom: 5px;
+        }
+
+    .burger-menu:focus-visible {
+        outline: none;
+        opacity: .82;
+    }
 
     html.dark-mode .burger-menu span {
         background: rgba(248, 250, 252, 0.96);
@@ -2261,7 +2315,7 @@
 
     /* Minimalistische X-Animation */
     .burger-menu.open span:nth-child(1) {
-        transform: translateY(3px) rotate(45deg);
+        transform: translateY(8px) rotate(45deg);
     }
 
     .burger-menu.open span:nth-child(2) {
@@ -2269,7 +2323,7 @@
     }
 
     .burger-menu.open span:nth-child(3) {
-        transform: translateY(-3px) rotate(-45deg);
+        transform: translateY(-8px) rotate(-45deg);
     }
 
     /* REPLACE in App.vue <style scoped> – Block html.dark-mode .main-content */
@@ -2283,12 +2337,12 @@
         left: 0;
         right: 0;
         background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        padding: 0.5rem 0 !important;
+        padding: 0 !important;
         z-index: 1000;
         box-shadow: var(--shadow);
         border-bottom: 2px solid var(--border-color);
-        height: var(--nav-h);
-        line-height: var(--nav-h);
+        height: var(--nav-h, 72px);
+        box-sizing: border-box;
     }
 
     .footer-link {
@@ -2311,6 +2365,7 @@
         max-width: var(--nav-max);
         margin: 0 auto;
         padding: 0 16px;
+        height: 100%;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -2318,9 +2373,17 @@
         position: relative;
     }
 
+    .nav-content > a {
+        display: inline-flex;
+        align-items: center;
+        height: 100%;
+    }
+
     .logo {
         height: 56px;
         object-fit: contain;
+        display: block;
+        margin: 0;
     }
 
     .nav-links {
@@ -2352,13 +2415,18 @@
         font: inherit;
     }
 
+    .nav-links__footer {
+        display: none;
+    }
+
     .nav-overlay {
         position: fixed;
-        top: var(--nav-h);
+        top: var(--nav-h, 72px);
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0,0,0,.15);
+        background: rgba(2, 6, 23, 0.26);
+        backdrop-filter: blur(6px);
         z-index: 950;
     }
 
@@ -2435,32 +2503,46 @@
     }
 
     @media (max-width: 1024px) {
-        /* Kompaktes Dropdown unter der Navbar, rechts beim Burger */
+        .app-shell--menu-open {
+            transform: translateX(-248px);
+        }
+
+        /* Mobile-Menü exakt unter der Navbar */
         .nav-links {
-            position: absolute;
-            top: 100%;
-            right: 8px;
+            position: fixed;
+            top: var(--nav-h, 72px);
+            bottom: 0;
+            right: 0;
             left: auto;
-            background: color-mix(in srgb, var(--bg-card) 94%, #020617 6%);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.7);
+            width: min(248px, calc(100vw - 18px));
+            max-width: calc(100vw - 18px);
+            height: calc(100vh - var(--nav-h, 72px));
+            overflow-y: auto;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-left: 1px solid rgba(255, 255, 255, 0.16);
+            border-bottom: 2px solid var(--border-color);
+            border-radius: 0 0 0 18px;
+            box-shadow: -14px 18px 34px rgba(15, 23, 42, 0.18);
             margin: 0;
-            padding: 0.5rem 0.4rem;
+            padding: 0.38rem 0.32rem 0.42rem;
             display: none; /* geschlossen */
             flex-direction: column;
             align-items: stretch;
-            gap: 0.1rem;
+            gap: 0.08rem;
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            transform: translateY(6px);
-            transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s 0.18s;
-            z-index: 999;
+            transform: translateX(100%);
+            transform-origin: top right;
+            transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1), visibility 0s 0.22s;
+            z-index: 1005;
         }
 
         html.dark-mode .nav-links {
-            background: radial-gradient(circle at top left, color-mix(in srgb, #020617 85%, #4C1D95 15%), #020617 80%);
+            background: radial-gradient(circle at top left, color-mix(in srgb, #4C1D95 40%, #020617 60%), #020617 60%) fixed;
+            border-left-color: rgba(148, 163, 184, 0.22);
+            border-bottom-color: rgba(148, 163, 184, 0.45);
+            box-shadow: -18px 22px 42px rgba(2, 6, 23, 0.42);
         }
 
         .nav-links.open {
@@ -2468,27 +2550,117 @@
             opacity: 1;
             visibility: visible;
             pointer-events: auto;
-            transform: translateY(0);
+            transform: translateX(0);
         }
 
         .nav-link {
-            padding: 0.55rem 0.6rem;
+            min-height: 42px;
+            padding: 0.58rem 0.78rem;
             width: 100%;
             text-align: left;
-            color: var(--text-primary);
+            color: rgba(255, 255, 255, 0.92);
             justify-content: flex-start;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 650;
+            letter-spacing: -0.01em;
+            background: transparent;
+            border: 1px solid transparent;
+            box-shadow: none;
         }
 
         html.dark-mode .nav-link {
             color: #f9fafb;
+            background: transparent;
+            border-color: transparent;
         }
 
         .nav-link::after {
-            background: var(--accent-primary);
+            display: none;
         }
 
         html.dark-mode .nav-link::after {
             background: #a855f7;
+        }
+
+        .nav-link:hover,
+        .nav-link.router-link-exact-active {
+            transform: none;
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.82);
+        }
+
+        html.dark-mode .nav-link:hover,
+        html.dark-mode .nav-link.router-link-exact-active {
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.74);
+        }
+
+        .nav-link i {
+            width: 1.1rem;
+            font-size: 0.94rem;
+            text-align: center;
+            opacity: .82;
+        }
+
+        .nav-links__footer {
+            display: block;
+            margin-top: auto;
+            padding: 0.85rem 0.5rem 0.2rem;
+            list-style: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        html.dark-mode .nav-links__footer {
+            border-top-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .nav-links__footer-title {
+            display: block;
+            margin-bottom: 0.55rem;
+            padding: 0 0.28rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.68);
+        }
+
+        .nav-links__footer-links {
+            display: grid;
+            gap: 0.34rem;
+        }
+
+        .nav-footer-link {
+            display: block;
+            padding: 0.45rem 0.55rem;
+            border-radius: 9px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            background: transparent;
+            transition: background-color .16s ease, color .16s ease;
+        }
+
+        .nav-footer-link:hover,
+        .nav-footer-link.router-link-exact-active {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        html.dark-mode .nav-footer-link {
+            color: rgba(226, 232, 240, 0.82);
+        }
+
+        html.dark-mode .nav-footer-link:hover,
+        html.dark-mode .nav-footer-link.router-link-exact-active {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .burger-menu {

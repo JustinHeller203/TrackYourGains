@@ -1,12 +1,32 @@
 ﻿<!-- src/Footer/FAQ.vue -->
 <template>
     <div class="legal-page">
-        <header ref="headerEl" class="faq-header" :class="{ 'is-fixed': isFixed }">
+        <header ref="headerEl" class="faq-header">
             <div class="faq-header__inner">
-                <h1 class="faq-title">FAQ</h1>
-                <p class="faq-subtitle">
-                    Schnelle Antworten zu TrackYourGains – such nach Begriffen wie „Timer“, „Export“ oder „Validierung“.
-                </p>
+                <div class="faq-hero">
+                    <div class="faq-hero__copy">
+                        <span class="faq-kicker">Hilfe & Antworten</span>
+                        <h1 class="faq-title">FAQ</h1>
+                        <p class="faq-subtitle">
+                            Schnelle Antworten zu TrackYourGains. Such nach Begriffen wie „Timer“, „Export“, „Validierung“ oder spring direkt in einen Bereich.
+                        </p>
+                    </div>
+
+                    <div class="faq-hero__stats" aria-hidden="true">
+                        <div class="faq-stat">
+                            <strong>8</strong>
+                            <span>Bereiche</span>
+                        </div>
+                        <div class="faq-stat">
+                            <strong>85+</strong>
+                            <span>Antworten</span>
+                        </div>
+                        <div class="faq-stat">
+                            <strong>Suche</strong>
+                            <span>direkt oben</span>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="faq-search">
                     <UiSearch v-model="searchQuery"
@@ -27,21 +47,28 @@
             Keine passenden Fragen gefunden. Versuch ein anderes Keyword (z.B. „Plan“, „Timer“, „Toasts“, „Export“).
         </p>
 
-        <nav class="faq-filter">
-            <button v-for="cat in categories"
-                    :key="cat.key"
-                    type="button"
-                    class="faq-filter-button"
-                    :class="{ active: activeCategory === cat.key }"
-                    @click="activeCategory = cat.key">
-                {{ cat.label }}
-            </button>
-        </nav>
+        <p class="faq-picker-hint">
+            Wähle hier den Bereich aus, zu dem du gerade etwas suchst.
+        </p>
 
+        <nav class="faq-filter" aria-label="FAQ Kategorien">
+            <template v-for="cat in categories" :key="cat.key">
+                <button type="button"
+                        class="faq-filter-button"
+                        :class="{ active: activeCategory === cat.key }"
+                        @click="toggleCategory(cat.key)">
+                    <span class="faq-filter-button__icon" aria-hidden="true">{{ cat.icon }}</span>
+                    <span class="faq-filter-button__copy">
+                        <strong>{{ cat.label }}</strong>
+                        <small>{{ cat.description }}</small>
+                    </span>
+                </button>
+
+                <Transition v-if="activeCategory === cat.key" name="faq-panels">
+                    <div v-if="activeCategory === cat.key" class="faq-panels faq-panels--inline">
         <!-- Landing -->
-        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'landing'">
-            <h2>Landingpage &amp; Start</h2>
-
+        <section class="faq-section" v-if="activeCategory === 'all' || activeCategory === 'landing'">
+            <h3 v-if="activeCategory === 'all'" class="faq-section-label">Landing</h3>
             <details>
                 <summary>Was bedeuten die Zahlen bei „Deine Erfolge 🏆“?</summary>
                 <p>
@@ -117,9 +144,8 @@
         </section>
 
         <!-- Training -->
-        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'training'">
-            <h2>Training</h2>
-
+        <section class="faq-section" v-if="activeCategory === 'all' || activeCategory === 'training'">
+            <h3 v-if="activeCategory === 'all'" class="faq-section-label">Training</h3>
             <details>
                 <summary>Wofür ist die Trainingsseite überhaupt gedacht?</summary>
                 <p>
@@ -271,10 +297,87 @@
             </details>
         </section>
 
-        <!-- Timer & Stopwatch -->
-        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'timers'">
-            <h2>Timer &amp; Stopwatch</h2>
+        <!-- Fortschritt -->
+        <section class="faq-section" v-if="activeCategory === 'all' || activeCategory === 'progress'">
+            <h3 v-if="activeCategory === 'all'" class="faq-section-label">Fortschritt</h3>
+            <details>
+                <summary>Wofür ist die Fortschritt-Seite gedacht?</summary>
+                <p>
+                    Dort bündelst du alles, was deinen Verlauf sichtbar macht: Gewicht, Zielgewicht, letzte Workouts,
+                    Trainingsstatistiken, Rechner, Trainingspläne und Plan-Fortschritt. Es ist die Analyse-Seite der App.
+                </p>
+            </details>
 
+            <details>
+                <summary>Welche Tabs gibt es auf der Fortschritt-Seite?</summary>
+                <p>
+                    Es gibt drei Hauptbereiche: <strong>Stats</strong> für Gewichts- und Trainingsverlauf,
+                    <strong>Calculators</strong> für Rechner und <strong>Plans</strong> für Trainingspläne,
+                    Plan-Fortschritt und Verlauf pro Plan.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was bringen die Karten für Gewicht, Beschwerden, letztes Training und Zielgewicht?</summary>
+                <p>
+                    Die Karten oben geben dir einen schnellen Überblick über deine wichtigsten Kennzahlen.
+                    Von dort aus kannst du direkt Gewicht eintragen, dein Ziel anpassen oder in Detailansichten springen.
+                </p>
+            </details>
+
+            <details>
+                <summary>Welche Rechner gibt es im Calculator-Tab?</summary>
+                <p>
+                    Dort findest du mehrere Fitness- und Ernährungsrechner, zum Beispiel BMI, Kalorienbedarf,
+                    Burn Rate, Proteinbedarf, 1RM, Koffein, Körperfett, FFMI, Glycemic Load und Wasserbedarf.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich Rechner favorisieren oder durchsuchen?</summary>
+                <p>
+                    Ja. Du kannst einzelne Rechner als Favorit markieren, per Suche filtern und nach Kategorien eingrenzen.
+                    So musst du nicht jedes Mal durch alle Cards scrollen.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was zeigt der Plans-Tab in Fortschritt?</summary>
+                <p>
+                    Dort siehst du deine Trainingspläne inklusive Status wie neu erstellt, aktiv oder unbenutzt.
+                    Außerdem kannst du Plan-Fortschritt, Kalender, Stats und Downloads pro Plan öffnen.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was ist der Unterschied zwischen Plan-Fortschritt und Trainingsstatistik?</summary>
+                <p>
+                    Die Trainingsstatistik zeigt dir eher den globalen Verlauf deiner absolvierten Workouts.
+                    Der Plan-Fortschritt zoomt dagegen in einen konkreten Plan hinein und zeigt dir pro Tag,
+                    Kalender oder Statistik, wie du diesen Plan nutzt.
+                </p>
+            </details>
+
+            <details>
+                <summary>Gibt es auf der Fortschritt-Seite Feedback nach dem Training?</summary>
+                <p>
+                    Ja. Je nach Verlauf können Trainingsfeedback und Schmerzfeedback auftauchen.
+                    Dadurch kann die App nicht nur zählen, dass du trainiert hast, sondern auch, wie sich die Einheit angefühlt hat.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich Ergebnisse oder Fortschrittsdaten exportieren?</summary>
+                <p>
+                    Ja. Sowohl Charts als auch Plan-/Fortschrittsansichten lassen sich exportieren,
+                    z.&nbsp;B. als HTML, PDF, CSV, JSON oder TXT – je nach Bereich.
+                </p>
+            </details>
+        </section>
+
+        <!-- Timer & Stopwatch -->
+        <section class="faq-section" v-if="activeCategory === 'all' || activeCategory === 'timers'">
+            <h3 v-if="activeCategory === 'all'" class="faq-section-label">Timer &amp; Stopwatch</h3>
             <details>
                 <summary>Wofür sind der Satzpausen-Timer und die Übungs-Stoppuhr?</summary>
                 <p>
@@ -367,9 +470,8 @@
         </section>
 
         <!-- Beschwerden -->
-        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'complaints'">
-            <h2>Beschwerden</h2>
-
+        <section class="faq-section" v-if="activeCategory === 'all' || activeCategory === 'complaints'">
+            <h3 v-if="activeCategory === 'all'" class="faq-section-label">Beschwerden</h3>
             <details>
                 <summary>Wofür ist die Beschwerden-Seite gedacht?</summary>
                 <p>
@@ -417,12 +519,27 @@
                     Dadurch kann die App besser berücksichtigen, was gerade sinnvoll ist und was eher vermieden werden sollte.
                 </p>
             </details>
+
+            <details>
+                <summary>Gibt es Hilfen beim Erstellen einer neuen Beschwerde?</summary>
+                <p>
+                    Ja. Je nach Art der Beschwerde bekommst du zusätzliche Felder,
+                    z.&nbsp;B. Intensität, Verletzungsart, geschätzte Ausfallzeit oder benutzerdefinierte Körperstellen.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann die App Beschwerden mit einem Trainingstag verknüpfen?</summary>
+                <p>
+                    Ja. Für bestimmte Fälle fragt die App nach Trainingskontext,
+                    damit Beschwerden besser zu Übungen oder Einheiten eingeordnet werden können.
+                </p>
+            </details>
         </section>
 
         <!-- Tutorials -->
-        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'tutorials'">
-            <h2>Übungstutorials</h2>
-
+        <section class="faq-section" v-if="activeCategory === 'all' || activeCategory === 'tutorials'">
+            <h3 v-if="activeCategory === 'all'" class="faq-section-label">Tutorials</h3>
             <details>
                 <summary>Was ist die Tutorials-Seite?</summary>
                 <p>
@@ -460,12 +577,27 @@
                     Später kommen echte Inhalte + bessere Struktur.
                 </p>
             </details>
+
+            <details>
+                <summary>Kann ich eigene Tutorials hinzufügen?</summary>
+                <p>
+                    Ja. Du kannst lokale Tutorials mit Titel, Kategorie, Level, Beschreibung,
+                    Equipment und optionalem Video anlegen. Diese Sammlung bleibt auf deinem Gerät.
+                </p>
+            </details>
+
+            <details>
+                <summary>Gibt es Favoriten und „zuletzt angesehen“?</summary>
+                <p>
+                    Ja. Tutorials können favorisiert werden und zuletzt geöffnete Inhalte
+                    werden separat hervorgehoben, damit du schneller wieder dahin kommst.
+                </p>
+            </details>
         </section>
 
         <!-- Einstellungen -->
-        <section class="faq-section" v-show="activeCategory === 'all' || activeCategory === 'settings'">
-            <h2>Einstellungen</h2>
-
+        <section class="faq-section" v-if="activeCategory === 'all' || activeCategory === 'settings'">
+            <h3 v-if="activeCategory === 'all'" class="faq-section-label">Einstellungen</h3>
             <details>
                 <summary>Was kann ich in den Einstellungen überhaupt ändern?</summary>
                 <p>
@@ -512,7 +644,87 @@
                     Du kannst sie komplett deaktivieren oder die Dauer anpassen.
                 </p>
             </details>
+
+            <details>
+                <summary>Kann ich steuern, welche Toast-Arten angezeigt werden?</summary>
+                <p>
+                    Ja. Wenn Toasts aktiv sind, kannst du zusätzlich die Dauer einstellen
+                    und im Toast-Manager feiner festlegen, welche Typen überhaupt angezeigt werden sollen.
+                </p>
+            </details>
         </section>
+
+        <!-- Profil -->
+        <section class="faq-section" v-if="activeCategory === 'all' || activeCategory === 'profile'">
+            <h3 v-if="activeCategory === 'all'" class="faq-section-label">Profil</h3>
+            <details>
+                <summary>Wofür ist die Profil-Seite gedacht?</summary>
+                <p>
+                    Dort verwaltest du deinen Account, dein Profilbild, Username, E-Mail, Passwort
+                    und bekommst zusätzlich einen Überblick über Profil-Check, Wochenziel und Aktivität.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was ist der Profil-Check?</summary>
+                <p>
+                    Der Profil-Check zeigt dir, wie vollständig dein Profil eingerichtet ist.
+                    Einzelne Schritte lassen sich direkt anklicken, damit du fehlende Punkte schneller erledigst.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was bedeutet das Wochenziel im Profil?</summary>
+                <p>
+                    Das Wochenziel zeigt dir, wie viele Workouts du in dieser Woche bereits geschafft hast
+                    und wie nah du an deinem aktuellen Ziel bist. Der Wert wird aus deinen letzten Wochen abgeleitet.
+                </p>
+            </details>
+
+            <details>
+                <summary>Wie ändere ich mein Profilbild?</summary>
+                <p>
+                    Du kannst ein Bild hochladen, per Kontext-/Hold-Menü öffnen, kopieren,
+                    austauschen oder entfernen. Es gibt dafür mehrere direkte Aktionen auf dem Avatar.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich Username, E-Mail und Passwort ändern?</summary>
+                <p>
+                    Ja. Dafür gibt es auf der Profil-Seite eigene Aktionen und Popups.
+                    Username, E-Mail und Passwort werden getrennt verwaltet.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich mein Konto löschen?</summary>
+                <p>
+                    Ja. Auf der Profil-Seite gibt es eine eigene Aktion zum Löschen des Profils.
+                    Das ist absichtlich klar getrennt von normalen Änderungen wie Name oder Bild.
+                </p>
+            </details>
+
+            <details>
+                <summary>Was ist der Logout-Swipe?</summary>
+                <p>
+                    Im Profil gibt es eine Swipe-Interaktion zum Ausloggen.
+                    Dadurch wird versehentliches Ausloggen schwerer als bei einem normalen Klick.
+                </p>
+            </details>
+
+            <details>
+                <summary>Kann ich die Profil-Seite ohne Login nutzen?</summary>
+                <p>
+                    Nein. Die Profil-Seite ist geschützt und nur mit Account erreichbar.
+                    Wenn du nicht eingeloggt bist, wirst du zum Login weitergeleitet.
+                </p>
+            </details>
+        </section>
+                    </div>
+                </Transition>
+            </template>
+        </nav>
     </div>
 </template>
 
@@ -520,65 +732,31 @@
     import { onMounted, onUnmounted, ref, watch, nextTick } from "vue";
     import UiSearch from "@/components/ui/kits/UiSearch.vue";
 
-    type CatKey = "all" | "landing" | "training" | "timers" | "complaints" | "tutorials" | "settings";
+    type CatKey = "all" | "landing" | "training" | "progress" | "timers" | "complaints" | "tutorials" | "settings" | "profile";
+    type Category = { key: CatKey; label: string; icon: string; description: string };
 
-    const categories: { key: CatKey; label: string }[] = [
-        { key: "all", label: "Alle" },
-        { key: "landing", label: "Landing" },
-        { key: "training", label: "Training" },
-        { key: "timers", label: "Timer & Stopwatch" },
-        { key: "complaints", label: "Beschwerden" },
-        { key: "tutorials", label: "Tutorials" },
-        { key: "settings", label: "Einstellungen" },
+    const categories: Category[] = [
+        { key: "all", label: "Alles", icon: "◌", description: "Gesamte FAQ auf einen Blick" },
+        { key: "landing", label: "Landing", icon: "⌂", description: "Start, Buttons und erster Einstieg" },
+        { key: "training", label: "Training", icon: "◫", description: "Pläne, Übungen, Export und Validierung" },
+        { key: "progress", label: "Fortschritt", icon: "◔", description: "Stats, Rechner, Pläne und Feedback" },
+        { key: "timers", label: "Timer", icon: "◷", description: "Pausen, Stopwatch und Sticky-Funktionen" },
+        { key: "complaints", label: "Beschwerden", icon: "✚", description: "Dokumentation, Status und Verlauf" },
+        { key: "tutorials", label: "Tutorials", icon: "▷", description: "Suche, Videos und Platzhalter-Inhalte" },
+        { key: "settings", label: "Einstellungen", icon: "⚙", description: "Theme, Einheiten und Toasts" },
+        { key: "profile", label: "Profil", icon: "◎", description: "Account, Avatar, Wochenziel und Sicherheit" },
     ];
 
-    const activeCategory = ref < CatKey > ("all");
+    const activeCategory = ref<CatKey | null>(null);
+
+    const toggleCategory = (key: CatKey) => {
+        activeCategory.value = activeCategory.value === key ? null : key;
+    };
 
     const searchQuery = ref("");
     const matchCount = ref(0);
 
     const headerEl = ref < HTMLElement | null > (null);
-    const isFixed = ref(false);
-    const triggerY = ref(0);
-
-    const getOffset = () => {
-        const raw = getComputedStyle(document.documentElement).getPropertyValue("--app-header-height").trim();
-        const n = Number.parseFloat(raw);
-        return Number.isFinite(n) && n > 0 ? n : 64;
-    };
-
-    const updateHeaderState = () => {
-        const el = headerEl.value;
-        if (!el) return;
-
-        const offset = getOffset();
-
-        if (!isFixed.value) {
-            const rect = el.getBoundingClientRect();
-            triggerY.value = window.scrollY + rect.top - offset;
-        }
-
-        const shouldFix = window.scrollY >= triggerY.value;
-
-        if (shouldFix !== isFixed.value) {
-            isFixed.value = shouldFix;
-        }
-
-        const root = document.querySelector(".legal-page") as HTMLElement | null;
-        if (root) {
-            root.style.setProperty("--faq-header-h", isFixed.value ? `${el.offsetHeight}px` : "0px");
-        }
-    };
-
-    const onScroll = () => updateHeaderState();
-
-    const onResize = () => {
-        const wasFixed = isFixed.value;
-        isFixed.value = false;
-        updateHeaderState();
-        isFixed.value = wasFixed;
-        updateHeaderState();
-    };
 
     const norm = (s: string) => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
@@ -671,66 +849,116 @@
 
     onMounted(async () => {
         await nextTick();
-        updateHeaderState();
         applyFaqFilter();
-        window.addEventListener("scroll", onScroll, { passive: true });
-        window.addEventListener("resize", onResize, { passive: true });
     });
 
     onUnmounted(() => {
-        window.removeEventListener("scroll", onScroll);
-        window.removeEventListener("resize", onResize);
     });
 
     watch(searchQuery, () => {
+        applyFaqFilter();
+    });
+
+    watch(activeCategory, async () => {
+        await nextTick();
         applyFaqFilter();
     });
 </script>
 
 <style scoped>
     .legal-page {
-        max-width: 800px;
-        margin: 4rem auto;
-        padding: 1.5rem;
+        max-width: 1120px;
+        margin: 2.6rem auto 4rem;
+        padding: 1.2rem 1.2rem 3rem;
         overflow: visible;
-        /* Platz kompensieren wenn Header fixed wird */
-        padding-top: calc(1.5rem + var(--faq-header-h, 0px));
     }
 
     .faq-header {
+        position: sticky;
+        top: var(--app-header-height, 0px);
+        z-index: 50;
         display: flex;
         flex-direction: column;
-        gap: 0.65rem;
-        margin-bottom: 1.25rem;
+        gap: 0.85rem;
+        margin-bottom: 1.5rem;
     }
 
     .faq-header__inner {
-        max-width: 800px;
+        max-width: 1120px;
         margin: 0 auto;
-        padding: 0 1.5rem;
+        padding: 0;
     }
 
-    .faq-header.is-fixed {
-        position: fixed;
-        left: 0;
-        right: 0;
-        top: var(--app-header-height, 0px);
-        z-index: 50;
+    .faq-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) minmax(260px, .95fr);
+        gap: 1rem;
+        padding: 1.3rem;
+        border-radius: 24px;
+        border: 1px solid color-mix(in srgb, var(--border-color) 82%, rgba(75, 108, 183, 0.18) 18%);
+        background:
+            radial-gradient(circle at top right, rgba(75, 108, 183, 0.12), transparent 34%),
+            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 96%, #ffffff 4%), color-mix(in srgb, var(--bg-secondary) 92%, #ffffff 8%));
+        box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
+    }
+
+    .faq-kicker {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.36rem 0.68rem;
+        margin-bottom: 0.7rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+        color: color-mix(in srgb, var(--accent-secondary) 78%, var(--text-primary) 22%);
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
     }
 
     .faq-title {
         margin: 0;
         line-height: 1.1;
+        font-size: clamp(2rem, 3vw, 3rem);
     }
 
     .faq-subtitle {
         margin: 0;
-        opacity: 0.82;
-        line-height: 1.4;
+        max-width: 62ch;
+        color: var(--text-secondary);
+        line-height: 1.58;
+        font-size: 1rem;
+    }
+
+    .faq-hero__stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        align-content: start;
+    }
+
+    .faq-stat {
+        display: grid;
+        gap: 0.18rem;
+        padding: 0.95rem 0.9rem;
+        border-radius: 18px;
+        border: 1px solid color-mix(in srgb, var(--border-color) 74%, rgba(75, 108, 183, 0.18) 26%);
+        background: color-mix(in srgb, var(--bg-card) 88%, rgba(255,255,255,.26) 12%);
+        text-align: center;
+    }
+
+    .faq-stat strong {
+        font-size: 1.1rem;
+        line-height: 1.1;
+    }
+
+    .faq-stat span {
+        font-size: 0.82rem;
+        color: var(--text-secondary);
     }
 
     .faq-search {
-        margin: 1rem 0 1.25rem;
+        margin: 1rem 0 0;
         display: flex;
         flex-direction: column;
         gap: 0.65rem;
@@ -745,81 +973,261 @@
         font-size: 0.95rem;
     }
 
+    .faq-picker-hint {
+        margin: 0 0 0.9rem;
+        padding: 0 0.15rem;
+        color: var(--text-secondary);
+        font-size: 0.92rem;
+        line-height: 1.5;
+    }
+
     .faq-no-results {
         margin: 0 0 1.25rem;
-        padding: 0.9rem 1rem;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.03);
-        line-height: 1.4;
+        padding: 1rem 1.1rem;
+        border-radius: 18px;
+        border: 1px solid color-mix(in srgb, #f59e0b 26%, var(--border-color) 74%);
+        background: color-mix(in srgb, #f59e0b 8%, var(--bg-card) 92%);
+        line-height: 1.55;
     }
 
     .faq-filter {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin: 1rem 0 1.5rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.8rem;
+        margin: 1.2rem 0 1.8rem;
+        align-items: start;
+    }
+
+    .faq-panels {
+        display: grid;
+        gap: 1.7rem;
+    }
+
+    .faq-panels--inline {
+        grid-column: 1 / -1;
+        margin-top: 0.1rem;
+    }
+
+    .faq-panels-enter-active,
+    .faq-panels-leave-active {
+        transition: opacity .24s ease, transform .28s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+
+    .faq-panels-enter-from,
+    .faq-panels-leave-to {
+        opacity: 0;
+        transform: translateY(18px) scale(.985);
     }
 
     .faq-filter-button {
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        padding: 0.4rem 0.9rem;
-        font-size: 0.9rem;
-        background: rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: flex-start;
+        gap: 0.8rem;
+        text-align: left;
+        border-radius: 20px;
+        border: 1px solid color-mix(in srgb, var(--border-color) 82%, rgba(75, 108, 183, 0.16) 18%);
+        padding: 0.95rem 1rem;
+        font-size: 0.94rem;
+        background:
+            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 94%, #ffffff 6%), color-mix(in srgb, var(--bg-secondary) 94%, #ffffff 6%));
         cursor: pointer;
-        transition: background 0.15s ease, transform 0.05s ease, border-color 0.15s ease;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+        transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
     }
 
-        .faq-filter-button:hover {
-            transform: translateY(-1px);
-            background: rgba(255, 255, 255, 0.04);
-        }
+    .faq-filter-button:hover {
+        transform: translateY(-2px);
+        border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-color) 72%);
+        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
+    }
 
-        .faq-filter-button.active {
-            border-color: rgba(255, 255, 255, 0.4);
-            background: rgba(255, 255, 255, 0.08);
-            font-weight: 600;
-        }
+    .faq-filter-button.active {
+        border-color: color-mix(in srgb, var(--accent-primary) 42%, var(--border-color) 58%);
+        background:
+            radial-gradient(circle at top right, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 40%),
+            linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 96%, #ffffff 4%), color-mix(in srgb, var(--bg-secondary) 88%, var(--accent-primary) 12%));
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+    }
+
+    .faq-filter-button__icon {
+        width: 2.35rem;
+        height: 2.35rem;
+        border-radius: 14px;
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 auto;
+        background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+        color: color-mix(in srgb, var(--accent-secondary) 76%, var(--text-primary) 24%);
+        font-size: 1.05rem;
+        font-weight: 900;
+    }
+
+    .faq-filter-button__copy {
+        display: grid;
+        gap: 0.25rem;
+    }
+
+    .faq-filter-button__copy strong {
+        font-size: 0.96rem;
+        line-height: 1.2;
+    }
+
+    .faq-filter-button__copy small {
+        color: var(--text-secondary);
+        line-height: 1.38;
+        font-size: 0.78rem;
+    }
 
     .faq-section {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
-        margin-top: 1.5rem;
+        gap: 0.8rem;
+        margin-top: 0.2rem;
     }
 
-        .faq-section h2 {
-            font-size: 1.8rem;
-            margin-bottom: 0.5rem;
-        }
+    .faq-section-label {
+        margin: 0 0 0.1rem;
+        padding: 0 0.15rem;
+        font-size: 0.92rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: var(--text-secondary);
+    }
 
-        .faq-section details {
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 0.75rem 1rem;
-            background: rgba(0, 0, 0, 0.02);
-        }
+    .faq-section details {
+        border-radius: 18px;
+        border: 1px solid color-mix(in srgb, var(--border-color) 84%, rgba(75, 108, 183, 0.14) 16%);
+        padding: 0;
+        background: color-mix(in srgb, var(--bg-card) 94%, rgba(255,255,255,.06) 6%);
+        overflow: hidden;
+        transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
 
-        .faq-section summary {
-            font-weight: 600;
-            cursor: pointer;
-            list-style: none;
-        }
+    .faq-section details[open] {
+        border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-color) 66%);
+        box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+    }
 
-            .faq-section summary::-webkit-details-marker {
-                display: none;
-            }
+    .faq-section summary {
+        position: relative;
+        font-weight: 700;
+        cursor: pointer;
+        list-style: none;
+        padding: 1rem 3.25rem 1rem 1rem;
+        line-height: 1.42;
+    }
 
-        .faq-section p {
-            margin-top: 0.5rem;
-            line-height: 1.5;
-        }
+    .faq-section summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .faq-section summary::after {
+        content: "+";
+        position: absolute;
+        right: 0.95rem;
+        top: 50%;
+        width: 1.8rem;
+        height: 1.8rem;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+        color: color-mix(in srgb, var(--accent-secondary) 72%, var(--text-primary) 28%);
+        font-size: 1rem;
+        font-weight: 900;
+        transform: translateY(-50%);
+        transition: transform .16s ease, background-color .16s ease;
+    }
+
+    .faq-section details[open] summary::after {
+        content: "−";
+        transform: translateY(-50%) rotate(180deg);
+    }
+
+    .faq-section p {
+        margin: 0;
+        padding: 0 1rem 1rem;
+        color: var(--text-secondary);
+        line-height: 1.62;
+    }
 
     :global(.faq-hit) {
         display: inline-block;
         padding: 0 0.18em;
         border-radius: 6px;
         background: rgba(255, 214, 10, 0.28);
+    }
+
+    @media (max-width: 860px) {
+        .legal-page {
+            margin-top: 1.8rem;
+            padding: 0.95rem 0.9rem 2.5rem;
+        }
+
+        .faq-header__inner {
+            padding: 0;
+        }
+
+        .faq-hero {
+            grid-template-columns: 1fr;
+            padding: 1rem;
+            border-radius: 20px;
+        }
+
+        .faq-hero__stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .faq-filter {
+            grid-template-columns: 1fr;
+            gap: 0.65rem;
+        }
+
+        .faq-section {
+            margin-top: 0.15rem;
+        }
+
+        .faq-section summary {
+            padding: 0.9rem 3rem 0.9rem 0.9rem;
+        }
+
+        .faq-section p {
+            padding: 0 0.9rem 0.95rem;
+        }
+    }
+
+    html.dark-mode .faq-hero {
+        border-color: color-mix(in srgb, rgba(99, 102, 241, 0.18) 46%, var(--border-color) 54%);
+        box-shadow: 0 20px 44px rgba(2, 6, 23, 0.34);
+    }
+
+    html.dark-mode .faq-hero {
+        background:
+            radial-gradient(circle at top right, rgba(129, 140, 248, 0.18), transparent 36%),
+            linear-gradient(180deg, rgba(11, 20, 48, 0.96), rgba(7, 11, 24, 0.98));
+    }
+
+    html.dark-mode .faq-stat,
+    html.dark-mode .faq-filter-button,
+    html.dark-mode .faq-section details {
+        background: color-mix(in srgb, rgba(11, 20, 48, 0.96) 88%, rgba(129, 140, 248, 0.08) 12%);
+        border-color: color-mix(in srgb, rgba(99, 102, 241, 0.2) 40%, var(--border-color) 60%);
+    }
+
+    html.dark-mode .faq-filter-button.active {
+        background:
+            radial-gradient(circle at top right, rgba(129, 140, 248, 0.16), transparent 40%),
+            linear-gradient(180deg, rgba(11, 20, 48, 0.98), rgba(16, 24, 40, 0.98));
+    }
+
+    html.dark-mode .faq-filter-button__icon,
+    html.dark-mode .faq-section summary::after,
+    html.dark-mode .faq-kicker {
+        background: rgba(129, 140, 248, 0.18);
+        color: #dbeafe;
+    }
+
+    html.dark-mode .faq-no-results {
+        background: color-mix(in srgb, rgba(245, 158, 11, 0.12) 36%, rgba(11, 20, 48, 0.88) 64%);
     }
 </style>
