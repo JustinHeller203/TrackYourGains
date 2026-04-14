@@ -992,7 +992,7 @@
 
     .faq-filter {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: 1fr;
         gap: 0.8rem;
         margin: 1.2rem 0 1.8rem;
         align-items: start;
@@ -1176,11 +1176,6 @@
 
         .faq-hero__stats {
             grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .faq-filter {
-            grid-template-columns: 1fr;
-            gap: 0.65rem;
         }
 
         .faq-section {
