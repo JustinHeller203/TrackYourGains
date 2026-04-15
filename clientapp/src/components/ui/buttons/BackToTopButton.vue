@@ -1,14 +1,15 @@
 ﻿<!--Pfad: components/ui/buttons/BackToTopButton.vue-->
 <template>
-    <button v-show="enabled && visible"
-            type="button"
-            class="backtop-btn"
-            aria-label="Nach oben"
-            title="Nach oben"
-            @click="scrollToTop">
-        <span class="backtop-icon" aria-hidden="true">↑</span>
-
-    </button>
+    <Teleport to="body">
+        <button v-show="enabled && visible"
+                type="button"
+                class="backtop-btn"
+                aria-label="Nach oben"
+                title="Nach oben"
+                @click="scrollToTop">
+            <span class="backtop-icon" aria-hidden="true">↑</span>
+        </button>
+    </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -18,6 +19,9 @@
     const visible = ref(false)
 
     const enabled = ref(true)
+    const scrollTargets: EventTarget[] = []
+    const wheelTargets: EventTarget[] = []
+    let visibilityRaf = 0
 
     function loadEnabled() {
         const raw = localStorage.getItem(LS_BACK_TO_TOP_ENABLED)
@@ -28,18 +32,52 @@
         enabled.value = !!e.detail
     }
 
+    function readScrollTop(target: EventTarget | null | undefined) {
+        if (!target) return 0
+        if (target === window) return window.scrollY || 0
+        if (target instanceof HTMLElement) return target.scrollTop || 0
+        if (target instanceof Document) {
+            return Math.max(
+                target.documentElement?.scrollTop || 0,
+                target.body?.scrollTop || 0
+            )
+        }
+        return 0
+    }
+
     function getScrollTop() {
-        return (
-            window.scrollY ||
-            document.documentElement.scrollTop ||
-            document.body.scrollTop ||
-            0
-        )
+        const candidates = [
+            window,
+            document,
+            document.scrollingElement,
+            document.documentElement,
+            document.body,
+            document.querySelector('.app-shell'),
+            document.querySelector('.main-content'),
+        ]
+
+        return candidates.reduce((max, target) => Math.max(max, readScrollTop(target as EventTarget)), 0)
     }
 
     function onScroll() {
-        // ✅ Sobald du “merkbar” nach unten scrollst -> Button rein
-        visible.value = getScrollTop() > 24
+        // Direkt nach dem ersten echten Scrollen einblenden.
+        visible.value = getScrollTop() > 0
+    }
+
+    function onWheel(event: WheelEvent) {
+        if (!enabled.value) return
+        if (event.deltaY <= 0) return
+        visible.value = true
+    }
+
+    function startVisibilityLoop() {
+        const tick = () => {
+            onScroll()
+            visibilityRaf = window.requestAnimationFrame(tick)
+        }
+
+        if (visibilityRaf) window.cancelAnimationFrame(visibilityRaf)
+        visibilityRaf = window.requestAnimationFrame(tick)
     }
 
     function scrollToTop() {
@@ -49,19 +87,54 @@
         document.body.scrollTop = 0
     }
 
+    function registerScrollTarget(target: EventTarget | null | undefined, options?: AddEventListenerOptions | boolean) {
+        if (!target || scrollTargets.includes(target)) return
+        target.addEventListener('scroll', onScroll, options as any)
+        scrollTargets.push(target)
+    }
+
+    function registerWheelTarget(target: EventTarget | null | undefined, options?: AddEventListenerOptions | boolean) {
+        if (!target || wheelTargets.includes(target)) return
+        target.addEventListener('wheel', onWheel, options as any)
+        wheelTargets.push(target)
+    }
+
     onMounted(() => {
         loadEnabled()
         window.addEventListener('back-to-top-enabled-changed', onBttEnabledChanged as EventListener)
 
-        window.addEventListener('scroll', onScroll, { passive: true })
-        document.addEventListener('scroll', onScroll, { passive: true, capture: true } as any)
+        registerScrollTarget(window, { passive: true })
+        registerScrollTarget(document, { passive: true, capture: true } as any)
+        registerScrollTarget(document.scrollingElement)
+        registerScrollTarget(document.documentElement)
+        registerScrollTarget(document.body)
+        registerScrollTarget(document.querySelector('.app-shell'))
+        registerScrollTarget(document.querySelector('.main-content'))
+        registerWheelTarget(window, { passive: true })
+        registerWheelTarget(document, { passive: true, capture: true } as any)
+        registerWheelTarget(document.querySelector('.app-shell'), { passive: true })
+        registerWheelTarget(document.querySelector('.main-content'), { passive: true })
         onScroll()
+        startVisibilityLoop()
     })
 
     onBeforeUnmount(() => {
         window.removeEventListener('back-to-top-enabled-changed', onBttEnabledChanged as EventListener)
-        window.removeEventListener('scroll', onScroll as any)
-        document.removeEventListener('scroll', onScroll as any, true as any)
+        if (visibilityRaf) window.cancelAnimationFrame(visibilityRaf)
+        scrollTargets.forEach((target) => {
+            if (target === document) {
+                target.removeEventListener('scroll', onScroll as any, true as any)
+                return
+            }
+            target.removeEventListener('scroll', onScroll as any)
+        })
+        wheelTargets.forEach((target) => {
+            if (target === document) {
+                target.removeEventListener('wheel', onWheel as any, true as any)
+                return
+            }
+            target.removeEventListener('wheel', onWheel as any)
+        })
     })
 </script>
 

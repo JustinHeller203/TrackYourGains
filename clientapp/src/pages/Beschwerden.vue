@@ -317,6 +317,22 @@
                                     </ul>
                                 </section>
 
+                                <section class="pain-diary-create-card">
+                                    <div class="pain-diary-create-card__head">
+                                        <div>
+                                            <p class="pain-diary-preview__title">Neuer Schmerztagebuch-Eintrag</p>
+                                            <p class="pain-diary-create-card__sub">Direkt für diese Beschwerde festhalten.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="pain-diary-preview__action-btn"
+                                            @click="togglePainDiaryCreate(entry)">
+                                            {{ activePainDiaryCreateId === entry.id ? 'Schließen' : 'Eintragen' }}
+                                        </button>
+                                    </div>
+
+                                </section>
+
                                 <div class="status-row">
                                     <p class="status-title">Status auswählen</p>
                                     <div class="status-actions complaint-actions" aria-label="Status aktualisieren">
@@ -368,6 +384,58 @@
             @save="onTrainingContextPopupSave"
             @cancel="onTrainingContextPopupCancel" />
 
+        <BasePopup :show="!!activePainDiaryCreateEntry"
+                   title="Schmerztagebuch-Eintrag"
+                   overlayClass="pain-diary-create-popup"
+                   @cancel="closePainDiaryCreate"
+                   @save="savePainDiaryCreateFromPopup">
+            <div class="pain-diary-create-popup__body">
+                <div class="pain-diary-create-popup__hero">
+                    <p v-if="activePainDiaryCreateEntry" class="pain-diary-create-popup__label">
+                        {{ displayAreaLabel(activePainDiaryCreateEntry) }}
+                    </p>
+                    <p class="pain-diary-create-popup__sub">
+                        Halte fest, wie stark die Beschwerde gerade ist und ergänze bei Bedarf eine kurze Notiz.
+                    </p>
+                </div>
+
+                <div class="pain-diary-create-popup__section">
+                    <div class="pain-diary-preview__editor-head">
+                        <label class="field-label">Intensität *</label>
+                        <strong>{{ creatingPainDiaryLevel }}/10</strong>
+                    </div>
+                    <input
+                        v-model.number="creatingPainDiaryLevel"
+                        class="pain-diary-preview__slider"
+                        type="range"
+                        min="0"
+                        max="10"
+                        step="1"
+                        :style="painDiaryCreateSliderStyle"
+                        aria-label="Schmerztagebuch Intensität hinzufügen" />
+                </div>
+
+                <div class="pain-diary-create-popup__section">
+                    <label class="field-label" for="pain-diary-create-note">Notiz</label>
+                    <textarea
+                        id="pain-diary-create-note"
+                        v-model="creatingPainDiaryNote"
+                        class="pain-diary-preview__editor-note pain-diary-create-popup__note"
+                        rows="4"
+                        maxlength="220"
+                        placeholder="Optional: Was fällt dir heute zu der Beschwerde auf?" />
+                </div>
+            </div>
+            <template #actions>
+                <PopupActionButton variant="ghost" @click="closePainDiaryCreate">
+                    Abbrechen
+                </PopupActionButton>
+                <PopupActionButton @click="savePainDiaryCreateFromPopup">
+                    Speichern
+                </PopupActionButton>
+            </template>
+        </BasePopup>
+
         <DeleteConfirmPopup
             :show="showDeletePopup"
             @confirm="confirmDeleteEntry"
@@ -415,25 +483,31 @@
     import DashboardCard from '@/components/ui/DashboardCard.vue'
     import AnimatedReelValue from '@/components/ui/progress/AnimatedReelValue.vue'
     import ResetButton from '@/components/ui/buttons/ResetButton.vue'
+    import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import ComplaintInjuryEstimator from '@/components/ui/complaints/ComplaintInjuryEstimator.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
+    import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import ComplaintTrainingContextPopup from '@/components/ui/popups/ComplaintTrainingContextPopup.vue'
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
     import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
-    import { listPainDiaryEntries, removePainDiaryEntry, updatePainDiaryEntry, type PainDiaryEntry } from '@/components/ui/feedback/painDiary'
+    import { appendPainDiaryEntry, listPainDiaryEntries, removePainDiaryEntry, updatePainDiaryEntry, type PainDiaryEntry } from '@/components/ui/feedback/painDiary'
     import { useAuthStore } from '@/store/authStore'
     import { useComplaintsStore } from '@/store/complaintsStore'
+    import { showDeleteTrashOverlay, DELETE_TRASH_ANIMATION_MS } from '@/composables/useDeleteTrashOverlay'
     import { useProgressStore } from '@/store/progressStore'
     import { useSettingsStore } from '@/store/settingsStore'
     import { useTrainingPlansStore } from '@/store/trainingPlansStore'
     import { LS_COMPLAINTS_CUSTOM_AREAS, LS_CONFIRM_DELETE_ENABLED } from '@/constants/storageKeys'
     import type { ComplaintArea, ComplaintCategory, ComplaintEntry, ComplaintStatus } from '@/types/complaint'
+    import { useRoute, useRouter } from 'vue-router'
 
     const complaintsStore = useComplaintsStore()
     const authStore = useAuthStore()
     const progressStore = useProgressStore()
     const settingsStore = useSettingsStore()
     const trainingPlansStore = useTrainingPlansStore()
+    const route = useRoute()
+    const router = useRouter()
 
     const today = new Date().toISOString().slice(0, 10)
     const intensityOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -557,6 +631,9 @@
     const editingPainDiaryId = ref<string | null>(null)
     const editingPainDiaryLevel = ref(0)
     const editingPainDiaryNote = ref('')
+    const activePainDiaryCreateId = ref<string | null>(null)
+    const creatingPainDiaryLevel = ref(0)
+    const creatingPainDiaryNote = ref('')
     const editingEntryId = ref<string | null>(null)
     const builderActionLabel = ref<{ visible: boolean; label: string; seq: number }>({ visible: false, label: '', seq: 0 })
     const creatorFormRef = ref<HTMLElement | null>(null)
@@ -823,7 +900,9 @@
     }
 
     function diarySourceLabel(source: PainDiaryEntry['source']) {
-        return source === 'training-simulation' ? 'Training' : 'Plan'
+        if (source === 'training-simulation') return 'Training'
+        if (source === 'complaints') return 'Beschwerden'
+        return 'Plan'
     }
 
     const painDiaryEditorSliderStyle = computed(() => {
@@ -833,6 +912,18 @@
             '--pain-thumb-color': `hsl(${hue} 85% 48%)`,
         }
     })
+
+    const painDiaryCreateSliderStyle = computed(() => {
+        const ratio = Math.max(0, Math.min(1, creatingPainDiaryLevel.value / 10))
+        const hue = 120 - (120 * ratio)
+        return {
+            '--pain-thumb-color': `hsl(${hue} 85% 48%)`,
+        }
+    })
+
+    const activePainDiaryCreateEntry = computed(() =>
+        entries.value.find((entry) => entry.id === activePainDiaryCreateId.value) ?? null
+    )
 
     function loadPainDiaryEntries() {
         painDiaryEntries.value = listPainDiaryEntries()
@@ -848,6 +939,44 @@
         editingPainDiaryId.value = null
         editingPainDiaryLevel.value = 0
         editingPainDiaryNote.value = ''
+    }
+
+    function prefillPainDiaryLevel(entry: ComplaintEntry) {
+        const latest = painDiaryEntries.value.find((item) => item.activeComplaintIds.includes(entry.id))
+        return latest ? latest.painLevel : entry.intensity
+    }
+
+    function closePainDiaryCreate() {
+        activePainDiaryCreateId.value = null
+        creatingPainDiaryLevel.value = 0
+        creatingPainDiaryNote.value = ''
+    }
+
+    function togglePainDiaryCreate(entry: ComplaintEntry) {
+        if (activePainDiaryCreateId.value === entry.id) {
+            closePainDiaryCreate()
+            return
+        }
+
+        activePainDiaryCreateId.value = entry.id
+        creatingPainDiaryLevel.value = prefillPainDiaryLevel(entry)
+        creatingPainDiaryNote.value = ''
+    }
+
+    function savePainDiaryCreate(entry: ComplaintEntry) {
+        appendPainDiaryEntry({
+            source: 'complaints',
+            painLevel: creatingPainDiaryLevel.value,
+            note: creatingPainDiaryNote.value,
+            activeComplaints: [entry],
+        })
+        loadPainDiaryEntries()
+        closePainDiaryCreate()
+    }
+
+    function savePainDiaryCreateFromPopup() {
+        if (!activePainDiaryCreateEntry.value) return
+        savePainDiaryCreate(activePainDiaryCreateEntry.value)
     }
 
     function savePainDiaryEdit(id: string) {
@@ -880,7 +1009,7 @@
                 if (!success) return
                 if (editingPainDiaryId.value === id) cancelPainDiaryEdit()
                 loadPainDiaryEntries()
-            }, 860)
+            }, DELETE_TRASH_ANIMATION_MS)
             return
         }
 
@@ -1336,6 +1465,24 @@
         }, 1400)
     }
 
+    async function focusComplaintFromRoute() {
+        const complaintId = String(route.query.complaintId ?? '').trim()
+        if (!complaintId) return
+
+        statusFilter.value = 'all'
+        areaFilter.value = 'all'
+        await nextTick()
+
+        const el = complaintItemRefs.get(complaintId)
+        if (!el) return
+
+        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+        triggerCreatedHighlight(complaintId)
+
+        const { complaintId: _omit, ...restQuery } = route.query
+        void router.replace({ query: restQuery })
+    }
+
     async function playCreateFlight(entry: ComplaintEntry) {
         if (typeof window === 'undefined') return
 
@@ -1389,6 +1536,14 @@
             deltaX: targetX - startX,
             deltaY: targetY - startY,
         }
+        showDeleteTrashOverlay({
+            startX,
+            startY,
+            title: itemName,
+            targetX,
+            targetY,
+            durationMs: DELETE_TRASH_ANIMATION_MS,
+        })
     }
 
     function requestDeleteEntry(entry: ComplaintEntry, event?: MouseEvent) {
@@ -1412,7 +1567,7 @@
                 if (editingEntryId.value === id) {
                     resetForm()
                 }
-            }, 860)
+            }, DELETE_TRASH_ANIMATION_MS)
             return
         }
 
@@ -1442,7 +1597,7 @@
                 if (editingEntryId.value === complaintId) {
                     resetForm()
                 }
-            }, 860)
+            }, DELETE_TRASH_ANIMATION_MS)
         }
 
         if (painDiaryId) {
@@ -1455,7 +1610,7 @@
                     if (editingPainDiaryId.value === painDiaryId) cancelPainDiaryEdit()
                     loadPainDiaryEntries()
                 }
-            }, 860)
+            }, DELETE_TRASH_ANIMATION_MS)
         }
 
         showDeletePopup.value = false
@@ -1513,10 +1668,17 @@
         void complaintsStore.load()
         loadPainDiaryEntries()
         scheduleDashboardReveal()
+        void focusComplaintFromRoute()
     })
 
     onActivated(() => {
         scheduleDashboardReveal()
+        loadPainDiaryEntries()
+        void focusComplaintFromRoute()
+    })
+
+    watch(() => [route.query.complaintId, entries.value.length], async () => {
+        await focusComplaintFromRoute()
     })
 
     onDeactivated(() => {
@@ -2515,6 +2677,92 @@
         color: var(--text-secondary);
     }
 
+    .pain-diary-create-card {
+        display: grid;
+        gap: 0.55rem;
+        margin-top: 0.85rem;
+        padding: 0.85rem 0.95rem;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background:
+            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 7%, transparent), transparent 55%),
+            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 5%, transparent), transparent 62%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.1)),
+            color-mix(in srgb, var(--bg-card) 90%, transparent);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 8px 18px rgba(15, 23, 42, 0.08);
+    }
+
+    .pain-diary-create-card__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+
+    .pain-diary-create-card__sub {
+        margin: 0.15rem 0 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.45;
+    }
+
+    html.dark-mode .pain-diary-create-card {
+        border-color: rgba(148, 163, 184, 0.22);
+        background:
+            radial-gradient(circle at top left, color-mix(in srgb, #6366f1 10%, transparent), transparent 55%),
+            radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 7%, transparent), transparent 60%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01)),
+            rgba(2, 6, 23, 0.28);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.03),
+            0 10px 22px rgba(0, 0, 0, 0.18);
+    }
+
+    .pain-diary-create-popup__label {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    .pain-diary-create-popup__body {
+        display: grid;
+        gap: 1rem;
+        padding: 0.2rem 0.1rem 0.35rem;
+    }
+
+    .pain-diary-create-popup__hero {
+        display: grid;
+        gap: 0.35rem;
+        padding: 0.85rem 0.95rem;
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--bg-secondary) 76%, transparent);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    .pain-diary-create-popup__sub {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.93rem;
+        line-height: 1.5;
+    }
+
+    .pain-diary-create-popup__section {
+        display: grid;
+        gap: 0.55rem;
+        padding: 0.85rem 0.95rem;
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--bg-secondary) 76%, transparent);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    .pain-diary-create-popup__note {
+        min-height: 88px;
+    }
+
     .pain-diary-preview__list {
         margin: 0;
         padding: 0;
@@ -2625,6 +2873,11 @@
         margin-top: 0.15rem;
         padding-top: 0.45rem;
         border-top: 1px dashed rgba(148, 163, 184, 0.24);
+    }
+
+    .pain-diary-preview__editor--create {
+        margin-top: 0;
+        padding-top: 0.65rem;
     }
 
     .pain-diary-preview__editor-head {

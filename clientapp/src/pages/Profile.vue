@@ -5,7 +5,7 @@
         <!-- Header -->
         <header ref="profileHeaderEl" class="profile-header">
 
-            <div class="avatar-wrap" :class="{ 'is-guided': avatarGuideActive }">
+            <div class="avatar-wrap" :class="{ 'is-guided': avatarGuideActive, 'is-menu-open': showAvatarMenu }">
                 <div class="avatar ring clickable"
                      ref="avatarEl"
                      @click="onAvatarClick"
@@ -483,15 +483,16 @@
             </div>
         </Transition>
 
-        <div v-if="showAvatarViewer"
-             class="image-viewer-overlay"
-             role="dialog"
-             aria-modal="true"
-             tabindex="0"
-             @click.self="closeAvatarViewer"
-             @keydown.esc="closeAvatarViewer"
-             @keydown="onViewerKeydown"
-             @wheel.prevent="onViewerWheel">
+        <Teleport to="body">
+            <div v-if="showAvatarViewer"
+                 class="image-viewer-overlay"
+                 role="dialog"
+                 aria-modal="true"
+                 tabindex="0"
+                 @click.self="closeAvatarViewer"
+                 @keydown.esc="closeAvatarViewer"
+                 @keydown="onViewerKeydown"
+                 @wheel.prevent="onViewerWheel">
             <div class="image-viewer-stage"
                  @pointerdown="onViewerPointerDown"
                  @pointermove="onViewerPointerMove"
@@ -542,19 +543,12 @@
             </button>
 
             <!-- REPLACE in Profile.vue (ShortcardPopup-Tag) -->
-            <ShortcardPopup :show="showShortcuts && !isMobile"
-                            :showActions="false"
-                            overlayClass="shortcuts-overlay"
-                            @cancel="showShortcuts = false">
+                <ShortcardPopup :show="showShortcuts && !isMobile"
+                                :showActions="false"
+                                overlayClass="shortcuts-overlay"
+                                @cancel="showShortcuts = false">
                 <div class="sc-head">
                     <span>Bild-Shortcuts</span>
-                    <button class="sc-x"
-                            type="button"
-                            :title="scCloseTitle"
-                            :aria-label="scCloseTitle"
-                            @click="showShortcuts = false">
-                        ×
-                    </button>
                 </div>
 
                 <ul class="sc-list">
@@ -573,8 +567,9 @@
                     <li><kbd>H</kbd> / <kbd>?</kbd> – Shortcuts ein/aus</li>
                     <li><kbd>Esc</kbd> – Viewer schließen</li>
                 </ul>
-            </ShortcardPopup>
-        </div>
+                </ShortcardPopup>
+            </div>
+        </Teleport>
 
         <!-- Toasts -->
         <Toast v-if="toast"
@@ -1111,9 +1106,6 @@
         return 'muted';
     });
 
-    const scCloseTitle = computed(() =>
-        isMobile.value ? 'Shortcuts schließen' : 'Shortcuts schließen (Shortcuts)'
-    );
     function onViewerDblClick(e: MouseEvent) {
         const factor = e.shiftKey ? 0.5 : 2; // Shift = raus
         const prev = viewerScale.value;
@@ -1471,6 +1463,8 @@
     let avatarHoldStart = 0
     let avatarPressPos: { x: number; y: number } | null = null
     const showAvatarViewer = ref(false)
+    let bodyOverflowBeforeViewer = ''
+    let htmlOverflowBeforeViewer = ''
 
     function onViewerPointerDown(e: PointerEvent) {
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -1512,6 +1506,18 @@
         (prevFocusEl as HTMLElement | null)?.focus?.();
         prevFocusEl = null;
     }
+    watch(showAvatarViewer, (open) => {
+        if (typeof document === 'undefined') return
+        if (open) {
+            bodyOverflowBeforeViewer = document.body.style.overflow
+            htmlOverflowBeforeViewer = document.documentElement.style.overflow
+            document.body.style.overflow = 'hidden'
+            document.documentElement.style.overflow = 'hidden'
+            return
+        }
+        document.body.style.overflow = bodyOverflowBeforeViewer
+        document.documentElement.style.overflow = htmlOverflowBeforeViewer
+    })
     function openAvatarMenuAt(_ev?: PointerEvent | MouseEvent) {
         showAvatarMenu.value = true
         suppressNextClick.value = true
@@ -2270,6 +2276,11 @@
     }
 
     onUnmounted(() => {
+        if (typeof document !== 'undefined') {
+            document.body.style.overflow = bodyOverflowBeforeViewer
+            document.documentElement.style.overflow = htmlOverflowBeforeViewer
+            document.body.style.cursor = ''
+        }
         clearDeleteTrashTimer()
     })
 </script>
@@ -3259,6 +3270,9 @@
         display: grid;
         place-items: center;
         background: rgba(0,0,0,.75);
+        overflow: hidden;
+        padding: 12px;
+        box-sizing: border-box;
         z-index: 2000
     }
 
@@ -3396,10 +3410,14 @@
 
     .viewer-controls {
         position: fixed;
-        right: 14px;
-        bottom: 14px;
-        display: grid;
+        top: 12px;
+        right: 56px;
+        display: flex;
+        flex-wrap: wrap;
         gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+        max-width: calc(100vw - 96px);
         z-index: 2100; /* über Stage, unter Close-Button passt auch */
     }
 
@@ -3491,6 +3509,10 @@
         position: relative;
         display: inline-block;
         isolation: isolate;
+    }
+
+    .avatar-wrap.is-menu-open {
+        z-index: 30;
     }
 
     .avatar-wrap.is-guided .avatar {
@@ -3868,16 +3890,6 @@
         margin: 0;
         font-style: italic;
         color: var(--text-secondary);
-    }
-
-    .sc-x {
-        border: 0;
-        background: transparent;
-        color: var(--text-primary);
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-        cursor: pointer;
     }
 
     .sc-list {

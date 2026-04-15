@@ -2,7 +2,7 @@ import type { ComplaintEntry } from '@/types/complaint'
 
 const PAIN_DIARY_KEY = 'gym3000.painDiary.v1'
 
-export type PainDiarySource = 'plan-progress' | 'training-simulation'
+export type PainDiarySource = 'plan-progress' | 'training-simulation' | 'complaints'
 
 export type PainDiaryEntry = {
     id: string

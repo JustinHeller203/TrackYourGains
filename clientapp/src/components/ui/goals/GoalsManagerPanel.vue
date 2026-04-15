@@ -262,6 +262,7 @@ import EditInput from '@/components/ui/buttons/EditInput.vue'
 import UiSettingsSelect from '@/components/ui/kits/selects/UiSettingsSelect.vue'
 import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
 import GoalExerciseLibraryPopup from '@/components/ui/popups/goal/GoalExerciseLibraryPopup.vue'
+import { showDeleteTrashOverlay, DELETE_TRASH_ANIMATION_MS } from '@/composables/useDeleteTrashOverlay'
 import { useUnits } from '@/composables/useUnits'
 import { useGoalsStore } from '@/store/goalsStore'
 import type { GoalWeightSample, GoalWorkoutSample, TrainingGoal, TrainingGoalType } from '@/types/goals'
@@ -523,11 +524,20 @@ function launchDeleteTrash(chips: string[], event: MouseEvent | undefined, onDon
         deltaX: targetX - startX,
         deltaY: targetY - startY,
     }
+    showDeleteTrashOverlay({
+        startX,
+        startY,
+        title: safeChips.length === 1 ? safeChips[0] : '',
+        chips: safeChips.length > 1 ? safeChips : [],
+        targetX,
+        targetY,
+        durationMs: DELETE_TRASH_ANIMATION_MS,
+    })
 
     deleteTrashTimer = setTimeout(() => {
         onDone()
         hideDeleteTrash()
-    }, 860)
+    }, DELETE_TRASH_ANIMATION_MS)
 }
 
 function requestRemoveGoals(ids: string[], labels: string[], event?: MouseEvent) {

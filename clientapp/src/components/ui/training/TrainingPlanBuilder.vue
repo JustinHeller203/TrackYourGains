@@ -20,7 +20,8 @@
                 <div ref="modeSwitchTrack"
                      class="segmented seg-mode"
                      :class="{ 'is-dragging': modeSwitchDrag.active }"
-                     @pointerdown="handleModeSwitchPointerDown">
+                     @pointerdown="handleModeSwitchPointerDown"
+                     @click="handleModeSwitchTrackClick">
                     <span ref="modeSwitchThumb"
                           class="seg-mode__thumb"
                           :class="{ 'seg-mode__thumb--auto': builderMode === 'auto', 'seg-mode__thumb--dragging': modeSwitchDrag.active }"
@@ -1545,6 +1546,20 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         if (Date.now() < modeSwitchDragSuppressClickUntil.value) return
         if (builderMode.value !== mode) dismissModeSwipeHint()
         setBuilderMode(mode)
+    }
+
+    const handleModeSwitchTrackClick = (event: MouseEvent) => {
+        if (Date.now() < modeSwitchDragSuppressClickUntil.value) return
+        if (modeSwitchDrag.active) return
+
+        const track = modeSwitchTrack.value
+        if (!track) return
+
+        const rect = track.getBoundingClientRect()
+        const clickX = event.clientX - rect.left
+        const nextMode: 'manual' | 'auto' = clickX < rect.width / 2 ? 'manual' : 'auto'
+
+        handleBuilderModeSwitchClick(nextMode)
     }
 
     const setBuilderMode = (mode: 'manual' | 'auto') => {

@@ -578,6 +578,7 @@
     import { evaluateTrainingGoals, goalMatchesExerciseName } from '@/utils/goalTracking'
     import { LS_PROGRESS_WEIGHTS, LS_PROGRESS_WORKOUTS } from '@/constants/storageKeys'
     import type { GoalWeightSample, GoalWorkoutSample, TrainingGoalEvaluation } from '@/types/goals'
+    import { showDeleteTrashOverlay, DELETE_TRASH_ANIMATION_MS } from '@/composables/useDeleteTrashOverlay'
 
     /* -------------------- Types (nur Plans) -------------------- */
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
@@ -1316,11 +1317,19 @@
                 deltaX: targetX - startX,
                 deltaY: targetY - startY,
             }
+            showDeleteTrashOverlay({
+                startX,
+                startY,
+                title: plan.name,
+                targetX,
+                targetY,
+                durationMs: DELETE_TRASH_ANIMATION_MS,
+            })
 
             deleteTrashTimer = setTimeout(() => {
                 hideDeleteTrash()
                 void executeDeletePlan(plan.id)
-            }, 860)
+            }, DELETE_TRASH_ANIMATION_MS)
         })
     }
 

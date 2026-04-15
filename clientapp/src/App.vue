@@ -173,6 +173,7 @@
 
             <AppFooter v-if="!isPhonePreview" />
 
+            <DeleteTrashOverlay v-if="!isPhonePreview" />
             <BackToTopButton v-if="!isPhonePreview" />
         </div>
     </div>
@@ -196,6 +197,7 @@
 
     import AppFooter from '@/AppFooter.vue'
     import BackToTopButton from '@/components/ui/buttons/BackToTopButton.vue'
+    import DeleteTrashOverlay from '@/components/ui/overlays/DeleteTrashOverlay.vue'
     import {
         LS_TRAINING_TIMERS_V1,
         LS_TRAINING_STOPWATCHES_V1,

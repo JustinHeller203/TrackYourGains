@@ -144,7 +144,7 @@
                 <!-- ======= FAVORITEN-BEREICH (oben) ======= -->
                 <template v-if="favoriteCalcs.length">
                     <!-- BMI Favorit -->
-                    <div v-if="isFavorite('BMI')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('BMI') }">
+                    <div v-if="isFavorite('BMI')" class="calc-search-item" :class="calcSearchItemClasses('BMI')" :data-favorite-transfer-label="calcFavoriteTransferLabel('BMI')">
                     <BmiCalculator
                                    title="BMI-Rechner"
                                    info="Der BMI (Body-Mass-Index) misst das Verhältnis von Gewicht zu Größe."
@@ -166,7 +166,7 @@
                     </div>
 
                     <!-- Kalorien Favorit -->
-                    <div v-if="isFavorite('Kalorienbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Kalorienbedarf') }">
+                    <div v-if="isFavorite('Kalorienbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Kalorienbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Kalorienbedarf')">
                     <CaloriesCalculator
                                         :unit="unit"
                                         :autoCalcEnabled="autoCalcEnabled"
@@ -192,7 +192,7 @@
                     </div>
 
                     <!-- Burn Rate Favorit -->
-                    <div v-if="isFavorite('Burn Rate')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Burn Rate') }">
+                    <div v-if="isFavorite('Burn Rate')" class="calc-search-item" :class="calcSearchItemClasses('Burn Rate')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Burn Rate')">
                     <BurnRateCalculator
                                         :unit="unit"
                                         :autoCalcEnabled="autoCalcEnabled"
@@ -214,7 +214,7 @@
                     </div>
 
                     <!-- Protein Favorit -->
-                    <div v-if="isFavorite('Proteinbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Proteinbedarf') }">
+                    <div v-if="isFavorite('Proteinbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Proteinbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Proteinbedarf')">
                     <ProteinCalculator
                                        :unit="unit"
                                        :autoCalcEnabled="autoCalcEnabled"
@@ -236,7 +236,7 @@
                     </div>
 
                     <!-- 1RM Favorit -->
-                    <div v-if="isFavorite('1RM')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('1RM') }">
+                    <div v-if="isFavorite('1RM')" class="calc-search-item" :class="calcSearchItemClasses('1RM')" :data-favorite-transfer-label="calcFavoriteTransferLabel('1RM')">
                     <OneRmCalculator
                                      :unit="unit"
                                      :autoCalcEnabled="autoCalcEnabled"
@@ -257,7 +257,7 @@
                     </div>
 
                     <!-- Körperfett Favorit -->
-                    <div v-if="isFavorite('Körperfett')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Körperfett') }">
+                    <div v-if="isFavorite('Körperfett')" class="calc-search-item" :class="calcSearchItemClasses('Körperfett')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Körperfett')">
                     <BodyFatCalculator
                                        :autoCalcEnabled="autoCalcEnabled"
                                        :bodyFatGender="bodyFatGender"
@@ -280,7 +280,7 @@
                     </div>
 
                     <!-- Koffein Favorit -->
-                    <div v-if="isFavorite('Koffein')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Koffein') }">
+                    <div v-if="isFavorite('Koffein')" class="calc-search-item" :class="calcSearchItemClasses('Koffein')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Koffein')">
                     <CaffeineSafeDoseCalculator
                                                 :unit="unit"
                                                 :autoCalcEnabled="autoCalcEnabled"
@@ -300,7 +300,7 @@
                     </div>
 
                     <!-- FFMI Favorit -->
-                    <div v-if="isFavorite('FFMI')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('FFMI') }">
+                    <div v-if="isFavorite('FFMI')" class="calc-search-item" :class="calcSearchItemClasses('FFMI')" :data-favorite-transfer-label="calcFavoriteTransferLabel('FFMI')">
                     <FfmiCalculator
                                     :unit="unit"
                                     :autoCalcEnabled="autoCalcEnabled"
@@ -319,7 +319,7 @@
                                     @invalid="onCalcInvalid" />
                     </div>
                     <!-- GL Favorit -->
-                    <div v-if="isFavorite('Glykämische Last')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Glykämische Last') }">
+                    <div v-if="isFavorite('Glykämische Last')" class="calc-search-item" :class="calcSearchItemClasses('Glykämische Last')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Glykämische Last')">
                     <GlycemicLoadCalculator
                                             :autoCalcEnabled="autoCalcEnabled"
                                             :glFood="glFood"
@@ -343,7 +343,7 @@
 
 
                     <!-- Wasser Favorit -->
-                    <div v-if="isFavorite('Wasserbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Wasserbedarf') }">
+                    <div v-if="isFavorite('Wasserbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Wasserbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Wasserbedarf')">
                     <WaterCalculator
                                      :unit="unit"
                                      :autoCalcEnabled="autoCalcEnabled"
@@ -365,7 +365,7 @@
 
 
                 <!-- ======= STANDARD-BEREICH (ohne Favoriten-Duplikate) ======= -->
-                <div v-if="!isFavorite('BMI')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('BMI') }">
+                <div v-if="!isFavorite('BMI')" class="calc-search-item" :class="calcSearchItemClasses('BMI')" :data-favorite-transfer-label="calcFavoriteTransferLabel('BMI')">
                 <BmiCalculator
                                title="BMI-Rechner"
                                info="Der BMI (Body-Mass-Index) misst das Verhältnis von Gewicht zu Größe."
@@ -387,7 +387,7 @@
                 </div>
 
                 <!-- ========== Kalorienbedarfsrechner ========== -->
-                <div v-if="!isFavorite('Kalorienbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Kalorienbedarf') }">
+                <div v-if="!isFavorite('Kalorienbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Kalorienbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Kalorienbedarf')">
                 <CaloriesCalculator
                                     :unit="unit"
                                     :autoCalcEnabled="autoCalcEnabled"
@@ -413,7 +413,7 @@
                 </div>
 
                 <!-- Burn Rate Standard -->
-                <div v-if="!isFavorite('Burn Rate')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Burn Rate') }">
+                <div v-if="!isFavorite('Burn Rate')" class="calc-search-item" :class="calcSearchItemClasses('Burn Rate')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Burn Rate')">
                 <BurnRateCalculator
                                     :unit="unit"
                                     :autoCalcEnabled="autoCalcEnabled"
@@ -434,7 +434,7 @@
                                     @invalid="onCalcInvalid" />
                 </div>
 
-                <div v-if="!isFavorite('Proteinbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Proteinbedarf') }">
+                <div v-if="!isFavorite('Proteinbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Proteinbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Proteinbedarf')">
                 <ProteinCalculator
                                    :unit="unit"
                                    :autoCalcEnabled="autoCalcEnabled"
@@ -456,7 +456,7 @@
                 </div>
 
                 <!-- ========== 1RM Rechner ========== -->
-                <div v-if="!isFavorite('1RM')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('1RM') }">
+                <div v-if="!isFavorite('1RM')" class="calc-search-item" :class="calcSearchItemClasses('1RM')" :data-favorite-transfer-label="calcFavoriteTransferLabel('1RM')">
                 <OneRmCalculator
                                  :unit="unit"
                                  :autoCalcEnabled="autoCalcEnabled"
@@ -476,7 +476,7 @@
                                  @invalid="onCalcInvalid" />
                 </div>
                 <!-- Koffein Standard -->
-                <div v-if="!isFavorite('Koffein')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Koffein') }">
+                <div v-if="!isFavorite('Koffein')" class="calc-search-item" :class="calcSearchItemClasses('Koffein')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Koffein')">
                 <CaffeineSafeDoseCalculator
                                             :unit="unit"
                                             :autoCalcEnabled="autoCalcEnabled"
@@ -496,7 +496,7 @@
                 </div>
 
                 <!-- ========== Körperfett Rechner ========== -->
-                <div v-if="!isFavorite('Körperfett')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Körperfett') }">
+                <div v-if="!isFavorite('Körperfett')" class="calc-search-item" :class="calcSearchItemClasses('Körperfett')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Körperfett')">
                 <BodyFatCalculator
                                    :autoCalcEnabled="autoCalcEnabled"
                                    :bodyFatGender="bodyFatGender"
@@ -519,7 +519,7 @@
                 </div>
 
                 <!-- ========== FFMI Rechner ========== -->
-                <div v-if="!isFavorite('FFMI')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('FFMI') }">
+                <div v-if="!isFavorite('FFMI')" class="calc-search-item" :class="calcSearchItemClasses('FFMI')" :data-favorite-transfer-label="calcFavoriteTransferLabel('FFMI')">
                 <FfmiCalculator
                                 :unit="unit"
                                 :autoCalcEnabled="autoCalcEnabled"
@@ -538,7 +538,7 @@
                                 @invalid="onCalcInvalid" />
                 </div>
                 <!-- GL Standard -->
-                <div v-if="!isFavorite('Glykämische Last')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Glykämische Last') }">
+                <div v-if="!isFavorite('Glykämische Last')" class="calc-search-item" :class="calcSearchItemClasses('Glykämische Last')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Glykämische Last')">
                 <GlycemicLoadCalculator
                                         :autoCalcEnabled="autoCalcEnabled"
                                         :glFood="glFood"
@@ -562,7 +562,7 @@
 
 
                 <!-- ========== Wasserbedarfsrechner ========== -->
-                <div v-if="!isFavorite('Wasserbedarf')" class="calc-search-item" :class="{ 'calc-search-item--hidden': !matchesCalc('Wasserbedarf') }">
+                <div v-if="!isFavorite('Wasserbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Wasserbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Wasserbedarf')">
                 <WaterCalculator
                                  :unit="unit"
                                  :autoCalcEnabled="autoCalcEnabled"
@@ -661,18 +661,81 @@
                     </template>
                 </div>
 
-                <div class="plan-card" v-if="matchesPlanSearch('Ernährungsplan')">
+                <div class="plan-card plan-card--static" v-if="matchesPlanSearch('Schmerztagebuch')">
                     <div class="card-header">
-                        <h3 class="card-title">🥗 Ernährungsplan</h3>
-                        <div class="card-actions">
-                            <ActionIconButton ariaLabel="Ernährungsplan herunterladen"
-                                              title="Herunterladen"
-                                              @click="openDownloadPopup('nutrition')">
-                                ⬇️
-                            </ActionIconButton>
-                        </div>
+                        <h3 class="section-title">🩹 Schmerztagebuch</h3>
                     </div>
-                    <p>Dein Ernährungsplan.</p>
+
+                    <div v-if="!complaintDiaryItems.length" class="plan-group-empty">
+                        Noch keine Beschwerden vorhanden. Lege zuerst einen Eintrag an und dokumentiere ihn dann im Schmerztagebuch.
+                    </div>
+
+                    <template v-else>
+                        <div v-if="freshComplaintDiaryItems.length" class="plan-group">
+                            <div class="plan-group-head plan-group-head--fresh">
+                                <h4 class="section-title">Neu erstellt</h4>
+                                <p>Frisch erstellt oder gerade aktualisiert.</p>
+                            </div>
+
+                            <div v-for="entry in freshComplaintDiaryItems"
+                                 :key="entry.id"
+                                 class="list-item plan-item plan-item--fresh pain-diary-plan-item">
+                                <div class="pain-diary-plan-item__copy">
+                                    <span>{{ progressComplaintDisplayLabel(entry) }}</span>
+                                    <small>{{ progressComplaintMeta(entry) }}</small>
+                                </div>
+                                <div class="list-item-actions">
+                                    <button type="button" class="open-btn" @click="openComplaintDetails(entry.id)">Öffnen</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="plan-group">
+                            <div class="plan-group-head">
+                                <h4 class="section-title">Aktiv</h4>
+                                <p>Beschwerden mit bereits genutztem Schmerztagebuch.</p>
+                            </div>
+
+                            <div v-if="!activeComplaintDiaryItems.length" class="plan-group-empty">
+                                Gerade ist keine Beschwerde als aktiv einsortiert.
+                            </div>
+
+                            <div v-for="entry in activeComplaintDiaryItems"
+                                 :key="entry.id"
+                                 class="list-item plan-item pain-diary-plan-item">
+                                <div class="pain-diary-plan-item__copy">
+                                    <span>{{ progressComplaintDisplayLabel(entry) }}</span>
+                                    <small>{{ progressComplaintMeta(entry) }}</small>
+                                </div>
+                                <div class="list-item-actions">
+                                    <button type="button" class="open-btn" @click="openComplaintDetails(entry.id)">Öffnen</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="plan-group">
+                            <div class="plan-group-head plan-group-head--muted">
+                                <h4 class="section-title">Unbenutzt</h4>
+                                <p>Beschwerden ohne Schmerztagebuch-Eintrag, jederzeit startklar.</p>
+                            </div>
+
+                            <div v-if="!inactiveComplaintDiaryItems.length" class="plan-group-empty">
+                                Aktuell ist keine Beschwerde als unbenutzt einsortiert.
+                            </div>
+
+                            <div v-for="entry in inactiveComplaintDiaryItems"
+                                 :key="entry.id"
+                                 class="list-item plan-item plan-item--inactive pain-diary-plan-item">
+                                <div class="pain-diary-plan-item__copy">
+                                    <span>{{ progressComplaintDisplayLabel(entry) }}</span>
+                                    <small>{{ progressComplaintMeta(entry) }}</small>
+                                </div>
+                                <div class="list-item-actions">
+                                    <button type="button" class="open-btn" @click="openComplaintDetails(entry.id)">Öffnen</button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
         </div>
@@ -794,7 +857,6 @@
 
 <script setup lang="ts">
     import { ref, computed, onMounted, onUnmounted, nextTick, watch, reactive } from 'vue';
-    import { useRouter } from 'vue-router'
     import Chart from 'chart.js/auto';
     import confetti from 'canvas-confetti';
     import { jsPDF } from 'jspdf';
@@ -852,10 +914,10 @@
         type TrainingSessionFeedbackRecord
     } from "@/services/trainingSessions"
     import { listTrainingPlanner, setTrainingPlannerCompletion } from "@/services/trainingPlanner"
-    import { appendPainDiaryEntry, evaluatePainDiarySignals } from '@/components/ui/feedback/painDiary'
-    import type { ComplaintEntry } from '@/types/complaint'
+    import { appendPainDiaryEntry, evaluatePainDiarySignals, listPainDiaryEntries, type PainDiaryEntry } from '@/components/ui/feedback/painDiary'
+    import type { ComplaintArea, ComplaintEntry } from '@/types/complaint'
 
-    import { useRoute } from 'vue-router'
+    import { useRoute, useRouter } from 'vue-router'
 
     import {
         LS_AUTO_CALC_ENABLED,
@@ -982,6 +1044,98 @@
     const trainingPlansStore = useTrainingPlansStore()
     const auth = useAuthStore()
     const complaintsStore = useComplaintsStore()
+    const painDiaryEntries = ref<PainDiaryEntry[]>([])
+
+    const progressComplaintAreaLabels: Record<ComplaintArea, string> = {
+        nacken: 'Nacken',
+        schulter: 'Schulter',
+        ellbogen: 'Ellbogen',
+        unterarm: 'Unterarm',
+        handgelenk: 'Handgelenk',
+        hand: 'Hand',
+        finger: 'Finger',
+        brust: 'Brust',
+        bauch: 'Bauch',
+        ruecken: 'Rücken',
+        leiste: 'Leiste',
+        huefte: 'Hüfte',
+        oberschenkel: 'Oberschenkel',
+        knie: 'Knie',
+        unterschenkel: 'Unterschenkel',
+        wade: 'Wade',
+        sprunggelenk: 'Sprunggelenk',
+        fuss: 'Fuß',
+        kopf: 'Kopf',
+        benutzerdefiniert: 'Benutzerdefiniert',
+        sonstiges: 'Benutzerdefiniert',
+    }
+
+    const progressComplaintStatusLabels: Record<ComplaintEntry['status'], string> = {
+        aktiv: 'Aktiv',
+        besser: 'Besser',
+        weg: 'Weg',
+    }
+
+    const readComplaintCustomAreaName = (valueRaw: string) => {
+        const lines = String(valueRaw ?? '').split('\n')
+        for (const line of lines) {
+            const match = line.trim().match(/^\[K.*rperstelle\]\s*Benutzerdefiniert:\s*(.+)$/i)
+            if (match?.[1]) return match[1].trim()
+        }
+        return ''
+    }
+
+    const progressComplaintDisplayLabel = (entry: ComplaintEntry) => {
+        const custom = readComplaintCustomAreaName(entry.notes)
+        if (custom) return custom
+        return progressComplaintAreaLabels[entry.area] ?? entry.area
+    }
+
+    const painDiaryEntriesByComplaintId = computed<Record<string, PainDiaryEntry[]>>(() => {
+        const grouped: Record<string, PainDiaryEntry[]> = {}
+        for (const diaryEntry of painDiaryEntries.value) {
+            for (const complaintId of diaryEntry.activeComplaintIds) {
+                if (!grouped[complaintId]) grouped[complaintId] = []
+                grouped[complaintId].push(diaryEntry)
+            }
+        }
+        return grouped
+    })
+
+    const complaintDiarySortTime = (entry: ComplaintEntry) =>
+        String(painDiaryEntriesByComplaintId.value[entry.id]?.[0]?.createdAt ?? entry.createdAt ?? entry.date)
+
+    const isFreshComplaintDiaryItem = (entry: ComplaintEntry) => {
+        const newest = parseUtcMs(entry.createdAt)
+        return newest > 0 && (Date.now() - newest) <= PLAN_FRESH_MS
+    }
+
+    const isActiveComplaintDiaryItem = (entry: ComplaintEntry) =>
+        (painDiaryEntriesByComplaintId.value[entry.id]?.length ?? 0) > 0
+
+    const sortComplaintDiaryItems = (items: ComplaintEntry[]) =>
+        [...items].sort((a, b) =>
+            complaintDiarySortTime(b).localeCompare(complaintDiarySortTime(a))
+            || progressComplaintDisplayLabel(a).localeCompare(progressComplaintDisplayLabel(b), 'de')
+        )
+
+    const complaintDiaryItems = computed(() => sortComplaintDiaryItems([...complaintsStore.entries]))
+
+    const freshComplaintDiaryItems = computed(() =>
+        sortComplaintDiaryItems(complaintDiaryItems.value.filter((entry) => isFreshComplaintDiaryItem(entry)))
+    )
+
+    const activeComplaintDiaryItems = computed(() =>
+        sortComplaintDiaryItems(
+            complaintDiaryItems.value.filter((entry) => !isFreshComplaintDiaryItem(entry) && isActiveComplaintDiaryItem(entry))
+        )
+    )
+
+    const inactiveComplaintDiaryItems = computed(() =>
+        sortComplaintDiaryItems(
+            complaintDiaryItems.value.filter((entry) => !isFreshComplaintDiaryItem(entry) && !isActiveComplaintDiaryItem(entry))
+        )
+    )
 
     const activePlanId = computed(() => effectivePlanId.value)
 
@@ -1579,6 +1733,7 @@
         }))
 
         goal.value = weightStore.goalKg
+        painDiaryEntries.value = listPainDiaryEntries()
     })
 
     onUnmounted(() => {
@@ -1971,6 +2126,8 @@
     const favoriteCalculators = ref<Set<string>>(new Set())
     const FAVORITES_KEY = LS_PROGRESS_FAVORITE_CALCULATORS
     const favoriteCalcs = computed(() => Array.from(favoriteCalculators.value));
+    const calculatorFavoriteTransfer = ref<{ id: string | null; direction: 'to-favorite' | 'from-favorite' | null }>({ id: null, direction: null })
+    let calculatorFavoriteTransferTimer: ReturnType<typeof setTimeout> | null = null
 
     const isFavorite = (id: string) => isFavCalculator(id);
 
@@ -1995,11 +2152,22 @@
         }
     }
 
+    const triggerFavoriteCalculatorTransfer = (id: string, direction: 'to-favorite' | 'from-favorite') => {
+        if (calculatorFavoriteTransferTimer) clearTimeout(calculatorFavoriteTransferTimer)
+        calculatorFavoriteTransfer.value = { id, direction }
+        calculatorFavoriteTransferTimer = setTimeout(() => {
+            calculatorFavoriteTransfer.value = { id: null, direction: null }
+            calculatorFavoriteTransferTimer = null
+        }, 1180)
+    }
+
     const toggleFavCalculator = (id: string) => {
         if (favoriteCalculators.value.has(id)) {
+            triggerFavoriteCalculatorTransfer(id, 'from-favorite')
             favoriteCalculators.value.delete(id)
             addToast('Favorit entfernt', 'default')
         } else {
+            triggerFavoriteCalculatorTransfer(id, 'to-favorite')
             favoriteCalculators.value.add(id)
             addToast('Als Favorit markiert', 'default')
         }
@@ -2007,6 +2175,18 @@
     }
 
     const isFavCalculator = (id: string) => favoriteCalculators.value.has(id)
+    const calcSearchItemClasses = (id: string) => ({
+        'calc-search-item--hidden': !matchesCalc(id),
+        'calc-search-item--favorite': isFavorite(id),
+        'calc-search-item--favorite-transfer': calculatorFavoriteTransfer.value.id === id,
+        'calc-search-item--favorite-transfer-in': calculatorFavoriteTransfer.value.id === id && calculatorFavoriteTransfer.value.direction === 'to-favorite',
+        'calc-search-item--favorite-transfer-out': calculatorFavoriteTransfer.value.id === id && calculatorFavoriteTransfer.value.direction === 'from-favorite',
+    })
+    const calcFavoriteTransferLabel = (id: string) => (
+        calculatorFavoriteTransfer.value.id === id && calculatorFavoriteTransfer.value.direction
+            ? (calculatorFavoriteTransfer.value.direction === 'to-favorite' ? 'Favorisiert!' : 'Entfernt!')
+            : ''
+    )
 
     const toastsEnabled = ref(true)
 
@@ -2017,6 +2197,10 @@
 
         const stored = localStorage.getItem(LS_TOASTS_ENABLED)
         toastsEnabled.value = stored === null ? true : stored === 'true'
+    })
+
+    onUnmounted(() => {
+        if (calculatorFavoriteTransferTimer) clearTimeout(calculatorFavoriteTransferTimer)
     })
 
 
@@ -3543,6 +3727,21 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         }
 
         await openPlanProgress(planId, 'stats')
+    }
+
+    const progressComplaintMeta = (entry: ComplaintEntry) => {
+        const diaryItems = painDiaryEntriesByComplaintId.value[entry.id] ?? []
+        const latestPain = diaryItems[0]?.painLevel
+        const diaryText = diaryItems.length === 1 ? '1 Eintrag' : `${diaryItems.length} Einträge`
+        const painText = latestPain == null ? 'noch kein Schmerztagebuch' : `letzte Intensität ${latestPain}/10`
+        return `${progressComplaintStatusLabels[entry.status]} · ${diaryText} · ${painText}`
+    }
+
+    const openComplaintDetails = async (complaintId: string) => {
+        await router.push({
+            path: '/beschwerden',
+            query: { complaintId },
+        })
     }
 
 
@@ -6564,6 +6763,7 @@ Notiz: ${e.note ?? '-'}\n`
     }
 
     .calc-search-item {
+        position: relative;
         display: block;
         min-width: 0;
         max-height: 1600px;
@@ -6581,6 +6781,112 @@ Notiz: ${e.note ?? '-'}\n`
             filter 0.24s ease;
     }
 
+    .calc-search-item--favorite > .calculator-card {
+        border-color: rgba(245, 158, 11, 0.72);
+        box-shadow:
+            0 18px 40px rgba(15, 23, 42, 0.22),
+            0 0 0 1px rgba(255, 244, 214, 0.62),
+            0 0 0 2px rgba(245, 158, 11, 0.34),
+            0 10px 26px rgba(245, 158, 11, 0.08);
+        animation: timer-favorite-border-sanctified 3.4s ease-in-out infinite;
+    }
+
+    .calc-search-item--favorite-transfer {
+        overflow: visible;
+    }
+
+    .calc-search-item--favorite-transfer::after {
+        content: attr(data-favorite-transfer-label);
+        position: absolute;
+        left: 50%;
+        top: 1rem;
+        z-index: 9;
+        pointer-events: none;
+        transform: translateX(-50%);
+        padding: .42rem 1rem;
+        border-radius: 999px;
+        border: 1px solid rgba(250, 204, 21, 0.46);
+        background: linear-gradient(180deg, rgba(255, 251, 235, 0.98), rgba(254, 243, 199, 0.94));
+        color: #a16207;
+        font-size: .8rem;
+        font-weight: 900;
+        line-height: 1;
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        white-space: nowrap;
+        box-shadow: 0 16px 30px rgba(245, 158, 11, 0.18), 0 0 0 1px rgba(255, 251, 235, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        animation: calc-favorite-label-rise-top 1.18s cubic-bezier(0.2, 0.82, 0.24, 1) both, timer-favorite-label-glow 1.18s ease-in-out both;
+    }
+
+    .calc-search-item--favorite-transfer-out::after {
+        border-color: rgba(248, 113, 113, 0.4);
+        background: linear-gradient(180deg, rgba(255, 241, 242, 0.98), rgba(254, 226, 226, 0.94));
+        color: #b91c1c;
+        box-shadow: 0 16px 30px rgba(239, 68, 68, 0.18), 0 0 0 1px rgba(255, 241, 242, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+    }
+
+    .calc-search-item--favorite-transfer-in > .calculator-card {
+        border-color: rgba(250, 204, 21, 0.82);
+        overflow: visible;
+        animation: timer-favorite-holy-rise 1.28s cubic-bezier(0.18, 0.88, 0.24, 1.08) both;
+    }
+
+    .calc-search-item--favorite-transfer-in > .calculator-card::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: -1.45rem;
+        width: 72%;
+        height: 2.2rem;
+        inset: auto;
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(255, 252, 240, 0.95) 0%, rgba(250, 204, 21, 0.72) 38%, rgba(245, 158, 11, 0.12) 68%, rgba(245, 158, 11, 0) 100%);
+        filter: blur(10px);
+        opacity: .84;
+        animation: timer-favorite-holy-aura 1.18s cubic-bezier(0.2, 0.82, 0.24, 1) both;
+        pointer-events: none;
+    }
+
+    .calc-search-item--favorite-transfer-in > .calculator-card::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, rgba(250, 204, 21, 0.12), rgba(251, 191, 36, 0.18), rgba(250, 204, 21, 0));
+        border: 2px solid rgba(250, 204, 21, 0.92);
+        box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.78), 0 0 26px rgba(250, 204, 21, 0.36), 0 0 54px rgba(245, 158, 11, 0.18);
+        animation: timer-card-finish-ring .84s cubic-bezier(0.22, 0.61, 0.36, 1) both, timer-favorite-holy-sparkles .96s ease-in-out 2;
+        pointer-events: none;
+    }
+
+    .calc-search-item--favorite-transfer-out > .calculator-card {
+        border-color: rgba(245, 158, 11, 0.24);
+        overflow: visible;
+        animation: timer-favorite-fall .76s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+    }
+
+    .calc-search-item--favorite-transfer-out > .calculator-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: radial-gradient(circle at 50% 12%, rgba(255, 248, 220, 0.32), rgba(255, 248, 220, 0) 42%), linear-gradient(180deg, rgba(250, 204, 21, 0.14), rgba(245, 158, 11, 0.05) 45%, rgba(245, 158, 11, 0) 100%);
+        animation: timer-favorite-release-trail .72s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        pointer-events: none;
+    }
+
+    .calc-search-item--favorite-transfer-out > .calculator-card::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 20px;
+        background: linear-gradient(180deg, rgba(255, 248, 220, 0.12), rgba(250, 204, 21, 0.06) 44%, rgba(250, 204, 21, 0) 100%);
+        border: 2px solid rgba(250, 204, 21, 0.92);
+        animation: timer-favorite-border-release .7s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        pointer-events: none;
+    }
+
     .calc-search-item--hidden {
         opacity: 0;
         max-height: 0;
@@ -6592,6 +6898,307 @@ Notiz: ${e.note ?? '-'}\n`
         transform: translateY(-10px) scale(0.985);
         filter: blur(8px);
         pointer-events: none;
+    }
+
+    html.dark-mode .calc-search-item--favorite > .calculator-card {
+        border-color: rgba(251, 191, 36, 0.86);
+        box-shadow:
+            0 22px 55px rgba(0, 0, 0, 0.7),
+            0 0 0 1px rgba(255, 244, 214, 0.18),
+            0 0 0 2px rgba(251, 191, 36, 0.56),
+            0 0 24px rgba(250, 204, 21, 0.16);
+    }
+
+    html.dark-mode .calc-search-item--favorite-transfer::after {
+        border-color: rgba(251, 191, 36, 0.54);
+        background: linear-gradient(180deg, rgba(120, 53, 15, 0.98), rgba(92, 39, 12, 0.94));
+        color: #fde68a;
+        box-shadow: 0 18px 34px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 244, 214, 0.12), 0 0 22px rgba(250, 204, 21, 0.18);
+    }
+
+    html.dark-mode .calc-search-item--favorite-transfer-out::after {
+        border-color: rgba(248, 113, 113, 0.4);
+        background: linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(91, 18, 18, 0.94));
+        color: #fecaca;
+        box-shadow: 0 18px 34px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(254, 226, 226, 0.08), 0 0 22px rgba(239, 68, 68, 0.16);
+    }
+
+    html.dark-mode .calc-search-item--favorite-transfer-in > .calculator-card::before {
+        background: radial-gradient(circle, rgba(255, 249, 219, 0.42) 0%, rgba(250, 204, 21, 0.28) 34%, rgba(245, 158, 11, 0.06) 68%, rgba(245, 158, 11, 0) 100%);
+    }
+
+    html.dark-mode .calc-search-item--favorite-transfer-in > .calculator-card::after {
+        border-color: rgba(251, 191, 36, 0.88);
+        box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.14), 0 0 26px rgba(250, 204, 21, 0.24), 0 0 54px rgba(245, 158, 11, 0.14);
+    }
+
+    @keyframes timer-card-finish-ring {
+        0% {
+            opacity: 0;
+            transform: scale(.82);
+            box-shadow: 0 0 0 0 rgba(96, 165, 250, 0);
+        }
+
+        24% {
+            opacity: .42;
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(1.18);
+            box-shadow: 0 0 0 28px rgba(96, 165, 250, 0), 0 0 54px rgba(96, 165, 250, 0);
+        }
+    }
+
+    @keyframes timer-favorite-border-sanctified {
+        0%, 100% {
+            box-shadow:
+                0 0 0 1px rgba(255, 244, 214, 0.68),
+                0 0 0 2px rgba(245, 158, 11, 0.42),
+                0 10px 26px rgba(245, 158, 11, 0.08);
+        }
+
+        50% {
+            box-shadow:
+                0 0 0 1px rgba(255, 248, 220, 0.82),
+                0 0 0 2px rgba(250, 204, 21, 0.56),
+                0 0 18px rgba(250, 204, 21, 0.18);
+        }
+    }
+
+    @keyframes timer-favorite-holy-rise {
+        0% {
+            transform: translate3d(0, 0, 0) scale(1);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(245, 158, 11, 0);
+            filter: saturate(1) brightness(1);
+        }
+
+        24% {
+            transform: translate3d(0, -10px, 0) scale(1.018);
+            box-shadow: 0 28px 64px rgba(245, 158, 11, 0.22), 0 0 34px rgba(251, 191, 36, 0.22);
+            filter: saturate(1.08) brightness(1.03);
+        }
+
+        52% {
+            transform: translate3d(0, -24px, 0) scale(1.034);
+            box-shadow: 0 40px 84px rgba(245, 158, 11, 0.28), 0 0 52px rgba(250, 204, 21, 0.32);
+            filter: saturate(1.16) brightness(1.08);
+        }
+
+        72% {
+            transform: translate3d(0, -14px, 0) scale(1.024);
+            box-shadow: 0 32px 72px rgba(245, 158, 11, 0.24), 0 0 46px rgba(250, 204, 21, 0.24);
+            filter: saturate(1.1) brightness(1.05);
+        }
+
+        100% {
+            transform: translate3d(0, 0, 0) scale(1);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(250, 204, 21, 0);
+            filter: saturate(1) brightness(1);
+        }
+    }
+
+    @keyframes timer-favorite-holy-aura {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -10%) scale(.58);
+            filter: blur(18px);
+        }
+
+        32% {
+            opacity: .9;
+            transform: translate(-50%, -36%) scale(1.04);
+            filter: blur(8px);
+        }
+
+        68% {
+            opacity: .74;
+            transform: translate(-50%, -44%) scale(1.12);
+            filter: blur(12px);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(-50%, -54%) scale(1.18);
+            filter: blur(18px);
+        }
+    }
+
+    @keyframes timer-favorite-holy-sparkles {
+        0%, 100% {
+            opacity: .32;
+            transform: translateY(0) scale(1);
+        }
+
+        50% {
+            opacity: .8;
+            transform: translateY(-4px) scale(1.06);
+        }
+    }
+
+    @keyframes timer-favorite-fall {
+        0% {
+            transform: translate3d(0, 0, 0) scale(1);
+            box-shadow: 0 22px 48px rgba(245, 158, 11, 0.16), 0 0 24px rgba(250, 204, 21, 0.16);
+            filter: saturate(1.04) brightness(1.02);
+        }
+
+        22% {
+            transform: translate3d(0, 3px, 0) scale(.997);
+            box-shadow: 0 19px 38px rgba(245, 158, 11, 0.1), 0 0 12px rgba(250, 204, 21, 0.08);
+            filter: saturate(1.01) brightness(1.005);
+        }
+
+        58% {
+            transform: translate3d(0, 12px, 0) scale(.989);
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16), 0 0 6px rgba(250, 204, 21, 0.03);
+            filter: saturate(.985) brightness(.992);
+        }
+
+        84% {
+            transform: translate3d(0, 5px, 0) scale(.995);
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18), 0 0 2px rgba(250, 204, 21, 0.02);
+            filter: saturate(.994) brightness(.996);
+        }
+
+        100% {
+            transform: translate3d(0, 0, 0) scale(1);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(250, 204, 21, 0);
+            filter: saturate(1) brightness(1);
+        }
+    }
+
+    @keyframes timer-favorite-border-release {
+        0% {
+            opacity: .96;
+            transform: scale(1);
+            border-color: rgba(250, 204, 21, 0.92);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.78), 0 0 0 2px rgba(250, 204, 21, 0.88), 0 0 26px rgba(250, 204, 21, 0.22);
+        }
+
+        26% {
+            opacity: .94;
+            transform: scale(1.01);
+            border-color: rgba(253, 224, 71, 0.88);
+            box-shadow: 0 0 0 1px rgba(255, 248, 220, 0.82), 0 0 0 2px rgba(250, 204, 21, 0.68), 0 0 26px rgba(250, 204, 21, 0.18);
+        }
+
+        62% {
+            opacity: .54;
+            transform: scale(1.002);
+            border-color: rgba(245, 158, 11, 0.28);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.22), 0 0 0 1px rgba(245, 158, 11, 0.18), 0 0 10px rgba(250, 204, 21, 0.05);
+        }
+
+        86% {
+            opacity: .2;
+            transform: scale(.999);
+            border-color: rgba(245, 158, 11, 0.08);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.08), 0 0 0 1px rgba(245, 158, 11, 0.06), 0 0 4px rgba(250, 204, 21, 0.02);
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(.988);
+            border-color: rgba(245, 158, 11, 0);
+            box-shadow: 0 0 0 0 rgba(255, 244, 214, 0), 0 0 0 0 rgba(250, 204, 21, 0), 0 0 0 rgba(250, 204, 21, 0);
+        }
+    }
+
+    @keyframes timer-favorite-release-trail {
+        0% {
+            opacity: 0;
+            transform: translateY(-1px) scale(.96);
+            filter: blur(8px);
+        }
+
+        24% {
+            opacity: .3;
+            transform: translateY(2px) scale(.985);
+            filter: blur(7px);
+        }
+
+        58% {
+            opacity: .2;
+            transform: translateY(9px) scale(1.01);
+            filter: blur(8px);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translateY(20px) scale(1.04);
+            filter: blur(12px);
+        }
+    }
+
+    @keyframes timer-favorite-label-rise {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, 14px) scale(.78) rotate(-4deg);
+            filter: blur(10px);
+            letter-spacing: .08em;
+        }
+
+        22% {
+            opacity: 1;
+            transform: translate(-50%, -6px) scale(1.02) rotate(-1deg);
+            filter: blur(0);
+            letter-spacing: .12em;
+        }
+
+        68% {
+            opacity: 1;
+            transform: translate(-50%, -18px) scale(1) rotate(0deg);
+            filter: blur(0);
+            letter-spacing: .11em;
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(-50%, -32px) scale(.96) rotate(0deg);
+            filter: blur(6px);
+            letter-spacing: .14em;
+        }
+    }
+
+    @keyframes timer-favorite-label-glow {
+        0%, 100% {
+            text-shadow: 0 0 0 rgba(255, 248, 220, 0), 0 0 0 rgba(250, 204, 21, 0);
+        }
+
+        50% {
+            text-shadow: 0 0 18px rgba(255, 248, 220, 0.82), 0 0 36px rgba(250, 204, 21, 0.46);
+        }
+    }
+
+    @keyframes calc-favorite-label-rise-top {
+        0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(14px) scale(.78) rotate(-4deg);
+            filter: blur(10px);
+            letter-spacing: .08em;
+        }
+
+        22% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-2px) scale(1.02) rotate(-1deg);
+            filter: blur(0);
+            letter-spacing: .12em;
+        }
+
+        68% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px) scale(1) rotate(0deg);
+            filter: blur(0);
+            letter-spacing: .11em;
+        }
+
+        100% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-22px) scale(.96) rotate(0deg);
+            filter: blur(6px);
+            letter-spacing: .14em;
+        }
     }
 
 
@@ -6635,15 +7242,25 @@ Notiz: ${e.note ?? '-'}\n`
             pointer-events: none;
         }
 
-        .plan-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
-            border-color: rgba(129, 140, 248, 0.7);
+    .plan-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
+        border-color: rgba(129, 140, 248, 0.7);
+    }
+
+        .plan-card:hover::before {
+            opacity: 1;
         }
 
-            .plan-card:hover::before {
-                opacity: 1;
-            }
+    .plan-card--static::before {
+        display: none;
+    }
+
+    .plan-card--static:hover {
+        transform: none;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+        border-color: rgba(148, 163, 184, 0.35);
+    }
 
     /* Dark-Mode angleichen zur workout-list */
     html.dark-mode .plan-card {
@@ -7054,6 +7671,27 @@ Notiz: ${e.note ?? '-'}\n`
     .plan-item span {
         color: var(--text-secondary);
         font-size: .95rem;
+    }
+
+    .pain-diary-plan-item {
+        align-items: center;
+    }
+
+    .pain-diary-plan-item__copy {
+        min-width: 0;
+        display: grid;
+        gap: 0.18rem;
+    }
+
+    .pain-diary-plan-item__copy span {
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+
+    .pain-diary-plan-item__copy small {
+        color: var(--text-secondary);
+        font-size: 0.84rem;
+        line-height: 1.35;
     }
 
     .list-item-actions {

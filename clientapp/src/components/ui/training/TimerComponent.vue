@@ -282,6 +282,7 @@
     import type { UpsertTimerDto } from '@/services/timers'
     import type { TimerInstance } from '@/types/training'
     import { useAuthStore } from '@/store/authStore'
+    import { showDeleteTrashOverlay, DELETE_TRASH_ANIMATION_MS } from '@/composables/useDeleteTrashOverlay'
 
     const props = defineProps<{
         startTimer: (timer: TimerInstance) => void
@@ -602,6 +603,14 @@
             deltaX: targetX - startX,
             deltaY: targetY - startY,
         }
+        showDeleteTrashOverlay({
+            startX,
+            startY,
+            title: timer.name || 'Timer',
+            targetX,
+            targetY,
+            durationMs: DELETE_TRASH_ANIMATION_MS,
+        })
 
         deleteTrashTimer = setTimeout(() => {
             hideDeleteTrash()
@@ -617,7 +626,7 @@
                 props.addToast?.('Timer gelöscht', 'delete')
                 await nextTick()
             })()
-        }, 860)
+        }, DELETE_TRASH_ANIMATION_MS)
 
         closeDeletePopup()
     }

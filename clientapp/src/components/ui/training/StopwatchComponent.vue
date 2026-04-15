@@ -351,6 +351,7 @@
     import ActionSelectPopup, { type ActionSelectRow } from '@/components/ui/popups/ActionSelectPopup.vue'
     import { useStopwatchesStore, effectiveElapsedMs } from '@/store/stopwatchesStore'
     import { useAuthStore } from '@/store/authStore'
+    import { showDeleteTrashOverlay, DELETE_TRASH_ANIMATION_MS } from '@/composables/useDeleteTrashOverlay'
 
     type ToastKind = 'delete' | 'add' | 'save' | 'timer' | 'load'
 
@@ -1539,11 +1540,19 @@
             deltaX: targetX - startX,
             deltaY: targetY - startY,
         }
+        showDeleteTrashOverlay({
+            startX,
+            startY,
+            chips: chips.slice(0, 6),
+            targetX,
+            targetY,
+            durationMs: DELETE_TRASH_ANIMATION_MS,
+        })
 
         deleteTrashTimer = setTimeout(() => {
             hideDeleteTrash()
             onDone?.()
-        }, 860)
+        }, DELETE_TRASH_ANIMATION_MS)
     }
 
     const lapDeleteChipLabel = (lap: LapEntry, index: number) => `${getLapName(lap, index)} · ${formatLapTime(toLapObj(lap).time)}`
@@ -1721,6 +1730,14 @@
             deltaX: targetX - startX,
             deltaY: targetY - startY,
         }
+        showDeleteTrashOverlay({
+            startX,
+            startY,
+            title: sw?.name || 'Stoppuhr',
+            targetX,
+            targetY,
+            durationMs: DELETE_TRASH_ANIMATION_MS,
+        })
 
         if (isGuest.value) {
             deleteTrashTimer = setTimeout(() => {
@@ -1742,7 +1759,7 @@
                 persistGuestSingleStopwatch()
 
                 props.addToast('Stoppuhr gelöscht', 'delete')
-            }, 860)
+            }, DELETE_TRASH_ANIMATION_MS)
             cancelDelete()
             return
         }
@@ -1760,7 +1777,7 @@
 
                     props.addToast('Stoppuhr gelöscht', 'delete')
                 })()
-            }, 860)
+            }, DELETE_TRASH_ANIMATION_MS)
         } catch (e: any) {
             // Backend kann "mindestens eine muss bleiben" schicken
             emit('validation', [e?.response?.data?.message ?? 'Löschen fehlgeschlagen.'])
