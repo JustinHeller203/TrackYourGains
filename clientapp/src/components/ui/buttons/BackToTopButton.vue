@@ -64,9 +64,10 @@
         visible.value = getScrollTop() > 0
     }
 
-    function onWheel(event: WheelEvent) {
+    const onWheel: EventListener = (event) => {
+        const wheelEvent = event as WheelEvent
         if (!enabled.value) return
-        if (event.deltaY <= 0) return
+        if (wheelEvent.deltaY <= 0) return
         visible.value = true
     }
 
