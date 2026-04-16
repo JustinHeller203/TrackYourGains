@@ -1,7 +1,7 @@
 ﻿<!--components/ui/popups/PlanProgressPopup.vue-->
 <template>
-    <BasePopup :show="show && !!currentPlanId"
-               :title="`📖 Fortschritt – ${currentPlanName}`"
+    <BasePopup :show="show && (isComplaintMode || !!currentPlanId)"
+               :title="popupTitle"
                overlayClass="plan-progress-popup"
                :showClose="true"
                @cancel="emit('close')">
@@ -14,7 +14,51 @@
              @touchend="onSwipeEnd"
              @touchcancel="onSwipeCancel">
 
-            <div v-if="!dayCards.length && !plannedDaysForCurrentPlan.length" class="empty-state">
+            <template v-if="isComplaintMode">
+                <div v-if="!complaintEntries.length" class="empty-state">
+                    <div class="empty-icon" aria-hidden="true">🩹</div>
+
+                    <div class="empty-left">
+                        <div class="empty-title">Noch kein Schmerztagebuch erfasst.</div>
+                        <div class="empty-sub">Lege direkt den ersten Eintrag für diese Beschwerde an.</div>
+                    </div>
+
+                    <div class="empty-cta">
+                        <button type="button"
+                                class="progress-btn progress-btn--primary"
+                                @click="emit('add-pain-diary')">
+                            Eintrag machen
+                        </button>
+                    </div>
+                </div>
+
+                <div v-else class="complaint-progress">
+                    <div class="complaint-progress__head">
+                        <div class="complaint-progress__label">Beschwerde</div>
+                        <div class="complaint-progress__title">{{ complaintTitle }}</div>
+                        <div v-if="complaintMeta" class="complaint-progress__meta">{{ complaintMeta }}</div>
+                    </div>
+
+                    <div class="complaint-progress__list">
+                        <article v-for="entry in complaintEntries"
+                                 :key="entry.id"
+                                 class="complaint-progress__item">
+                            <div class="complaint-progress__item-top">
+                                <span class="complaint-progress__date">{{ formatComplaintDate(entry.createdAt) }}</span>
+                                <span class="complaint-progress__level">{{ entry.painLevel }}/10</span>
+                            </div>
+                            <div class="complaint-progress__bar" aria-hidden="true">
+                                <div class="complaint-progress__bar-fill"
+                                     :style="complaintLevelStyle(entry.painLevel)"></div>
+                            </div>
+                            <p v-if="entry.note" class="complaint-progress__note">{{ entry.note }}</p>
+                            <p v-else class="complaint-progress__note complaint-progress__note--muted">Keine Notiz hinterlegt.</p>
+                        </article>
+                    </div>
+                </div>
+            </template>
+
+            <div v-else-if="!dayCards.length && !plannedDaysForCurrentPlan.length" class="empty-state">
                 <div class="empty-icon" aria-hidden="true">📈</div>
 
                 <div class="empty-left">
@@ -550,13 +594,25 @@
         </div>
 
         <template #actions>
-            <PopupActionButton variant="ghost" @click="emit('close')">
-                Abbrechen
-            </PopupActionButton>
+            <template v-if="isComplaintMode">
+                <PopupActionButton variant="ghost" @click="emit('close')">
+                    Abbrechen
+                </PopupActionButton>
 
-            <PopupActionButton @click="emit('add-entry', { planId: currentPlanId!, keepOpen: true })">
-                Neuer Eintrag
-            </PopupActionButton>
+                <PopupActionButton @click="emit('add-pain-diary')">
+                    Eintrag machen
+                </PopupActionButton>
+            </template>
+
+            <template v-else>
+                <PopupActionButton variant="ghost" @click="emit('close')">
+                    Abbrechen
+                </PopupActionButton>
+
+                <PopupActionButton @click="emit('add-entry', { planId: currentPlanId!, keepOpen: true })">
+                    Neuer Eintrag
+                </PopupActionButton>
+            </template>
         </template>
 
         <ActionSelectPopup :show="showEntryPickPopup"
@@ -695,11 +751,22 @@
         equipmentCustom?: string | null
     }
 
+    type ComplaintDiaryLike = {
+        id: string
+        createdAt: string
+        painLevel: number
+        note?: string | null
+    }
+
 
     const props = defineProps<{
         show: boolean
+        mode?: 'plan' | 'complaint'
         currentPlanId: string | null
         currentPlanName: string
+        complaintTitle?: string
+        complaintMeta?: string
+        complaintEntries?: ComplaintDiaryLike[]
         initialView?: 'list' | 'calendar' | 'stats'
         planRotationNotice?: { title: string; body: string } | null
         planRotationTestNotice?: { title: string; body: string } | null
@@ -747,6 +814,7 @@
     const emit = defineEmits<{
         (e: 'close'): void
         (e: 'add-entry', payload: { planId: string; keepOpen: boolean }): void
+        (e: 'add-pain-diary'): void
         (e: 'download', payload: { planId: string; days: string[]; exercises?: string[]; allExercises?: boolean }): void
         (e: 'edit-day', day: string): void
         (e: 'delete-day', day: string): void
@@ -757,7 +825,38 @@
     }>()
 
     const modalEl = ref<HTMLElement | null>(null)
+    const isComplaintMode = computed(() => props.mode === 'complaint')
+    const popupTitle = computed(() =>
+        isComplaintMode.value
+            ? `🩹 Schmerztagebuch – ${props.complaintTitle ?? 'Beschwerde'}`
+            : `📖 Fortschritt – ${props.currentPlanName}`
+    )
+    const complaintEntries = computed(() => props.complaintEntries ?? [])
+    const complaintTitle = computed(() => props.complaintTitle ?? 'Beschwerde')
+    const complaintMeta = computed(() => props.complaintMeta ?? '')
     const hasFeedbackForDay = (day: string) => !!props.feedbackStatusByDay?.[day]
+
+    const formatComplaintDate = (value: string) => {
+        const date = new Date(value)
+        if (Number.isNaN(date.getTime())) return String(value ?? '')
+        return new Intl.DateTimeFormat('de-DE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        }).format(date)
+    }
+
+    const complaintLevelStyle = (painLevel: number) => {
+        const safe = Math.max(0, Math.min(10, Math.round(Number(painLevel) || 0)))
+        const ratio = safe / 10
+        const hue = 120 - (120 * ratio)
+        return {
+            width: `${ratio * 100}%`,
+            background: `linear-gradient(90deg, hsl(${hue} 85% 48%), hsl(${Math.max(0, hue - 18)} 88% 52%))`,
+        }
+    }
 
     const progressStore = useProgressStore()
     const trainingPlansStore = useTrainingPlansStore()
@@ -3820,6 +3919,100 @@
         margin-top: .2rem;
         font-size: .92rem;
         color: var(--text-secondary);
+    }
+
+    .complaint-progress {
+        display: grid;
+        gap: .9rem;
+        padding: .1rem 0 .35rem;
+    }
+
+    .complaint-progress__head {
+        display: grid;
+        gap: .28rem;
+        padding: .1rem .05rem .3rem;
+    }
+
+    .complaint-progress__label {
+        font-size: .76rem;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        font-weight: 700;
+    }
+
+    .complaint-progress__title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    .complaint-progress__meta {
+        color: var(--text-secondary);
+        line-height: 1.45;
+    }
+
+    .complaint-progress__list {
+        display: grid;
+        gap: .7rem;
+    }
+
+    .complaint-progress__item {
+        display: grid;
+        gap: .55rem;
+        padding: .9rem 1rem;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 94%, transparent), color-mix(in srgb, var(--bg-card) 86%, #020617 14%));
+        box-shadow: 0 16px 34px rgba(15, 23, 42, 0.22);
+    }
+
+    .complaint-progress__item-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: .8rem;
+    }
+
+    .complaint-progress__date {
+        color: var(--text-secondary);
+        font-size: .9rem;
+    }
+
+    .complaint-progress__level {
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    .complaint-progress__bar {
+        width: 100%;
+        height: 10px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(148, 163, 184, 0.18);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    .complaint-progress__bar-fill {
+        height: 100%;
+        border-radius: inherit;
+        transition: width 180ms ease-out;
+    }
+
+    .complaint-progress__note {
+        margin: 0;
+        color: var(--text-primary);
+        line-height: 1.5;
+    }
+
+    .complaint-progress__note--muted {
+        color: var(--text-secondary);
+    }
+
+    html.dark-mode .complaint-progress__item {
+        background: linear-gradient(180deg, rgba(2, 6, 23, 0.92), rgba(2, 6, 23, 0.8));
+        border-color: rgba(148, 163, 184, 0.34);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.46);
     }
 
     @media (max-width: 520px) {

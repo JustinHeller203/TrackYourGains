@@ -9,6 +9,26 @@
                 Wie fühlte sich dein Schmerz nach dem Training an?
             </p>
 
+            <div v-if="complaintOptions.length" class="pain-complaints">
+                <div class="pain-complaints__head">
+                    <label class="field-label">Beschwerden</label>
+                    <span>{{ selectedComplaintIds.length }} ausgewählt</span>
+                </div>
+
+                <div class="pain-complaints__list">
+                    <button v-for="item in complaintOptions"
+                            :key="item.id"
+                            type="button"
+                            class="pain-complaint-chip"
+                            :class="{ 'is-selected': selectedComplaintIds.includes(item.id) }"
+                            :aria-pressed="selectedComplaintIds.includes(item.id)"
+                            @click="toggleComplaint(item.id)">
+                        <span class="pain-complaint-chip__title">{{ item.label }}</span>
+                        <span class="pain-complaint-chip__meta">{{ item.meta }}</span>
+                    </button>
+                </div>
+            </div>
+
             <div class="intensity-field">
                 <div class="intensity-head">
                     <label class="field-label">Intensität</label>
@@ -41,7 +61,7 @@
                 <PopupActionButton variant="ghost" @click="onSkip">
                     Überspringen
                 </PopupActionButton>
-                <PopupActionButton @click="onSave">
+                <PopupActionButton :disabled="!selectedComplaintIds.length" @click="onSave">
                     Speichern
                 </PopupActionButton>
             </div>
@@ -53,18 +73,57 @@
     import { computed, ref, watch } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
+    import type { ComplaintEntry } from '@/types/complaint'
 
     const props = defineProps<{
         show: boolean
+        complaints?: ComplaintEntry[]
+        initialSelectedComplaintIds?: string[]
     }>()
 
     const emit = defineEmits<{
-        (e: 'save', payload: { painLevel: number; note: string }): void
+        (e: 'save', payload: { painLevel: number; note: string; selectedComplaintIds: string[] }): void
         (e: 'skip'): void
     }>()
 
     const painLevel = ref(4)
     const note = ref('')
+    const selectedComplaintIds = ref<string[]>([])
+    const areaLabelMap: Record<string, string> = {
+        nacken: 'Nacken',
+        schulter: 'Schulter',
+        ellbogen: 'Ellbogen',
+        unterarm: 'Unterarm',
+        handgelenk: 'Handgelenk',
+        hand: 'Hand',
+        finger: 'Finger',
+        brust: 'Brust',
+        bauch: 'Bauch',
+        ruecken: 'Rücken',
+        leiste: 'Leiste',
+        huefte: 'Hüfte',
+        oberschenkel: 'Oberschenkel',
+        knie: 'Knie',
+        unterschenkel: 'Unterschenkel',
+        wade: 'Wade',
+        sprunggelenk: 'Sprunggelenk',
+        fuss: 'Fuß',
+        kopf: 'Kopf',
+        benutzerdefiniert: 'Benutzerdefiniert',
+        sonstiges: 'Sonstiges',
+    }
+    const statusLabelMap: Record<string, string> = {
+        aktiv: 'aktiv',
+        besser: 'besser',
+        weg: 'weg',
+    }
+    const complaintOptions = computed(() =>
+        (props.complaints ?? []).map((entry) => ({
+            id: entry.id,
+            label: areaLabelMap[String(entry.area)] ?? String(entry.area ?? 'Beschwerde'),
+            meta: `${statusLabelMap[String(entry.status)] ?? String(entry.status ?? '')} · ${Math.max(0, Math.min(10, Math.round(Number(entry.intensity) || 0)))}/10`,
+        }))
+    )
     const sliderStyle = computed(() => {
         const ratio = Math.max(0, Math.min(1, painLevel.value / 10))
         const hue = 120 - (120 * ratio) // 120=grün -> 0=rot
@@ -76,12 +135,25 @@
     const reset = () => {
         painLevel.value = 4
         note.value = ''
+        const allowedIds = new Set(complaintOptions.value.map((item) => item.id))
+        const preferred = (props.initialSelectedComplaintIds ?? []).filter((id) => allowedIds.has(id))
+        selectedComplaintIds.value = preferred.length ? preferred : complaintOptions.value.map((item) => item.id)
+    }
+
+    const toggleComplaint = (id: string) => {
+        if (!id) return
+        if (selectedComplaintIds.value.includes(id)) {
+            selectedComplaintIds.value = selectedComplaintIds.value.filter((item) => item !== id)
+            return
+        }
+        selectedComplaintIds.value = [...selectedComplaintIds.value, id]
     }
 
     const onSave = () => {
         emit('save', {
             painLevel: painLevel.value,
             note: note.value.trim().slice(0, 220),
+            selectedComplaintIds: selectedComplaintIds.value,
         })
         reset()
     }
@@ -106,6 +178,56 @@
         margin: 0;
         color: var(--text-secondary);
         font-size: .95rem;
+    }
+
+    .pain-complaints {
+        display: grid;
+        gap: .55rem;
+    }
+
+    .pain-complaints__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: .75rem;
+        color: var(--text-secondary);
+        font-size: .88rem;
+    }
+
+    .pain-complaints__list {
+        display: grid;
+        gap: .45rem;
+    }
+
+    .pain-complaint-chip {
+        display: grid;
+        gap: .12rem;
+        width: 100%;
+        text-align: left;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(15, 23, 42, 0.12);
+        color: var(--text-primary);
+        padding: .68rem .8rem;
+        transition: border-color 140ms ease, background 140ms ease, transform 120ms ease;
+    }
+
+    .pain-complaint-chip.is-selected {
+        border-color: color-mix(in srgb, var(--accent-primary) 68%, rgba(148, 163, 184, 0.32));
+        background: color-mix(in srgb, var(--accent-primary) 12%, rgba(15, 23, 42, 0.16));
+    }
+
+    .pain-complaint-chip:hover {
+        transform: translateY(-1px);
+    }
+
+    .pain-complaint-chip__title {
+        font-weight: 700;
+    }
+
+    .pain-complaint-chip__meta {
+        color: var(--text-secondary);
+        font-size: .84rem;
     }
 
     .intensity-field {

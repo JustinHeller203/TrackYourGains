@@ -666,8 +666,19 @@
                         <h3 class="section-title">🩹 Schmerztagebuch</h3>
                     </div>
 
-                    <div v-if="!complaintDiaryItems.length" class="plan-group-empty">
-                        Noch keine Beschwerden vorhanden. Lege zuerst einen Eintrag an und dokumentiere ihn dann im Schmerztagebuch.
+                    <div v-if="!complaintDiaryItems.length" class="list-item empty plans-empty-state">
+                        <div class="plans-empty-state__content">
+                            <p class="plans-empty-state__title">Noch keine Beschwerden vorhanden</p>
+                            <p class="plans-empty-state__text">
+                                Lege jetzt deinen ersten Eintrag an und dokumentiere ihn danach hier im Schmerztagebuch.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            class="open-btn plans-empty-state__cta"
+                            @click="goToComplaintsPage">
+                            Beschwerde anlegen
+                        </button>
                     </div>
 
                     <template v-else>
@@ -744,8 +755,12 @@
         <!-- Fortschritt ansehen (Cards je Tag) — OHNE Teleport -->
         <PlanProgressPopup ref="planProgressPopupRef"
                            :show="showPlanProgressPopup"
+                           :mode="planProgressPopupMode"
                            :currentPlanId="currentPlanId"
                            :currentPlanName="currentPlanName"
+                           :complaintTitle="currentComplaintPopupTitle"
+                           :complaintMeta="currentComplaintPopupMeta"
+                           :complaintEntries="currentComplaintPopupEntries"
                            :initialView="planProgressInitialView"
                            :planRotationNotice="planRotationNotice"
                            :planRotationTestNotice="planRotationTestNotice"
@@ -754,6 +769,7 @@
                            :formatDayLong="formatDayLong"
                            @close="closePlanProgressPopup"
                            @add-entry="(p) => addEntryFromPlanView(p)"
+                           @add-pain-diary="openPainDiaryFromPlanProgress"
                            @download="onPlanProgressDownload"
                            @edit-day="editLatestEntryForDay"
                            @edit-entry="editEntryFromPlanView"
@@ -807,6 +823,8 @@
                               @close="onTrainingFeedbackClose" />
 
         <PainFeedbackPopup :show="showPainFeedback"
+                           :complaints="openComplaintsForPainFeedback()"
+                           :initialSelectedComplaintIds="painFeedbackSelectedComplaintIds"
                            @save="onPainFeedbackSave"
                            @skip="onPainFeedbackSkip" />
 
@@ -2615,6 +2633,10 @@
         })
     }
 
+    function goToComplaintsPage() {
+        router.push({ path: '/beschwerden' })
+    }
+
     function clearPreviewProgressTimers() {
         previewProgressTimers.forEach(id => window.clearTimeout(id))
         previewProgressTimers.length = 0
@@ -3677,6 +3699,8 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     const openPlanProgress = async (planId: string, initialView: 'list' | 'calendar' | 'stats' = 'list') => {
         if (isPhonePreviewProgressDemo.value && planId === PREVIEW_PROGRESS_PLAN_ID) {
+            planProgressPopupMode.value = 'plan'
+            currentComplaintId.value = null
             currentPlanId.value = planId
             lastPlanId.value = planId
             planProgressInitialView.value = initialView
@@ -3684,6 +3708,8 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             return
         }
 
+        planProgressPopupMode.value = 'plan'
+        currentComplaintId.value = null
         currentPlanId.value = planId
         lastPlanId.value = planId
         planProgressInitialView.value = initialView
@@ -3737,11 +3763,40 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         return `${progressComplaintStatusLabels[entry.status]} · ${diaryText} · ${painText}`
     }
 
+    const currentComplaintPopupEntry = computed(() =>
+        complaintDiaryItems.value.find((entry) => entry.id === currentComplaintId.value) ?? null
+    )
+    const currentComplaintPopupTitle = computed(() =>
+        currentComplaintPopupEntry.value ? progressComplaintDisplayLabel(currentComplaintPopupEntry.value) : ''
+    )
+    const currentComplaintPopupMeta = computed(() =>
+        currentComplaintPopupEntry.value ? progressComplaintMeta(currentComplaintPopupEntry.value) : ''
+    )
+    const currentComplaintPopupEntries = computed(() =>
+        currentComplaintPopupEntry.value ? (painDiaryEntriesByComplaintId.value[currentComplaintPopupEntry.value.id] ?? []) : []
+    )
+
     const openComplaintDetails = async (complaintId: string) => {
-        await router.push({
-            path: '/beschwerden',
-            query: { complaintId },
-        })
+        const id = String(complaintId ?? '').trim()
+        if (!id) return
+
+        try {
+            await complaintsStore.load()
+        } catch {
+            // ignore
+        }
+
+        const available = openComplaintsForPainFeedback()
+        const selected = available.find((entry) => entry.id === id)
+        if (!selected) {
+            showToast({ message: 'Diese Beschwerde ist nicht mehr für das Schmerztagebuch verfügbar.', type: 'default' })
+            return
+        }
+
+        currentComplaintId.value = id
+        currentPlanId.value = null
+        planProgressPopupMode.value = 'complaint'
+        showPlanProgressPopup.value = true
     }
 
 
@@ -3827,6 +3882,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const showTrainingCompletePrompt = ref(false)
     const showTrainingFeedback = ref(false)
     const showPainFeedback = ref(false)
+    const painFeedbackSelectedComplaintIds = ref<string[]>([])
     const showPainZeroConfirm = ref(false)
     const painZeroCandidates = ref<ComplaintEntry[]>([])
     const pendingCompletion = ref<{ planId: string; day: string; planned: boolean; calendarMarked?: boolean } | null>(null)
@@ -4506,17 +4562,31 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
             showPainFeedback.value = false
             return
         }
+        painFeedbackSelectedComplaintIds.value = []
         showPainFeedback.value = true
     }
 
-    const onPainFeedbackSave = async (payload: { painLevel: number; note: string }) => {
+    const onPainFeedbackSave = async (payload: { painLevel: number; note: string; selectedComplaintIds: string[] }) => {
+        const returnToComplaintPopup = !!currentComplaintId.value
+        const selectedIdSet = new Set((payload.selectedComplaintIds ?? []).map((id) => String(id ?? '').trim()).filter(Boolean))
         const openComplaints = openComplaintsForPainFeedback()
+            .filter((item) => selectedIdSet.has(item.id))
+        if (!openComplaints.length) {
+            painFeedbackSelectedComplaintIds.value = []
+            showPainFeedback.value = false
+            if (returnToComplaintPopup) {
+                planProgressPopupMode.value = 'complaint'
+                showPlanProgressPopup.value = true
+            }
+            return
+        }
         appendPainDiaryEntry({
             source: 'plan-progress',
             painLevel: payload.painLevel,
             note: payload.note,
             activeComplaints: openComplaints,
         })
+        painDiaryEntries.value = listPainDiaryEntries()
 
         const signals = evaluatePainDiarySignals({
             currentPainLevel: payload.painLevel,
@@ -4535,11 +4605,17 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         }
 
         painZeroCandidates.value = openComplaints.filter((item) => signals.zeroStreakComplaintIds.includes(item.id))
+        painFeedbackSelectedComplaintIds.value = []
         showPainFeedback.value = false
         showPainZeroConfirm.value = painZeroCandidates.value.length > 0
+        if (returnToComplaintPopup && !showPainZeroConfirm.value) {
+            planProgressPopupMode.value = 'complaint'
+            showPlanProgressPopup.value = true
+        }
     }
 
     const onPainFeedbackSkip = () => {
+        painFeedbackSelectedComplaintIds.value = []
         showPainFeedback.value = false
     }
 
@@ -5225,7 +5301,9 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     //Show Progress
     const showPlanProgressPopup = ref(false)
+    const planProgressPopupMode = ref<'plan' | 'complaint'>('plan')
     const currentPlanId = ref<string | null>(null)
+    const currentComplaintId = ref<string | null>(null)
     const lastPlanId = ref<string | null>(null)
     const planProgressInitialView = ref<'list' | 'calendar' | 'stats'>('list')
     const effectivePlanId = computed(() => currentPlanId.value ?? lastPlanId.value)
@@ -5237,6 +5315,8 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         if (tab !== 'plans' || openFlag !== '1' || !planId) return
 
         activeTab.value = 'plans'
+        planProgressPopupMode.value = 'plan'
+        currentComplaintId.value = null
         currentPlanId.value = planId
         lastPlanId.value = planId
 
@@ -5326,7 +5406,9 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
 
     const closePlanProgressPopup = () => {
         showPlanProgressPopup.value = false
+        planProgressPopupMode.value = 'plan'
         currentPlanId.value = null
+        currentComplaintId.value = null
         planProgressInitialView.value = 'list'
     }
 
@@ -5453,6 +5535,24 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         }
 
         openProgressPopup(planId)
+    }
+
+    const openPainDiaryFromPlanProgress = async () => {
+        try {
+            await complaintsStore.load()
+        } catch {
+            // ignore
+        }
+
+        if (!openComplaintsForPainFeedback().length) {
+            showToast({ message: 'Keine aktiven Beschwerden für das Schmerztagebuch vorhanden.', type: 'default' })
+            return
+        }
+
+        painFeedbackSelectedComplaintIds.value = currentComplaintId.value ? [currentComplaintId.value] : []
+        showPlanProgressPopup.value = false
+        await nextTick()
+        showPainFeedback.value = true
     }
 
     const deleteLatestEntryForDay = (day: string) => {
@@ -6534,7 +6634,8 @@ Notiz: ${e.note ?? '-'}\n`
 
 
     /* leerer Zustand übernimmt den gleichen Card-Look */
-    .workout-list .list-item.empty {
+    .workout-list .list-item.empty,
+    .plan-card .list-item.empty {
         justify-content: space-between;
         color: var(--text-secondary);
         border: 0;
@@ -6560,7 +6661,7 @@ Notiz: ${e.note ?? '-'}\n`
         margin: 0;
         color: var(--text-primary);
         font-size: 1rem;
-        font-weight: 700;
+        font-weight: 800;
     }
 
     .plans-empty-state__text {
@@ -7274,7 +7375,7 @@ Notiz: ${e.note ?? '-'}\n`
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.9rem;
+        margin-bottom: 0;
     }
 
     .plan-card .card-title {
@@ -7300,6 +7401,22 @@ Notiz: ${e.note ?? '-'}\n`
         display: flex;
         gap: .5rem;
         align-items: center;
+    }
+
+    .plan-card .plans-empty-state__title {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: normal;
+    }
+
+    .plan-card .plans-empty-state__text {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
     }
 
     /* Mobile Feinschliff */
