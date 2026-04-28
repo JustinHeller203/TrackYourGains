@@ -10,7 +10,7 @@
                      ref="avatarEl"
                      @click="onAvatarClick"
                      @dblclick.prevent="onAvatarDblClick"
-                     title="Profilbild ändern"
+                     :title="t('profile.avatar.change')"
                      @pointerdown="onAvatarPointerDown"
                      @pointerup="onAvatarPointerUp"
                      @pointermove="onAvatarPointerMove"
@@ -19,7 +19,7 @@
                      @contextmenu.prevent
                      @dragover.prevent
                      @drop.prevent="onAvatarDrop">
-                    <img v-if="avatarUrl" :src="avatarUrl" alt="Profilbild" draggable="false" @dragstart.prevent />
+                    <img v-if="avatarUrl" :src="avatarUrl" :alt="t('profile.avatar.alt')" draggable="false" @dragstart.prevent />
                     <span v-else-if="initials">{{ initials }}</span>
                     <i v-else class="fas fa-user"></i>
 
@@ -31,29 +31,29 @@
                               :menuStyle="avatarMenuStyle">
                         <button type="button"
                                 @click="openAvatarFull"
-                                title="Profilbild in groß anzeigen"
-                                aria-label="Profilbild in groß anzeigen">
-                            Bild öffnen
+                                :title="t('profile.avatar.openLarge')"
+                                :aria-label="t('profile.avatar.openLarge')">
+                            {{ t('profile.avatar.openImage') }}
                         </button>
                         <button type="button"
                                 :disabled="!avatarUrl || !canClipboardImages"
                                 @click="copyAvatar"
-                                :title="!canClipboardImages ? 'Dein Browser unterstützt Bild-Kopieren nicht' : 'Bild in Zwischenablage kopieren'">
-                            Bild kopieren
+                                :title="!canClipboardImages ? t('profile.avatar.copyUnsupported') : t('profile.avatar.copyImage')">
+                            {{ t('profile.avatar.copy') }}
                         </button>
                         <button type="button"
                                 @click="uploadNewAvatar"
-                                title="Neues Profilbild hochladen"
-                                aria-label="Neues Profilbild hochladen">
-                            Neues Bild hochladen…
+                                :title="t('profile.avatar.uploadNew')"
+                                :aria-label="t('profile.avatar.uploadNew')">
+                            {{ t('profile.avatar.uploadNewEllipsis') }}
                         </button>
                         <button v-if="avatarUrl"
                                 type="button"
                                 class="danger"
                                 @click="openDeleteAvatarPopup"
-                                title="Profilbild entfernen"
-                                aria-label="Profilbild entfernen">
-                            Bild entfernen
+                                :title="t('profile.avatar.remove')"
+                                :aria-label="t('profile.avatar.remove')">
+                            {{ t('profile.avatar.removeImage') }}
                         </button>
                     </HoldMenu>
 
@@ -61,11 +61,11 @@
 
                 <button class="avatar-plus"
                         @click.stop="pickAvatar"
-                        :title="avatarUrl ? 'Profilbild ändern' : 'Profilbild hinzufügen'"
-                        :aria-label="avatarUrl ? 'Profilbild ändern' : 'Profilbild hinzufügen'"></button>
+                        :title="avatarUrl ? t('profile.avatar.change') : t('profile.avatar.add')"
+                        :aria-label="avatarUrl ? t('profile.avatar.change') : t('profile.avatar.add')"></button>
                 <Transition name="avatar-guide-pill">
                     <span v-if="avatarGuideActive" class="avatar-guide-pill">
-                        {{ avatarUrl ? 'Profilbild ändern' : 'Profilbild hinzufügen' }}
+                        {{ avatarUrl ? t('profile.avatar.change') : t('profile.avatar.add') }}
                     </span>
                 </Transition>
             </div>
@@ -76,14 +76,14 @@
                    @change="onAvatarSelected" />
 
             <div class="meta">
-                <h1 class="title">Profil</h1>
+                <h1 class="title">{{ t('profile.title') }}</h1>
                 <p class="muted">
-                    Username
+                    {{ t('profile.username') }}
                     <strong ref="usernameValueEl"
                             class="profile-identity-value"
                             :class="{ 'profile-identity-value--rename-forge': usernameRenameActive && !!usernameRenamePayload }"
-                            :title="username || 'Kein Username gesetzt'">
-                        <span class="profile-identity-value__live">{{ username || 'Kein Username gesetzt' }}</span>
+                            :title="username || t('profile.noUsername')">
+                        <span class="profile-identity-value__live">{{ username || t('profile.noUsername') }}</span>
                         <span v-if="usernameRenameActive && usernameRenamePayload"
                               class="profile-identity-rename-overlay"
                               aria-hidden="true">
@@ -96,31 +96,31 @@
                 <div class="actions">
                     <button class="btn neutral" @click="openUsernamePopup">
                         <i class="fas fa-user"></i>
-                        {{ hasUsername ? 'Username ändern' : 'Username hinzufügen' }}
+                        {{ hasUsername ? t('profile.changeUsername') : t('profile.addUsername') }}
                     </button>
                     <button class="btn neutral" @click="openEmailPopup">
                         <i class="fas fa-envelope"></i>
-                        E-Mail ändern
+                        {{ t('profile.changeEmail') }}
                     </button>
                     <button class="btn neutral" @click="openPasswordPopup">
                         <i class="fas fa-key"></i>
-                        Passwort ändern
+                        {{ t('profile.changePassword') }}
                     </button>
                     <button class="btn danger-outline" @click="openDeletePopup">
                         <i class="fas fa-user-slash"></i>
-                        Profil löschen
+                        {{ t('profile.deleteProfile') }}
                     </button>
                 </div>
             </div>
         </header>
         <section class="card profile-check-card">
             <div class="profile-check-head">
-                <h3 class="card-title profile-check-title"><i class="fas fa-user-check"></i> Profil-Check</h3>
+                <h3 class="card-title profile-check-title"><i class="fas fa-user-check"></i> {{ t('profile.check.title') }}</h3>
                 <span class="profile-check-percent">{{ profileCompletion }}%</span>
             </div>
 
             <p class="profile-check-sub">
-                {{ completedProfileSteps }} von {{ profileSteps.length }} Punkten erledigt. {{ profileCheckHint }}
+                {{ profileCheckSummary }}
             </p>
 
             <div class="profile-check-progress-bar">
@@ -148,9 +148,9 @@
         <section ref="weeklyGoalCardEl" class="card weekly-goal-card">
             <div class="weekly-goal-head">
                 <div>
-                    <span class="weekly-goal-eyebrow">Dein Fokus diese Woche</span>
+                    <span class="weekly-goal-eyebrow">{{ t('profile.weekly.eyebrow') }}</span>
                     <h3 class="card-title weekly-goal-title">
-                        <i class="fas fa-bullseye"></i> Wochenziel
+                        <i class="fas fa-bullseye"></i> {{ t('profile.weekly.title') }}
                     </h3>
                 </div>
                 <div class="weekly-goal-chip" :class="`is-${weeklyGoalTone}`">
@@ -161,7 +161,7 @@
             <div class="weekly-goal-inner">
                 <div class="weekly-goal-visual"
                      role="img"
-                     :aria-label="`Wochenziel: ${weeklyWorkouts}/${targetWorkoutsPerWeek} Workouts`">
+                     :aria-label="weeklyGoalAriaLabel">
                     <svg class="donut" viewBox="0 0 36 36" aria-hidden="true">
                         <defs>
                             <linearGradient id="weekly-goal-donut-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -185,28 +185,28 @@
                 <div class="weekly-goal-side">
                     <div class="weekly-goal-stats">
                         <div class="weekly-goal-stat-card">
-                            <span class="weekly-goal-stat-label">Aktuell</span>
+                            <span class="weekly-goal-stat-label">{{ t('profile.weekly.current') }}</span>
                             <strong class="weekly-goal-stat-value">{{ weeklyWorkouts }}</strong>
                         </div>
                         <div class="weekly-goal-stat-card">
-                            <span class="weekly-goal-stat-label">Ziel</span>
+                            <span class="weekly-goal-stat-label">{{ t('profile.weekly.target') }}</span>
                             <strong class="weekly-goal-stat-value">{{ targetWorkoutsPerWeek }}</strong>
                         </div>
                     </div>
 
                     <div class="weekly-goal-copy">
                         <div class="weekly-goal-line">
-                            {{ weeklyWorkouts }} von {{ targetWorkoutsPerWeek }} Workouts geschafft
+                            {{ weeklyGoalLine }}
                         </div>
                         <div class="weekly-goal-progress-rail">
                             <div class="weekly-goal-progress-fill" :style="{ width: `${donutPercent}%` }"></div>
                         </div>
 
                         <p class="weekly-goal-sub" v-if="targetWorkoutsPerWeek">
-                            Noch {{ weeklyRemaining }} Workout<span v-if="weeklyRemaining !== 1">s</span> bis zum Ziel
+                            {{ weeklyGoalRemainingLine }}
                         </p>
                         <p class="weekly-goal-sub" v-else>
-                        Kein Ziel gesetzt – stell dir unten eins ein.
+                        {{ t('profile.weekly.noTarget') }}
                         </p>
                     </div>
                 </div>
@@ -214,7 +214,7 @@
 
             <div class="weekly-goal-footer">
                 <span class="weekly-goal-auto-hint">
-                    Ziel wird automatisch aus deinen letzten Wochen berechnet.
+                    {{ t('profile.weekly.autoHint') }}
                 </span>
             </div>
         </section>
@@ -226,7 +226,7 @@
                 <div class="stat-icon"><i class="fas fa-fire"></i></div>
                 <div>
                     <div class="stat-value">{{ weeklyWorkouts }}</div>
-                    <div class="stat-label">Workouts (7 Tage)</div>
+                    <div class="stat-label">{{ t('profile.stats.workouts7') }}</div>
                 </div>
             </div>
 
@@ -234,7 +234,7 @@
                 <div class="stat-icon"><i class="fas fa-stopwatch"></i></div>
                 <div>
                     <div class="stat-value">{{ favoriteTimers }}</div>
-                    <div class="stat-label">Favorisierte Timer</div>
+                    <div class="stat-label">{{ t('profile.stats.favoriteTimers') }}</div>
                 </div>
             </div>
 
@@ -242,7 +242,7 @@
                 <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
                 <div>
                     <div class="stat-value">{{ streakDays }}</div>
-                    <div class="stat-label">Streak (Tage)</div>
+                    <div class="stat-label">{{ t('profile.stats.streakDays') }}</div>
                 </div>
             </div>
         </section>
@@ -250,47 +250,47 @@
         <!-- Activity + Achievements -->
         <section class="grid two">
             <div class="card card--soft-center">
-                <h3 class="card-title"><i class="fas fa-heartbeat"></i> Aktivität</h3>
+                <h3 class="card-title"><i class="fas fa-heartbeat"></i> {{ t('profile.activity.title') }}</h3>
 
                 <div class="sparkline-wrap">
                     <svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none">
                         <polyline :points="sparkPoints" fill="none" stroke="currentColor" stroke-width="2" />
                     </svg>
                     <div class="spark-legend">
-                        Letzte {{ activity.length }} Tage · Ø {{ avgActivity }} Workouts/Tag
+                        {{ activityLegend }}
                     </div>
                 </div>
             </div>
 
             <div ref="aboutCardEl" class="card">
-                <h3 class="card-title"><i class="fas fa-trophy"></i> Achievements</h3>
+                <h3 class="card-title"><i class="fas fa-trophy"></i> {{ t('profile.achievements.title') }}</h3>
                 <div class="badges">
                     <span v-for="b in computedBadges" :key="b.id" class="badge" :title="b.desc">
                         <i :class="b.icon"></i> {{ b.label }}
                     </span>
-                    <span v-if="!computedBadges.length" class="badge muted">Noch keine – leg los! 🚀</span>
+                    <span v-if="!computedBadges.length" class="badge muted">{{ t('profile.achievements.empty') }}</span>
                 </div>
             </div>
         </section>
 
         <section>
             <div class="card">
-                <h3 class="card-title"><i class="fas fa-user-circle"></i> Über dich</h3>
+                <h3 class="card-title"><i class="fas fa-user-circle"></i> {{ t('profile.about.title') }}</h3>
                 <ul class="list">
                     <li class="about-name-row">
-                        <span class="key">Name</span>
+                        <span class="key">{{ t('profile.about.name') }}</span>
                         <span class="val name-val" :class="{ 'is-editing': editingName }">
                             <template v-if="editingName">
                                 <input class="input name-input" v-model.trim="displayName" @keyup.enter="saveDisplayName" />
-                                <EditInput title="Name speichern" ariaLabel="Name speichern" @click="saveDisplayName">
-                                    Speichern
+                                <EditInput :title="t('profile.about.saveName')" :ariaLabel="t('profile.about.saveName')" @click="saveDisplayName">
+                                    {{ t('common.save') }}
                                 </EditInput>
                             </template>
                             <template v-else>
                                 <span class="name-text"
                                       :class="{ 'name-text--rename-forge': renameForgeActive && !!renameForgePayload }"
                                       @dblclick.prevent="openDisplayNameEdit"
-                                      title="Doppelklick: Name bearbeiten">
+                                      :title="t('profile.about.doubleClickEditName')">
                                     <span class="name-text__live">{{ displayName || '—' }}</span>
                                     <span v-if="renameForgeActive && renameForgePayload"
                                           class="name-text-rename-overlay"
@@ -304,11 +304,11 @@
                                 <!-- REPLACE im Name-Button-Inhalt -->
                                 <button type="button"
                                         class="name-edit-btn"
-                                        title="Name bearbeiten"
-                                        aria-label="Name bearbeiten"
+                                        :title="t('profile.about.editName')"
+                                        :aria-label="t('profile.about.editName')"
                                         @click="openDisplayNameEdit">
                                     <i class="fas fa-pencil-alt" aria-hidden="true"></i>
-                                    <span class="name-edit-label">Bearbeiten</span>
+                                    <span class="name-edit-label">{{ t('common.edit') }}</span>
                                 </button>
 
                             </template>
@@ -317,12 +317,12 @@
                     </li>
 
                     <li>
-                        <span class="key">E-Mail</span>
+                        <span class="key">{{ t('profile.about.email') }}</span>
                         <span ref="emailValueEl"
                               class="val email-text"
                               :class="{ 'email-text--rename-forge': emailRenameActive && !!emailRenamePayload }"
                               @dblclick.prevent="openEmailPopup"
-                              :title="fullEmail || 'Doppelklick: E-Mail ändern'">
+                              :title="fullEmail || t('profile.about.doubleClickEditEmail')">
                             <span class="email-text__live">{{ shortEmail }}</span>
                             <span v-if="emailRenameActive && emailRenamePayload"
                                   class="profile-identity-rename-overlay"
@@ -333,8 +333,8 @@
                             </span>
                         </span>
                     </li>
-                    <li><span class="key">Mitglied seit</span><span class="val">{{ memberSinceDisplay }}</span></li>
-                    <li><span class="key">Status</span><span class="val badge">Aktiv</span></li>
+                    <li><span class="key">{{ t('profile.about.memberSince') }}</span><span class="val">{{ memberSinceDisplay }}</span></li>
+                    <li><span class="key">{{ t('profile.about.status') }}</span><span class="val badge">{{ t('profile.about.active') }}</span></li>
                 </ul>
             </div>
 
@@ -346,18 +346,18 @@
 
         <!-- Motto (inline editierbar, localStorage) -->
         <section ref="mottoCardEl" class="card motto-card">
-            <h3 class="card-title"><i class="fas fa-quote-left"></i> Motto</h3>
+            <h3 class="card-title"><i class="fas fa-quote-left"></i> {{ t('profile.motto.title') }}</h3>
 
         <div class="motto-row">
             <input v-if="editingMotto"
                    v-model.trim="motto"
                    class="input motto-input"
-                   placeholder="Dein Motto…"
+                   :placeholder="t('profile.motto.placeholder')"
                    @keyup.enter="saveMotto" />
             <p v-else class="motto"
                :class="{ 'motto--rename-forge': mottoRenameActive && !!mottoRenamePayload }"
-               lang="de">
-                <span class="motto__live">{{ mottoView || 'Kein Motto gesetzt' }}</span>
+               :lang="locale">
+                <span class="motto__live">{{ mottoView || t('profile.motto.empty') }}</span>
                 <span v-if="mottoRenameActive && mottoRenamePayload"
                       class="motto-rename-overlay"
                       aria-hidden="true">
@@ -370,35 +370,35 @@
             <div class="motto-actions">
                 <EditInput class="motto-random-btn"
                            :ghost="true"
-                           title="Zufälliges Motto"
-                           ariaLabel="Zufälliges Motto"
+                           :title="t('profile.motto.random')"
+                           :ariaLabel="t('profile.motto.random')"
                            @click="applyRandomMotto">
-                    <span class="motto-random-label">Random</span>
+                    <span class="motto-random-label">{{ t('profile.motto.randomShort') }}</span>
                     <span class="motto-random-emoji" aria-hidden="true">🎲</span>
                 </EditInput>
 
                 <EditInput v-show="editingMotto || motto"
                            :ghost="!editingMotto"
                            @click="toggleMotto"
-                           :title="editingMotto ? 'Motto speichern' : 'Motto bearbeiten'"
-                           :ariaLabel="editingMotto ? 'Motto speichern' : 'Motto bearbeiten'">
-                    {{ editingMotto ? 'Speichern' : 'Bearbeiten' }}
+                           :title="editingMotto ? t('profile.motto.save') : t('profile.motto.edit')"
+                           :ariaLabel="editingMotto ? t('profile.motto.save') : t('profile.motto.edit')">
+                    {{ editingMotto ? t('common.save') : t('common.edit') }}
                     </EditInput>
 
                     <EditInput v-show="!editingMotto && !motto"
                                :ghost="true"
-                               title="Motto hinzufügen"
-                               ariaLabel="Motto hinzufügen"
+                               :title="t('profile.motto.add')"
+                               :ariaLabel="t('profile.motto.add')"
                                @click="startAddMotto">
-                        <span class="motto-add-label">Motto hinzufügen</span>
+                        <span class="motto-add-label">{{ t('profile.motto.add') }}</span>
                     </EditInput>
 
                     <EditInput v-show="!editingMotto && motto"
                                :ghost="true"
-                               title="Motto löschen"
-                               ariaLabel="Motto löschen"
+                               :title="t('profile.motto.delete')"
+                               :ariaLabel="t('profile.motto.delete')"
                                @click="requestClearMotto($event)">
-                        Löschen
+                        {{ t('common.delete') }}
                     </EditInput>
                 </div>
             </div>
@@ -415,8 +415,8 @@
                 @pointercancel="onLogoutSwipePointerCancel"
             >
                 <div class="logout-swipe-copy">
-                    <strong>Logout</strong>
-                    <span>{{ logoutSwipeReady ? 'Loslassen zum Ausloggen' : 'Nach rechts wischen zum Ausloggen' }}</span>
+                    <strong>{{ t('profile.logout.title') }}</strong>
+                    <span>{{ logoutSwipeReady ? t('profile.logout.release') : t('profile.logout.swipe') }}</span>
                 </div>
 
                 <div class="logout-swipe-progress" :style="{ width: `${logoutSwipeProgress}%` }"></div>
@@ -427,7 +427,7 @@
                     class="logout-swipe-thumb"
                     :style="{ transform: `translateX(${logoutSwipeOffset}px)` }"
                     :disabled="logoutSwipeLoading"
-                    aria-label="Zum Ausloggen nach rechts wischen"
+                    :aria-label="t('profile.logout.swipeAria')"
                     @keydown.right.prevent="triggerLogoutSwipe()"
                     @keydown.end.prevent="triggerLogoutSwipe()"
                 >
@@ -457,13 +457,13 @@
                             @confirm="handleAccountDelete" />
         <ValidationPopup :show="showValidation"
                          :errors="validationErrors"
-                         title="Größe der Datei"
+                         :title="t('profile.avatar.fileSizeTitle')"
                          @close="showValidation = false" />
 
         <SavePopup :show="showSavePopup"
                    :src="pendingAvatar"
-                   title="Profilbild speichern?"
-                   hint="Das wird als neues Profilbild gespeichert."
+                   :title="t('profile.avatar.saveTitle')"
+                   :hint="t('profile.avatar.saveHint')"
                    @cancel="onCancelSaveAvatar"
                    @confirm="onConfirmSaveAvatar" />
 
@@ -500,29 +500,29 @@
                  @pointercancel="onViewerPointerUp"
                  @dblclick="onViewerDblClick">
                 <img :src="avatarUrl || ''"
-                     alt="Profilbild groß"
+                     :alt="t('profile.avatar.altLarge')"
                      class="image-viewer-img"
                      :style="{ transform: `translate(${viewerTx}px, ${viewerTy}px) scale(${viewerScale})` }" />
             </div>
             <div class="viewer-controls">
                 <button class="vc-btn"
                         @click="viewerScale = clampScale(viewerScale * 1.1)"
-                        aria-label="Zoom in"
-                        :title="isMobile ? 'Zoom in' : 'Zoom in (+)'">
+                        :aria-label="t('profile.viewer.zoomIn')"
+                        :title="isMobile ? t('profile.viewer.zoomIn') : t('profile.viewer.zoomInHotkey')">
                     +
                 </button>
 
                 <button class="vc-btn"
                         @click="viewerScale = clampScale(viewerScale / 1.1)"
-                        aria-label="Zoom out"
-                        :title="isMobile ? 'Zoom out' : 'Zoom out (− / Strg+− / ⌘+−)'">
+                        :aria-label="t('profile.viewer.zoomOut')"
+                        :title="isMobile ? t('profile.viewer.zoomOut') : t('profile.viewer.zoomOutHotkey')">
                     −
                 </button>
 
                 <button class="vc-btn"
                         @click="resetViewerTransform()"
-                        aria-label="Zurücksetzen"
-                        :title="isMobile ? 'Zurücksetzen' : 'Position/Zoom zurücksetzen (Strg+Z / ⌘+Z)'">
+                        :aria-label="t('profile.viewer.reset')"
+                        :title="isMobile ? t('profile.viewer.reset') : t('profile.viewer.resetHotkey')">
                     ⟲
                 </button>
 
@@ -548,24 +548,24 @@
                                 overlayClass="shortcuts-overlay"
                                 @cancel="showShortcuts = false">
                 <div class="sc-head">
-                    <span>Bild-Shortcuts</span>
+                    <span>{{ t('profile.shortcuts.title') }}</span>
                 </div>
 
                 <ul class="sc-list">
-                    <li><kbd>+</kbd> – Zoom in</li>
-                    <li><kbd>−</kbd> / <kbd>Strg</kbd>+<kbd>−</kbd> / <kbd>⌘</kbd>+<kbd>−</kbd> – Zoom out</li>
-                    <li><kbd>Strg</kbd>+<kbd>Z</kbd> / <kbd>⌘</kbd>+<kbd>Z</kbd> – Reset (Position &amp; Zoom)</li>
+                    <li><kbd>+</kbd> – {{ t('profile.shortcuts.zoomIn') }}</li>
+                    <li><kbd>−</kbd> / <kbd>Strg</kbd>+<kbd>−</kbd> / <kbd>⌘</kbd>+<kbd>−</kbd> – {{ t('profile.shortcuts.zoomOut') }}</li>
+                    <li><kbd>Strg</kbd>+<kbd>Z</kbd> / <kbd>⌘</kbd>+<kbd>Z</kbd> – {{ t('profile.shortcuts.reset') }}</li>
                     <li>
-                        <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> – Pan
-                        (mit <kbd>Alt</kbd> fein, <kbd>Shift</kbd> schnell)
+                        <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> – {{ t('profile.shortcuts.pan') }}
+                        ({{ t('profile.shortcuts.panHint') }})
                     </li>
                     <li>
-                        <kbd>Doppelklick</kbd> – Zoom in (mit <kbd>Shift</kbd> = Zoom out)
+                        <kbd>{{ t('profile.shortcuts.doubleClick') }}</kbd> – {{ t('profile.shortcuts.doubleClickHint') }}
                     </li>
-                    <li><kbd>Mausrad/Trackpad</kbd> – Zoom zum Cursor</li>
-                    <li><kbd>Leertaste</kbd> – sanft nach unten bewegen</li>
-                    <li><kbd>H</kbd> / <kbd>?</kbd> – Shortcuts ein/aus</li>
-                    <li><kbd>Esc</kbd> – Viewer schließen</li>
+                    <li><kbd>{{ t('profile.shortcuts.mousewheel') }}</kbd> – {{ t('profile.shortcuts.cursorZoom') }}</li>
+                    <li><kbd>{{ t('profile.shortcuts.space') }}</kbd> – {{ t('profile.shortcuts.moveDown') }}</li>
+                    <li><kbd>H</kbd> / <kbd>?</kbd> – {{ t('profile.shortcuts.toggle') }}</li>
+                    <li><kbd>Esc</kbd> – {{ t('profile.shortcuts.closeViewer') }}</li>
                 </ul>
                 </ShortcardPopup>
             </div>
@@ -602,6 +602,7 @@
     import ShortcardPopup from '@/components/ui/popups/ShortcardPopup.vue'
     import GoalsManagerPanel from '@/components/ui/goals/GoalsManagerPanel.vue'
     import { useAutoGoals, type AutoGoalResult, type TrainingEntry } from '@/composables/useAutoGoals'
+    import { useI18n } from '@/composables/useI18n'
     import { getProfile, updateProfile, type UpdateProfileDto } from '@/services/profile'
     import { getRandomMotto } from '@/services/mottos'
     import { computeBadges } from '@/utils/achievements'
@@ -712,6 +713,7 @@
 
     // --- Stores / Router ---
     const auth = useAuthStore()
+    const { locale, t } = useI18n()
     const trainingPlansStore = useTrainingPlansStore()
     const progressStore = useProgressStore()
     const weightStore = useWeightStore()
@@ -765,6 +767,13 @@
     let logoutSwipeStartX = 0
     let logoutSwipeStartOffset = 0
 
+    function tp(key: string, params: Record<string, string | number> = {}) {
+        return Object.entries(params).reduce(
+            (text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)),
+            t(key)
+        )
+    }
+
     function queueProfileSave(patch: UpdateProfileDto) {
         if (!auth.user || !profileLoaded.value) return
         pendingProfilePatch.value = { ...pendingProfilePatch.value, ...patch }
@@ -775,7 +784,7 @@
             try {
                 await updateProfile(payload)
             } catch {
-                addToast('Profil konnte nicht gespeichert werden.', 'delete')
+                addToast(t('profile.toast.profileSaveFailed'), 'delete')
             }
         }, 500)
     }
@@ -910,7 +919,7 @@
         } else {
             localStorage.setItem(LS_PROFILE_MOTTO, '')
         }
-        showUndo('Motto gelöscht', () => {
+        showUndo(t('profile.toast.mottoDeleted'), () => {
             motto.value = prev
             if (auth.user) {
                 queueProfileSave({ motto: prev })
@@ -1042,14 +1051,14 @@
     });
 
     const helpTitle = computed(() =>
-        isMobile.value ? 'Shortcuts anzeigen/ausblenden' : 'Shortcuts anzeigen/ausblenden (H / ?)'
+        isMobile.value ? t('profile.viewer.shortcutsToggle') : t('profile.viewer.shortcutsToggleHotkey')
     );
     const helpAria = helpTitle;
 
     const closeLabel = computed(() =>
         showShortcuts.value
-            ? (isMobile.value ? 'Alles schließen' : 'Alles schließen (Shortcuts)')
-            : (isMobile.value ? 'Profilbild schließen' : 'Profilbild schließen (Shortcuts)')
+            ? (isMobile.value ? t('profile.viewer.closeAll') : t('profile.viewer.closeAllShortcuts'))
+            : (isMobile.value ? t('profile.viewer.closeAvatar') : t('profile.viewer.closeAvatarShortcuts'))
     );
     const closeTitle = closeLabel;
     // REPLACE: Ziel automatisch auf Basis der Historie
@@ -1089,13 +1098,13 @@
     );
 
     const weeklyStatusText = computed(() => {
-        if (targetWorkoutsPerWeek.value === 0) return 'Kein Ziel gesetzt';
+        if (targetWorkoutsPerWeek.value === 0) return t('profile.weekly.status.none');
         const p = donutPercent.value;
-        if (p === 0) return 'Noch nicht gestartet';
-        if (p < 40) return 'Langsam reinkommen';
-        if (p < 80) return 'Du bist gut dabei';
-        if (p < 100) return 'Fast geschafft';
-        return 'Ziel erreicht 🎉';
+        if (p === 0) return t('profile.weekly.status.notStarted');
+        if (p < 40) return t('profile.weekly.status.warmup');
+        if (p < 80) return t('profile.weekly.status.good');
+        if (p < 100) return t('profile.weekly.status.almost');
+        return t('profile.weekly.status.done');
     });
 
     const weeklyGoalTone = computed(() => {
@@ -1151,7 +1160,7 @@
     function showUndo(label: string, rollback: () => void, ms = 5000) {
         // Ein einziger Toast mit eingebauter Action
         addToast(label, 'delete', ms, {
-            label: 'Rückgängig',
+            label: t('common.undo'),
             handler: () => {
                 // Rollback ausführen – kein weiterer Toast
                 rollback()
@@ -1165,7 +1174,7 @@
         undoEntry.value = null
         if (entry.timer) clearTimeout(entry.timer)
         entry.rollback()
-        addToast('Rückgängig gemacht', 'add')
+        addToast(t('profile.toast.undoDone'), 'add')
     }
 
     function cancelUndoWindow() {
@@ -1183,7 +1192,7 @@
         } else {
             localStorage.removeItem(AVATAR_KEY)
         }
-        showUndo('Profilbild entfernt', () => {
+        showUndo(t('profile.toast.avatarRemoved'), () => {
             avatarUrl.value = prev
             if (auth.user) {
                 queueProfileSave({ avatarDataUrl: prev })
@@ -1215,9 +1224,9 @@
             const maxBytes = 2 * 1024 * 1024; // wie dein Limit
             if (file.size > maxBytes) {
                 validationErrors.value = [
-                    `Deine Datei hat ${(file.size / (1024 * 1024)).toFixed(2)} MB.`,
-                    'Maximal erlaubt: 2.00 MB.',
-                    'Komprimiere das Bild oder wähle eine kleinere Datei.',
+                    tp('profile.avatar.fileTooLarge', { size: (file.size / (1024 * 1024)).toFixed(2) }),
+                    t('profile.avatar.fileMax'),
+                    t('profile.avatar.fileCompressHint'),
                 ];
                 showValidation.value = true;
                 return;
@@ -1228,10 +1237,10 @@
                 pendingAvatar.value = reader.result as string;
                 showSavePopup.value = true;
             };
-            reader.onerror = () => addToast('Konnte Bild nicht lesen.', 'delete');
+            reader.onerror = () => addToast(t('profile.toast.imageReadFailed'), 'delete');
             reader.readAsDataURL(file);
         } catch {
-            addToast('Drop fehlgeschlagen.', 'delete');
+            addToast(t('profile.toast.dropFailed'), 'delete');
         }
     }
     let singleClickTimer: number | null = null
@@ -1269,10 +1278,10 @@
     const profileSteps = computed(() => {
         const hasGoals = progress.value.muscle + progress.value.weight + progress.value.nutrition > 0
         return [
-            { key: 'avatar', label: 'Profilbild hinzufügen', hint: 'Ein Bild macht dein Profil sofort vollständiger.', done: !!avatarUrl.value, icon: '◉' },
-            { key: 'motto', label: 'Motto speichern', hint: 'Ein Motto gibt deinem Profil Charakter.', done: !!motto.value.trim(), icon: '“' },
-            { key: 'workout', label: 'Erstes Workout tracken', hint: 'Mindestens ein Workout bringt echtes Leben ins Profil.', done: weeklyWorkouts.value > 0, icon: '1' },
-            { key: 'goals', label: 'Ziele aktivieren', hint: 'Starte bei Muskel, Gewicht oder Ernährung.', done: hasGoals, icon: 'Z' },
+            { key: 'avatar', label: t('profile.check.step.avatar.label'), hint: t('profile.check.step.avatar.hint'), done: !!avatarUrl.value, icon: '◉' },
+            { key: 'motto', label: t('profile.check.step.motto.label'), hint: t('profile.check.step.motto.hint'), done: !!motto.value.trim(), icon: '“' },
+            { key: 'workout', label: t('profile.check.step.workout.label'), hint: t('profile.check.step.workout.hint'), done: weeklyWorkouts.value > 0, icon: '1' },
+            { key: 'goals', label: t('profile.check.step.goals.label'), hint: t('profile.check.step.goals.hint'), done: hasGoals, icon: 'Z' },
         ] as const
     })
     const completedProfileSteps = computed(() => profileSteps.value.filter(step => step.done).length)
@@ -1281,9 +1290,23 @@
     });
     const profileCheckHint = computed(() => {
         const nextStep = profileSteps.value.find(step => !step.done)
-        if (!nextStep) return 'Alles erledigt. Dein Profil ist komplett.'
-        return `Nächster Schritt: ${nextStep.label}`
+        if (!nextStep) return t('profile.check.complete')
+        return tp('profile.check.nextStep', { step: nextStep.label })
     })
+    const profileCheckSummary = computed(() =>
+        `${tp('profile.check.summary', { completed: completedProfileSteps.value, total: profileSteps.value.length })} ${profileCheckHint.value}`
+    )
+    const weeklyGoalAriaLabel = computed(() =>
+        tp('profile.weekly.aria', { current: weeklyWorkouts.value, target: targetWorkoutsPerWeek.value })
+    )
+    const weeklyGoalLine = computed(() =>
+        tp('profile.weekly.line', { current: weeklyWorkouts.value, target: targetWorkoutsPerWeek.value })
+    )
+    const weeklyGoalRemainingLine = computed(() =>
+        weeklyRemaining.value === 1
+            ? tp('profile.weekly.remainingOne', { count: weeklyRemaining.value })
+            : tp('profile.weekly.remainingOther', { count: weeklyRemaining.value })
+    )
     function scrollToProfileTarget(el: HTMLElement | null) {
         if (!el) return
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -1387,17 +1410,17 @@
         const trimmedUsername = nextUsername.trim()
         const prevUsername = auth.user?.username ?? ''
         if (!trimmedUsername) {
-            addToast('Username darf nicht leer sein.', 'delete')
+            addToast(t('profile.toast.usernameEmpty'), 'delete')
             return
         }
         try {
             const data = await updateProfile({ username: trimmedUsername })
             username.value = data.username ?? trimmedUsername
             if (auth.user) auth.user.username = username.value
-            addToast('Username gespeichert', 'save')
+            addToast(t('profile.toast.usernameSaved'), 'save')
         } catch (e: any) {
             username.value = prevUsername
-            addToast(e?.response?.data?.message || 'Username konnte nicht gespeichert werden.', 'delete')
+            addToast(e?.response?.data?.message || t('profile.toast.usernameSaveFailed'), 'delete')
             throw e
         }
     }
@@ -1417,7 +1440,7 @@
         }
         editingName.value = false;
         if (oldName && nextName && oldName === nextName) {
-            addToast('Name gespeichert', 'save');
+            addToast(t('profile.toast.nameSaved'), 'save');
             return
         }
         if (nextName && oldName !== nextName) {
@@ -1434,7 +1457,7 @@
             }, 1650)
         }
         displayNameBeforeEdit.value = nextName
-        addToast('Name gespeichert', 'save');
+        addToast(t('profile.toast.nameSaved'), 'save');
     }
     function closeDeleteAvatarPopup() {
         showDeleteAvatarPopup.value = false
@@ -1573,7 +1596,7 @@
                 a.click();
                 URL.revokeObjectURL(a.href);
                 a.remove();
-                addToast('Bild gespeichert (Kopieren nicht unterstützt)', 'save');
+                addToast(t('profile.toast.imageSavedFallback'), 'save');
                 closeAvatarMenu();
                 return;
             }
@@ -1597,11 +1620,11 @@
                 URL.revokeObjectURL(htmlUrl);
             }
 
-            addToast('Bild in Zwischenablage ✅', 'save');
+            addToast(t('profile.toast.imageCopied'), 'save');
             closeAvatarMenu();
         } catch (err) {
             // Häufige Ursachen: fehlende User-Geste, unsichere Origin, CORS, iOS/Safari
-            addToast('Konnte Bild nicht kopieren.', 'delete');
+            addToast(t('profile.toast.imageCopyFailed'), 'delete');
             console.error('copyAvatar error:', err);
         }
     }
@@ -1662,9 +1685,9 @@
         const maxBytes = 2 * 1024 * 1024 // 2MB Limit
         if (file.size > maxBytes) {
             validationErrors.value = [
-                `Deine Datei hat ${(file.size / (1024 * 1024)).toFixed(2)} MB.`,
-                'Maximal erlaubt: 2.00 MB.',
-                'Komprimiere das Bild oder wähle eine kleinere Datei.'
+                tp('profile.avatar.fileTooLarge', { size: (file.size / (1024 * 1024)).toFixed(2) }),
+                t('profile.avatar.fileMax'),
+                t('profile.avatar.fileCompressHint')
             ]
             showValidation.value = true
             input.value = ''
@@ -1678,7 +1701,7 @@
             showSavePopup.value = true
             input.value = ''
         }
-        reader.onerror = () => addToast('Konnte Bild nicht lesen.', 'delete')
+        reader.onerror = () => addToast(t('profile.toast.imageReadFailed'), 'delete')
         reader.readAsDataURL(file)
     }
     const showSavePopup = ref(false)
@@ -1687,7 +1710,7 @@
     function onCancelSaveAvatar() {
         pendingAvatar.value = null
         showSavePopup.value = false
-        addToast('Abgebrochen', 'default')
+        addToast(t('profile.toast.cancelled'), 'default')
     }
 
     async function onConfirmSaveAvatar() {
@@ -1700,10 +1723,10 @@
                 } else {
                     localStorage.setItem(AVATAR_KEY, normalized);
                 }
-                addToast('Profilbild gespeichert ✅', 'save');
+                addToast(t('profile.toast.avatarSaved'), 'save');
             }
         } catch {
-            addToast('Bild konnte nicht verarbeitet werden.', 'delete');
+            addToast(t('profile.toast.imageProcessFailed'), 'delete');
         } finally {
             pendingAvatar.value = null;
             showSavePopup.value = false;
@@ -1745,7 +1768,7 @@
         } else {
             localStorage.removeItem(AVATAR_KEY)
         }
-        addToast('Profilbild entfernt', 'delete')
+        addToast(t('profile.toast.avatarRemoved'), 'delete')
     }
     // --- State init (mit Fallbacks) ---
     const activity = ref<number[]>([...DEFAULT_ACTIVITY])
@@ -1857,13 +1880,16 @@
     const memberSinceDisplay = computed(() => {
         if (!memberSince.value) return '—'
         const d = new Date(memberSince.value)
-        return Number.isNaN(d.getTime()) ? memberSince.value : d.toLocaleDateString('de-DE')
+        return Number.isNaN(d.getTime()) ? memberSince.value : d.toLocaleDateString(locale.value === 'en' ? 'en-US' : 'de-DE')
     })
     // --- Derivates aus Activity ---
     const weeklyWorkouts = computed(() => sumLastDays(activity.value, 7))
     const streakDays = computed(() => calcStreak(activity.value))
     const todayCount = computed(() => activity.value.at(-1) ?? 0)
     const avgActivity = computed(() => (sumLastDays(activity.value, activity.value.length) / Math.max(activity.value.length, 1)).toFixed(1))
+    const activityLegend = computed(() =>
+        tp('profile.activity.legend', { days: activity.value.length, average: avgActivity.value })
+    )
     const trainingGoalWeightHistory = computed(() =>
         auth.user
             ? (weightStore.entries ?? []).map((entry: any) => ({
@@ -1915,7 +1941,7 @@
             window.clearTimeout(mottoRenameTimer)
             mottoRenameTimer = null
         }
-        mottoRenamePayload.value = { oldName: oldName || 'Kein Motto gesetzt', newName }
+        mottoRenamePayload.value = { oldName: oldName || t('profile.motto.empty'), newName }
         mottoRenameActive.value = true
         mottoRenameTimer = window.setTimeout(() => {
             mottoRenameActive.value = false
@@ -1938,7 +1964,7 @@
         }
         triggerMottoRename(oldValue, nextValue)
         mottoBeforeEdit.value = nextValue
-        addToast('Motto gespeichert', 'save')
+        addToast(t('profile.toast.mottoSaved'), 'save')
     }
     async function applyRandomMotto() {
         try {
@@ -1952,9 +1978,9 @@
             }
             triggerMottoRename(previous, motto.value || '')
             mottoBeforeEdit.value = (motto.value || '').trim()
-            addToast('Motto gesetzt', 'save')
+            addToast(t('profile.toast.mottoSet'), 'save')
         } catch {
-            addToast('Konnte kein Motto laden.', 'delete')
+            addToast(t('profile.toast.mottoLoadFailed'), 'delete')
         }
     }
     const toastPosition = ref<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
@@ -1976,7 +2002,7 @@
             try {
                 await updateProfile({ progress: reset })
             } catch {
-                addToast('Reset konnte nicht gespeichert werden.', 'delete')
+                addToast(t('profile.toast.resetSaveFailed'), 'delete')
             }
         }
     }
@@ -2018,7 +2044,7 @@
         try {
             const previousFull = fullEmail.value.trim()
             await auth.changeEmail(newEmail, password)
-            addToast('E-Mail aktualisiert ✅', 'save')
+            addToast(t('profile.toast.emailUpdated'), 'save')
             closeEmailPopup()
             if (auth.user) auth.user.email = newEmail.trim()
             localStorage.setItem(LS_KEYS.email, newEmail.trim())
@@ -2036,7 +2062,7 @@
                 }, 1650)
             }
         } catch (e: any) {
-            emailError.value = e?.response?.data?.message || 'E-Mail ändern fehlgeschlagen.'
+            emailError.value = e?.response?.data?.message || t('profile.toast.emailUpdateFailed')
         }
     }
 
@@ -2048,23 +2074,23 @@
             // lokale Daten wipen (wie bisher)
             wipeLocalStorage(LS_ALL_KEYS)
 
-            addToast('Konto gelöscht. Bye 👋', 'delete')
+            addToast(t('profile.toast.accountDeleted'), 'delete')
             router.push({ name: 'home' })
         } catch (e: any) {
-            deleteError.value = e?.response?.data?.message || 'Löschen fehlgeschlagen.'
+            deleteError.value = e?.response?.data?.message || t('profile.toast.deleteFailed')
         }
     }
     async function submitEmail() {
         emailError.value = ''
         const { newEmail, password } = emailForm.value
         const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)
-        if (!valid) { emailError.value = 'Bitte eine gültige E-Mail eingeben.'; return }
-        if (!password) { emailError.value = 'Passwort erforderlich (nur Bestätigung, kein Server-Check).'; return }
+        if (!valid) { emailError.value = t('profile.form.emailInvalid'); return }
+        if (!password) { emailError.value = t('profile.form.passwordRequired'); return }
 
         // Update lokaler Auth-Store + localStorage (kein Backend)
         if (auth.user) auth.user.email = newEmail
         localStorage.setItem(LS_KEYS.email, newEmail)
-        addToast('E-Mail lokal aktualisiert', 'save')
+        addToast(t('profile.toast.emailUpdatedLocal'), 'save')
         closeEmailPopup()
     }
 
@@ -2082,13 +2108,13 @@
     async function handlePasswordChange({ current, next }: { current: string; next: string; repeat: string }) {
         try {
             await auth.changePassword(current, next)
-            addToast('Passwort erfolgreich geändert ✅', 'save')
+            addToast(t('profile.toast.passwordChanged'), 'save')
             closePasswordPopup()
         } catch (e: any) {
             const msg =
                 e?.response?.data?.errors?.join?.('\n') ||    // Identity-Fehlerliste
                 e?.response?.data?.message ||                // sonstige Meldung
-                'Fehler beim Ändern.'
+                t('profile.toast.changeFailed')
             addToast(msg, 'delete')
         }
     }
@@ -2098,30 +2124,30 @@
         const { current, next, repeat } = pwdForm.value;
 
         if (!current || !next || !repeat) {
-            pwdError.value = 'Bitte alle Felder ausfüllen.';
+            pwdError.value = t('profile.form.fillAllFields');
             return;
         }
         if (next.length < 8) {
-            pwdError.value = 'Neues Passwort muss mindestens 8 Zeichen haben.';
+            pwdError.value = t('profile.form.passwordMinLength');
             return;
         }
         if (next !== repeat) {
-            pwdError.value = 'Passwörter stimmen nicht überein.';
+            pwdError.value = t('profile.form.passwordMismatch');
             return;
         }
 
         try {
             await auth.changePassword(current, next);
-            addToast('Passwort erfolgreich geändert ✅', 'save');
+            addToast(t('profile.toast.passwordChanged'), 'save');
             closePasswordPopup();
         } catch (e: any) {
-            pwdError.value = e?.response?.data?.message || 'Fehler beim Ändern.';
+            pwdError.value = e?.response?.data?.message || t('profile.toast.changeFailed');
         }
     }
 
 
     const showDeletePopup = ref(false)
-    const deleteConfirmPhrase = 'KONTO LÖSCHEN'
+    const deleteConfirmPhrase = computed(() => t('profile.delete.confirmPhrase'))
     const deleteConfirmInput = ref('')
     const deleteError = ref('')
 
@@ -2133,13 +2159,13 @@
     function closeDeletePopup() { showDeletePopup.value = false }
 
     async function confirmDelete() {
-        if (deleteConfirmInput.value !== deleteConfirmPhrase) {
-            deleteError.value = `Bitte exakt „${deleteConfirmPhrase}“ eingeben.`
+        if (deleteConfirmInput.value !== deleteConfirmPhrase.value) {
+            deleteError.value = tp('profile.delete.confirmExact', { phrase: deleteConfirmPhrase.value })
             return
         }
         // lokale Daten löschen
         wipeLocalStorage(LS_ALL_KEYS)
-        addToast('Lokale Profildaten gelöscht', 'delete')
+        addToast(t('profile.toast.localProfileDeleted'), 'delete')
         await auth.signOut()
         router.push({ name: 'home' })
     }

@@ -1,71 +1,71 @@
 <template>
     <div class="calc-scan">
-        <div class="calc-hero" role="img" aria-label="HIIT Kurzkarte">
+        <div class="calc-hero" role="img" :aria-label="t('explain.hiit.heroAria')">
             <div class="calc-hero-top">
                 <span class="calc-hero-title">HIIT</span>
             </div>
 
             <div class="calc-hero-sub">
-                HIIT bedeutet <strong>High Intensity Interval Training</strong>:
-                kurze, harte Belastungen im Wechsel mit lockeren Phasen oder Pausen.
+                {{ t('explain.hiit.heroTextBefore') }} <strong>{{ t('explain.hiit.heroTextStrong') }}</strong>:
+                {{ t('explain.hiit.heroTextAfter') }}
             </div>
 
-            <div class="calc-hero-pills" aria-label="Schnellnavigation">
-                <button class="calc-hero-pill" type="button" @click="jumpTo('hiit_tldr')">Kurz</button>
-                <button class="calc-hero-pill" type="button" @click="jumpTo('hiit_examples')">Beispiele</button>
-                <button class="calc-hero-pill" type="button" @click="jumpTo('hiit_why')">Warum meiden?</button>
-                <button class="calc-hero-pill calc-hero-pill--warn" type="button" @click="jumpTo('hiit_mistakes')">Fehler</button>
+            <div class="calc-hero-pills" :aria-label="t('explain.common.quickNav')">
+                <button class="calc-hero-pill" type="button" @click="jumpTo('hiit_tldr')">{{ t('explain.common.short') }}</button>
+                <button class="calc-hero-pill" type="button" @click="jumpTo('hiit_examples')">{{ t('explain.common.examples') }}</button>
+                <button class="calc-hero-pill" type="button" @click="jumpTo('hiit_why')">{{ t('explain.common.whyAvoid') }}</button>
+                <button class="calc-hero-pill calc-hero-pill--warn" type="button" @click="jumpTo('hiit_mistakes')">{{ t('explain.common.mistakes') }}</button>
             </div>
         </div>
 
-        <div class="calc-chips" aria-label="Kurzüberblick">
-            <button class="calc-chip" type="button" @click="jumpTo('hiit_tldr')">Kurzfassung</button>
-            <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('hiit_examples')">Typische Formen</button>
-            <button class="calc-chip" type="button" @click="jumpTo('hiit_why')">Warum ausschalten?</button>
-            <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('hiit_mistakes')">Häufige Fehler</button>
+        <div class="calc-chips" :aria-label="t('explain.common.overview')">
+            <button class="calc-chip" type="button" @click="jumpTo('hiit_tldr')">{{ t('explain.common.summary') }}</button>
+            <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('hiit_examples')">{{ t('explain.hiit.examplesLabel') }}</button>
+            <button class="calc-chip" type="button" @click="jumpTo('hiit_why')">{{ t('explain.common.whyDisable') }}</button>
+            <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('hiit_mistakes')">{{ t('explain.common.commonMistakes') }}</button>
         </div>
 
         <div id="hiit_tldr" class="calc-callout calc-callout--tldr" tabindex="-1" ref="tldrEl">
-            <div class="calc-callout-title">Kurzfassung</div>
+            <div class="calc-callout-title">{{ t('explain.common.summary') }}</div>
             <div class="calc-callout-text">
                 <ul class="calc-list calc-list--spaced">
-                    <li><strong>HIIT</strong> = sehr intensive Intervalle mit wenig Erholung dazwischen.</li>
-                    <li>Typisch sind kurze Sprints, AirBike-Intervalle, Burpees oder harte Ruder-Intervalle.</li>
-                    <li>Es ist <strong>anstrengender</strong> für Kreislauf, Atmung und Erholung als lockeres Cardio.</li>
+                    <li><strong>HIIT</strong> = {{ t('explain.hiit.summaryLine1After') }}</li>
+                    <li>{{ t('explain.hiit.summaryLine2') }}</li>
+                    <li>{{ t('explain.hiit.summaryLine3Before') }} <strong>{{ t('explain.hiit.summaryLine3Strong') }}</strong> {{ t('explain.hiit.summaryLine3After') }}</li>
                 </ul>
             </div>
         </div>
 
         <section id="hiit_examples" class="calc-card" tabindex="-1" ref="examplesEl">
-            <h4 class="calc-h">Typische HIIT-Beispiele</h4>
+            <h4 class="calc-h">{{ t('explain.hiit.examplesTitle') }}</h4>
             <ul class="calc-list">
-                <li><strong>20s all-out / 40s Pause</strong> auf Bike, Rudergerät oder Laufband</li>
-                <li><strong>Tabata</strong> mit 8 sehr harten Intervallen</li>
-                <li><strong>Sprints</strong> am Ende einer Session</li>
-                <li><strong>Burpee-, Jump- oder Circuit-Intervalle</strong> mit sehr wenig Erholung</li>
+                <li><strong>20s all-out / 40s Pause</strong> {{ t('explain.hiit.example1After') }}</li>
+                <li><strong>Tabata</strong> {{ t('explain.hiit.example2After') }}</li>
+                <li><strong>{{ t('explain.hiit.example3Strong') }}</strong> {{ t('explain.hiit.example3After') }}</li>
+                <li><strong>{{ t('explain.hiit.example4Strong') }}</strong> {{ t('explain.hiit.example4After') }}</li>
             </ul>
 
             <div class="calc-note calc-note--spaced">
-                Nicht jedes Intervalltraining ist automatisch HIIT. Entscheidend ist die <strong>sehr hohe Intensität</strong>.
+                {{ t('explain.hiit.examplesNoteBefore') }} <strong>{{ t('explain.hiit.examplesNoteStrong') }}</strong>.
             </div>
         </section>
 
         <section id="hiit_why" class="calc-card" tabindex="-1" ref="whyEl">
-            <h4 class="calc-h">Warum gibt es die Option "Kein HIIT"?</h4>
+            <h4 class="calc-h">{{ t('explain.hiit.whyTitle') }}</h4>
             <ul class="calc-list">
-                <li><strong>Erholung:</strong> HIIT kann die Gesamtbelastung stark erhöhen.</li>
-                <li><strong>Beschwerden:</strong> bei Schmerzen, Gelenkproblemen oder sensiblen Phasen ist es oft unpassend.</li>
-                <li><strong>Ziel:</strong> manchmal willst du nur Kraft, lockeres Cardio oder gelenkschonende Einheiten.</li>
-                <li><strong>Alltag:</strong> in stressigen Wochen ist weniger hochintensiver Reiz oft sinnvoller.</li>
+                <li><strong>{{ t('explain.hiit.why1Strong') }}</strong> {{ t('explain.hiit.why1After') }}</li>
+                <li><strong>{{ t('explain.hiit.why2Strong') }}</strong> {{ t('explain.hiit.why2After') }}</li>
+                <li><strong>{{ t('explain.hiit.why3Strong') }}</strong> {{ t('explain.hiit.why3After') }}</li>
+                <li><strong>{{ t('explain.hiit.why4Strong') }}</strong> {{ t('explain.hiit.why4After') }}</li>
             </ul>
         </section>
 
         <div id="hiit_mistakes" class="calc-callout calc-callout--warn" tabindex="-1" ref="mistakesEl">
-            <div class="calc-callout-title">Häufige Missverständnisse</div>
+            <div class="calc-callout-title">{{ t('explain.hiit.mistakesTitle') }}</div>
             <ul class="calc-list">
-                <li><strong>HIIT ist nicht "jedes Cardio".</strong> Lockeres Radfahren oder Gehen ist kein HIIT.</li>
-                <li><strong>Mehr ist nicht automatisch besser.</strong> Zu viel HIIT kann Regeneration und Krafttraining stören.</li>
-                <li><strong>Nur weil es kurz ist, ist es nicht leicht.</strong> Gerade kurze harte Intervalle können sehr fordernd sein.</li>
+                <li><strong>{{ t('explain.hiit.mistake1Strong') }}</strong> {{ t('explain.hiit.mistake1After') }}</li>
+                <li><strong>{{ t('explain.hiit.mistake2Strong') }}</strong> {{ t('explain.hiit.mistake2After') }}</li>
+                <li><strong>{{ t('explain.hiit.mistake3Strong') }}</strong> {{ t('explain.hiit.mistake3After') }}</li>
             </ul>
         </div>
     </div>
@@ -73,6 +73,9 @@
 
 <script setup lang="ts">
     import { ref } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
+
+    const { t } = useI18n()
 
     const tldrEl = ref<HTMLElement | null>(null)
     const examplesEl = ref<HTMLElement | null>(null)

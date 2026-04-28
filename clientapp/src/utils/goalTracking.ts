@@ -1,4 +1,5 @@
 import { findExerciseById, matchesExerciseNameOrAlias } from '@/services/training/exerciseLibrary'
+import { translateKey, type AppLocale } from '@/i18n/translations'
 import type {
     GoalWeightSample,
     GoalWorkoutSample,
@@ -25,6 +26,22 @@ const normalizeExerciseName = (value?: string | null) =>
 
 const normalizeExerciseKey = (value?: string | null) =>
     personalRecordExerciseKey(value)
+
+function currentLocale(): AppLocale {
+    if (typeof document !== 'undefined' && document.documentElement.lang === 'en') return 'en'
+    return 'de'
+}
+
+function t(key: string) {
+    return translateKey(key, currentLocale())
+}
+
+function tp(key: string, params: Record<string, string | number>) {
+    return Object.entries(params).reduce(
+        (text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)),
+        t(key)
+    )
+}
 
 export function getGoalExerciseLabel(goal: Pick<TrainingGoal, 'exerciseId' | 'exerciseName'>) {
     const fromLibrary = findExerciseById(goal.exerciseId)
@@ -155,64 +172,66 @@ function getStatus(goal: TrainingGoal, currentValue: number | null, percent: num
 }
 
 function formatMetricValue(type: TrainingGoalType, value: number | null) {
-    if (!isFiniteNumber(value)) return 'Keine Daten'
+    if (!isFiniteNumber(value)) return t('goals.tracking.noData')
     if (type === 'body_weight' || type === 'exercise_weight') return `${Number(value.toFixed(1))} kg`
-    if (type === 'exercise_reps') return `${Math.round(value)} Wdh`
-    return `${Math.round(value)} / Woche`
+    if (type === 'exercise_reps') return tp('goals.common.repsValue', { count: Math.round(value) })
+    return tp('goals.common.weekValue', { count: Math.round(value) })
 }
 
 function buildPrimaryText(goal: TrainingGoal, currentValue: number | null, remainingValue: number | null) {
     if (!isFiniteNumber(currentValue)) {
         return goal.type === 'weekly_frequency'
-            ? 'Noch keine Workouts in den letzten 7 Tagen'
-            : 'Noch keine Daten für dieses Ziel'
+            ? t('goals.tracking.noWorkouts7')
+            : t('goals.tracking.noDataForGoal')
     }
 
     if (remainingValue != null && remainingValue > 0) {
         if (goal.type === 'body_weight' || goal.type === 'exercise_weight') {
-            return `Es fehlen noch ${Number(remainingValue.toFixed(1))} kg bis zum Ziel.`
+            return tp('goals.tracking.remainingKg', { count: Number(remainingValue.toFixed(1)) })
         }
         if (goal.type === 'exercise_reps') {
-            return `Es fehlen noch ${Math.round(remainingValue)} Wiederholungen bis zum Ziel.`
+            return tp('goals.tracking.remainingReps', { count: Math.round(remainingValue) })
         }
-        return `Es fehlen noch ${Math.round(remainingValue)} Workout-Tage in dieser Woche.`
+        return tp('goals.tracking.remainingWorkoutDays', { count: Math.round(remainingValue) })
     }
 
-    return 'Ziel erreicht.'
+    return t('goals.common.goalReachedDot')
 }
 
 function buildSecondaryText(goal: TrainingGoal, percent: number, currentValue: number | null, baselineValue: number | null) {
     if (!isFiniteNumber(currentValue)) {
         const exerciseLabel = getGoalExerciseLabel(goal)
-        if (exerciseLabel) return `Sobald ${exerciseLabel} geloggt wird, tracken wir den Fortschritt hier.`
-        return 'Sobald neue Daten vorliegen, wird der Fortschritt automatisch berechnet.'
+        if (exerciseLabel) return tp('goals.tracking.exerciseTracked', { exercise: exerciseLabel })
+        return t('goals.tracking.autoCalculated')
     }
 
-    const baselineText = isFiniteNumber(baselineValue) ? formatMetricValue(goal.type, baselineValue) : 'Auto'
-    return `Start ${baselineText} · Fortschritt ${Math.round(percent)}%`
+    const baselineText = isFiniteNumber(baselineValue) ? formatMetricValue(goal.type, baselineValue) : t('goals.tracking.auto')
+    return tp('goals.tracking.startProgress', { baseline: baselineText, percent: Math.round(percent) })
 }
 
-const STATUS_LABELS: Record<TrainingGoalStatus, string> = {
-    achieved: 'Erreicht',
-    on_track: 'Auf Kurs',
-    in_progress: 'Im Aufbau',
-    needs_attention: 'Braucht Fokus',
-    no_data: 'Wartet auf Daten',
+function getStatusLabel(status: TrainingGoalStatus) {
+    return {
+        achieved: t('goals.status.achieved'),
+        on_track: t('goals.status.onTrack'),
+        in_progress: t('goals.status.inProgress'),
+        needs_attention: t('goals.status.needsAttention'),
+        no_data: t('goals.status.noData'),
+    }[status]
 }
 
 export function getGoalAutoTitle(goal: Pick<TrainingGoal, 'type' | 'exerciseName' | 'targetValue'>) {
     const exerciseLabel = normalizeExerciseName(goal.exerciseName)
     switch (goal.type) {
         case 'body_weight':
-            return `Körpergewicht ${Number(goal.targetValue.toFixed(1))} kg`
+            return `${t('goals.type.bodyWeight')} ${Number(goal.targetValue.toFixed(1))} kg`
         case 'exercise_weight':
-            return `${exerciseLabel || 'Übung'} ${Number(goal.targetValue.toFixed(1))} kg`
+            return `${exerciseLabel || t('goals.tracking.exercise')} ${Number(goal.targetValue.toFixed(1))} kg`
         case 'exercise_reps':
-            return `${exerciseLabel || 'Übung'} ${Math.round(goal.targetValue)} Wdh`
+            return `${exerciseLabel || t('goals.tracking.exercise')} ${tp('goals.common.repsValue', { count: Math.round(goal.targetValue) })}`
         case 'weekly_frequency':
-            return `${Math.round(goal.targetValue)} Workouts pro Woche`
+            return tp('goals.tracking.workoutsPerWeek', { count: Math.round(goal.targetValue) })
         default:
-            return 'Trainingsziel'
+            return t('goals.manager.goalFallback')
     }
 }
 
@@ -254,7 +273,7 @@ export function evaluateTrainingGoal(goal: TrainingGoal, input: GoalTrackingInpu
         trendValue: baselineValue != null && currentValue != null ? currentValue - baselineValue : null,
         primaryText: buildPrimaryText(goal, currentValue, remainingValue),
         secondaryText: buildSecondaryText(goal, percent, currentValue, baselineValue),
-        statusText: STATUS_LABELS[status],
+        statusText: getStatusLabel(status),
         targetLabel: formatMetricValue(goal.type, goal.targetValue),
         currentLabel: formatMetricValue(goal.type, currentValue),
         baselineLabel: baselineValue == null ? null : formatMetricValue(goal.type, baselineValue),

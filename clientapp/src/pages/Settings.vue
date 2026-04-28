@@ -3,8 +3,8 @@
 <template>
     <div class="settings">
         <div class="settings-header">
-            <h2 class="page-title">⚙️ Einstellungen</h2>
-            <p class="page-subtext">Personalisiere deine Gym-Tracking Experience</p>
+            <h2 class="page-title">{{ t('settings.pageTitle') }}</h2>
+            <p class="page-subtext">{{ t('settings.pageSubtext') }}</p>
         </div>
 
         <div class="settings-grid">
@@ -70,6 +70,24 @@
                                                   class="settings-select"
                                                   :options="unitOptions"
                                                   placeholder="Einheit auswählen" />
+                            </div>
+                        </div>
+
+                        <div class="setting-card setting-card--language">
+                            <div class="setting-icon">🌐</div>
+                            <div class="setting-content">
+                                <h3 class="setting-title">Sprache</h3>
+                                <p class="setting-description">Wähle aus, wie Texte in der App später angezeigt werden sollen</p>
+
+                                <div class="language-preview" aria-hidden="true">
+                                    <span class="language-preview__pill">{{ selectedLanguageLabelText }}</span>
+                                </div>
+                            </div>
+                            <div class="setting-control setting-control--language">
+                                <UiSettingsSelect v-model="selectedLanguage"
+                                                  class="settings-select settings-select--language"
+                                                  :options="localizedLanguageOptions"
+                                                  placeholder="Sprache auswählen" />
                             </div>
                         </div>
                     </div>
@@ -178,7 +196,7 @@
                         <div class="group-icon">🔔</div>
                         <div class="group-text">
                             <div class="group-title">Toasts</div>
-                            <div class="group-sub">Benachrichtigungen, Dauer & Typen</div>
+                            <div class="group-sub">{{ t('settings.group.toast.sub') }}</div>
                         </div>
                     </div>
 
@@ -193,18 +211,18 @@
                             <div class="setting-icon">🔔</div>
                             <div class="setting-content">
                                 <div class="setting-title-row">
-                                    <h3 class="setting-title">Toast-Nachrichten</h3>
+                                    <h3 class="setting-title">{{ t('settings.toasts.title') }}</h3>
 
                                     <button type="button"
                                             class="tm-preview"
-                                            aria-label="Vorschau"
-                                            title="Vorschau"
+                                            :aria-label="t('settings.toasts.preview')"
+                                            :title="t('settings.toasts.preview')"
                                             @click="previewToastSettingsDemo">
                                         👁️
                                     </button>
                                 </div>
 
-                                <p class="setting-description">Ein-/Ausschalten von Toast-Benachrichtigungen</p>
+                                <p class="setting-description">{{ t('settings.toasts.description') }}</p>
                             </div>
 
                             <div class="setting-control">
@@ -218,28 +236,28 @@
                         <div class="setting-card" v-if="toastsEnabled">
                             <div class="setting-icon">⏳</div>
                             <div class="setting-content">
-                                <h3 class="setting-title">Toast-Dauer</h3>
-                                <p class="setting-description">Wie lange Toasts sichtbar bleiben sollen</p>
+                                <h3 class="setting-title">{{ t('settings.toasts.duration.title') }}</h3>
+                                <p class="setting-description">{{ t('settings.toasts.duration.description') }}</p>
                             </div>
                             <div class="setting-control">
                                 <UiSettingsSelect v-model="toastDurationMs"
                                                   class="settings-select"
                                                   :options="toastDurationOptions"
-                                                  placeholder="Dauer auswählen" />
+                                                  :placeholder="t('settings.toasts.duration.placeholder')" />
                             </div>
                         </div>
 
                         <div class="setting-card" v-if="toastsEnabled">
                             <div class="setting-icon">🧩</div>
                             <div class="setting-content">
-                                <h3 class="setting-title">Toast-Arten</h3>
-                                <p class="setting-description">Wähle, welche Kategorien angezeigt werden (pro Toast-Typ)</p>
+                                <h3 class="setting-title">{{ t('settings.toasts.types.title') }}</h3>
+                                <p class="setting-description">{{ t('settings.toasts.types.description') }}</p>
                             </div>
 
                             <div class="setting-control toast-types-control">
                                 <div class="toast-types-summary">
                                     <button type="button" class="manage-btn" @click="openToastTypeManager">
-                                        Verwalten
+                                        {{ t('settings.toasts.types.manage') }}
                                     </button>
                                 </div>
                             </div>
@@ -253,8 +271,10 @@
 
         <div class="settings-footer">
             <div ref="saveBtnWrap" class="save-wrap">
-                <SettingsSaveButton :disabled="false"
-                                    title="Einstellungen speichern"
+                <SettingsSaveButton :key="selectedLanguage"
+                                    :disabled="false"
+                                    :label="saveButtonLabel"
+                                    :title="t('settings.saveTitle')"
                                     @click="saveSettings" />
             </div>
         </div>
@@ -263,11 +283,11 @@
                        :x="saveHintX"
                        :y="saveHintY"
                        emoji="ℹ️"
-                       text="Denk dran: unten noch auf Einstellungen speichern klicken!" />
+                       :text="t('settings.saveReminder')" />
 
         <!-- Toast-Arten verwalten (Modal) -->
         <ToastTypeManagerPopup :show="showToastTypeManager"
-                               :options="toastTypeOptions"
+                               :options="localizedToastTypeOptions"
                                :enabledMap="toastTypeEnabled"
                                @close="onToastTypeManagerClose"
                                @done="onToastTypeManagerDone"
@@ -286,7 +306,8 @@
 
 
 <script setup lang="ts">
-    import { ref, reactive, onMounted, watch, onBeforeUnmount, onActivated } from 'vue'
+    import { computed, ref, reactive, onMounted, watch, onBeforeUnmount, onActivated } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
     import { isDark, initTheme, previewTheme } from '@/composables/useTheme'
     import { onBeforeRouteLeave } from 'vue-router'
     import { useAuthStore } from '@/store/authStore'
@@ -320,6 +341,7 @@
     type SettingsGroupKey = 'display' | 'system' | 'toast'
 
     const auth = useAuthStore()
+    const { locale, setLocale, t } = useI18n()
 
     const openGroups = reactive<Record<SettingsGroupKey, boolean>>({
         display: false,
@@ -352,10 +374,33 @@
     const preferredUnit = ref<'kg' | 'lbs'>('kg')
     const autoCalcEnabled = ref(false)
     const allowedUnits = ['kg', 'lbs'] as const
-    const unitOptions = [
-        { label: 'Kilogramm (kg)', value: 'kg' },
-        { label: 'Pfund (lbs)', value: 'lbs' },
-    ] as const
+    const unitOptions = computed(() => [
+        { label: t('settings.units.kg'), value: 'kg' },
+        { label: t('settings.units.lbs'), value: 'lbs' },
+    ])
+    const selectedLanguage = ref<'de' | 'en'>(locale.value)
+    const languageOptions = computed(() => [
+        { label: t('settings.language.de'), value: 'de' },
+        { label: t('settings.language.en'), value: 'en' },
+        { label: 'Türkçe', value: 'tr' },
+        { label: 'Français', value: 'fr' },
+    ])
+    const languageLabelByValue = {
+        de: 'Deutsch',
+        en: 'English',
+        tr: 'Türkçe',
+        fr: 'Français',
+    } as const
+    const selectedLanguageLabel = ref(languageLabelByValue[selectedLanguage.value])
+    const localizedLanguageOptions = computed(() => [
+        { label: t('settings.language.de'), value: 'de' },
+        { label: t('settings.language.en'), value: 'en' },
+    ])
+    const saveButtonLabel = computed(() => t('settings.save'))
+    const selectedLanguageLabelText = computed(() => {
+        if (selectedLanguage.value === 'en') return t('settings.language.en')
+        return t('settings.language.de')
+    })
 
     function previewToastType(key: string) {
         const k = key as ToastType
@@ -369,7 +414,7 @@
             'toast-reset': 'Gewichtsverlauf zurückgesetzt'
         }
 
-        const opt = toastTypeOptions.find(o => o.key === k)
+        const opt = localizedToastTypeOptions.value.find(o => o.key === k)
 
         toast.value = {
             id: Date.now(),
@@ -401,6 +446,7 @@
     // Draft-State f�r das UI
     const isDarkDraft = ref(true)
     const persistedTheme = ref<'dark' | 'light'>('dark')
+    const persistedLanguage = ref<'de' | 'en'>(locale.value)
     const saved = ref(false)
 
     const confirmDeleteEnabled = ref(true)
@@ -422,6 +468,15 @@
         { key: 'toast-timer', label: 'Timer', emoji: '⏱️', hint: 'Timer/Rest-Pausen Meldungen' },
         { key: 'toast-reset', label: 'Reset', emoji: '🔁', hint: 'Wenn etwas zurückgesetzt wird' }
     ] as const satisfies ReadonlyArray<{ key: ToastType; label: string; emoji: string; hint: string }>
+
+    const localizedToastTypeOptions = computed(() => [
+        { key: 'toast-default', label: t('settings.toastType.default'), emoji: '💬', hint: t('settings.toastType.defaultHint') },
+        { key: 'toast-save', label: t('settings.toastType.save'), emoji: '💾', hint: t('settings.toastType.saveHint') },
+        { key: 'toast-add', label: t('settings.toastType.add'), emoji: '➕', hint: t('settings.toastType.addHint') },
+        { key: 'toast-delete', label: t('settings.toastType.delete'), emoji: '🗑️', hint: t('settings.toastType.deleteHint') },
+        { key: 'toast-timer', label: t('settings.toastType.timer'), emoji: '⏱️', hint: t('settings.toastType.timerHint') },
+        { key: 'toast-reset', label: t('settings.toastType.reset'), emoji: '🔁', hint: t('settings.toastType.resetHint') }
+    ] as const satisfies ReadonlyArray<{ key: ToastType; label: string; emoji: string; hint: string }>)
 
     const showToastTypeManager = ref(false)
 
@@ -479,6 +534,9 @@
         persistedTheme.value = theme
         isDarkDraft.value = theme === 'dark'
         previewTheme(theme)
+
+        persistedLanguage.value = locale.value
+        selectedLanguage.value = persistedLanguage.value
 
         // Units
         const unit = (s.preferredUnit || 'kg').toLowerCase() as 'kg' | 'lbs'
@@ -567,6 +625,7 @@
     })
     onMounted(async () => {
         initTheme()
+        saved.value = false
 
         window.addEventListener('toasts-enabled-changed', onToastsEnabledChanged as EventListener)
         window.addEventListener('confirm-delete-changed', onConfirmDeleteEnabledChanged as EventListener)
@@ -604,6 +663,7 @@
 
         if (!saved.value) {
             previewTheme(persistedTheme.value)
+            setLocale(persistedLanguage.value)
         }
         next()
     })
@@ -611,6 +671,12 @@
 
     watch(isDarkDraft, (v) => {
         previewTheme(v ? 'dark' : 'light')
+    })
+
+    watch(selectedLanguage, (value) => {
+        saved.value = false
+        selectedLanguageLabel.value = languageLabelByValue[value]
+        setLocale(value)
     })
 
     const startToastExit = () => {
@@ -641,6 +707,7 @@
         // Persistenz
         saved.value = true
         persistedTheme.value = theme
+        persistedLanguage.value = selectedLanguage.value
         previewTheme(theme)
 
         const settings = useSettingsStore()
@@ -662,6 +729,7 @@
 
         try {
             await settings.saveToBackend()
+            setLocale(persistedLanguage.value)
 
             // ? Verifizieren: direkt nochmal laden
             await settings.loadFromBackend()
@@ -958,6 +1026,50 @@
         width: 100%;
         min-width: 0;
         max-width: 360px;
+    }
+
+    .setting-card--language {
+        align-items: stretch;
+    }
+
+    .setting-control--language {
+        min-width: min(100%, 320px);
+        justify-content: flex-end;
+    }
+
+    .settings-select--language {
+        max-width: 320px;
+    }
+
+    .language-preview {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-top: 1rem;
+    }
+
+    .language-preview__pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2rem;
+        padding: 0.38rem 0.8rem;
+        border-radius: 999px;
+        border: 1px solid rgba(129, 140, 248, 0.28);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 14%, white), color-mix(in srgb, var(--accent-secondary) 12%, white));
+        color: var(--text-primary);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    }
+
+    html.dark-mode .language-preview__pill {
+        border-color: rgba(129, 140, 248, 0.4);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(34, 197, 94, 0.18));
+        color: #ffffff;
+        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3);
     }
 
     .settings-footer {

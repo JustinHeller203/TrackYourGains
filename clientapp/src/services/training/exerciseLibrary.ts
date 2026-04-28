@@ -7,6 +7,7 @@
     TrainingLevel,
 } from '@/types/autoPlan'
 import type { ExerciseLibraryEntryDto } from '@/types/exerciseLibrary'
+import type { TutorialTranslations } from '@/types/tutorials'
 
 export type EquipmentTag = 'bodyweight' | 'dumbbell' | 'barbell' | 'machine' | 'cable' | 'cardio_machine' | 'band'
 export type ExerciseKind = 'strength' | 'cardio' | 'mobility'
@@ -24,6 +25,20 @@ export type MovementPattern =
     | 'mobility'
 export type StabilityLevel = 'stable' | 'moderate' | 'unstable'
 export type LoadLevel = 'low' | 'medium' | 'high'
+
+export type ExerciseTutorialDraft = {
+    title?: string
+    description?: string
+    videoUrl?: string | null
+    category?: string
+    level?: 'Anfänger' | 'Fortgeschritten' | 'Pro'
+    equipment?: string[]
+    muscleGroups?: string[]
+    cues?: string[]
+    steps?: string[]
+    mistakes?: string[]
+    translations?: TutorialTranslations
+}
 
 export type ExerciseMetadata = {
     id: string
@@ -45,6 +60,7 @@ export type ExerciseMetadata = {
     goalTags: GoalType[]
     substitutions: string[]
     similarityTags: string[]
+    tutorial?: ExerciseTutorialDraft | null
 }
 
 export type ExerciseSearchResult = {
@@ -270,6 +286,8 @@ const KNOWN_TEXT_FIXES: Record<string, string> = {
     'Assistierte Klimmz?ge': 'Assistierte Klimmzüge',
     'Schr?gbank Chest Press Maschine': 'Schrägbank Chest Press Maschine',
     'Schr?gbankdr?cken': 'Schrägbankdrücken',
+    'Adduktorenmaschine': 'Adductor Machine',
+    'Adduktoren Maschine': 'Adductor Machine',
     'Ges??': 'Gesäß',
     'R?cken': 'Rücken',
     'Brustwirbels?ule': 'Brustwirbelsäule',

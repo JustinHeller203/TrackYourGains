@@ -1,17 +1,17 @@
 <template>
     <BasePopup
         :show="show"
-        :title="hasUsername ? 'Username aendern' : 'Username hinzufuegen'"
+        :title="hasUsername ? t('profile.changeUsername') : t('profile.addUsername')"
         variant="username-change-popup"
         @cancel="$emit('cancel')">
         <div class="form-grid">
-            <label class="label">Username</label>
+            <label class="label">{{ t('profile.username') }}</label>
             <input
                 ref="usernameRef"
                 v-model.trim="nextUsername"
                 type="text"
                 :class="['input', { 'has-error': !!errors.username }]"
-                :placeholder="hasUsername ? 'Neuer Username' : 'Username hinzufuegen'"
+                :placeholder="hasUsername ? t('profile.popup.username.newPlaceholder') : t('profile.popup.username.addPlaceholder')"
                 @keydown.enter.prevent="onSave" />
 
             <p v-if="errors.username" class="form-error">{{ errors.username }}</p>
@@ -19,7 +19,7 @@
 
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
-                Abbrechen
+                {{ t('common.cancel') }}
             </PopupActionButton>
 
             <PopupActionButton autofocus @click="onSave">
@@ -31,6 +31,7 @@
 
 <script setup lang="ts">
     import { computed, nextTick, ref, watch } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
     import BasePopup from '../BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
@@ -41,6 +42,7 @@
     const errors = ref({ username: '' })
     const usernameRef = ref<HTMLInputElement | null>(null)
     const hasUsername = computed(() => !!props.currentUsername.trim())
+    const { t } = useI18n()
 
     watch(() => props.show, async (open) => {
         if (!open) return
@@ -54,7 +56,7 @@
     function onSave() {
         const username = nextUsername.value.trim()
         if (!username) {
-            errors.value.username = 'Bitte einen Username eingeben.'
+            errors.value.username = t('profile.popup.username.required')
             return
         }
 

@@ -1,51 +1,53 @@
 <template>
     <BasePopup :show="show"
-               title="Beschwerde-Kontext"
+               :title="t('complaints.trainingContext.title')"
                overlayClass="complaint-training-context-popup"
                :showActions="true"
                @cancel="$emit('cancel')"
                @save="onSave">
         <div class="ctx-body">
             <p class="ctx-question">
-                Gibt es am <strong>{{ formattedDate }}</strong> einen Zusammenhang mit dem Training?
+                {{ t('complaints.trainingContext.questionBefore') }}
+                <strong>{{ formattedDate }}</strong>
+                {{ t('complaints.trainingContext.questionAfter') }}
             </p>
 
-            <div class="ctx-choice-row" role="group" aria-label="Trainingzusammenhang">
+            <div class="ctx-choice-row" role="group" :aria-label="t('complaints.trainingContext.aria')">
                 <button type="button"
                         class="ctx-choice"
                         :class="{ active: duringTraining === false }"
                         @click="duringTraining = false">
-                    Nein
+                    {{ t('common.no') }}
                 </button>
                 <button type="button"
                         class="ctx-choice"
                         :class="{ active: duringTraining === true }"
                         @click="duringTraining = true">
-                    Ja, während Training
+                    {{ t('complaints.trainingContext.yesDuringTraining') }}
                 </button>
             </div>
 
             <div v-if="duringTraining === true" class="ctx-fields">
                 <UiPopupSelect v-model="selectedExercise"
-                               label="Übung"
-                               placeholder="Übung wählen"
+                               :label="t('goals.tracking.exercise')"
+                               :placeholder="t('progress.trainingFeedback.placeholders.exercise')"
                                :options="exerciseSelectOptions" />
 
                 <UiPopupInput v-if="selectedExercise === CUSTOM_OPTION"
                               v-model="customExercise"
-                              label="Benutzerdefinierte Übung eingeben"
-                              placeholder="z. B. Kniebeuge"
+                              :label="t('complaints.trainingContext.customExerciseLabel')"
+                              :placeholder="t('complaints.trainingContext.customExercisePlaceholder')"
                               :maxlength="120" />
             </div>
         </div>
 
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
-                Abbrechen
+                {{ t('common.cancel') }}
             </PopupActionButton>
 
             <PopupActionButton :disabled="isSaveDisabled" @click="onSave">
-                Übernehmen
+                {{ t('complaints.trainingContext.apply') }}
             </PopupActionButton>
         </template>
     </BasePopup>
@@ -57,6 +59,7 @@
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
     import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
+    import { useI18n } from '@/composables/useI18n'
 
     type SavePayload = {
         duringTraining: boolean
@@ -75,6 +78,8 @@
     }>()
 
     const CUSTOM_OPTION = '__custom__'
+    const { t, locale } = useI18n()
+
     const duringTraining = ref<boolean | null>(null)
     const selectedExercise = ref('')
     const customExercise = ref('')
@@ -85,15 +90,15 @@
             .map((name) => String(name ?? '').trim())
             .filter(Boolean)
             .map((name) => ({ label: name, value: name })),
-            { label: 'Benutzerdefiniert…', value: CUSTOM_OPTION },
+            { label: t('complaints.trainingContext.customOption'), value: CUSTOM_OPTION },
         ]
     )
 
     const formattedDate = computed(() => {
         const raw = String(props.date ?? '')
-        if (!raw) return 'dem gewählten Datum'
+        if (!raw) return t('complaints.trainingContext.selectedDateFallback')
         try {
-            return new Intl.DateTimeFormat('de-DE', {
+            return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'de-DE', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',

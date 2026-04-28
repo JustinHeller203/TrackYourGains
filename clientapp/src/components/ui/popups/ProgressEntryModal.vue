@@ -20,8 +20,8 @@
                         class="plan-overview-toggle"
                         @click="showPlanOverviewLocal = true">
                     <span class="plan-overview-toggle__copy">
-                        <span class="plan-overview-toggle__eyebrow">Trainingsplan</span>
-                        <span class="plan-overview-toggle__title">Trainingsplan öffnen</span>
+                        <span class="plan-overview-toggle__eyebrow">{{ t('progress.entry.planOverview.title') }}</span>
+                        <span class="plan-overview-toggle__title">{{ t('progress.entry.planOverview.openAction') }}</span>
                     </span>
                     <span class="plan-overview-toggle__icon" aria-hidden="true">↗</span>
                 </button>
@@ -476,54 +476,54 @@
                                    class="action-delete"
                                    danger
                                    @click="onDelete">
-                    Löschen
+                    {{ t('common.delete') }}
                 </PopupActionButton>
 
                 <PopupActionButton class="action-cancel"
                                    variant="ghost"
                                    @click="onCancel">
-                    Abbrechen
+                    {{ t('common.cancel') }}
                 </PopupActionButton>
 
                 <PopupActionButton class="action-save"
                                    autofocus
                                    @click="onSave">
-                    Speichern
+                    {{ t('common.save') }}
                 </PopupActionButton>
             </div>
         </template>
 
         <ValidationPopup :show="showBorgError"
                          :errors="borgErrors"
-                         title="Ungültige Borg-Skala"
-                         lead="Die Borg-Skala geht von 6 (sehr leicht) bis 20 (maximal)."
+                         :title="t('progress.entry.validation.borgTitle')"
+                         :lead="t('progress.entry.validation.borgLead')"
                          @close="onCloseBorgError" />
 
         <ValidationPopup :show="showSetLabelErrorPopupLocal"
                          :errors="setLabelErrorMessagesLocal"
-                         title="Satzname zu lang"
-                         lead="Bitte verkürze den Satznamen und versuche es erneut."
+                         :title="t('progress.entry.validation.setLabelTitle')"
+                         :lead="t('progress.entry.validation.setLabelLead')"
                          @close="closeSetLabelErrorPopup" />
 
         <ValidationPopup :show="showSetActionErrorPopupLocal"
                          :errors="setActionErrorMessagesLocal"
-                         title="Übung zuerst auswählen"
-                         lead="Bitte wähle zuerst eine Übung aus, bevor du Sätze bearbeitest."
+                         :title="t('progress.entry.validation.selectExerciseTitle')"
+                         :lead="t('progress.entry.validation.selectExerciseLead')"
                          @close="closeSetActionErrorPopup" />
 
         <BasePopup :show="showPlanOverviewLocal"
-                   :title="currentPlanName ? `Trainingsplan · ${currentPlanName}` : 'Trainingsplan ansehen'"
+                   :title="planOverviewPopupTitle"
                    overlayClass="progress-entry-plan-popup"
                    :show-actions="false"
                    @cancel="showPlanOverviewLocal = false">
             <div class="plan-overview-popup">
                 <div class="plan-overview-popup__intro">
                     <p class="plan-overview-popup__copy">
-                        Hier siehst du deinen kompletten Trainingsplan mit Tagesstruktur und allen hinterlegten Hinweisen.
+                        {{ t('progress.entry.planOverview.copy') }}
                     </p>
                     <div v-if="selectedExerciseKey" class="plan-overview-popup__focus">
-                        Aktuell ausgewählt:
-                        <strong>{{ exerciseLocal || 'Keine Übung gewählt' }}</strong>
+                        {{ t('progress.entry.planOverview.currentlySelected') }}
+                        <strong>{{ exerciseLocal || t('progress.entry.planOverview.noExerciseSelected') }}</strong>
                     </div>
                 </div>
 
@@ -533,7 +533,7 @@
                              class="plan-overview-day">
                         <div class="plan-overview-day__header">
                             <h4>{{ day.label }}</h4>
-                            <span>{{ day.exercises.length }} Übungen</span>
+                            <span>{{ formatPlanExerciseCount(day.exercises.length) }}</span>
                         </div>
 
                         <div class="plan-overview-list">
@@ -570,13 +570,13 @@
                     </section>
                 </div>
                 <p v-else class="plan-overview-empty">
-                    Für diesen Plan sind aktuell keine Übungsdetails verfügbar.
+                    {{ t('progress.entry.planOverview.empty') }}
                 </p>
             </div>
         </BasePopup>
 
         <BasePopup :show="Boolean(activeTutorialExerciseLocal)"
-                   :title="activeTutorialExerciseLocal ? `Tutorial · ${activeTutorialExerciseLocal.exercise}` : 'Tutorial'"
+                   :title="tutorialPopupTitle"
                    overlayClass="progress-entry-tutorial-popup"
                    :show-actions="false"
                    @cancel="closeExerciseTutorial">
@@ -597,36 +597,36 @@
                 </div>
 
                 <div v-else class="exercise-tutorial-popup__empty">
-                    Kein Tutorial-Video gefunden.
+                    {{ t('progress.entry.tutorial.noVideoFound') }}
                 </div>
 
                 <div class="exercise-tutorial-popup__meta">
                     <strong>{{ activeTutorialLocal?.title ?? activeTutorialExerciseLocal?.exercise }}</strong>
                     <p v-if="activeTutorialLocal && !hasTutorialVideo" class="exercise-tutorial-popup__hint">
-                        Für diese Übung gibt es aktuell keinen hinterlegten Video-Link.
+                        {{ t('progress.entry.tutorial.noVideoHint') }}
                     </p>
                 </div>
             </div>
         </BasePopup>
 
         <BasePopup :show="showUnsavedChangesPopup"
-                   title="Änderungen speichern?"
+                   :title="t('progress.entry.unsaved.title')"
                    overlayClass="progress-entry-unsaved-popup"
                    :showClose="false"
                    :show-actions="false"
                    @cancel="closeUnsavedChangesPopup">
             <p class="unsaved-popup-copy">
-                Du hast ungespeicherte Änderungen. Möchtest du vor dem Schließen speichern?
+                {{ t('progress.entry.unsaved.copy') }}
             </p>
             <template #actions>
                 <PopupActionButton variant="ghost" @click="closeUnsavedChangesPopup">
-                    Abbrechen
+                    {{ t('common.cancel') }}
                 </PopupActionButton>
                 <PopupActionButton variant="ghost" @click="discardUnsavedChanges">
-                    Nicht speichern
+                    {{ t('progress.entry.unsaved.discard') }}
                 </PopupActionButton>
                 <PopupActionButton @click="saveAndCloseFromPrompt">
-                    Speichern
+                    {{ t('common.save') }}
                 </PopupActionButton>
             </template>
         </BasePopup>
@@ -656,6 +656,7 @@
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
     import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
     import ExplanationPopup from '@/components/ui/popups/ExplanationPopup.vue'
+    import { useI18n } from '@/composables/useI18n'
     import BorgExplain from '@/components/ui/explain/BorgExplain.vue'
     import HrZoneExplain from '@/components/ui/explain/HrZoneExplain.vue'
     import TempoExplain from '@/components/ui/explain/TempoExplain.vue'
@@ -815,6 +816,7 @@
     }>()
 
     const trainingPlansStore = useTrainingPlansStore()
+    const { t } = useI18n()
 
     const weightStore = useWeightStore()
 
@@ -1183,7 +1185,7 @@
 
         return [{
             key: 'overview',
-            label: 'Planübersicht',
+            label: t('progress.entry.planOverview.section'),
             sortOrder: 0,
             exercises: [...exercisesResolved.value].sort((a, b) => a.exercise.localeCompare(b.exercise, 'de')),
         }]
@@ -1193,34 +1195,46 @@
         if (!id) return ''
         return String(trainingPlansStore.items.find((p: any) => p.id === id)?.name ?? '').trim()
     })
+    const planOverviewPopupTitle = computed(() =>
+        currentPlanName.value
+            ? `${t('progress.entry.planOverview.title')} · ${currentPlanName.value}`
+            : t('progress.entry.planOverview.open')
+    )
+    const tutorialPopupTitle = computed(() =>
+        activeTutorialExerciseLocal.value
+            ? `${t('progress.entry.tutorial.title')} · ${activeTutorialExerciseLocal.value.exercise}`
+            : t('progress.entry.tutorial.title')
+    )
+    const formatPlanExerciseCount = (count: number) =>
+        `${count} ${t(count === 1 ? 'progress.popup.exerciseSingular' : 'progress.popup.exercisePlural')}`
 
     const formatPlanExercisePrescription = (exercise: PlanExercise) => {
         if (exercise.type === 'ausdauer') {
             const parts: string[] = []
-            if (exercise.durationMin != null && Number(exercise.durationMin) > 0) parts.push(`${exercise.durationMin} Min`)
+            if (exercise.durationMin != null && Number(exercise.durationMin) > 0) parts.push(`${exercise.durationMin} ${t('progress.entry.planOverview.units.minutesShort')}`)
             if (exercise.distanceKm != null && Number(exercise.distanceKm) > 0) parts.push(`${exercise.distanceKm} km`)
-            return parts.join(' · ') || 'Cardio'
+            return parts.join(' · ') || t('goals.exerciseKind.cardio')
         }
         if (exercise.type === 'dehnung') {
             const parts: string[] = []
-            if (exercise.sets > 0) parts.push(`${exercise.sets} Sätze`)
-            if (exercise.reps > 0) parts.push(`${exercise.reps} Sek`)
-            return parts.join(' · ') || 'Dehnung'
+            if (exercise.sets > 0) parts.push(`${exercise.sets} ${t('progress.popup.abbr.sets')}`)
+            if (exercise.reps > 0) parts.push(`${exercise.reps} ${t('progress.entry.planOverview.units.secondsShort')}`)
+            return parts.join(' · ') || t('goals.exerciseKind.mobility')
         }
 
         const parts: string[] = []
-        if (exercise.sets > 0) parts.push(`${exercise.sets} Sätze`)
-        if (exercise.reps > 0) parts.push(`${exercise.reps} Wdh`)
-        return parts.join(' · ') || 'Übung'
+        if (exercise.sets > 0) parts.push(`${exercise.sets} ${t('progress.popup.abbr.sets')}`)
+        if (exercise.reps > 0) parts.push(`${exercise.reps} ${t('progress.popup.repsShort')}`)
+        return parts.join(' · ') || t('progress.popup.exerciseSingular')
     }
 
     const getPlanExerciseMeta = (exercise: PlanExercise) => {
         const items: Array<{ label: string; value: string }> = []
-        if (exercise.recoveryHint) items.push({ label: 'Pause:', value: exercise.recoveryHint })
-        if (exercise.tempoHint) items.push({ label: exercise.type === 'ausdauer' ? 'Geschwindigkeit:' : 'Tempo:', value: exercise.tempoHint })
-        if (exercise.equipmentNumber) items.push({ label: 'Gerätenummer:', value: exercise.equipmentNumber })
-        if (exercise.replacementExercise) items.push({ label: 'Ersatz:', value: exercise.replacementExercise })
-        if (exercise.replacementReason) items.push({ label: 'Ersatzgrund:', value: exercise.replacementReason })
+        if (exercise.recoveryHint) items.push({ label: t('progress.entry.planOverview.meta.rest'), value: exercise.recoveryHint })
+        if (exercise.tempoHint) items.push({ label: exercise.type === 'ausdauer' ? t('progress.entry.planOverview.meta.speed') : t('progress.entry.planOverview.meta.tempo'), value: exercise.tempoHint })
+        if (exercise.equipmentNumber) items.push({ label: t('progress.entry.planOverview.meta.equipmentNumber'), value: exercise.equipmentNumber })
+        if (exercise.replacementExercise) items.push({ label: t('progress.entry.planOverview.meta.replacement'), value: exercise.replacementExercise })
+        if (exercise.replacementReason) items.push({ label: t('progress.entry.planOverview.meta.replacementReason'), value: exercise.replacementReason })
         return items
     }
 
@@ -1888,7 +1902,7 @@
 
     function guardSetActionsRequireExercise(): boolean {
         if (hasExerciseSelected.value) return true
-        setActionErrorMessagesLocal.value = ['Bitte wähle zuerst eine Übung aus.']
+        setActionErrorMessagesLocal.value = [t('progress.entry.validation.selectExerciseMessage')]
         showSetActionErrorPopupLocal.value = true
         nextTick(() => exerciseSelect.value?.focus())
         return false
@@ -1951,7 +1965,7 @@
         ])
         const silent = reason ? silentReasons.has(reason) : false
 
-        inlineErrors.value.exercise = 'Bitte wähle zuerst eine Übung.'
+        inlineErrors.value.exercise = t('progress.entry.validation.selectExerciseMessage')
         if (!silent) inlineErrors.value.general = ''
         nextTick(() => exerciseSelect.value?.focus())
         return false
@@ -2175,7 +2189,7 @@
     watch([setsLocal, inputType, effectiveActiveSetNumber], ([s]) => {
         const raw = Number(s) || 0
         if (raw > 7) {
-            inlineErrors.value.sets = 'Maximal 7 Sätze erlaubt.'
+            inlineErrors.value.sets = t('progress.entry.validation.maxSets')
             setsLocal.value = 7
             return
         }
@@ -2358,19 +2372,19 @@
         inlineErrors.value.duration = ''
         inlineErrors.value.general = ''
 
-        if (!exerciseLocal.value.trim()) inlineErrors.value.exercise = 'Bitte wähle zuerst eine Übung.'
+        if (!exerciseLocal.value.trim()) inlineErrors.value.exercise = t('progress.entry.validation.selectExerciseMessage')
 
-        const t = detectedInputType.value
+        const inputKind = detectedInputType.value
 
-        if (t === 'ausdauer') {
+        if (inputKind === 'ausdauer') {
             const dur = durationLocal.value
             if (!(typeof dur === 'number' && Number.isFinite(dur) && dur >= 1)) {
-                inlineErrors.value.duration = 'Bitte eine Dauer in Minuten (mind. 1) angeben.'
+                inlineErrors.value.duration = t('progress.entry.validation.durationMin')
             }
         } else {
             const s = setsLocal.value
             if (!(typeof s === 'number' && Number.isFinite(s) && s >= 1)) {
-                inlineErrors.value.sets = 'Bitte mindestens 1 Satz angeben.'
+                inlineErrors.value.sets = t('progress.entry.validation.setsMin')
             }
         }
 
@@ -2385,8 +2399,8 @@
         const saveableSetRows = activeSetRows
             .filter(x => !isSetLocked(x.setNo))
             .map(x => x.row)
-        if (t !== 'ausdauer' && visibleSetCount.value > 0 && saveableSetRows.length === 0) {
-            inlineErrors.value.general = 'Mindestens 1 Satz aktiv lassen oder Satzanzahl anpassen.'
+        if (inputKind !== 'ausdauer' && visibleSetCount.value > 0 && saveableSetRows.length === 0) {
+            inlineErrors.value.general = t('progress.entry.validation.keepOneSet')
             return
         }
 
@@ -2396,7 +2410,7 @@
 
         let workout: Workout
 
-        if (t === 'ausdauer') {
+        if (inputKind === 'ausdauer') {
             workout = {
                 planId,
                 exercise: exerciseLocal.value.trim(),
@@ -2412,7 +2426,7 @@
                 hrZone: hrZoneLocal.value ?? undefined,
                 borg: borgLocalNum.value ?? undefined,
             }
-        } else if (t === 'dehnung') {
+        } else if (inputKind === 'dehnung') {
             const perSet = saveableSetRows.map(r => ({
                 weight: 0,
                 reps: r.reps ?? null,
@@ -2581,7 +2595,7 @@
     .plan-overview-toggle__copy {
         display: flex;
         flex-direction: column;
-        gap: .12rem;
+        gap: .50rem;
         min-width: 0;
     }
 
@@ -2604,6 +2618,17 @@
         font-size: 1.05rem;
         color: var(--accent-primary);
         transition: transform .18s ease;
+        animation: plan-overview-arrow-drift 1.9s ease-in-out infinite;
+    }
+
+    @keyframes plan-overview-arrow-drift {
+        0%, 100% {
+            transform: translate(0, 0);
+        }
+
+        50% {
+            transform: translate(3px, -3px);
+        }
     }
 
     .plan-overview-days {

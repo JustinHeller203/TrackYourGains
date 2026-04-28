@@ -1,62 +1,63 @@
-﻿<template>
+<template>
     <BasePopup :show="isOpen"
-               title="📚 TYG GL Tabelle (Richtwerte)"
+               :title="t('glTable.title')"
                overlay-class="calc-gl-table-popup"
                :show-actions="false"
                @cancel="close()">
 
         <div class="glp">
-            <div class="glp-scroll" role="region" aria-label="GL Tabelle Inhalt">
+            <div class="glp-scroll" role="region" :aria-label="t('glTable.contentAria')">
                 <div class="glp-text">
-                    Such dir ein Food → klick auf <strong>Übernehmen</strong> → wir setzen automatisch
-                    <strong>GI</strong>, <strong>KH/100g</strong> und als Start <strong>Portion 100g</strong>.
-                    Danach passt du die Portion einfach auf deine echte Menge an.
+                    {{ t('glTable.introBeforeApply') }} <strong>{{ t('glTable.apply') }}</strong> {{ t('glTable.introAfterApply') }}
+                    <strong>GI</strong>, <strong>{{ t('glTable.carbsPer100') }}</strong> {{ t('glTable.introAnd') }}
+                    <strong>{{ t('glTable.portion100') }}</strong>.
+                    {{ t('glTable.introAdjust') }}
                 </div>
 
                 <div class="glp-tools">
                     <input class="glp-search"
                            v-model="query"
                            type="text"
-                           placeholder="Suchen… z. B. Banane, Reis, Pasta, Hafer"
+                           :placeholder="t('glTable.searchPlaceholder')"
                            autocomplete="off" />
 
                     <button class="glp-clear"
                             type="button"
                             @click="query = ''"
                             :disabled="!query.trim()">
-                        Reset
+                        {{ t('common.reset') }}
                     </button>
                 </div>
 
-                <div class="glp-grid" role="list" aria-label="GL Tabelle">
+                <div class="glp-grid" role="list" :aria-label="t('glTable.listAria')">
                     <div v-for="item in filtered"
                          :key="item.key"
                          class="glp-row"
                          role="listitem">
                         <div class="glp-row-main">
-                            <div class="glp-food">{{ item.label }}</div>
+                            <div class="glp-food">{{ getItemLabel(item) }}</div>
                             <div class="glp-meta">
                                 <span class="glp-pill">GI: <strong>{{ item.gi }}</strong></span>
-                                <span class="glp-pill">KH/100g: <strong>{{ item.carbs100 }}g</strong></span>
-                                <span v-if="item.note" class="glp-pill glp-pill--muted">{{ item.note }}</span>
+                                <span class="glp-pill">{{ t('glTable.carbsPer100') }}: <strong>{{ item.carbs100 }}g</strong></span>
+                                <span v-if="getItemNote(item)" class="glp-pill glp-pill--muted">{{ getItemNote(item) }}</span>
                             </div>
                         </div>
 
                         <button class="glp-apply"
                                 type="button"
                                 @click="apply(item)">
-                            Übernehmen
+                            {{ t('glTable.apply') }}
                         </button>
                     </div>
 
                     <div v-if="!filtered.length" class="glp-empty">
-                        Kein Treffer 😅 — Tipp: versuch “Reis”, “Brot”, “Banane”, “Pasta”, “Hafer”.
+                        {{ t('glTable.empty') }}
                     </div>
                 </div>
 
                 <div class="glp-note">
-                    Hinweis: Das sind <strong>Richtwerte</strong>. Wenn du eine spezifische Marke/Sorte hast,
-                    kann’s abweichen. Für’s Vergleichen reicht’s aber locker.
+                    {{ t('glTable.noteStart') }} <strong>{{ t('glTable.guidelines') }}</strong>.
+                    {{ t('glTable.noteEnd') }}
                 </div>
             </div>
         </div>
@@ -67,44 +68,59 @@
 <script setup lang="ts">
     import { computed, ref } from 'vue'
     import BasePopup from '../BasePopup.vue'
+    import { useI18n } from '@/composables/useI18n'
 
     export type GlTableItem = {
         key: string
-        label: string
+        labelKey: string
         gi: number
         carbs100: number
-        note?: string
+        noteKey?: string
     }
 
     const emit = defineEmits<{
         (e: 'apply', item: GlTableItem): void
     }>()
 
+    const { t } = useI18n()
+
     const isOpen = ref(false)
     const query = ref('')
 
-    // Du kannst die Liste später easy erweitern (oder per Props reinreichen)
     const table: GlTableItem[] = [
-        { key: 'banana', label: 'Banane', gi: 55, carbs100: 23, note: 'Reife schwankt' },
-        { key: 'apple', label: 'Apfel', gi: 36, carbs100: 14 },
-        { key: 'oats', label: 'Haferflocken', gi: 55, carbs100: 60, note: 'je nach Zubereitung' },
-        { key: 'white_rice', label: 'Reis (weiß, gekocht)', gi: 73, carbs100: 28, note: 'Sorte schwankt' },
-        { key: 'basmati', label: 'Basmati (gekocht)', gi: 55, carbs100: 25 },
-        { key: 'pasta_al_dente', label: 'Pasta (al dente)', gi: 50, carbs100: 30 },
-        { key: 'bread_white', label: 'Weißbrot', gi: 75, carbs100: 49 },
-        { key: 'bread_rye', label: 'Roggenbrot', gi: 55, carbs100: 48 },
-        { key: 'potato_boiled', label: 'Kartoffeln (gekocht)', gi: 80, carbs100: 17, note: 'abgekühlt oft niedriger' },
-        { key: 'sweet_potato', label: 'Süßkartoffel (gekocht)', gi: 60, carbs100: 20 },
-        { key: 'cornflakes', label: 'Cornflakes', gi: 81, carbs100: 84 },
-        { key: 'milk', label: 'Milch', gi: 30, carbs100: 5 },
-        { key: 'yogurt', label: 'Joghurt (natur)', gi: 35, carbs100: 5 },
+        { key: 'banana', labelKey: 'glTable.food.banana', gi: 55, carbs100: 23, noteKey: 'glTable.note.ripenessVaries' },
+        { key: 'apple', labelKey: 'glTable.food.apple', gi: 36, carbs100: 14 },
+        { key: 'oats', labelKey: 'glTable.food.oats', gi: 55, carbs100: 60, noteKey: 'glTable.note.preparationVaries' },
+        { key: 'white_rice', labelKey: 'glTable.food.whiteRice', gi: 73, carbs100: 28, noteKey: 'glTable.note.typeVaries' },
+        { key: 'basmati', labelKey: 'glTable.food.basmati', gi: 55, carbs100: 25 },
+        { key: 'pasta_al_dente', labelKey: 'glTable.food.pastaAlDente', gi: 50, carbs100: 30 },
+        { key: 'bread_white', labelKey: 'glTable.food.whiteBread', gi: 75, carbs100: 49 },
+        { key: 'bread_rye', labelKey: 'glTable.food.ryeBread', gi: 55, carbs100: 48 },
+        { key: 'potato_boiled', labelKey: 'glTable.food.boiledPotatoes', gi: 80, carbs100: 17, noteKey: 'glTable.note.cooledLower' },
+        { key: 'sweet_potato', labelKey: 'glTable.food.sweetPotato', gi: 60, carbs100: 20 },
+        { key: 'cornflakes', labelKey: 'glTable.food.cornflakes', gi: 81, carbs100: 84 },
+        { key: 'milk', labelKey: 'glTable.food.milk', gi: 30, carbs100: 5 },
+        { key: 'yogurt', labelKey: 'glTable.food.yogurt', gi: 35, carbs100: 5 },
     ]
 
     const filtered = computed(() => {
         const q = query.value.trim().toLowerCase()
         if (!q) return table
-        return table.filter(x => x.label.toLowerCase().includes(q))
+
+        return table.filter((item) => {
+            const label = getItemLabel(item).toLowerCase()
+            const note = getItemNote(item).toLowerCase()
+            return label.includes(q) || note.includes(q)
+        })
     })
+
+    function getItemLabel(item: GlTableItem) {
+        return t(item.labelKey)
+    }
+
+    function getItemNote(item: GlTableItem) {
+        return item.noteKey ? t(item.noteKey) : ''
+    }
 
     function open() {
         isOpen.value = true

@@ -1,4 +1,4 @@
-<!--components/ui/kits/calender/Calender.vue-->
+﻿<!--components/ui/kits/calender/Calender.vue-->
 
 <template>
     <div class="cal">
@@ -6,7 +6,7 @@
             <button type="button"
                     class="cal-nav"
                     @click="prevMonth"
-                    aria-label="Vorheriger Monat">
+                    :aria-label="t('calendar.previousMonthAria')">
                 <span class="cal-chevron cal-chevron--left" aria-hidden="true"></span>
             </button>
 
@@ -21,37 +21,37 @@
             <button type="button"
                     class="cal-nav"
                     @click="nextMonth"
-                    aria-label="Nächster Monat">
+                    :aria-label="t('calendar.nextMonthAria')">
                 <span class="cal-chevron cal-chevron--right" aria-hidden="true"></span>
             </button>
         </div>
 
-        <!-- Quick Month/Year Picker (öffnet bei Doppelklick auf den Titel) -->
+        <!-- Quick Month/Year Picker (Ã¶ffnet bei Doppelklick auf den Titel) -->
         <BasePopup :show="showPicker"
-                   title="Schnell springen"
+                   :title="t('calendar.quickJumpTitle')"
                    overlayClass="cal-pick-popup"
                    @cancel="closePicker">
 
             <div class="cal-pick-fields">
                 <UiPopupSelect v-model="pickMonthStr"
-                               label="Monat"
-                               placeholder="Monat wählen"
+                               :label="t('calendar.monthLabel')"
+                               :placeholder="t('calendar.monthPlaceholder')"
                                :options="monthOptions" />
 
                 <UiPopupInput v-model="pickYearStr"
-                              label="Jahr"
-                              placeholder="z.B. 2026"
+                              :label="t('calendar.yearLabel')"
+                              :placeholder="t('calendar.yearPlaceholder')"
                               inputmode="numeric"
                               type="number" />
             </div>
 
             <template #actions>
                 <PopupActionButton variant="ghost" @click="closePicker">
-                    Abbrechen
+                    {{ t('common.cancel') }}
                 </PopupActionButton>
 
                 <PopupActionButton @click="applyPicker">
-                    Suchen
+                    {{ t('calendar.searchAction') }}
                 </PopupActionButton>
             </template>
 
@@ -96,7 +96,7 @@
                 <span v-if="cell.day && isFirstEntry(cell.day)"
                       class="cal-first-badge"
                       :title="dotTitle(cell.day)"
-                      aria-hidden="true">🚀</span>
+                      aria-hidden="true">ðŸš€</span>
                 <span v-if="cell.day && hasEntries(cell.day)"
                       class="cal-dot"
                       :style="dotStyle(cell.day)"
@@ -108,17 +108,17 @@
                       aria-hidden="true">{{ trendSymbol(trendFor(cell.day)) }}</span>
                 <span v-if="cell.day && hasCheck(cell.day)"
                       class="cal-check"
-                      aria-hidden="true">✓</span>
+                      aria-hidden="true">âœ“</span>
                 <span v-if="cell.day && hasCross(cell.day)"
                       class="cal-cross"
-                      aria-hidden="true">✕</span>
+                      aria-hidden="true">âœ•</span>
             </button>
                 </div>
             </Transition>
         </div>
 
         <div class="cal-hint">
-            Tipp: Markierte Tage haben Planung oder Einträge. Klick drauf.
+            {{ t('calendar.hint.markedDays') }}
         </div>
     </div>
 </template>
@@ -129,6 +129,7 @@
     import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
+    import { useI18n } from '@/composables/useI18n'
 
 
     const props = defineProps<{
@@ -160,6 +161,8 @@
         (e: 'select', day: string): void
         (e: 'dblclick', day: string): void
     }>()
+    const { locale, t } = useI18n()
+    const localeCode = computed(() => locale.value === 'en' ? 'en-US' : 'de-DE')
 
     const dotStyle = (day: string) => {
         const colors = props.dayColors?.[day]
@@ -186,8 +189,8 @@
 
     const trendSymbol = (trend: 'up' | 'down' | 'same' | null) => {
         if (!trend) return ''
-        if (trend === 'up') return '↑'
-        if (trend === 'down') return '↓'
+        if (trend === 'up') return 'â†‘'
+        if (trend === 'down') return 'â†“'
         return '-'
     }
 
@@ -199,11 +202,18 @@
     const now = new Date()
     const monthCursor = ref<Date>(new Date(now.getFullYear(), now.getMonth(), 1))
 
-    const weekdayLabels = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+    const weekdayLabels = computed(() => {
+        const baseMondayUtc = new Date(Date.UTC(2024, 0, 1))
+        return Array.from({ length: 7 }, (_, index) => {
+            const d = new Date(baseMondayUtc)
+            d.setUTCDate(baseMondayUtc.getUTCDate() + index)
+            return new Intl.DateTimeFormat(localeCode.value, { weekday: 'short' }).format(d)
+        })
+    })
 
     const monthTitle = computed(() => {
         const d = monthCursor.value
-        return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+        return new Intl.DateTimeFormat(localeCode.value, { month: 'long', year: 'numeric' }).format(d)
     })
     const monthTransitionDirection = ref<'forward' | 'backward'>('forward')
     const monthTransitionName = computed(() =>
@@ -333,14 +343,21 @@
     }
 
     const monthNames = [
-        'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+        'Januar', 'Februar', 'MÃ¤rz', 'April', 'Mai', 'Juni',
         'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
     ]
 
-    const monthOptions = monthNames.map((label, idx) => ({
+    const legacyMonthOptions = monthNames.map((label, idx) => ({
         label,
         value: String(idx),
     }))
+
+    const monthOptions = computed(() =>
+        Array.from({ length: 12 }, (_, idx) => ({
+            label: new Intl.DateTimeFormat(localeCode.value, { month: 'long' }).format(new Date(2024, idx, 1)) || legacyMonthOptions[idx]?.label || '',
+            value: String(idx),
+        }))
+    )
 
     const showPicker = ref(false)
 

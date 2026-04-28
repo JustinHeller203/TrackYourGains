@@ -26,10 +26,12 @@
 </template>
 
 <script setup lang="ts">
+    import { computed } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
-    withDefaults(defineProps<{
+    const props = withDefaults(defineProps<{
         show: boolean
         src?: string | null          // optional: zeigt runde Bildvorschau, wenn gesetzt
         title?: string
@@ -39,9 +41,10 @@
     }>(), {
         title: 'Speichern?',
         hint: '',
-        cancelText: 'Abbrechen',
-        saveText: 'Speichern',
     })
+    const { t } = useI18n()
+    const cancelText = computed(() => props.cancelText ?? t('common.cancel'))
+    const saveText = computed(() => props.saveText ?? t('common.save'))
 
     defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
 </script>

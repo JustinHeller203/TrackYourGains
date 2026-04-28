@@ -1,4 +1,4 @@
-﻿<!-- components/ui/training/TrainingSessionSummary.vue -->
+<!-- components/ui/training/TrainingSessionSummary.vue -->
 <template>
     <BasePopup :show="show"
                :title="title"
@@ -9,11 +9,11 @@
 
         <div class="tss-root">
             <div class="tss-head">
-                <div class="tss-title">📊 Training Summary</div>
+                <div class="tss-title">{{ t('trainingSummary.title') }}</div>
                 <div class="tss-sub">
                     <span v-if="meta.planName"><b>{{ meta.planName }}</b></span>
                     <span v-if="meta.durationSec != null"> · {{ fmtDuration(meta.durationSec) }}</span>
-                    <span v-if="meta.startedAtIso"> · Start: {{ fmtDate(meta.startedAtIso) }}</span>
+                    <span v-if="meta.startedAtIso"> · {{ t('trainingSummary.start') }}: {{ fmtDate(meta.startedAtIso) }}</span>
                 </div>
             </div>
 
@@ -22,68 +22,68 @@
             <div class="tss-grid">
                 <!-- Overall -->
                 <div class="tss-card">
-                    <div class="tss-kpi-label">Übungen</div>
+                    <div class="tss-kpi-label">{{ t('trainingSummary.exercises') }}</div>
                     <div class="tss-kpi">{{ kpis.exercisesTotal ?? '—' }}</div>
                     <div class="tss-kpi-sub">
-                        durchgezogen: {{ kpis.exercisesDone ?? '—' }}
+                        {{ t('trainingSummary.exercisesDone') }}: {{ kpis.exercisesDone ?? '—' }}
                         <span v-if="completionPct != null"> · {{ completionPct }}%</span>
                     </div>
                 </div>
 
                 <div class="tss-card">
-                    <div class="tss-kpi-label">Dauer</div>
+                    <div class="tss-kpi-label">{{ t('trainingSummary.duration') }}</div>
                     <div class="tss-kpi">{{ meta.durationSec != null ? fmtDuration(meta.durationSec) : '—' }}</div>
                     <div class="tss-kpi-sub">
-                        avg/Übung: {{ avgSecPerExercise != null ? fmtDuration(avgSecPerExercise) : '—' }}
+                        {{ t('trainingSummary.avgPerExercise') }}: {{ avgSecPerExercise != null ? fmtDuration(avgSecPerExercise) : '—' }}
                     </div>
                 </div>
 
                 <!-- Strength -->
                 <div v-if="showStrengthKpis" class="tss-card">
-                    <div class="tss-kpi-label">Sätze</div>
+                    <div class="tss-kpi-label">{{ t('trainingSummary.sets') }}</div>
                     <div class="tss-kpi">{{ kpis.setsTotal ?? '—' }}</div>
-                    <div class="tss-kpi-sub">geloggt: {{ kpis.setsLogged ?? '—' }}</div>
+                    <div class="tss-kpi-sub">{{ t('trainingSummary.logged') }}: {{ kpis.setsLogged ?? '—' }}</div>
                 </div>
 
                 <div v-if="showStrengthKpis" class="tss-card">
-                    <div class="tss-kpi-label">Volumen</div>
+                    <div class="tss-kpi-label">{{ t('trainingSummary.volume') }}</div>
                     <div class="tss-kpi">{{ fmtVolume(kpis.volumeKg) }}</div>
                     <div class="tss-kpi-sub">
-                        Ø/Übung: {{ avgVolumePerStrengthEx != null ? fmtVolume(avgVolumePerStrengthEx) : '—' }}
+                        {{ t('trainingSummary.avgPerExerciseShort') }}: {{ avgVolumePerStrengthEx != null ? fmtVolume(avgVolumePerStrengthEx) : '—' }}
                     </div>
                 </div>
 
                 <div v-if="showStrengthKpis" class="tss-card">
-                    <div class="tss-kpi-label">Best Set</div>
+                    <div class="tss-kpi-label">{{ t('trainingSummary.bestSet') }}</div>
                     <div class="tss-kpi">{{ bestSetLabel }}</div>
                     <div class="tss-kpi-sub">{{ bestSetSub }}</div>
                 </div>
 
                 <div v-if="showStrengthKpis" class="tss-card">
-                    <div class="tss-kpi-label">Top Vol Exercise</div>
+                    <div class="tss-kpi-label">{{ t('trainingSummary.topVolumeExercise') }}</div>
                     <div class="tss-kpi">{{ topVolumeExerciseLabel }}</div>
                     <div class="tss-kpi-sub">{{ topVolumeExerciseSub }}</div>
                 </div>
 
                 <!-- Mix -->
                 <div class="tss-card">
-                    <div class="tss-kpi-label">Mix</div>
+                    <div class="tss-kpi-label">{{ t('trainingSummary.mix') }}</div>
                     <div class="tss-kpi">{{ mixLabel }}</div>
-                    <div class="tss-kpi-sub">Kraft · Cardio · Dehnung</div>
+                    <div class="tss-kpi-sub">{{ t('trainingSummary.mixSub') }}</div>
                 </div>
 
                 <!-- Cardio -->
                 <div v-if="showCardioKpis" class="tss-card">
-                    <div class="tss-kpi-label">Cardio Zeit</div>
+                    <div class="tss-kpi-label">{{ t('trainingSummary.cardioTime') }}</div>
                     <div class="tss-kpi">{{ fmtDuration(cardioTotalSec) }}</div>
-                    <div class="tss-kpi-sub">Top: {{ topTimeExerciseLabel }}</div>
+                    <div class="tss-kpi-sub">{{ t('trainingSummary.top') }}: {{ topTimeExerciseLabel }}</div>
                 </div>
 
                 <!-- Stretch -->
                 <div v-if="showStretchKpis" class="tss-card">
-                    <div class="tss-kpi-label">Dehnung Zeit</div>
+                    <div class="tss-kpi-label">{{ t('trainingSummary.stretchTime') }}</div>
                     <div class="tss-kpi">{{ fmtDuration(stretchTotalSec) }}</div>
-                    <div class="tss-kpi-sub">Top: {{ topStretchExerciseLabel }}</div>
+                    <div class="tss-kpi-sub">{{ t('trainingSummary.top') }}: {{ topStretchExerciseLabel }}</div>
                 </div>
             </div>
 
@@ -91,17 +91,17 @@
             <!-- Sections -->
             <div class="tss-sections">
                 <div class="tss-section">
-                    <div class="tss-section-title">Highlights</div>
-                    <div v-if="!highlights?.length" class="tss-muted">Noch keine Highlights.</div>
+                    <div class="tss-section-title">{{ t('trainingSummary.highlights') }}</div>
+                    <div v-if="!highlights?.length" class="tss-muted">{{ t('trainingSummary.noHighlights') }}</div>
                     <ul v-else class="tss-list">
                         <li v-for="(h, i) in highlights" :key="i">{{ h }}</li>
                     </ul>
                 </div>
 
                 <div class="tss-section">
-                    <div class="tss-section-title">Übungen Übersicht</div>
+                    <div class="tss-section-title">{{ t('trainingSummary.exerciseOverview') }}</div>
 
-                    <div v-if="!perExercise?.length" class="tss-muted">Keine Daten.</div>
+                    <div v-if="!perExercise?.length" class="tss-muted">{{ t('trainingSummary.noData') }}</div>
 
                     <div v-else class="tss-ex-list">
                         <div v-for="ex in perExercise" :key="ex.exercise" class="tss-ex-row">
@@ -111,8 +111,8 @@
                                     <span class="pill">{{ typeLabel(ex.type) }}</span>
 
                                     <template v-if="isStrengthLike(ex.type)">
-                                        <span class="pill ghost" v-if="ex.setsTotal != null">🎯 {{ ex.setsTotal }} Sätze</span>
-                                        <span class="pill ghost" v-if="ex.repsTarget != null">🔁 Ziel {{ ex.repsTarget }}</span>
+                                        <span class="pill ghost" v-if="ex.setsTotal != null">🎯 {{ ex.setsTotal }} {{ t('trainingSummary.sets') }}</span>
+                                        <span class="pill ghost" v-if="ex.repsTarget != null">🔁 {{ t('trainingSummary.target') }} {{ ex.repsTarget }}</span>
                                     </template>
 
                                     <template v-else>
@@ -124,18 +124,18 @@
                             <div class="tss-ex-right">
                                 <template v-if="isStrengthLike(ex.type)">
                                     <div class="tss-mini">
-                                        <div class="tss-mini-label">Vol</div>
+                                        <div class="tss-mini-label">{{ t('trainingSummary.volume') }}</div>
                                         <div class="tss-mini-val">{{ fmtVolume(ex.volumeKg) }}</div>
                                     </div>
                                     <div class="tss-mini">
-                                        <div class="tss-mini-label">Top</div>
+                                        <div class="tss-mini-label">{{ t('trainingSummary.top') }}</div>
                                         <div class="tss-mini-val">{{ ex.topSetLabel ?? '—' }}</div>
                                     </div>
                                 </template>
 
                                 <template v-else>
                                     <div class="tss-mini">
-                                        <div class="tss-mini-label">Zeit</div>
+                                        <div class="tss-mini-label">{{ t('trainingSummary.time') }}</div>
                                         <div class="tss-mini-val">{{ ex.timeSec != null ? fmtDuration(ex.timeSec) : '—' }}</div>
                                     </div>
                                 </template>
@@ -145,17 +145,17 @@
                 </div>
 
                 <div v-if="showTempoRest" class="tss-section">
-                    <div class="tss-section-title">Tempo & Rest</div>
+                    <div class="tss-section-title">{{ t('trainingSummary.tempoRest') }}</div>
                     <div class="tss-rowgrid">
                         <div class="tss-card">
-                            <div class="tss-kpi-label">Rest gesamt</div>
+                            <div class="tss-kpi-label">{{ t('trainingSummary.restTotal') }}</div>
                             <div class="tss-kpi">{{ fmtDuration(rest.totalSec) }}</div>
-                            <div class="tss-kpi-sub">avg: {{ fmtDuration(rest.avgSec) }}</div>
+                            <div class="tss-kpi-sub">{{ t('trainingSummary.avg') }}: {{ fmtDuration(rest.avgSec) }}</div>
                         </div>
                         <div class="tss-card">
-                            <div class="tss-kpi-label">Set Pace</div>
+                            <div class="tss-kpi-label">{{ t('trainingSummary.setPace') }}</div>
                             <div class="tss-kpi">{{ fmtDuration(pace.avgSetSec) }}</div>
-                            <div class="tss-kpi-sub">Speed Score: {{ pace.score ?? '—' }}</div>
+                            <div class="tss-kpi-sub">{{ t('trainingSummary.speedScore') }}: {{ pace.score ?? '—' }}</div>
                         </div>
                     </div>
                 </div>
@@ -163,11 +163,11 @@
 
             <div class="tss-actions">
                 <PopupActionButton v-if="showClose" variant="ghost" @click="$emit('close')">
-                    Schließen
+                    {{ t('common.close') }}
                 </PopupActionButton>
 
                 <PopupActionButton v-if="showExport" @click="$emit('export')">
-                    Export
+                    {{ t('trainingSummary.export') }}
                 </PopupActionButton>
             </div>
         </div>
@@ -180,6 +180,7 @@
     import { computed } from "vue"
     import BasePopup from "@/components/ui/popups/BasePopup.vue"
     import PopupActionButton from "@/components/ui/buttons/popup/PopupActionButton.vue"
+    import { useI18n } from "@/composables/useI18n"
 
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
 
@@ -227,6 +228,8 @@
         score?: number | null
     }
 
+    const { t } = useI18n()
+
     const props = defineProps<{
         show: boolean
         title?: string
@@ -241,7 +244,7 @@
         showExport?: boolean
     }>()
 
-    const title = computed(() => props.title ?? "📊 Training abgeschlossen")
+    const title = computed(() => props.title ?? t("trainingSummary.completedTitle"))
     const show = computed(() => !!props.show)
 
     defineEmits<{
@@ -283,7 +286,7 @@
     const bestSetSub = computed(() => {
         const b = props.bestSet
         if (!b?.exercise) return '—'
-        if (b?.e1rmKg) return `${b.exercise} · e1RM ${round1(b.e1rmKg)}kg`
+        if (b?.e1rmKg) return `${b.exercise} · ${t("trainingSummary.bestSet.e1rm")} ${round1(b.e1rmKg)}kg`
         return `${b.exercise}`
     })
 
@@ -353,7 +356,7 @@
         if (!ex) return '—'
         const vol = fmtVolume(ex.volumeKg ?? null)
         const top = ex.topSetLabel ?? '—'
-        return `${vol} · Top ${top}`
+        return `${vol} · ${t("trainingSummary.top")} ${top}`
     })
 
     const topTimeExercise = computed(() => {
@@ -389,11 +392,11 @@
     })
 
 
-    const typeLabel = (t?: ExerciseType) => {
-        if (t === 'ausdauer') return 'Ausdauer'
-        if (t === 'dehnung') return 'Dehnung'
-        if (t === 'calisthenics') return 'Calisthenics'
-        return 'Kraft'
+    const typeLabel = (type?: ExerciseType) => {
+        if (type === 'ausdauer') return t('trainingSummary.type.cardio')
+        if (type === 'dehnung') return t('trainingSummary.type.stretch')
+        if (type === 'calisthenics') return t('trainingSummary.type.calisthenics')
+        return t('trainingSummary.type.strength')
     }
 
     const fmtDuration = (sec?: number | null) => {

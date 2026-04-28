@@ -1,43 +1,36 @@
 <template>
     <main class="about-page">
         <header class="about-hero">
-            <p class="about-kicker">Über TrackYourGains</p>
-            <h1 class="about-title">Dein smarter Begleiter für Training, Ernährung & Fortschritt</h1>
+            <p class="about-kicker">{{ t('about.kicker') }}</p>
+            <h1 class="about-title">{{ t('about.title') }}</h1>
             <p class="about-subtitle">
-                TrackYourGains ist eine schlanke, lokal laufende App, die dir hilft,
-                deine Workouts, dein Gewicht und deine Ernährung im Blick zu behalten –
-                ohne Account, ohne Cloud, 100&nbsp;% dein Ding.
+                {{ t('about.subtitle') }}
             </p>
         </header>
 
         <!-- Mission & Idee -->
         <section class="about-grid">
             <article class="about-card">
-                <h2 class="about-card-title">💡 Warum TrackYourGains?</h2>
+                <h2 class="about-card-title">{{ t('about.why.title') }}</h2>
                 <p>
-                    Ich wollte ein Tool, das nicht überladen ist, dich nicht mit
-                    Paywalls nervt und trotzdem wie ein modernes Dashboard wirkt.
-                    Eine App, die du öffnest und direkt siehst: <strong>Wo stehe ich gerade?</strong>
+                    {{ t('about.why.text1') }}
                 </p>
                 <p>
-                    TrackYourGains konzentriert sich auf das Wesentliche: Training,
-                    Ernährung, Fortschritt&nbsp;– ohne Bullshit, ohne Datenverkauf
-                    und ohne versteckte Abos.
+                    {{ t('about.why.text2') }}
                 </p>
             </article>
 
             <article class="about-card">
-                <h2 class="about-card-title">🚀 Was die App heute schon kann</h2>
+                <h2 class="about-card-title">{{ t('about.features.title') }}</h2>
                 <ul class="about-list">
-                    <li>Workouts planen, dokumentieren & als Pläne speichern</li>
-                    <li>Gewichtstracking mit Verlauf & Statistiken</li>
-                    <li>Kalorien- und Makro-Rechner (BMI, Kalorienbedarf, Protein & mehr)</li>
-                    <li>Trainingsfortschritt pro Plan als Journal-Ansicht</li>
-                    <li>Export-Optionen für deine Daten (z.&nbsp;B. als CSV / JSON je nach Bereich)</li>
+                    <li>{{ t('about.features.item1') }}</li>
+                    <li>{{ t('about.features.item2') }}</li>
+                    <li>{{ t('about.features.item3') }}</li>
+                    <li>{{ t('about.features.item4') }}</li>
+                    <li>{{ t('about.features.item5') }}</li>
                 </ul>
                 <p class="about-note">
-                    Alles läuft aktuell lokal in deinem Browser über <strong>LocalStorage</strong>.
-                    Deine Daten gehören dir.
+                    {{ t('about.features.note') }}
                 </p>
             </article>
         </section>
@@ -45,29 +38,25 @@
         <!-- Fokus & Philosophie -->
         <section class="about-grid">
             <article class="about-card">
-                <h2 class="about-card-title">🎯 Fokus der App</h2>
+                <h2 class="about-card-title">{{ t('about.focus.title') }}</h2>
                 <p>
-                    TrackYourGains ist keine Social-Fitness-Plattform, sondern ein
-                    <strong>Werkzeug</strong>. Du vergleichst dich mit dir selbst – nicht
-                    mit Influencern oder irgendwelchen random Benchmarks.
+                    {{ t('about.focus.text1') }}
                 </p>
                 <p>
-                    Das Design ist deshalb bewusst wie ein <strong>Personal-Dashboard</strong>:
-                    klare Karten, lesbare Statistiken und ein dunkles, augenfreundliches Layout.
+                    {{ t('about.focus.text2') }}
                 </p>
             </article>
 
             <article class="about-card">
-                <h2 class="about-card-title">🔒 Datenschutz & Transparenz</h2>
+                <h2 class="about-card-title">{{ t('about.privacy.title') }}</h2>
                 <ul class="about-list">
-                    <li>Keine Registrierung, keine Accounts</li>
-                    <li>Keine Server-Datenbank – alles läuft lokal in deinem Browser</li>
-                    <li>Du entscheidest selbst, ob und was du exportierst</li>
-                    <li>Kein Tracking-Pixel, kein Analytics-Spam innerhalb der App</li>
+                    <li>{{ t('about.privacy.item1') }}</li>
+                    <li>{{ t('about.privacy.item2') }}</li>
+                    <li>{{ t('about.privacy.item3') }}</li>
+                    <li>{{ t('about.privacy.item4') }}</li>
                 </ul>
                 <p class="about-note">
-                    Später können optionale Cloud-Backups dazukommen – aber nur,
-                    wenn sie transparent, abschaltbar und verständlich sind.
+                    {{ t('about.privacy.note') }}
                 </p>
             </article>
         </section>
@@ -75,29 +64,21 @@
         <!-- Über den Entwickler -->
         <section class="about-grid about-grid--single">
             <article class="about-card about-me">
-                <h2 class="about-card-title">👨‍💻 Wer steckt dahinter?</h2>
+                <h2 class="about-card-title">{{ t('about.me.title') }}</h2>
                 <p>
-                    Hey, ich bin <strong>Justin</strong> – Fitness-Nerd, Technikfan und derjenige,
-                    der TrackYourGains baut.
+                    {{ t('about.me.text1') }}
                 </p>
                 <p>
-                    Die Idee kam aus einem simplen Problem: zu viele Apps wollten meine Daten,
-                    mein Geld oder haben mich mit Features zugeschüttet, die ich nie brauche.
-                    Also habe ich angefangen, mir mein eigenes Tool zu bauen.
+                    {{ t('about.me.text2') }}
                 </p>
                 <p>
-                    Mein Ziel: Eine App, die sich wie ein <strong>gut designter Trainingsplan</strong> anfühlt –
-                    klar strukturiert, fokussiert und ohne überflüssigen Ballast.
+                    {{ t('about.me.text3') }}
                 </p>
                 <p>
-                    Ich bastle dauerhaft an der Website und der App, teste neue Ideen
-                    und optimiere das, was schon da ist. Parallel arbeite ich an einem
-                    fairen, optionalen Abo-Modell, damit ich TrackYourGains langfristig
-                    weiter ausbauen kann.
+                    {{ t('about.me.text4') }}
                 </p>
                 <p class="about-note">
-                    Wenn du Feedback, Ideen oder Kritik hast: Schreib mir einfach über die
-                    <router-link to="/contact" class="about-link">Kontaktseite</router-link>.
+                    {{ t('about.me.feedback') }}
                 </p>
             </article>
         </section>
@@ -105,50 +86,49 @@
         <!-- Roadmap -->
         <section class="about-grid">
             <article class="about-card">
-                <h2 class="about-card-title">🛠️ Geplante Features</h2>
+                <h2 class="about-card-title">{{ t('about.roadmap.title') }}</h2>
                 <ul class="about-list">
-                    <li>Mehr Auswertungen für einzelne Übungen (z.&nbsp;B. 1RM-Verlauf)</li>
-                    <li>Optionale Trainingsziele mit Erinnerungen</li>
-                    <li>Mehr Export-Formate für Coaches & Physios</li>
-                    <li>Verbesserte Mobil-Experience & kleine UI-Tweaks</li>
-                    <li>optionales Pro-Abo für mehr Features</li>
+                    <li>{{ t('about.roadmap.item1') }}</li>
+                    <li>{{ t('about.roadmap.item2') }}</li>
+                    <li>{{ t('about.roadmap.item3') }}</li>
+                    <li>{{ t('about.roadmap.item4') }}</li>
+                    <li>{{ t('about.roadmap.item5') }}</li>
                 </ul>
                 <p class="about-note">
-                    Die Roadmap lebt: Ich passe sie an, je nachdem, was Nutzer wirklich brauchen
-                    – nicht, was fancy klingt.
+                    {{ t('about.roadmap.note') }}
                 </p>
             </article>
 
             <article class="about-card">
-                <h2 class="about-card-title">💬 Wie du mithelfen kannst</h2>
+                <h2 class="about-card-title">{{ t('about.help.title') }}</h2>
                 <ul class="about-list">
-                    <li>Schick mir Bugs, Screenshots oder verrückte Edge-Cases</li>
-                    <li>Erzähl mir, wie du TrackYourGains im Alltag nutzt</li>
-                    <li>Sag ehrlich, was nervt – Design, UX, Texte, egal</li>
+                    <li>{{ t('about.help.item1') }}</li>
+                    <li>{{ t('about.help.item2') }}</li>
+                    <li>{{ t('about.help.item3') }}</li>
                 </ul>
                 <p class="about-note">
-                    Deine Rückmeldungen fließen direkt ins nächste Update ein.
-                    Je ehrlicher du bist, desto besser wird das Ding.
+                    {{ t('about.help.note') }}
                 </p>
             </article>
         </section>
 
         <!-- Abschluss -->
         <section class="about-footer-card">
-            <h2 class="about-card-title">📈 Dein Fortschritt, deine Regeln</h2>
+            <h2 class="about-card-title">{{ t('about.footer.title') }}</h2>
             <p>
-                TrackYourGains soll dir helfen, langfristig dranzubleiben – ohne Druck von außen,
-                ohne Gamification-Stress. Öffne das Dashboard, sieh deinen Fortschritt und
-                entscheide selbst, was der nächste sinnvolle Schritt ist.
+                {{ t('about.footer.text') }}
             </p>
             <router-link to="/progress" class="about-cta">
-                Zum Fortschritts-Dashboard
+                {{ t('about.footer.cta') }}
             </router-link>
         </section>
     </main>
 </template>
 
 <script setup lang="ts">
+    import { useI18n } from '@/composables/useI18n'
+
+    const { t } = useI18n()
 </script>
 
 <style scoped>

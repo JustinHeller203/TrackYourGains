@@ -13,25 +13,25 @@
         <div v-if="!isEmpty" class="card-footer" @click.stop>
             <ExportButton v-if="exportable"
                           class="footer-btn"
-                          :title="useShortLabels ? 'Export' : 'Exportieren'"
-                          :aria-label="useShortLabels ? 'Export' : 'Exportieren'"
-                          :data-short="iconOnly ? '' : 'Export'"
+                          :title="useShortLabels ? t('progress.chart.exportShort') : t('progress.chart.export')"
+                          :aria-label="useShortLabels ? t('progress.chart.exportShort') : t('progress.chart.export')"
+                          :data-short="iconOnly ? '' : t('progress.chart.exportShort')"
                           @click="$emit('export')">
-                {{ iconOnly ? '' : (useShortLabels ? 'Export' : 'Exportieren') }}
+                {{ iconOnly ? '' : (useShortLabels ? t('progress.chart.exportShort') : t('progress.chart.export')) }}
             </ExportButton>
 
             <ResetButton class="footer-btn"
-                         :title="useShortLabels ? 'Reset' : 'Zurücksetzen'"
-                         :aria-label="useShortLabels ? 'Reset' : 'Zurücksetzen'"
-                         :data-short="iconOnly ? '' : 'Reset'"
+                         :title="useShortLabels ? t('progress.chart.resetShort') : t('progress.chart.reset')"
+                         :aria-label="useShortLabels ? t('progress.chart.resetShort') : t('progress.chart.reset')"
+                         :data-short="iconOnly ? '' : t('progress.chart.resetShort')"
                          @click="$emit('reset')">
-                {{ iconOnly ? '' : (useShortLabels ? 'Reset' : 'Zurücksetzen') }}
+                {{ iconOnly ? '' : (useShortLabels ? t('progress.chart.resetShort') : t('progress.chart.reset')) }}
             </ResetButton>
         </div>
 
         <div v-else class="empty-state">
             <slot name="empty">
-                Hier werden deine Statistiken angezeigt.
+                {{ t('progress.chart.empty') }}
             </slot>
         </div>
     </div>
@@ -41,6 +41,7 @@
     import { ref, computed, onMounted, onUnmounted } from 'vue'
     import ResetButton from '@/components/ui/buttons/ResetButton.vue'
     import ExportButton from '@/components/ui/buttons/ExportButton.vue'
+    import { useI18n } from '@/composables/useI18n'
 
     const props = defineProps<{
         title: string
@@ -49,6 +50,7 @@
     }>()
 
     defineEmits<{ (e: 'export'): void; (e: 'reset'): void; (e: 'click'): void }>()
+    const { t } = useI18n()
 
     const useShortLabels = ref(false)
     const iconOnly = ref(false)

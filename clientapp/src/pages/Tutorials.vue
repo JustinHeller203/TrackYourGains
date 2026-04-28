@@ -1,6 +1,6 @@
 ﻿<template>
   <div class="tutorials">
-    <h2 class="page-title">Tutorial</h2>
+    <h2 class="page-title">{{ t('tutorials.pageTitle') }}</h2>
     <div
       v-if="isPhonePreviewTutorialDemo && previewTouch.visible"
       class="preview-touch"
@@ -10,38 +10,38 @@
 
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Tutorial Hub</p>
-        <h1>Schneller finden, klarer starten, besser auf dem Handy.</h1>
+        <p class="eyebrow">{{ t('tutorials.hero.eyebrow') }}</p>
+        <h1>{{ t('tutorials.hero.title') }}</h1>
 
         <UiSearch
           v-model="searchQuery"
-          placeholder="Nach Übung, Kategorie oder Beschreibung suchen…"
-          ariaLabel="Tutorial suchen"
+          :placeholder="t('tutorials.searchPlaceholder')"
+          :ariaLabel="t('tutorials.searchAria')"
           :center="false"
           maxWidth="100%" />
 
         <div class="hero-actions">
-          <button type="button" class="btn primary" @click="scrollToResults">Tutorials ansehen</button>
+          <button type="button" class="btn primary" @click="scrollToResults">{{ t('tutorials.hero.viewTutorials') }}</button>
           <button type="button" class="btn" :class="{ active: showFilters }" @click="showFilters = !showFilters">
-            {{ showFilters ? 'Filter ausblenden' : 'Filter einblenden' }}
+            {{ showFilters ? t('tutorials.hero.hideFilters') : t('tutorials.hero.showFilters') }}
           </button>
-          <button type="button" class="btn" :class="{ active: showUpload }" @click="toggleUpload">
-            Eigenes Tutorial
+          <button type="button" class="btn" :class="{ active: showCreatePopup }" @click="openCreatePopup">
+            {{ t('tutorials.hero.customTutorial') }}
           </button>
         </div>
 
-        <div class="tutorial-level-legend" aria-label="Erklärung der Schwierigkeitsfarben">
+        <div class="tutorial-level-legend" :aria-label="t('tutorials.hero.levelLegendAria')">
           <span class="tutorial-level-legend__item">
             <span class="tutorial-level-legend__swatch is-beginner" aria-hidden="true"></span>
-            Anfängerfreundlich
+            {{ t('tutorials.levelLegend.beginner') }}
           </span>
           <span class="tutorial-level-legend__item">
             <span class="tutorial-level-legend__swatch is-medium" aria-hidden="true"></span>
-            Mittelschwer
+            {{ t('tutorials.levelLegend.medium') }}
           </span>
           <span class="tutorial-level-legend__item">
             <span class="tutorial-level-legend__swatch is-hard" aria-hidden="true"></span>
-            Schwer
+            {{ t('tutorials.levelLegend.hard') }}
           </span>
         </div>
       </div>
@@ -49,19 +49,28 @@
       <section v-if="showFilters" class="controls controls--hero">
         <div class="controls-top">
           <div class="controls-inline">
-            <label class="label" for="tutorial-sort">Sortierung</label>
-            <select id="tutorial-sort" v-model="sortMode" class="select">
+            <UiSettingsSelect
+              id="tutorial-sort-modern"
+              v-model="sortMode"
+              :label="t('tutorials.sort.label')"
+              :placeholder="t('tutorials.sort.placeholder')"
+              :options="sortOptions" />
+            <label v-if="false" class="label" for="tutorial-sort">Sortierung</label>
+            <div v-if="false" class="tutorial-sort-field">
+            <select id="tutorial-sort" v-model="sortMode" class="select tutorial-sort-select">
               <option value="az">A–Z</option>
               <option value="category">Kategorie</option>
               <option value="fav">Favoriten zuerst</option>
               <option v-if="hasRecentViewedTutorials" value="recent">Zuletzt angesehen</option>
             </select>
+              <span class="tutorial-sort-field__chevron" aria-hidden="true"></span>
+            </div>
           </div>
         </div>
 
         <div class="category-row category-row--chips">
           <button type="button" class="chip" :class="{ active: selectedCategory === 'Alle' }" @click="selectedCategory = 'Alle'">
-            Alle
+            {{ t('tutorials.category.all') }}
           </button>
           <button
             v-for="c in categories"
@@ -70,39 +79,47 @@
             class="chip"
             :class="{ active: selectedCategory === c }"
             @click="selectedCategory = c">
-            {{ c }}
+            {{ displayCategory(c) }}
           </button>
         </div>
 
         <div class="category-select-wrap">
-          <label class="label" for="tutorial-category-mobile">Kategorie</label>
+          <label class="label" for="tutorial-category-mobile">{{ t('tutorials.category.label') }}</label>
           <select id="tutorial-category-mobile" v-model="selectedCategory" class="select">
-            <option value="Alle">Alle</option>
-            <option v-for="c in categories" :key="`mobile-${c}`" :value="c">{{ c }}</option>
+            <option value="Alle">{{ t('tutorials.category.all') }}</option>
+            <option v-for="c in categories" :key="`mobile-${c}`" :value="c">{{ displayCategory(c) }}</option>
           </select>
         </div>
       </section>
 
       <div class="hero-side" :class="{ 'hero-side--suppressed': hideQuickstartOnSmallScreens }">
         <div class="starter">
-          <p class="eyebrow">Schnellstart</p>
+          <p class="eyebrow">{{ t('tutorials.quickstart.eyebrow') }}</p>
           <h2>{{ featuredSectionTitle }}</h2>
           <p class="starter-note">{{ featuredSectionNote }}</p>
           <div class="starter-list">
             <div
               v-for="tutorial in featuredTutorials"
               :key="tutorial.id"
-              class="tutorial-card-shell tutorial-card-shell--starter">
+              class="tutorial-card-shell tutorial-card-shell--starter"
+              :class="tutorialFavoriteShellClasses(tutorial.id, { starter: true, withBadge: !!recentViewedMap[tutorial.id] })">
+              <span
+                v-if="tutorialFavoriteTransfer[tutorial.id]"
+                class="favorite-sanctified-label"
+                :class="{ 'favorite-sanctified-label--removed': tutorialFavoriteTransfer[tutorial.id] === 'from-favorite' }"
+                aria-hidden="true">
+                {{ tutorialFavoriteTransfer[tutorial.id] === 'to-favorite' ? t('tutorials.favorite.added') : t('tutorials.favorite.removed') }}
+              </span>
               <div v-if="recentViewedMap[tutorial.id]" class="tutorial-card-top-badge">
-                <span class="tutorial-card-top-label">Zuletzt angesehen</span>
+                <span class="tutorial-card-top-label">{{ t('tutorials.badge.recent') }}</span>
               </div>
               <button
                 type="button"
                 class="starter-card"
-                :class="tutorialCardLevelClass(tutorial.level)"
+                :class="[tutorialCardLevelClass(tutorial.level), tutorialFavoriteCardClasses(tutorial.id, 'starter')]"
                 @click="openTutorial(tutorial)">
                 <span class="starter-top">
-                  <span class="pill">{{ tutorial.category }}</span>
+                  <span class="pill">{{ displayCategory(tutorial.category) }}</span>
                 </span>
                 <div v-if="nonRecentTutorialStatusBadges(tutorial).length" class="tutorial-status-row">
                   <span
@@ -113,8 +130,8 @@
                     {{ badge.label }}
                   </span>
                 </div>
-                <strong>{{ tutorial.title }}</strong>
-                <span>{{ tutorial.description }}</span>
+                <strong>{{ tutorialTitle(tutorial) }}</strong>
+                <span>{{ tutorialDescription(tutorial) }}</span>
               </button>
             </div>
           </div>
@@ -122,7 +139,7 @@
       </div>
     </section>
 
-    <section v-if="showUpload" class="upload-panel">
+    <section v-if="false" class="upload-panel">
       <div class="section-head">
         <div>
           <p class="eyebrow">Lokale Sammlung</p>
@@ -157,7 +174,7 @@
         <div class="field wide actions">
           <input id="tutorial-video-file" ref="uploadFileEl" type="file" accept="video/*" class="upload-file-input" @change="onPickVideo" />
           <label for="tutorial-video-file" class="btn">Video auswählen</label>
-          <span v-if="uploadFile" class="file-name">{{ uploadFile.name }}</span>
+          <span v-if="uploadFile" class="file-name">{{ uploadFile?.name }}</span>
           <button type="button" class="btn primary" :disabled="!canUpload" @click="createUploadedTutorial">Hinzufügen</button>
           <button type="button" class="btn" @click="cancelUpload">Abbrechen</button>
         </div>
@@ -166,28 +183,39 @@
     </section>
 
     <section v-if="favoriteTutorials.length" class="favorites-panel">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Deine Favoriten</p>
+      <div class="section-head favorites-head">
+        <div class="favorites-head-copy">
+          <h2 class="favorites-title">{{ t('tutorials.favorites.title') }}</h2>
+          <p class="favorites-subtitle">{{ t('tutorials.favorites.subtitle') }}</p>
         </div>
-        <p class="section-note">{{ favoriteTutorials.length }} gespeicherte Tutorials</p>
+        <div class="favorites-meta">
+          <p class="section-note">{{ tp('tutorials.favorites.count', { count: favoriteTutorials.length }) }}</p>
+        </div>
       </div>
 
-      <div class="starter-list favorites-list" :class="{ 'favorites-list--scroll': favoriteTutorials.length > 4 }">
+      <div class="starter-list favorites-list" :class="{ 'favorites-list--scroll': favoriteTutorials.length > 3 }">
         <div
           v-for="tutorial in favoriteTutorials"
           :key="`favorite-${tutorial.id}`"
-          class="tutorial-card-shell tutorial-card-shell--starter">
+          class="tutorial-card-shell tutorial-card-shell--starter"
+          :class="tutorialFavoriteShellClasses(tutorial.id, { starter: true, withBadge: !!recentViewedMap[tutorial.id] })">
+          <span
+            v-if="tutorialFavoriteTransfer[tutorial.id]"
+            class="favorite-sanctified-label"
+            :class="{ 'favorite-sanctified-label--removed': tutorialFavoriteTransfer[tutorial.id] === 'from-favorite' }"
+            aria-hidden="true">
+            {{ tutorialFavoriteTransfer[tutorial.id] === 'to-favorite' ? t('tutorials.favorite.added') : t('tutorials.favorite.removed') }}
+          </span>
           <div v-if="recentViewedMap[tutorial.id]" class="tutorial-card-top-badge">
-            <span class="tutorial-card-top-label">Zuletzt angesehen</span>
+            <span class="tutorial-card-top-label">{{ t('tutorials.badge.recent') }}</span>
           </div>
           <button
             type="button"
             class="starter-card"
-            :class="tutorialCardLevelClass(tutorial.level)"
+            :class="[tutorialCardLevelClass(tutorial.level), tutorialFavoriteCardClasses(tutorial.id, 'starter')]"
             @click="openTutorial(tutorial)">
             <span class="starter-top">
-              <span class="pill">{{ tutorial.category }}</span>
+              <span class="pill">{{ displayCategory(tutorial.category) }}</span>
             </span>
             <div v-if="nonRecentTutorialStatusBadges(tutorial).length" class="tutorial-status-row">
               <span
@@ -198,8 +226,8 @@
                 {{ badge.label }}
               </span>
             </div>
-            <strong>{{ tutorial.title }}</strong>
-            <span>{{ tutorial.description }}</span>
+            <strong>{{ tutorialTitle(tutorial) }}</strong>
+            <span>{{ tutorialDescription(tutorial) }}</span>
           </button>
         </div>
       </div>
@@ -215,9 +243,9 @@
       </div>
 
       <div v-if="filteredTutorials.length === 0" class="empty-state">
-        <h3>Keine Treffer gefunden</h3>
-        <p>Probiere eine andere Kategorie oder setze die Filter zurück.</p>
-        <button type="button" class="btn" @click="resetFilters">Filter zurücksetzen</button>
+        <h3>{{ t('tutorials.empty.title') }}</h3>
+        <p>{{ t('tutorials.empty.text') }}</p>
+        <button type="button" class="btn" @click="resetFilters">{{ t('tutorials.empty.reset') }}</button>
       </div>
 
       <div v-else>
@@ -225,13 +253,21 @@
           <div
             v-for="tutorial in visibleTutorials"
             :key="tutorial.id"
-            class="tutorial-card-shell">
+            class="tutorial-card-shell"
+            :class="tutorialFavoriteShellClasses(tutorial.id)">
+            <span
+              v-if="tutorialFavoriteTransfer[tutorial.id]"
+              class="favorite-sanctified-label"
+              :class="{ 'favorite-sanctified-label--removed': tutorialFavoriteTransfer[tutorial.id] === 'from-favorite' }"
+              aria-hidden="true">
+              {{ tutorialFavoriteTransfer[tutorial.id] === 'to-favorite' ? t('tutorials.favorite.added') : t('tutorials.favorite.removed') }}
+            </span>
             <div v-if="recentViewedMap[tutorial.id]" class="tutorial-card-top-badge">
-              <span class="tutorial-card-top-label">Zuletzt angesehen</span>
+              <span class="tutorial-card-top-label">{{ t('tutorials.badge.recent') }}</span>
             </div>
             <article
               class="tutorial-card"
-              :class="tutorialCardLevelClass(tutorial.level)"
+              :class="[tutorialCardLevelClass(tutorial.level), tutorialFavoriteCardClasses(tutorial.id, 'main')]"
               role="button"
               tabindex="0"
               @click="openTutorial(tutorial)"
@@ -253,32 +289,36 @@
                 <source :src="tutorial.videoUrl" />
               </video>
 
-              <div v-else class="video-placeholder"><p>Video folgt</p></div>
+              <div v-else class="video-placeholder"><p>{{ t('tutorials.videoComingSoon') }}</p></div>
 
               <div class="media-top">
-                <span class="pill media-pill" :class="`is-${normalizeText(tutorial.category).replace(/\s+/g, '-')}`">{{ tutorial.category }}</span>
-                <span class="badge">{{ tutorial.videoUrl ? 'Video' : 'Bald' }}</span>
+                <span class="pill media-pill" :class="`is-${normalizeText(tutorial.category).replace(/\s+/g, '-')}`">{{ displayCategory(tutorial.category) }}</span>
+                <div class="media-favorite">
+                  <FavoriteButton
+                    :active="isFavorite(tutorial.id)"
+                    :titleActive="t('tutorials.favorite.remove')"
+                    :titleInactive="t('tutorials.favorite.add')"
+                    @toggle="toggleFavorite(tutorial.id)" />
+                </div>
               </div>
             </div>
 
             <div class="card-body">
               <div class="card-head">
                 <div>
-                  <h3>{{ tutorial.title }}</h3>
-                  <p class="card-text">{{ tutorial.description }}</p>
+                  <h3>{{ tutorialTitle(tutorial) }}</h3>
+                  <p class="card-text">{{ tutorialDescription(tutorial) }}</p>
                 </div>
                 <FavoriteButton
                   :active="isFavorite(tutorial.id)"
-                  titleActive="Aus Favoriten entfernen"
-                  titleInactive="Zu Favoriten hinzufügen"
+                  :titleActive="t('tutorials.favorite.remove')"
+                  :titleInactive="t('tutorials.favorite.add')"
                   @toggle="toggleFavorite(tutorial.id)" />
               </div>
 
               <div class="card-actions">
-                <button type="button" class="btn primary" @click.stop="openTutorial(tutorial)">Ansehen</button>
-                <button type="button" class="btn" :disabled="!tutorial.videoUrl" @click.stop="openOnYouTube(tutorial)">Öffnen</button>
-                <button type="button" class="btn" @click.stop="copyLink(tutorial)">Link</button>
-                <button v-if="tutorial.source === 'custom'" type="button" class="btn danger" @click.stop="deleteTutorial(tutorial)">Löschen</button>
+                <button type="button" class="btn primary" @click.stop="openTutorial(tutorial)">{{ t('tutorials.open') }}</button>
+                <button v-if="tutorial.source === 'custom'" type="button" class="btn danger" @click.stop="deleteTutorial(tutorial)">{{ t('common.delete') }}</button>
               </div>
             </div>
             </article>
@@ -286,8 +326,8 @@
         </div>
 
         <div v-if="canLoadMore || canCollapseTutorials" class="results-more">
-          <button type="button" class="btn" @click="loadMoreTutorials">Mehr Tutorials laden</button>
-          <button v-if="canCollapseTutorials" type="button" class="btn" @click="collapseTutorials">Weniger anzeigen</button>
+          <button type="button" class="btn" @click="loadMoreTutorials">{{ t('tutorials.loadMore') }}</button>
+          <button v-if="canCollapseTutorials" type="button" class="btn" @click="collapseTutorials">{{ t('tutorials.showLess') }}</button>
         </div>
       </div>
 
@@ -305,8 +345,14 @@
         @open="openTutorial"
         @toggle-favorite="toggleFavorite($event.id)"
         @open-video="openOnYouTube"
-        @copy-link="copyLink"
         @delete="deleteTutorial" />
+
+      <ExerciseComposerPopup
+        :show="showCreatePopup"
+        :error="createPopupError"
+        :initial-create-tutorial-card="true"
+        @cancel="closeCreatePopup"
+        @save="handleCreatePopupSave" />
     </section>
   </div>
 </template>
@@ -315,21 +361,33 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import UiSearch from '@/components/ui/kits/UiSearch.vue'
+import UiSettingsSelect from '@/components/ui/kits/selects/UiSettingsSelect.vue'
 import FavoriteButton from '@/components/ui/buttons/FavoriteButton.vue'
-import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
+import ExerciseComposerPopup, { type ExerciseComposerPayload } from '@/components/ui/popups/goal/ExerciseComposerPopup.vue'
 import TutorialDetailsPopup from '@/components/ui/popups/tutorial/TutorialDetailsPopup.vue'
+import { useI18n } from '@/composables/useI18n'
+import { useExerciseLibraryStore } from '@/store/exerciseLibraryStore'
 import { useTrainingPlansStore } from '@/store/trainingPlansStore'
 import { useAuthStore } from '@/store/authStore'
 import { beginGlobalLoading, endGlobalLoading } from '@/lib/api'
 import { getProfile, updateProfile } from '@/services/profile'
-import { getSimilarTutorials, mergeTutorialsWithExerciseLibrary, normalizeTutorialText } from '@/services/tutorialEntries'
+import { enrichTutorialTranslations, getTutorialLocalizedText } from '@/services/tutorialLocalization'
+import { findExerciseTutorialByExerciseId, getSimilarTutorials, mergeTutorialsWithExerciseLibrary, normalizeTutorialText } from '@/services/tutorialEntries'
 import type { TutorialEntry, TutorialStatusBadge } from '@/types/tutorials'
 import type { TrainingPlan as TrainingPlanDto } from '@/types/trainingPlan'
 
 type StoredVideo = { id: string; blob: Blob; type: string; createdAt: number }
+type TutorialPageCache = {
+  authKey: string
+  tutorials: TutorialEntry[]
+}
+
+let tutorialPageCache: TutorialPageCache | null = null
 
 const route = useRoute()
+const { locale, t } = useI18n()
 const auth = useAuthStore()
+const exerciseLibraryStore = useExerciseLibraryStore()
 const trainingPlansStore = useTrainingPlansStore()
 const INITIAL_VISIBLE_TUTORIALS = 8
 const LOAD_MORE_STEP = 6
@@ -337,7 +395,15 @@ const tutorials = ref<TutorialEntry[]>([])
 const searchQuery = ref('')
 const selectedCategory = ref<string>('Alle')
 const sortMode = ref<'az' | 'category' | 'fav' | 'recent'>('az')
+const sortOptions = computed(() => [
+  { label: 'A-Z', value: 'az' },
+  { label: t('tutorials.sort.category'), value: 'category' },
+  { label: t('tutorials.sort.favoritesFirst'), value: 'fav' },
+  ...(hasRecentViewedTutorials.value ? [{ label: t('tutorials.sort.recent'), value: 'recent' as const }] : []),
+])
 const showUpload = ref(false)
+const showCreatePopup = ref(false)
+const createPopupError = ref('')
 const showFilters = ref(false)
 const visibleCount = ref(INITIAL_VISIBLE_TUTORIALS)
 const activeTutorial = ref<TutorialEntry | null>(null)
@@ -362,14 +428,49 @@ const previewTouch = ref({ visible: false, x: 0, y: 0 })
 const LS_CUSTOM = 'tutorials:custom-v1'
 const LS_FAVS = 'tutorials:favorites'
 const LS_RECENT = 'tutorials:last-viewed-v1'
+const TUTORIAL_CACHE_VERSION = 'tutorials-page-v2'
 const favoriteIds = ref<number[]>([])
 const recentViewedMap = ref<Record<number, string>>({})
+const tutorialFavoriteTransfer = ref<Record<number, 'to-favorite' | 'from-favorite'>>({})
 const objectUrls = new Set<string>()
 const tutorialPrefsLoaded = ref(false)
 let tutorialPrefsSaveTimer: number | null = null
+const tutorialFavoriteTransferTimers = new Map<number, number>()
 
 const isPhonePreviewTutorialDemo = computed(() => route.query.preview === 'phone' && route.query.demo === 'tutorial')
 const canUpload = computed(() => !!uploadFile.value && uploadTitle.value.trim().length >= 2)
+function tp(key: string, params: Record<string, string | number>) {
+  return Object.entries(params).reduce(
+    (text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)),
+    t(key)
+  )
+}
+
+function displayCategory(category: string) {
+  return {
+    Oberkörper: t('tutorials.category.upperBody'),
+    Unterkörper: t('tutorials.category.lowerBody'),
+    Ganzkörper: t('tutorials.category.fullBody'),
+    Core: t('tutorials.category.core'),
+    Sonstiges: t('tutorials.category.other'),
+    Cardio: t('tutorials.category.cardio'),
+    Mobilität: t('tutorials.category.mobility'),
+  }[category] ?? category
+}
+
+function displayLevel(level?: string | null) {
+  return {
+    Anfänger: t('tutorials.level.beginner'),
+    Fortgeschritten: t('tutorials.level.intermediate'),
+    Pro: t('tutorials.level.pro'),
+  }[String(level ?? '')] ?? String(level ?? '')
+}
+function tutorialTitle(tutorial: TutorialEntry) {
+  return getTutorialLocalizedText(tutorial, 'title', locale.value)
+}
+function tutorialDescription(tutorial: TutorialEntry) {
+  return getTutorialLocalizedText(tutorial, 'description', locale.value)
+}
 function normalizeText(value: string) {
   return normalizeTutorialText(value)
 }
@@ -384,6 +485,8 @@ function isPlanTutorialMatch(tutorial: TutorialEntry, needle: string) {
   const haystack = [
     tutorial.title,
     tutorial.description,
+    tutorialTitle(tutorial),
+    tutorialDescription(tutorial),
     tutorial.category,
     ...(tutorial.matchTerms ?? []),
   ].map(normalizeText)
@@ -428,34 +531,34 @@ const planMatchedTutorials = computed(() => {
   }
 
   return [...scored.values()]
-    .sort((a, b) => b.score - a.score || a.tutorial.title.localeCompare(b.tutorial.title, 'de'))
+    .sort((a, b) => b.score - a.score || tutorialTitle(a.tutorial).localeCompare(tutorialTitle(b.tutorial), 'de'))
     .map(entry => entry.tutorial)
 })
 const planMatchedTutorialIds = computed(() => new Set(planMatchedTutorials.value.map(tutorial => tutorial.id)))
 const popularTutorialIds = computed(() => {
   const ranked = tutorials.value
     .filter(tutorial => (tutorial.communityScore ?? 0) > 0)
-    .sort((a, b) => (b.communityScore ?? 0) - (a.communityScore ?? 0) || a.title.localeCompare(b.title, 'de'))
+    .sort((a, b) => (b.communityScore ?? 0) - (a.communityScore ?? 0) || tutorialTitle(a).localeCompare(tutorialTitle(b), 'de'))
     .slice(0, 6)
   return new Set(ranked.map(tutorial => tutorial.id))
 })
 const featuredSectionTitle = computed(() => {
-  if (planMatchedTutorials.value.length) return 'Passend zu deinen Plänen'
-  return 'Gute erste Tutorials'
+  if (planMatchedTutorials.value.length) return t('tutorials.quickstart.matchingPlans')
+  return t('tutorials.quickstart.goodFirstTutorials')
 })
 const featuredSectionNote = computed(() => {
   if (recentPlans.value.length) {
     const names = recentPlans.value.slice(0, 2).map(plan => plan.name).join(' und ')
-    return `Basierend auf deinen zuletzt aktiven Plänen wie ${names}.`
+    return tp('tutorials.quickstart.recentPlans', { names })
   }
   if (inactivePlans.value.length) {
     const names = inactivePlans.value.slice(0, 2).map(plan => plan.name).join(' und ')
-    return `Motivations-Boost aus älteren Plänen wie ${names}, damit du leichter wieder einsteigen kannst.`
+    return tp('tutorials.quickstart.inactivePlans', { names })
   }
-  return 'Ein ruhiger Einstieg mit soliden Basics für Oberkörper, Unterkörper und Ganzkörper.'
+  return t('tutorials.quickstart.defaultNote')
 })
 const hideQuickstartOnSmallScreens = computed(() =>
-  showFilters.value || showUpload.value || searchQuery.value.trim().length > 0
+  showFilters.value || showCreatePopup.value || searchQuery.value.trim().length > 0
 )
 const featuredTutorials = computed(() => {
   if (planMatchedTutorials.value.length) return planMatchedTutorials.value.slice(0, 4)
@@ -465,33 +568,38 @@ const featuredTutorials = computed(() => {
 const favoriteTutorials = computed(() =>
   tutorials.value
     .filter(t => isFavorite(t.id))
-    .sort((a, b) => a.title.localeCompare(b.title, 'de'))
+    .sort((a, b) => tutorialTitle(a).localeCompare(tutorialTitle(b), 'de'))
 )
 const similarTutorials = computed(() => getSimilarTutorials(tutorials.value, activeTutorial.value, 3))
 const resultsHeadline = computed(() => {
-  if (searchQuery.value.trim()) return `Suchergebnisse für "${searchQuery.value.trim()}"`
-  if (selectedCategory.value !== 'Alle') return `${selectedCategory.value} entdecken`
-  return 'Alle Tutorials'
+  if (searchQuery.value.trim()) return tp('tutorials.results.searchResults', { query: searchQuery.value.trim() })
+  if (selectedCategory.value !== 'Alle') return tp('tutorials.results.discoverCategory', { category: displayCategory(selectedCategory.value) })
+  return t('tutorials.results.allTutorials')
 })
 const resultsEyebrow = computed(() => {
-  if (!searchQuery.value.trim() && selectedCategory.value === 'Alle' && sortMode.value === 'az') return 'Beliebt in der Community'
-  return 'Sammlung'
+  if (!searchQuery.value.trim() && selectedCategory.value === 'Alle' && sortMode.value === 'az') return t('tutorials.results.popular')
+  return t('tutorials.results.collection')
 })
 const resultsSectionNote = computed(() => {
-  const countText = `${filteredTutorials.value.length} von ${tutorials.value.length} Tutorials sichtbar`
-  return countText
+  return tp('tutorials.results.visibleCount', { visible: filteredTutorials.value.length, total: tutorials.value.length })
 })
 const hasRecentViewedTutorials = computed(() => Object.keys(recentViewedMap.value).length > 0)
 const categories = computed(() => Array.from(new Set(tutorials.value.map(t => t.category))).sort((a, b) => a.localeCompare(b, 'de')))
 const filteredTutorials = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   let list = tutorials.value.slice()
-  if (q) list = list.filter(t => t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q) || t.category.toLowerCase().includes(q))
+  if (q) list = list.filter(t =>
+    tutorialTitle(t).toLowerCase().includes(q)
+    || tutorialDescription(t).toLowerCase().includes(q)
+    || t.title.toLowerCase().includes(q)
+    || t.description.toLowerCase().includes(q)
+    || t.category.toLowerCase().includes(q)
+  )
   if (selectedCategory.value !== 'Alle') list = list.filter(t => t.category === selectedCategory.value)
-  if (sortMode.value === 'az') list.sort((a, b) => Number(popularTutorialIds.value.has(b.id)) - Number(popularTutorialIds.value.has(a.id)) || a.title.localeCompare(b.title, 'de'))
-  else if (sortMode.value === 'category') list.sort((a, b) => (a.category + a.title).localeCompare(b.category + b.title, 'de'))
-  else if (sortMode.value === 'recent') list.sort((a, b) => String(recentViewedMap.value[b.id] ?? '').localeCompare(String(recentViewedMap.value[a.id] ?? '')) || a.title.localeCompare(b.title, 'de'))
-  else list.sort((a, b) => Number(isFavorite(b.id)) - Number(isFavorite(a.id)) || a.title.localeCompare(b.title, 'de'))
+  if (sortMode.value === 'az') list.sort((a, b) => Number(popularTutorialIds.value.has(b.id)) - Number(popularTutorialIds.value.has(a.id)) || tutorialTitle(a).localeCompare(tutorialTitle(b), 'de'))
+  else if (sortMode.value === 'category') list.sort((a, b) => (a.category + tutorialTitle(a)).localeCompare(b.category + tutorialTitle(b), 'de'))
+  else if (sortMode.value === 'recent') list.sort((a, b) => String(recentViewedMap.value[b.id] ?? '').localeCompare(String(recentViewedMap.value[a.id] ?? '')) || tutorialTitle(a).localeCompare(tutorialTitle(b), 'de'))
+  else list.sort((a, b) => Number(isFavorite(b.id)) - Number(isFavorite(a.id)) || tutorialTitle(a).localeCompare(tutorialTitle(b), 'de'))
   return list
 })
 const visibleTutorials = computed(() => filteredTutorials.value.slice(0, visibleCount.value))
@@ -501,6 +609,37 @@ const canCollapseTutorials = computed(() => filteredTutorials.value.length > INI
 function toggleUpload() {
   showUpload.value = !showUpload.value
   uploadError.value = ''
+}
+function openCreatePopup() {
+  createPopupError.value = ''
+  showCreatePopup.value = true
+}
+function closeCreatePopup() {
+  createPopupError.value = ''
+  showCreatePopup.value = false
+}
+function refreshExerciseTutorials() {
+  const preservedTutorials = tutorials.value.filter((tutorial) => tutorial.source !== 'exercise')
+  tutorials.value = sanitizeTutorialList(mergeTutorialsWithExerciseLibrary(preservedTutorials))
+}
+function handleCreatePopupSave(payload: ExerciseComposerPayload) {
+  try {
+    createPopupError.value = ''
+    exerciseLibraryStore.addCustomExercise({
+      name: payload.name,
+      kind: payload.kind,
+      muscleGroup: payload.muscleGroup,
+      aliases: payload.aliases,
+      secondaryMuscleGroups: payload.secondaryMuscleGroups,
+      equipment: payload.equipment,
+      level: payload.level,
+      tutorial: payload.tutorial ?? null,
+    })
+    refreshExerciseTutorials()
+    closeCreatePopup()
+  } catch (error) {
+    createPopupError.value = error instanceof Error ? error.message : t('goals.library.saveExerciseFailed')
+  }
 }
 function loadMoreTutorials() { visibleCount.value += LOAD_MORE_STEP }
 function collapseTutorials() { visibleCount.value = INITIAL_VISIBLE_TUTORIALS }
@@ -518,13 +657,13 @@ function scrollToResults() {
   window.scrollTo({ top, behavior: prefersReduced ? 'auto' : 'smooth' })
 }
 function formatLastViewedLabel(iso: string) {
-  return 'Zuletzt angesehen'
+  return t('tutorials.badge.recent')
 }
 function tutorialStatusBadges(tutorial: TutorialEntry): TutorialStatusBadge[] {
   const badges: TutorialStatusBadge[] = []
   const lastViewed = recentViewedMap.value[tutorial.id]
   if (lastViewed) badges.push({ kind: 'recent', label: formatLastViewedLabel(lastViewed) })
-  if (planMatchedTutorialIds.value.has(tutorial.id)) badges.push({ kind: 'plan', label: 'Für deinen Plan empfohlen' })
+  if (planMatchedTutorialIds.value.has(tutorial.id)) badges.push({ kind: 'plan', label: t('tutorials.badge.planRecommended') })
   return badges
 }
 function nonRecentTutorialStatusBadges(tutorial: TutorialEntry) {
@@ -567,6 +706,78 @@ function persistRecentViews() {
 }
 function persistFavorites() {
   localStorage.setItem(LS_FAVS, JSON.stringify(favoriteIds.value))
+}
+function currentTutorialCacheAuthKey() {
+  return `${TUTORIAL_CACHE_VERSION}:${auth.user?.email?.trim().toLowerCase() || 'guest'}`
+}
+function repairMojibakeText(value: string) {
+  let text = String(value ?? '')
+  const decodeLatin1Utf8 = (input: string) => {
+    const bytes = Uint8Array.from(Array.from(input, char => char.charCodeAt(0) & 0xff))
+    return new TextDecoder('utf-8').decode(bytes)
+  }
+  for (let index = 0; index < 3; index += 1) {
+    const repaired = decodeLatin1Utf8(text)
+    if (repaired === text || repaired.includes('\uFFFD')) break
+    text = repaired
+  }
+  return text
+    .replaceAll('\u00e2\u20ac\u00a6', '\u2026')
+    .replaceAll('\u00e2\u20ac\u201c', '\u2013')
+    .replaceAll('\u00e2\u20ac\u201d', '\u2014')
+}
+function sanitizeTutorialEntry(tutorial: TutorialEntry): TutorialEntry {
+  const freshExerciseTutorial = tutorial.exerciseId
+    ? findExerciseTutorialByExerciseId(tutorial.exerciseId)
+    : null
+  const sanitized: TutorialEntry = {
+    ...tutorial,
+    title: repairMojibakeText(tutorial.title),
+    description: repairMojibakeText(tutorial.description),
+    category: repairMojibakeText(tutorial.category),
+    level: tutorial.level ? repairMojibakeText(tutorial.level) as TutorialEntry['level'] : tutorial.level,
+    equipment: tutorial.equipment?.map(repairMojibakeText),
+    matchTerms: tutorial.matchTerms?.map(repairMojibakeText),
+    cues: tutorial.cues?.map(repairMojibakeText),
+    steps: tutorial.steps?.map(repairMojibakeText),
+    mistakes: tutorial.mistakes?.map(repairMojibakeText),
+    muscleGroups: tutorial.muscleGroups?.map(repairMojibakeText),
+    translations: tutorial.translations
+      ? Object.fromEntries(Object.entries(tutorial.translations).map(([code, content]) => ([
+        code,
+        content ? {
+          ...content,
+          title: content.title ? repairMojibakeText(content.title) : content.title,
+          description: content.description ? repairMojibakeText(content.description) : content.description,
+          category: content.category ? repairMojibakeText(content.category) : content.category,
+          level: content.level ? repairMojibakeText(content.level) as TutorialEntry['level'] : content.level,
+          equipment: content.equipment?.map(repairMojibakeText),
+          muscleGroups: content.muscleGroups?.map(repairMojibakeText),
+          cues: content.cues?.map(repairMojibakeText),
+          steps: content.steps?.map(repairMojibakeText),
+          mistakes: content.mistakes?.map(repairMojibakeText),
+        } : content,
+      ])))
+      : tutorial.translations,
+  }
+  if (freshExerciseTutorial?.translations) {
+    sanitized.translations = {
+      ...(sanitized.translations ?? {}),
+      ...(freshExerciseTutorial.translations ?? {}),
+      en: {
+        ...(sanitized.translations?.en ?? {}),
+        ...(freshExerciseTutorial.translations?.en ?? {}),
+      },
+      de: {
+        ...(sanitized.translations?.de ?? {}),
+        ...(freshExerciseTutorial.translations?.de ?? {}),
+      },
+    }
+  }
+  return enrichTutorialTranslations(sanitized)
+}
+function sanitizeTutorialList(list: TutorialEntry[]) {
+  return list.map(sanitizeTutorialEntry)
 }
 function applyTutorialPreferences(nextFavoriteIds: number[], nextRecentViewed: Record<number, string>, persistLocal = true) {
   favoriteIds.value = normalizeFavoriteIds(nextFavoriteIds)
@@ -646,9 +857,10 @@ function closeTutorial() {
   previewTutorialFullscreen.value = false
 }
 function tutorialCardLevelClass(level?: TutorialEntry['level']) {
-  if (level === 'Anfänger') return 'tutorial-card--level-beginner'
-  if (level === 'Fortgeschritten') return 'tutorial-card--level-medium'
-  if (level === 'Pro') return 'tutorial-card--level-hard'
+  const normalizedLevel = normalizeTutorialText(String(level ?? ''))
+  if (normalizedLevel === 'anfanger') return 'tutorial-card--level-beginner'
+  if (normalizedLevel === 'fortgeschritten') return 'tutorial-card--level-medium'
+  if (normalizedLevel === 'pro') return 'tutorial-card--level-hard'
   return ''
 }
 function movePreviewTouch(selector: string, xFactor = 0.5, yFactor = 0.5) {
@@ -675,8 +887,7 @@ function cancelUpload() {
   showUpload.value = false
   uploadError.value = ''
   uploadTitle.value = ''
-  uploadDesc.value = ''
-  uploadCategory.value = 'Oberkörper'
+  uploadCategory.value = 'Core'
   uploadLevel.value = ''
   uploadEquipmentRaw.value = ''
   uploadFile.value = null
@@ -769,10 +980,29 @@ async function createUploadedTutorial() {
     const url = URL.createObjectURL(file)
     objectUrls.add(url)
     const equipment = uploadEquipmentRaw.value.split(',').map(s => s.trim()).filter(Boolean)
-    const t: TutorialEntry = { id, title, description: uploadDesc.value.trim() || 'User Upload', videoUrl: url, category: uploadCategory.value, level: uploadLevel.value || undefined, equipment: equipment.length ? equipment : undefined, source: 'custom', videoRef }
+    const t: TutorialEntry = {
+      id,
+      title,
+      description: uploadDesc.value.trim() || 'User Upload',
+      videoUrl: url,
+      category: uploadCategory.value,
+      level: uploadLevel.value || undefined,
+      equipment: equipment.length ? equipment : undefined,
+      source: 'custom',
+      videoRef,
+      translations: {
+        [locale.value]: {
+          title,
+          description: uploadDesc.value.trim() || 'User Upload',
+          category: uploadCategory.value,
+          level: (uploadLevel.value || undefined) as TutorialEntry['level'],
+          equipment: equipment.length ? equipment : undefined,
+        },
+      },
+    }
     tutorials.value.unshift(t)
     const current = loadCustomTutorials()
-    current.unshift({ id: t.id, title: t.title, description: t.description, category: t.category, level: t.level, equipment: t.equipment, videoRef })
+    current.unshift({ id: t.id, title: t.title, description: t.description, category: t.category, level: t.level, equipment: t.equipment, videoRef, translations: t.translations })
     persistCustomTutorials(current)
     cancelUpload()
   } catch (err) {
@@ -782,8 +1012,43 @@ async function createUploadedTutorial() {
 }
 function isCustomTutorial(t: TutorialEntry) { return t.source === 'custom' }
 function isFavorite(id: number) { return favoriteIds.value.includes(id) }
+function triggerTutorialFavoriteTransfer(id: number, direction: 'to-favorite' | 'from-favorite') {
+  const currentTimer = tutorialFavoriteTransferTimers.get(id)
+  if (currentTimer != null) {
+    window.clearTimeout(currentTimer)
+    tutorialFavoriteTransferTimers.delete(id)
+  }
+
+  tutorialFavoriteTransfer.value = { ...tutorialFavoriteTransfer.value, [id]: direction }
+
+  const timeout = window.setTimeout(() => {
+    const next = { ...tutorialFavoriteTransfer.value }
+    delete next[id]
+    tutorialFavoriteTransfer.value = next
+    tutorialFavoriteTransferTimers.delete(id)
+  }, direction === 'to-favorite' ? 1320 : 860)
+
+  tutorialFavoriteTransferTimers.set(id, timeout)
+}
+function tutorialFavoriteCardClasses(id: number, kind: 'main' | 'starter') {
+  return {
+    [`${kind === 'main' ? 'tutorial-card' : 'starter-card'}--favorite`]: isFavorite(id),
+  }
+}
+function tutorialFavoriteShellClasses(id: number, options?: { starter?: boolean; withBadge?: boolean }) {
+  const direction = tutorialFavoriteTransfer.value[id]
+  return {
+    'tutorial-card-shell--starter': !!options?.starter,
+    'tutorial-card-shell--with-badge': !!options?.withBadge,
+    'tutorial-card-shell--favorite-transfer': !!direction,
+    'tutorial-card-shell--favorite-transfer-in': direction === 'to-favorite',
+    'tutorial-card-shell--favorite-transfer-out': direction === 'from-favorite',
+  }
+}
 function toggleFavorite(id: number) {
-  favoriteIds.value = isFavorite(id) ? favoriteIds.value.filter(x => x !== id) : [...favoriteIds.value, id]
+  const nextFav = !isFavorite(id)
+  triggerTutorialFavoriteTransfer(id, nextFav ? 'to-favorite' : 'from-favorite')
+  favoriteIds.value = nextFav ? [...favoriteIds.value, id] : favoriteIds.value.filter(x => x !== id)
   scheduleTutorialPreferencesSave()
 }
 async function deleteTutorial(t: TutorialEntry) {
@@ -847,12 +1112,21 @@ watch(hasRecentViewedTutorials, (hasRecent) => {
 })
 
 onMounted(async () => {
+  const authKey = currentTutorialCacheAuthKey()
+  if (tutorialPageCache && tutorialPageCache.authKey === authKey) {
+    tutorials.value = sanitizeTutorialList(tutorialPageCache.tutorials.map(tutorial => ({ ...tutorial })))
+    applyTutorialPreferences(readLocalFavoriteIds(), readLocalRecentViews(), true)
+    tutorialPrefsLoaded.value = true
+    if (isPhonePreviewTutorialDemo.value) startPreviewTutorialDemo()
+    return
+  }
+
   beginGlobalLoading()
   try {
     await loadTutorialPreferences()
     try { await trainingPlansStore.loadList() } catch {}
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    tutorials.value = mergeTutorialsWithExerciseLibrary([
+    try { await exerciseLibraryStore.load() } catch {}
+    tutorials.value = sanitizeTutorialList(mergeTutorialsWithExerciseLibrary([
     { id: 1, title: 'Bankdrücken', description: 'Lerne die korrekte Technik für Bankdrücken.', videoUrl: 'https://www.youtube.com/embed/Br8FJCuR4a4', category: 'Oberkörper', level: 'Anfänger', equipment: ['Bank', 'Langhantel'], matchTerms: ['bankdrücken', 'bench press', 'chest press', 'brust'], cues: ['Schulterblätter hinten und unten fixieren.', 'Füße fest in den Boden drücken.', 'Stange kontrolliert zur unteren Brust führen.'], steps: ['Sauber auf der Bank einrichten und Griffbreite wählen.', 'Stange ausheben und über der Brust stabilisieren.', 'Langsam ablassen, kurz kontrollieren, kraftvoll hochdrücken.'], mistakes: ['Ellbogen zu weit abspreizen.', 'Po oder Füße verlieren den Kontakt.', 'Stange unkontrolliert auf die Brust fallen lassen.'], source: 'builtin', communityScore: 98 },
     { id: 2, title: 'Kniebeugen', description: 'Meistere die Kniebeuge für starke Beine.', videoUrl: 'https://www.youtube.com/embed/GBsAXMvZGwc', category: 'Unterkörper', level: 'Fortgeschritten', matchTerms: ['kniebeuge', 'squat', 'back squat', 'front squat'], cues: ['Rumpf vor jeder Wiederholung fest anspannen.', 'Knie folgen der Fußspitze.', 'Druck gleichmäßig über den ganzen Fuß halten.'], steps: ['Stand stabil wählen und tief einatmen.', 'Hüfte und Knie gleichzeitig beugen.', 'Kontrolliert in die Tiefe gehen und aus dem Mittelfuß aufstehen.'], mistakes: ['Fersen heben ab.', 'Knie kippen nach innen.', 'Oberkörper kollabiert nach vorn.'], source: 'builtin', communityScore: 97 },
     { id: 3, title: 'Kreuzheben', description: 'Perfektioniere deine Kreuzhebe-Technik.', videoUrl: 'https://www.youtube.com/embed/eUhawFmUXZ0', category: 'Ganzkörper', level: 'Pro', matchTerms: ['kreuzheben', 'deadlift', 'romanian deadlift', 'rdl'], cues: ['Lat aktiv halten und die Stange nah am Körper führen.', 'Rücken neutral, Brust stolz.', 'Druck aus Beinen und Hüfte kombinieren.'], steps: ['Stange über dem Mittelfuß platzieren und Griff setzen.', 'Spannung aufbauen, Hüfte fixieren, Luft holen.', 'Stange eng am Körper hochziehen und kontrolliert absetzen.'], mistakes: ['Runder Rücken beim Abheben.', 'Stange wandert nach vorn weg.', 'Zu frühes Hochschießen der Hüfte.'], source: 'builtin', communityScore: 96 },
@@ -881,8 +1155,12 @@ onMounted(async () => {
     { id: 26, title: 'Glute Bridge', description: 'Einfacher Einstieg für Gesäßaktivierung und Hüftstabilität.', videoUrl: 'https://www.youtube.com/embed/MsoX1M8_GSs', category: 'Unterkörper', level: 'Anfänger', matchTerms: ['glute bridge', 'bridge', 'hip bridge'], cues: ['Fersen aktiv in den Boden drücken.', 'Oben Gesäß fest anspannen.', 'Rippen unten halten.'], steps: ['Rückenlage einnehmen und Füße aufstellen.', 'Hüfte nach oben drücken.', 'Kurz halten und kontrolliert absenken.'], mistakes: ['Nur ins Hohlkreuz schieben.', 'Füße zu weit weg stellen.', 'Oben ohne Spannung sofort ablassen.'], source: 'builtin' },
     { id: 27, title: 'Goblet Squat', description: 'Sehr guter Squat-Einstieg mit sauberer Rumpfspannung.', videoUrl: 'https://www.youtube.com/embed/8VrXHfHH5PM', category: 'Unterkörper', level: 'Anfänger', equipment: ['Kurzhantel'], matchTerms: ['goblet squat', 'squat', 'front squat'], cues: ['Gewicht eng vor dem Körper halten.', 'Brust hoch und Ellbogen unter dem Gewicht.', 'Knie aktiv nach außen führen.'], steps: ['Hantel vor der Brust aufnehmen.', 'Kontrolliert in die Kniebeuge gehen.', 'Über den ganzen Fuß wieder aufstehen.'], mistakes: ['Hantel zu weit weg vom Körper.', 'Rücken rundet unten ein.', 'Knie kollabieren nach innen.'], source: 'builtin', communityScore: 83 },
     { id: 28, title: 'Incline Dumbbell Press', description: 'Obere Brust und Schulterlinie kontrolliert aufbauen.', videoUrl: 'https://www.youtube.com/embed/0WPRqCYF4pA', category: 'Oberkörper', level: 'Fortgeschritten', equipment: ['Bank', 'Kurzhanteln'], matchTerms: ['incline press', 'schrägbank', 'dumbbell press'], cues: ['Schultern stabil in die Bank ziehen.', 'Hanteln kontrolliert leicht bogenförmig bewegen.', 'Handgelenke über den Ellbogen halten.'], steps: ['Bank schräg einstellen und Hanteln sauber aufnehmen.', 'Aus stabiler Schulterposition nach oben drücken.', 'Langsam bis zur Dehnung absenken.'], mistakes: ['Schultern wandern nach vorn.', 'Hanteln stoßen oben unkontrolliert zusammen.', 'Zu steiler Winkel macht es zur Schulterübung.'], source: 'builtin', communityScore: 80 },
-  ])
+  ] as TutorialEntry[]))
     await hydrateCustomTutorials()
+    tutorialPageCache = {
+      authKey,
+      tutorials: tutorials.value.map(tutorial => ({ ...tutorial })),
+    }
     startPreviewTutorialDemo()
   } finally {
     endGlobalLoading()
@@ -895,6 +1173,8 @@ onBeforeUnmount(() => {
     tutorialPrefsSaveTimer = null
   }
   clearPreviewTutorialTimers()
+  tutorialFavoriteTransferTimers.forEach(timer => window.clearTimeout(timer))
+  tutorialFavoriteTransferTimers.clear()
   for (const url of objectUrls) URL.revokeObjectURL(url)
   objectUrls.clear()
   document.body.classList.remove('tyg-page-tutorials')
@@ -912,14 +1192,15 @@ watch(() => auth.user?.email ?? null, async (next, prev) => {
 </script>
 
 <style scoped>
-.tutorials{padding:clamp(.9rem,3vw,2.4rem);min-height:100vh;color:var(--text-primary);overflow-x:clip}
+.tutorials{padding:clamp(.9rem,3vw,2.4rem);min-height:100vh;color:var(--text-primary);overflow-x:visible;background:none!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important}
 .page-title{font-size:2.25rem;font-weight:700;margin:0 0 1rem;text-align:center;color:var(--text-primary);letter-spacing:-.025em}
-.controls,.upload-panel{border:1px solid rgba(148,163,184,.2);background:color-mix(in srgb,var(--bg-card) 92%,#081120 8%);box-shadow:0 24px 60px rgba(2,6,23,.16);backdrop-filter:blur(14px)}
-.hero,.results,.favorites-panel{position:relative;width:100%;box-sizing:border-box;padding:1.75rem 1.9rem;border-radius:18px;background:radial-gradient(circle at top left,color-mix(in srgb,var(--accent-primary) 9%,transparent),transparent 55%),radial-gradient(circle at bottom right,color-mix(in srgb,var(--accent-secondary) 7%,transparent),transparent 60%),color-mix(in srgb,var(--bg-card) 94%,#020617 6%);border:1px solid rgba(148,163,184,.26);box-shadow:0 18px 40px rgba(15,23,42,.22);transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+.controls,.upload-panel{border:1px solid rgba(148,163,184,.2);background:color-mix(in srgb,var(--bg-card) 92%,#081120 8%);box-shadow:none!important;backdrop-filter:blur(14px)}
+.hero,.results,.favorites-panel{position:relative;width:100%;box-sizing:border-box;padding:1.75rem 1.9rem;border-radius:18px;background:radial-gradient(circle at top left,color-mix(in srgb,var(--accent-primary) 9%,transparent),transparent 55%),radial-gradient(circle at bottom right,color-mix(in srgb,var(--accent-secondary) 7%,transparent),transparent 60%),color-mix(in srgb,var(--bg-card) 94%,#020617 6%);border:1px solid rgba(148,163,184,.26);box-shadow:0 18px 40px rgba(15,23,42,.22);transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;overflow:visible}
 .hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.95fr);gap:1.4rem;margin-bottom:2rem}
 .favorites-panel{margin:0 0 1rem}
+.favorites-panel{background:radial-gradient(circle at top left,color-mix(in srgb,var(--accent-primary) 9%,transparent),transparent 55%),radial-gradient(circle at bottom right,color-mix(in srgb,var(--accent-secondary) 7%,transparent),transparent 60%),color-mix(in srgb,var(--bg-card) 94%,#020617 6%)!important;border:1px solid rgba(148,163,184,.26)!important;box-shadow:0 18px 40px rgba(15,23,42,.22)!important}
 .results{margin-top:1.75rem}
-.hero-copy{padding:0;color:#f8fafc}
+.hero-copy{padding:0;color:#f8fafc;grid-column:1}
 .hero-copy h1{margin:0 0 1.35rem;max-width:13ch;font-size:clamp(2rem,5vw,4rem);line-height:.98;letter-spacing:-.05em}
 .hero-text,.section-note,.card-text,.starter-card span:last-child{color:var(--text-secondary);line-height:1.6}
 .hero-text{margin:1rem 0 1.2rem;color:rgba(226,232,240,.84)}
@@ -941,21 +1222,28 @@ watch(() => auth.user?.email ?? null, async (next, prev) => {
 .btn.danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.24);color:#b91c1c}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 .card-actions{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;align-items:center;align-self:center;width:100%;margin-top:auto}
-.card-actions .btn{flex:0 0 4.85rem;width:4.85rem;min-width:4.85rem;max-width:4.85rem;height:2.1rem;min-height:2.1rem;padding:.35rem .55rem;display:inline-flex;align-items:center;justify-content:center;text-align:center;font-size:.84rem;line-height:1;white-space:nowrap}
+.card-actions .btn{flex:1 1 7.25rem;width:auto;min-width:7.25rem;max-width:none;height:2.1rem;min-height:2.1rem;padding:.35rem .7rem;display:inline-flex;align-items:center;justify-content:center;text-align:center;font-size:.84rem;line-height:1.1;white-space:nowrap}
 .card-actions .btn.danger{flex:1 1 100%;width:100%;min-width:0;max-width:none}
 .hero-side,.starter,.controls,.upload-panel{padding:1rem;border-radius:26px}
-.hero-side{display:grid;gap:1rem;padding:0;align-self:start}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem}
+.hero-side{display:grid;gap:1rem;padding:0;align-self:start;grid-column:2;grid-row:1 / span 2}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem}
 .starter{padding:0;border-radius:0;background:transparent;box-shadow:none;border:0}
-.stat,.starter-card,.info-box{border-radius:22px;border:1px solid rgba(148,163,184,.35);background:radial-gradient(circle at top left,color-mix(in srgb,var(--accent-primary) 10%,transparent),transparent 56%),radial-gradient(circle at bottom right,color-mix(in srgb,var(--accent-secondary) 8%,transparent),transparent 60%),color-mix(in srgb,var(--bg-card) 94%,#020617 6%);box-shadow:0 18px 40px rgba(15,23,42,.22);padding:1rem}
+.stat,.info-box{border-radius:22px;border:1px solid rgba(148,163,184,.35);background:radial-gradient(circle at top left,color-mix(in srgb,var(--accent-primary) 10%,transparent),transparent 56%),radial-gradient(circle at bottom right,color-mix(in srgb,var(--accent-secondary) 8%,transparent),transparent 60%),color-mix(in srgb,var(--bg-card) 94%,#020617 6%);box-shadow:0 18px 40px rgba(15,23,42,.22);padding:1rem}
+.starter-card{border-radius:22px;border:1px solid rgba(148,163,184,.26);background:radial-gradient(circle at top left,color-mix(in srgb,var(--accent-primary) 9%,transparent),transparent 55%),radial-gradient(circle at bottom right,color-mix(in srgb,var(--accent-secondary) 7%,transparent),transparent 60%),color-mix(in srgb,var(--bg-card) 94%,#020617 6%);box-shadow:0 18px 40px rgba(15,23,42,.22);padding:1rem}
 .stat{display:grid;gap:.2rem}.stat span,.label,.info-box span{font-size:.82rem;color:var(--text-secondary);font-weight:700}.stat strong{font-size:1.8rem;line-height:1}
 .section-head{display:flex;justify-content:space-between;align-items:end;gap:1rem;margin-bottom:1rem}.section-head h2,.starter h2{margin:0;font-size:clamp(1.08rem,2vw,1.55rem);line-height:1.05}
+.favorites-head{align-items:center;margin-bottom:1.2rem;padding:.2rem 0 .3rem}
+.favorites-head-copy{display:grid;gap:.32rem}
+.favorites-title{margin:0;font-size:clamp(1.45rem,2.5vw,2.05rem)!important;line-height:1;letter-spacing:-.035em;color:var(--text-primary)}
+.favorites-subtitle{margin:0;color:var(--text-secondary);font-size:.98rem;line-height:1.45}
+.favorites-meta{display:flex;align-items:center;justify-content:flex-end}
 .starter-note{margin:.45rem 0 0;color:var(--text-secondary);line-height:1.55}
-.starter-list{display:grid;grid-template-columns:1fr;gap:.75rem;margin-top:.75rem}
+.starter-list{display:grid;grid-template-columns:1fr;gap:.75rem;margin-top:.75rem;padding:.25rem .35rem .5rem .15rem;margin-left:-.15rem;margin-right:-.35rem;margin-bottom:-.5rem;background:none!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;backdrop-filter:none!important;overflow:visible}
+.favorites-list{padding:0 1.9rem 1.75rem!important;margin:.75rem -1.9rem -1.75rem!important;background:none!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;backdrop-filter:none!important;border-radius:0 0 18px 18px}
 .favorites-list .starter-card{min-height:9.75rem;align-content:start}
-.favorites-list--scroll{max-height:calc((4 * 9.75rem) + (3 * .75rem));overflow-y:auto;overflow-x:hidden;padding:.2rem .45rem .45rem .1rem;margin:-.2rem -.45rem -.45rem -.1rem;scrollbar-gutter:stable}
+.favorites-list--scroll{max-height:calc((3 * 9.75rem) + (2 * .75rem));overflow-y:auto;overflow-x:visible;padding:.25rem .45rem .55rem .12rem!important;margin:-.25rem -.45rem -.55rem -.12rem!important;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:rgba(148,163,184,.45) transparent;background:transparent!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;backdrop-filter:none!important}
 .favorites-list--scroll::-webkit-scrollbar{width:.5rem}
 .favorites-list--scroll::-webkit-scrollbar-thumb{border-radius:999px;background:rgba(148,163,184,.28)}
-.starter-card{text-align:left;cursor:pointer;display:grid;gap:.5rem}.starter-card strong{font-size:1rem}.starter-top,.meta-row,.tutorial-status-row{display:flex;gap:.45rem;flex-wrap:wrap}
+.starter-card{text-align:left;cursor:pointer;display:grid;gap:.5rem;position:relative;z-index:0;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}.starter-card:hover{transform:translateY(-2px);box-shadow:0 20px 42px rgba(15,23,42,.26);border-color:rgba(129,140,248,.48);z-index:3}.starter-card strong{font-size:1rem}.starter-top,.meta-row,.tutorial-status-row{display:flex;gap:.45rem;flex-wrap:wrap}
 .pill,.badge{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;flex:0 0 auto;min-height:2rem;padding:.35rem .7rem;border-radius:999px;font-size:.78rem;font-weight:800;line-height:1;white-space:nowrap}
 .pill{background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.2)}.pill.subtle{background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.16)}
 .pill-muscle{background:rgba(244,114,182,.12);border-color:rgba(244,114,182,.24)}
@@ -970,34 +1258,67 @@ watch(() => auth.user?.email ?? null, async (next, prev) => {
 .status-pill.is-recent{background:linear-gradient(135deg,color-mix(in srgb,var(--accent-primary) 18%, var(--bg-card) 82%),color-mix(in srgb,var(--accent-secondary) 14%, var(--bg-card) 86%));border-color:color-mix(in srgb,var(--accent-primary) 32%,rgba(148,163,184,.18));color:color-mix(in srgb,var(--text-primary) 88%, white 12%)}
 .status-pill.is-plan{background:color-mix(in srgb,#0f172a 76%,#22c55e 24%);border-color:color-mix(in srgb,#22c55e 38%,rgba(148,163,184,.18));color:#dcfce7}
 .controls{display:grid;gap:1rem;margin:1.75rem 0 1rem}.controls-top{display:grid;grid-template-columns:1.4fr 220px;gap:1rem}.group{display:grid;gap:.75rem;padding:1rem;border-radius:22px;border:1px solid rgba(148,163,184,.35);background:radial-gradient(circle at top left,color-mix(in srgb,var(--accent-primary) 10%,transparent),transparent 56%),radial-gradient(circle at bottom right,color-mix(in srgb,var(--accent-secondary) 8%,transparent),transparent 60%),color-mix(in srgb,var(--bg-card) 94%,#020617 6%);box-shadow:0 18px 40px rgba(15,23,42,.22)}.category-row{overflow-x:auto;overflow-y:visible;padding:.2rem 0 .45rem;flex-wrap:nowrap}.select{width:100%;background:rgba(255,255,255,.04);color:var(--text-primary)}
-.controls--hero{grid-column:1/-1;margin:.15rem 0 0;padding:1rem 0;border:0;border-top:1px solid rgba(148,163,184,.18);border-bottom:1px solid rgba(148,163,184,.18);background:transparent;box-shadow:none;border-radius:0}
+.controls--hero{grid-column:1;margin:.15rem 0 0;padding:1rem 0;border:0;border-top:1px solid rgba(148,163,184,.18);border-bottom:1px solid rgba(148,163,184,.18);background:transparent;box-shadow:none;border-radius:0}
 .controls--hero .controls-top{grid-template-columns:minmax(220px,320px)}
 .controls-inline{display:grid;gap:.5rem;max-width:320px}
+.tutorial-sort-field{position:relative;display:flex;align-items:center;width:100%;border-radius:18px;border:1px solid rgba(148,163,184,.32);background:color-mix(in srgb,#020617 78%,var(--bg-card) 22%);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.55),0 16px 46px rgba(0,0,0,.42);transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease,background .16s ease}
+.tutorial-sort-field:focus-within{border-color:rgba(148,163,184,.55);background:color-mix(in srgb,#020617 84%,var(--bg-card) 16%);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 0 3px rgba(99,102,241,.18),0 20px 58px rgba(0,0,0,.55);transform:translateY(-1px)}
+.tutorial-sort-select{width:100%;min-height:46px;padding:.86rem 2.7rem .86rem .95rem;border:0;background:transparent;color:color-mix(in srgb,var(--text-primary) 92%,#ffffff 8%);font-size:.98rem;line-height:1.2;letter-spacing:.01em;font-weight:800;appearance:none;-webkit-appearance:none;-moz-appearance:none;outline:none}
+.tutorial-sort-select option{background:color-mix(in srgb,#020617 92%,var(--bg-card) 8%);color:var(--text-primary)}
+.tutorial-sort-field__chevron{position:absolute;right:.82rem;top:50%;width:.7rem;height:.7rem;border-right:2px solid rgba(148,163,184,.95);border-bottom:2px solid rgba(148,163,184,.95);transform:translateY(-64%) rotate(45deg);pointer-events:none;filter:drop-shadow(0 1px 0 rgba(0,0,0,.35));opacity:.92}
 .category-select-wrap{display:none;gap:.45rem;max-width:320px}
 .upload-panel{margin-bottom:1rem}.upload-grid{display:grid;gap:.8rem}.field{display:grid;gap:.38rem}.field label{font-size:.9rem;font-weight:800}.wide{grid-column:1/-1}
 .input{width:100%;min-height:2.95rem;border-radius:16px;border:1px solid rgba(148,163,184,.22);background:rgba(255,255,255,.04);color:var(--text-primary);padding:.8rem .95rem;outline:none}.input:focus{border-color:rgba(56,189,248,.44);box-shadow:0 0 0 4px rgba(56,189,248,.12)}
 .upload-file-input{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}.file-name{flex:1 1 100%;min-width:0;padding:.8rem .95rem;border-radius:16px;border:1px dashed rgba(148,163,184,.24);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.upload-error{margin:0;color:#ef4444;font-weight:800}
 .empty-state{display:grid;place-items:center;gap:.6rem;padding:2rem 1rem;text-align:center}.empty-state h3,.empty-state p{margin:0}
-.tutorials-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}
-.tutorials-grid--scroll{max-height:calc((3 * 31rem) + (2 * 1rem));overflow-y:auto;overflow-x:hidden;padding:.2rem .45rem .55rem .1rem;margin:-.2rem -.45rem -.55rem -.1rem;scrollbar-gutter:stable}
+.tutorials-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;overflow:visible;padding:1rem .38rem .5rem .22rem;margin:-1rem -.38rem -.5rem -.22rem}
+.tutorials-grid--scroll{max-height:calc((3 * 31rem) + (2 * 1rem));overflow-y:auto;overflow-x:visible;padding:1rem .8rem .95rem .45rem;margin:-1rem -.8rem -.95rem -.45rem;scrollbar-gutter:stable}
 .tutorials-grid--scroll::-webkit-scrollbar{width:.55rem}
 .tutorials-grid--scroll::-webkit-scrollbar-thumb{border-radius:999px;background:rgba(148,163,184,.28)}
-.tutorial-card-shell{position:relative;display:flex;flex-direction:column;align-content:start;height:100%;padding-top:1.1rem}
+.tutorial-card-shell{position:relative;display:flex;flex-direction:column;align-content:start;height:100%;padding-top:1.1rem;overflow:visible}
+.tutorial-card-shell--starter{padding-top:.45rem;background:transparent}
+.tutorial-card-shell--with-badge{padding-top:1.1rem}
+.tutorial-card-shell--favorite-transfer{overflow:visible}
+.favorite-sanctified-label{position:absolute;left:50%;top:-.5rem;z-index:8;pointer-events:none;padding:.38rem .95rem;border-radius:999px;border:1px solid rgba(250,204,21,.48);background:linear-gradient(180deg,rgba(255,251,235,.98),rgba(255,244,214,.92));color:#b45309;font-size:.78rem;font-weight:900;line-height:1;text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;box-shadow:0 16px 30px rgba(245,158,11,.18),0 0 0 1px rgba(255,248,220,.68),inset 0 1px 0 rgba(255,255,255,.9);animation:favorite-sanctified-label-rise 1.18s cubic-bezier(.2,.82,.24,1) both,favorite-sanctified-label-glow 1.18s ease-in-out both}
+.favorite-sanctified-label.favorite-sanctified-label--removed{border-color:rgba(248,113,113,.46);background:linear-gradient(180deg,rgba(255,241,242,.98),rgba(254,226,226,.94));color:#b91c1c;box-shadow:0 16px 30px rgba(239,68,68,.18),0 0 0 1px rgba(255,241,242,.72),inset 0 1px 0 rgba(255,255,255,.92)}
 .tutorial-card-shell--starter .starter-card{height:100%}
+.tutorial-card-shell--starter .tutorial-card-top-badge{top:0}
+.favorites-list .tutorial-card-shell--starter{padding-top:.45rem!important;background:none!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important}
+.favorites-list .tutorial-card-shell--starter.tutorial-card-shell--with-badge{padding-top:1.1rem!important}
 .tutorial-card-top-badge{position:absolute;top:0;left:1rem;z-index:2;display:flex;justify-content:flex-start;pointer-events:none}
 .tutorial-card-top-label{font-size:.74rem;font-weight:800;letter-spacing:.04em;color:#ffffff;line-height:1}
-.tutorial-card{flex:1 1 auto;height:100%;overflow:hidden;border-radius:18px;display:grid;grid-template-rows:auto 1fr;cursor:pointer;background:radial-gradient(circle at top left,color-mix(in srgb,var(--accent-primary) 10%,transparent),transparent 56%),radial-gradient(circle at bottom right,color-mix(in srgb,var(--accent-secondary) 8%,transparent),transparent 60%),color-mix(in srgb,var(--bg-card) 94%,#020617 6%);border:1px solid rgba(148,163,184,.35);box-shadow:0 18px 40px rgba(15,23,42,.22);transition:background .18s ease-out,border-color .18s ease-out,box-shadow .2s ease-out,transform .16s ease-out}.tutorial-card:hover{transform:translateY(-2px);box-shadow:0 22px 48px rgba(15,23,42,.32);border-color:rgba(129,140,248,.7)}
+.tutorial-card{flex:1 1 auto;height:100%;overflow:hidden;border-radius:18px;display:grid;grid-template-rows:auto 1fr;cursor:pointer;position:relative;z-index:0;background:radial-gradient(circle at top left,color-mix(in srgb,var(--accent-primary) 9%,transparent),transparent 55%),radial-gradient(circle at bottom right,color-mix(in srgb,var(--accent-secondary) 7%,transparent),transparent 60%),color-mix(in srgb,var(--bg-card) 94%,#020617 6%);border:1px solid rgba(148,163,184,.26);box-shadow:0 18px 40px rgba(15,23,42,.22);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}.tutorial-card:hover{transform:translateY(-2px);box-shadow:0 20px 42px rgba(15,23,42,.28);border-color:rgba(129,140,248,.48);z-index:3}
+.tutorial-card--favorite,.starter-card--favorite{border-color:rgba(245,158,11,.72)!important;box-shadow:0 18px 40px rgba(15,23,42,.22),0 0 0 1px rgba(255,244,214,.62),0 0 0 2px rgba(245,158,11,.34),0 10px 26px rgba(245,158,11,.08);animation:favorite-border-sanctified 3.4s ease-in-out infinite}
+.tutorial-card-shell--favorite-transfer-in .tutorial-card,.tutorial-card-shell--favorite-transfer-in .starter-card{animation:favorite-holy-rise 1.04s cubic-bezier(.2,.72,.24,1) both}
+.tutorial-card-shell--favorite-transfer-out .tutorial-card,.tutorial-card-shell--favorite-transfer-out .starter-card{animation:favorite-fall .88s cubic-bezier(.2,.72,.24,1) both}
+.tutorial-card-shell--favorite-transfer::after{content:"";position:absolute;inset:-2px;border-radius:22px;pointer-events:none;opacity:0;box-shadow:0 0 0 0 rgba(250,204,21,0)}
+.tutorial-card-shell--favorite-transfer-in::after{background:linear-gradient(135deg,rgba(250,204,21,.12),rgba(251,191,36,.18),rgba(250,204,21,0));border:2px solid rgba(250,204,21,.92);box-shadow:0 0 0 1px rgba(255,244,214,.78),0 0 26px rgba(250,204,21,.36),0 0 54px rgba(245,158,11,.18);animation:favorite-transfer-in .96s cubic-bezier(.2,.72,.24,1) both}
+.tutorial-card-shell--favorite-transfer-in::before{content:"";position:absolute;left:50%;top:-.6rem;width:72%;height:2.2rem;border-radius:999px;transform:translateX(-50%);pointer-events:none;background:radial-gradient(circle,rgba(255,252,240,.95) 0%,rgba(250,204,21,.72) 38%,rgba(245,158,11,.12) 68%,rgba(245,158,11,0) 100%);filter:blur(10px);opacity:.84;animation:favorite-holy-aura .98s cubic-bezier(.2,.72,.24,1) both}
+.tutorial-card-shell--favorite-transfer-in .tutorial-card::after,.tutorial-card-shell--favorite-transfer-in .starter-card::after{content:"";position:absolute;inset:-.45rem -.35rem;border-radius:22px;pointer-events:none;background:radial-gradient(circle at 14% 18%,rgba(255,255,255,.94) 0 2px,rgba(255,255,255,0) 3px),radial-gradient(circle at 84% 24%,rgba(255,248,196,.9) 0 1.6px,rgba(255,248,196,0) 3px),radial-gradient(circle at 22% 80%,rgba(255,249,214,.82) 0 1.8px,rgba(255,249,214,0) 3px),radial-gradient(circle at 76% 74%,rgba(255,255,255,.76) 0 1.4px,rgba(255,255,255,0) 3px),linear-gradient(115deg,rgba(255,255,255,0) 10%,rgba(255,250,231,.68) 47%,rgba(255,255,255,0) 84%);opacity:.62;animation:favorite-holy-aura .92s cubic-bezier(.2,.72,.24,1) both,favorite-holy-sparkles 1.08s ease-in-out 1}
+.tutorial-card-shell--favorite-transfer-out::after{inset:-.3rem -.22rem;border-radius:21px;background:linear-gradient(180deg,rgba(255,248,220,.12),rgba(250,204,21,.06) 44%,rgba(250,204,21,0) 100%);border:2px solid rgba(250,204,21,.92);animation:favorite-border-release .82s cubic-bezier(.2,.72,.24,1) both}
+.tutorial-card-shell--favorite-transfer-out::before{content:"";position:absolute;inset:-.4rem -.3rem;border-radius:22px;pointer-events:none;background:radial-gradient(circle at 50% 12%,rgba(255,248,220,.32),rgba(255,248,220,0) 42%),linear-gradient(180deg,rgba(250,204,21,.14),rgba(245,158,11,.05) 45%,rgba(245,158,11,0) 100%);animation:favorite-release-trail .82s cubic-bezier(.2,.72,.24,1) both}
+.tutorial-card-shell--favorite-transfer-out .tutorial-card,.tutorial-card-shell--favorite-transfer-out .starter-card{border-color:rgba(245,158,11,.24)!important}
 .tutorial-card--level-beginner,.starter-card--level-beginner,.related-card--level-beginner{border-color:rgba(34,197,94,.68)}
 .tutorial-card--level-medium,.starter-card--level-medium,.related-card--level-medium{border-color:rgba(234,179,8,.72)}
 .tutorial-card--level-hard,.starter-card--level-hard,.related-card--level-hard{border-color:rgba(239,68,68,.72)}
-.card-media{position:relative;background:linear-gradient(135deg,rgba(8,18,32,.9),rgba(20,36,66,.86))}.media-top{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:start;padding:.8rem;pointer-events:none}
-.video-frame{display:block;width:100%;max-width:100%;aspect-ratio:16/9;border:0;border-radius:20px;background:#020617}.video-placeholder{aspect-ratio:16/9;min-height:0;display:grid;place-items:center;border-radius:20px;background:linear-gradient(135deg,rgba(15,23,42,.9),rgba(30,41,59,.84));color:rgba(226,232,240,.76);text-align:center;padding:1rem}
+.card-media{position:relative;background:none!important;background-color:transparent!important;background-image:none!important}.media-top{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:start;padding:.8rem;pointer-events:none}.media-favorite{display:flex;align-items:center;justify-content:center;pointer-events:auto}.media-favorite :deep(.favorite-btn){padding:.42rem;background:transparent;box-shadow:none;backdrop-filter:none;text-shadow:-3px 0 0 rgba(0,0,0,.96),3px 0 0 rgba(0,0,0,.96),0 -3px 0 rgba(0,0,0,.96),0 3px 0 rgba(0,0,0,.96),-2.4px -2.4px 0 rgba(0,0,0,.96),2.4px -2.4px 0 rgba(0,0,0,.96),-2.4px 2.4px 0 rgba(0,0,0,.96),2.4px 2.4px 0 rgba(0,0,0,.96),-1.4px -3px 0 rgba(0,0,0,.96),1.4px -3px 0 rgba(0,0,0,.96),-1.4px 3px 0 rgba(0,0,0,.96),1.4px 3px 0 rgba(0,0,0,.96),-3px -1.4px 0 rgba(0,0,0,.96),3px -1.4px 0 rgba(0,0,0,.96),-3px 1.4px 0 rgba(0,0,0,.96),3px 1.4px 0 rgba(0,0,0,.96),0 0 12px rgba(0,0,0,.46)}.media-favorite :deep(.favorite-btn:hover){background:transparent;box-shadow:none;text-shadow:-3px 0 0 rgba(0,0,0,1),3px 0 0 rgba(0,0,0,1),0 -3px 0 rgba(0,0,0,1),0 3px 0 rgba(0,0,0,1),-2.4px -2.4px 0 rgba(0,0,0,1),2.4px -2.4px 0 rgba(0,0,0,1),-2.4px 2.4px 0 rgba(0,0,0,1),2.4px 2.4px 0 rgba(0,0,0,1),-1.4px -3px 0 rgba(0,0,0,1),1.4px -3px 0 rgba(0,0,0,1),-1.4px 3px 0 rgba(0,0,0,1),1.4px 3px 0 rgba(0,0,0,1),-3px -1.4px 0 rgba(0,0,0,1),3px -1.4px 0 rgba(0,0,0,1),-3px 1.4px 0 rgba(0,0,0,1),3px 1.4px 0 rgba(0,0,0,1),0 0 14px rgba(0,0,0,.56)}
+.video-frame{display:block;width:100%;max-width:100%;aspect-ratio:16/9;border:0;border-radius:20px;background:transparent}.video-placeholder{aspect-ratio:16/9;min-height:0;display:grid;place-items:center;border-radius:20px;background:none!important;background-color:transparent!important;background-image:none!important;color:rgba(226,232,240,.76);text-align:center;padding:1rem}
 .card-body{display:flex;flex-direction:column;gap:.85rem;padding:1rem;height:100%}
-.card-head{display:flex;justify-content:space-between;align-items:start;gap:.8rem}
+.card-head{display:flex;justify-content:space-between;align-items:start;gap:.8rem}.card-head>.favorite-btn{display:none}
 .card-head > div{flex:1;min-width:0}
 .card-head h3{margin:0;font-size:1.08rem;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6rem}
 .card-text{margin:.45rem 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:3.1rem}
 .results-more{display:flex;justify-content:center;gap:1rem;margin-top:1rem}
+@keyframes favorite-transfer-in{0%{opacity:0;transform:translateX(-10px) scale(.992)}36%{opacity:.92}100%{opacity:0;transform:translateX(10px) scale(1.008)}}
+@keyframes favorite-border-sanctified{0%,100%{box-shadow:0 18px 40px rgba(15,23,42,.22),0 0 0 1px rgba(255,244,214,.68),0 0 0 2px rgba(245,158,11,.42),0 10px 26px rgba(245,158,11,.08)}50%{box-shadow:0 18px 40px rgba(15,23,42,.22),0 0 0 1px rgba(255,248,220,.82),0 0 0 2px rgba(250,204,21,.56),0 0 18px rgba(250,204,21,.18)}}
+@keyframes favorite-holy-rise{0%{transform:translate3d(0,0,0) scale(1);opacity:1}24%{transform:translate3d(0,-6px,0) scale(1.01);opacity:1}52%{transform:translate3d(0,-14px,0) scale(1.018);opacity:1}72%{transform:translate3d(0,-8px,0) scale(1.012);opacity:1}100%{transform:translate3d(0,0,0) scale(1);opacity:1}}
+@keyframes favorite-holy-aura{0%{opacity:0;transform:translate(-50%,-10%) scale(.58);filter:blur(14px)}32%{opacity:.86;transform:translate(-50%,-28%) scale(.96);filter:blur(9px)}68%{opacity:.62;transform:translate(-50%,-36%) scale(1.04);filter:blur(10px)}100%{opacity:0;transform:translate(-50%,-42%) scale(1.08);filter:blur(14px)}}
+@keyframes favorite-holy-sparkles{0%,100%{opacity:.32;transform:translateY(0) scale(1)}50%{opacity:.68;transform:translateY(-2px) scale(1.03)}}
+@keyframes favorite-sanctified-label-rise{0%{opacity:0;transform:translate(-50%,14px) scale(.78) rotate(-4deg);filter:blur(10px);letter-spacing:.08em}22%{opacity:1;transform:translate(-50%,-6px) scale(1.02) rotate(-1deg);filter:blur(0);letter-spacing:.12em}68%{opacity:1;transform:translate(-50%,-18px) scale(1) rotate(0deg);filter:blur(0);letter-spacing:.11em}100%{opacity:0;transform:translate(-50%,-32px) scale(.96) rotate(0deg);filter:blur(6px);letter-spacing:.14em}}
+@keyframes favorite-sanctified-label-glow{0%,100%{text-shadow:0 0 0 rgba(255,248,220,0),0 0 0 rgba(250,204,21,0)}50%{text-shadow:0 0 18px rgba(255,248,220,.82),0 0 36px rgba(250,204,21,.46)}}
+@keyframes favorite-fall{0%{transform:translate3d(0,0,0) scale(1);opacity:1}22%{transform:translate3d(0,2px,0) scale(.998);opacity:.995}58%{transform:translate3d(0,7px,0) scale(.995);opacity:.992}84%{transform:translate3d(0,3px,0) scale(.998);opacity:.996}100%{transform:translate3d(0,0,0) scale(1);opacity:1}}
+@keyframes favorite-border-release{0%{opacity:.96;transform:scale(1);border-color:rgba(250,204,21,.92);box-shadow:0 0 0 1px rgba(255,244,214,.48)}26%{opacity:.94;transform:scale(1.006);border-color:rgba(253,224,71,.88);box-shadow:0 0 0 1px rgba(255,248,220,.44)}62%{opacity:.54;transform:scale(1.002);border-color:rgba(245,158,11,.28);box-shadow:0 0 0 1px rgba(255,244,214,.16)}86%{opacity:.2;transform:scale(.999);border-color:rgba(245,158,11,.08);box-shadow:0 0 0 1px rgba(255,244,214,.06)}100%{opacity:0;transform:scale(.994);border-color:rgba(245,158,11,0);box-shadow:0 0 0 0 rgba(255,244,214,0)}}
+@keyframes favorite-release-trail{0%{opacity:0;transform:translateY(-1px) scale(.96);filter:blur(6px)}24%{opacity:.24;transform:translateY(1px) scale(.99);filter:blur(6px)}58%{opacity:.14;transform:translateY(5px) scale(1.006);filter:blur(7px)}100%{opacity:0;transform:translateY(12px) scale(1.012);filter:blur(9px)}}
 .modal-head{display:flex;justify-content:space-between;gap:1rem;margin-bottom:1rem}.modal-head h3{margin:.3rem 0 0;font-size:clamp(1.3rem,2vw,2rem)}
 .modal-head-meta{display:flex;align-items:center;flex-wrap:wrap;gap:.55rem}
 .category-chip,.category-pill{display:inline-flex;align-items:center;gap:.45rem;align-self:flex-start;flex:0 0 auto;min-height:2rem;padding:.38rem .78rem;border-radius:999px;font-size:.82rem;font-weight:800;letter-spacing:.02em;background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(148,163,184,.2);line-height:1;white-space:nowrap}
@@ -1070,45 +1391,129 @@ transparent}
 .level-visual.is-pro .level-meter-bar.is-active{background:linear-gradient(90deg,#f472b6,#a855f7)}
 .level-scale{display:flex;justify-content:space-between;gap:.5rem;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-secondary)}
 .info-box strong{line-height:1.5}
-.modal-actions{position:sticky;bottom:-1rem;z-index:2;margin:1rem -1rem -1rem;padding:.9rem 1rem 1rem;justify-content:space-between;align-items:center;gap:.9rem;background:color-mix(in srgb,var(--bg-card) 92%,#081120 8%);box-shadow:none;border-top:1px solid rgba(148,163,184,.14)}
+.modal-actions{position:sticky;bottom:0;z-index:2;margin:1rem -1rem -1rem;padding:.9rem 1rem 1rem;justify-content:space-between;align-items:center;gap:.9rem;border-top:1px solid rgba(148,163,184,.14);background:color-mix(in srgb,var(--bg-card) 94%,#081120 6%);box-shadow:0 -18px 30px rgba(2,6,23,.08)}
 .tutorial-modal-actions-right{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.5rem;flex:1}
 .tutorial-modal-favorite{flex:0 0 auto}
-.tutorials :deep(.popup-overlay.tutorial-popup){background:rgba(2,6,23,.66);backdrop-filter:blur(8px);padding:1rem}
-.tutorials :deep(.popup-overlay.tutorial-popup .popup){width:min(1100px,100%);padding:1rem;border-radius:28px;border:1px solid rgba(148,163,184,.2);background:color-mix(in srgb,var(--bg-card) 92%,#081120 8%);box-shadow:0 24px 60px rgba(2,6,23,.16);backdrop-filter:blur(14px)}
-.tutorials :deep(.popup-overlay.tutorial-popup .popup-body){padding:0;overflow:auto;background:transparent}
+.tutorials :deep(.popup-overlay.tutorial-popup){background:none!important;background-color:transparent!important;background-image:none!important;backdrop-filter:none!important;box-shadow:none!important;padding:1rem}
+.tutorials :deep(.popup-overlay.tutorial-popup .popup){width:min(1100px,100%);padding:1rem;border-radius:28px;border:0!important;background:none!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;backdrop-filter:none!important}
+.tutorials :deep(.popup-overlay.tutorial-popup .popup-body){padding:0;overflow:auto;background:none!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important}
+.tutorials :deep(.popup-overlay.tutorial-popup .popup-body > *){background-color:transparent}
 .tutorials :deep(.popup-overlay.tutorial-popup .popup-x){top:1rem;right:1rem}
 .tutorials :deep(.popup-overlay.tutorial-popup--preview-fullscreen .popup){width:min(96vw,1160px)}
 .tutorials :deep(.popup-overlay.tutorial-popup--preview-fullscreen .video-frame){min-height:52vh}
 .tutorial-modal-btn{flex:0 1 auto!important;width:auto!important;min-width:10.5rem;max-width:none!important;min-height:2.8rem;white-space:normal;font-size:.92rem!important;line-height:1.2}
 .preview-touch{position:fixed;z-index:1200;width:1.15rem;height:1.15rem;margin-left:-.575rem;margin-top:-.575rem;pointer-events:none}.preview-touch__dot{position:absolute;inset:0;border-radius:999px;background:rgba(255,255,255,.96);border:2px solid rgba(29,78,216,.92);box-shadow:0 0 0 0 rgba(59,130,246,.3);animation:previewTouchPulse 1.2s ease-out infinite}
-html.dark-mode .tutorial-card,html.dark-mode .starter-card,html.dark-mode .info-box,html.dark-mode .group{background:radial-gradient(circle at top left,color-mix(in srgb,#6366f1 16%,transparent),transparent 55%),radial-gradient(circle at bottom right,color-mix(in srgb,#22c55e 11%,transparent),transparent 62%),#020617;border-color:rgba(148,163,184,.5);box-shadow:0 22px 55px rgba(0,0,0,.7)}
+html.dark-mode .tutorial-card,html.dark-mode .starter-card,html.dark-mode .info-box,html.dark-mode .group{border-color:rgba(148,163,184,.45)}
+html.dark-mode .tutorial-card,html.dark-mode .starter-card{background:radial-gradient(circle at top left,color-mix(in srgb,#6366f1 14%,transparent),transparent 55%),radial-gradient(circle at bottom right,color-mix(in srgb,#22c55e 10%,transparent),transparent 60%),#020617;box-shadow:0 22px 55px rgba(0,0,0,.7)}
 html.dark-mode .tutorial-card-top-label{color:#ffffff}
 html.dark-mode .tutorial-card--level-beginner,html.dark-mode .starter-card--level-beginner,html.dark-mode .related-card--level-beginner{border-color:rgba(74,222,128,.74)}
 html.dark-mode .tutorial-card--level-medium,html.dark-mode .starter-card--level-medium,html.dark-mode .related-card--level-medium{border-color:rgba(250,204,21,.8)}
 html.dark-mode .tutorial-card--level-hard,html.dark-mode .starter-card--level-hard,html.dark-mode .related-card--level-hard{border-color:rgba(248,113,113,.8)}
+html.dark-mode .favorite-sanctified-label{border-color:rgba(251,191,36,.54);background:linear-gradient(180deg,rgba(120,53,15,.98),rgba(92,39,12,.94));color:#fde68a;box-shadow:0 18px 34px rgba(0,0,0,.42),0 0 0 1px rgba(255,244,214,.12),0 0 22px rgba(250,204,21,.18)}
+html.dark-mode .favorite-sanctified-label.favorite-sanctified-label--removed{border-color:rgba(248,113,113,.4);background:linear-gradient(180deg,rgba(127,29,29,.98),rgba(91,18,18,.94));color:#fecaca;box-shadow:0 18px 34px rgba(0,0,0,.42),0 0 0 1px rgba(254,226,226,.08),0 0 22px rgba(239,68,68,.16)}
 html.dark-mode .hero,html.dark-mode .results,html.dark-mode .favorites-panel{background:radial-gradient(circle at top left,color-mix(in srgb,#6366f1 14%,transparent),transparent 55%),radial-gradient(circle at bottom right,color-mix(in srgb,#22c55e 10%,transparent),transparent 60%),#020617;border-color:rgba(148,163,184,.45);box-shadow:0 22px 55px rgba(0,0,0,.7)}
+html.dark-mode .favorites-panel{background:radial-gradient(circle at top left,color-mix(in srgb,#6366f1 14%,transparent),transparent 55%),radial-gradient(circle at bottom right,color-mix(in srgb,#22c55e 10%,transparent),transparent 60%),#020617!important;border:1px solid rgba(148,163,184,.45)!important;box-shadow:0 22px 55px rgba(0,0,0,.7)!important}
+html.dark-mode .favorites-list{background:none!important;background-color:transparent!important;background-image:none!important}
 html.dark-mode .tutorial-level-legend{color:rgba(226,232,240,.9)}
-.tutorials :deep(html.dark-mode .popup-overlay.tutorial-popup .popup){background:radial-gradient(circle at top left,color-mix(in srgb,#6366f1 14%,transparent),transparent 55%),radial-gradient(circle at bottom right,color-mix(in srgb,#22c55e 10%,transparent),transparent 60%),#020617;border-color:rgba(148,163,184,.45);box-shadow:0 22px 55px rgba(0,0,0,.7)}
-html.dark-mode .modal-actions{background:radial-gradient(circle at top left,color-mix(in srgb,#6366f1 14%,transparent),transparent 55%),radial-gradient(circle at bottom right,color-mix(in srgb,#22c55e 10%,transparent),transparent 60%),#020617;border-top:1px solid rgba(148,163,184,.16)}
+.tutorials :deep(html.dark-mode .popup-overlay.tutorial-popup .popup){background:none!important;background-color:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important}
+html.dark-mode .modal-actions{border-top:1px solid rgba(148,163,184,.16);background:radial-gradient(circle at top left,color-mix(in srgb,#6366f1 12%,transparent),transparent 58%),radial-gradient(circle at bottom right,color-mix(in srgb,#22c55e 8%,transparent),transparent 62%),#020617;box-shadow:0 -18px 30px rgba(0,0,0,.24)}
 html.dark-mode .tutorials :deep(.popup-overlay.tutorial-popup .popup-body){background:transparent}
 html.dark-mode .level-visual{border:0;box-shadow:none}
 html.dark-mode .level-chip{background:rgba(255,255,255,.05);border:0}
 html.dark-mode .level-meter-bar{background:rgba(148,163,184,.12);border-color:rgba(148,163,184,.18)}
 @keyframes previewTouchPulse{0%{transform:scale(.88);box-shadow:0 0 0 0 rgba(59,130,246,.34)}70%{transform:scale(1);box-shadow:0 0 0 .7rem rgba(59,130,246,0)}100%{transform:scale(.9);box-shadow:0 0 0 0 rgba(59,130,246,0)}}
-@media (hover:hover){.hero:hover,.results:hover,.favorites-panel:hover{transform:translateY(-3px) scale(1.01);box-shadow:0 22px 50px rgba(15,23,42,.32);border-color:rgba(129,140,248,.55)}}
-@media (min-width:1025px){.hero-side{position:sticky;top:1rem}.starter{max-height:min(72vh,calc(100vh - 6rem));overflow-y:auto;padding:.2rem .45rem .45rem .1rem;margin:-.2rem -.45rem -.45rem -.1rem;scrollbar-gutter:stable}.starter::-webkit-scrollbar{width:.5rem}.starter::-webkit-scrollbar-thumb{border-radius:999px;background:rgba(148,163,184,.28)}}
+@media (hover:hover){.hero:hover,.results:hover,.favorites-panel:hover{transform:translateY(-3px) scale(1.01);box-shadow:none!important;border-color:rgba(129,140,248,.55)}}
+@media (min-width:1025px){.hero-side{position:sticky;top:1rem;background:none!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important}.starter{max-height:min(72vh,calc(100vh - 6rem));overflow-y:auto;padding:0!important;margin:0!important;scrollbar-gutter:stable;background:none!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;backdrop-filter:none!important}.starter-list{gap:.75rem;padding:.25rem .35rem .5rem .15rem;border-radius:0;overflow:visible;background:none!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;backdrop-filter:none!important}.starter-list .tutorial-card-shell--starter{padding-top:.45rem!important}.starter-list .tutorial-card-shell--with-badge{padding-top:1.1rem!important}.starter-list .starter-card{box-shadow:0 18px 40px rgba(15,23,42,.22)!important}.favorites-list,.favorites-list--scroll{background:none!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;backdrop-filter:none!important}.favorites-list{overflow:visible!important}.favorites-list--scroll{max-height:calc((3 * 9.75rem) + (2 * .75rem));overflow-y:auto!important;overflow-x:visible!important;padding:.25rem .45rem .55rem .12rem!important;margin:-.25rem -.45rem -.55rem -.12rem!important}.starter::-webkit-scrollbar{width:.5rem}.starter::-webkit-scrollbar-thumb{border-radius:999px;background:rgba(148,163,184,.28)}}
 @media (min-width:760px){.upload-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:1024px){.hero,.controls-top,.tutorial-coaching-grid,.related-grid{grid-template-columns:1fr}.stats,.starter-list{grid-template-columns:1fr}}
+@media (max-width:1024px){.hero,.controls-top,.tutorial-coaching-grid,.related-grid{grid-template-columns:1fr}.hero-copy,.controls--hero,.hero-side{grid-column:auto;grid-row:auto}.stats,.starter-list{grid-template-columns:1fr}.favorites-panel,.favorites-list,.favorites-list--scroll{background:transparent!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;backdrop-filter:none!important}.favorites-list.favorites-list--scroll{padding:.25rem .45rem .55rem .12rem!important;margin:-.25rem -.45rem -.55rem -.12rem!important;border-radius:0!important;overflow-y:auto!important;overflow-x:visible!important}}
 @media (max-width:1024px){.hero-side--suppressed{display:none}}
-@media (min-width:541px) and (max-width:720px){.card-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem;align-items:stretch}.card-actions .btn{width:100%!important;min-width:0;max-width:none!important;height:2.45rem;min-height:2.45rem;padding:.42rem .55rem;font-size:.84rem;line-height:1.15}.card-actions .btn:nth-child(1){order:1}.card-actions .btn:nth-child(2){order:2}.card-actions .btn:nth-child(3){order:3}.card-actions .btn.danger{grid-column:1/-1;order:4}}
-@media (max-width:720px){.tutorials{padding:.8rem;padding-top:1.35rem}.page-title{font-size:1.9rem}.hero,.controls,.upload-panel,.results,.favorites-panel{padding:.9rem;border-radius:18px}.hero-copy,.hero-side,.starter{padding:0}.hero-copy h1{max-width:none;font-size:2.15rem;margin:0 0 1.1rem}.hero-actions,.actions{display:grid;grid-template-columns:1fr}.tutorial-level-legend{gap:.55rem .85rem;font-size:.78rem}.tutorial-level-legend__swatch{width:.82rem;height:.82rem}.btn,.select{width:100%}.pill,.badge,.status-pill,.category-chip,.category-pill,.equipment-pill,.muscle-pill,.level-chip{min-height:1.8rem;padding:.28rem .62rem;font-size:.72rem}.tutorial-card-shell{padding-top:.95rem}.tutorial-card-top-badge{left:.85rem}.tutorial-card-top-label{font-size:.68rem}.card-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:.45rem}.card-actions .btn{width:4.55rem!important;min-width:4.55rem;max-width:4.55rem;height:2rem;min-height:2rem;padding:.3rem .45rem;font-size:.8rem}.card-actions .btn.danger{width:100%!important;min-width:0;max-width:none}.tutorials-grid{grid-template-columns:1fr}.tutorial-card{border-radius:20px}.card-body{gap:.72rem;padding:.9rem}.card-head{gap:.65rem}.card-head h3{font-size:1rem;min-height:2.35rem}.card-text{margin:.35rem 0 0;min-height:2.8rem;font-size:.92rem;line-height:1.5}.tutorials :deep(.popup-overlay.tutorial-popup){padding:.5rem;align-items:end}.tutorials :deep(.popup-overlay.tutorial-popup .popup){width:100%;max-height:calc(100vh - 1rem);border-radius:24px 24px 18px 18px}.modal-meta-grid{grid-template-columns:1fr}.modal-actions{display:grid;grid-template-columns:1fr;align-items:stretch}.tutorial-modal-actions-right{display:grid;grid-template-columns:1fr}.tutorial-modal-btn{width:100%!important;min-width:0}.video-placeholder{min-height:180px}}
+@media (min-width:541px) and (max-width:720px){.card-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;align-items:stretch}.card-actions .btn{width:100%!important;min-width:0;max-width:none!important;height:2.45rem;min-height:2.45rem;padding:.42rem .55rem;font-size:.84rem;line-height:1.15}.card-actions .btn:nth-child(1){order:1}.card-actions .btn:nth-child(2){order:2}.card-actions .btn.danger{grid-column:1/-1;order:3}}
+@media (max-width:720px){.tutorials{padding:.8rem;padding-top:1.35rem}.page-title{font-size:1.9rem}.hero,.controls,.upload-panel,.results,.favorites-panel{padding:.9rem;border-radius:18px}.hero-copy,.hero-side,.starter{padding:0}.hero-copy h1{max-width:none;font-size:2.15rem;margin:0 0 1.1rem}.hero-actions,.actions{display:grid;grid-template-columns:1fr}.tutorial-level-legend{gap:.55rem .85rem;font-size:.78rem}.tutorial-level-legend__swatch{width:.82rem;height:.82rem}.btn,.select{width:100%}.pill,.badge,.status-pill,.category-chip,.category-pill,.equipment-pill,.muscle-pill,.level-chip{min-height:1.8rem;padding:.28rem .62rem;font-size:.72rem}.tutorial-card-shell{padding-top:.95rem}.favorites-list .tutorial-card-shell--starter.tutorial-card-shell--with-badge{padding-top:.95rem!important}.tutorial-card-top-badge{left:.85rem}.tutorial-card-top-label{font-size:.68rem}.card-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:.45rem}.card-actions .btn{width:auto!important;min-width:6.4rem;max-width:none!important;height:2rem;min-height:2rem;padding:.3rem .55rem;font-size:.8rem}.card-actions .btn.danger{width:100%!important;min-width:0;max-width:none}.tutorials-grid{grid-template-columns:1fr}.tutorial-card{border-radius:20px}.card-body{gap:.72rem;padding:.9rem}.card-head{gap:.65rem}.card-head h3{font-size:1rem;min-height:2.35rem}.card-text{margin:.35rem 0 0;min-height:2.8rem;font-size:.92rem;line-height:1.5}.favorites-list{padding:0 .9rem .9rem!important;margin:.75rem -.9rem -.9rem!important;border-radius:0 0 18px 18px}.favorites-list.favorites-list--scroll{padding:.25rem .4rem .5rem .1rem!important;margin:-.25rem -.4rem -.5rem -.1rem!important;border-radius:0!important;overflow-x:visible!important}.tutorials :deep(.popup-overlay.tutorial-popup){padding:.5rem;align-items:end}.tutorials :deep(.popup-overlay.tutorial-popup .popup){width:100%;max-height:calc(100vh - 1rem);border-radius:24px 24px 18px 18px}.modal-meta-grid{grid-template-columns:1fr}.modal-actions{display:grid;grid-template-columns:1fr;align-items:stretch}.tutorial-modal-actions-right{display:grid;grid-template-columns:1fr}.tutorial-modal-btn{width:100%!important;min-width:0}.video-placeholder{min-height:180px}}
+@media (max-width:720px){.favorites-head{align-items:flex-start}.favorites-title{font-size:1.55rem!important}.favorites-subtitle{font-size:.9rem}.favorites-meta{justify-content:flex-start}}
 @media (max-width:720px){.section-head{align-items:flex-start}.section-head > div{min-width:0;flex:1 1 auto}.section-head h2{line-height:1.08}.section-head .section-note{flex:0 0 auto;max-width:15rem;text-align:right;margin:0;padding-top:.15rem}}
 @media (max-width:535px){.section-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;column-gap:.75rem;row-gap:.2rem}.section-head .section-note{max-width:11.5rem;font-size:.86rem;line-height:1.35}}
 @media (max-width:665px){.category-row--chips{display:none}.category-select-wrap{display:grid}}
-@media (max-width:480px){.tutorial-level-legend{display:grid;grid-template-columns:1fr;gap:.42rem;margin-top:.9rem;font-size:.74rem}.tutorial-level-legend__item{gap:.38rem}.tutorial-level-legend__swatch{width:.78rem;height:.78rem}.pill,.badge,.status-pill,.category-chip,.category-pill,.equipment-pill,.muscle-pill,.level-chip{min-height:1.65rem;padding:.24rem .56rem;font-size:.68rem}.tutorial-card-top-label{font-size:.64rem}.card-actions .btn{width:4.2rem!important;min-width:4.2rem;max-width:4.2rem;font-size:.76rem}.card-body{padding:.82rem}.media-top{padding:.7rem}}
+@media (max-width:480px){.tutorial-level-legend{display:grid;grid-template-columns:1fr;gap:.42rem;margin-top:.9rem;font-size:.74rem}.tutorial-level-legend__item{gap:.38rem}.tutorial-level-legend__swatch{width:.78rem;height:.78rem}.pill,.badge,.status-pill,.category-chip,.category-pill,.equipment-pill,.muscle-pill,.level-chip{min-height:1.65rem;padding:.24rem .56rem;font-size:.68rem}.tutorial-card-top-label{font-size:.64rem}.card-actions .btn{width:auto!important;min-width:6rem;max-width:none!important;font-size:.76rem}.card-body{padding:.82rem}.media-top{padding:.7rem}}
 @media (max-width:480px){.section-head{display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:space-between;gap:.6rem}.section-head > div{min-width:0;flex:1 1 auto}.section-head .section-note{max-width:9.5rem;font-size:.8rem;line-height:1.3;text-align:right}}
 @media (max-width:400px){.favorites-panel .section-head .section-note{display:none}}
 @media (max-width:380px){.results .section-head .section-note{display:none}}
 @media (max-width:360px){.page-title{font-size:1.75rem}}
+    @media (max-width:1025px) {
+        .hero-side {
+            position: sticky;
+            top: 1rem;
+            background: none !important;
+            background-color: transparent !important;
+            background-image: none !important;
+            box-shadow: none !important
+        }
+
+        .starter {
+            max-height: min(72vh,calc(100vh - 6rem));
+            overflow-y: auto;
+            padding: 0 !important;
+            margin: 0 !important;
+            scrollbar-gutter: stable;
+            background: none !important;
+            background-color: transparent !important;
+            background-image: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important
+        }
+
+        .starter-list {
+            gap: .75rem;
+            padding: .25rem .35rem .5rem .15rem;
+            border-radius: 0;
+            overflow: visible;
+            background: none !important;
+            background-color: transparent !important;
+            background-image: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important
+        }
+
+            .starter-list .tutorial-card-shell--starter {
+                padding-top: .45rem !important
+            }
+
+            .starter-list .tutorial-card-shell--with-badge {
+                padding-top: 1.1rem !important
+            }
+
+            .starter-list .starter-card {
+                box-shadow: 0 18px 40px rgba(15,23,42,.22) !important
+            }
+
+        .favorites-list, .favorites-list--scroll {
+            background: none !important;
+            background-color: transparent !important;
+            background-image: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important
+        }
+
+        .favorites-list {
+            overflow: visible !important
+        }
+
+        .favorites-list--scroll {
+            max-height: calc((3 * 9.75rem) + (2 * .75rem));
+            overflow-y: auto !important;
+            overflow-x: visible !important;
+            padding: .25rem .45rem .55rem .12rem !important;
+            margin: -.25rem -.45rem -.55rem -.12rem !important
+        }
+
+        .starter::-webkit-scrollbar {
+            width: .5rem
+        }
+
+        .starter::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: rgba(148,163,184,.28)
+        }
+    }
+
 </style>
 

@@ -1,21 +1,23 @@
-<template>
+﻿<template>
     <div v-if="hasAnyPlans" class="planner-wrap">
         <div class="plan-calendar-toggle">
             <button type="button"
                     class="btn primary"
-                    @click="showPlanner = !showPlanner">
-                {{ showPlanner ? 'Kalender ausblenden' : 'Workout planen' }}
+                    @click="togglePlanner">
+                {{ showPlanner ? t('trainingPlanner.hideCalendar') : t('trainingPlanner.planWorkout') }}
             </button>
         </div>
 
-        <Transition name="planner-reveal" appear>
-        <section v-if="showPlanner" ref="plannerSectionRef" class="plan-calendar card">
+        <section v-if="plannerMounted"
+                 ref="plannerSectionRef"
+                 class="plan-calendar card"
+                 :class="{ 'is-entering': plannerAnimatingIn, 'is-leaving': plannerAnimatingOut }">
             <div class="card-head planner-reveal-item planner-reveal-item--head">
-                <h3 class="card-title">Trainingsplaner</h3>
-                <button type="button" class="btn ghost" @click="selectToday">Heute</button>
+                <h3 class="card-title">{{ t('trainingPlanner.title') }}</h3>
+                <button type="button" class="btn ghost" @click="selectToday">{{ t('trainingPlanner.today') }}</button>
             </div>
             <div class="plan-calendar-tip planner-reveal-item planner-reveal-item--tip">
-                Tipp: Doppelklick auf das Datum oben, um schneller zu navigieren.
+                {{ t('trainingPlanner.tip.doubleClickDate') }}
             </div>
 
             <div class="plan-calendar-grid">
@@ -50,15 +52,15 @@
                             </span>
                             <span v-if="Object.keys(restDays).length" class="legend-item">
                                 <span class="legend-rest"></span>
-                                <span class="legend-text">- Ruhetag</span>
+                                <span class="legend-text">- {{ t('trainingPlanner.restDay') }}</span>
                             </span>
                         </div>
                     </div>
                 </div>
 
                 <div class="plan-calendar-side planner-reveal-item planner-reveal-item--side">
-                    <div class="side-title">Ausgewählt ({{ selectedDaysSorted.length }})</div>
-                    <div class="side-title side-title--mini">Tage *</div>
+                    <div class="side-title">{{ tp('trainingPlanner.selectedCount', { count: selectedDaysSorted.length }) }}</div>
+                    <div class="side-title side-title--mini">{{ t('trainingPlanner.daysRequired') }}</div>
                     <TransitionGroup
                         name="selected-chip-stack"
                         tag="div"
@@ -80,25 +82,25 @@
                             type="button"
                             class="btn ghost"
                             @click="clearSelection">
-                        Alle Tage leeren
+                        {{ t('trainingPlanner.clearAllDays') }}
                     </button>
 
                     <div v-if="!selectedDay" class="side-empty">
-                        Wähle zuerst einen Tag im Kalender. Vergangenheit ist gesperrt.
+                        {{ t('trainingPlanner.chooseDayFirst') }}
                     </div>
 
-                    <div class="side-title" :class="{ muted: !selectedDay }">Geplant für {{ selectedDay ? formatDayShort(selectedDay) : " " }}</div>
+                    <div class="side-title" :class="{ muted: !selectedDay }">{{ selectedDay ? tp('trainingPlanner.plannedForDay', { day: formatDayShort(selectedDay) }) : t('trainingPlanner.plannedFor') }}</div>
 
                     <div class="plan-picker">
-                        <div class="side-title side-title--mini">Plan wählen *</div>
-                        <UiPopupSelect label="Plan wählen"
-                                       placeholder="Plan auswählen"
+                        <div class="side-title side-title--mini">{{ t('trainingPlanner.choosePlanRequired') }}</div>
+                        <UiPopupSelect :label="t('trainingPlanner.choosePlanLabel')"
+                                       :placeholder="t('trainingPlanner.choosePlanPlaceholder')"
                                        v-model="selectedPlanId"
                                        :options="planOptions" />
                         <p v-if="plannerFormErrors.selectedPlan" class="field-error">{{ plannerFormErrors.selectedPlan }}</p>
 
                         <div class="plan-color">
-                            <div class="side-title">Plan-Farbe</div>
+                            <div class="side-title">{{ t('trainingPlanner.planColor') }}</div>
                             <div class="color-row">
                                 <button v-for="c in colorOptions"
                                         :key="c.value"
@@ -113,21 +115,21 @@
                         </div>
 
                         <div class="plan-repeat" :class="{ 'has-error': !!plannerFormErrors.repeatWeeks || !!plannerFormErrors.repeatWeekdays }">
-                            <div class="side-title">Wiederholung</div>
+                            <div class="side-title">{{ t('trainingPlanner.repeat') }}</div>
                             <div class="repeat-row">
-                                <label class="repeat-label">Wochen</label>
+                                <label class="repeat-label">{{ t('trainingPlanner.weeks') }}</label>
                                 <input v-model.number="repeatWeeks"
                                        class="repeat-input"
                                        :class="{ 'is-error': !!plannerFormErrors.repeatWeeks }"
                                        type="number"
                                        min="1"
                                        max="12"
-                                       placeholder="z.B. 4" />
+                                       :placeholder="t('trainingPlanner.weeksPlaceholder')" />
                             </div>
                             <p v-if="plannerFormErrors.repeatWeeks" class="field-error">{{ plannerFormErrors.repeatWeeks }}</p>
-                            <div class="side-title side-title--mini">Wochentage</div>
+                            <div class="side-title side-title--mini">{{ t('trainingPlanner.weekdays') }}</div>
                             <div class="repeat-weekdays">
-                                <button v-for="(label, idx) in ['Mo','Di','Mi','Do','Fr','Sa','So']"
+                                <button v-for="(label, idx) in weekdayLabels"
                                         :key="label"
                                         type="button"
                                         class="weekday-chip"
@@ -143,10 +145,10 @@
 
                         <div class="plan-actions">
                             <button type="button" class="btn primary" @click="addPlanForSelectedDays($event)">
-                                Hinzufügen
+                                {{ t('trainingPlanner.add') }}
                             </button>
                             <button type="button" class="btn ghost" @click="toggleRestForSelected">
-                                {{ allSelectedRest ? 'Ruhetage entfernen' : 'Ruhetage eintragen' }}
+                                {{ allSelectedRest ? t('trainingPlanner.removeRestDays') : t('trainingPlanner.addRestDays') }}
                             </button>
                         </div>
                         <div v-if="plannerValidationLead || plannerValidationItems.length" class="planner-validation-card">
@@ -161,57 +163,54 @@
                             type="button"
                             class="btn ghost"
                             @click="showAllPlans = !showAllPlans">
-                        {{ showAllPlans ? 'Meine Planungen schließen' : 'Meine Planungen ansehen' }}
+                        {{ showAllPlans ? t('trainingPlanner.hideMyPlans') : t('trainingPlanner.viewMyPlans') }}
                     </button>
 
-                    <Transition
-                        name="all-plans-reveal"
-                        @enter="onAllPlansEnter"
-                        @after-enter="onAllPlansAfterEnter"
-                        @leave="onAllPlansLeave">
-                    <div v-if="showAllPlans" class="all-plans" ref="allPlansRef">
-                        <div class="all-plans-head">
-                            <div class="side-title">Alle Planungen</div>
-                            <button type="button"
-                                    class="btn ghost btn-reset"
-                                    @click="onResetAllPlansClick($event)">
-                                Alles zurücksetzen
-                            </button>
+                    <div class="all-plans-shell" :class="{ 'is-open': showAllPlans }">
+                        <div class="all-plans-clip">
+                            <div class="all-plans" ref="allPlansRef" :aria-hidden="showAllPlans ? 'false' : 'true'">
+                                <div class="all-plans-head">
+                                    <div class="side-title">{{ t('trainingPlanner.allPlans') }}</div>
+                                    <button type="button"
+                                            class="btn ghost btn-reset"
+                                            @click="onResetAllPlansClick($event)">
+                                        {{ t('trainingPlanner.resetAll') }}
+                                    </button>
+                                </div>
+                                <div v-if="!allPlannings.length" class="side-empty">
+                                    {{ t('trainingPlanner.noPlansYet') }}
+                                </div>
+                                <ul v-else class="side-list">
+                                    <li v-for="p in allPlannings"
+                                        :key="`${p.type}-${p.planId ?? 'rest'}-${p.day}`"
+                                        class="side-item">
+                                        <span v-if="p.type === 'plan'"
+                                              class="side-color"
+                                              :style="{ background: p.color || '#94a3b8' }"></span>
+                                        <span v-else class="rest-pill">{{ t('trainingPlanner.restDay') }}</span>
+                                        <span class="side-name">
+                                            {{ formatDayShort(p.day) }}   {{ p.type === 'plan' ? p.planName : t('trainingPlanner.restDay') }}
+                                        </span>
+                                        <button v-if="p.type === 'plan'"
+                                                type="button"
+                                                class="btn ghost btn-remove"
+                                                @click="requestRemovePlanned(p.day, p.planId!, p.planName, $event)">
+                                            {{ t('trainingPlanner.remove') }}
+                                        </button>
+                                        <button v-else
+                                                type="button"
+                                                class="btn ghost btn-remove"
+                                                @click="requestRemoveRestDay(p.day, $event)">
+                                            {{ t('trainingPlanner.remove') }}
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
-                        <div v-if="!allPlannings.length" class="side-empty">
-                            Noch keine Planungen vorhanden.
-                        </div>
-                        <ul v-else class="side-list">
-                            <li v-for="p in allPlannings"
-                                :key="`${p.type}-${p.planId ?? 'rest'}-${p.day}`"
-                                class="side-item">
-                                <span v-if="p.type === 'plan'"
-                                      class="side-color"
-                                      :style="{ background: p.color || '#94a3b8' }"></span>
-                                <span v-else class="rest-pill">Ruhetag</span>
-                                <span class="side-name">
-                                    {{ formatDayShort(p.day) }}   {{ p.type === 'plan' ? p.planName : 'Ruhetag' }}
-                                </span>
-                                <button v-if="p.type === 'plan'"
-                                        type="button"
-                                        class="btn ghost btn-remove"
-                                        @click="requestRemovePlanned(p.day, p.planId!, p.planName, $event)">
-                                    Entfernen
-                                </button>
-                                <button v-else
-                                        type="button"
-                                        class="btn ghost btn-remove"
-                                        @click="requestRemoveRestDay(p.day, $event)">
-                                    Entfernen
-                                </button>
-                            </li>
-                        </ul>
                     </div>
-                    </Transition>
                 </div>
             </div>
         </section>
-        </Transition>
 
         <Transition name="delete-trash">
             <div v-if="deleteTrashState.visible" class="delete-trash-overlay" aria-hidden="true">
@@ -310,6 +309,7 @@
     import { useSettingsStore } from '@/store/settingsStore'
     import { addTrainingPlanner, addTrainingPlannerRestDay, deleteTrainingPlanner, deleteTrainingPlannerRestDay, listTrainingPlanner, setTrainingPlannerCompletion } from '@/services/trainingPlanner'
     import { setTrainingPlanColor } from '@/services/trainingPlans'
+    import { useI18n } from '@/composables/useI18n'
 
     type ViewPlan = {
         id: string
@@ -322,7 +322,22 @@
     }>()
 
     const showPlanner = ref(false)
+    const { locale, t } = useI18n()
+    const tp = (key: string, params: Record<string, string | number>) => {
+        let text = t(key)
+
+        for (const [paramKey, value] of Object.entries(params)) {
+            text = text.replaceAll(`{${paramKey}}`, String(value))
+        }
+
+        return text
+    }
+    const plannerMounted = ref(false)
+    const plannerAnimatingIn = ref(false)
+    const plannerAnimatingOut = ref(false)
     const plannerSectionRef = ref<HTMLElement | null>(null)
+    const PLANNER_REVEAL_ENTER_MS = 420
+    const PLANNER_REVEAL_LEAVE_MS = 1100
     const selectedDaysRef = ref<HTMLElement | null>(null)
     const selectedPlanId = ref<string>('')
     const todayKey = new Date().toISOString().slice(0, 10)
@@ -365,6 +380,7 @@
     const colorBroadcastBursts = ref<Array<{ id: string; style: Record<string, string> }>>([])
     let colorBroadcastTimer: ReturnType<typeof setTimeout> | null = null
     let pendingColorBroadcastOrigin: { x: number; y: number } | null = null
+    let plannerToggleTimer: ReturnType<typeof setTimeout> | null = null
     const deleteTrashState = ref({
         visible: false,
         itemName: '',
@@ -382,6 +398,16 @@
     const popupDay = ref('')
     const popupPlanId = ref('')
     const popupColor = ref('')
+    const dateLocale = computed(() => locale.value === 'en' ? 'en-US' : 'de-DE')
+    const weekdayLabels = computed(() => [
+        t('trainingPlanner.weekday.mon'),
+        t('trainingPlanner.weekday.tue'),
+        t('trainingPlanner.weekday.wed'),
+        t('trainingPlanner.weekday.thu'),
+        t('trainingPlanner.weekday.fri'),
+        t('trainingPlanner.weekday.sat'),
+        t('trainingPlanner.weekday.sun'),
+    ])
 
     const hasAnyPlans = computed(() =>
         (props.apiPlans?.length ?? 0) > 0 || (props.guestPlans?.length ?? 0) > 0
@@ -434,7 +460,7 @@
             if (names.length) out[day] = names.join(', ')
         }
         for (const day of Object.keys(restDays.value)) {
-            out[day] = 'Ruhetag'
+            out[day] = t('trainingPlanner.restDay')
         }
         return out
     })
@@ -512,6 +538,49 @@
     const popupIsToday = computed(() => popupDay.value === todayKey)
     const popupIsFuture = computed(() => !!popupDay.value && popupDay.value > todayKey)
     const popupIsPlanned = computed(() => !!popupDay.value && (planner.value[popupDay.value]?.length ?? 0) > 0)
+
+    const clearPlannerToggleTimer = () => {
+        if (plannerToggleTimer) {
+            clearTimeout(plannerToggleTimer)
+            plannerToggleTimer = null
+        }
+    }
+
+    const finishPlannerEnter = () => {
+        plannerAnimatingIn.value = false
+        plannerToggleTimer = null
+    }
+
+    const runPlannerEnter = async () => {
+        clearPlannerToggleTimer()
+        plannerMounted.value = true
+        showPlanner.value = true
+        plannerAnimatingOut.value = false
+        plannerAnimatingIn.value = true
+        await nextTick()
+        plannerToggleTimer = setTimeout(finishPlannerEnter, PLANNER_REVEAL_ENTER_MS)
+    }
+
+    const runPlannerLeave = () => {
+        clearPlannerToggleTimer()
+        showPlanner.value = false
+        plannerAnimatingIn.value = false
+        plannerAnimatingOut.value = true
+        plannerToggleTimer = setTimeout(() => {
+            plannerMounted.value = false
+            plannerAnimatingOut.value = false
+            plannerToggleTimer = null
+        }, PLANNER_REVEAL_LEAVE_MS)
+    }
+
+    const togglePlanner = () => {
+        if (!plannerMounted.value || plannerAnimatingOut.value) {
+            void runPlannerEnter()
+            return
+        }
+
+        runPlannerLeave()
+    }
     const popupIsRest = computed(() => !!popupDay.value && !!restDays.value[popupDay.value])
     const popupIsCompleted = computed(() => !!popupDay.value && !!completedDays.value[popupDay.value])
     const popupAllowComplete = computed(() => popupIsToday.value && popupIsPlanned.value && !popupIsRest.value)
@@ -668,21 +737,21 @@
 
     const formatDayShort = (yyyyMMdd: string) => {
         const [y, m, d] = yyyyMMdd.split('-').map(Number)
-        return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString('de-DE', {
+        return new Intl.DateTimeFormat(dateLocale.value, {
             weekday: 'short',
             day: '2-digit',
             month: '2-digit',
-        })
+        }).format(new Date(y, (m ?? 1) - 1, d ?? 1))
     }
 
     const formatDayLong = (yyyyMMdd: string) => {
         const [y, m, d] = yyyyMMdd.split('-').map(Number)
-        return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString('de-DE', {
+        return new Intl.DateTimeFormat(dateLocale.value, {
             weekday: 'long',
             day: '2-digit',
             month: 'long',
             year: 'numeric',
-        })
+        }).format(new Date(y, (m ?? 1) - 1, d ?? 1))
     }
 
     const getDayIndexMonday = (d: Date) => (d.getDay() + 6) % 7 // Mo=0..So=6
@@ -737,48 +806,6 @@
     const clearPlannerValidation = () => {
         plannerValidationLead.value = ''
         plannerValidationItems.value = []
-    }
-
-    const animateAllPlansExpand = (el: Element, done?: () => void) => {
-        const node = el as HTMLElement
-        node.style.overflow = 'hidden'
-        node.style.height = '0px'
-        node.style.opacity = '0'
-        node.style.transform = 'translateY(-10px) scale(.985)'
-        void node.offsetHeight
-        requestAnimationFrame(() => {
-            node.style.height = `${node.scrollHeight}px`
-            node.style.opacity = '1'
-            node.style.transform = 'translateY(0) scale(1)'
-        })
-        if (done) window.setTimeout(done, 380)
-    }
-
-    const onAllPlansEnter = (el: Element, done: () => void) => {
-        animateAllPlansExpand(el, done)
-    }
-
-    const onAllPlansAfterEnter = (el: Element) => {
-        const node = el as HTMLElement
-        node.style.height = 'auto'
-        node.style.overflow = ''
-        node.style.opacity = ''
-        node.style.transform = ''
-    }
-
-    const onAllPlansLeave = (el: Element, done: () => void) => {
-        const node = el as HTMLElement
-        node.style.overflow = 'hidden'
-        node.style.height = `${node.scrollHeight}px`
-        node.style.opacity = '1'
-        node.style.transform = 'translateY(0) scale(1)'
-        void node.offsetHeight
-        requestAnimationFrame(() => {
-            node.style.height = '0px'
-            node.style.opacity = '0'
-            node.style.transform = 'translateY(-10px) scale(.985)'
-        })
-        window.setTimeout(done, 340)
     }
 
     const triggerRepeatPreviewWave = () => {
@@ -981,7 +1008,7 @@
         const safeChips = chips
             .map(chip => chip.trim())
             .filter(Boolean)
-            .map(chip => chip.length > 36 ? `${chip.slice(0, 35)}…` : chip)
+            .map(chip => chip.length > 36 ? `${chip.slice(0, 35)}â€¦` : chip)
 
         deleteTrashChips.value = safeChips.length > 1 ? safeChips : []
         deleteTrashState.value = {
@@ -1143,26 +1170,48 @@
         plannerFormErrors.value.selectedDays = ''
     }
 
+    const plannerFallback = (key: string, fallback: string) => {
+        const translated = t(key)
+        return translated === key ? fallback : translated
+    }
+
+    const plannerConflictText = (day: string, existingPlanName?: string | null) =>
+        tp('trainingPlanner.validation.conflictDay', {
+            day: formatDayShort(day),
+            plan: existingPlanName?.trim() || t('trainingPlanner.otherPlan'),
+        })
+
+    const plannerRestConflictText = (day: string) =>
+        tp('trainingPlanner.validation.restMarkedDay', {
+            day: formatDayShort(day),
+        })
+
+    const plannerSamePlanText = (day: string, planName: string) =>
+        tp('trainingPlanner.validation.samePlanDay', {
+            day: formatDayShort(day),
+            plan: planName,
+        })
+
     const openValidation = (lead: string, errors: string[]) => {
         clearPlannerFormErrors()
         clearPlannerValidation()
-        if (lead.includes('Plan ausgew')) {
-            plannerFormErrors.value.selectedPlan = errors[0] ?? 'Bitte wähle zuerst einen Trainingsplan.'
+        if (lead === t('trainingPlanner.validation.noPlanSelected')) {
+            plannerFormErrors.value.selectedPlan = errors[0] ?? plannerFallback('trainingPlanner.validation.selectPlanFirst', 'Bitte wÃ¤hle zuerst einen Trainingsplan.')
             plannerValidationLead.value = lead
             return
         }
-        if (lead.includes('Wochentage fehlen')) {
-            plannerFormErrors.value.repeatWeekdays = errors[0] ?? 'Bitte wähle mindestens einen Wochentag.'
+        if (lead === t('trainingPlanner.validation.weekdaysMissing')) {
+            plannerFormErrors.value.repeatWeekdays = errors[0] ?? plannerFallback('trainingPlanner.validation.selectWeekday', 'Bitte wÃ¤hle mindestens einen Wochentag.')
             plannerValidationLead.value = lead
             return
         }
-        if (lead.includes('Wochen fehlen') || lead.includes('Wiederholung')) {
-            plannerFormErrors.value.repeatWeeks = errors[0] ?? 'Bitte prüfe die Wiederholung.'
+        if (lead === t('trainingPlanner.validation.weeksMissing') || lead === t('trainingPlanner.validation.invalidRepeat')) {
+            plannerFormErrors.value.repeatWeeks = errors[0] ?? plannerFallback('trainingPlanner.validation.checkRepeat', 'Bitte prÃ¼fe die Wiederholung.')
             plannerValidationLead.value = lead
             return
         }
-        if (lead.includes('Kein Tag ausgew')) {
-            plannerFormErrors.value.selectedDays = errors[0] ?? 'Bitte wähle zuerst einen Tag.'
+        if (lead === t('trainingPlanner.validation.noDaySelected')) {
+            plannerFormErrors.value.selectedDays = errors[0] ?? plannerFallback('trainingPlanner.validation.selectDayFirst', 'Bitte wÃ¤hle zuerst einen Tag.')
             plannerValidationLead.value = lead
             return
         }
@@ -1295,7 +1344,10 @@
     const movePlanForDay = async (fromDay: string, toDay: string) => {
         if (!fromDay || !toDay || fromDay === toDay) return
         if (isPastDay(toDay)) {
-            openValidation('Vergangenheit gesperrt.', ['Bitte wähle ein heutiges oder zukünftiges Datum.'])
+            openValidation(
+                t('trainingPlanner.validation.pastLocked'),
+                [t('trainingPlanner.validation.chooseTodayOrFuture')],
+            )
             return
         }
 
@@ -1304,8 +1356,11 @@
 
         const targetList = planner.value[toDay] ?? []
         if (targetList.length && !targetList.some(x => x.planId === current.planId)) {
-            const existing = targetList[0]?.planName || 'ein anderer Plan'
-            openValidation('Plan-Konflikt', [`${formatDayShort(toDay)}: bereits ${existing} geplant.`])
+            const existing = targetList[0]?.planName
+            openValidation(
+                t('trainingPlanner.validation.planConflict'),
+                [plannerConflictText(toDay, existing)],
+            )
             return
         }
 
@@ -1365,22 +1420,22 @@
         clearPlannerValidation()
         const id = selectedPlanId.value
         if (!id) {
-            openValidation('Kein Plan ausgewählt.', ['Bitte wähle zuerst einen Trainingsplan.'])
+            openValidation(t('trainingPlanner.validation.noPlanSelected'), [t('trainingPlanner.validation.selectPlanFirst')])
             return
         }
 
         const hasWeekdays = repeatWeekdays.value.length > 0
         if (repeatWeeks.value != null && !hasWeekdays) {
-            openValidation('Wochentage fehlen.', ['Bitte wähle mindestens einen Wochentag.'])
+            openValidation(t('trainingPlanner.validation.weekdaysMissing'), [t('trainingPlanner.validation.selectWeekday')])
             return
         }
         if (hasWeekdays && (repeatWeeks.value == null || repeatWeeks.value === 0)) {
-            openValidation('Wochen fehlen.', ['Bitte trage die Anzahl der Wochen ein.'])
+            openValidation(t('trainingPlanner.validation.weeksMissing'), [t('trainingPlanner.validation.enterWeeks')])
             return
         }
 
         if (repeatWeeks.value != null && (repeatWeeks.value < 1 || repeatWeeks.value > 12)) {
-            openValidation('Ungültige Wiederholung.', ['Maximale Wochenanzahl: 12.'])
+            openValidation(t('trainingPlanner.validation.invalidRepeat'), [t('trainingPlanner.validation.maxWeeks')])
             return
         }
 
@@ -1391,7 +1446,7 @@
         if (!planName) return
 
         if (!selectedDay.value && selectedDays.value.length === 0 && !hasWeekdays) {
-            openValidation('Kein Tag ausgewählt.', ['Bitte wähle zuerst einen Tag oder Wochentage aus.'])
+            openValidation(t('trainingPlanner.validation.noDaySelected'), [t('trainingPlanner.validation.selectDayOrWeekdays')])
             return
         }
 
@@ -1400,8 +1455,8 @@
         if (restConflicts.length) {
             triggerCalendarConflicts(restConflicts)
             openValidation(
-                'Ruhetag erkannt.',
-                restConflicts.map(day => `${formatDayShort(day)}: als Ruhetag markiert.`)
+                t('trainingPlanner.validation.restDayDetected'),
+                restConflicts.map((day) => plannerRestConflictText(day)),
             )
         }
 
@@ -1412,8 +1467,8 @@
         if (samePlanDays.length) {
             triggerCalendarConflicts(samePlanDays)
             openValidation(
-                'Plan bereits vorhanden.',
-                samePlanDays.map(day => `${formatDayShort(day)}: Du hast schon an dem Tag ${planName} geplant.`)
+                t('trainingPlanner.validation.planAlreadyExists'),
+                samePlanDays.map((day) => plannerSamePlanText(day, planName)),
             )
         }
 
@@ -1426,11 +1481,8 @@
         if (conflicts.length) {
             triggerCalendarConflicts(conflicts)
             openValidation(
-                'Plan-Konflikt',
-                conflicts.map(day => {
-                    const existing = planner.value[day]?.[0]?.planName || 'ein anderer Plan'
-                    return `${formatDayShort(day)}: bereits ${existing} geplant.`
-                })
+                t('trainingPlanner.validation.planConflict'),
+                conflicts.map((day) => plannerConflictText(day, planner.value[day]?.[0]?.planName)),
             )
         }
 
@@ -1514,7 +1566,7 @@
 
     const requestRemovePlanned = (day: string, planId: string, planName?: string, event?: MouseEvent) => {
         launchDeleteTrash(
-            [planName?.trim() || 'Trainingsplan'],
+            [planName?.trim() || t('trainingPlanner.planFallback')],
             event,
             () => removePlanned(day, planId),
             findCalendarDayCenter(day),
@@ -1523,7 +1575,7 @@
 
     const requestRemoveRestDay = (day: string, event?: MouseEvent) => {
         launchDeleteTrash(
-            ['Ruhetag'],
+            [t('trainingPlanner.restDay')],
             event,
             () => removeRestDay(day),
             findCalendarDayCenter(day),
@@ -1532,8 +1584,8 @@
 
     const requestClearDay = (day: string, event?: MouseEvent) => {
         const chips = [
-            ...(planner.value[day] ?? []).map(item => item.planName?.trim() || 'Trainingsplan'),
-            ...(restDays.value[day] ? ['Ruhetag'] : []),
+            ...(planner.value[day] ?? []).map(item => item.planName?.trim() || t('trainingPlanner.planFallback')),
+            ...(restDays.value[day] ? [t('trainingPlanner.restDay')] : []),
         ]
         if (!chips.length) return
         launchDeleteTrash(chips, event, () => clearDay(day))
@@ -1611,8 +1663,13 @@
     const requestResetAllPlans = (event?: MouseEvent) => {
         const chips = allPlannings.value.map(item =>
             item.type === 'plan'
-                ? `${formatDayShort(item.day)} · ${item.planName ?? 'Trainingsplan'}`
-                : `${formatDayShort(item.day)} · Ruhetag`
+                ? tp('trainingPlanner.chip.planOnDay', {
+                    day: formatDayShort(item.day),
+                    plan: item.planName ?? t('trainingPlanner.planFallback'),
+                })
+                : tp('trainingPlanner.chip.restOnDay', {
+                    day: formatDayShort(item.day),
+                })
         )
         if (!chips.length) {
             showResetConfirm.value = false
@@ -1641,21 +1698,21 @@
         clearPlannerValidation()
         const hasWeekdays = repeatWeekdays.value.length > 0
         if (repeatWeeks.value != null && !hasWeekdays) {
-            openValidation('Wochentage fehlen.', ['Bitte wähle mindestens einen Wochentag.'])
+            openValidation(t('trainingPlanner.validation.weekdaysMissing'), [t('trainingPlanner.validation.selectWeekday')])
             return
         }
         if (hasWeekdays && (repeatWeeks.value == null || repeatWeeks.value === 0)) {
-            openValidation('Wochen fehlen.', ['Bitte trage die Anzahl der Wochen ein.'])
+            openValidation(t('trainingPlanner.validation.weeksMissing'), [t('trainingPlanner.validation.enterWeeks')])
             return
         }
 
         if (repeatWeeks.value != null && (repeatWeeks.value < 1 || repeatWeeks.value > 12)) {
-            openValidation('Ungültige Wiederholung.', ['Maximale Wochenanzahl: 12.'])
+            openValidation(t('trainingPlanner.validation.invalidRepeat'), [t('trainingPlanner.validation.maxWeeks')])
             return
         }
 
         if (!selectedDay.value && selectedDays.value.length === 0) {
-            openValidation('Kein Tag ausgewählt.', ['Bitte wähle zuerst einen Tag im Kalender.'])
+            openValidation(t('trainingPlanner.validation.noDaySelected'), [t('trainingPlanner.validation.chooseDayFirst')])
             return
         }
 
@@ -1666,11 +1723,8 @@
         if (planConflicts.length) {
             triggerCalendarConflicts(planConflicts)
             openValidation(
-                'Plan-Konflikt',
-                planConflicts.map(day => {
-                    const existing = planner.value[day]?.[0]?.planName || 'ein anderer Plan'
-                    return `${formatDayShort(day)}: bereits ${existing} geplant.`
-                })
+                t('trainingPlanner.validation.planConflict'),
+                planConflicts.map((day) => plannerConflictText(day, planner.value[day]?.[0]?.planName)),
             )
             return
         }
@@ -1713,6 +1767,7 @@
     })
 
     onUnmounted(() => {
+        clearPlannerToggleTimer()
         if (calendarPulseTimer) clearTimeout(calendarPulseTimer)
         clearCalendarWaveTimer()
         clearCalendarConflictTimer()
@@ -1730,16 +1785,16 @@
         }
     )
 
-    const colorOptions = [
-        { label: 'Rot', value: '#ef4444' },
-        { label: 'Orange', value: '#f97316' },
-        { label: 'Gelb', value: '#eab308' },
-        { label: 'Grün', value: '#22c55e' },
-        { label: 'Blau', value: '#3b82f6' },
-        { label: 'Lila', value: '#8b5cf6' },
-        { label: 'Pink', value: '#ec4899' },
-        { label: 'Grau', value: '#94a3b8' },
-    ]
+    const colorOptions = computed(() => [
+        { label: t('trainingPlanner.color.red'), value: '#ef4444' },
+        { label: t('trainingPlanner.color.orange'), value: '#f97316' },
+        { label: t('trainingPlanner.color.yellow'), value: '#eab308' },
+        { label: t('trainingPlanner.color.green'), value: '#22c55e' },
+        { label: t('trainingPlanner.color.blue'), value: '#3b82f6' },
+        { label: t('trainingPlanner.color.purple'), value: '#8b5cf6' },
+        { label: t('trainingPlanner.color.pink'), value: '#ec4899' },
+        { label: t('trainingPlanner.color.gray'), value: '#94a3b8' },
+    ])
 
     const selectedPlanIsApi = computed(() => {
         const id = selectedPlanId.value
@@ -1797,47 +1852,92 @@
         margin-top: 1rem;
     }
 
-    .planner-reveal-enter-active,
-    .planner-reveal-leave-active {
+    .plan-calendar.is-entering,
+    .plan-calendar.is-leaving {
         overflow: hidden;
         transform-origin: top center;
-        transition: opacity .26s ease, transform .38s cubic-bezier(.22, 1, .36, 1), max-height .38s cubic-bezier(.22, 1, .36, 1), margin-top .38s cubic-bezier(.22, 1, .36, 1);
     }
 
-    .planner-reveal-enter-from,
-    .planner-reveal-leave-to {
-        opacity: 0;
-        transform: translateY(16px) scale(.988);
-        max-height: 0;
-        margin-top: 0;
+    .plan-calendar.is-entering {
+        animation: plannerRevealPanelEnter .42s cubic-bezier(.22, 1, .36, 1) both;
     }
 
-    .planner-reveal-enter-to,
-    .planner-reveal-leave-from {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        max-height: 1600px;
-        margin-top: 1.25rem;
+    .plan-calendar.is-leaving {
+        pointer-events: none;
+        animation: plannerRevealPanelLeave 1.1s cubic-bezier(.4, 0, .2, 1) both;
     }
 
-    .planner-reveal-enter-active .planner-reveal-item {
+    .plan-calendar.is-entering .planner-reveal-item {
         animation: plannerRevealItem .52s cubic-bezier(.22, 1, .36, 1) both;
     }
 
-    .planner-reveal-enter-active .planner-reveal-item--head {
+    .plan-calendar.is-entering .planner-reveal-item--head {
         animation-delay: .04s;
     }
 
-    .planner-reveal-enter-active .planner-reveal-item--tip {
+    .plan-calendar.is-entering .planner-reveal-item--tip {
         animation-delay: .1s;
     }
 
-    .planner-reveal-enter-active .planner-reveal-item--left {
+    .plan-calendar.is-entering .planner-reveal-item--left {
         animation-delay: .16s;
     }
 
-    .planner-reveal-enter-active .planner-reveal-item--side {
+    .plan-calendar.is-entering .planner-reveal-item--side {
         animation-delay: .24s;
+    }
+
+    .plan-calendar.is-leaving .planner-reveal-item {
+        animation: plannerRevealItem .52s cubic-bezier(.4, 0, .2, 1) reverse both;
+    }
+
+    @keyframes plannerRevealPanelEnter {
+        from {
+            opacity: 0;
+            transform: translateY(16px) scale(.988);
+            max-height: 0;
+            margin-top: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            max-height: 3200px;
+            margin-top: 1.25rem;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+    }
+
+    @keyframes plannerRevealPanelLeave {
+        0% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            max-height: 3200px;
+            margin-top: 1.25rem;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        42% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            max-height: 2200px;
+            margin-top: .7rem;
+            padding-top: .75rem;
+            padding-bottom: .75rem;
+        }
+
+        100% {
+            opacity: 0;
+            transform: translateY(0) scale(1);
+            max-height: 0;
+            margin-top: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
     }
 
     @keyframes plannerRevealItem {
@@ -1851,6 +1951,7 @@
             transform: translateY(0);
         }
     }
+
 
     .plan-calendar {
         margin-top: 1.25rem;
@@ -2819,23 +2920,19 @@
         color: var(--text-primary);
     }
 
-    .all-plans-reveal-enter-active,
-    .all-plans-reveal-leave-active {
-        transition: height .36s cubic-bezier(.22, 1, .36, 1), opacity .28s ease, transform .36s cubic-bezier(.22, 1, .36, 1);
+    .all-plans-shell {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows .28s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .all-plans-shell.is-open {
+        grid-template-rows: 1fr;
+    }
+
+    .all-plans-clip {
+        min-height: 0;
         overflow: hidden;
-        will-change: height, opacity, transform;
-    }
-
-    .all-plans-reveal-enter-from,
-    .all-plans-reveal-leave-to {
-        opacity: 0;
-        transform: translateY(-10px) scale(.985);
-    }
-
-    .all-plans-reveal-enter-to,
-    .all-plans-reveal-leave-from {
-        opacity: 1;
-        transform: translateY(0) scale(1);
     }
 
     .all-plans {
@@ -2843,6 +2940,16 @@
         display: grid;
         gap: .6rem;
         transform-origin: top center;
+        opacity: 0;
+        transform: translateY(-8px);
+        transition: opacity .18s ease, transform .24s cubic-bezier(.22, 1, .36, 1);
+        pointer-events: none;
+    }
+
+    .all-plans-shell.is-open .all-plans {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
     }
 
     .all-plans-head {

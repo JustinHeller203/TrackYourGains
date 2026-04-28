@@ -2,25 +2,25 @@
 
 <template>
     <BasePopup :show="show && confirmDeleteEnabled"
-               title="Löschen bestätigen"
+               :title="t('deleteConfirm.title')"
                overlayClass="delete-popup"
                @cancel="emit('cancel')">
-        <p class="popup-message">Willst du das wirklich löschen?</p>
+        <p class="popup-message">{{ t('deleteConfirm.message') }}</p>
 
         <label class="dontshow" @click.stop>
             <input v-model="dontShowAgain"
                    type="checkbox"
                    class="dontshow-input"
                    @change.stop />
-            <span class="dontshow-label">Nicht mehr anzeigen</span>
+            <span class="dontshow-label">{{ t('deleteConfirm.dontShowAgain') }}</span>
         </label>
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
-                Abbrechen
+                {{ t('common.cancel') }}
             </PopupActionButton>
 
             <PopupActionButton autofocus danger @click="onConfirm">
-                Löschen
+                {{ t('common.delete') }}
             </PopupActionButton>
         </template>
     </BasePopup>
@@ -33,11 +33,14 @@
     import { LS_CONFIRM_DELETE_ENABLED } from '@/constants/storageKeys'
     import { useAuthStore } from '@/store/authStore'
     import { useSettingsStore } from '@/store/settingsStore'
+    import { useI18n } from '@/composables/useI18n'
 
     const props = defineProps<{ show: boolean }>()
     const emit = defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
     const authStore = useAuthStore()
     const settingsStore = useSettingsStore()
+
+    const { t } = useI18n()
 
     const confirmDeleteEnabled = ref(true)
 
@@ -81,12 +84,10 @@
 
         emit('confirm')
     }
-    const initializing = ref(true)
 
     onMounted(() => {
         readSetting()
         window.addEventListener('confirm-delete-changed', onConfirmDeleteChanged)
-        initializing.value = false
     })
 
     watch(dontShowAgain, () => {

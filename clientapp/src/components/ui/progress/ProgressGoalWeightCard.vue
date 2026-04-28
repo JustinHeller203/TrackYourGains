@@ -1,5 +1,5 @@
 <template>
-    <DashboardCard title="Zielgewicht"
+    <DashboardCard :title="t('progress.goal.title')"
                    :info="goalDisplay"
                    :muted="goalKg == null"
                    :compact="compact"
@@ -17,7 +17,7 @@
 
     <GoalPopup :show="showGoalPopup"
                v-model="newGoalDisplay"
-               :placeholder="unit === 'kg' ? 'Ziel in kg' : 'Ziel in lbs'"
+               :placeholder="unit === 'kg' ? t('progress.goal.placeholderKg') : t('progress.goal.placeholderLbs')"
                :validate="validateGoal"
                :is-dirty="isGoalDirty"
                :allow-reset="true"
@@ -31,8 +31,8 @@
     import DashboardCard from '@/components/ui/DashboardCard.vue'
     import AnimatedReelValue from '@/components/ui/progress/AnimatedReelValue.vue'
     import GoalPopup from '@/components/ui/popups/GoalPopup.vue'
-    import { LS_PROGRESS_GOAL } from '@/constants/storageKeys'
     import { useWeightStore } from '@/store/weightStore'
+    import { useI18n } from '@/composables/useI18n'
     const props = defineProps<{
         unit: 'kg' | 'lbs'
         compact?: boolean
@@ -55,9 +55,10 @@
     const goalAnimationNonce = ref(0)
     const goalJumpNonce = ref(0)
     const openedGoalDisplay = ref<string | null>(null)
+    const { t } = useI18n()
 
     const goalDisplay = computed(() =>
-        props.goalKg != null ? props.formatWeight(props.goalKg, 1) : 'Kein Ziel gesetzt'
+        props.goalKg != null ? props.formatWeight(props.goalKg, 1) : t('progress.goal.noGoal')
     )
 
     const openedGoalValue = computed<number | null>(() =>
@@ -73,10 +74,10 @@
     })
 
     const validateGoal = (display: number | null): string | null => {
-        if (display === null || Number.isNaN(display)) return 'Zielgewicht muss eine Zahl sein'
-        if (display <= 0) return 'Zielgewicht muss größer als 0 sein'
+        if (display === null || Number.isNaN(display)) return t('progress.goal.validation.number')
+        if (display <= 0) return t('progress.goal.validation.min')
         const kg = props.displayToKg(Number(display))
-        if (kg > 200) return 'Zielgewicht darf maximal 200 kg sein'
+        if (kg > 200) return t('progress.goal.validation.max')
         return null
     }
 
@@ -129,7 +130,7 @@
             emit('saved', { goalKg })
             closeGoalPopup(false)
         } catch (e) {
-            emit('invalid', ['Zielgewicht konnte nicht gespeichert werden.'])
+            emit('invalid', [t('progress.goal.saveFailed')])
         }
     }
 
@@ -140,7 +141,7 @@
             emit('saved', { goalKg: null })
             closeGoalPopup(false)
         } catch (e) {
-            emit('invalid', ['Zielgewicht konnte nicht zurückgesetzt werden.'])
+            emit('invalid', [t('progress.goal.resetFailed')])
         }
     }
 </script>

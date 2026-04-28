@@ -1,14 +1,14 @@
-﻿<template>
+<template>
     <BasePopup :show="show"
-               :title="title || 'Was ist neu?'"
+               :title="title || t('newsPopup.title')"
                overlay-class="global-news-popup"
                :show-actions="true"
-               cancel-text="Später"
-               save-text="Ok, verstanden"
+               :cancel-text="t('newsPopup.later')"
+               :save-text="t('newsPopup.gotIt')"
                @cancel="onCancel"
                @save="onSave">
 
-        <div class="gnp-kicker">Neuigkeiten</div>
+        <div class="gnp-kicker">{{ t('newsPopup.kicker') }}</div>
 
         <ul class="gnp-list">
             <li v-for="(it, idx) in items" :key="idx" class="gnp-item">
@@ -22,7 +22,7 @@
 
         <label class="gnp-check">
             <input type="checkbox" v-model="dontShow" />
-            Nicht mehr anzeigen (für diese Version)
+            {{ t('newsPopup.dontShowAgain') }}
         </label>
     </BasePopup>
 </template>
@@ -31,6 +31,7 @@
 <script setup lang="ts">
     import { ref, watch } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
+    import { useI18n } from '@/composables/useI18n'
 
     type NewsItem = { tag?: string; text: string }
 
@@ -43,6 +44,8 @@
     const emit = defineEmits<{
         (e: 'close', payload: { action: 'cancel' | 'save'; dontShowAgain: boolean }): void
     }>()
+
+    const { t } = useI18n()
 
     const dontShow = ref(false)
 

@@ -1,14 +1,13 @@
 <template>
     <BasePopup :show="show"
                overlayClass="global-guest-conversion-popup"
-               :showActions="false"
                @cancel="emit('close')">
         <div class="conversion-popup">
             <div class="conversion-popup__hero">
-                <span class="conversion-popup__eyebrow">TrackYourGains Account</span>
-                <h3 class="conversion-popup__headline">Hol mehr aus jedem Training heraus.</h3>
+                <span class="conversion-popup__eyebrow">{{ t('guestConversion.eyebrow') }}</span>
+                <h3 class="conversion-popup__headline">{{ t('guestConversion.headline') }}</h3>
                 <p class="conversion-popup__subline">
-                    Mit Account werden Planung, Fortschritt und dein kompletter Trainingsverlauf zu einem klaren System statt zu einzelnen Momenten.
+                    {{ t('guestConversion.subline') }}
                 </p>
             </div>
 
@@ -23,9 +22,9 @@
             </div>
 
             <div class="conversion-popup__trust">
-                <span class="conversion-popup__trust-kicker">Warum es sich lohnt</span>
+                <span class="conversion-popup__trust-kicker">{{ t('guestConversion.trustKicker') }}</span>
                 <p>
-                    Deine Pläne, Gewichtsdaten, Fortschrittswerte und Trainingsentscheidungen bleiben an einem Ort und entwickeln sich mit dir weiter.
+                    {{ t('guestConversion.trustText') }}
                 </p>
             </div>
         </div>
@@ -33,12 +32,12 @@
         <template #actions>
             <div class="conversion-popup__actions">
                 <button type="button" class="conversion-popup__later" @click="emit('later')">
-                    Später
+                    {{ t('guestConversion.later') }}
                 </button>
 
                 <PopupActionButton class="conversion-popup__button conversion-popup__button--primary"
                                    @click="emit('register')">
-                    Registrieren
+                    {{ t('guestConversion.register') }}
                 </PopupActionButton>
             </div>
         </template>
@@ -48,6 +47,7 @@
 <script setup lang="ts">
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
+    import { useI18n } from '@/composables/useI18n'
 
     defineProps<{
         show: boolean
@@ -59,26 +59,28 @@
         (e: 'register'): void
     }>()
 
+    const { t } = useI18n()
+
     const benefits = [
         {
             icon: '01',
-            title: 'Pläne und Sessions mit Verlauf',
-            text: 'Behalte Trainingspläne, absolvierte Einheiten und nächste Schritte dauerhaft im Blick.',
+            title: t('guestConversion.benefits.history.title'),
+            text: t('guestConversion.benefits.history.text'),
         },
         {
             icon: '02',
-            title: 'Fortschritt, der sichtbar wird',
-            text: 'Gewicht, persönliche Entwicklung und Muster werden nachvollziehbar statt nur grob geschätzt.',
+            title: t('guestConversion.benefits.progress.title'),
+            text: t('guestConversion.benefits.progress.text'),
         },
         {
             icon: '03',
-            title: 'Beschwerden smarter einordnen',
-            text: 'Dokumentiere Signale aus dem Körper strukturiert und trainiere fundierter weiter.',
+            title: t('guestConversion.benefits.complaints.title'),
+            text: t('guestConversion.benefits.complaints.text'),
         },
         {
             icon: '04',
-            title: 'Alles an einem Ort',
-            text: 'Tutorials, Planung, Tracking und Auswertung greifen ohne Tool-Wechsel zusammen.',
+            title: t('guestConversion.benefits.allInOne.title'),
+            text: t('guestConversion.benefits.allInOne.text'),
         },
     ]
 </script>

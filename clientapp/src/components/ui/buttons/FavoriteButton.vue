@@ -45,7 +45,7 @@
         animationTimer = setTimeout(() => {
             animationClass.value = ''
             animationTimer = null
-        }, next ? 520 : 420)
+        }, next ? 620 : 520)
     })
 
     onUnmounted(() => {
@@ -63,26 +63,26 @@
         padding: 0.5rem;
         color: #D4A017; /* gold */
         border-radius: 8px;
-        transition: color .2s, text-shadow .2s, transform .14s ease, filter .18s ease;
+        transition: color .22s, text-shadow .22s, transform .2s cubic-bezier(0.22, 0.61, 0.36, 1), filter .22s ease;
         will-change: transform;
     }
 
     .favorite-btn[aria-pressed="true"] {
-        animation: favorite-star-twinkle 2.8s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+        animation: favorite-star-twinkle 3.4s ease-in-out infinite;
     }
 
         .favorite-btn:hover {
             color: #92400E;
             text-shadow: 0 0 8px rgba(146, 64, 14, 0.5), 0 0 4px rgba(146, 64, 14, 0.5);
-            transform: scale(1.1);
+            transform: scale(1.06);
         }
 
     .favorite-btn--activate {
-        animation: favorite-pop .5s cubic-bezier(0.22, 0.61, 0.36, 1);
+        animation: favorite-pop .62s cubic-bezier(0.2, 0.72, 0.24, 1);
     }
 
     .favorite-btn--deactivate {
-        animation: favorite-release .4s cubic-bezier(0.22, 0.61, 0.36, 1);
+        animation: favorite-release .52s cubic-bezier(0.2, 0.72, 0.24, 1);
     }
 
     @keyframes favorite-pop {
@@ -91,13 +91,13 @@
             text-shadow: 0 0 0 rgba(212, 160, 23, 0);
         }
 
-        45% {
-            transform: scale(1.28);
-            text-shadow: 0 0 16px rgba(212, 160, 23, 0.48), 0 0 28px rgba(250, 204, 21, 0.28);
+        38% {
+            transform: scale(1.12);
+            text-shadow: 0 0 12px rgba(212, 160, 23, 0.34), 0 0 22px rgba(250, 204, 21, 0.2);
         }
 
-        70% {
-            transform: scale(.94);
+        68% {
+            transform: scale(.98);
         }
 
         100% {
@@ -111,8 +111,8 @@
             transform: scale(1);
         }
 
-        45% {
-            transform: scale(.82);
+        42% {
+            transform: scale(.9);
         }
 
         100% {
@@ -132,35 +132,35 @@
             color: #eab308;
             text-shadow: 0 0 6px rgba(250, 204, 21, 0.16);
             filter: brightness(1.03);
-            transform: scale(1.015);
+            transform: scale(1.008);
         }
 
         32% {
             color: #facc15;
             text-shadow: 0 0 10px rgba(250, 204, 21, 0.24), 0 0 18px rgba(250, 204, 21, 0.12);
             filter: brightness(1.08);
-            transform: scale(1.035);
+            transform: scale(1.02);
         }
 
         44% {
             color: #fde047;
             text-shadow: 0 0 12px rgba(253, 224, 71, 0.32), 0 0 22px rgba(250, 204, 21, 0.14);
             filter: brightness(1.12);
-            transform: scale(1.05);
+            transform: scale(1.028);
         }
 
         58% {
             color: #facc15;
             text-shadow: 0 0 8px rgba(250, 204, 21, 0.18);
             filter: brightness(1.05);
-            transform: scale(1.022);
+            transform: scale(1.012);
         }
 
         74% {
             color: #fde68a;
             text-shadow: 0 0 11px rgba(253, 230, 138, 0.26), 0 0 18px rgba(250, 204, 21, 0.1);
             filter: brightness(1.09);
-            transform: scale(1.03);
+            transform: scale(1.018);
         }
     }
 
@@ -185,35 +185,35 @@
             color: #fde047;
             text-shadow: 0 0 7px rgba(253, 224, 71, 0.18);
             filter: brightness(1.04);
-            transform: scale(1.015);
+            transform: scale(1.008);
         }
 
         32% {
             color: #fff0a8;
             text-shadow: 0 0 12px rgba(255, 240, 168, 0.28), 0 0 18px rgba(253, 224, 71, 0.14);
             filter: brightness(1.1);
-            transform: scale(1.035);
+            transform: scale(1.02);
         }
 
         44% {
             color: #fff7bf;
             text-shadow: 0 0 14px rgba(255, 247, 191, 0.36), 0 0 22px rgba(253, 224, 71, 0.16);
             filter: brightness(1.15);
-            transform: scale(1.05);
+            transform: scale(1.028);
         }
 
         58% {
             color: #fde68a;
             text-shadow: 0 0 9px rgba(253, 230, 138, 0.2);
             filter: brightness(1.07);
-            transform: scale(1.022);
+            transform: scale(1.012);
         }
 
         74% {
             color: #fff7bf;
             text-shadow: 0 0 12px rgba(255, 247, 191, 0.28), 0 0 18px rgba(253, 224, 71, 0.12);
             filter: brightness(1.11);
-            transform: scale(1.03);
+            transform: scale(1.018);
         }
     }
 

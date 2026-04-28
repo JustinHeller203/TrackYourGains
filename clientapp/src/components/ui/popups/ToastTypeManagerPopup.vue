@@ -8,8 +8,8 @@
         <!-- Head wie im alten Modal (full width) -->
         <div class="tm-head">
             <div class="tm-title">
-                <strong>Toast-Arten verwalten</strong>
-                <span class="tm-sub">{{ enabledCount }} aktiv · {{ disabledCount }} deaktiviert</span>
+                <strong>{{ t('toastManager.title') }}</strong>
+                <span class="tm-sub">{{ enabledCount }} {{ t('toastManager.active') }} · {{ disabledCount }} {{ t('toastManager.disabled') }}</span>
             </div>
 
         </div>
@@ -17,10 +17,10 @@
         <!-- Actions wie früher (full width, border-bottom) -->
         <div class="tm-actions">
             <button type="button" class="tm-btn" @click="$emit('set-all', true)">
-                Alle aktivieren
+                {{ t('toastManager.enableAll') }}
             </button>
             <button type="button" class="tm-btn ghost" @click="$emit('set-all', false)">
-                Alle deaktivieren
+                {{ t('toastManager.disableAll') }}
             </button>
         </div>
 
@@ -31,8 +31,8 @@
                         {{ opt.emoji }} {{ opt.label }}
                         <button type="button"
                                 class="tm-preview"
-                                aria-label="Vorschau"
-                                title="Vorschau"
+                                :aria-label="t('settings.toasts.preview')"
+                                :title="t('settings.toasts.preview')"
                                 @click.stop="$emit('preview', opt.key)">
                             👁️
                         </button>
@@ -43,14 +43,14 @@
                         class="tm-row-action"
                         :class="{ off: !enabledMap[opt.key] }"
                         @click="$emit('toggle', opt.key)">
-                    {{ enabledMap[opt.key] ? 'Deaktivieren' : 'Aktivieren' }}
+                    {{ enabledMap[opt.key] ? t('toastManager.disable') : t('toastManager.enable') }}
                 </button>
             </div>
         </div>
 
         <template #actions>
             <div class="tm-foot">
-                <PopupActionButton @click="$emit('done')">Fertig</PopupActionButton>
+                <PopupActionButton @click="$emit('done')">{{ t('toastManager.done') }}</PopupActionButton>
             </div>
         </template>
     </BasePopup>
@@ -59,6 +59,7 @@
 
 <script setup lang="ts">
     import { computed } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
@@ -74,6 +75,8 @@
         options: ReadonlyArray<ToastTypeOption>
         enabledMap: Record<string, boolean>
     }>()
+
+    const { t } = useI18n()
 
     defineEmits<{
         (e: 'close'): void

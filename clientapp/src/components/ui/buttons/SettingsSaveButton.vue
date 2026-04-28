@@ -3,16 +3,21 @@
     <button class="save-button"
             type="button"
             :disabled="disabled"
-            :title="title || 'Einstellungen speichern'"
+            :title="title || t('settings.saveTitle')"
             @click="$emit('click')">
-        <slot>💾 Einstellungen speichern</slot>
+        <slot>{{ label || t('settings.save') }}</slot>
     </button>
 </template>
 
 <script setup lang="ts">
+    import { useI18n } from '@/composables/useI18n'
+
+    const { t } = useI18n()
+
     defineProps<{
         disabled?: boolean
         title?: string
+        label?: string
     }>()
 
     defineEmits<{
@@ -36,35 +41,35 @@
         transition: transform 160ms ease-out, border-color 180ms ease-out, box-shadow 200ms ease-out, background 180ms ease-out;
     }
 
-        .save-button:hover {
-            transform: translateY(-2px);
-            border-color: rgba(129, 140, 248, 0.7);
-            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
-        }
+    .save-button:hover {
+        transform: translateY(-2px);
+        border-color: rgba(129, 140, 248, 0.7);
+        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
+    }
 
-        .save-button:active {
-            transform: translateY(0);
-        }
+    .save-button:active {
+        transform: translateY(0);
+    }
 
-        .save-button::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 60%);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 160ms ease-out;
-        }
+    .save-button::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 60%);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 160ms ease-out;
+    }
 
-        .save-button:hover::after {
-            opacity: 1;
-        }
+    .save-button:hover::after {
+        opacity: 1;
+    }
 
-        .save-button:focus-visible {
-            outline: none;
-            border-color: rgba(129, 140, 248, 0.85);
-            box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.18), 0 22px 48px rgba(15, 23, 42, 0.32);
-        }
+    .save-button:focus-visible {
+        outline: none;
+        border-color: rgba(129, 140, 248, 0.85);
+        box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.18), 0 22px 48px rgba(15, 23, 42, 0.32);
+    }
 
     @keyframes sheen {
         to {
@@ -79,7 +84,7 @@
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
-        html.dark-mode .save-button:hover {
-            border-color: rgba(129, 140, 248, 0.7);
-        }
+    html.dark-mode .save-button:hover {
+        border-color: rgba(129, 140, 248, 0.7);
+    }
 </style>

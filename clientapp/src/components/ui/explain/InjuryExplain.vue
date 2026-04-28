@@ -1,80 +1,80 @@
 ﻿<template>
     <div class="calc-scan">
-        <div class="calc-hero" role="img" aria-label="Verletzung Kurzkarte">
+        <div class="calc-hero" role="img" :aria-label="t('complaints.injury.explain.aria.card')">
             <div class="calc-hero-top">
-                <span class="calc-hero-title">Info: {{ props.explanation.title }}</span>
+                <span class="calc-hero-title">{{ t('complaints.injury.explain.infoPrefix') }} {{ props.explanation.title }}</span>
             </div>
 
             <div class="calc-hero-sub">
                 {{ props.explanation.summary }}
             </div>
 
-            <div class="calc-hero-pills" aria-label="Schnellnavigation">
-                <button class="calc-hero-pill" type="button" @click="jumpTo('injury_causes')">Wie entsteht es?</button>
-                <button class="calc-hero-pill" type="button" @click="jumpTo('injury_types')">Arten</button>
-                <button class="calc-hero-pill" type="button" @click="jumpTo('injury_signs')">Erkennen</button>
-                <button class="calc-hero-pill calc-hero-pill--warn" type="button" @click="jumpTo('injury_action')">Wichtig</button>
+            <div class="calc-hero-pills" :aria-label="t('complaints.injury.explain.aria.quickNav')">
+                <button class="calc-hero-pill" type="button" @click="jumpTo('injury_causes')">{{ t('complaints.injury.explain.nav.causes') }}</button>
+                <button class="calc-hero-pill" type="button" @click="jumpTo('injury_types')">{{ t('complaints.injury.explain.nav.types') }}</button>
+                <button class="calc-hero-pill" type="button" @click="jumpTo('injury_signs')">{{ t('complaints.injury.explain.nav.signs') }}</button>
+                <button class="calc-hero-pill calc-hero-pill--warn" type="button" @click="jumpTo('injury_action')">{{ t('complaints.injury.explain.nav.action') }}</button>
             </div>
         </div>
 
-        <div class="calc-chips" aria-label="Kurzüberblick">
-            <button class="calc-chip" type="button" @click="jumpTo('injury_today')">Was ich heute tun kann</button>
-            <button class="calc-chip" type="button" @click="jumpTo('injury_avoid')">Was vermeiden</button>
-            <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('injury_doctor')">Wann zum Arzt</button>
-            <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('injury_return')">Return-to-Training</button>
+        <div class="calc-chips" :aria-label="t('complaints.injury.explain.aria.overview')">
+            <button class="calc-chip" type="button" @click="jumpTo('injury_today')">{{ t('complaints.injury.explain.section.today') }}</button>
+            <button class="calc-chip" type="button" @click="jumpTo('injury_avoid')">{{ t('complaints.injury.explain.section.avoid') }}</button>
+            <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('injury_doctor')">{{ t('complaints.injury.explain.section.doctor') }}</button>
+            <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('injury_return')">{{ t('complaints.injury.explain.section.return') }}</button>
         </div>
 
         <section :id="idFor('injury_today')" class="calc-card" tabindex="-1" ref="todayEl">
-            <h4 class="calc-h">Was ich heute tun kann</h4>
+            <h4 class="calc-h">{{ t('complaints.injury.explain.section.today') }}</h4>
             <ul class="calc-list">
                 <li v-for="(item, idx) in todayActions" :key="`today-${idx}`">{{ item }}</li>
             </ul>
         </section>
 
         <section :id="idFor('injury_avoid')" class="calc-card" tabindex="-1" ref="avoidEl">
-            <h4 class="calc-h">Was vermeiden</h4>
+            <h4 class="calc-h">{{ t('complaints.injury.explain.section.avoid') }}</h4>
             <ul class="calc-list">
                 <li v-for="(item, idx) in avoidList" :key="`avoid-${idx}`">{{ item }}</li>
             </ul>
         </section>
 
         <div :id="idFor('injury_doctor')" class="calc-callout calc-callout--warn" tabindex="-1" ref="doctorEl">
-            <div class="calc-callout-title">Wann zum Arzt?</div>
+            <div class="calc-callout-title">{{ t('complaints.injury.explain.section.doctorTitle') }}</div>
             <ul class="calc-list calc-list--spaced">
                 <li v-for="(item, idx) in seeDoctorList" :key="`doctor-${idx}`">{{ item }}</li>
             </ul>
         </div>
 
         <section :id="idFor('injury_return')" class="calc-card" tabindex="-1" ref="returnEl">
-            <h4 class="calc-h">Return-to-Training Kriterien</h4>
+            <h4 class="calc-h">{{ t('complaints.injury.explain.section.returnTitle') }}</h4>
             <ul class="calc-list">
                 <li v-for="(item, idx) in returnCriteriaList" :key="`return-${idx}`">{{ item }}</li>
             </ul>
         </section>
 
         <div :id="idFor('injury_causes')" class="calc-callout calc-callout--tldr" tabindex="-1" ref="causesEl">
-            <div class="calc-callout-title">Wie entsteht es?</div>
+            <div class="calc-callout-title">{{ t('complaints.injury.explain.section.causes') }}</div>
             <ul class="calc-list calc-list--spaced">
                 <li v-for="(item, idx) in props.explanation.causes" :key="`cause-${idx}`">{{ item }}</li>
             </ul>
         </div>
 
         <section :id="idFor('injury_types')" class="calc-card" tabindex="-1" ref="typesEl">
-            <h4 class="calc-h">Welche Arten gibt es?</h4>
+            <h4 class="calc-h">{{ t('complaints.injury.explain.section.types') }}</h4>
             <ul class="calc-list">
                 <li v-for="(item, idx) in props.explanation.types" :key="`type-${idx}`">{{ item }}</li>
             </ul>
         </section>
 
         <section :id="idFor('injury_signs')" class="calc-card" tabindex="-1" ref="signsEl">
-            <h4 class="calc-h">Wie erkennt man es?</h4>
+            <h4 class="calc-h">{{ t('complaints.injury.explain.section.signs') }}</h4>
             <ul class="calc-list">
                 <li v-for="(item, idx) in props.explanation.signs" :key="`sign-${idx}`">{{ item }}</li>
             </ul>
         </section>
 
         <div :id="idFor('injury_action')" class="calc-callout calc-callout--warn" tabindex="-1" ref="actionEl">
-            <div class="calc-callout-title">Wichtig</div>
+            <div class="calc-callout-title">{{ t('complaints.injury.explain.section.action') }}</div>
             <div class="calc-callout-text">{{ props.explanation.action }}</div>
         </div>
 
@@ -84,10 +84,12 @@
 <script setup lang="ts">
     import { computed, ref } from 'vue'
     import type { InjuryExplanation } from '@/components/ui/explain/injuryExplanations'
+    import { useI18n } from '@/composables/useI18n'
 
     const props = defineProps<{
         explanation: InjuryExplanation
     }>()
+    const { t } = useI18n()
 
     const uid = Math.random().toString(36).slice(2, 9)
     const causesEl = ref<HTMLElement | null>(null)
@@ -101,16 +103,16 @@
 
     const todayActions = computed(() => props.explanation.todayActions?.length
         ? props.explanation.todayActions
-        : ['Belastung reduzieren und heute nur schmerzarme Bewegung durchführen.'])
+        : [t('complaints.injury.explain.fallback.today')])
     const avoidList = computed(() => props.explanation.avoid?.length
         ? props.explanation.avoid
-        : ['Belastungsspitzen und Training in stechenden Schmerz vermeiden.'])
+        : [t('complaints.injury.explain.fallback.avoid')])
     const seeDoctorList = computed(() => props.explanation.seeDoctorWhen?.length
         ? props.explanation.seeDoctorWhen
-        : ['Bei deutlicher Verschlechterung oder fehlender Besserung ärztlich abklären.'])
+        : [t('complaints.injury.explain.fallback.doctor')])
     const returnCriteriaList = computed(() => props.explanation.returnCriteria?.length
         ? props.explanation.returnCriteria
-        : ['Schmerzarme Funktion im Alltag und stufenweise Belastungssteigerung ohne Rückfall.'])
+        : [t('complaints.injury.explain.fallback.return')])
 
     function idFor(base: string) {
         return `${base}-${uid}`

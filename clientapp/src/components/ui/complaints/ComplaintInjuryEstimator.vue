@@ -1,36 +1,33 @@
-﻿<template>
+<template>
     <section class="injury-estimator">
-        <UiPopupSelect
-            :model-value="modelValue"
-            label="Vermutete Verletzung (optional)"
-            :placeholder="area ? 'Verletzung wählen' : 'Erst Körperstelle wählen'"
-            :options="injuryOptions"
-            :option-info-values="injuryInfoValues"
-            :disabled="!area"
-            @update:model-value="onSelectInjury"
-            @option-info="onOpenInjuryInfo" />
+        <UiPopupSelect :model-value="modelValue"
+                       :label="t('complaints.injury.label')"
+                       :placeholder="area ? t('complaints.injury.placeholder.pick') : t('complaints.injury.placeholder.areaFirst')"
+                       :options="injuryOptions"
+                       :option-info-values="injuryInfoValues"
+                       :disabled="!area"
+                       @update:model-value="onSelectInjury"
+                       @option-info="onOpenInjuryInfo" />
 
-        <ExplanationPopup
-            ref="injuryInfoPopupRef"
-            :hide-trigger="true"
-            :title="activeInjuryExplanation.title"
-            :kicker="activeInjuryExplanation.kicker"
-            aria-open="Verletzungsinfo öffnen">
+        <ExplanationPopup ref="injuryInfoPopupRef"
+                          :hide-trigger="true"
+                          :title="activeInjuryExplanation.title"
+                          :kicker="activeInjuryExplanation.kicker"
+                          :aria-open="t('complaints.injury.infoAria')">
             <InjuryExplain :explanation="activeInjuryExplanation" />
         </ExplanationPopup>
 
-        <UiPopupInput
-            v-if="modelValue === CUSTOM_INJURY_VALUE"
-            :model-value="customInjuryName"
-            label="Benutzerdefinierte Verletzung"
-            placeholder="z. B. Sehnenanriss"
-            :maxlength="60"
-            @update:model-value="onCustomInjuryInput" />
+        <UiPopupInput v-if="modelValue === CUSTOM_INJURY_VALUE"
+                      :model-value="customInjuryName"
+                      :label="t('complaints.injury.customLabel')"
+                      :placeholder="t('complaints.injury.customPlaceholder')"
+                      :maxlength="60"
+                      @update:model-value="onCustomInjuryInput" />
 
         <div v-if="selectedEstimateDays" class="estimate-card" role="status" aria-live="polite">
             <p class="estimate-title">
-                Geschätzte Ausfallzeit:
-                <strong>{{ selectedEstimateDays }} Tage</strong>
+                {{ t('complaints.injury.estimatedDowntime') }}
+                <strong>{{ tp('complaints.injury.days', { days: selectedEstimateDays }) }}</strong>
             </p>
             <p class="estimate-copy">
                 {{ selectedEstimateSource }}
@@ -38,7 +35,7 @@
         </div>
 
         <p class="estimate-disclaimer">
-            Hinweis: Das ist nur ein Richtwert (Durchschnitt) und keine medizinische Diagnose.
+            {{ t('complaints.injury.disclaimer') }}
         </p>
     </section>
 </template>
@@ -51,10 +48,11 @@
     import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
     import ExplanationPopup from '@/components/ui/popups/ExplanationPopup.vue'
     import type { ComplaintArea } from '@/types/complaint'
+    import { useI18n } from '@/composables/useI18n'
 
     type InjuryOption = {
         key: string
-        label: string
+        labelKey: string
         days: number
     }
 
@@ -79,6 +77,15 @@
 
     const CUSTOM_INJURY_VALUE = '__custom__'
     const MEMORY_KEY = 'complaints_injury_memory_v1'
+
+    const { t } = useI18n()
+
+    function tp(key: string, params: Record<string, string | number>) {
+        return Object.entries(params).reduce(
+            (text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)),
+            t(key)
+        )
+    }
 
     const props = withDefaults(defineProps<{
         area: ComplaintArea | ''
@@ -125,125 +132,125 @@
 
     const injuryCatalog: Record<string, InjuryOption[]> = {
         nacken: [
-            { key: 'zerrung', label: 'Muskelzerrung', days: 10 },
-            { key: 'hws-distorsion', label: 'HWS-Distorsion', days: 21 },
-            { key: 'bandscheibenreizung', label: 'Bandscheibenreizung', days: 35 },
-            { key: 'bruch', label: 'Bruch', days: 56 },
+            { key: 'zerrung', labelKey: 'complaints.injury.name.muskelzerrung', days: 10 },
+            { key: 'hws-distorsion', labelKey: 'complaints.injury.name.hwsDistorsion', days: 21 },
+            { key: 'bandscheibenreizung', labelKey: 'complaints.injury.name.bandscheibenreizung', days: 35 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 56 },
         ],
         schulter: [
-            { key: 'prellung', label: 'Prellung', days: 14 },
-            { key: 'sehnenreizung', label: 'Sehnenreizung', days: 28 },
-            { key: 'impingement', label: 'Impingement', days: 35 },
-            { key: 'luxation', label: 'Luxation', days: 42 },
-            { key: 'bruch', label: 'Bruch', days: 56 },
+            { key: 'prellung', labelKey: 'complaints.injury.name.prellung', days: 14 },
+            { key: 'sehnenreizung', labelKey: 'complaints.injury.name.sehnenreizung', days: 28 },
+            { key: 'impingement', labelKey: 'complaints.injury.name.impingement', days: 35 },
+            { key: 'luxation', labelKey: 'complaints.injury.name.luxation', days: 42 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 56 },
         ],
         ellbogen: [
-            { key: 'prellung', label: 'Prellung', days: 10 },
-            { key: 'sehnenansatzreizung', label: 'Sehnenansatzreizung', days: 21 },
-            { key: 'bandverletzung', label: 'Bandverletzung', days: 35 },
-            { key: 'bruch', label: 'Bruch', days: 49 },
+            { key: 'prellung', labelKey: 'complaints.injury.name.prellung', days: 10 },
+            { key: 'sehnenansatzreizung', labelKey: 'complaints.injury.name.sehnenansatzreizung', days: 21 },
+            { key: 'bandverletzung', labelKey: 'complaints.injury.name.bandverletzung', days: 35 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 49 },
         ],
         unterarm: [
-            { key: 'muskelzerrung', label: 'Muskelzerrung', days: 14 },
-            { key: 'sehnenreizung', label: 'Sehnenreizung', days: 21 },
-            { key: 'bruch', label: 'Bruch', days: 49 },
+            { key: 'muskelzerrung', labelKey: 'complaints.injury.name.muskelzerrung', days: 14 },
+            { key: 'sehnenreizung', labelKey: 'complaints.injury.name.sehnenreizung', days: 21 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 49 },
         ],
         handgelenk: [
-            { key: 'verstauchung', label: 'Verstauchung', days: 14 },
-            { key: 'sehnenentzuendung', label: 'Sehnenentzündung', days: 21 },
-            { key: 'bandriss', label: 'Bänderriss', days: 42 },
-            { key: 'bruch', label: 'Bruch', days: 49 },
+            { key: 'verstauchung', labelKey: 'complaints.injury.name.verstauchung', days: 14 },
+            { key: 'sehnenentzuendung', labelKey: 'complaints.injury.name.sehnenentzuendung', days: 21 },
+            { key: 'bandriss', labelKey: 'complaints.injury.name.bandriss', days: 42 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 49 },
         ],
         hand: [
-            { key: 'prellung', label: 'Prellung', days: 10 },
-            { key: 'sehnenverletzung', label: 'Sehnenverletzung', days: 28 },
-            { key: 'bruch', label: 'Bruch', days: 42 },
+            { key: 'prellung', labelKey: 'complaints.injury.name.prellung', days: 10 },
+            { key: 'sehnenverletzung', labelKey: 'complaints.injury.name.sehnenverletzung', days: 28 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 42 },
         ],
         finger: [
-            { key: 'verstauchung', label: 'Verstauchung', days: 10 },
-            { key: 'bandverletzung', label: 'Bandverletzung', days: 21 },
-            { key: 'bruch', label: 'Bruch', days: 35 },
+            { key: 'verstauchung', labelKey: 'complaints.injury.name.verstauchung', days: 10 },
+            { key: 'bandverletzung', labelKey: 'complaints.injury.name.bandverletzung', days: 21 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 35 },
         ],
         brust: [
-            { key: 'muskelzerrung', label: 'Muskelzerrung', days: 14 },
-            { key: 'prellung', label: 'Prellung', days: 14 },
-            { key: 'rippenbruch', label: 'Rippenbruch', days: 42 },
+            { key: 'muskelzerrung', labelKey: 'complaints.injury.name.muskelzerrung', days: 14 },
+            { key: 'prellung', labelKey: 'complaints.injury.name.prellung', days: 14 },
+            { key: 'rippenbruch', labelKey: 'complaints.injury.name.rippenbruch', days: 42 },
         ],
         bauch: [
-            { key: 'muskelzerrung', label: 'Muskelzerrung', days: 14 },
-            { key: 'muskelfaserriss', label: 'Muskelfaserriss', days: 28 },
-            { key: 'prellung', label: 'Prellung', days: 10 },
+            { key: 'muskelzerrung', labelKey: 'complaints.injury.name.muskelzerrung', days: 14 },
+            { key: 'muskelfaserriss', labelKey: 'complaints.injury.name.muskelfaserriss', days: 28 },
+            { key: 'prellung', labelKey: 'complaints.injury.name.prellung', days: 10 },
         ],
         ruecken: [
-            { key: 'muskelzerrung', label: 'Muskelzerrung', days: 14 },
-            { key: 'bandscheibenreizung', label: 'Bandscheibenreizung', days: 42 },
-            { key: 'facettensyndrom', label: 'Facettensyndrom', days: 28 },
-            { key: 'wirbelbruch', label: 'Wirbelbruch', days: 84 },
+            { key: 'muskelzerrung', labelKey: 'complaints.injury.name.muskelzerrung', days: 14 },
+            { key: 'bandscheibenreizung', labelKey: 'complaints.injury.name.bandscheibenreizung', days: 42 },
+            { key: 'facettensyndrom', labelKey: 'complaints.injury.name.facettensyndrom', days: 28 },
+            { key: 'wirbelbruch', labelKey: 'complaints.injury.name.wirbelbruch', days: 84 },
         ],
         leiste: [
-            { key: 'adduktorenzerrung', label: 'Adduktorenzerrung', days: 21 },
-            { key: 'sehnenreizung', label: 'Sehnenreizung', days: 28 },
-            { key: 'muskelfaserriss', label: 'Muskelfaserriss', days: 35 },
+            { key: 'adduktorenzerrung', labelKey: 'complaints.injury.name.adduktorenzerrung', days: 21 },
+            { key: 'sehnenreizung', labelKey: 'complaints.injury.name.sehnenreizung', days: 28 },
+            { key: 'muskelfaserriss', labelKey: 'complaints.injury.name.muskelfaserriss', days: 35 },
         ],
         huefte: [
-            { key: 'prellung', label: 'Prellung', days: 14 },
-            { key: 'sehnenreizung', label: 'Sehnenreizung', days: 28 },
-            { key: 'schleimbeutel', label: 'Schleimbeutelreizung', days: 28 },
-            { key: 'bruch', label: 'Bruch', days: 70 },
+            { key: 'prellung', labelKey: 'complaints.injury.name.prellung', days: 14 },
+            { key: 'sehnenreizung', labelKey: 'complaints.injury.name.sehnenreizung', days: 28 },
+            { key: 'schleimbeutel', labelKey: 'complaints.injury.name.schleimbeutel', days: 28 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 70 },
         ],
         oberschenkel: [
-            { key: 'muskelzerrung', label: 'Muskelzerrung', days: 14 },
-            { key: 'muskelfaserriss', label: 'Muskelfaserriss', days: 28 },
-            { key: 'sehnenreizung', label: 'Sehnenreizung', days: 21 },
-            { key: 'bruch', label: 'Bruch', days: 63 },
+            { key: 'muskelzerrung', labelKey: 'complaints.injury.name.muskelzerrung', days: 14 },
+            { key: 'muskelfaserriss', labelKey: 'complaints.injury.name.muskelfaserriss', days: 28 },
+            { key: 'sehnenreizung', labelKey: 'complaints.injury.name.sehnenreizung', days: 21 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 63 },
         ],
         knie: [
-            { key: 'prellung', label: 'Prellung', days: 14 },
-            { key: 'meniskus', label: 'Meniskusverletzung', days: 42 },
-            { key: 'bandverletzung', label: 'Bandverletzung', days: 56 },
-            { key: 'patellaspitze', label: 'Patellaspitzensyndrom', days: 35 },
-            { key: 'bruch', label: 'Bruch', days: 70 },
+            { key: 'prellung', labelKey: 'complaints.injury.name.prellung', days: 14 },
+            { key: 'meniskus', labelKey: 'complaints.injury.name.meniskus', days: 42 },
+            { key: 'bandverletzung', labelKey: 'complaints.injury.name.bandverletzung', days: 56 },
+            { key: 'patellaspitze', labelKey: 'complaints.injury.name.patellaspitze', days: 35 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 70 },
         ],
         unterschenkel: [
-            { key: 'muskelzerrung', label: 'Muskelzerrung', days: 14 },
-            { key: 'shin-splints', label: 'Shin Splints', days: 28 },
-            { key: 'muskelfaserriss', label: 'Muskelfaserriss', days: 28 },
-            { key: 'bruch', label: 'Bruch', days: 56 },
+            { key: 'muskelzerrung', labelKey: 'complaints.injury.name.muskelzerrung', days: 14 },
+            { key: 'shin-splints', labelKey: 'complaints.injury.name.shinSplints', days: 28 },
+            { key: 'muskelfaserriss', labelKey: 'complaints.injury.name.muskelfaserriss', days: 28 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 56 },
         ],
         wade: [
-            { key: 'muskelzerrung', label: 'Muskelzerrung', days: 14 },
-            { key: 'muskelfaserriss', label: 'Muskelfaserriss', days: 28 },
-            { key: 'sehnenreizung', label: 'Sehnenreizung', days: 21 },
+            { key: 'muskelzerrung', labelKey: 'complaints.injury.name.muskelzerrung', days: 14 },
+            { key: 'muskelfaserriss', labelKey: 'complaints.injury.name.muskelfaserriss', days: 28 },
+            { key: 'sehnenreizung', labelKey: 'complaints.injury.name.sehnenreizung', days: 21 },
         ],
         sprunggelenk: [
-            { key: 'distorsion', label: 'Distorsion', days: 21 },
-            { key: 'bandriss', label: 'Bänderriss', days: 42 },
-            { key: 'sehnenreizung', label: 'Sehnenreizung', days: 28 },
-            { key: 'bruch', label: 'Bruch', days: 56 },
+            { key: 'distorsion', labelKey: 'complaints.injury.name.distorsion', days: 21 },
+            { key: 'bandriss', labelKey: 'complaints.injury.name.bandriss', days: 42 },
+            { key: 'sehnenreizung', labelKey: 'complaints.injury.name.sehnenreizung', days: 28 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 56 },
         ],
         fuss: [
-            { key: 'prellung', label: 'Prellung', days: 10 },
-            { key: 'plantarfaszie', label: 'Plantarfaszienreizung', days: 28 },
-            { key: 'sehnenreizung', label: 'Sehnenreizung', days: 28 },
-            { key: 'bruch', label: 'Bruch', days: 56 },
+            { key: 'prellung', labelKey: 'complaints.injury.name.prellung', days: 10 },
+            { key: 'plantarfaszie', labelKey: 'complaints.injury.name.plantarfaszie', days: 28 },
+            { key: 'sehnenreizung', labelKey: 'complaints.injury.name.sehnenreizung', days: 28 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 56 },
         ],
         kopf: [
-            { key: 'prellung', label: 'Prellung', days: 7 },
-            { key: 'gehirnerschuetterung', label: 'Gehirnerschütterung', days: 21 },
-            { key: 'platzwunde', label: 'Platzwunde', days: 10 },
-            { key: 'bruch', label: 'Bruch', days: 56 },
+            { key: 'prellung', labelKey: 'complaints.injury.name.prellung', days: 7 },
+            { key: 'gehirnerschuetterung', labelKey: 'complaints.injury.name.gehirnerschuetterung', days: 21 },
+            { key: 'platzwunde', labelKey: 'complaints.injury.name.platzwunde', days: 10 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 56 },
         ],
         benutzerdefiniert: [
-            { key: 'prellung', label: 'Prellung', days: 10 },
-            { key: 'zerrung', label: 'Zerrung', days: 14 },
-            { key: 'bandverletzung', label: 'Bandverletzung', days: 35 },
-            { key: 'bruch', label: 'Bruch', days: 49 },
+            { key: 'prellung', labelKey: 'complaints.injury.name.prellung', days: 10 },
+            { key: 'zerrung', labelKey: 'complaints.injury.name.zerrung', days: 14 },
+            { key: 'bandverletzung', labelKey: 'complaints.injury.name.bandverletzung', days: 35 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 49 },
         ],
         sonstiges: [
-            { key: 'prellung', label: 'Prellung', days: 10 },
-            { key: 'zerrung', label: 'Zerrung', days: 14 },
-            { key: 'bandverletzung', label: 'Bandverletzung', days: 35 },
-            { key: 'bruch', label: 'Bruch', days: 49 },
+            { key: 'prellung', labelKey: 'complaints.injury.name.prellung', days: 10 },
+            { key: 'zerrung', labelKey: 'complaints.injury.name.zerrung', days: 14 },
+            { key: 'bandverletzung', labelKey: 'complaints.injury.name.bandverletzung', days: 35 },
+            { key: 'bruch', labelKey: 'complaints.injury.name.bruch', days: 49 },
         ],
     }
 
@@ -252,7 +259,7 @@
     const activeAreaKey = computed(() => String(props.area || '').trim())
     const areaName = computed(() => {
         if (props.areaDisplay?.trim()) return props.areaDisplay.trim()
-        return areaLabels[activeAreaKey.value] ?? 'ausgewählter Bereich'
+        return areaLabels[activeAreaKey.value] ?? t('complaints.injury.selectedAreaFallback')
     })
 
     const baseInjuries = computed(() => injuryCatalog[activeAreaKey.value] ?? [])
@@ -262,20 +269,26 @@
 
     const learnedOptions = computed(() => learnedForArea.value.map((item) => ({
         value: item.key,
-        label: `${item.name} · Ø ${Math.round(item.avgDays)} Tage`,
+        label: tp('complaints.injury.optionWithDays', {
+            name: item.name,
+            days: Math.round(item.avgDays),
+        }),
     })))
 
     const injuryOptions = computed(() => {
         const base = baseInjuries.value.map((item) => ({
             value: item.key,
-            label: `${item.label} · Ø ${item.days} Tage`,
+            label: tp('complaints.injury.optionWithDays', {
+                name: t(item.labelKey),
+                days: item.days,
+            }),
         }))
         const existing = new Set(base.map((x) => x.value))
         const learned = learnedOptions.value.filter((x) => !existing.has(x.value))
         return [
             ...base,
             ...learned,
-            { value: CUSTOM_INJURY_VALUE, label: 'Benutzerdefiniert eingeben' },
+            { value: CUSTOM_INJURY_VALUE, label: t('complaints.injury.customOption') },
         ]
     })
 
@@ -294,13 +307,22 @@
 
     const selectedEstimateSource = computed(() => {
         if (selectedLearnedForKey.value) {
-            return `Dein bisheriger Durchschnitt für ${selectedLearnedForKey.value.name} (${areaName.value}).`
+            return tp('complaints.injury.learnedSource', {
+                name: selectedLearnedForKey.value.name,
+                area: areaName.value,
+            })
         }
         if (selectedBase.value) {
-            return `Typischer Verlauf bei ${selectedBase.value.label} (${areaName.value}).`
+            return tp('complaints.injury.baseSource', {
+                name: t(selectedBase.value.labelKey),
+                area: areaName.value,
+            })
         }
         if (selectedLearned.value) {
-            return `Dein bisheriger Durchschnitt für ${selectedLearned.value.name} (${areaName.value}).`
+            return tp('complaints.injury.learnedSource', {
+                name: selectedLearned.value.name,
+                area: areaName.value,
+            })
         }
         return ''
     })
@@ -325,8 +347,8 @@
 
     const activeInjuryExplanation = computed(() => {
         const value = String(activeInfoValue.value || props.modelValue || '').trim()
-        const label = injuryOptionLabelByValue.value.get(value) ?? 'Verletzung'
-        return getInjuryExplanation(value, label)
+        const label = injuryOptionLabelByValue.value.get(value) ?? t('complaints.injury.fallbackTitle')
+        return getInjuryExplanation(value, label, t)
     })
 
     function normalizeName(valueRaw: string) {
@@ -405,7 +427,7 @@
         } else {
             const fromBase = injuryCatalog[area]?.find((x) => x.key === injuryType)
             const fromLearned = learnedInjuries.value.find((x) => x.key === injuryType)
-            name = fromBase?.label ?? fromLearned?.name ?? ''
+            name = fromBase ? t(fromBase.labelKey) : fromLearned?.name ?? ''
             if (!name || !key) return
         }
 
@@ -456,19 +478,31 @@
             const learned = learnedForArea.value.find((x) => x.key === customKey)
             const days = learned ? String(Math.round(learned.avgDays)) : ''
             emit('estimate-days', days)
-            emit('summary-line', `[Verletzung] ${customName} (${areaName.value}) [key:${customKey}]`)
+            emit('summary-line', tp('complaints.injury.summary', {
+                name: customName,
+                area: areaName.value,
+                key: customKey,
+            }))
             return
         }
 
         if (selectedBase.value) {
             emit('estimate-days', String(selectedBase.value.days))
-            emit('summary-line', `[Verletzung] ${selectedBase.value.label} (${areaName.value}) [key:${selectedBase.value.key}]`)
+            emit('summary-line', tp('complaints.injury.summary', {
+                name: t(selectedBase.value.labelKey),
+                area: areaName.value,
+                key: selectedBase.value.key,
+            }))
             return
         }
 
         if (selectedLearned.value) {
             emit('estimate-days', String(Math.round(selectedLearned.value.avgDays)))
-            emit('summary-line', `[Verletzung] ${selectedLearned.value.name} (${areaName.value}) [key:${selectedLearned.value.key}]`)
+            emit('summary-line', tp('complaints.injury.summary', {
+                name: selectedLearned.value.name,
+                area: areaName.value,
+                key: selectedLearned.value.key,
+            }))
             return
         }
 
@@ -516,8 +550,6 @@
         font-size: 0.84rem;
         line-height: 1.35;
     }
-
 </style>
-
 
 

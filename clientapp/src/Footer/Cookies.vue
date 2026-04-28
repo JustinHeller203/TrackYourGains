@@ -1,10 +1,14 @@
 <template>
     <div class="legal-page">
-        <h1>Cookie-Richtlinie</h1>
-        <p>Coming soon...</p>
+        <h1>{{ t('cookies.title') }}</h1>
+        <p>{{ t('cookies.comingSoon') }}</p>
     </div>
 </template>
+<script setup lang="ts">
+    import { useI18n } from '@/composables/useI18n'
 
+    const { t } = useI18n()
+</script>
 <style scoped>
     .legal-page {
         max-width: 800px;

@@ -1,12 +1,15 @@
-﻿<!--Pfad: components/ui/buttons/CopyButton.vue-->
 <template>
-    <button class="btn-ghost mini" type="button" title="Kopieren" @click="$emit('click')">
-        📋 <slot>Kopieren</slot>
+    <button class="btn-ghost mini" type="button" :title="t('common.copy')" @click="$emit('click')">
+        📋 <slot>{{ t('common.copy') }}</slot>
     </button>
 </template>
 
 <script setup lang="ts">
+    import { useI18n } from '@/composables/useI18n'
+
     defineEmits<{ (e: 'click'): void }>()
+
+    const { t } = useI18n()
 </script>
 
 <style scoped>

@@ -1,12 +1,12 @@
 <template>
     <BasePopup
         :show="show"
-        title="E-Mail aendern"
+        :title="t('profile.changeEmail')"
         variant="email-change-popup"
         @cancel="$emit('cancel')">
         <div class="email-popup-card">
             <div class="form-grid">
-                <label class="label">Neue E-Mail</label>
+                <label class="label">{{ t('profile.popup.email.newEmail') }}</label>
                 <input
                     ref="emailRef"
                     v-model.trim="email"
@@ -15,7 +15,7 @@
                     placeholder="dein.name@mail.com" />
                 <p v-if="errors.email" class="form-error">{{ errors.email }}</p>
 
-                <label class="label">Passwort zur Bestaetigung</label>
+                <label class="label">{{ t('profile.popup.email.passwordConfirm') }}</label>
                 <input
                     v-model="password"
                     type="password"
@@ -27,7 +27,7 @@
 
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
-                Abbrechen
+                {{ t('common.cancel') }}
             </PopupActionButton>
 
             <PopupActionButton autofocus @click="onSave">
@@ -39,6 +39,7 @@
 
 <script setup lang="ts">
     import { ref, watch, nextTick } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
     import BasePopup from '../BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
@@ -49,6 +50,7 @@
     const password = ref('')
     const errors = ref({ email: '', password: '' })
     const emailRef = ref<HTMLInputElement | null>(null)
+    const { t } = useI18n()
 
     watch(() => props.show, async (open) => {
         if (!open) return
@@ -65,18 +67,18 @@
         errors.value.password = ''
 
         if (!email.value) {
-            errors.value.email = 'Bitte eine E-Mail eingeben.'
+            errors.value.email = t('profile.popup.email.required')
             return
         }
 
         const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)
         if (!valid) {
-            errors.value.email = 'Bitte eine gueltige E-Mail eingeben.'
+            errors.value.email = t('profile.popup.email.invalid')
             return
         }
 
         if (!password.value) {
-            errors.value.password = 'Bitte Passwort eingeben.'
+            errors.value.password = t('profile.popup.email.passwordRequired')
             return
         }
 

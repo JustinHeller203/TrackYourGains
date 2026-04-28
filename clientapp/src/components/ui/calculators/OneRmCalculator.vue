@@ -1,11 +1,10 @@
-<!-- src/components/ui/calculators/OneRmCalculator.vue -->
 <template>
-    <BaseCalculator :title="title || '1RM-Rechner'"
+    <BaseCalculator :title="title || t('progress.calculators.oneRm.title')"
                     :showInfo="true"
-                    infoTitle="1RM (One-Rep-Max)"
-                    infoKicker="Rechner erklärt"
-                    ariaOpen="1RM Erklärung öffnen"
-                    ariaClose="Schließen"
+                    :infoTitle="t('progress.calculators.oneRm.title')"
+                    :infoKicker="t('progress.calculators.infoKicker')"
+                    :ariaOpen="t('progress.calculators.openInfo')"
+                    :ariaClose="t('common.close')"
                     :info="infoText"
                     :autoCalcEnabled="autoCalcEnabled"
                     :validate="validateOneRm"
@@ -18,28 +17,24 @@
                     @copy="$emit('copy')"
                     @export="$emit('export')"
                     @reset="$emit('reset')"
-                    @invalid="(errors) => $emit('invalid', errors)" >
+                    @invalid="(errors) => $emit('invalid', errors)">
 
-        <!-- Graphic -->
         <template #graphic="{ jumpTo }">
-            <div class="calc-hero" role="img" aria-label="1RM Kurzkarte">
+            <div class="calc-hero" role="img" :aria-label="ui.heroAria">
                 <div class="calc-hero-top">
-                    <span class="calc-hero-title">🏋️‍♂️ Wie stark bist du wirklich?</span>
+                    <span class="calc-hero-title">{{ ui.heroTitle }}</span>
                 </div>
 
-                <div class="calc-hero-sub">
-                    Schätzung deines Maximalgewichts (1 Wiederholung) – kein Ego-Trip, sondern ein Richtwert fürs Training.
-                </div>
+                <div class="calc-hero-sub">{{ ui.heroSub }}</div>
 
-                <div class="calc-hero-pills" aria-label="Schnellnavigation">
-                    <button class="calc-chip" type="button" @click="jumpTo('calc_formula')">⚙️ Formel</button>
-                    <button class="calc-chip" type="button" @click="jumpTo('calc_example')">📐 Beispiel</button>
-                    <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('calc_limits')">⚠️ Grenzen</button>
+                <div class="calc-hero-pills" :aria-label="ui.quickNav">
+                    <button class="calc-chip" type="button" @click="jumpTo('calc_formula')">{{ ui.formulaChip }}</button>
+                    <button class="calc-chip" type="button" @click="jumpTo('calc_example')">{{ ui.exampleChip }}</button>
+                    <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('calc_limits')">{{ ui.limitsChip }}</button>
                 </div>
             </div>
         </template>
 
-        <!-- Popup -->
         <template #popup="{ jumpTo, activeTargetId, onCopy }">
             <div class="calc-scan">
                 <div v-if="hasResult"
@@ -47,38 +42,31 @@
                      class="calc-callout calc-callout--tldr"
                      :class="{ 'calc-target': activeTargetId === 'calc_you' }"
                      tabindex="-1">
-                    <div class="calc-callout-title">✅ Dein Ergebnis</div>
+                    <div class="calc-callout-title">{{ ui.youTitle }}</div>
                     <div class="calc-callout-text">
-                        <div>
-                            <strong>1RM für {{ exercise || 'Übung' }}:</strong> {{ displayResult }}
-                        </div>
-
-                        <div class="calc-note calc-note--tight">
-                            Tipp: Nutze das für Trainingsplanung (Prozente), nicht um jedes Mal bis zum Limit zu gehen.
-                        </div>
+                        <div><strong>{{ ui.resultLabel }} {{ exercise || ui.exerciseFallback }}</strong> {{ displayResult }}</div>
+                        <div class="calc-note calc-note--tight">{{ ui.youNote }}</div>
 
                         <div class="calc-actions">
-                            <button class="calc-chip" type="button" @click="jumpTo('calc_next')">👉 Was heißt das?</button>
-                            <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('calc_limits')">⚠️ Grenzen</button>
+                            <button class="calc-chip" type="button" @click="jumpTo('calc_next')">{{ ui.meaningChip }}</button>
+                            <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('calc_limits')">{{ ui.limitsChip }}</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="calc-chips" aria-label="Kurzüberblick">
-                    <button class="calc-chip" type="button" @click="jumpTo('calc_formula')">⚙️ Formel</button>
-                    <button class="calc-chip" type="button" @click="jumpTo('calc_example')">📐 Beispiel</button>
-                    <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('calc_use')">🎯 Nutzen</button>
-                    <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('calc_limits')">⚠️ Grenzen</button>
-
+                <div class="calc-chips" :aria-label="ui.quickOverview">
+                    <button class="calc-chip" type="button" @click="jumpTo('calc_formula')">{{ ui.formulaChip }}</button>
+                    <button class="calc-chip" type="button" @click="jumpTo('calc_example')">{{ ui.exampleChip }}</button>
+                    <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('calc_use')">{{ ui.useChip }}</button>
+                    <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('calc_limits')">{{ ui.limitsChip }}</button>
                     <button class="calc-chip"
                             type="button"
                             :disabled="!hasResult"
                             :aria-disabled="!hasResult"
                             :class="{ 'is-disabled': !hasResult }"
-                            :title="hasResult ? 'Kopieren' : 'Erst berechnen, dann kopieren'"
+                            :title="hasResult ? t('common.copy') : t('progress.calculators.copyHint')"
                             @click="async () => { await onCopy?.(); jumpTo('calc_you') }">
-
-                        📋 Copy
+                        {{ t('common.copy') }}
                     </button>
                 </div>
 
@@ -86,16 +74,13 @@
                      class="calc-callout calc-callout--tldr"
                      :class="{ 'calc-target': activeTargetId === 'calc_tldr' }"
                      tabindex="-1">
-                    <div class="calc-callout-title">📌 Kurzfassung</div>
+                    <div class="calc-callout-title">{{ ui.summaryTitle }}</div>
                     <div class="calc-callout-text">
-                        <div>
-                            Der Rechner schätzt dein <strong>1RM</strong> aus <strong>Gewicht</strong> + <strong>Wiederholungen</strong> (Standard: Epley).
-                        </div>
-
+                        <div>{{ ui.summaryIntro }}</div>
                         <ul class="calc-list calc-list--spaced">
-                            <li><strong>Gut:</strong> sehr hilfreich für Trainings-Prozente & Fortschritt</li>
-                            <li><strong>Wichtig:</strong> saubere Technik &gt; Zahl</li>
-                            <li><strong>Merke:</strong> bei sehr hohen Reps wird’s ungenauer</li>
+                            <li><strong>{{ ui.goodLabel }}</strong> {{ ui.summaryGood }}</li>
+                            <li><strong>{{ ui.importantLabel }}</strong> {{ ui.summaryImportant }}</li>
+                            <li><strong>{{ ui.takeawayLabel }}</strong> {{ ui.summaryTakeaway }}</li>
                         </ul>
                     </div>
                 </div>
@@ -104,21 +89,21 @@
                      class="calc-callout"
                      :class="{ 'calc-target': activeTargetId === 'calc_next' }"
                      tabindex="-1">
-                    <div class="calc-callout-title">👉 Was heißt das jetzt?</div>
+                    <div class="calc-callout-title">{{ ui.meaningNowTitle }}</div>
                     <ul class="calc-list">
-                        <li><strong>Hypertrophie:</strong> oft 65–80% 1RM</li>
-                        <li><strong>Kraft:</strong> oft 80–92% 1RM</li>
-                        <li><strong>Technik/Speed:</strong> eher 50–70% 1RM</li>
+                        <li><strong>{{ ui.hypertrophyLabel }}</strong> {{ ui.hypertrophyText }}</li>
+                        <li><strong>{{ ui.strengthLabel }}</strong> {{ ui.strengthText }}</li>
+                        <li><strong>{{ ui.techniqueLabel }}</strong> {{ ui.techniqueText }}</li>
                     </ul>
                 </div>
 
                 <div class="calc-grid">
                     <section class="calc-card">
-                        <h4 class="calc-h">👥 Für wen ist das sinnvoll?</h4>
+                        <h4 class="calc-h">{{ ui.forWhoTitle }}</h4>
                         <ul class="calc-list">
-                            <li>✅ Krafttraining / progressive Overload</li>
-                            <li>✅ Trainingsplanung (Prozent-Sätze)</li>
-                            <li>⚠️ Anfänger: eher als grober Richtwert</li>
+                            <li>{{ ui.forWho1 }}</li>
+                            <li>{{ ui.forWho2 }}</li>
+                            <li>{{ ui.forWho3 }}</li>
                         </ul>
                     </section>
 
@@ -126,11 +111,11 @@
                              class="calc-card"
                              :class="{ 'calc-target': activeTargetId === 'calc_use' }"
                              tabindex="-1">
-                        <h4 class="calc-h">🎯 Wofür nutzt man 1RM?</h4>
+                        <h4 class="calc-h">{{ ui.useTitle }}</h4>
                         <ul class="calc-list">
-                            <li><strong>Planung:</strong> Arbeitssätze in % vom 1RM</li>
-                            <li><strong>Vergleich:</strong> Fortschritt ohne Max-Test</li>
-                            <li><strong>Hinweis:</strong> Tagesform kann +/- ein paar % ausmachen</li>
+                            <li><strong>{{ ui.usePlanningLabel }}</strong> {{ ui.usePlanningText }}</li>
+                            <li><strong>{{ ui.useCompareLabel }}</strong> {{ ui.useCompareText }}</li>
+                            <li><strong>{{ ui.useNoteLabel }}</strong> {{ ui.useNoteText }}</li>
                         </ul>
                     </section>
 
@@ -138,30 +123,26 @@
                              class="calc-card"
                              :class="{ 'calc-target': activeTargetId === 'calc_formula' }"
                              tabindex="-1">
-                        <h4 class="calc-h">⚙️ Formel (Epley)</h4>
+                        <h4 class="calc-h">{{ ui.formulaTitle }}</h4>
                         <div class="calc-formula">
                             <span class="calc-formula-k">1RM</span>
                             <span class="calc-formula-eq">≈</span>
-                            <span class="calc-formula-v">Gewicht × (1 + Wiederholungen / 30)</span>
+                            <span class="calc-formula-v">{{ ui.formulaText }}</span>
                         </div>
-                        <div class="calc-note">
-                            Genauigkeit ist meist am besten bei ca. <strong>1–10 Reps</strong>.
-                        </div>
+                        <div class="calc-note">{{ ui.formulaNote }}</div>
                     </section>
 
                     <section id="calc_example"
                              class="calc-card"
                              :class="{ 'calc-target': activeTargetId === 'calc_example' }"
                              tabindex="-1">
-                        <h4 class="calc-h">📐 Beispiel</h4>
+                        <h4 class="calc-h">{{ ui.exampleTitle }}</h4>
                         <div class="calc-example">
                             <div class="calc-example-row">
-                                <span>80&nbsp;kg × 8 Reps</span>
-                                <span class="calc-example-strong">≈ 101,3&nbsp;kg</span>
+                                <span>{{ ui.exampleTop }}</span>
+                                <span class="calc-example-strong">{{ ui.exampleStrong }}</span>
                             </div>
-                            <div class="calc-example-sub">
-                                Schätzung — echte 1RM-Tests können je nach Technik/Tagesform abweichen.
-                            </div>
+                            <div class="calc-example-sub">{{ ui.exampleSub }}</div>
                         </div>
                     </section>
                 </div>
@@ -170,11 +151,11 @@
                      class="calc-callout"
                      :class="{ 'calc-target': activeTargetId === 'calc_ignore' }"
                      tabindex="-1">
-                    <div class="calc-callout-title">🧠 Wann du den 1RM-Rechner locker ignorieren darfst</div>
+                    <div class="calc-callout-title">{{ ui.ignoreTitle }}</div>
                     <ul class="calc-list">
-                        <li>Du trainierst nach <strong>RPE/RIR</strong> und Progress passt</li>
-                        <li>Deine Übung variiert ständig (Technik/Range/Tempo) → schwer vergleichbar</li>
-                        <li>Du bist <strong>komplett neu</strong> und brauchst erstmal Technik & Routine</li>
+                        <li>{{ ui.ignore1 }}</li>
+                        <li>{{ ui.ignore2 }}</li>
+                        <li>{{ ui.ignore3 }}</li>
                     </ul>
                 </div>
 
@@ -182,79 +163,72 @@
                      class="calc-callout calc-callout--warn"
                      :class="{ 'calc-target': activeTargetId === 'calc_limits' }"
                      tabindex="-1">
-                    <div class="calc-callout-title">⚠️ Wichtig (damit du’s richtig nutzt)</div>
+                    <div class="calc-callout-title">{{ ui.importantTitle }}</div>
                     <ul class="calc-list">
-                        <li><strong>Hohe Reps (10+)</strong> → Schätzung wird deutlich ungenauer</li>
-                        <li><strong>Cheat-Reps</strong> → Ergebnis ist kaum aussagekräftig</li>
-                        <li><strong>Schmerzen/unsichere Technik</strong> → lieber nicht auf Max-Zahlen gehen</li>
+                        <li><strong>{{ ui.highRepsLabel }}</strong> {{ ui.highRepsText }}</li>
+                        <li><strong>{{ ui.cheatLabel }}</strong> {{ ui.cheatText }}</li>
+                        <li><strong>{{ ui.painLabel }}</strong> {{ ui.painText }}</li>
                     </ul>
                 </div>
 
                 <section class="calc-card">
-                    <h4 class="calc-h">❓ Häufige Fragen</h4>
+                    <h4 class="calc-h">{{ ui.faqTitle }}</h4>
                     <ul class="calc-list">
-                        <li><strong>„Welche Formel ist das?“</strong> → Epley (Standard-Schätzung).</li>
-                        <li><strong>„Warum variiert das?“</strong> → Technik, Pausenlänge, Tagesform, ROM. Und: Bankdrücken 30 kg ≠ Seitheben 30 kg.</li>
-                        <li><strong>„Soll ich 1RM testen?“</strong> → nur mit Erfahrung + sicherem Setup (Spotter/Safeties).</li>
+                        <li><strong>{{ ui.faq1q }}</strong> {{ ui.faq1a }}</li>
+                        <li><strong>{{ ui.faq2q }}</strong> {{ ui.faq2a }}</li>
+                        <li><strong>{{ ui.faq3q }}</strong> {{ ui.faq3a }}</li>
                     </ul>
                 </section>
             </div>
         </template>
 
-        <!-- Mini -->
         <template #mini>
             <div class="calc-mini">
-                <div class="calc-mini-title">✅ Reality-Check</div>
-                <div class="calc-mini-text">
-                    Dein bestes Tool bleibt: <strong>saubere Reps</strong> + <strong>Progress</strong>. 1RM ist nur ’ne Zahl.
-                </div>
+                <div class="calc-mini-title">{{ ui.realityTitle }}</div>
+                <div class="calc-mini-text">{{ ui.realityText }}</div>
             </div>
         </template>
 
-        <!-- Inputs -->
         <template #inputs="{ maybeAutoCalc, normalizeNumberInput, errorFor }">
             <UiCalculatorInput :modelValue="exercise"
-                               label="Übung *"
+                               :label="ui.exerciseLabel"
                                type="text"
-                               placeholder="z. B. Bankdrücken"
+                               :placeholder="ui.exercisePlaceholder"
                                autocomplete="off"
                                :error="errorFor('übung')"
                                @update:modelValue="(v) => { emit('update:oneRmExercise', String(v)); maybeAutoCalc() }" />
 
             <UiCalculatorInput :modelValue="weightInputValue"
-                               :label="`Gewicht (${String(unit).toLowerCase() === 'kg' ? 'kg' : 'lbs'}) *`"
+                               :label="weightLabel"
                                type="text"
                                inputmode="decimal"
                                autocomplete="off"
-                               :placeholder="unit === 'kg' ? 'z. B. 80' : 'z. B. 175'"
+                               :placeholder="weightPlaceholder"
                                :error="errorFor('gewicht')"
                                @update:modelValue="(v) => { onWeightInputValue(v, normalizeNumberInput); maybeAutoCalc() }" />
 
             <UiCalculatorInput :modelValue="repsInputValue"
-                               label="Wiederholungen *"
+                               :label="ui.repsLabel"
                                type="text"
                                inputmode="numeric"
                                autocomplete="off"
-                               placeholder="z. B. 8"
+                               :placeholder="ui.repsPlaceholder"
                                :error="errorFor('wiederholungen')"
                                @update:modelValue="(v) => { onRepsInputValue(v); maybeAutoCalc() }" />
         </template>
 
-        <!-- Result -->
         <template #result>
             <div v-if="hasResult">
-                <p>
-                    <strong>1RM für {{ exercise || 'Übung' }}:</strong> {{ displayResult }}
-                </p>
+                <p><strong>{{ ui.resultLabel }} {{ exercise || ui.exerciseFallback }}</strong> {{ displayResult }}</p>
             </div>
         </template>
-
     </BaseCalculator>
 </template>
 
 <script setup lang="ts">
     import { computed } from 'vue'
     import BaseCalculator from '@/components/ui/calculators/BaseCalculator.vue'
+    import { useI18n } from '@/composables/useI18n'
     import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
 
     type Unit = 'kg' | 'lb' | 'lbs' | string
@@ -273,6 +247,8 @@
         info?: string
     }>()
 
+    const { locale, t } = useI18n()
+
     const emit = defineEmits<{
         (e: 'toggleFavorite'): void
         (e: 'update:oneRmExercise', v: string): void
@@ -285,48 +261,161 @@
         (e: 'invalid', errors: string[]): void
     }>()
 
-    const infoText = computed(() =>
-        props.info ??
-        'Schätzt dein einmaliges Maximalgewicht. Standard: Epley (1RM ≈ Gewicht × (1 + Wiederholungen/30)). Richtwert, kein Max-Test.'
-    )
-
-    function validateOneRm(): string[] {
-        const errors: string[] = []
-
-        const ex = String(props.oneRmExercise ?? '').trim()
-        if (!ex) {
-            errors.push('Bitte gib eine Übung ein.')
+    const ui = computed(() => locale.value === 'en'
+        ? {
+            heroAria: '1RM quick card',
+            heroTitle: 'How strong are you really?',
+            heroSub: 'Estimate your one-rep max. Useful for training, not for ego lifting.',
+            quickNav: 'Quick navigation',
+            formulaChip: 'Formula',
+            exampleChip: 'Example',
+            limitsChip: 'Limits',
+            youTitle: 'Your result',
+            resultLabel: '1RM for',
+            exerciseFallback: 'exercise:',
+            youNote: 'Use it for planning percentages, not for maxing out every session.',
+            meaningChip: 'What does that mean?',
+            quickOverview: 'Quick overview',
+            useChip: 'Use',
+            summaryTitle: 'Quick summary',
+            summaryIntro: 'The calculator estimates your 1RM from weight and reps using the Epley formula.',
+            goodLabel: 'Useful:',
+            summaryGood: 'Very practical for training percentages and progress.',
+            importantLabel: 'Important:',
+            summaryImportant: 'Clean technique matters more than the number.',
+            takeawayLabel: 'Takeaway:',
+            summaryTakeaway: 'Very high rep sets make the estimate less accurate.',
+            meaningNowTitle: 'What does that mean now?',
+            hypertrophyLabel: 'Hypertrophy:',
+            hypertrophyText: 'Often around 65-80% of 1RM.',
+            strengthLabel: 'Strength:',
+            strengthText: 'Often around 80-92% of 1RM.',
+            techniqueLabel: 'Technique/speed:',
+            techniqueText: 'Often around 50-70% of 1RM.',
+            forWhoTitle: 'Who is this useful for?',
+            forWho1: 'Strength training and progressive overload.',
+            forWho2: 'Planning work sets by percentage.',
+            forWho3: 'For beginners it is mostly a rough guide.',
+            useTitle: 'What is 1RM used for?',
+            usePlanningLabel: 'Planning:',
+            usePlanningText: 'Work sets as percentages of 1RM.',
+            useCompareLabel: 'Comparison:',
+            useCompareText: 'Track progress without testing a true max.',
+            useNoteLabel: 'Note:',
+            useNoteText: 'Day-to-day performance can move by a few percent.',
+            formulaTitle: 'Formula (Epley)',
+            formulaText: 'weight × (1 + reps / 30)',
+            formulaNote: 'Accuracy is usually best around 1-10 reps.',
+            exampleTitle: 'Example',
+            exampleTop: '80 kg × 8 reps',
+            exampleStrong: '≈ 101.3 kg',
+            exampleSub: 'A real max test can still differ depending on technique and fatigue.',
+            ignoreTitle: 'When you can safely ignore the 1RM calculator',
+            ignore1: 'If you train by RPE or RIR and your progress is already good.',
+            ignore2: 'If the exercise setup changes all the time and comparison is weak.',
+            ignore3: 'If you are completely new and first need technique and routine.',
+            importantTitle: 'Important (so you use it correctly)',
+            highRepsLabel: 'High reps (10+):',
+            highRepsText: 'The estimate gets much less accurate.',
+            cheatLabel: 'Cheat reps:',
+            cheatText: 'The number becomes far less meaningful.',
+            painLabel: 'Pain or unsafe technique:',
+            painText: 'Do not chase max numbers there.',
+            faqTitle: 'Frequently asked questions',
+            faq1q: '"Which formula is this?"',
+            faq1a: 'Epley, a common standard estimate.',
+            faq2q: '"Why does it vary?"',
+            faq2a: 'Technique, rest, daily form, and range of motion all matter.',
+            faq3q: '"Should I test a true 1RM?"',
+            faq3a: 'Only with experience and a safe setup.',
+            realityTitle: 'Reality check',
+            realityText: 'Your best tools are still clean reps and consistent progress. 1RM is only one number.',
+            exerciseLabel: 'Exercise *',
+            exercisePlaceholder: 'e.g. Bench press',
+            repsLabel: 'Repetitions *',
+            repsPlaceholder: 'e.g. 8',
         }
+        : {
+            heroAria: '1RM Kurzkarte',
+            heroTitle: 'Wie stark bist du wirklich?',
+            heroSub: 'Schätzung deines Maximalgewichts für eine Wiederholung. Sinnvoll fürs Training, nicht fürs Ego.',
+            quickNav: 'Schnellnavigation',
+            formulaChip: 'Formel',
+            exampleChip: 'Beispiel',
+            limitsChip: 'Grenzen',
+            youTitle: 'Dein Ergebnis',
+            resultLabel: '1RM für',
+            exerciseFallback: 'Übung:',
+            youNote: 'Nutze das für Trainingsplanung mit Prozenten, nicht um ständig ans Limit zu gehen.',
+            meaningChip: 'Was heißt das?',
+            quickOverview: 'Kurzüberblick',
+            useChip: 'Nutzen',
+            summaryTitle: 'Kurzfassung',
+            summaryIntro: 'Der Rechner schätzt dein 1RM aus Gewicht und Wiederholungen mit der Epley-Formel.',
+            goodLabel: 'Gut:',
+            summaryGood: 'Sehr hilfreich für Trainingsprozente und Progress.',
+            importantLabel: 'Wichtig:',
+            summaryImportant: 'Saubere Technik ist wichtiger als die Zahl.',
+            takeawayLabel: 'Merke:',
+            summaryTakeaway: 'Bei sehr hohen Wiederholungen wird die Schätzung deutlich ungenauer.',
+            meaningNowTitle: 'Was heißt das jetzt?',
+            hypertrophyLabel: 'Hypertrophie:',
+            hypertrophyText: 'Oft ungefähr 65-80% vom 1RM.',
+            strengthLabel: 'Kraft:',
+            strengthText: 'Oft ungefähr 80-92% vom 1RM.',
+            techniqueLabel: 'Technik/Speed:',
+            techniqueText: 'Oft ungefähr 50-70% vom 1RM.',
+            forWhoTitle: 'Für wen ist das sinnvoll?',
+            forWho1: 'Krafttraining und progressive Überlastung.',
+            forWho2: 'Arbeitssätze nach Prozent planen.',
+            forWho3: 'Für Anfänger eher nur ein grober Richtwert.',
+            useTitle: 'Wofür nutzt man 1RM?',
+            usePlanningLabel: 'Planung:',
+            usePlanningText: 'Arbeitssätze in Prozent vom 1RM.',
+            useCompareLabel: 'Vergleich:',
+            useCompareText: 'Fortschritt ohne echten Max-Test sehen.',
+            useNoteLabel: 'Hinweis:',
+            useNoteText: 'Die Tagesform kann ein paar Prozent Unterschied machen.',
+            formulaTitle: 'Formel (Epley)',
+            formulaText: 'Gewicht × (1 + Wiederholungen / 30)',
+            formulaNote: 'Am genauesten ist die Schätzung meist bei 1-10 Wiederholungen.',
+            exampleTitle: 'Beispiel',
+            exampleTop: '80 kg × 8 Wiederholungen',
+            exampleStrong: '≈ 101,3 kg',
+            exampleSub: 'Ein echter Max-Test kann je nach Technik und Tagesform trotzdem abweichen.',
+            ignoreTitle: 'Wann du den 1RM-Rechner locker ignorieren darfst',
+            ignore1: 'Wenn du nach RPE oder RIR trainierst und dein Progress passt.',
+            ignore2: 'Wenn die Übungsausführung ständig variiert und schlecht vergleichbar ist.',
+            ignore3: 'Wenn du komplett neu bist und zuerst Technik und Routine brauchst.',
+            importantTitle: 'Wichtig (damit du es richtig nutzt)',
+            highRepsLabel: 'Hohe Wiederholungen (10+):',
+            highRepsText: 'Die Schätzung wird deutlich ungenauer.',
+            cheatLabel: 'Cheat-Reps:',
+            cheatText: 'Dann wird das Ergebnis kaum aussagekräftig.',
+            painLabel: 'Schmerzen oder unsichere Technik:',
+            painText: 'Dann lieber keine Max-Zahlen jagen.',
+            faqTitle: 'Häufige Fragen',
+            faq1q: '„Welche Formel ist das?“',
+            faq1a: 'Epley, also eine gängige Standardschätzung.',
+            faq2q: '„Warum variiert das?“',
+            faq2a: 'Technik, Pausen, Tagesform und Bewegungsradius machen einen Unterschied.',
+            faq3q: '„Soll ich ein echtes 1RM testen?“',
+            faq3a: 'Nur mit Erfahrung und sicherem Setup.',
+            realityTitle: 'Reality-Check',
+            realityText: 'Deine besten Tools bleiben saubere Wiederholungen und konsistenter Progress. 1RM ist nur eine Zahl.',
+            exerciseLabel: 'Übung *',
+            exercisePlaceholder: 'z. B. Bankdrücken',
+            repsLabel: 'Wiederholungen *',
+            repsPlaceholder: 'z. B. 8',
+        })
 
-        const w = props.oneRmWeight
-        if (w == null || Number.isNaN(w)) {
-            errors.push('Bitte gib das Gewicht ein.')
-            return errors
-        }
+    const infoText = computed(() => props.info ?? (locale.value === 'en'
+        ? 'Estimates your one-rep max. Standard: Epley. Guideline only, not a real max test.'
+        : 'Schätzt dein einmaliges Maximalgewicht. Standard: Epley. Richtwert, kein echter Max-Test.'))
 
-        if (w <= 0) errors.push('Gewicht muss größer als 0 sein.')
-        else if (String(props.unit).toLowerCase() === 'kg' && w > 500) errors.push('Gewicht wirkt unrealistisch hoch (kg).')
-        else if ((String(props.unit).toLowerCase() === 'lb' || String(props.unit).toLowerCase() === 'lbs') && w > 1100)
-            errors.push('Gewicht wirkt unrealistisch hoch (lbs).')
-
-        const r = props.oneRmReps
-        if (r == null || Number.isNaN(r)) {
-            errors.push('Bitte gib die Wiederholungen ein.')
-            return errors
-        }
-
-        if (r <= 0) errors.push('Wiederholungen müssen größer als 0 sein.')
-        else if (r > 20) errors.push('Wiederholungen wirken für 1RM-Schätzung zu hoch (20+ wird sehr ungenau).')
-
-        return errors
-    }
-
-    /* Bindings */
     const exercise = computed(() => props.oneRmExercise)
-
     const hasResult = computed(() => props.oneRmResult != null || !!props.formattedResult)
 
-    /* Anzeige: bevorzugt formattedResult, sonst lokal formatieren */
     const displayResult = computed(() => {
         if (props.formattedResult) return props.formattedResult
         if (props.oneRmResult == null || !Number.isFinite(props.oneRmResult)) return '—'
@@ -334,44 +423,62 @@
         return `${props.oneRmResult.toFixed(1)} ${u}`
     })
 
-    /* CopyText für BaseCalculator */
+    const weightLabel = computed(() => locale.value === 'en'
+        ? `Weight (${String(props.unit).toLowerCase() === 'kg' ? 'kg' : 'lbs'}) *`
+        : `Gewicht (${String(props.unit).toLowerCase() === 'kg' ? 'kg' : 'lbs'}) *`)
+    const weightPlaceholder = computed(() => props.unit === 'kg' ? 'z. B. 80' : 'z. B. 175')
+
     const copyText = computed<string | null>(() => {
         if (!hasResult.value) return null
-
         const parts: string[] = []
-        if (props.oneRmExercise?.trim()) parts.push(`Übung: ${props.oneRmExercise.trim()}`)
-        if (props.oneRmWeight != null) parts.push(`Gewicht: ${props.oneRmWeight} ${String(props.unit).toLowerCase() === 'lbs' ? 'lbs' : 'kg'}`)
-        if (props.oneRmReps != null) parts.push(`Wiederholungen: ${props.oneRmReps}`)
+        if (props.oneRmExercise?.trim()) parts.push(`${locale.value === 'en' ? 'Exercise' : 'Übung'}: ${props.oneRmExercise.trim()}`)
+        if (props.oneRmWeight != null) parts.push(`${locale.value === 'en' ? 'Weight' : 'Gewicht'}: ${props.oneRmWeight} ${String(props.unit).toLowerCase() === 'lbs' ? 'lbs' : 'kg'}`)
+        if (props.oneRmReps != null) parts.push(`${locale.value === 'en' ? 'Reps' : 'Wiederholungen'}: ${props.oneRmReps}`)
         parts.push(`1RM: ${displayResult.value}`)
-
         return parts.join(' | ')
     })
 
     const weightInputValue = computed(() =>
-        props.oneRmWeight == null || Number.isNaN(props.oneRmWeight) ? '' : String(props.oneRmWeight)
-    )
+        props.oneRmWeight == null || Number.isNaN(props.oneRmWeight) ? '' : String(props.oneRmWeight))
     const repsInputValue = computed(() =>
-        props.oneRmReps == null || Number.isNaN(props.oneRmReps) ? '' : String(props.oneRmReps)
-    )
+        props.oneRmReps == null || Number.isNaN(props.oneRmReps) ? '' : String(props.oneRmReps))
 
-    /* Handlers (Value-basiert statt Event-basiert) */
+    function validateOneRm(): string[] {
+        const errors: string[] = []
+        const ex = String(props.oneRmExercise ?? '').trim()
+        if (!ex) errors.push(locale.value === 'en' ? 'Please enter an exercise.' : 'Bitte gib eine Übung ein.')
+
+        const w = props.oneRmWeight
+        if (w == null || Number.isNaN(w)) {
+            errors.push(locale.value === 'en' ? 'Please enter the weight.' : 'Bitte gib das Gewicht ein.')
+            return errors
+        }
+        if (w <= 0) errors.push(locale.value === 'en' ? 'Weight must be greater than 0.' : 'Gewicht muss größer als 0 sein.')
+        else if (String(props.unit).toLowerCase() === 'kg' && w > 500) errors.push(locale.value === 'en' ? 'Weight seems unrealistically high (kg).' : 'Gewicht wirkt unrealistisch hoch (kg).')
+        else if ((String(props.unit).toLowerCase() === 'lb' || String(props.unit).toLowerCase() === 'lbs') && w > 1100) errors.push(locale.value === 'en' ? 'Weight seems unrealistically high (lbs).' : 'Gewicht wirkt unrealistisch hoch (lbs).')
+
+        const r = props.oneRmReps
+        if (r == null || Number.isNaN(r)) {
+            errors.push(locale.value === 'en' ? 'Please enter the repetitions.' : 'Bitte gib die Wiederholungen ein.')
+            return errors
+        }
+        if (r <= 0) errors.push(locale.value === 'en' ? 'Repetitions must be greater than 0.' : 'Wiederholungen müssen größer als 0 sein.')
+        else if (r > 20) errors.push(locale.value === 'en' ? 'Repetitions are too high for a useful 1RM estimate.' : 'Wiederholungen sind für eine 1RM-Schätzung zu hoch.')
+
+        return errors
+    }
+
     function onWeightInputValue(v: string | number, normalize?: NormalizeFn) {
         const raw0 = String(v ?? '')
         const raw = normalize ? normalize(raw0) : raw0.trim().replace(',', '.')
-        if (raw === '') {
-            emit('update:oneRmWeight', null)
-            return
-        }
+        if (raw === '') return emit('update:oneRmWeight', null)
         const n = Number(raw)
         if (Number.isFinite(n)) emit('update:oneRmWeight', n)
     }
 
     function onRepsInputValue(v: string | number) {
         const raw = String(v ?? '').replace(/[^\d]/g, '')
-        if (raw === '') {
-            emit('update:oneRmReps', null)
-            return
-        }
+        if (raw === '') return emit('update:oneRmReps', null)
         const n = Number(raw)
         if (!Number.isFinite(n)) return
         emit('update:oneRmReps', Math.max(1, Math.floor(n)))

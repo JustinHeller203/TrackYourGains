@@ -1,22 +1,22 @@
 ﻿<!-- components/ui/feedback/TrainingFeedbackForm.vue -->
 <template>
     <BasePopup :show="show"
-               title="🧠 Training Feedback"
+               :title="t('progress.trainingFeedback.title')"
                overlayClass="training-feedback-popup"
                :showClose="true"
                :show-actions="false"
                @cancel="onCancel">
         <div class="tf-root">
             <div class="tf-head">
-                <div class="tf-title">Kurz & ehrlich</div>
+                <div class="tf-title">{{ t('progress.trainingFeedback.headline') }}</div>
                 <div class="tf-sub">
-                    Ein paar schnelle Fragen zur Selbstreflexion. Keine Pflicht, kein Stress.
+                    {{ t('progress.trainingFeedback.subhead') }}
                 </div>
             </div>
 
             <div class="tf-grid">
                 <div class="tf-card">
-                    <div class="tf-q">Wie intensiv war das Training?</div>
+                    <div class="tf-q">{{ t('progress.trainingFeedback.questions.intensity') }}</div>
                     <div class="tf-scale">
                         <button v-for="n in ratingOptions"
                                 :key="`int-${n}`"
@@ -27,20 +27,20 @@
                             {{ n }}
                         </button>
                     </div>
-                    <div class="tf-hint">1 locker · 5 maximal</div>
+                    <div class="tf-hint">{{ t('progress.trainingFeedback.hints.intensity') }}</div>
                 </div>
 
                 <div v-if="exerciseOptions.length" class="tf-card">
-                    <div class="tf-q">Welche Übung hat sich heute gut angefühlt?</div>
+                    <div class="tf-q">{{ t('progress.trainingFeedback.questions.bestExercise') }}</div>
                     <UiPopupSelect id="feedback-best-ex"
                                    v-model="bestExercise"
-                                   placeholder="Übung auswählen"
+                                   :placeholder="t('progress.trainingFeedback.placeholders.exercise')"
                                    :options="exerciseOptions"
                                    :disabled="false" />
                 </div>
 
                 <div v-if="hasStrengthLike" class="tf-card">
-                    <div class="tf-q">Wie sauber hat sich die Technik angefühlt?</div>
+                    <div class="tf-q">{{ t('progress.trainingFeedback.questions.technique') }}</div>
                     <div class="tf-scale">
                         <button v-for="n in ratingOptions"
                                 :key="`tech-${n}`"
@@ -51,11 +51,11 @@
                             {{ n }}
                         </button>
                     </div>
-                    <div class="tf-hint">1 wacklig · 5 sehr sauber</div>
+                    <div class="tf-hint">{{ t('progress.trainingFeedback.hints.technique') }}</div>
                 </div>
 
                 <div v-if="hasCardio" class="tf-card">
-                    <div class="tf-q">Wie fordernd war die Ausdauer-Phase?</div>
+                    <div class="tf-q">{{ t('progress.trainingFeedback.questions.cardio') }}</div>
                     <div class="tf-scale">
                         <button v-for="n in ratingOptions"
                                 :key="`cardio-${n}`"
@@ -66,11 +66,11 @@
                             {{ n }}
                         </button>
                     </div>
-                    <div class="tf-hint">1 leicht · 5 sehr hart</div>
+                    <div class="tf-hint">{{ t('progress.trainingFeedback.hints.cardio') }}</div>
                 </div>
 
                 <div v-if="hasStretch" class="tf-card">
-                    <div class="tf-q">Wie waren die Schmerzen bei Dehnung?</div>
+                    <div class="tf-q">{{ t('progress.trainingFeedback.questions.stretchPain') }}</div>
                     <div class="tf-scale">
                         <button v-for="n in ratingOptions"
                                 :key="`stretch-${n}`"
@@ -81,33 +81,33 @@
                             {{ n }}
                         </button>
                     </div>
-                    <div class="tf-hint">1 keine · 5 stark</div>
+                    <div class="tf-hint">{{ t('progress.trainingFeedback.hints.stretchPain') }}</div>
                 </div>
 
                 <div class="tf-card">
-                    <div class="tf-q">Kurznotiz (optional)</div>
+                    <div class="tf-q">{{ t('progress.trainingFeedback.questions.note') }}</div>
                     <textarea v-model="note"
                               rows="3"
                               class="tf-textarea"
-                              placeholder="Optional: Was war gut, was nervte, was bleibt?" />
+                              :placeholder="t('progress.trainingFeedback.placeholders.note')" />
                 </div>
             </div>
 
             <div class="tf-actions">
                 <template v-if="isReviewMode">
                     <PopupActionButton v-if="feedbackChanged" @click="submit">
-                        Änderungen speichern
+                        {{ t('progress.trainingFeedback.actions.saveChanges') }}
                     </PopupActionButton>
                     <PopupActionButton v-else @click="close">
-                        Schließen
+                        {{ t('common.close') }}
                     </PopupActionButton>
                 </template>
                 <template v-else>
                     <PopupActionButton variant="ghost" @click="skip">
-                        Überspringen
+                        {{ t('progress.trainingFeedback.actions.skip') }}
                     </PopupActionButton>
                     <PopupActionButton @click="submit">
-                        Speichern
+                        {{ t('common.save') }}
                     </PopupActionButton>
                 </template>
             </div>
@@ -120,6 +120,7 @@
     import BasePopup from "@/components/ui/popups/BasePopup.vue"
     import PopupActionButton from "@/components/ui/buttons/popup/PopupActionButton.vue"
     import UiPopupSelect from "@/components/ui/kits/selects/UiPopupSelect.vue"
+    import { useI18n } from '@/composables/useI18n'
 
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
 
@@ -150,6 +151,8 @@
         (e: 'skip'): void
         (e: 'close'): void
     }>()
+
+    const { t } = useI18n()
 
     const ratingOptions = [1, 2, 3, 4, 5]
 

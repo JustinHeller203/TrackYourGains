@@ -1,8 +1,8 @@
 <template>
     <section class="pr-panel">
         <div v-if="!records.length" class="pr-empty">
-            <div class="pr-empty__title">Noch keine PRs</div>
-            <div class="pr-empty__text">Sobald du Gewicht, Wdh oder Volumen steigerst, tauchen deine Rekorde hier auf.</div>
+            <div class="pr-empty__title">{{ t('progress.personalRecords.emptyTitle') }}</div>
+            <div class="pr-empty__text">{{ t('progress.personalRecords.emptyText') }}</div>
         </div>
 
         <div v-else class="pr-list">
@@ -26,6 +26,7 @@
 <script setup lang="ts">
     import { computed } from 'vue'
     import type { ExercisePersonalRecord } from '@/types/personalRecords'
+    import { useI18n } from '@/composables/useI18n'
     import {
         personalRecordMetricLabel,
         personalRecordMetricValueLabel,
@@ -35,6 +36,7 @@
         records: ExercisePersonalRecord[]
         limit?: number
     }>()
+    const { locale, t } = useI18n()
 
     const displayedRecords = computed(() => {
         const items = [...(props.records ?? [])]
@@ -54,8 +56,11 @@
 
     const latestMetricDate = (record: ExercisePersonalRecord) => {
         const latestTs = latestMetricTs(record)
-        if (!latestTs) return 'Kein Datum'
-        return `Zuletzt verbessert: ${new Date(latestTs).toLocaleDateString('de-DE')}`
+        if (!latestTs) return t('progress.personalRecords.noDate')
+        return t('progress.personalRecords.lastImproved').replace(
+            '{date}',
+            new Date(latestTs).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'de-DE'),
+        )
     }
 
     const metricItems = (record: ExercisePersonalRecord) => {

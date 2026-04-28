@@ -1,6 +1,6 @@
 <template>
     <BasePopup :show="show"
-               title="⚖️ Gewichtsverlauf im Kalender"
+               :title="t('progress.weightHistoryPopup.title')"
                overlayClass="weight-history-calendar-popup"
                :showClose="true"
                @cancel="emit('close')">
@@ -13,14 +13,14 @@
 
             <div class="whc-legend" aria-hidden="true">
                 <span class="whc-legend-dot"></span>
-                <span>Ein Punkt bedeutet: Gewichtseintrag vorhanden.</span>
+                <span>{{ t('progress.weightHistoryPopup.legend') }}</span>
             </div>
 
             <div class="whc-detail">
                 <template v-if="selectedEntry">
                     <div class="whc-label">{{ formatDayLabel(selectedEntry.day) }}</div>
                     <div class="whc-value">{{ selectedEntry.displayWeight }}</div>
-                    <div class="whc-sub">Gewicht an diesem Tag</div>
+                    <div class="whc-sub">{{ t('progress.weightHistoryPopup.weightOnDay') }}</div>
                     <div v-if="goalDistanceText || sinceFirstText" class="whc-metrics">
                         <div v-if="goalDistanceText">{{ goalDistanceText }}</div>
                         <div v-if="sinceFirstText">{{ sinceFirstText }}</div>
@@ -28,11 +28,11 @@
                 </template>
                 <template v-else-if="selectedDay">
                     <div class="whc-label">{{ formatDayLabel(selectedDay) }}</div>
-                    <div class="whc-value">Kein Eintrag vorhanden.</div>
-                    <div class="whc-sub">Gewicht an diesem Tag</div>
+                    <div class="whc-value">{{ t('progress.weightHistoryPopup.noEntry') }}</div>
+                    <div class="whc-sub">{{ t('progress.weightHistoryPopup.weightOnDay') }}</div>
                 </template>
                 <template v-else>
-                    <div class="whc-empty">Wähle einen Tag im Kalender.</div>
+                    <div class="whc-empty">{{ t('progress.weightHistoryPopup.selectDay') }}</div>
                 </template>
             </div>
 
@@ -41,7 +41,7 @@
                         class="whc-list-toggle"
                         :aria-expanded="showRecentEntries"
                         @click="showRecentEntries = !showRecentEntries">
-                    <span class="whc-list-title">Letzte Einträge</span>
+                    <span class="whc-list-title">{{ t('progress.weightHistoryPopup.recentEntries') }}</span>
                     <span class="whc-caret" :class="{ open: showRecentEntries }" aria-hidden="true"></span>
                 </button>
 
@@ -63,6 +63,7 @@
 
 <script setup lang="ts">
     import { computed, ref, watch } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import Calender from '@/components/ui/kits/calender/Calender.vue'
 
@@ -82,6 +83,9 @@
     const emit = defineEmits<{
         (e: 'close'): void
     }>()
+
+    const { locale, t } = useI18n()
+    const localeCode = computed(() => locale.value === 'en' ? 'en-US' : 'de-DE')
 
     type DayWeight = {
         day: string
@@ -207,16 +211,16 @@
         if (!Number.isFinite(goal)) return null
         const diff = Math.abs(goal - selectedEntry.value.kg)
         const diffText = props.formatWeightText?.(diff) ?? defaultFormatWeight(diff)
-        return `Noch ${diffText} bis zum Ziel.`
+        return t('progress.weightHistoryPopup.goalDistance').replace('{value}', diffText)
     })
 
     const sinceFirstText = computed(() => {
         if (!selectedEntry.value || !firstEntry.value) return null
         const diff = selectedEntry.value.kg - firstEntry.value.kg
         const absText = props.formatWeightText?.(Math.abs(diff)) ?? defaultFormatWeight(Math.abs(diff))
-        if (diff > 0) return `Du hast schon insgesamt ${absText} zugenommen.`
-        if (diff < 0) return `Du hast schon insgesamt ${absText} abgenommen.`
-        return 'Gewicht unverändert seit dem ersten Eintrag.'
+        if (diff > 0) return t('progress.weightHistoryPopup.sinceFirstGain').replace('{value}', absText)
+        if (diff < 0) return t('progress.weightHistoryPopup.sinceFirstLoss').replace('{value}', absText)
+        return t('progress.weightHistoryPopup.sinceFirstSame')
     })
 
     const recentEntries = computed(() => dayWeights.value.slice(0, 8))
@@ -228,7 +232,12 @@
     const formatDayLabel = (day: string) => {
         const d = new Date(`${day}T12:00:00`)
         if (Number.isNaN(d.getTime())) return day
-        return d.toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+        return d.toLocaleDateString(localeCode.value, {
+            weekday: 'short',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        })
     }
 
     watch(

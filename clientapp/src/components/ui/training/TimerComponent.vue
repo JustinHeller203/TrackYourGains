@@ -127,8 +127,9 @@
                         </div>
 
                         <!-- Smart Presets: standardmäßig zu -->
-                        <Transition name="timer-panel-accordion">
-                        <div v-if="getMeta(timer.id).smartOpen" class="smart-panel">
+                        <div class="timer-panel-shell" :class="{ 'is-open': getMeta(timer.id).smartOpen }">
+                        <div class="timer-panel-clip">
+                        <div class="smart-panel" :aria-hidden="getMeta(timer.id).smartOpen ? 'false' : 'true'">
                             <TimerSelect full
                                          :modelValue="getMeta(timer.id).exerciseKey"
                                          @change="onExerciseChange(timer.id, $event)">
@@ -189,11 +190,14 @@
                                 </button>
                             </div>
                         </div>
-                        </Transition>
+                        </div>
+                        </div>
 
                         <!-- Erweitert: Sound hier rein -->
-                        <Transition name="timer-panel-accordion">
-                        <div v-if="getMeta(timer.id).advancedOpen" class="advanced-panel">
+                        <div class="timer-panel-shell timer-panel-shell--advanced"
+                             :class="{ 'is-open': getMeta(timer.id).advancedOpen, 'is-pushed': getMeta(timer.id).smartOpen }">
+                        <div class="timer-panel-clip">
+                        <div class="advanced-panel-inline" :aria-hidden="getMeta(timer.id).advancedOpen ? 'false' : 'true'">
                             <TimerSelect :modelValue="soundUiValue(timer.id, timer.sound)"
                                          @change="onSoundChange(timer.id, $event)">
                                 <option value="" disabled>Sound wählen</option>
@@ -205,7 +209,8 @@
                                 <option value="decide">One Way Out</option>
                             </TimerSelect>
                         </div>
-                        </Transition>
+                        </div>
+                        </div>
 
                         <div class="timer-buttons">
                             <StartButton title="Start" @click="handleStartTimer(timer)" :disabled="timer.isRunning" />
@@ -672,7 +677,7 @@
         finishImpactTimer = setTimeout(() => {
             if (finishImpactId.value === id) finishImpactId.value = null
             finishImpactTimer = null
-        }, 920)
+        }, 1040)
     }
 
     const makeId = () => {
@@ -988,7 +993,7 @@
         }, 920)
 
         if (!nextFav) {
-            await new Promise((resolve) => setTimeout(resolve, 280))
+            await new Promise((resolve) => setTimeout(resolve, 340))
         }
 
         if (isGuest.value) {
@@ -1634,32 +1639,27 @@
     @keyframes timer-favorite-holy-rise {
         0% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(245, 158, 11, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
 
         24% {
-            transform: translate3d(0, -10px, 0) scale(1.018);
-            box-shadow: 0 28px 64px rgba(245, 158, 11, 0.22), 0 0 34px rgba(251, 191, 36, 0.22);
-            filter: saturate(1.08) brightness(1.03);
+            transform: translate3d(0, -6px, 0) scale(1.01);
+            opacity: 1;
         }
 
         52% {
-            transform: translate3d(0, -24px, 0) scale(1.034);
-            box-shadow: 0 40px 84px rgba(245, 158, 11, 0.28), 0 0 52px rgba(250, 204, 21, 0.32);
-            filter: saturate(1.16) brightness(1.08);
+            transform: translate3d(0, -14px, 0) scale(1.018);
+            opacity: 1;
         }
 
         72% {
-            transform: translate3d(0, -14px, 0) scale(1.024);
-            box-shadow: 0 32px 72px rgba(245, 158, 11, 0.24), 0 0 46px rgba(250, 204, 21, 0.24);
-            filter: saturate(1.1) brightness(1.05);
+            transform: translate3d(0, -8px, 0) scale(1.012);
+            opacity: 1;
         }
 
         100% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(250, 204, 21, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
     }
 
@@ -1671,21 +1671,21 @@
         }
 
         32% {
-            opacity: .9;
-            transform: translate(-50%, -36%) scale(1.04);
-            filter: blur(8px);
+            opacity: .86;
+            transform: translate(-50%, -28%) scale(.96);
+            filter: blur(9px);
         }
 
         68% {
-            opacity: .74;
-            transform: translate(-50%, -44%) scale(1.12);
-            filter: blur(12px);
+            opacity: .62;
+            transform: translate(-50%, -36%) scale(1.04);
+            filter: blur(10px);
         }
 
         100% {
             opacity: 0;
-            transform: translate(-50%, -54%) scale(1.18);
-            filter: blur(18px);
+            transform: translate(-50%, -42%) scale(1.08);
+            filter: blur(14px);
         }
     }
 
@@ -1696,40 +1696,35 @@
         }
 
         50% {
-            opacity: .8;
-            transform: translateY(-4px) scale(1.06);
+            opacity: .68;
+            transform: translateY(-2px) scale(1.03);
         }
     }
 
     @keyframes timer-favorite-fall {
         0% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 22px 48px rgba(245, 158, 11, 0.16), 0 0 24px rgba(250, 204, 21, 0.16);
-            filter: saturate(1.04) brightness(1.02);
+            opacity: 1;
         }
 
         22% {
-            transform: translate3d(0, 3px, 0) scale(.997);
-            box-shadow: 0 19px 38px rgba(245, 158, 11, 0.1), 0 0 12px rgba(250, 204, 21, 0.08);
-            filter: saturate(1.01) brightness(1.005);
+            transform: translate3d(0, 2px, 0) scale(.998);
+            opacity: .995;
         }
 
         58% {
-            transform: translate3d(0, 12px, 0) scale(.989);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16), 0 0 6px rgba(250, 204, 21, 0.03);
-            filter: saturate(.985) brightness(.992);
+            transform: translate3d(0, 7px, 0) scale(.995);
+            opacity: .992;
         }
 
         84% {
-            transform: translate3d(0, 5px, 0) scale(.995);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18), 0 0 2px rgba(250, 204, 21, 0.02);
-            filter: saturate(.994) brightness(.996);
+            transform: translate3d(0, 3px, 0) scale(.998);
+            opacity: .996;
         }
 
         100% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(250, 204, 21, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
     }
 
@@ -1738,33 +1733,33 @@
             opacity: .96;
             transform: scale(1);
             border-color: rgba(250, 204, 21, 0.92);
-            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.78), 0 0 0 2px rgba(250, 204, 21, 0.88), 0 0 26px rgba(250, 204, 21, 0.22);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.48);
         }
 
         26% {
             opacity: .94;
-            transform: scale(1.01);
+            transform: scale(1.006);
             border-color: rgba(253, 224, 71, 0.88);
-            box-shadow: 0 0 0 1px rgba(255, 248, 220, 0.82), 0 0 0 2px rgba(250, 204, 21, 0.68), 0 0 26px rgba(250, 204, 21, 0.18);
+            box-shadow: 0 0 0 1px rgba(255, 248, 220, 0.44);
         }
 
         62% {
             opacity: .54;
             transform: scale(1.002);
             border-color: rgba(245, 158, 11, 0.28);
-            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.22), 0 0 0 1px rgba(245, 158, 11, 0.18), 0 0 10px rgba(250, 204, 21, 0.05);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.16);
         }
 
         86% {
             opacity: .2;
             transform: scale(.999);
             border-color: rgba(245, 158, 11, 0.08);
-            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.08), 0 0 0 1px rgba(245, 158, 11, 0.06), 0 0 4px rgba(250, 204, 21, 0.02);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.06);
         }
 
         100% {
             opacity: 0;
-            transform: scale(.988);
+            transform: scale(.994);
             border-color: rgba(245, 158, 11, 0);
             box-shadow: 0 0 0 0 rgba(255, 244, 214, 0), 0 0 0 0 rgba(250, 204, 21, 0), 0 0 0 rgba(250, 204, 21, 0);
         }
@@ -1774,25 +1769,25 @@
         0% {
             opacity: 0;
             transform: translateY(-1px) scale(.96);
-            filter: blur(8px);
+            filter: blur(6px);
         }
 
         24% {
-            opacity: .3;
-            transform: translateY(2px) scale(.985);
-            filter: blur(7px);
+            opacity: .24;
+            transform: translateY(1px) scale(.99);
+            filter: blur(6px);
         }
 
         58% {
-            opacity: .2;
-            transform: translateY(9px) scale(1.01);
-            filter: blur(8px);
+            opacity: .14;
+            transform: translateY(5px) scale(1.006);
+            filter: blur(7px);
         }
 
         100% {
             opacity: 0;
-            transform: translateY(20px) scale(1.04);
-            filter: blur(12px);
+            transform: translateY(12px) scale(1.012);
+            filter: blur(9px);
         }
     }
 
@@ -1957,7 +1952,7 @@
 
     .timer-card--favorite-transfer-in {
         border-color: rgba(250, 204, 21, 0.82);
-        animation: timer-favorite-holy-rise 1.28s cubic-bezier(0.18, 0.88, 0.24, 1.08) both;
+        animation: timer-favorite-holy-rise 1.04s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .timer-card--favorite-transfer-in::before {
@@ -1971,30 +1966,30 @@
         background: radial-gradient(circle, rgba(255, 252, 240, 0.95) 0%, rgba(250, 204, 21, 0.72) 38%, rgba(245, 158, 11, 0.12) 68%, rgba(245, 158, 11, 0) 100%);
         filter: blur(10px);
         opacity: .84;
-        animation: timer-favorite-holy-aura 1.18s cubic-bezier(0.2, 0.82, 0.24, 1) both;
+        animation: timer-favorite-holy-aura .98s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .timer-card--favorite-transfer-in::after {
         background: linear-gradient(135deg, rgba(250, 204, 21, 0.12), rgba(251, 191, 36, 0.18), rgba(250, 204, 21, 0));
         border: 2px solid rgba(250, 204, 21, 0.92);
         box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.78), 0 0 26px rgba(250, 204, 21, 0.36), 0 0 54px rgba(245, 158, 11, 0.18);
-        animation: timer-card-finish-ring .84s cubic-bezier(0.22, 0.61, 0.36, 1) both, timer-favorite-holy-sparkles .96s ease-in-out 2;
+        animation: timer-card-finish-ring .96s cubic-bezier(0.2, 0.72, 0.24, 1) both, timer-favorite-holy-sparkles 1.08s ease-in-out 1;
     }
 
     .timer-card--favorite-transfer-out {
         border-color: rgba(245, 158, 11, 0.24);
-        animation: timer-favorite-fall .76s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: timer-favorite-fall .88s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .timer-card--favorite-transfer-out::before {
         background: radial-gradient(circle at 50% 12%, rgba(255, 248, 220, 0.32), rgba(255, 248, 220, 0) 42%), linear-gradient(180deg, rgba(250, 204, 21, 0.14), rgba(245, 158, 11, 0.05) 45%, rgba(245, 158, 11, 0) 100%);
-        animation: timer-favorite-release-trail .72s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: timer-favorite-release-trail .82s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .timer-card--favorite-transfer-out::after {
         background: linear-gradient(180deg, rgba(255, 248, 220, 0.12), rgba(250, 204, 21, 0.06) 44%, rgba(250, 204, 21, 0) 100%);
         border: 2px solid rgba(250, 204, 21, 0.92);
-        animation: timer-favorite-border-release .7s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: timer-favorite-border-release .82s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     /* Hover wie bei Form-/Preview-Card */
@@ -2536,6 +2531,8 @@
         display: flex;
         gap: 0.5rem;
         justify-content: center;
+        width: 100%;
+        min-width: 0;
     }
 
     /* ===== Smart Presets UI ===== */
@@ -2672,6 +2669,19 @@
         }
     }
 
+    @media (max-width: 400px) {
+        .timer-buttons {
+            flex-wrap: wrap;
+            align-items: stretch;
+            gap: .45rem;
+        }
+
+        .timer-buttons > * {
+            flex: 1 1 calc(50% - .225rem);
+            min-width: 0;
+        }
+    }
+
     .timer-container {
         margin: 0 auto 2.25rem; /* bottom space */
     }
@@ -2733,8 +2743,7 @@
             box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
         }
 
-    .smart-panel,
-    .advanced-panel {
+    .smart-panel {
         width: 100%;
         max-width: 520px;
         display: flex;
@@ -2749,57 +2758,66 @@
         -webkit-backdrop-filter: blur(10px);
     }
 
-    html.dark-mode .smart-panel,
-    html.dark-mode .advanced-panel {
+    html.dark-mode .smart-panel {
         background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 12%, transparent), transparent 58%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 9%, transparent), transparent 62%), #020617;
         border-color: rgba(148, 163, 184, 0.26);
         box-shadow: 0 18px 44px rgba(0, 0, 0, 0.72);
     }
 
-    .timer-panel-accordion-enter-active,
-    .timer-panel-accordion-leave-active {
+    .advanced-panel-inline {
+        width: 100%;
+        max-width: 520px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+        padding-top: .05rem;
+        padding-bottom: .24rem;
+        box-sizing: border-box;
+    }
+
+    .timer-panel-shell {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows .28s cubic-bezier(.22, 1, .36, 1);
+        width: 100%;
+        max-width: 520px;
+    }
+
+    .timer-panel-shell.is-open {
+        grid-template-rows: 1fr;
+    }
+
+    .timer-panel-shell--advanced {
+        margin-top: -.55rem;
+        transition:
+            grid-template-rows .28s cubic-bezier(.22, 1, .36, 1),
+            margin-top .28s cubic-bezier(.22, 1, .36, 1),
+            transform .28s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .timer-panel-shell--advanced.is-pushed {
+        margin-top: .1rem;
+        transform: translateY(0);
+    }
+
+    .timer-panel-clip {
+        min-height: 0;
         overflow: hidden;
-        transform-origin: top center;
-        will-change: max-height, opacity, transform;
     }
 
-    .timer-panel-accordion-enter-active {
-        transition: max-height .34s cubic-bezier(0.22, 1, 0.36, 1), opacity .22s ease, transform .34s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    .timer-panel-accordion-leave-active {
-        transition: max-height .24s cubic-bezier(0.4, 0, 0.2, 1), opacity .16s ease, transform .2s ease;
-    }
-
-    .timer-panel-accordion-enter-from,
-    .timer-panel-accordion-leave-to {
-        max-height: 0;
+    .timer-panel-shell .smart-panel,
+    .timer-panel-shell .advanced-panel-inline {
         opacity: 0;
-        transform: translateY(-4px) scale(0.992);
+        transform: translateY(-6px);
+        transition: opacity .18s ease, transform .24s cubic-bezier(.22, 1, .36, 1);
+        pointer-events: none;
     }
 
-    .timer-panel-accordion-enter-to,
-    .timer-panel-accordion-leave-from {
-        max-height: 420px;
+    .timer-panel-shell.is-open .smart-panel,
+    .timer-panel-shell.is-open .advanced-panel-inline {
         opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-
-    .timer-panel-accordion-enter-active .smart-panel,
-    .timer-panel-accordion-enter-active .advanced-panel {
-        animation: timer-panel-inner-rise .34s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    @keyframes timer-panel-inner-rise {
-        0% {
-            opacity: 0.2;
-            transform: translateY(-6px);
-        }
-
-        100% {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        transform: translateY(0);
+        pointer-events: auto;
     }
 
 

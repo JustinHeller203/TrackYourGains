@@ -2,20 +2,18 @@
     <section class="card training-goals-card">
         <div class="training-goals-head">
             <div>
-                <span class="training-goals-eyebrow">Langfristige Ziele</span>
+                <span class="training-goals-eyebrow">{{ t('goals.manager.eyebrow') }}</span>
                 <h3 class="card-title training-goals-title">
-                    <i class="fas fa-bullseye"></i> Trainingsziele
+                    <i class="fas fa-bullseye"></i> {{ t('goals.manager.title') }}
                 </h3>
             </div>
             <div class="training-goals-summary">
-                <span class="summary-chip">{{ activeEvaluations.length }} aktiv</span>
-                <span class="summary-chip is-success">{{ achievedCount }} erreicht</span>
+                <span class="summary-chip">{{ tp('goals.manager.activeCount', { count: activeEvaluations.length }) }}</span>
+                <span class="summary-chip is-success">{{ tp('goals.manager.achievedCount', { count: achievedCount }) }}</span>
             </div>
         </div>
 
-        <p class="training-goals-subcopy">
-            Lege hier echte Ziele an, die aus Gewicht und Progress-Einträgen automatisch verfolgt werden.
-        </p>
+        <p class="training-goals-subcopy">{{ t('goals.manager.subcopy') }}</p>
 
         <form ref="goalFormRef"
               class="goal-form"
@@ -24,31 +22,31 @@
             <div class="goal-form-grid" :class="{ 'goal-form-grid--with-exercise': needsExercise }">
                 <label class="goal-field">
                     <UiSettingsSelect v-model="draft.type"
-                                      label="Typ *"
+                                      :label="t('goals.manager.typeLabel')"
                                       :options="goalTypeOptions" />
                 </label>
 
                 <div v-if="needsExercise" class="goal-field goal-field--exercise">
                     <div class="goal-field__top">
-                        <span class="goal-field__label">Übung *</span>
+                        <span class="goal-field__label">{{ t('goals.manager.exerciseLabel') }}</span>
                         <button v-if="draft.exerciseId"
                                 type="button"
                                 class="goal-library-clear"
                                 @click="clearSelectedExercise">
-                            Auswahl entfernen
+                            {{ t('goals.manager.clearSelection') }}
                         </button>
                     </div>
                     <button type="button"
                             class="goal-library-trigger"
                             @click="showExerciseLibrary = true">
                         <span class="goal-library-trigger__label">
-                            {{ selectedExerciseLabel || 'Übung auswählen' }}
+                            {{ selectedExerciseLabel || t('goals.manager.selectExercise') }}
                         </span>
                     </button>
                 </div>
 
                 <label class="goal-field">
-                    <span class="goal-field__label">Zielwert *</span>
+                        <span class="goal-field__label">{{ t('goals.manager.targetValueLabel') }}</span>
                     <input v-model.number="draft.targetValue"
                            class="input goal-input"
                            type="number"
@@ -58,7 +56,7 @@
                 </label>
 
                 <label class="goal-field">
-                    <span class="goal-field__label">Deadline</span>
+                    <span class="goal-field__label">{{ t('goals.common.deadline') }}</span>
                     <input v-model="draft.deadline"
                            class="input goal-input"
                            type="date" />
@@ -66,22 +64,22 @@
             </div>
 
             <label class="goal-field">
-                <span class="goal-field__label">Titel</span>
+                <span class="goal-field__label">{{ t('goals.manager.titleLabel') }}</span>
                 <input v-model.trim="draft.title"
                        class="input goal-input"
                        :placeholder="autoTitle" />
             </label>
 
             <label class="goal-field">
-                <span class="goal-field__label">Notiz</span>
+                <span class="goal-field__label">{{ t('goals.manager.noteLabel') }}</span>
                 <textarea v-model.trim="draft.note"
                           class="input goal-input goal-textarea"
                           rows="3"
-                          placeholder="Optional: Warum ist dir dieses Ziel wichtig?"></textarea>
+                          :placeholder="t('goals.manager.notePlaceholder')"></textarea>
             </label>
 
             <div v-if="draftBaselineLabel" class="goal-form-meta">
-                Startwert beim Anlegen: <strong>{{ draftBaselineLabel }}</strong>
+                {{ t('goals.manager.startValue') }} <strong>{{ draftBaselineLabel }}</strong>
             </div>
 
             <div v-if="errorMessage" class="goal-error">
@@ -91,17 +89,17 @@
             <div class="goal-form-actions">
                 <button type="submit"
                         class="goal-submit-btn"
-                        :title="draft.id ? 'Ziel aktualisieren' : 'Ziel anlegen'"
-                        :aria-label="draft.id ? 'Ziel aktualisieren' : 'Ziel anlegen'">
-                    {{ draft.id ? 'Ziel aktualisieren' : 'Ziel anlegen' }}
+                        :title="draft.id ? t('goals.manager.updateGoal') : t('goals.manager.createGoal')"
+                        :aria-label="draft.id ? t('goals.manager.updateGoal') : t('goals.manager.createGoal')">
+                    {{ draft.id ? t('goals.manager.updateGoal') : t('goals.manager.createGoal') }}
                 </button>
                 <button v-if="draft.id"
                         type="button"
                         class="goal-submit-btn"
-                        title="Bearbeitung abbrechen"
-                        aria-label="Bearbeitung abbrechen"
+                        :title="t('goals.manager.cancelEdit')"
+                        :aria-label="t('goals.manager.cancelEdit')"
                         @click="resetDraft">
-                    Bearbeitung abbrechen
+                    {{ t('goals.manager.cancelEdit') }}
                 </button>
             </div>
         </form>
@@ -124,7 +122,7 @@
 
                 <div class="goal-hero">
                     <div class="goal-hero__value">
-                        <span class="goal-hero__label">Fortschritt</span>
+                        <span class="goal-hero__label">{{ t('goals.common.progress') }}</span>
                         <strong>{{ Math.round(entry.percent) }}%</strong>
                     </div>
                     <div class="goal-hero__rail">
@@ -136,19 +134,19 @@
 
                 <div class="goal-stats">
                     <div class="goal-stat-card goal-stat-card--current">
-                        <span class="goal-stat-card__eyebrow">Aktuell</span>
+                        <span class="goal-stat-card__eyebrow">{{ t('goals.common.current') }}</span>
                         <strong>{{ entry.currentLabel }}</strong>
-                        <small class="goal-stat-card__caption">Dein Stand gerade jetzt</small>
+                        <small class="goal-stat-card__caption">{{ t('goals.common.currentCaption') }}</small>
                     </div>
                     <div class="goal-stat-card goal-stat-card--target">
-                        <span class="goal-stat-card__eyebrow">Ziel</span>
+                        <span class="goal-stat-card__eyebrow">{{ t('goals.common.target') }}</span>
                         <strong>{{ entry.targetLabel }}</strong>
-                        <small class="goal-stat-card__caption">Worauf du hinarbeitest</small>
+                        <small class="goal-stat-card__caption">{{ t('goals.common.targetCaption') }}</small>
                     </div>
                     <div v-if="entry.deadlineLabel" class="goal-stat-card goal-stat-card--compact">
-                        <span class="goal-stat-card__eyebrow">Deadline</span>
+                        <span class="goal-stat-card__eyebrow">{{ t('goals.common.deadline') }}</span>
                         <strong>{{ entry.deadlineLabel }}</strong>
-                        <small class="goal-stat-card__caption">Geplantes Zieldatum</small>
+                        <small class="goal-stat-card__caption">{{ t('goals.common.deadlineCaption') }}</small>
                     </div>
                 </div>
 
@@ -157,45 +155,45 @@
                         {{ entry.secondaryText }}
                     </span>
                     <span class="goal-meta-pill">
-                        {{ entry.isAchieved ? 'Ziel erreicht' : 'Ziel aktiv' }}
+                        {{ entry.isAchieved ? t('goals.common.goalReached') : t('goals.common.goalActive') }}
                     </span>
                 </div>
 
                 <div class="goal-actions">
                     <button type="button"
                             class="goal-action-btn goal-action-btn--primary"
-                            title="Ziel bearbeiten"
-                            aria-label="Ziel bearbeiten"
+                            :title="t('goals.manager.editGoal')"
+                            :aria-label="t('goals.manager.editGoal')"
                             @click="editGoal(entry.goal.id)">
                         <span class="goal-action-btn__icon" aria-hidden="true"></span>
-                        Bearbeiten
+                        {{ t('common.edit') }}
                     </button>
                     <button type="button"
                             class="goal-action-btn"
-                            title="Ziel archivieren"
-                            aria-label="Ziel archivieren"
+                            :title="t('goals.manager.archiveGoal')"
+                            :aria-label="t('goals.manager.archiveGoal')"
                             @click="archiveGoal(entry.goal.id)">
                         <span class="goal-action-btn__icon" aria-hidden="true"></span>
-                        Archivieren
+                        {{ t('goals.manager.archive') }}
                     </button>
                     <button type="button"
                             class="goal-action-btn goal-action-btn--danger"
-                            title="Ziel löschen"
-                            aria-label="Ziel löschen"
+                            :title="t('goals.manager.deleteGoal')"
+                            :aria-label="t('goals.manager.deleteGoal')"
                             @click="requestRemoveGoal(entry.goal.id, entry.goal.title, $event)">
                         <span class="goal-action-btn__icon" aria-hidden="true"></span>
-                        Löschen
+                        {{ t('common.delete') }}
                     </button>
                 </div>
             </article>
         </div>
 
         <div v-else class="goal-empty">
-            Noch keine Trainingsziele angelegt. Gute Startpunkte wären `100 kg Bankdrücken`, `10 Pull-Ups` oder `3 Workouts pro Woche`.
+            {{ t('goals.manager.empty') }}
         </div>
 
         <details v-if="archivedEvaluations.length" class="goal-archive">
-            <summary>Archivierte Ziele ({{ archivedEvaluations.length }})</summary>
+            <summary>{{ tp('goals.manager.archived', { count: archivedEvaluations.length }) }}</summary>
             <div class="goal-archive-list">
                 <article v-for="entry in archivedEvaluations" :key="entry.goal.id" class="goal-item is-archived">
                     <div class="goal-item-head">
@@ -208,19 +206,19 @@
                     <div class="goal-actions">
                         <button type="button"
                                 class="goal-action-btn goal-action-btn--primary"
-                                title="Ziel wieder aktivieren"
-                                aria-label="Ziel wieder aktivieren"
+                                :title="t('goals.manager.restoreGoal')"
+                                :aria-label="t('goals.manager.restoreGoal')"
                                 @click="restoreGoal(entry.goal.id)">
                             <span class="goal-action-btn__icon" aria-hidden="true"></span>
-                            Wieder aktivieren
+                            {{ t('goals.manager.restore') }}
                         </button>
                         <button type="button"
                                 class="goal-action-btn goal-action-btn--danger"
-                                title="Ziel löschen"
-                                aria-label="Ziel löschen"
+                                :title="t('goals.manager.deleteGoal')"
+                                :aria-label="t('goals.manager.deleteGoal')"
                                 @click="requestRemoveGoal(entry.goal.id, entry.goal.title, $event)">
                             <span class="goal-action-btn__icon" aria-hidden="true"></span>
-                            Löschen
+                            {{ t('common.delete') }}
                         </button>
                     </div>
                 </article>
@@ -263,6 +261,7 @@ import UiSettingsSelect from '@/components/ui/kits/selects/UiSettingsSelect.vue'
 import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
 import GoalExerciseLibraryPopup from '@/components/ui/popups/goal/GoalExerciseLibraryPopup.vue'
 import { showDeleteTrashOverlay, DELETE_TRASH_ANIMATION_MS } from '@/composables/useDeleteTrashOverlay'
+import { useI18n } from '@/composables/useI18n'
 import { useUnits } from '@/composables/useUnits'
 import { useGoalsStore } from '@/store/goalsStore'
 import type { GoalWeightSample, GoalWorkoutSample, TrainingGoal, TrainingGoalType } from '@/types/goals'
@@ -275,6 +274,7 @@ const props = defineProps<{
 }>()
 
 const store = useGoalsStore()
+const { t } = useI18n()
 const { unit, kgToDisplay } = useUnits()
 const errorMessage = ref('')
 const showExerciseLibrary = ref(false)
@@ -294,6 +294,13 @@ const deleteTrashState = ref({
 })
 const deleteTrashChips = ref<string[]>([])
 let deleteTrashTimer: ReturnType<typeof setTimeout> | null = null
+
+function tp(key: string, params: Record<string, string | number>) {
+    return Object.entries(params).reduce(
+        (text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)),
+        t(key)
+    )
+}
 
 const draft = reactive<{
     id: string
@@ -320,9 +327,9 @@ onMounted(() => {
 })
 
 const goalTypeOptions = [
-    { label: 'Körpergewicht', value: 'body_weight' },
-    { label: 'Übungsgewicht', value: 'exercise_weight' },
-    { label: 'Workouts pro Woche', value: 'weekly_frequency' },
+    { label: t('goals.type.bodyWeight'), value: 'body_weight' },
+    { label: t('goals.type.exerciseWeight'), value: 'exercise_weight' },
+    { label: t('goals.type.weeklyFrequency'), value: 'weekly_frequency' },
 ] as const
 
 const evaluations = computed(() => evaluateTrainingGoals(store.items, { workouts: props.workouts, weights: props.weightHistory }))
@@ -354,7 +361,7 @@ const targetPlaceholder = computed(() => {
         case 'weekly_frequency':
             return 'z. B. 3'
         default:
-            return 'Zielwert'
+            return t('goals.manager.targetValuePlaceholder')
     }
 })
 
@@ -373,16 +380,16 @@ const draftBaselineLabel = computed(() => {
     if (draft.type === 'body_weight' || draft.type === 'exercise_weight') {
         return `${Number(kgToDisplay(value).toFixed(1))} ${unit.value}`
     }
-    if (draft.type === 'exercise_reps') return `${Math.round(value)} Wdh`
-    return `${Math.round(value)} / Woche`
+    if (draft.type === 'exercise_reps') return tp('goals.common.repsValue', { count: Math.round(value) })
+    return tp('goals.common.weekValue', { count: Math.round(value) })
 })
 
 function typeLabel(type: TrainingGoalType) {
     return {
-        body_weight: 'Körpergewicht',
-        exercise_weight: 'Übungsgewicht',
-        exercise_reps: 'Wiederholungen',
-        weekly_frequency: 'Trainingsfrequenz',
+        body_weight: t('goals.type.bodyWeight'),
+        exercise_weight: t('goals.type.exerciseWeight'),
+        exercise_reps: t('goals.type.reps'),
+        weekly_frequency: t('goals.type.frequency'),
     }[type]
 }
 
@@ -417,11 +424,11 @@ function clearSelectedExercise() {
 function saveGoal() {
     errorMessage.value = ''
     if (needsExercise.value && !draft.exerciseId.trim()) {
-        errorMessage.value = 'Für dieses Ziel brauchst du eine Übung aus der Bibliothek.'
+        errorMessage.value = t('goals.manager.error.exerciseRequired')
         return
     }
     if (draft.targetValue == null || !Number.isFinite(draft.targetValue) || draft.targetValue <= 0) {
-        errorMessage.value = 'Bitte gib einen gültigen Zielwert ein.'
+        errorMessage.value = t('goals.manager.error.targetInvalid')
         return
     }
 
@@ -544,13 +551,13 @@ function requestRemoveGoals(ids: string[], labels: string[], event?: MouseEvent)
     const uniqueIds = Array.from(new Set(ids.filter(Boolean)))
     if (!uniqueIds.length) return
     pendingDeleteGoalIds.value = uniqueIds
-    pendingDeleteGoalLabels.value = labels.length ? labels : uniqueIds.map(() => 'Trainingsziel')
+    pendingDeleteGoalLabels.value = labels.length ? labels : uniqueIds.map(() => t('goals.manager.goalFallback'))
     pendingDeleteGoalEvent.value = event ?? null
     showDeletePopup.value = true
 }
 
 function requestRemoveGoal(id: string, label?: string | null, event?: MouseEvent) {
-    requestRemoveGoals([id], [(label || 'Trainingsziel').trim() || 'Trainingsziel'], event)
+    requestRemoveGoals([id], [(label || t('goals.manager.goalFallback')).trim() || t('goals.manager.goalFallback')], event)
 }
 
 function cancelRemoveGoals() {

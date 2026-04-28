@@ -4,54 +4,60 @@
          ref="cardEl"
          :data-sticky-timer-id="timer.id"
          :class="[
-             {
-                 resizing: resizeMode,
-                 movable: moveMode,
-                 'menu-open': showMenu,
-                 [xlLayoutClass]: !!xlLayoutClass,
-                 'timer-ending': timerDangerActive,
-                 'timer-finished': timerFinishedAlert,
-                 'is-stack-collapsed': stackCount > 1 && !stackExpanded,
-                 'is-stack-expanded': stackCount > 1 && stackExpanded,
-                 'is-stack-passive': stackCount > 1 && !stackExpanded && stackIndex > 0,
-                 'is-dock-launch': dockLaunchActive,
-                 'is-stack-bump': stackBumpActive,
-             },
-             sizePreset
-         ]"
-         :style="{
-  left: timer.left + 'px',
-  top: timer.top + 'px',
-  width: timer.width ? timer.width + 'px' : undefined,
-  height: cardHeight,
-  zIndex: timer.zIndex ?? 2000,
-  background: timer.bgColor ?? undefined,
-  borderRadius: shapeRadius,
-  '--ui-scale': uiScale,
-  '--btn-bg': timer.btnColor ?? undefined,
-  '--time-color': timer.timeColor ?? undefined,
-  '--stack-index': String(stackIndex),
-  '--stack-count': String(stackCount),
-  '--dock-from-x': `${dockFromX}px`,
-  '--dock-from-y': `${dockFromY}px`
-}"
-         @mousedown="onMouseDown($event)"
-         @mousedown.right.prevent="openMenu($event as any)"
-         @contextmenu.prevent="openMenu($event as any)"
-         @click.capture="onClickCapture"
-         @pointerdown.capture="onPointerDown"
-         @pointermove.capture="onPointerMove"
-         @pointerup.capture="onPointerUp"
-         @pointercancel.capture="onPointerCancel">
+         {
+         resizing: resizeMode,
+         movable: moveMode,
+         'menu-open' : showMenu,
+         [xlLayoutClass]: !!xlLayoutClass,
+         'timer-ending' : timerDangerActive,
+         'timer-finished' : timerFinishedAlert,
+         'is-stack-collapsed' : stackCount>
+        1 && !stackExpanded,
+        'is-stack-expanded': stackCount > 1 && stackExpanded,
+        'is-stack-passive': stackCount > 1 && !stackExpanded && stackIndex > 0,
+        'is-dock-launch': dockLaunchActive,
+        'is-stack-bump': stackBumpActive,
+        },
+        sizePreset
+        ]"
+        :style="{
+        left: timer.left + 'px',
+        top: timer.top + 'px',
+        width: timer.width ? timer.width + 'px' : undefined,
+        height: cardHeight,
+        zIndex: timer.zIndex ?? 2000,
+        background: timer.bgColor ?? undefined,
+        borderRadius: shapeRadius,
+        '--ui-scale': uiScale,
+        '--btn-bg': timer.btnColor ?? undefined,
+        '--time-color': timer.timeColor ?? undefined,
+        '--stack-index': String(stackIndex),
+        '--stack-count': String(stackCount),
+        '--dock-from-x': `${dockFromX}px`,
+        '--dock-from-y': `${dockFromY}px`
+        }"
+        @mousedown="onMouseDown($event)"
+        @mousedown.right.prevent="openMenu($event as any)"
+        @contextmenu.prevent="openMenu($event as any)"
+        @click.capture="onClickCapture"
+        @pointerdown.capture="onPointerDown"
+        @pointermove.capture="onPointerMove"
+        @pointerup.capture="onPointerUp"
+        @pointercancel.capture="onPointerCancel">
 
         <span class="name-link"
               @click="focusInTraining('timer', timer.id)"
               @mousedown.stop="onMaybeDrag($event)">
-            {{ timer.name || 'Timer' }}
+            {{ timer.name || t('sticky.timer.defaultName') }}
         </span>
+
         <span v-if="!isEditingTime"
               class="time"
-              :class="{ 'time--ring': sizePreset === 'xl', 'time--danger': timerDangerActive, 'time--finished': timerFinishedAlert }"
+              :class="{
+                  'time--ring': sizePreset === 'xl',
+                  'time--danger': timerDangerActive,
+                  'time--finished': timerFinishedAlert
+              }"
               :style="timerTimeStyle"
               @dblclick.stop="beginEditTime"
               @mousedown.stop="onMaybeDrag($event)">
@@ -78,145 +84,180 @@
                @keydown.stop="onTimeInputKey"
                @blur="commitEditTime"
                @mousedown.stop />
+
         <button class="sticky-action sticky-action--start"
                 @click="startTimer(timer)"
                 :disabled="timer.isRunning">
-            Start
+            {{ t('sticky.timer.start') }}
         </button>
+
         <button class="sticky-action sticky-action--stop"
                 @click="stopTimer(timer)"
                 :disabled="!timer.isRunning">
-            Stop
+            {{ t('sticky.timer.stop') }}
         </button>
+
         <button class="sticky-action sticky-action--reset"
                 @click="resetTimer(timer)">
-            Reset
+            {{ t('sticky.timer.reset') }}
         </button>
+
         <transition name="sticky-alert-pop">
             <div v-if="timerFinishedAlert" class="timer-finish-badge">
-                Fertig
+                {{ t('sticky.timer.finished') }}
             </div>
         </transition>
-        <!-- StickyTimerCard.vue | REPLACE HoldMenu block -->
+
         <div v-if="showMenu"
              class="sticky-menu"
              :style="menuStyle"
              @pointerdown.stop
              @click.stop>
             <button type="button" class="menu-item" @click="handleOpen">
-                Öffnen
+                {{ t('sticky.menu.open') }}
             </button>
+
             <button type="button" class="menu-item" @click="handleMove">
-                Verschieben
+                {{ t('sticky.menu.move') }}
             </button>
+
             <button type="button" class="menu-item" @click="handleCrop">
-                Zuschneiden
+                {{ t('sticky.menu.crop') }}
             </button>
 
             <button type="button" class="menu-item" @click="handleEdit" @mousedown.stop>
-                Bearbeiten
+                {{ t('sticky.menu.edit') }}
             </button>
 
             <template v-if="showColors">
                 <div class="color-row" @mousedown.stop>
-                    <span class="color-label">Farbe</span>
-                    <button type="button" class="color-dot default"
-                            title="Default"
+                    <span class="color-label">{{ t('sticky.color.background') }}</span>
+
+                    <button type="button"
+                            class="color-dot default"
+                            :title="t('sticky.color.default')"
                             @click="setColor(null)">
                     </button>
-                    <button type="button" class="color-dot transparent"
-                            title="Transparent"
+
+                    <button type="button"
+                            class="color-dot transparent"
+                            :title="t('sticky.color.transparent')"
                             @click="setColor('transparent')">
                     </button>
-                    <button type="button" class="color-dot blue"
-                            title="Blau"
+
+                    <button type="button"
+                            class="color-dot blue"
+                            :title="t('sticky.color.blue')"
                             @click="setColor('#1e3a8a')">
                     </button>
-                    <button type="button" class="color-dot green"
-                            title="Grün"
+
+                    <button type="button"
+                            class="color-dot green"
+                            :title="t('sticky.color.green')"
                             @click="setColor('#166534')">
                     </button>
-                    <button type="button" class="color-dot amber"
-                            title="Orange"
+
+                    <button type="button"
+                            class="color-dot amber"
+                            :title="t('sticky.color.orange')"
                             @click="setColor('#92400e')">
                     </button>
 
-                    <input class="color-picker" type="color"
+                    <input class="color-picker"
+                           type="color"
                            :value="timer.bgColor || '#0d1117'"
                            @input="setColor(($event.target as HTMLInputElement).value, false)" />
                 </div>
 
                 <div class="color-row" @mousedown.stop>
-                    <span class="color-label">Buttons</span>
-                    <button type="button" class="color-dot default"
-                            title="Default"
+                    <span class="color-label">{{ t('sticky.color.buttons') }}</span>
+
+                    <button type="button"
+                            class="color-dot default"
+                            :title="t('sticky.color.default')"
                             @click="setBtnColor(null, false)">
                     </button>
-                    <button type="button" class="color-dot blue"
-                            title="Blau"
+
+                    <button type="button"
+                            class="color-dot blue"
+                            :title="t('sticky.color.blue')"
                             @click="setBtnColor('#1e3a8a', false)">
                     </button>
-                    <button type="button" class="color-dot green"
-                            title="Grün"
+
+                    <button type="button"
+                            class="color-dot green"
+                            :title="t('sticky.color.green')"
                             @click="setBtnColor('#166534', false)">
                     </button>
-                    <button type="button" class="color-dot amber"
-                            title="Orange"
+
+                    <button type="button"
+                            class="color-dot amber"
+                            :title="t('sticky.color.orange')"
                             @click="setBtnColor('#92400e', false)">
                     </button>
 
-                    <input class="color-picker" type="color"
+                    <input class="color-picker"
+                           type="color"
                            :value="timer.btnColor || '#4B6CB7'"
                            @input="setBtnColor(($event.target as HTMLInputElement).value, false)" />
                 </div>
 
                 <div class="color-row" @mousedown.stop>
-                    <span class="color-label">Zeit</span>
-                    <button type="button" class="color-dot default"
-                            title="Default"
+                    <span class="color-label">{{ t('sticky.color.time') }}</span>
+
+                    <button type="button"
+                            class="color-dot default"
+                            :title="t('sticky.color.default')"
                             @click="setTimeColor(null, false)">
                     </button>
-                    <button type="button" class="color-dot blue"
-                            title="Blau"
+
+                    <button type="button"
+                            class="color-dot blue"
+                            :title="t('sticky.color.blue')"
                             @click="setTimeColor('#1e3a8a', false)">
                     </button>
-                    <button type="button" class="color-dot green"
-                            title="Grün"
+
+                    <button type="button"
+                            class="color-dot green"
+                            :title="t('sticky.color.green')"
                             @click="setTimeColor('#166534', false)">
                     </button>
-                    <button type="button" class="color-dot amber"
-                            title="Orange"
+
+                    <button type="button"
+                            class="color-dot amber"
+                            :title="t('sticky.color.orange')"
                             @click="setTimeColor('#92400e', false)">
                     </button>
 
-                    <input class="color-picker" type="color"
+                    <input class="color-picker"
+                           type="color"
                            :value="timer.timeColor || '#4B6CB7'"
                            @input="setTimeColor(($event.target as HTMLInputElement).value, false)" />
                 </div>
+
                 <div class="color-row" @mousedown.stop>
-                    <span class="color-label">Form</span>
+                    <span class="color-label">{{ t('sticky.shape.label') }}</span>
 
                     <button type="button" class="shape-btn" @click="setShape(null)">
-                        Default
+                        {{ t('sticky.shape.default') }}
                         <span v-if="timer.shape == null" class="shape-check">✓</span>
                     </button>
 
                     <button type="button" class="shape-btn" @click="setShape('square')">
-                        Eckig
+                        {{ t('sticky.shape.square') }}
                         <span v-if="timer.shape === 'square'" class="shape-check">✓</span>
                     </button>
 
                     <button type="button" class="shape-btn" @click="setShape('rounded')">
-                        Rund
+                        {{ t('sticky.shape.rounded') }}
                         <span v-if="timer.shape === 'rounded'" class="shape-check">✓</span>
                     </button>
 
                     <button type="button" class="shape-btn" @click="setShape('oval')">
-                        Oval
+                        {{ t('sticky.shape.oval') }}
                         <span v-if="timer.shape === 'oval'" class="shape-check">✓</span>
                     </button>
                 </div>
-
             </template>
 
             <button v-if="hasStyleChanges"
@@ -224,14 +265,13 @@
                     class="menu-item"
                     @click="handleApplyToAll"
                     @mousedown.stop>
-                Für alle Timer übernehmen
+                {{ t('sticky.menu.applyToAllTimers') }}
             </button>
+
             <button type="button" class="menu-item danger" @click="handleClose">
-                Schließen
+                {{ t('sticky.menu.close') }}
             </button>
         </div>
-
-
 
         <template v-if="resizeMode">
             <div class="resize-handle nw" @pointerdown.stop.prevent="startResize($event,'nw')"></div>
@@ -244,13 +284,15 @@
             <div class="resize-handle s" @pointerdown.stop.prevent="startResize($event,'s')"></div>
         </template>
     </div>
-
 </template>
 
 <script setup lang="ts">
 
     import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount, toRef } from 'vue'
     import type { TimerInstance as BaseTimer } from '@/types/training'
+    import { useI18n } from '@/composables/useI18n'
+
+    const { t } = useI18n()
 
     // ADD inline time edit (double click)
     const isEditingTime = ref(false)

@@ -19,22 +19,22 @@
                     <div class="empty-icon" aria-hidden="true">🩹</div>
 
                     <div class="empty-left">
-                        <div class="empty-title">Noch kein Schmerztagebuch erfasst.</div>
-                        <div class="empty-sub">Lege direkt den ersten Eintrag für diese Beschwerde an.</div>
+                        <div class="empty-title">{{ t('progress.complaintDiary.detail.emptyTitle') }}</div>
+                        <div class="empty-sub">{{ t('progress.complaintDiary.detail.emptyText') }}</div>
                     </div>
 
                     <div class="empty-cta">
                         <button type="button"
                                 class="progress-btn progress-btn--primary"
                                 @click="emit('add-pain-diary')">
-                            Eintrag machen
+                            {{ t('progress.complaintDiary.popup.createEntry') }}
                         </button>
                     </div>
                 </div>
 
                 <div v-else class="complaint-progress">
                     <div class="complaint-progress__head">
-                        <div class="complaint-progress__label">Beschwerde</div>
+                        <div class="complaint-progress__label">{{ t('progress.complaintDiary.popup.complaintLabel') }}</div>
                         <div class="complaint-progress__title">{{ complaintTitle }}</div>
                         <div v-if="complaintMeta" class="complaint-progress__meta">{{ complaintMeta }}</div>
                     </div>
@@ -52,7 +52,7 @@
                                      :style="complaintLevelStyle(entry.painLevel)"></div>
                             </div>
                             <p v-if="entry.note" class="complaint-progress__note">{{ entry.note }}</p>
-                            <p v-else class="complaint-progress__note complaint-progress__note--muted">Keine Notiz hinterlegt.</p>
+                            <p v-else class="complaint-progress__note complaint-progress__note--muted">{{ t('progress.complaintDiary.detail.noNote') }}</p>
                         </article>
                     </div>
                 </div>
@@ -62,15 +62,15 @@
                 <div class="empty-icon" aria-hidden="true">📈</div>
 
                 <div class="empty-left">
-                    <div class="empty-title">Noch kein Fortschritt erfasst.</div>
-                    <div class="empty-sub">Leg direkt los und tracke deinen ersten Eintrag.</div>
+                    <div class="empty-title">{{ t('progress.popup.emptyTitle') }}</div>
+                    <div class="empty-sub">{{ t('progress.popup.emptyText') }}</div>
                 </div>
 
                 <div class="empty-cta">
                     <button type="button"
                             class="progress-btn progress-btn--primary"
                             @click="emit('add-entry', { planId: currentPlanId!, keepOpen: true })">
-                        Erster Eintrag
+                        {{ t('progress.popup.firstEntry') }}
                     </button>
                 </div>
             </div>
@@ -88,7 +88,7 @@
                 </div>
 
                 <div v-if="planLastSummary" class="plan-last-summary">
-                    <div class="summary-label">Letztes Training</div>
+                    <div class="summary-label">{{ t('progress.popup.lastWorkout') }}</div>
                     <div class="summary-body">{{ planLastSummary }}</div>
                 </div>
 
@@ -130,28 +130,28 @@
                             class="progress-btn"
                             :class="{ 'progress-btn--active': viewMode === 'list' }"
                             @click="viewMode = 'list'">
-                        Liste
+                        {{ t('progress.popup.list') }}
                     </button>
 
                     <button v-if="viewMode === 'list' && selectedDay"
                             type="button"
                             class="progress-btn"
                             @click="clearSelectedDay">
-                        Alle Tage
+                        {{ t('progress.popup.allDays') }}
                     </button>
 
                     <button type="button"
                             class="progress-btn"
                             :class="{ 'progress-btn--active': viewMode === 'calendar' }"
                             @click="viewMode = 'calendar'">
-                        Kalender
+                        {{ t('progress.popup.calendar') }}
                     </button>
 
                     <button type="button"
                             class="progress-btn"
                             :class="{ 'progress-btn--active': viewMode === 'stats' }"
                             @click="viewMode = 'stats'">
-                        Statistik
+                        {{ t('progress.popup.stats') }}
                     </button>
                 </div>
 
@@ -186,9 +186,9 @@
                             <div class="day-card-main">
                                 <div class="day-date">{{ formatDayLong(c.day) }}</div>
                                 <div class="day-meta">
-                                    <span class="count">{{ c.uniqueExercises }} {{ c.uniqueExercises === 1 ? 'Übung' : 'Übungen' }}</span>
+                                    <span class="count">{{ c.uniqueExercises }} {{ c.uniqueExercises === 1 ? t('progress.popup.exerciseSingular') : t('progress.popup.exercisePlural') }}</span>
                                     <span v-if="isFirstPlanEntryDay(c.day)" class="day-first-badge">
-                                        Starttag
+                                        {{ t('progress.popup.startDay') }}
                                     </span>
                                     <span v-if="!isFirstPlanEntryDay(c.day) && dayPersonalRecordCount(c.day) > 0" class="day-pr-badge">
                                         {{ dayPersonalRecordCount(c.day) }} PR{{ dayPersonalRecordCount(c.day) > 1 ? 's' : '' }}
@@ -197,8 +197,8 @@
                             </div>
 
                             <div class="day-card-actions" @click.stop @dblclick.stop>
-                                <KebabButton title="Mehr"
-                                             ariaLabel="Aktionen"
+                                <KebabButton :title="t('progress.popup.more')"
+                                             :ariaLabel="t('progress.popup.actions')"
                                              @click.stop="openDayMenu(c.day, $event)" />
                             </div>
 
@@ -206,7 +206,7 @@
 
                         <div v-if="selectedDay && c.day === selectedDay && !hasEntriesForSelectedDay"
                              class="day-empty">
-                            Kein Eintrag an diesem Tag gemacht.
+                            {{ t('progress.popup.noEntryOnDay') }}
                         </div>
 
                         <div v-else-if="isFirstPlanEntryDay(c.day)" class="day-pr-summary day-pr-summary--first-entry">
@@ -245,7 +245,7 @@
                                 <div v-if="strengthForDay(c.day).length" class="exercise-block">
                                     <div class="exercise-header-row">
                                         <div class="exercise-header-left">
-                                            <div class="exercise-header">Kraft</div>
+                                            <div class="exercise-header">{{ t('progress.popup.strength') }}</div>
 
                                             <button type="button"
                                                     class="section-toggle"
@@ -254,7 +254,7 @@
                                                     @click.stop="toggleSection(c.day, 'strength')">
                                                 <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'strength') }" aria-hidden="true"></span>
                                                 <span class="sr-only">
-                                                    {{ isSectionCollapsed(c.day, 'strength') ? 'Aufklappen' : 'Zuklappen' }}
+                                                    {{ isSectionCollapsed(c.day, 'strength') ? t('progress.popup.expand') : t('progress.popup.collapse') }}
                                                 </span>
                                             </button>
                                         </div>
@@ -275,7 +275,7 @@
                                                     <span class="entry-actions">
                                                         <template v-if="g.entry.setDetails?.length">
                                                             <span v-if="g.stats.repsAvg != null" class="sum-pill">
-                                                                Ø {{ g.stats.repsAvg }} <span class="sum-u">Wdh</span>
+                                                                Ø {{ g.stats.repsAvg }} <span class="sum-u">{{ t('progress.popup.repsShort') }}</span>
                                                             </span>
 
                                                             <span v-if="g.stats.weightAvg != null" class="sum-pill">
@@ -285,7 +285,7 @@
 
                                                         <template v-else>
                                                             <span v-if="g.entry.reps" class="sum-pill">
-                                                                {{ g.entry.reps }} <span class="sum-u">Wdh</span>
+                                                                {{ g.entry.reps }} <span class="sum-u">{{ t('progress.popup.repsShort') }}</span>
                                                             </span>
 
                                                             <span v-if="g.entry.weight != null" class="sum-pill">
@@ -297,7 +297,7 @@
                                                                 type="button"
                                                                 class="sum-pill sum-pill--ghost"
                                                                 @click.stop="toggleGroupSets(g.key)">
-                                                            {{ expandedEntryKeys.has(g.key) ? 'Weniger' : 'Details' }}
+                                                            {{ expandedEntryKeys.has(g.key) ? t('progress.popup.less') : t('progress.popup.details') }}
                                                         </button>
                                                     </span>
                                                 </div>
@@ -328,7 +328,7 @@
                                                                     <span class="set-name__text">{{ setLabelText(s.label) }}</span>
                                                                 </span>
                                                             </span>
-                                                            <span class="set-reps">{{ s.reps ?? '–' }} Wdh</span>
+                                                            <span class="set-reps">{{ s.reps ?? '–' }} {{ t('progress.popup.repsShort') }}</span>
                                                             <span class="set-weight">{{ s.weight ?? '–' }} kg</span>
                                                             <span v-if="strengthSetWeightHintText(g.entry, idx)"
                                                                   class="set-upgrade-hint">
@@ -366,7 +366,7 @@
                                                 @click.stop="toggleSection(c.day, 'cardio')">
                                             <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'cardio') }" aria-hidden="true"></span>
                                             <span class="sr-only">
-                                                {{ isSectionCollapsed(c.day, 'cardio') ? 'Aufklappen' : 'Zuklappen' }}
+                                                {{ isSectionCollapsed(c.day, 'cardio') ? t('progress.popup.expand') : t('progress.popup.collapse') }}
                                             </span>
                                         </button>
                                     </div>
@@ -397,7 +397,7 @@
                                                                 type="button"
                                                                 class="sum-pill sum-pill--ghost"
                                                                 @click.stop="toggleGroupSets(g.key)">
-                                                            {{ expandedEntryKeys.has(g.key) ? 'Weniger' : 'Details' }}
+                                                            {{ expandedEntryKeys.has(g.key) ? t('progress.popup.less') : t('progress.popup.details') }}
                                                         </button>
                                                     </span>
 
@@ -410,14 +410,14 @@
                                                     <!-- Summary (kommt immer zuerst) -->
                                                     <div class="metric-grid">
                                                         <div v-if="g.summary.durationSumMin > 0" class="metric">
-                                                            <div class="metric-label">Σ Dauer</div>
+                                                            <div class="metric-label">{{ t('progress.popup.sumDuration') }}</div>
                                                             <div class="metric-value">
                                                                 {{ g.summary.durationSumMin }} <span class="metric-u">Min</span>
                                                             </div>
                                                         </div>
 
                                                         <div v-if="g.summary.distanceSumKm != null" class="metric">
-                                                            <div class="metric-label">Σ Distanz</div>
+                                                            <div class="metric-label">{{ t('progress.popup.sumDistance') }}</div>
                                                             <div class="metric-value">
                                                                 {{ g.summary.distanceSumKm }} <span class="metric-u">km</span>
                                                             </div>
@@ -431,7 +431,7 @@
                                                         </div>
 
                                                         <div v-if="g.summary.avgHrAvg != null" class="metric">
-                                                            <div class="metric-label">Ø Puls</div>
+                                                            <div class="metric-label">{{ t('progress.popup.avgPulse') }}</div>
                                                             <div class="metric-value">
                                                                 {{ g.summary.avgHrAvg }}
                                                             </div>
@@ -482,7 +482,7 @@
                                 <!-- Dehnung (zeit-/satzbasiert) -->
                                 <div v-if="stretchForDay(c.day).length" class="exercise-block">
                                     <div class="exercise-header-row">
-                                        <div class="exercise-header">Dehnung</div>
+                                        <div class="exercise-header">{{ t('progress.popup.mobility') }}</div>
 
                                         <button type="button"
                                                 class="section-toggle"
@@ -491,7 +491,7 @@
                                                 @click.stop="toggleSection(c.day, 'stretch')">
                                             <span class="section-caret" :class="{ open: !isSectionCollapsed(c.day, 'stretch') }" aria-hidden="true"></span>
                                             <span class="sr-only">
-                                                {{ isSectionCollapsed(c.day, 'stretch') ? 'Aufklappen' : 'Zuklappen' }}
+                                                {{ isSectionCollapsed(c.day, 'stretch') ? t('progress.popup.expand') : t('progress.popup.collapse') }}
                                             </span>
                                         </button>
                                     </div>
@@ -518,7 +518,7 @@
                                                                 type="button"
                                                                 class="sum-pill sum-pill--ghost"
                                                                 @click.stop="toggleEntrySets(e, i)">
-                                                            {{ expandedEntryKeys.has(entryKey(e, i)) ? 'Weniger' : 'Details' }}
+                                                            {{ expandedEntryKeys.has(entryKey(e, i)) ? t('progress.popup.less') : t('progress.popup.details') }}
                                                         </button>
                                                     </span>
                                                 </div>
@@ -575,7 +575,7 @@
                                     <button type="button"
                                             class="progress-btn day-feedback-btn"
                                             @click.stop="emit('feedback', { day: c.day })">
-                                        {{ hasFeedbackForDay(c.day) ? 'Dein Feedback ansehen' : 'Feedback ausfüllen' }}
+                                        {{ hasFeedbackForDay(c.day) ? t('progress.popup.viewFeedback') : t('progress.popup.fillFeedback') }}
                                     </button>
                                 </div>
                             </div>
@@ -584,7 +584,7 @@
 
                     <div v-if="!selectedDay && dayCards.length > visibleDays" class="load-more">
                         <button class="progress-btn" @click="visibleDays = visibleDays + 7">
-                            Weitere Tage laden
+                            {{ t('progress.popup.loadMoreDays') }}
                         </button>
                     </div>
                 </div>
@@ -596,54 +596,54 @@
         <template #actions>
             <template v-if="isComplaintMode">
                 <PopupActionButton variant="ghost" @click="emit('close')">
-                    Abbrechen
+                    {{ t('common.cancel') }}
                 </PopupActionButton>
 
                 <PopupActionButton @click="emit('add-pain-diary')">
-                    Eintrag machen
+                    {{ t('progress.complaintDiary.popup.createEntry') }}
                 </PopupActionButton>
             </template>
 
             <template v-else>
                 <PopupActionButton variant="ghost" @click="emit('close')">
-                    Abbrechen
+                    {{ t('common.cancel') }}
                 </PopupActionButton>
 
                 <PopupActionButton @click="emit('add-entry', { planId: currentPlanId!, keepOpen: true })">
-                    Neuer Eintrag
+                    {{ t('progress.popup.newEntry') }}
                 </PopupActionButton>
             </template>
         </template>
 
         <ActionSelectPopup :show="showEntryPickPopup"
-                           :title="entryPickAction === 'delete' ? 'Übungen löschen' : 'Übung bearbeiten'"
+                           :title="entryPickAction === 'delete' ? t('progress.popup.deleteExercises') : t('progress.popup.editExercise')"
                            :subtitle="entryPickAction === 'delete'
-        ? 'Setz Haken, welche Übungen aus diesem Tag gelöscht werden sollen'
-        : 'Wähl eine Übung aus diesem Tag'"
-                           :helper="entryPickAction === 'edit' ? 'Bearbeiten ist Single-Select.' : ''"
+        ? t('progress.popup.deleteExercisesSubtitle')
+        : t('progress.popup.pickExerciseSubtitle')"
+                           :helper="entryPickAction === 'edit' ? t('progress.popup.singleSelectEdit') : ''"
                            :rows="entryPickRows"
                            :selectionMode="entryPickAction === 'edit' ? 'single' : 'multi'"
                            :showAllOption="entryPickAction === 'delete'"
-                           allLabel="Alle Übungen"
+                           :allLabel="t('progress.popup.allExercises')"
                            v-model:allSelected="entryPickAll"
                            v-model:selectedIds="entryPickSelected"
-                           cancelText="Abbrechen"
-                           :confirmText="entryPickAction === 'delete' ? 'Löschen' : 'Weiter'"
+                           :cancelText="t('common.cancel')"
+                           :confirmText="entryPickAction === 'delete' ? t('common.delete') : t('progress.popup.continue')"
                            :confirmDanger="entryPickAction === 'delete'"
                            @cancel="closeEntryPickPopup"
                            @confirm="onEntryPickConfirm" />
 
         <ActionSelectPopup :show="showDownloadPickPopup"
-                           title="Übungen herunterladen"
-                           subtitle="Wähl aus, welche Übungen aus diesem Tag im Export landen sollen"
+                           :title="t('progress.popup.downloadExercises')"
+                           :subtitle="t('progress.popup.downloadExercisesSubtitle')"
                            :rows="downloadPickRows"
                            selectionMode="multi"
                            :showAllOption="true"
-                           allLabel="Alle Übungen"
+                           :allLabel="t('progress.popup.allExercises')"
                            v-model:allSelected="downloadPickAll"
                            v-model:selectedIds="downloadPickSelected"
-                           cancelText="Abbrechen"
-                           confirmText="Weiter"
+                           :cancelText="t('common.cancel')"
+                           :confirmText="t('progress.popup.continue')"
                            @cancel="closeDownloadPickPopup"
                            @confirm="onDownloadPickConfirm" />
 
@@ -700,6 +700,7 @@
     import { setTrainingPlanColor } from '@/services/trainingPlans'
     import { storeToRefs } from "pinia"
     import { getWeightIncreaseHint } from '@/utils/trainingWeightIncreaseHint'
+    import { useI18n } from '@/composables/useI18n'
     import {
         computeExercisePersonalRecords,
         getEntryPersonalRecordMetrics,
@@ -824,22 +825,23 @@
         (e: 'feedback', payload: { day: string }): void
     }>()
 
+    const { t, locale } = useI18n()
     const modalEl = ref<HTMLElement | null>(null)
     const isComplaintMode = computed(() => props.mode === 'complaint')
     const popupTitle = computed(() =>
         isComplaintMode.value
-            ? `🩹 Schmerztagebuch – ${props.complaintTitle ?? 'Beschwerde'}`
-            : `📖 Fortschritt – ${props.currentPlanName}`
+            ? `🩹 ${t('progress.complaintDiary.popup.title')} – ${props.complaintTitle ?? t('progress.complaintDiary.popup.complaintLabel')}`
+            : `📖 ${t('nav.progress')} – ${props.currentPlanName}`
     )
     const complaintEntries = computed(() => props.complaintEntries ?? [])
-    const complaintTitle = computed(() => props.complaintTitle ?? 'Beschwerde')
+    const complaintTitle = computed(() => props.complaintTitle ?? t('progress.complaintDiary.popup.complaintLabel'))
     const complaintMeta = computed(() => props.complaintMeta ?? '')
     const hasFeedbackForDay = (day: string) => !!props.feedbackStatusByDay?.[day]
 
     const formatComplaintDate = (value: string) => {
         const date = new Date(value)
         if (Number.isNaN(date.getTime())) return String(value ?? '')
-        return new Intl.DateTimeFormat('de-DE', {
+        return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'de-DE', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
@@ -1440,7 +1442,7 @@
 
         const parts = [
             props.formatDayLong(dayKey),
-            `${sameDay.length} Einträge`,
+            t('progress.planStats.entriesCount').replace('{count}', String(sameDay.length)),
         ]
 
         if (strengthSets > 0) parts.push(`${strengthSets} Sätze`)
@@ -1460,9 +1462,9 @@
     const menuAnchorEl = ref<HTMLElement | null>(null)
 
     const menuItems = computed<KebabMenuItem[]>(() => ([
-        { id: 'download', label: 'Herunterladen', icon: '⬇️', hint: 'Auswahl' },
-        { id: 'edit', label: 'Bearbeiten', icon: '✏️', hint: 'Auswahl' },
-        { id: 'delete', label: 'Löschen', icon: '🗑️', hint: 'Auswahl', danger: true },
+        { id: 'download', label: t('progress.popup.download'), icon: '⬇️', hint: t('progress.popup.selectionHint') },
+        { id: 'edit', label: t('common.edit'), icon: '✏️', hint: t('progress.popup.selectionHint') },
+        { id: 'delete', label: t('common.delete'), icon: '🗑️', hint: t('progress.popup.selectionHint'), danger: true },
     ]))
 
     type EntryPickAction = 'edit' | 'delete'
@@ -1870,32 +1872,32 @@
         const side = (e.side ?? '').toString().trim().toLowerCase()
         const hasR = ['rechts', 'right', 'r', 'r.'].includes(side)
         const hasL = ['links', 'left', 'l', 'l.'].includes(side)
-        if (hasR) items.push({ key: 'R', label: 'Rechts' })
-        if (hasL) items.push({ key: 'L', label: 'Links' })
+        if (hasR) items.push({ key: 'R', label: t('progress.popup.abbr.right') })
+        if (hasL) items.push({ key: 'L', label: t('progress.popup.abbr.left') })
 
         // Wdh.: wenn irgendwo Wiederholungen genutzt werden
         const usesReps =
             (typeof e.reps === 'number' && e.reps > 0) ||
             (e.setDetails?.some(s => typeof s.reps === 'number' && s.reps > 0) ?? false)
 
-        if (usesReps) items.push({ key: 'Wdh.', label: 'Wiederholungen' })
+        if (usesReps) items.push({ key: 'Wdh.', label: t('progress.popup.abbr.reps') })
 
         // S: Sätze (wenn Sets genutzt werden)
         const usesSets =
             (e.setDetails?.length ?? 0) > 0 ||
             (typeof e.sets === 'number' && e.sets > 0)
 
-        if (usesSets) items.push({ key: 'S', label: 'Sätze' })
+        if (usesSets) items.push({ key: 'S', label: t('progress.popup.abbr.sets') })
 
         // sek.: Sekunden (Dehnung pro Satz über durationSec)
         const usesSeconds =
             (e.setDetails?.some(s => typeof s.durationSec === 'number' && s.durationSec > 0) ?? false)
 
-        if (usesSeconds) items.push({ key: 'sek.', label: 'Sekunden' })
+        if (usesSeconds) items.push({ key: 'sek.', label: t('progress.popup.abbr.seconds') })
 
         // Min: Minuten (Cardio)
         const usesMinutes = (typeof e.durationMin === 'number' && e.durationMin > 0)
-        if (usesMinutes) items.push({ key: 'Min', label: 'Minuten' })
+        if (usesMinutes) items.push({ key: 'Min', label: t('progress.popup.abbr.minutes') })
 
         // Kg: Gewicht (Kraft)
         const usesKg =
@@ -1903,11 +1905,11 @@
             (e.setDetails?.some(s => typeof s.weight === 'number' && s.weight > 0) ?? false) ||
             (e.dropsets?.some(s => typeof s.weight === 'number' && s.weight > 0) ?? false)
 
-        if (usesKg) items.push({ key: 'kg', label: 'Kilogramm' })
+        if (usesKg) items.push({ key: 'kg', label: t('progress.popup.abbr.kilograms') })
 
         // km: Distanz (Cardio)
         const usesKm = (typeof e.distanceKm === 'number' && e.distanceKm > 0)
-        if (usesKm) items.push({ key: 'km', label: 'Kilometer' })
+        if (usesKm) items.push({ key: 'km', label: t('progress.popup.abbr.kilometers') })
 
         return items
     }
@@ -1928,11 +1930,11 @@
         return `${entry.exercise}${sideTag}`.trim()
     }
 
-    const typeLabel = (t: WorkoutLike['type']) =>
-        t === 'calisthenics' ? 'Calisthenics'
-            : t === 'ausdauer' ? 'Cardio'
-                : t === 'dehnung' ? 'Dehnung'
-                    : 'Kraft'
+    const typeLabel = (tpe: WorkoutLike['type']) =>
+        tpe === 'calisthenics' ? t('progress.popup.exerciseType.calisthenics')
+            : tpe === 'ausdauer' ? t('goals.exerciseKind.cardio')
+                : tpe === 'dehnung' ? t('goals.exerciseKind.mobility')
+                    : t('goals.exerciseKind.strength')
 
     const buildEntryPickRowsForDay = (day: string) => {
         const items = entriesByDay.value.get(day) ?? []
@@ -2081,8 +2083,10 @@
 
         // Kraft + Calisthenics (nimm deine Groups -> sauber & deduped)
         for (const g of strengthGroupsForDay(day)) {
-            const t = (g.entry.type ?? 'kraft') === 'calisthenics' ? 'Calisthenics' : 'Kraft'
-            pushRow(g.entry, g.entry.exercise, t)
+            const type = (g.entry.type ?? 'kraft') === 'calisthenics'
+                ? t('progress.popup.exerciseType.calisthenics')
+                : t('goals.exerciseKind.strength')
+            pushRow(g.entry, g.entry.exercise, type)
         }
 
         // Cardio (Groups berücksichtigen Side)
@@ -2092,13 +2096,13 @@
                 ['rechts', 'right', 'r', 'r.'].includes(side) ? ' (R)'
                     : ['links', 'left', 'l', 'l.'].includes(side) ? ' (L)'
                         : ''
-            pushRow(g.entry, `${g.entry.exercise}${sideTag}`, 'Cardio')
+            pushRow(g.entry, `${g.entry.exercise}${sideTag}`, t('goals.exerciseKind.cardio'))
         }
 
         // Dehnung (jede Entry ist eigen, aber wir dedupen per key)
         for (const e of stretchForDay(day)) {
             // stretchTitle hängt Side dran -> nice fürs Label
-            pushRow(e, stretchTitle(e), 'Dehnung')
+            pushRow(e, stretchTitle(e), t('goals.exerciseKind.mobility'))
         }
 
         downloadPickRows.value = [...map.entries()].map(([id, v]) => ({
@@ -2803,7 +2807,7 @@
 
         if (usesSigma) {
             // Erklärung nur dann, wenn Σ wirklich im UI vorkommt
-            base.unshift({ key: 'Σ', label: 'Summe (gesamt)' })
+            base.unshift({ key: 'Σ', label: t('progress.popup.abbr.totalSummary') })
         }
 
         return base

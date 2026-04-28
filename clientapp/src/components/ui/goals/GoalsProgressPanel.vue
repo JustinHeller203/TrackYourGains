@@ -2,14 +2,14 @@
     <section class="card goals-progress-panel">
         <div class="goals-progress-head">
             <div>
-                <span class="goals-progress-eyebrow">Zielsystem</span>
+                <span class="goals-progress-eyebrow">{{ t('goals.progress.eyebrow') }}</span>
                 <h3 class="card-title goals-progress-title">
-                    <i class="fas fa-flag-checkered"></i> Aktive Trainingsziele
+                    <i class="fas fa-flag-checkered"></i> {{ t('goals.progress.title') }}
                 </h3>
             </div>
             <div class="goals-progress-summary">
-                <span class="goal-pill">{{ activeEvaluations.length }} aktiv</span>
-                <span class="goal-pill is-success">{{ achievedCount }} erreicht</span>
+                <span class="goal-pill">{{ tp('goals.manager.activeCount', { count: activeEvaluations.length }) }}</span>
+                <span class="goal-pill is-success">{{ tp('goals.manager.achievedCount', { count: achievedCount }) }}</span>
             </div>
         </div>
 
@@ -31,7 +31,7 @@
 
                 <div class="goal-hero">
                     <div class="goal-hero__value">
-                        <span class="goal-hero__label">Fortschritt</span>
+                        <span class="goal-hero__label">{{ t('goals.common.progress') }}</span>
                         <strong>{{ Math.round(entry.percent) }}%</strong>
                     </div>
                     <div class="goal-hero__rail">
@@ -43,25 +43,25 @@
 
                 <div class="goal-stats">
                     <div class="goal-stat-card goal-stat-card--current">
-                        <span class="goal-stat-card__eyebrow">Aktuell</span>
+                        <span class="goal-stat-card__eyebrow">{{ t('goals.common.current') }}</span>
                         <strong>{{ entry.currentLabel }}</strong>
-                        <small class="goal-stat-card__caption">Dein Stand gerade jetzt</small>
+                        <small class="goal-stat-card__caption">{{ t('goals.common.currentCaption') }}</small>
                     </div>
                     <div class="goal-stat-card goal-stat-card--target">
-                        <span class="goal-stat-card__eyebrow">Ziel</span>
+                        <span class="goal-stat-card__eyebrow">{{ t('goals.common.target') }}</span>
                         <strong>{{ entry.targetLabel }}</strong>
-                        <small class="goal-stat-card__caption">Worauf du hinarbeitest</small>
+                        <small class="goal-stat-card__caption">{{ t('goals.common.targetCaption') }}</small>
                     </div>
                     <div v-if="entry.deadlineLabel" class="goal-stat-card goal-stat-card--compact">
-                        <span class="goal-stat-card__eyebrow">Deadline</span>
+                        <span class="goal-stat-card__eyebrow">{{ t('goals.common.deadline') }}</span>
                         <strong>{{ entry.deadlineLabel }}</strong>
-                        <small class="goal-stat-card__caption">Geplantes Zieldatum</small>
+                        <small class="goal-stat-card__caption">{{ t('goals.common.deadlineCaption') }}</small>
                     </div>
                 </div>
 
                 <div class="goal-meta-row">
                     <span v-if="entry.secondaryText" class="goal-meta-pill">{{ entry.secondaryText }}</span>
-                    <span class="goal-meta-pill">{{ entry.isAchieved ? 'Ziel erreicht' : 'Ziel aktiv' }}</span>
+                    <span class="goal-meta-pill">{{ entry.isAchieved ? t('goals.common.goalReached') : t('goals.common.goalActive') }}</span>
                 </div>
             </article>
         </div>
@@ -69,12 +69,12 @@
         <div v-else class="goal-empty">
             <div class="goal-empty__body">
                 <p class="goal-empty__copy">
-                    Noch keine aktiven Trainingsziele. Lege in deinem Profil Ziele an, damit sie hier mit Fortschrittsbalken und Status verfolgt werden.
+                    {{ t('goals.progress.empty') }}
                 </p>
             </div>
             <div class="goal-empty__actions">
                 <RouterLink :to="{ name: 'profile', query: { focus: 'goals' } }" class="goal-empty__cta">
-                    Langfristiges Ziel erstellen
+                    {{ t('goals.progress.createLongTerm') }}
                 </RouterLink>
             </div>
         </div>
@@ -84,6 +84,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from '@/composables/useI18n'
 import { useGoalsStore } from '@/store/goalsStore'
 import { evaluateTrainingGoals, getGoalExerciseLabel } from '@/utils/goalTracking'
 import type { GoalWeightSample, GoalWorkoutSample, TrainingGoalType } from '@/types/goals'
@@ -94,6 +95,14 @@ const props = defineProps<{
 }>()
 
 const store = useGoalsStore()
+const { t } = useI18n()
+
+function tp(key: string, params: Record<string, string | number>) {
+    return Object.entries(params).reduce(
+        (text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)),
+        t(key)
+    )
+}
 
 onMounted(() => {
     store.load()
@@ -107,10 +116,10 @@ const achievedCount = computed(() => activeEvaluations.value.filter(entry => ent
 
 function typeLabel(type: TrainingGoalType) {
     return {
-        body_weight: 'Körpergewicht',
-        exercise_weight: 'Übungsgewicht',
-        exercise_reps: 'Wiederholungen',
-        weekly_frequency: 'Trainingsfrequenz',
+        body_weight: t('goals.type.bodyWeight'),
+        exercise_weight: t('goals.type.exerciseWeight'),
+        exercise_reps: t('goals.type.reps'),
+        weekly_frequency: t('goals.type.frequency'),
     }[type]
 }
 </script>

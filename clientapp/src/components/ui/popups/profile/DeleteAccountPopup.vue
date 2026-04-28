@@ -1,17 +1,16 @@
 <template>
     <BasePopup
         :show="show"
-        title="Profil loeschen"
+        :title="t('profile.deleteProfile')"
         variant="delete-account-popup"
         @cancel="$emit('cancel')">
         <div class="delete-body">
             <div class="danger-box">
                 <div class="danger-icon">!</div>
                 <div class="danger-copy">
-                    <p class="danger-title">Bist du dir sicher?</p>
+                    <p class="danger-title">{{ t('profile.popup.delete.sure') }}</p>
                     <p class="danger-text">
-                        Das loescht <strong>alle</strong> deine Kontodaten unwiderruflich. Dieser Schritt kann
-                        nicht rueckgaengig gemacht werden.
+                        {{ t('profile.popup.delete.warningStart') }} <strong>{{ t('profile.popup.delete.warningAll') }}</strong> {{ t('profile.popup.delete.warningEnd') }}
                     </p>
                 </div>
             </div>
@@ -21,7 +20,7 @@
             </div>
 
             <div class="form-grid">
-                <label class="label">Passwort zur Bestaetigung</label>
+                <label class="label">{{ t('profile.popup.email.passwordConfirm') }}</label>
                 <input
                     ref="pwdRef"
                     v-model="password"
@@ -32,7 +31,7 @@
                 <p v-if="errors.password" class="form-error">{{ errors.password }}</p>
 
                 <label class="label">
-                    Zum Bestaetigen tippe:
+                    {{ t('profile.popup.delete.typeToConfirm') }}
                     <code>{{ confirmPhrase }}</code>
                 </label>
                 <input
@@ -46,13 +45,13 @@
             </div>
 
             <p class="small-hint">
-                Dein Account wird komplett entfernt. Backups oder Verlaufsdaten bleiben nicht erhalten.
+                {{ t('profile.popup.delete.hint') }}
             </p>
         </div>
 
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
-                Abbrechen
+                {{ t('common.cancel') }}
             </PopupActionButton>
 
             <PopupActionButton
@@ -61,10 +60,10 @@
                 :disabled="!canArmDeletion || countdown > 0"
                 @click="onConfirm">
                 <template v-if="canArmDeletion && countdown > 0">
-                    Endgueltig loeschen ({{ countdown }}s)
+                    {{ tp('profile.popup.delete.finalCountdown', { seconds: countdown }) }}
                 </template>
                 <template v-else>
-                    Endgueltig loeschen
+                    {{ t('profile.popup.delete.final') }}
                 </template>
             </PopupActionButton>
         </template>
@@ -73,12 +72,16 @@
 
 <script setup lang="ts">
     import { ref, watch, nextTick, computed, onUnmounted } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
     import BasePopup from '../BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
     const props = defineProps<{ show: boolean; confirmPhrase?: string }>()
     const emit = defineEmits<{ (e: 'cancel'): void; (e: 'confirm', p: { password: string }): void }>()
     const confirmPhrase = props.confirmPhrase ?? 'KONTO LOESCHEN'
+    const { t } = useI18n()
+    const tp = (key: string, params: Record<string, string | number>) =>
+        Object.entries(params).reduce((text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)), t(key))
 
     const password = ref('')
     const phrase = ref('')
@@ -163,17 +166,17 @@
         errors.value = { password: '', phrase: '', general: '' }
 
         if (!password.value) {
-            errors.value.password = 'Bitte Passwort eingeben.'
+            errors.value.password = t('profile.popup.email.passwordRequired')
             return
         }
 
         if (phrase.value !== confirmPhrase) {
-            errors.value.phrase = `Bitte exakt "${confirmPhrase}" eingeben.`
+            errors.value.phrase = tp('profile.delete.confirmExactPlain', { phrase: confirmPhrase })
             return
         }
 
         if (countdown.value > 0) {
-            errors.value.general = `Bitte warte noch ${countdown.value} Sekunden, bevor du dein Profil loeschst.`
+            errors.value.general = tp('profile.popup.delete.wait', { seconds: countdown.value })
             return
         }
 

@@ -16,11 +16,11 @@
 
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
-                {{ cancelText || 'Abbrechen' }}
+                {{ cancelText || t('common.cancel') }}
             </PopupActionButton>
 
             <PopupActionButton :disabled="disableSave" autofocus @click="$emit('save', proxy)">
-                {{ saveText || 'Speichern' }}
+                {{ saveText || t('common.save') }}
             </PopupActionButton>
         </template>
     </BasePopup>
@@ -31,7 +31,7 @@
     import BasePopup from './BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
-
+    import { useI18n } from '@/composables/useI18n'
     const props = defineProps<{
         show: boolean
         modelValue: string
@@ -43,6 +43,8 @@
         maxLength?: number
         required?: boolean
     }>()
+
+    const { t } = useI18n()
 
     const emit = defineEmits<{
         (e: 'update:modelValue', v: string): void

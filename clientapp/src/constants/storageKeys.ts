@@ -6,6 +6,7 @@ export const LS_AUTH_TOKEN = 'auth_token' as const
 
 // UI / Settings
 export const LS_THEME = 'theme' as const
+export const LS_APP_LANGUAGE = 'appLanguage' as const
 export const LS_PREFERRED_UNIT = 'preferredUnit' as const
 export const LS_AUTO_CALC_ENABLED = 'autoCalcEnabled' as const
 export const LS_CONFIRM_DELETE_ENABLED = 'confirmDeleteEnabled' as const
@@ -100,6 +101,7 @@ export const LS_PROFILE_KEYS = [
 
 export const LS_SETTINGS_KEYS = [
     LS_THEME,
+    LS_APP_LANGUAGE,
     LS_PREFERRED_UNIT,
     LS_AUTO_CALC_ENABLED,
     LS_CONFIRM_DELETE_ENABLED,

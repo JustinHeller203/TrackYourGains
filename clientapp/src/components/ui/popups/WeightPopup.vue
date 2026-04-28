@@ -1,10 +1,9 @@
 <!-- src/components/ui/popups/WeightPopup.vue -->
 <template>
     <BasePopup :show="show"
-               title="Neues Gewicht eintragen"
+               :title="t('progress.weight.popupTitle')"
                variant="weight-goal-popup"
                @cancel="$emit('cancel')">
-        <!-- Body -->
         <UiPopupInput :modelValue="modelValue ?? ''"
                       as="input"
                       type="number"
@@ -14,10 +13,10 @@
                       autofocus
                       @update:modelValue="onInputValue"
                       @enter="onSave" />
-        <!-- Footer-Buttons -->
+
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
-                Abbrechen
+                {{ t('common.cancel') }}
             </PopupActionButton>
 
             <PopupActionButton autofocus @click="onPrimaryAction">
@@ -26,8 +25,10 @@
         </template>
     </BasePopup>
 </template>
+
 <script setup lang="ts">
     import { computed, ref, watch } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
     import BasePopup from './BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
@@ -48,9 +49,10 @@
         (e: 'cancel'): void
     }>()
 
+    const { t } = useI18n()
     const error = ref('')
     const primaryActionLabel = computed(() =>
-        !props.isDirty && props.allowReset ? 'Zurücksetzen' : 'Speichern'
+        !props.isDirty && props.allowReset ? t('common.reset') : t('common.save')
     )
 
     watch(() => props.show, (open) => {

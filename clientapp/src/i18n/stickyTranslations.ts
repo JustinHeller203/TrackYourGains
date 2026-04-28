@@ -1,0 +1,78 @@
+import type { AppLocale } from '@/i18n/translations'
+
+export const stickyTranslations: Record<AppLocale, Record<string, string>> = {
+    de: {
+        'sticky.stopwatch.defaultName': 'Stoppuhr',
+        'sticky.stopwatch.start': 'Start',
+        'sticky.stopwatch.pause': 'Pause',
+        'sticky.stopwatch.reset': 'Reset',
+        'sticky.stopwatch.lap': 'Runde',
+        'sticky.stopwatch.lapNumber': 'Runde {count}',
+
+        'sticky.timer.defaultName': 'Timer',
+        'sticky.timer.start': 'Start',
+        'sticky.timer.stop': 'Stop',
+        'sticky.timer.reset': 'Reset',
+        'sticky.timer.finished': 'Fertig',
+
+        'sticky.menu.open': 'Öffnen',
+        'sticky.menu.move': 'Verschieben',
+        'sticky.menu.crop': 'Zuschneiden',
+        'sticky.menu.edit': 'Bearbeiten',
+        'sticky.menu.close': 'Schließen',
+        'sticky.menu.applyToAllStopwatches': 'Für alle Stoppuhren übernehmen',
+        'sticky.menu.applyToAllTimers': 'Für alle Timer übernehmen',
+
+        'sticky.color.background': 'Farbe',
+        'sticky.color.buttons': 'Buttons',
+        'sticky.color.time': 'Zeit',
+        'sticky.color.default': 'Default',
+        'sticky.color.transparent': 'Transparent',
+        'sticky.color.blue': 'Blau',
+        'sticky.color.green': 'Grün',
+        'sticky.color.orange': 'Orange',
+
+        'sticky.shape.label': 'Form',
+        'sticky.shape.default': 'Default',
+        'sticky.shape.square': 'Eckig',
+        'sticky.shape.rounded': 'Rund',
+        'sticky.shape.oval': 'Oval',
+    },
+    en: {
+        'sticky.stopwatch.defaultName': 'Stopwatch',
+        'sticky.stopwatch.start': 'Start',
+        'sticky.stopwatch.pause': 'Pause',
+        'sticky.stopwatch.reset': 'Reset',
+        'sticky.stopwatch.lap': 'Lap',
+        'sticky.stopwatch.lapNumber': 'Lap {count}',
+
+        'sticky.timer.defaultName': 'Timer',
+        'sticky.timer.start': 'Start',
+        'sticky.timer.stop': 'Stop',
+        'sticky.timer.reset': 'Reset',
+        'sticky.timer.finished': 'Done',
+
+        'sticky.menu.open': 'Open',
+        'sticky.menu.move': 'Move',
+        'sticky.menu.crop': 'Crop',
+        'sticky.menu.edit': 'Edit',
+        'sticky.menu.close': 'Close',
+        'sticky.menu.applyToAllStopwatches': 'Apply to all stopwatches',
+        'sticky.menu.applyToAllTimers': 'Apply to all timers',
+
+        'sticky.color.background': 'Color',
+        'sticky.color.buttons': 'Buttons',
+        'sticky.color.time': 'Time',
+        'sticky.color.default': 'Default',
+        'sticky.color.transparent': 'Transparent',
+        'sticky.color.blue': 'Blue',
+        'sticky.color.green': 'Green',
+        'sticky.color.orange': 'Orange',
+
+        'sticky.shape.label': 'Shape',
+        'sticky.shape.default': 'Default',
+        'sticky.shape.square': 'Square',
+        'sticky.shape.rounded': 'Rounded',
+        'sticky.shape.oval': 'Oval',
+    },
+}

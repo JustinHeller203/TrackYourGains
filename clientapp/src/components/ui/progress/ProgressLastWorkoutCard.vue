@@ -1,5 +1,5 @@
 <template>
-    <DashboardCard title="Letztes Training"
+    <DashboardCard :title="t('progress.lastWorkout.title')"
                    :info="lastWorkoutText"
                    :muted="!hasWorkout"
                    :compact="compact" />
@@ -8,6 +8,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import DashboardCard from '@/components/ui/DashboardCard.vue'
+import { useI18n } from '@/composables/useI18n'
 
 type WorkoutType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
 
@@ -27,11 +28,12 @@ const props = defineProps<{
     compact?: boolean
     formatWeight: (kg: number, decimals: number) => string
 }>()
+const { t } = useI18n()
 
 const hasWorkout = computed(() => Array.isArray(props.workouts) && props.workouts.length > 0)
 
 const lastWorkoutText = computed(() => {
-    if (!hasWorkout.value) return 'Kein Training erfasst'
+    if (!hasWorkout.value) return t('progress.lastWorkout.noWorkout')
 
     const last = props.workouts.reduce((a, b) =>
         new Date(a.date) > new Date(b.date) ? a : b

@@ -2,13 +2,13 @@
 
 <template>
     <div class="tabs">
-        <div class="tabs__segmented" role="tablist" aria-label="Ansicht wählen">
+        <div class="tabs__segmented" role="tablist" :aria-label="t('progress.tabs.aria')">
             <button class="tabs__tab"
                     role="tab"
                     :aria-selected="modelValue === 'stats' ? 'true' : 'false'"
                     :data-active="modelValue === 'stats'"
                     @click="$emit('update:modelValue', 'stats')">
-                Statistiken
+                {{ t('progress.tabs.stats') }}
             </button>
 
             <button class="tabs__tab"
@@ -16,7 +16,7 @@
                     :aria-selected="modelValue === 'calculators' ? 'true' : 'false'"
                     :data-active="modelValue === 'calculators'"
                     @click="$emit('update:modelValue', 'calculators')">
-                Rechner
+                {{ t('progress.tabs.calculators') }}
             </button>
 
             <button class="tabs__tab"
@@ -24,22 +24,22 @@
                     :aria-selected="modelValue === 'plans' ? 'true' : 'false'"
                     :data-active="modelValue === 'plans'"
                     @click="$emit('update:modelValue', 'plans')">
-                Pläne
+                {{ t('progress.tabs.plans') }}
             </button>
         </div>
 
         <div v-if="modelValue === 'calculators'" class="search-container calculators-search calc-search-wrap">
             <div class="search-field">
                 <UiSearch v-model="calcSearchModel"
-                          placeholder="Rechner suchen..."
-                          ariaLabel="Rechner suchen"
+                          :placeholder="t('progress.tabs.searchCalculators')"
+                          :ariaLabel="t('progress.tabs.searchCalculators')"
                           :center="false"
                           maxWidth="100%" />
 
                 <button class="filter-btn icon-only"
                         ref="filterBtnEl"
                         type="button"
-                        aria-label="Kategorie Filter öffnen"
+                        :aria-label="t('progress.tabs.openCategoryFilter')"
                         :aria-expanded="filterOpen ? 'true' : 'false'"
                         @click="toggleFilter">
                     <img src="/Filter.png" class="filter-icon" alt="" aria-hidden="true" />
@@ -48,7 +48,7 @@
 
                 <FilterMenu v-model:open="filterOpen"
                             v-model="calcCategoryModel"
-                            title="Kategorie"
+                            :title="t('progress.tabs.category')"
                             :anchorEl="filterBtnEl"
                             :items="categoryItems" />
             </div>
@@ -57,8 +57,8 @@
         <div v-if="modelValue === 'plans'" class="search-container">
             <div class="search-field">
                 <UiSearch v-model="planSearchModel"
-                          placeholder="Pläne suchen..."
-                          ariaLabel="Pläne suchen"
+                          :placeholder="t('progress.tabs.searchPlans')"
+                          :ariaLabel="t('progress.tabs.searchPlans')"
                           :center="false"
                           maxWidth="100%" />
             </div>
@@ -70,6 +70,7 @@
     import { ref, watch, computed } from 'vue'
     import UiSearch from '@/components/ui/kits/UiSearch.vue'
     import FilterMenu from '@/components/ui/menu/FilterMenu.vue'
+    import { useI18n } from '@/composables/useI18n'
 
     type CalcCategory = 'alle' | 'gesundheit' | 'kraft' | 'ernaehrung' | 'alltag'
 
@@ -86,6 +87,7 @@
         (e: 'update:planSearchQuery', v: string): void
         (e: 'update:calcCategory', v: CalcCategory): void
     }>()
+    const { t } = useI18n()
     const calcSearchModel = computed({
         get: () => props.searchQuery,
         set: (v: string) => emit('update:searchQuery', v),
@@ -105,11 +107,11 @@
     })
 
     const categoryItems: Array<{ value: CalcCategory; label: string }> = [
-        { value: 'alle', label: 'Alle' },
-        { value: 'gesundheit', label: 'Gesundheit' },
-        { value: 'kraft', label: 'Kraft' },
-        { value: 'ernaehrung', label: 'Ernährung' },
-        { value: 'alltag', label: 'Alltag' },
+        { value: 'alle', label: t('progress.tabs.category.all') },
+        { value: 'gesundheit', label: t('progress.tabs.category.health') },
+        { value: 'kraft', label: t('progress.tabs.category.strength') },
+        { value: 'ernaehrung', label: t('progress.tabs.category.nutrition') },
+        { value: 'alltag', label: t('progress.tabs.category.daily') },
     ]
 
     function toggleFilter() {

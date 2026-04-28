@@ -7,7 +7,7 @@
                :id="id"
                :name="name"
                :value="modelValue"
-               :placeholder="placeholder"
+               :placeholder="placeholderComputed"
                :aria-label="ariaLabelComputed"
                :disabled="disabled"
                :autofocus="autofocus"
@@ -17,8 +17,8 @@
         <button v-if="clearable && modelValue"
                 class="ui-search__clear"
                 type="button"
-                aria-label="Suche leeren"
-                title="Leeren"
+                :aria-label="t('uiSearch.clearAria')"
+                :title="t('uiSearch.clearTitle')"
                 @click="clear">
             <img class="ui-search__clear-icon"
                  src="/SearchDelete.png"
@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
     import { computed } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
 
     const props = withDefaults(defineProps<{
         modelValue: string
@@ -43,7 +44,7 @@
         center?: boolean
         maxWidth?: string
     }>(), {
-        placeholder: 'Suchen?',
+        placeholder: '',
         ariaLabel: '',
         disabled: false,
         autofocus: false,
@@ -56,7 +57,10 @@
         (e: 'update:modelValue', v: string): void
     }>()
 
-    const ariaLabelComputed = computed(() => props.ariaLabel?.trim() || props.placeholder || 'Suchen')
+    const { t } = useI18n()
+
+    const placeholderComputed = computed(() => props.placeholder?.trim() || t('uiSearch.placeholder'))
+    const ariaLabelComputed = computed(() => props.ariaLabel?.trim() || placeholderComputed.value || t('uiSearch.aria'))
 
     function onInput(e: Event) {
         const v = (e.target as HTMLInputElement).value

@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useSettingsStore } from '@/store/settingsStore'
 
 import { ensureDailyAutoActivity } from '@/utils/dailyActivity'
+import { initI18n, initI18nDomSync } from '@/composables/useI18n'
 import { initTheme } from '@/composables/useTheme'
 import { initAuthObserver } from '@/services/authObserver'
 
@@ -16,6 +17,7 @@ import { pushUiError } from '@/lib/errorBus'
 
 // ganz früh anwenden (verhindert Light-Flash & sorgt fürs Persistieren)
 initTheme()
+initI18n()
 
 ensureDailyAutoActivity()
 
@@ -56,6 +58,9 @@ ensureDailyAutoActivity()
 
         // window-level -> UI bus
         window.addEventListener('error', (ev) => {
+            if (String((ev as ErrorEvent).message ?? '').includes('ResizeObserver loop completed with undelivered notifications')) {
+                return
+            }
             const ee = (ev as ErrorEvent).error as any
             pushUiError({
                 source: 'window',
@@ -97,6 +102,7 @@ ensureDailyAutoActivity()
         app.use(router)
         initAuthObserver(pinia, router)
         app.mount('#app')
+        initI18nDomSync(document.documentElement)
 
         const settings = useSettingsStore(pinia)
         settings.broadcast()

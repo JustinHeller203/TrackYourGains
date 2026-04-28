@@ -1,71 +1,71 @@
 <template>
     <div class="calc-scan">
-        <div class="calc-hero" role="img" aria-label="Axiale Last Kurzkarte">
+        <div class="calc-hero" role="img" :aria-label="t('explain.axial.heroAria')">
             <div class="calc-hero-top">
-                <span class="calc-hero-title">Hohe axiale Last</span>
+                <span class="calc-hero-title">{{ t('explain.axial.heroTitle') }}</span>
             </div>
 
             <div class="calc-hero-sub">
-                Axiale Last bedeutet Druck oder Belastung <strong>entlang der Körperachse</strong>,
-                vor allem auf Wirbelsäule und Rumpf.
+                {{ t('explain.axial.heroTextBefore') }} <strong>{{ t('explain.axial.heroTextStrong') }}</strong>,
+                {{ t('explain.axial.heroTextAfter') }}
             </div>
 
-            <div class="calc-hero-pills" aria-label="Schnellnavigation">
-                <button class="calc-hero-pill" type="button" @click="jumpTo('axial_tldr')">Kurz</button>
-                <button class="calc-hero-pill" type="button" @click="jumpTo('axial_examples')">Beispiele</button>
-                <button class="calc-hero-pill" type="button" @click="jumpTo('axial_why')">Warum meiden?</button>
-                <button class="calc-hero-pill calc-hero-pill--warn" type="button" @click="jumpTo('axial_mistakes')">Fehler</button>
+            <div class="calc-hero-pills" :aria-label="t('explain.common.quickNav')">
+                <button class="calc-hero-pill" type="button" @click="jumpTo('axial_tldr')">{{ t('explain.common.short') }}</button>
+                <button class="calc-hero-pill" type="button" @click="jumpTo('axial_examples')">{{ t('explain.common.examples') }}</button>
+                <button class="calc-hero-pill" type="button" @click="jumpTo('axial_why')">{{ t('explain.common.whyAvoid') }}</button>
+                <button class="calc-hero-pill calc-hero-pill--warn" type="button" @click="jumpTo('axial_mistakes')">{{ t('explain.common.mistakes') }}</button>
             </div>
         </div>
 
-        <div class="calc-chips" aria-label="Kurzüberblick">
-            <button class="calc-chip" type="button" @click="jumpTo('axial_tldr')">Kurzfassung</button>
-            <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('axial_examples')">Typische Übungen</button>
-            <button class="calc-chip" type="button" @click="jumpTo('axial_why')">Warum ausschalten?</button>
-            <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('axial_mistakes')">Häufige Fehler</button>
+        <div class="calc-chips" :aria-label="t('explain.common.overview')">
+            <button class="calc-chip" type="button" @click="jumpTo('axial_tldr')">{{ t('explain.common.summary') }}</button>
+            <button class="calc-chip calc-chip--good" type="button" @click="jumpTo('axial_examples')">{{ t('explain.common.examples') }}</button>
+            <button class="calc-chip" type="button" @click="jumpTo('axial_why')">{{ t('explain.common.whyDisable') }}</button>
+            <button class="calc-chip calc-chip--warn" type="button" @click="jumpTo('axial_mistakes')">{{ t('explain.common.commonMistakes') }}</button>
         </div>
 
         <div id="axial_tldr" class="calc-callout calc-callout--tldr" tabindex="-1" ref="tldrEl">
-            <div class="calc-callout-title">Kurzfassung</div>
+            <div class="calc-callout-title">{{ t('explain.common.summary') }}</div>
             <div class="calc-callout-text">
                 <ul class="calc-list calc-list--spaced">
-                    <li><strong>Hohe axiale Last</strong> meint viel Druck von oben nach unten durch den Körper.</li>
-                    <li>Typisch bei Übungen, in denen Gewicht auf Schultern, Rücken oder über den Rumpf getragen wird.</li>
-                    <li>Das kann für Rücken, Nacken oder sensible Phasen relevanter sein als die Übung selbst vermuten lässt.</li>
+                    <li><strong>{{ t('explain.axial.heroTitle') }}</strong> {{ t('explain.axial.summaryLine1After') }}</li>
+                    <li>{{ t('explain.axial.summaryLine2') }}</li>
+                    <li>{{ t('explain.axial.summaryLine3') }}</li>
                 </ul>
             </div>
         </div>
 
         <section id="axial_examples" class="calc-card" tabindex="-1" ref="examplesEl">
-            <h4 class="calc-h">Typische Beispiele für hohe axiale Last</h4>
+            <h4 class="calc-h">{{ t('explain.axial.examplesTitle') }}</h4>
             <ul class="calc-list">
-                <li><strong>Kniebeugen</strong> mit Langhantel auf dem Rücken</li>
-                <li><strong>Front Squats</strong> oder schwere Varianten mit viel Rumpfdruck</li>
-                <li><strong>Schwere Overhead Presses</strong> im Stehen</li>
-                <li><strong>Schweres Tragen / Loaded Carries</strong> je nach Variante</li>
+                <li><strong>{{ t('explain.axial.example1Strong') }}</strong> {{ t('explain.axial.example1After') }}</li>
+                <li><strong>Front Squats</strong> {{ t('explain.axial.example2After') }}</li>
+                <li><strong>{{ t('explain.axial.example3Strong') }}</strong> {{ t('explain.axial.example3After') }}</li>
+                <li><strong>{{ t('explain.axial.example4Strong') }}</strong> {{ t('explain.axial.example4After') }}</li>
             </ul>
 
             <div class="calc-note calc-note--spaced">
-                Eher niedriger sind oft geführte Maschinen, sitzende Varianten oder Übungen wie Leg Press, wenn der Rumpf weniger axial belastet wird.
+                {{ t('explain.axial.examplesNote') }}
             </div>
         </section>
 
         <section id="axial_why" class="calc-card" tabindex="-1" ref="whyEl">
-            <h4 class="calc-h">Warum gibt es die Option "Keine hohe axiale Last"?</h4>
+            <h4 class="calc-h">{{ t('explain.axial.whyTitle') }}</h4>
             <ul class="calc-list">
-                <li><strong>Rücken oder Nacken:</strong> bei Beschwerden können stark komprimierende Übungen unpassend sein.</li>
-                <li><strong>Erholung:</strong> du willst vielleicht trainieren, aber den Rumpf weniger stark belasten.</li>
-                <li><strong>Sicherheit:</strong> in Aufbau- oder Rückkehrphasen sind stabilere Alternativen oft sinnvoller.</li>
-                <li><strong>Planqualität:</strong> der Generator kann dann eher auf Varianten mit weniger Druck entlang der Wirbelsäule ausweichen.</li>
+                <li><strong>{{ t('explain.axial.why1Strong') }}</strong> {{ t('explain.axial.why1After') }}</li>
+                <li><strong>{{ t('explain.axial.why2Strong') }}</strong> {{ t('explain.axial.why2After') }}</li>
+                <li><strong>{{ t('explain.axial.why3Strong') }}</strong> {{ t('explain.axial.why3After') }}</li>
+                <li><strong>{{ t('explain.axial.why4Strong') }}</strong> {{ t('explain.axial.why4After') }}</li>
             </ul>
         </section>
 
         <div id="axial_mistakes" class="calc-callout calc-callout--warn" tabindex="-1" ref="mistakesEl">
-            <div class="calc-callout-title">Häufige Missverständnisse</div>
+            <div class="calc-callout-title">{{ t('explain.axial.mistakesTitle') }}</div>
             <ul class="calc-list">
-                <li><strong>Nicht nur "schweres Gewicht" zählt.</strong> Entscheidend ist, wie die Last durch den Körper wirkt.</li>
-                <li><strong>Nicht jede Beinübung ist automatisch hoch axial.</strong> Eine Leg Press belastet anders als eine Barbell Squat.</li>
-                <li><strong>Die Option verbietet nicht "hart trainieren".</strong> Sie schützt nur vor bestimmten Lastprofilen.</li>
+                <li><strong>{{ t('explain.axial.mistake1Strong') }}</strong> {{ t('explain.axial.mistake1After') }}</li>
+                <li><strong>{{ t('explain.axial.mistake2Strong') }}</strong> {{ t('explain.axial.mistake2After') }}</li>
+                <li><strong>{{ t('explain.axial.mistake3Strong') }}</strong> {{ t('explain.axial.mistake3After') }}</li>
             </ul>
         </div>
     </div>
@@ -73,6 +73,9 @@
 
 <script setup lang="ts">
     import { ref } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
+
+    const { t } = useI18n()
 
     const tldrEl = ref<HTMLElement | null>(null)
     const examplesEl = ref<HTMLElement | null>(null)

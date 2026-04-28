@@ -3,14 +3,18 @@
     <button class="calc-btn"
             type="button"
             @click="$emit('click')">
-        Berechnen
+        {{ t('progress.calculators.calculate') }}
     </button>
 </template>
 
 <script setup lang="ts">
+    import { useI18n } from '@/composables/useI18n'
+
     defineEmits<{
         (e: 'click'): void
     }>()
+
+    const { t } = useI18n()
 </script>
 
 <style scoped>

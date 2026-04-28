@@ -7,33 +7,33 @@
 
         <div class="day-popup">
             <div class="day-popup__summary">
-                <div class="day-popup__date">{{ dayLabel }}</div>
+                <div class="day-popup__date">{{ formattedDayLabel }}</div>
                 <div class="day-popup__meta">
-                    <span v-if="isRest" class="day-chip day-chip--rest">Ruhetag</span>
-                    <span v-else-if="isPlanned" class="day-chip day-chip--plan">Geplant</span>
-                    <span v-if="isCompleted" class="day-chip day-chip--done">Abgeschlossen</span>
+                    <span v-if="isRest" class="day-chip day-chip--rest">{{ t('calendarDayPopup.status.rest') }}</span>
+                    <span v-else-if="isPlanned" class="day-chip day-chip--plan">{{ t('calendarDayPopup.status.planned') }}</span>
+                    <span v-if="isCompleted" class="day-chip day-chip--done">{{ t('calendarDayPopup.status.completed') }}</span>
                 </div>
             </div>
 
             <div v-if="allowComplete" class="day-popup__section">
-                <div class="section-title">Abschluss</div>
+                <div class="section-title">{{ t('calendarDayPopup.section.completion') }}</div>
                 <div class="section-actions">
                     <PopupActionButton @click="toggleComplete">
-                        {{ isCompleted ? 'Abschluss entfernen' : 'Als abgeschlossen markieren' }}
+                        {{ isCompleted ? t('calendarDayPopup.action.removeCompletion') : t('calendarDayPopup.action.markCompleted') }}
                     </PopupActionButton>
                 </div>
             </div>
 
             <div v-if="allowPlan || allowEdit" class="day-popup__section">
-                <div class="section-title">Workout</div>
+                <div class="section-title">{{ t('calendarDayPopup.section.workout') }}</div>
 
                 <UiPopupSelect v-model="localPlanId"
-                               label="Plan"
-                               placeholder="Plan auswählen"
+                               :label="t('calendarDayPopup.field.plan')"
+                               :placeholder="t('calendarDayPopup.placeholder.selectPlan')"
                                :options="planOptions" />
 
                 <div v-if="colorOptions?.length" class="color-block">
-                    <div class="section-title">Farbe</div>
+                    <div class="section-title">{{ t('calendarDayPopup.section.color') }}</div>
                     <div class="color-row">
                         <button v-for="c in colorOptions"
                                 :key="c.value"
@@ -49,30 +49,30 @@
 
                 <div class="section-actions">
                     <PopupActionButton :disabled="!canSubmitPlan" @click="submitPlan">
-                        {{ allowEdit ? 'Plan speichern' : 'Workout planen' }}
+                        {{ allowEdit ? t('calendarDayPopup.action.savePlan') : t('calendarDayPopup.action.planWorkout') }}
                     </PopupActionButton>
                 </div>
             </div>
 
             <div v-if="allowRest" class="day-popup__section">
-                <div class="section-title">Ruhetag</div>
+                <div class="section-title">{{ t('calendarDayPopup.section.restDay') }}</div>
                 <div class="section-actions">
                     <PopupActionButton variant="ghost" @click="toggleRest">
-                        {{ isRest ? 'Ruhetag entfernen' : 'Als Ruhetag markieren' }}
+                        {{ isRest ? t('calendarDayPopup.action.removeRestDay') : t('calendarDayPopup.action.markRestDay') }}
                     </PopupActionButton>
                 </div>
             </div>
 
             <div v-if="allowMove" class="day-popup__section">
-                <div class="section-title">Verschieben</div>
+                <div class="section-title">{{ t('calendarDayPopup.section.move') }}</div>
                 <UiPopupInput v-model="moveTo"
                               type="date"
-                              label="Neues Datum"
+                              :label="t('calendarDayPopup.field.newDate')"
                               :min="minDate"
-                              :placeholder="'JJJJ-MM-TT'" />
+                              :placeholder="t('calendarDayPopup.placeholder.date')" />
                 <div class="section-actions">
                     <PopupActionButton variant="ghost" :disabled="!moveTo" @click="submitMove">
-                        Verschieben
+                        {{ t('calendarDayPopup.action.move') }}
                     </PopupActionButton>
                 </div>
             </div>
@@ -80,7 +80,7 @@
             <div v-if="allowClear" class="day-popup__section">
                 <div class="section-actions">
                     <PopupActionButton danger @click="emit('clear', day)">
-                        Tag leeren
+                        {{ t('calendarDayPopup.action.clearDay') }}
                     </PopupActionButton>
                 </div>
             </div>
@@ -88,7 +88,7 @@
 
         <template #actions>
             <PopupActionButton variant="ghost" @click="emit('close')">
-                Schließen
+                {{ t('common.close') }}
             </PopupActionButton>
         </template>
 
@@ -101,6 +101,7 @@
     import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
+    import { useI18n } from '@/composables/useI18n'
 
     type Option = { label: string; value: string }
 
@@ -155,11 +156,40 @@
         (e: 'clear', day: string): void
     }>()
 
+    const { t, locale } = useI18n()
+
+    const tp = (key: string, params: Record<string, string | number>) => {
+        let text = t(key)
+
+        for (const [paramKey, value] of Object.entries(params)) {
+            text = text.replaceAll(`{${paramKey}}`, String(value))
+        }
+
+        return text
+    }
+
     const localPlanId = ref('')
     const localColor = ref('')
     const moveTo = ref('')
 
-    const title = computed(() => props.title ?? `Tag: ${props.dayLabel}`)
+    const dateLocale = computed(() => locale.value === 'en' ? 'en-US' : 'de-DE')
+
+    const formattedDayLabel = computed(() => {
+        const date = new Date(`${props.day}T12:00:00`)
+
+        if (Number.isNaN(date.getTime())) {
+            return props.dayLabel
+        }
+
+        return new Intl.DateTimeFormat(dateLocale.value, {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+        }).format(date)
+    })
+
+    const title = computed(() => props.title ?? tp('calendarDayPopup.title', { day: formattedDayLabel.value }))
 
     const syncState = () => {
         localPlanId.value = props.defaultPlanId || ''
@@ -288,10 +318,10 @@
         cursor: pointer;
     }
 
-    .color-chip.active {
-        border-color: rgba(129, 140, 248, 0.8);
-        box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
-    }
+        .color-chip.active {
+            border-color: rgba(129, 140, 248, 0.8);
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+        }
 
     html.dark-mode .day-popup__summary,
     html.dark-mode .day-popup__section {

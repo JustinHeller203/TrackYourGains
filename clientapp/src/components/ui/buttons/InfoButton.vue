@@ -5,7 +5,7 @@
             :title="title || ariaLabel"
             @click="$emit('click')"
             @keydown.enter.prevent="$emit('click')"
-            @keydown.space.prevent="$emit('click')">
+            >
         <span class="info-emoji" aria-hidden="true">ℹ️</span>
     </button>
 </template>
@@ -22,6 +22,20 @@
 </script>
 
 <style scoped>
+    @keyframes infoPulse {
+        0%, 100% {
+            --info-pulse-scale: 1;
+            opacity: 1;
+            filter: drop-shadow(0 0 0 rgba(99, 102, 241, 0));
+        }
+
+        50% {
+            --info-pulse-scale: 1.07;
+            opacity: 0.72;
+            filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.16));
+        }
+    }
+
     .info-btn {
         display: inline-flex;
         align-items: center;
@@ -46,5 +60,10 @@
 
     .info-emoji {
         font-size: 1rem;
+        display: inline-block;
+        transform-origin: center;
+        transform: scale(var(--info-pulse-scale, 1));
+        animation: infoPulse 1.45s ease-in-out infinite;
+        will-change: transform, filter;
     }
 </style>

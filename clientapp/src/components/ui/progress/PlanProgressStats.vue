@@ -3,204 +3,204 @@
     <div class="plan-stats">
         <div v-if="!entries.length" class="stats-empty">
             <div class="stats-empty-icon" aria-hidden="true">📊</div>
-            <div class="stats-empty-text">Noch keine Statistik für diesen Plan.</div>
+            <div class="stats-empty-text">{{ t('progress.planStats.empty') }}</div>
         </div>
 
         <div v-else>
-            <div class="stats-filter" role="tablist" aria-label="Statistik Filter">
-                <button type="button" class="filter-btn" :class="{ active: activeSection === 'overview' }" @click="activeSection = 'overview'">Übersicht</button>
-                <button type="button" class="filter-btn" :class="{ active: activeSection === 'strength' }" @click="activeSection = 'strength'">Kraft</button>
-                <button type="button" class="filter-btn" :class="{ active: activeSection === 'cardio' }" @click="activeSection = 'cardio'">Cardio</button>
-                <button type="button" class="filter-btn" :class="{ active: activeSection === 'consistency' }" @click="activeSection = 'consistency'">Konstanz</button>
+            <div class="stats-filter" role="tablist" :aria-label="t('progress.planStats.filterAria')">
+                <button type="button" class="filter-btn" :class="{ active: activeSection === 'overview' }" @click="activeSection = 'overview'">{{ t('progress.planStats.tabs.overview') }}</button>
+                <button type="button" class="filter-btn" :class="{ active: activeSection === 'strength' }" @click="activeSection = 'strength'">{{ t('progress.planStats.tabs.strength') }}</button>
+                <button type="button" class="filter-btn" :class="{ active: activeSection === 'cardio' }" @click="activeSection = 'cardio'">{{ t('progress.planStats.tabs.cardio') }}</button>
+                <button type="button" class="filter-btn" :class="{ active: activeSection === 'consistency' }" @click="activeSection = 'consistency'">{{ t('progress.planStats.tabs.consistency') }}</button>
                 <button type="button" class="filter-btn" :class="{ active: activeSection === 'prs' }" @click="activeSection = 'prs'">PRs</button>
-                <button type="button" class="filter-btn" :class="{ active: activeSection === 'trends' }" @click="activeSection = 'trends'">Trends</button>
-                <button type="button" class="filter-btn" :class="{ active: activeSection === 'muscle' }" @click="activeSection = 'muscle'">Muskeln</button>
+                <button type="button" class="filter-btn" :class="{ active: activeSection === 'trends' }" @click="activeSection = 'trends'">{{ t('progress.planStats.tabs.trends') }}</button>
+                <button type="button" class="filter-btn" :class="{ active: activeSection === 'muscle' }" @click="activeSection = 'muscle'">{{ t('progress.planStats.tabs.muscle') }}</button>
             </div>
 
             <div v-if="activeSection === 'overview'" class="stats-grid">
                 <div class="stats-card">
-                    <div class="stats-k">Einträge</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.entries') }}</div>
                     <div class="stats-v">{{ totalEntries }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Trainings-Tage</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.trainingDays') }}</div>
                     <div class="stats-v">{{ totalDays }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Übungen</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.exercises') }}</div>
                     <div class="stats-v">{{ uniqueExercises }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Erster Eintrag</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.firstEntry') }}</div>
                     <div class="stats-v">{{ firstEntryLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Letzter Eintrag</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.lastEntry') }}</div>
                     <div class="stats-v">{{ lastEntryLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Split</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.split') }}</div>
                     <div class="stats-v">{{ typeSplitLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Top Übung</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.topExercise') }}</div>
                     <div class="stats-v">{{ topExerciseLabel }}</div>
                 </div>
                 <div class="stats-card stats-card--wide">
-                    <div class="stats-k">Letzte 4 Wochen</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.last4Weeks') }}</div>
                     <div class="stats-v">{{ last4WeeksSummary }}</div>
                 </div>
             </div>
 
             <div v-else-if="activeSection === 'strength'" class="stats-grid">
                 <div class="stats-card">
-                    <div class="stats-k">Sätze</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.sets') }}</div>
                     <div class="stats-v">{{ totalStrengthSets }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Wdh</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.repsShort') }}</div>
                     <div class="stats-v">{{ totalStrengthReps }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Volumen</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.volume') }}</div>
                     <div class="stats-v">{{ totalStrengthVolumeLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Ø Volumen/Tag</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.avgVolumeDay') }}</div>
                     <div class="stats-v">{{ avgStrengthVolumePerDayLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Ø Volumen/Woche</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.avgVolumeWeek') }}</div>
                     <div class="stats-v">{{ avgStrengthVolumePerWeekLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Ø Gewicht/Set</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.avgWeightSet') }}</div>
                     <div class="stats-v">{{ avgWeightPerSetLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Ø Wdh/Set</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.avgRepsSet') }}</div>
                     <div class="stats-v">{{ avgRepsPerSetLabel }}</div>
                 </div>
             </div>
 
             <div v-else-if="activeSection === 'cardio'" class="stats-grid">
                 <div class="stats-card">
-                    <div class="stats-k">Cardio Min</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.cardioMin') }}</div>
                     <div class="stats-v">{{ totalCardioMinLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Cardio km</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.cardioKm') }}</div>
                     <div class="stats-v">{{ totalCardioKmLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Ø Cardio/Tag</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.avgCardioDay') }}</div>
                     <div class="stats-v">{{ avgCardioMinPerDayLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Ø Cardio/Woche</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.avgCardioWeek') }}</div>
                     <div class="stats-v">{{ avgCardioMinPerWeekLabel }}</div>
                 </div>
             </div>
 
             <div v-else-if="activeSection === 'consistency'" class="stats-grid">
                 <div class="stats-card">
-                    <div class="stats-k">Aktive Wochen</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.activeWeeks') }}</div>
                     <div class="stats-v">{{ activeWeeks }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Ø Tage/Woche</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.avgDaysWeek') }}</div>
                     <div class="stats-v">{{ avgDaysPerWeekLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Aktueller Streak</div>
-                    <div class="stats-v">{{ currentStreak }} Tage</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.currentStreak') }}</div>
+                    <div class="stats-v">{{ streakLabel(currentStreak) }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Bester Streak</div>
-                    <div class="stats-v">{{ bestStreak }} Tage</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.bestStreak') }}</div>
+                    <div class="stats-v">{{ streakLabel(bestStreak) }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Meister‑Tag</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.masterDay') }}</div>
                     <div class="stats-v">{{ mostActiveWeekdayLabel }}</div>
                 </div>
             </div>
 
             <div v-else-if="activeSection === 'prs'" class="stats-grid">
                 <div class="stats-card">
-                    <div class="stats-k">Max Gewicht</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.maxWeight') }}</div>
                     <div class="stats-v">{{ prMaxWeightLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Max Wdh</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.maxReps') }}</div>
                     <div class="stats-v">{{ prMaxRepsLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Max Satz‑Volumen</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.maxSetVolume') }}</div>
                     <div class="stats-v">{{ prMaxSetVolumeLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Beste Session</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.bestSession') }}</div>
                     <div class="stats-v">{{ prBestDayVolumeLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Top 1RM (Epley)</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.topOneRm') }}</div>
                     <div class="stats-v">{{ prTop1RmLabel }}</div>
                 </div>
                 <div class="stats-card stats-card--wide stats-card--panel">
-                    <div class="stats-k">Persönliche Rekorde</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.personalRecords') }}</div>
                     <PersonalRecordsPanel :records="personalRecords" :limit="8" />
                 </div>
             </div>
 
             <div v-else-if="activeSection === 'trends'" class="stats-grid">
                 <div class="stats-card">
-                    <div class="stats-k">Einträge (28T)</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.entries28') }}</div>
                     <div class="stats-v">{{ trendEntriesLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Trainingstage (28T)</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.trainingDays28') }}</div>
                     <div class="stats-v">{{ trendDaysLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Volumen (28T)</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.volume28') }}</div>
                     <div class="stats-v">{{ trendVolumeLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Cardio Min (28T)</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.cardio28') }}</div>
                     <div class="stats-v">{{ trendCardioLabel }}</div>
                 </div>
                 <div class="stats-card stats-card--wide">
-                    <div class="stats-k">Vergleich zu Vor‑28T</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.comparisonPrev28') }}</div>
                     <div class="stats-v">{{ trendComparisonLabel }}</div>
                 </div>
             </div>
 
             <div v-else-if="activeSection === 'muscle'" class="stats-grid">
                 <div class="stats-card">
-                    <div class="stats-k">Top Muskelgruppe</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.topMuscleGroup') }}</div>
                     <div class="stats-v">{{ topMuscleGroupLabel }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Top 2</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.top2') }}</div>
                     <div class="stats-v">{{ topMuscleGroup2Label }}</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-k">Top 3</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.top3') }}</div>
                     <div class="stats-v">{{ topMuscleGroup3Label }}</div>
                 </div>
                 <div class="stats-card stats-card--wide">
-                    <div class="stats-k">Muskel‑Verteilung</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.muscleDistribution') }}</div>
                     <div class="stats-v">{{ muscleSplitLabel }}</div>
                 </div>
                 <div class="stats-card stats-card--wide stats-note">
-                    <div class="stats-k">Hinweis</div>
+                    <div class="stats-k">{{ t('progress.planStats.cards.note') }}</div>
                     <div class="stats-v">
                         <span class="stats-note-text" :class="{ expanded: muscleHintExpanded }">
-                            Erkennung basiert auf Übungsnamen (Heuristik).
+                            {{ t('progress.planStats.muscleHint') }}
                         </span>
                         <button type="button"
                                 class="stats-note-more"
-                                aria-label="Hinweis vollständig anzeigen"
+                                :aria-label="t('progress.planStats.expandHintAria')"
                                 @click="muscleHintExpanded = !muscleHintExpanded">
                             ⋯
                         </button>
@@ -214,6 +214,7 @@
 <script setup lang="ts">
     import { computed, ref } from 'vue'
     import PersonalRecordsPanel from '@/components/ui/progress/PersonalRecordsPanel.vue'
+    import { useI18n } from '@/composables/useI18n'
     import { computeExercisePersonalRecords } from '@/utils/personalRecords'
 
     type WorkoutLike = {
@@ -230,14 +231,63 @@
         setDetails?: Array<{ weight: number | null; reps: number | null }> | null
     }
 
+    type SectionId = 'overview' | 'strength' | 'cardio' | 'consistency' | 'prs' | 'trends' | 'muscle'
+    type MuscleGroupId = 'chest' | 'back' | 'shoulders' | 'arms' | 'core' | 'legs'
+
     const props = defineProps<{
         entries: WorkoutLike[]
     }>()
 
-    const activeSection = ref<'overview' | 'strength' | 'cardio' | 'consistency' | 'prs' | 'trends' | 'muscle'>('overview')
+    const { locale, t } = useI18n()
+    const activeSection = ref<SectionId>('overview')
     const muscleHintExpanded = ref(false)
 
+    const dash = '–'
     const pad2 = (n: number) => String(n).padStart(2, '0')
+    const localeCode = computed(() => locale.value === 'en' ? 'en-US' : 'de-DE')
+
+    const formatDateLabel = (yyyyMmDd: string) => {
+        const [y, m, d] = yyyyMmDd.split('-').map(Number)
+        return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString(localeCode.value, {
+            weekday: 'short',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        })
+    }
+
+    const formatWeekdayLabel = (weekdayIndex: number) =>
+        new Date(Date.UTC(2020, 5, 7 + weekdayIndex)).toLocaleDateString(localeCode.value, { weekday: 'short' })
+
+    const formatKgLabel = (value: number | null | undefined, digits = 0) => {
+        if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return dash
+        const out = digits > 0 ? value.toFixed(digits) : `${Math.round(value)}`
+        return `${out} kg`
+    }
+
+    const formatMinLabel = (value: number | null | undefined) => {
+        if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return dash
+        return `${Math.round(value)} min`
+    }
+
+    const formatKmLabel = (value: number | null | undefined) => {
+        if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return dash
+        return `${value.toFixed(1)} km`
+    }
+
+    const countLabel = (key: string, count: number) => t(key).replace('{count}', String(count))
+    const streakLabel = (count: number) => countLabel('progress.planStats.daysCount', count)
+
+    const muscleLabelKeyMap: Record<MuscleGroupId, string> = {
+        chest: 'goals.muscle.chest',
+        back: 'goals.muscle.back',
+        shoulders: 'goals.muscle.shoulders',
+        arms: 'goals.muscle.arms',
+        core: 'goals.muscle.core',
+        legs: 'goals.muscle.legs',
+    }
+
+    const muscleLabel = (group: MuscleGroupId) => t(muscleLabelKeyMap[group])
 
     const toUtcDayKey = (dateStr?: string | null) => {
         if (!dateStr) return null
@@ -294,31 +344,19 @@
 
     const firstEntryLabel = computed(() => {
         const first = [...dayKeys.value].sort().at(0)
-        if (!first) return '–'
-        const [y, m, d] = first.split('-').map(Number)
-        return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString('de-DE', {
-            weekday: 'short',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-        })
+        if (!first) return dash
+        return formatDateLabel(first)
     })
 
     const lastEntryLabel = computed(() => {
         const last = [...dayKeys.value].sort().at(-1)
-        if (!last) return '–'
-        const [y, m, d] = last.split('-').map(Number)
-        return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString('de-DE', {
-            weekday: 'short',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-        })
+        if (!last) return dash
+        return formatDateLabel(last)
     })
 
     const avgDaysPerWeekLabel = computed(() => {
         const weeks = activeWeeks.value || 0
-        if (!weeks) return '–'
+        if (!weeks) return dash
         return (totalDays.value / weeks).toFixed(1)
     })
 
@@ -355,7 +393,7 @@
     const personalRecords = computed(() => computeExercisePersonalRecords(props.entries))
 
     const mostActiveWeekdayLabel = computed(() => {
-        if (!props.entries.length) return '–'
+        if (!props.entries.length) return dash
         const map = new Map<number, number>()
         for (const it of props.entries) {
             const k = toUtcDayKey(it.date)
@@ -372,8 +410,7 @@
                 bestDay = d
             }
         }
-        const label = new Date(Date.UTC(2020, 5, 7 + bestDay)).toLocaleDateString('de-DE', { weekday: 'short' })
-        return label
+        return formatWeekdayLabel(bestDay)
     })
 
     const strengthEntries = computed(() =>
@@ -422,32 +459,30 @@
     const totalStrengthReps = computed(() => strengthStats.value.totalReps)
     const totalStrengthVolume = computed(() => strengthStats.value.totalVolume)
 
-    const totalStrengthVolumeLabel = computed(() =>
-        totalStrengthVolume.value > 0 ? `${Math.round(totalStrengthVolume.value)} kg` : '–'
-    )
+    const totalStrengthVolumeLabel = computed(() => formatKgLabel(totalStrengthVolume.value))
 
     const avgStrengthVolumePerDayLabel = computed(() => {
-        if (!totalDays.value) return '–'
-        return `${Math.round(totalStrengthVolume.value / totalDays.value)} kg`
+        if (!totalDays.value) return dash
+        return formatKgLabel(totalStrengthVolume.value / totalDays.value)
     })
 
     const avgStrengthVolumePerWeekLabel = computed(() => {
-        if (!activeWeeks.value) return '–'
-        return `${Math.round(totalStrengthVolume.value / activeWeeks.value)} kg`
+        if (!activeWeeks.value) return dash
+        return formatKgLabel(totalStrengthVolume.value / activeWeeks.value)
     })
 
     const avgWeightPerSetLabel = computed(() => {
         const totalSets = strengthStats.value.totalSets
-        if (!totalSets) return '–'
+        if (!totalSets) return dash
         const avg = strengthStats.value.totalWeightSum / totalSets
-        return Number.isFinite(avg) ? (Number.isInteger(avg) ? `${avg} kg` : `${avg.toFixed(1)} kg`) : '–'
+        return Number.isFinite(avg) ? (Number.isInteger(avg) ? `${avg} kg` : `${avg.toFixed(1)} kg`) : dash
     })
 
     const avgRepsPerSetLabel = computed(() => {
         const totalSets = strengthStats.value.totalSets
-        if (!totalSets) return '–'
+        if (!totalSets) return dash
         const avg = strengthStats.value.totalReps / totalSets
-        return Number.isFinite(avg) ? (Number.isInteger(avg) ? `${avg}` : `${avg.toFixed(1)}`) : '–'
+        return Number.isFinite(avg) ? (Number.isInteger(avg) ? `${avg}` : `${avg.toFixed(1)}`) : dash
     })
 
     const totalCardioMin = computed(() => {
@@ -466,34 +501,34 @@
         return total
     })
 
-    const totalCardioMinLabel = computed(() =>
-        totalCardioMin.value > 0 ? `${Math.round(totalCardioMin.value)} min` : '–'
-    )
-
-    const totalCardioKmLabel = computed(() =>
-        totalCardioKm.value > 0 ? `${totalCardioKm.value.toFixed(1)} km` : '–'
-    )
+    const totalCardioMinLabel = computed(() => formatMinLabel(totalCardioMin.value))
+    const totalCardioKmLabel = computed(() => formatKmLabel(totalCardioKm.value))
 
     const avgCardioMinPerDayLabel = computed(() => {
-        if (!totalDays.value) return '–'
-        return `${Math.round(totalCardioMin.value / totalDays.value)} min`
+        if (!totalDays.value) return dash
+        return formatMinLabel(totalCardioMin.value / totalDays.value)
     })
 
     const avgCardioMinPerWeekLabel = computed(() => {
-        if (!activeWeeks.value) return '–'
-        return `${Math.round(totalCardioMin.value / activeWeeks.value)} min`
+        if (!activeWeeks.value) return dash
+        return formatMinLabel(totalCardioMin.value / activeWeeks.value)
     })
 
     const typeSplitLabel = computed(() => {
         const counts = { kraft: 0, calisthenics: 0, ausdauer: 0, dehnung: 0 }
         for (const it of props.entries) {
-            const t = it.type ?? 'kraft'
-            if (t in counts) counts[t as keyof typeof counts] += 1
+            const tpe = it.type ?? 'kraft'
+            if (tpe in counts) counts[tpe as keyof typeof counts] += 1
         }
         const total = Object.values(counts).reduce((a, b) => a + b, 0)
-        if (!total) return '–'
+        if (!total) return dash
         const pct = (n: number) => `${Math.round((n / total) * 100)}%`
-        return `K ${pct(counts.kraft)} · C ${pct(counts.calisthenics)} · A ${pct(counts.ausdauer)} · D ${pct(counts.dehnung)}`
+        return [
+            `${t('goals.exerciseKind.strength')} ${pct(counts.kraft)}`,
+            `${t('progress.popup.exerciseType.calisthenics')} ${pct(counts.calisthenics)}`,
+            `${t('goals.exerciseKind.cardio')} ${pct(counts.ausdauer)}`,
+            `${t('goals.exerciseKind.mobility')} ${pct(counts.dehnung)}`,
+        ].join(' · ')
     })
 
     const topExerciseLabel = computed(() => {
@@ -503,7 +538,7 @@
             if (!name) continue
             map.set(name, (map.get(name) ?? 0) + 1)
         }
-        if (!map.size) return '–'
+        if (!map.size) return dash
         let top = ''
         let count = -1
         for (const [k, v] of map.entries()) {
@@ -516,12 +551,12 @@
     })
 
     const last4WeeksSummary = computed(() => {
-        if (!props.entries.length) return '–'
+        if (!props.entries.length) return dash
         const today = new Date()
         const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
         const cutoff = todayUtc - 28 * 86400000
 
-        let days = new Set<string>()
+        const days = new Set<string>()
         let sessions = 0
         let volume = 0
 
@@ -552,9 +587,11 @@
             }
         }
 
-        const dayCount = days.size
-        const volLabel = volume > 0 ? `${Math.round(volume)} kg` : '–'
-        return `${dayCount} Tage · ${sessions} Einträge · ${volLabel}`
+        return [
+            countLabel('progress.planStats.daysCount', days.size),
+            countLabel('progress.planStats.entriesCount', sessions),
+            formatKgLabel(volume),
+        ].join(' · ')
     })
 
     const prMaxWeightLabel = computed(() => {
@@ -572,7 +609,7 @@
                 best = { weight: it.weight, exercise: it.exercise }
             }
         }
-        return best.weight > -1 ? `${best.weight} kg · ${best.exercise}` : '–'
+        return best.weight > -1 ? `${best.weight} kg · ${best.exercise}` : dash
     })
 
     const prMaxRepsLabel = computed(() => {
@@ -590,7 +627,7 @@
                 best = { reps: it.reps, exercise: it.exercise }
             }
         }
-        return best.reps > -1 ? `${best.reps} Wdh · ${best.exercise}` : '–'
+        return best.reps > -1 ? `${best.reps} ${t('progress.planStats.cards.repsShort')} · ${best.exercise}` : dash
     })
 
     const prMaxSetVolumeLabel = computed(() => {
@@ -610,7 +647,7 @@
                 if (vol > best.vol) best = { vol, exercise: it.exercise }
             }
         }
-        return best.vol > -1 ? `${Math.round(best.vol)} kg · ${best.exercise}` : '–'
+        return best.vol > -1 ? `${Math.round(best.vol)} kg · ${best.exercise}` : dash
     })
 
     const prBestDayVolumeLabel = computed(() => {
@@ -636,7 +673,7 @@
             }
             if (vol > 0) map.set(dayKey, (map.get(dayKey) ?? 0) + vol)
         }
-        if (!map.size) return '–'
+        if (!map.size) return dash
         let bestDay = ''
         let bestVol = -1
         for (const [day, vol] of map.entries()) {
@@ -645,7 +682,7 @@
                 bestDay = day
             }
         }
-        return bestVol > -1 ? `${Math.round(bestVol)} kg · ${bestDay}` : '–'
+        return bestVol > -1 ? `${Math.round(bestVol)} kg · ${formatDateLabel(bestDay)}` : dash
     })
 
     const prTop1RmLabel = computed(() => {
@@ -669,7 +706,7 @@
                 }
             }
         }
-        return best.rm > -1 ? `${best.rm} kg · ${best.exercise}` : '–'
+        return best.rm > -1 ? `${best.rm} kg · ${best.exercise}` : dash
     })
 
     const trendWindowStats = (fromUtc: number, toUtc: number) => {
@@ -705,9 +742,7 @@
                 }
             }
 
-            if (typeof it.durationMin === 'number') {
-                cardioMin += it.durationMin
-            }
+            if (typeof it.durationMin === 'number') cardioMin += it.durationMin
         }
 
         return { entries, days: days.size, volume, cardioMin }
@@ -727,78 +762,81 @@
 
     const trendEntriesLabel = computed(() => `${trendStats.value.cur.entries}`)
     const trendDaysLabel = computed(() => `${trendStats.value.cur.days}`)
-    const trendVolumeLabel = computed(() =>
-        trendStats.value.cur.volume > 0 ? `${Math.round(trendStats.value.cur.volume)} kg` : '–'
-    )
-    const trendCardioLabel = computed(() =>
-        trendStats.value.cur.cardioMin > 0 ? `${Math.round(trendStats.value.cur.cardioMin)} min` : '–'
-    )
+    const trendVolumeLabel = computed(() => formatKgLabel(trendStats.value.cur.volume))
+    const trendCardioLabel = computed(() => formatMinLabel(trendStats.value.cur.cardioMin))
+
     const trendComparisonLabel = computed(() => {
         const deltaEntries = trendStats.value.cur.entries - trendStats.value.prev.entries
         const deltaDays = trendStats.value.cur.days - trendStats.value.prev.days
         const deltaVol = Math.round(trendStats.value.cur.volume - trendStats.value.prev.volume)
         const deltaCardio = Math.round(trendStats.value.cur.cardioMin - trendStats.value.prev.cardioMin)
         const parts = [
-            `Einträge ${deltaEntries >= 0 ? '+' : ''}${deltaEntries}`,
-            `Tage ${deltaDays >= 0 ? '+' : ''}${deltaDays}`,
+            t('progress.planStats.trend.entriesDelta').replace('{value}', `${deltaEntries >= 0 ? '+' : ''}${deltaEntries}`),
+            t('progress.planStats.trend.daysDelta').replace('{value}', `${deltaDays >= 0 ? '+' : ''}${deltaDays}`),
         ]
-        if (deltaVol !== 0) parts.push(`Volumen ${deltaVol >= 0 ? '+' : ''}${deltaVol} kg`)
-        if (deltaCardio !== 0) parts.push(`Cardio ${deltaCardio >= 0 ? '+' : ''}${deltaCardio} min`)
+        if (deltaVol !== 0) {
+            parts.push(t('progress.planStats.trend.volumeDelta').replace('{value}', `${deltaVol >= 0 ? '+' : ''}${deltaVol}`))
+        }
+        if (deltaCardio !== 0) {
+            parts.push(t('progress.planStats.trend.cardioDelta').replace('{value}', `${deltaCardio >= 0 ? '+' : ''}${deltaCardio}`))
+        }
         return parts.join(' · ')
     })
 
-    const muscleGroups = [
-        'Brust', 'Rücken', 'Schultern', 'Arme', 'Bauch', 'Beine'
-    ]
+    const muscleGroups: MuscleGroupId[] = ['chest', 'back', 'shoulders', 'arms', 'core', 'legs']
 
-    const muscleKeywordMap: Record<string, string[]> = {
-        brust: ['Brust'],
-        bankdrücken: ['Brust'],
-        liegestütz: ['Brust', 'Arme'],
-        butterfly: ['Brust'],
-        brustpresse: ['Brust'],
-        rücken: ['Rücken'],
-        latzug: ['Rücken'],
-        rudern: ['Rücken'],
-        klimmzug: ['Rücken', 'Arme'],
-        kreuzheben: ['Rücken', 'Beine'],
-        schulter: ['Schultern'],
-        schulterdrücken: ['Schultern'],
-        seitheben: ['Schultern'],
-        arme: ['Arme'],
-        bizeps: ['Arme'],
-        trizeps: ['Arme'],
-        dips: ['Arme', 'Brust'],
-        bauch: ['Bauch'],
-        core: ['Bauch'],
-        plank: ['Bauch'],
-        bein: ['Beine'],
-        beine: ['Beine'],
-        kniebeuge: ['Beine'],
-        beinpresse: ['Beine'],
-        ausfallschritt: ['Beine'],
-        waden: ['Beine'],
-        hip: ['Beine'],
-        glute: ['Beine'],
-        po: ['Beine'],
+    const muscleKeywordMap: Record<string, MuscleGroupId[]> = {
+        brust: ['chest'],
+        bankdrücken: ['chest'],
+        bankdruecken: ['chest'],
+        liegestütz: ['chest', 'arms'],
+        liegestuetz: ['chest', 'arms'],
+        butterfly: ['chest'],
+        brustpresse: ['chest'],
+        rücken: ['back'],
+        ruecken: ['back'],
+        latzug: ['back'],
+        rudern: ['back'],
+        klimmzug: ['back', 'arms'],
+        kreuzheben: ['back', 'legs'],
+        schulter: ['shoulders'],
+        schulterdrücken: ['shoulders'],
+        schulterdruecken: ['shoulders'],
+        seitheben: ['shoulders'],
+        arme: ['arms'],
+        bizeps: ['arms'],
+        trizeps: ['arms'],
+        dips: ['arms', 'chest'],
+        bauch: ['core'],
+        core: ['core'],
+        plank: ['core'],
+        bein: ['legs'],
+        beine: ['legs'],
+        kniebeuge: ['legs'],
+        beinpresse: ['legs'],
+        ausfallschritt: ['legs'],
+        waden: ['legs'],
+        hip: ['legs'],
+        glute: ['legs'],
+        po: ['legs'],
     }
 
     const resolveMuscleGroups = (exercise: string) => {
         const name = exercise.toLowerCase()
-        const hits = new Set<string>()
+        const hits = new Set<MuscleGroupId>()
         for (const [k, groups] of Object.entries(muscleKeywordMap)) {
             if (name.includes(k)) groups.forEach(g => hits.add(g))
         }
         if (!hits.size) {
             for (const g of muscleGroups) {
-                if (name.includes(g.toLowerCase())) hits.add(g)
+                if (name.includes(muscleLabel(g).toLowerCase())) hits.add(g)
             }
         }
         return [...hits]
     }
 
     const muscleVolumes = computed(() => {
-        const map = new Map<string, number>()
+        const map = new Map<MuscleGroupId, number>()
         for (const g of muscleGroups) map.set(g, 0)
 
         for (const it of strengthEntries.value) {
@@ -827,24 +865,26 @@
 
     const topMuscleGroupLabel = computed(() => {
         const first = muscleVolumes.value[0]
-        return first && first[1] > 0 ? `${first[0]} (${Math.round(first[1])} kg)` : '–'
+        return first && first[1] > 0 ? `${muscleLabel(first[0])} (${Math.round(first[1])} kg)` : dash
     })
+
     const topMuscleGroup2Label = computed(() => {
         const v = muscleVolumes.value[1]
-        return v && v[1] > 0 ? `${v[0]} (${Math.round(v[1])} kg)` : '–'
+        return v && v[1] > 0 ? `${muscleLabel(v[0])} (${Math.round(v[1])} kg)` : dash
     })
+
     const topMuscleGroup3Label = computed(() => {
         const v = muscleVolumes.value[2]
-        return v && v[1] > 0 ? `${v[0]} (${Math.round(v[1])} kg)` : '–'
+        return v && v[1] > 0 ? `${muscleLabel(v[0])} (${Math.round(v[1])} kg)` : dash
     })
 
     const muscleSplitLabel = computed(() => {
         const total = muscleVolumes.value.reduce((sum, [, v]) => sum + v, 0)
-        if (!total) return '–'
+        if (!total) return dash
         const parts = muscleVolumes.value
             .filter(([, v]) => v > 0)
             .slice(0, 5)
-            .map(([g, v]) => `${g} ${Math.round((v / total) * 100)}%`)
+            .map(([g, v]) => `${muscleLabel(g)} ${Math.round((v / total) * 100)}%`)
         return parts.join(' · ')
     })
 </script>
@@ -853,20 +893,18 @@
     .plan-stats {
         display: grid;
         gap: .75rem;
-        /* ✅ kein eigenes vertical scrolling -> BasePopup popup-body macht das */
         overflow-x: hidden;
     }
 
-        /* ✅ alles unter der Filterbar darf scrollen, wenn es zu hoch wird */
-        .plan-stats > div:not(.stats-empty) {
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
+    .plan-stats > div:not(.stats-empty) {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
 
     .plan-stats {
-        padding-bottom: .75rem; /* ✅ man kann minimal weiter runter scrollen */
+        padding-bottom: .75rem;
     }
 
     .stats-empty {
@@ -900,6 +938,7 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: .6rem;
         overflow-x: hidden;
+        min-height: 0;
     }
 
     @media (max-width: 520px) {
@@ -915,15 +954,13 @@
         background: linear-gradient(180deg, rgba(148, 163, 184, 0.07), rgba(148, 163, 184, 0.04));
         display: grid;
         gap: .25rem;
-        /* ✅ sorgt dafür, dass Cards nicht “mitwachsen” durch Text */
         overflow: hidden;
     }
 
-        /* ✅ Standard-Cards: feste Höhe -> alle gleich groß */
-        .stats-card:not(.stats-card--wide) {
-            height: 78px; /* tweak wenn du willst: 72-86px */
-            align-content: center; /* nicer vertical balance */
-        }
+    .stats-card:not(.stats-card--wide) {
+        height: 78px;
+        align-content: center;
+    }
 
     .stats-k,
     .stats-v {
@@ -931,6 +968,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
     .stats-card--wide {
         grid-column: 1 / -1;
     }
@@ -987,13 +1025,11 @@
         padding: 0 0 .2rem 0;
     }
 
-        .stats-filter::after {
-            content: "";
-            flex: 0 0 .75rem; /* ✅ extra space am Ende */
-        }
-    .stats-grid {
-        min-height: 0;
+    .stats-filter::after {
+        content: "";
+        flex: 0 0 .75rem;
     }
+
     .filter-btn {
         appearance: none;
         border: 1px solid rgba(148, 163, 184, 0.30);

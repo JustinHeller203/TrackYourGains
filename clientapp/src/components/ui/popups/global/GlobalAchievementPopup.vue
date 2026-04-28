@@ -7,13 +7,13 @@
             <div class="achievement-body">
                 <div class="achievement-icon">
                     <img src="/achievements/FirstStepAchievementIcon.png"
-                         alt="Achievement Icon"
+                         :alt="t('achievementPopup.iconAlt')"
                          class="achievement-icon-img" />
                 </div>
                 <div class="achievement-text">
-                    <div class="achievement-pill">Freigeschaltet</div>
-                    <h4>{{ badge.label }}</h4>
-                    <p>{{ badge.desc }}</p>
+                    <div class="achievement-pill">{{ t('achievementPopup.unlocked') }}</div>
+                    <h4>{{ t(badge.label) }}</h4>
+                    <p>{{ t(badge.desc) }}</p>
                 </div>
             </div>
         </div>
@@ -22,7 +22,7 @@
             <button class="achievement-cta"
                     type="button"
                     @click="$emit('close')">
-                Weiter
+                {{ t('achievementPopup.continue') }}
             </button>
         </template>
     </BasePopup>
@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
+    import { useI18n } from '@/composables/useI18n'
     import type { Badge } from '@/utils/achievements'
 
     defineProps<{
@@ -40,6 +41,9 @@
     defineEmits<{
         (e: 'close'): void
     }>()
+
+    const { t } = useI18n()
+
 </script>
 
 <style>

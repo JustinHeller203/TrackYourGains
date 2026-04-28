@@ -1,25 +1,25 @@
 <template>
     <div class="auth-wrap">
-        <h2>Registrieren</h2>
+        <h2>{{ t('auth.register.title') }}</h2>
 
         <form novalidate @submit.prevent="onSubmit">
             <div v-if="registerStep === 1" class="form-row" :class="{ 'has-error': !!fieldErrors.email }">
-                <label for="register-email">E-Mail *</label>
+                <label for="register-email">{{ t('auth.form.email') }}</label>
                 <input id="register-email"
                        v-model.trim="email"
                        type="email"
-                       placeholder="E-Mail"
+                       :placeholder="t('auth.form.emailPlaceholder')"
                        autocomplete="email"
                        required />
                 <p v-if="fieldErrors.email" class="field-error">{{ fieldErrors.email }}</p>
             </div>
 
             <div v-if="registerStep === 2" class="form-row" :class="{ 'has-error': !!fieldErrors.username }">
-                <label for="register-username">Username *</label>
+                <label for="register-username">{{ t('auth.form.username') }}</label>
                 <input id="register-username"
                        v-model.trim="username"
                        type="text"
-                       placeholder="Username"
+                       :placeholder="t('auth.form.usernamePlaceholder')"
                        minlength="3"
                        maxlength="20"
                        autocomplete="username"
@@ -28,28 +28,28 @@
             </div>
 
             <div v-if="registerStep === 2" class="form-row" :class="{ 'has-error': !!fieldErrors.password }">
-                <label for="register-password">Passwort *</label>
+                <label for="register-password">{{ t('auth.form.password') }}</label>
                 <input id="register-password"
                        v-model.trim="password"
                        type="password"
-                       placeholder="Passwort mit 8 Zeichen, Gross/Klein und Zahl"
+                       :placeholder="t('auth.form.passwordPlaceholder')"
                        autocomplete="new-password"
                        required />
-                <ul class="password-checklist" aria-label="Passwort Anforderungen">
-                    <li :class="{ 'is-met': passwordChecks.minLength }">Mindestens 8 Zeichen</li>
-                    <li :class="{ 'is-met': passwordChecks.lowercase }">Mindestens 1 Kleinbuchstabe</li>
-                    <li :class="{ 'is-met': passwordChecks.uppercase }">Mindestens 1 Grossbuchstabe</li>
-                    <li :class="{ 'is-met': passwordChecks.digit }">Mindestens 1 Zahl</li>
+                <ul class="password-checklist" :aria-label="t('auth.form.passwordChecklistAria')">
+                    <li :class="{ 'is-met': passwordChecks.minLength }">{{ t('auth.form.passwordRuleMin') }}</li>
+                    <li :class="{ 'is-met': passwordChecks.lowercase }">{{ t('auth.form.passwordRuleLower') }}</li>
+                    <li :class="{ 'is-met': passwordChecks.uppercase }">{{ t('auth.form.passwordRuleUpper') }}</li>
+                    <li :class="{ 'is-met': passwordChecks.digit }">{{ t('auth.form.passwordRuleDigit') }}</li>
                 </ul>
                 <p v-if="fieldErrors.password" class="field-error">{{ fieldErrors.password }}</p>
             </div>
 
             <div v-if="registerStep === 2" class="form-row" :class="{ 'has-error': !!fieldErrors.confirmPwd }">
-                <label for="register-confirm">Passwort bestätigen *</label>
+                <label for="register-confirm">{{ t('auth.form.confirmPassword') }}</label>
                 <input id="register-confirm"
                        v-model.trim="confirmPwd"
                        type="password"
-                       placeholder="Passwort bestätigen"
+                       :placeholder="t('auth.form.confirmPasswordPlaceholder')"
                        autocomplete="new-password"
                        required />
                 <p v-if="fieldErrors.confirmPwd" class="field-error">{{ fieldErrors.confirmPwd }}</p>
@@ -57,16 +57,16 @@
 
             <div class="register-actions" :class="{ 'register-actions--single': registerStep === 1 }">
                 <button v-if="registerStep === 2" class="secondary-btn" type="button" @click="goToStep(1)">
-                    Zurück
+                    {{ t('auth.action.back') }}
                 </button>
                 <button :disabled="busy" type="submit" :class="{ 'primary-half': registerStep === 2 }">
-                    {{ busy ? '...' : (registerStep === 1 ? 'Fortfahren' : 'Account erstellen') }}
+                    {{ busy ? t('auth.action.pleaseWait') : (registerStep === 1 ? t('auth.action.continue') : t('auth.action.createAccount')) }}
                 </button>
             </div>
             <p v-if="formError" class="field-error">{{ formError }}</p>
         </form>
 
-        <router-link to="/login">Schon ein Konto? Zum Login</router-link>
+        <router-link to="/login">{{ t('auth.switch.haveAccount') }} {{ t('auth.switch.toLogin') }}</router-link>
 
         <p class="msg" v-if="msg">{{ msg }}</p>
     </div>
@@ -76,6 +76,7 @@
     import { computed, reactive, ref, watch } from 'vue'
     import { useAuthStore } from '@/store/authStore'
     import { checkRegisterEmail } from '@/services/auth'
+    import { useI18n } from '@/composables/useI18n'
 
     const email = ref('')
     const username = ref('')
@@ -99,6 +100,7 @@
     }))
 
     const auth = useAuthStore()
+    const { t } = useI18n()
 
     function resetErrors() {
         fieldErrors.email = ''
@@ -143,11 +145,11 @@
     function validateEmailStep() {
         resetErrors()
         if (!email.value) {
-            fieldErrors.email = 'Bitte eine E-Mail-Adresse eingeben.'
+            fieldErrors.email = t('auth.validation.enterEmail')
             return false
         }
         if (!isValidEmail(email.value)) {
-            fieldErrors.email = 'Bitte eine gültige E-Mail-Adresse eingeben.'
+            fieldErrors.email = t('auth.validation.validEmail')
             return false
         }
         return true
@@ -172,18 +174,18 @@
                 /registriert|bereits|exist/i.test(backendMessage)
 
             if (status === 409 || emailExistsMessage) {
-                fieldErrors.email = 'Für diese E-Mail-Adresse existiert bereits ein Konto.'
+                fieldErrors.email = t('auth.validation.emailExists')
                 return false
             }
 
             if (status === 400 || status === 422) {
                 fieldErrors.email = typeof backendMessage === 'string'
                     ? backendMessage
-                    : 'Bitte eine gültige E-Mail-Adresse eingeben.'
+                    : t('auth.validation.validEmail')
                 return false
             }
 
-            formError.value = backendMessage || 'E-Mail konnte gerade nicht geprüft werden.'
+            formError.value = backendMessage || t('auth.validation.emailCheckFailed')
             return false
         } finally {
             busy.value = false
@@ -199,19 +201,19 @@
     function validateForm() {
         resetErrors()
 
-        if (!email.value) fieldErrors.email = 'Bitte eine E-Mail-Adresse eingeben.'
-        else if (!isValidEmail(email.value)) fieldErrors.email = 'Bitte eine gültige E-Mail-Adresse eingeben.'
+        if (!email.value) fieldErrors.email = t('auth.validation.enterEmail')
+        else if (!isValidEmail(email.value)) fieldErrors.email = t('auth.validation.validEmail')
 
-        if (!username.value) fieldErrors.username = 'Bitte einen Username eingeben.'
-        else if (username.value.length < 3) fieldErrors.username = 'Username muss mindestens 3 Zeichen lang sein.'
-        else if (username.value.length > 20) fieldErrors.username = 'Username darf maximal 20 Zeichen lang sein.'
+        if (!username.value) fieldErrors.username = t('auth.validation.enterUsername')
+        else if (username.value.length < 3) fieldErrors.username = t('auth.validation.usernameMin')
+        else if (username.value.length > 20) fieldErrors.username = t('auth.validation.usernameMax')
 
-        if (!password.value) fieldErrors.password = 'Bitte ein Passwort eingeben.'
-        else if (!isStrongPassword(password.value)) fieldErrors.password = 'Passwort braucht mindestens 8 Zeichen, 1 Grossbuchstaben, 1 Kleinbuchstaben und 1 Zahl.'
+        if (!password.value) fieldErrors.password = t('auth.validation.enterPassword')
+        else if (!isStrongPassword(password.value)) fieldErrors.password = t('auth.validation.passwordWeak')
 
-        if (!confirmPwd.value) fieldErrors.confirmPwd = 'Bitte das Passwort bestätigen.'
-        else if (!isStrongPassword(confirmPwd.value)) fieldErrors.confirmPwd = 'Die Passwortbestätigung erfüllt die Passwortregeln noch nicht.'
-        else if (password.value !== confirmPwd.value) fieldErrors.confirmPwd = 'Passwörter stimmen nicht überein.'
+        if (!confirmPwd.value) fieldErrors.confirmPwd = t('auth.validation.confirmPassword')
+        else if (!isStrongPassword(confirmPwd.value)) fieldErrors.confirmPwd = t('auth.validation.confirmPasswordWeak')
+        else if (password.value !== confirmPwd.value) fieldErrors.confirmPwd = t('auth.validation.passwordMismatch')
 
         return !fieldErrors.email && !fieldErrors.username && !fieldErrors.password && !fieldErrors.confirmPwd
     }
@@ -230,7 +232,7 @@
         busy.value = true
         try {
             await auth.signUp(email.value, username.value, password.value, confirmPwd.value)
-            msg.value = 'Bestätigungs-Mail gesendet. Bitte E-Mail prüfen.'
+            msg.value = t('auth.success.confirmMailSent')
         } catch (e: any) {
             const status = e?.response?.status as number | undefined
             const backendMessage =
@@ -240,17 +242,17 @@
                     e?.message) as string | undefined
 
             if (status === 409) {
-                fieldErrors.email = 'Für diese E-Mail-Adresse existiert bereits ein Konto.'
+                fieldErrors.email = t('auth.validation.emailExists')
             } else if (typeof backendMessage === 'string' && /email|e-mail/i.test(backendMessage)) {
                 fieldErrors.email = backendMessage
             } else if (typeof backendMessage === 'string' && /username|benutzername/i.test(backendMessage)) {
                 fieldErrors.username = backendMessage
             } else if (typeof backendMessage === 'string' && /passwort|password/i.test(backendMessage)) {
                 fieldErrors.password = /short|laenge|länge|length|uppercase|lowercase|digit|number/i.test(backendMessage)
-                    ? 'Passwort braucht mindestens 8 Zeichen, 1 Grossbuchstaben, 1 Kleinbuchstaben und 1 Zahl.'
+                    ? t('auth.validation.passwordWeak')
                     : backendMessage
             } else {
-                formError.value = backendMessage || 'Registrierung fehlgeschlagen.'
+                formError.value = backendMessage || t('auth.validation.registrationFailed')
             }
         } finally {
             busy.value = false

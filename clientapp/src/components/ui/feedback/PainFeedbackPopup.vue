@@ -1,18 +1,16 @@
 <template>
     <BasePopup :show="show"
-               title="Schmerztagebuch"
+               :title="t('progress.complaintDiary.popup.title')"
                overlayClass="pain-feedback-popup"
                :show-actions="false"
                @cancel="onSkip">
         <div class="pain-root">
-            <p class="pain-sub">
-                Wie fühlte sich dein Schmerz nach dem Training an?
-            </p>
+            <p class="pain-sub">{{ t('progress.complaintDiary.popup.question') }}</p>
 
             <div v-if="complaintOptions.length" class="pain-complaints">
                 <div class="pain-complaints__head">
-                    <label class="field-label">Beschwerden</label>
-                    <span>{{ selectedComplaintIds.length }} ausgewählt</span>
+                    <label class="field-label">{{ t('progress.complaintDiary.popup.complaintsLabel') }}</label>
+                    <span>{{ t('progress.complaintDiary.popup.selectedCount').replace('{count}', String(selectedComplaintIds.length)) }}</span>
                 </div>
 
                 <div class="pain-complaints__list">
@@ -31,7 +29,7 @@
 
             <div class="intensity-field">
                 <div class="intensity-head">
-                    <label class="field-label">Intensität</label>
+                    <label class="field-label">{{ t('progress.complaintDiary.popup.intensityLabel') }}</label>
                     <strong>{{ painLevel }}/10</strong>
                 </div>
 
@@ -43,26 +41,26 @@
                            max="10"
                            step="1"
                            :style="sliderStyle"
-                           aria-label="Intensität auswählen" />
+                           :aria-label="t('progress.complaintDiary.popup.intensityAria')" />
                     <div class="intensity-ends" aria-hidden="true">
                         <span>0</span>
                         <span>10</span>
                     </div>
                 </div>
             </div>
-            <p class="pain-hint">0 = kein Schmerz · 10 = maximal</p>
+            <p class="pain-hint">{{ t('progress.complaintDiary.popup.intensityHint') }}</p>
 
             <textarea v-model="note"
                       rows="2"
                       class="pain-note"
-                      placeholder="Optional: kurz notieren (z. B. besser als letzte Einheit)" />
+                      :placeholder="t('progress.complaintDiary.popup.notePlaceholder')" />
 
             <div class="pain-actions">
                 <PopupActionButton variant="ghost" @click="onSkip">
-                    Überspringen
+                    {{ t('common.cancel') }}
                 </PopupActionButton>
                 <PopupActionButton :disabled="!selectedComplaintIds.length" @click="onSave">
-                    Speichern
+                    {{ t('progress.complaintDiary.popup.createEntry') }}
                 </PopupActionButton>
             </div>
         </div>
@@ -74,6 +72,7 @@
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import type { ComplaintEntry } from '@/types/complaint'
+    import { useI18n } from '@/composables/useI18n'
 
     const props = defineProps<{
         show: boolean
@@ -86,47 +85,52 @@
         (e: 'skip'): void
     }>()
 
+    const { t } = useI18n()
     const painLevel = ref(4)
     const note = ref('')
     const selectedComplaintIds = ref<string[]>([])
-    const areaLabelMap: Record<string, string> = {
-        nacken: 'Nacken',
-        schulter: 'Schulter',
-        ellbogen: 'Ellbogen',
-        unterarm: 'Unterarm',
-        handgelenk: 'Handgelenk',
-        hand: 'Hand',
-        finger: 'Finger',
-        brust: 'Brust',
-        bauch: 'Bauch',
-        ruecken: 'Rücken',
-        leiste: 'Leiste',
-        huefte: 'Hüfte',
-        oberschenkel: 'Oberschenkel',
-        knie: 'Knie',
-        unterschenkel: 'Unterschenkel',
-        wade: 'Wade',
-        sprunggelenk: 'Sprunggelenk',
-        fuss: 'Fuß',
-        kopf: 'Kopf',
-        benutzerdefiniert: 'Benutzerdefiniert',
-        sonstiges: 'Sonstiges',
-    }
-    const statusLabelMap: Record<string, string> = {
-        aktiv: 'aktiv',
-        besser: 'besser',
-        weg: 'weg',
-    }
+
+    const areaLabelMap = computed<Record<string, string>>(() => ({
+        nacken: t('progress.complaints.area.nacken'),
+        schulter: t('progress.complaints.area.schulter'),
+        ellbogen: t('progress.complaints.area.ellbogen'),
+        unterarm: t('progress.complaints.area.unterarm'),
+        handgelenk: t('progress.complaints.area.handgelenk'),
+        hand: t('progress.complaints.area.hand'),
+        finger: t('progress.complaints.area.finger'),
+        brust: t('progress.complaints.area.brust'),
+        bauch: t('progress.complaints.area.bauch'),
+        ruecken: t('progress.complaints.area.ruecken'),
+        leiste: t('progress.complaints.area.leiste'),
+        huefte: t('progress.complaints.area.huefte'),
+        oberschenkel: t('progress.complaints.area.oberschenkel'),
+        knie: t('progress.complaints.area.knie'),
+        unterschenkel: t('progress.complaints.area.unterschenkel'),
+        wade: t('progress.complaints.area.wade'),
+        sprunggelenk: t('progress.complaints.area.sprunggelenk'),
+        fuss: t('progress.complaints.area.fuss'),
+        kopf: t('progress.complaints.area.kopf'),
+        benutzerdefiniert: t('progress.complaints.area.custom'),
+        sonstiges: t('progress.complaints.area.sonstiges'),
+    }))
+
+    const statusLabelMap = computed<Record<string, string>>(() => ({
+        aktiv: t('progress.complaints.status.active'),
+        besser: t('progress.complaints.status.better'),
+        weg: t('progress.complaints.status.gone'),
+    }))
+
     const complaintOptions = computed(() =>
         (props.complaints ?? []).map((entry) => ({
             id: entry.id,
-            label: areaLabelMap[String(entry.area)] ?? String(entry.area ?? 'Beschwerde'),
-            meta: `${statusLabelMap[String(entry.status)] ?? String(entry.status ?? '')} · ${Math.max(0, Math.min(10, Math.round(Number(entry.intensity) || 0)))}/10`,
+            label: areaLabelMap.value[String(entry.area)] ?? String(entry.area ?? t('progress.complaintDiary.popup.complaintLabel')),
+            meta: `${statusLabelMap.value[String(entry.status)] ?? String(entry.status ?? '')} · ${Math.max(0, Math.min(10, Math.round(Number(entry.intensity) || 0)))}/10`,
         }))
     )
+
     const sliderStyle = computed(() => {
         const ratio = Math.max(0, Math.min(1, painLevel.value / 10))
-        const hue = 120 - (120 * ratio) // 120=grün -> 0=rot
+        const hue = 120 - (120 * ratio)
         return {
             '--thumb-color': `hsl(${hue} 85% 48%)`,
         }

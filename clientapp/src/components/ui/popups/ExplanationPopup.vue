@@ -42,16 +42,17 @@
 
         <template #actions>
             <slot name="footer">
-                <button class="explain-ok" type="button" @click="close()">Verstanden</button>
+                <button class="explain-ok" type="button" @click="close()">{{ t('progress.calculators.gotIt') }}</button>
             </slot>
         </template>
     </BasePopup>
 </template>
 
 <script setup lang="ts">
-    import { computed, onBeforeUnmount, ref, useSlots } from 'vue'
+    import { computed, nextTick, onBeforeUnmount, ref, useSlots, watch } from 'vue'
     import BasePopup from '@/components/ui/popups/BasePopup.vue'
     import InfoButton from '@/components/ui/buttons/InfoButton.vue'
+    import { forceI18nDomSync, useI18n } from '@/composables/useI18n'
 
     const props = defineProps<{
         // neu: UI-only Props
@@ -68,16 +69,17 @@
     }>()
 
     const slots = useSlots()
+    const { locale, t } = useI18n()
 
     const hasDefault = computed(() => Boolean(slots.default))
     const hasGraphic = computed(() => Boolean(slots.graphic))
     const hasMini = computed(() => Boolean(slots.mini))
 
-    const titleText = computed(() => (props.title || 'Info').trim())
-    const kickerText = computed(() => (props.kicker || 'Rechner erklärt').trim())
+    const titleText = computed(() => (props.title || t('progress.calculators.popupTitle')).trim())
+    const kickerText = computed(() => (props.kicker || t('progress.calculators.infoKicker')).trim())
 
-    const ariaOpen = computed(() => (props.ariaOpen || 'Info öffnen').trim())
-    const ariaClose = computed(() => (props.ariaClose || 'Schließen').trim())
+    const ariaOpen = computed(() => (props.ariaOpen || t('progress.calculators.openInfo')).trim())
+    const ariaClose = computed(() => (props.ariaClose || t('common.close')).trim())
 
     const textFallback = computed(() => (props.text || '').trim())
 
@@ -88,6 +90,7 @@
     function open() {
         isOpen.value = true
         window.addEventListener('keydown', onKeydown)
+        nextTick(() => forceI18nDomSync())
     }
 
     function close() {
@@ -103,6 +106,16 @@
 
     onBeforeUnmount(() => {
         window.removeEventListener('keydown', onKeydown)
+    })
+
+    watch(isOpen, (openNow) => {
+        if (!openNow) return
+        nextTick(() => forceI18nDomSync())
+    })
+
+    watch(locale, () => {
+        if (!isOpen.value) return
+        nextTick(() => forceI18nDomSync())
     })
 </script>
 

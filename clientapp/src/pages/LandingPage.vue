@@ -1,26 +1,24 @@
-﻿<template>
+<template>
     <div class="landing-page">
         <section class="hero section-shell">
             <div class="hero-copy">
-                <div class="eyebrow">TrackYourGains / adaptives Performance-System</div>
+                <div class="eyebrow">{{ t('landing.hero.eyebrow') }}</div>
                 <p v-if="auth.user?.username" class="welcome-copy">
-                    Willkommen zurück, {{ auth.user.username }}. Dein Cockpit ist bereit.
+                    {{ tp('landing.hero.welcome', { username: auth.user.username }) }}
                 </p>
 
                 <h1 class="hero-title">
-                    Alles für dein Training an
+                    {{ t('landing.hero.titleStart') }}
                     <span class="hero-kinetic">{{ activeHeroWord }}</span>
                 </h1>
 
                 <p class="hero-text">
-                    TrackYourGains hilft dir, Training zu planen, Beschwerden im Blick zu behalten und
-                    Fortschritt wirklich zu verstehen. Kein Chaos aus Notizen, sondern ein klarer
-                    Ort für alles, was dich sportlich voranbringt.
+                    {{ t('landing.hero.text') }}
                 </p>
 
                 <div class="hero-actions">
-                    <router-link to="/training" class="button-primary">Training starten</router-link>
-                    <router-link to="/progress" class="button-secondary">Fortschritt schaffen</router-link>
+                    <router-link to="/training" class="button-primary">{{ t('landing.hero.startTraining') }}</router-link>
+                    <router-link to="/progress" class="button-secondary">{{ t('landing.hero.createProgress') }}</router-link>
                 </div>
 
                 <div class="hero-strip">
@@ -41,37 +39,37 @@
 
                     <div class="signal-grid">
                         <div class="signal-card signal-card--headline landing-dashboard-card">
-                            <span class="signal-label">Warum TrackYourGains?</span>
-                            <strong>Ein System für Training, Beschwerden und Fortschritt.</strong>
-                            <p>Du musst nicht zwischen mehreren Tools springen, um dran zu bleiben.</p>
+                            <span class="signal-label">{{ t('landing.visual.whyLabel') }}</span>
+                            <strong>{{ t('landing.visual.whyTitle') }}</strong>
+                            <p>{{ t('landing.visual.whyText') }}</p>
                         </div>
 
                         <div v-if="todayPlan" class="signal-card signal-card--accent landing-dashboard-card">
-                            <span class="signal-label">Heute geplant</span>
+                            <span class="signal-label">{{ t('landing.visual.todayLabel') }}</span>
                             <strong>{{ todayPlan.planName }}</strong>
                             <p>{{ todayPlan.message }}</p>
-                            <router-link to="/training" class="micro-link">Zum Plan</router-link>
+                            <router-link to="/training" class="micro-link">{{ t('landing.visual.toPlan') }}</router-link>
                         </div>
 
                         <div v-else class="signal-card signal-card--accent landing-dashboard-card">
-                            <span class="signal-label">Heute geplant</span>
-                            <strong>Noch kein Plan für heute</strong>
-                            <p>Erstelle in wenigen Schritten dein nächstes Training und lege direkt los.</p>
+                            <span class="signal-label">{{ t('landing.visual.todayLabel') }}</span>
+                            <strong>{{ t('landing.visual.noPlanTitle') }}</strong>
+                            <p>{{ t('landing.visual.noPlanText') }}</p>
                             <router-link :to="{ path: '/training', query: { tut: 'plan' } }" class="micro-link">
-                                Plan bauen
+                                {{ t('landing.visual.buildPlan') }}
                             </router-link>
                         </div>
 
                         <div class="signal-card landing-dashboard-card">
-                            <span class="signal-label">Beschwerden</span>
-                            <strong>{{ complaintsTracked }} aktive Log-Einträge</strong>
-                            <p>Behalte Schmerzen und Belastungsreaktionen im Blick, damit du klüger trainierst.</p>
+                            <span class="signal-label">{{ t('landing.visual.complaintsLabel') }}</span>
+                            <strong>{{ tp('landing.visual.complaintsActive', { count: complaintsTracked }) }}</strong>
+                            <p>{{ t('landing.visual.complaintsText') }}</p>
                         </div>
 
                         <div class="signal-card landing-dashboard-card">
-                            <span class="signal-label">Fortschritt</span>
-                            <strong>{{ workoutsCompleted }} Trainings protokolliert</strong>
-                            <p>Jedes Training wird Teil deines Verlaufs und macht Entwicklung sichtbar.</p>
+                            <span class="signal-label">{{ t('landing.visual.progressLabel') }}</span>
+                            <strong>{{ tp('landing.visual.workoutsLogged', { count: workoutsCompleted }) }}</strong>
+                            <p>{{ t('landing.visual.progressText') }}</p>
                         </div>
                     </div>
                 </div>
@@ -80,17 +78,17 @@
                     <div class="radar-ring"></div>
                     <div class="radar-center">
                         <span class="radar-number">{{ kgLost }}</span>
-                        <span class="radar-unit">kg Veränderung</span>
+                        <span class="radar-unit">{{ t('landing.visual.weightChange') }}</span>
                     </div>
-                    <p class="radar-copy">Dein Gewichtstrend auf einen Blick, direkt aus deinem Verlauf.</p>
+                    <p class="radar-copy">{{ t('landing.visual.weightText') }}</p>
                 </div>
             </div>
         </section>
 
         <section class="product-showcase section-shell section-reveal">
             <div class="section-head">
-                <span class="section-kicker">Produktvorschau</span>
-                <h2>TrackYourGains zeigt direkt, wie sich Training in der Praxis anfühlt.</h2>
+                <span class="section-kicker">{{ t('landing.showcase.kicker') }}</span>
+                <h2>{{ t('landing.showcase.title') }}</h2>
             </div>
 
             <div class="showcase-layout">
@@ -119,11 +117,11 @@
                                 </div>
                                 <div class="lock-time">{{ currentPhoneTime }}</div>
                                 <div class="lock-date">{{ currentPhoneDate }}</div>
-                                <div class="lock-hint">Zum Entsperren Code eingeben</div>
+                                <div class="lock-hint">{{ t('landing.phone.unlockHint') }}</div>
                             </div>
 
                             <div class="passcode-screen">
-                                <div class="passcode-label">Code eingeben</div>
+                                <div class="passcode-label">{{ t('landing.phone.enterCode') }}</div>
                                 <div class="passcode-dots">
                                     <span class="passcode-dot"></span>
                                     <span class="passcode-dot"></span>
@@ -131,18 +129,14 @@
                                     <span class="passcode-dot"></span>
                                 </div>
                                 <div class="passcode-pad">
-                                    <span
-                                        v-for="digit in passcodeDigits"
-                                        :key="digit"
-                                        class="passcode-key"
-                                        :class="passcodeTapClasses[digit]"
-                                    >
+                                    <span v-for="digit in passcodeDigits"
+                                          :key="digit"
+                                          class="passcode-key"
+                                          :class="passcodeTapClasses[digit]">
                                         {{ digit }}
-                                        <span
-                                            v-if="passcodeTapClasses[digit]"
-                                            class="tap-indicator tap-indicator--key"
-                                            aria-hidden="true"
-                                        >
+                                        <span v-if="passcodeTapClasses[digit]"
+                                              class="tap-indicator tap-indicator--key"
+                                              aria-hidden="true">
                                             <span class="tap-indicator__finger"></span>
                                             <span class="tap-indicator__ring"></span>
                                             <span class="tap-indicator__ring tap-indicator__ring--delayed"></span>
@@ -160,7 +154,7 @@
                                             <span></span>
                                             <span></span>
                                         </span>
-                                        <span class="status-provider">TYG App</span>
+                                        <span class="status-provider">{{ t('landing.phone.provider') }}</span>
                                     </div>
                                     <span class="status-time">{{ currentPhoneTime }}</span>
                                     <div class="status-cluster status-cluster--right">
@@ -172,91 +166,68 @@
                                 </div>
                                 <div class="screen-site-shell">
                                     <div class="app-screen-sequence">
-                                        <article
-                                            class="app-screen app-screen--plan"
-                                            :class="{ 'is-active': phoneShowcaseReady && activePhoneStep === 0 }"
-                                        >
-                                            <iframe
-                                                class="phone-preview-frame"
-                                                :src="phonePreviewFrames[0]"
-                                                title="Training Vorschau"
-                                                loading="lazy"
-                                            ></iframe>
+                                        <article class="app-screen app-screen--plan"
+                                                 :class="{ 'is-active': phoneShowcaseReady && activePhoneStep === 0 }">
+                                            <iframe class="phone-preview-frame"
+                                                    :src="phonePreviewFrames[0]"
+                                                    :title="t('landing.phone.trainingPreview')"
+                                                    loading="lazy"></iframe>
                                         </article>
 
-                                        <article
-                                            class="app-screen app-screen--tutorial"
-                                            :class="{ 'is-active': phoneShowcaseReady && activePhoneStep === 1 }"
-                                        >
-                                            <iframe
-                                                class="phone-preview-frame"
-                                                :src="phonePreviewFrames[1]"
-                                                title="Tutorials Vorschau"
-                                                loading="lazy"
-                                            ></iframe>
+                                        <article class="app-screen app-screen--tutorial"
+                                                 :class="{ 'is-active': phoneShowcaseReady && activePhoneStep === 1 }">
+                                            <iframe class="phone-preview-frame"
+                                                    :src="phonePreviewFrames[1]"
+                                                    :title="t('landing.phone.tutorialPreview')"
+                                                    loading="lazy"></iframe>
                                         </article>
 
-                                        <article
-                                            class="app-screen app-screen--session"
-                                            :class="{ 'is-active': phoneShowcaseReady && activePhoneStep === 2 }"
-                                        >
-                                            <iframe
-                                                class="phone-preview-frame"
-                                                :src="phonePreviewFrames[2]"
-                                                title="Trainingssimulation Vorschau"
-                                                loading="lazy"
-                                            ></iframe>
+                                        <article class="app-screen app-screen--session"
+                                                 :class="{ 'is-active': phoneShowcaseReady && activePhoneStep === 2 }">
+                                            <iframe class="phone-preview-frame"
+                                                    :src="phonePreviewFrames[2]"
+                                                    :title="t('landing.phone.simulationPreview')"
+                                                    loading="lazy"></iframe>
                                         </article>
 
-                                        <article
-                                            class="app-screen app-screen--progress"
-                                            :class="{ 'is-active': phoneShowcaseReady && activePhoneStep === 3 }"
-                                        >
-                                            <iframe
-                                                class="phone-preview-frame"
-                                                :src="phonePreviewFrames[3]"
-                                                title="Fortschritt Vorschau"
-                                                loading="lazy"
-                                            ></iframe>
+                                        <article class="app-screen app-screen--progress"
+                                                 :class="{ 'is-active': phoneShowcaseReady && activePhoneStep === 3 }">
+                                            <iframe class="phone-preview-frame"
+                                                    :src="phonePreviewFrames[3]"
+                                                    :title="t('landing.phone.progressPreview')"
+                                                    loading="lazy"></iframe>
                                         </article>
                                     </div>
 
                                     <div class="home-indicator"></div>
                                     <div class="phone-showcase-controls">
-                                        <button
-                                            type="button"
-                                            class="phone-showcase-nav"
-                                            aria-label="Vorherigen Schritt anzeigen"
-                                            @click="goToPrevPhoneStep"
-                                        >
+                                        <button type="button"
+                                                class="phone-showcase-nav"
+                                                :aria-label="t('landing.phone.prevAria')"
+                                                @click="goToPrevPhoneStep">
                                             ‹
                                         </button>
-                                        <div class="phone-showcase-dots" role="tablist" aria-label="Schritte im Handy">
-                                            <button
-                                                v-for="(step, index) in phoneGuideSteps"
-                                                :key="step.title"
-                                                type="button"
-                                                class="phone-showcase-dot"
-                                                :class="{ 'is-active': activePhoneStep === index }"
-                                                :aria-label="`${step.step}: ${step.title}`"
-                                                :aria-selected="activePhoneStep === index"
-                                                @click="setPhoneStep(index)"
-                                            ></button>
+                                        <div class="phone-showcase-dots" role="tablist" :aria-label="t('landing.phone.stepsAria')">
+
+                                            <button v-for="(step, index) in phoneGuideSteps"
+                                                    :key="step.title"
+                                                    type="button"
+                                                    class="phone-showcase-dot"
+                                                    :class="{ 'is-active': activePhoneStep === index }"
+                                                    :aria-label="tp('landing.phone.stepAria', { step: step.step, title: step.title })"
+                                                    :aria-selected="activePhoneStep === index"
+                                                    @click="setPhoneStep(index)"></button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            class="phone-showcase-toggle"
-                                            :aria-pressed="phoneAutoplayPaused"
-                                            @click="togglePhoneAutoplay"
-                                        >
-                                            {{ phoneAutoplayPaused ? 'Abspielen' : 'Pausieren' }}
+                                        <button type="button"
+                                                class="phone-showcase-toggle"
+                                                :aria-pressed="phoneAutoplayPaused"
+                                                @click="togglePhoneAutoplay">
+                                            {{ phoneAutoplayPaused ? t('landing.phone.play') : t('landing.phone.pause') }}
                                         </button>
-                                        <button
-                                            type="button"
-                                            class="phone-showcase-nav"
-                                            aria-label="Nächsten Schritt anzeigen"
-                                            @click="goToNextPhoneStep"
-                                        >
+                                        <button type="button"
+                                                class="phone-showcase-nav"
+                                                :aria-label="t('landing.phone.nextAria')"
+                                                @click="goToNextPhoneStep">
                                             ›
                                         </button>
                                     </div>
@@ -270,18 +241,16 @@
 
         <section class="proof-band section-shell section-reveal">
             <div class="section-head">
-                <span class="section-kicker">Was du hier bekommst</span>
-                <h2>TrackYourGains erklärt sich in wenigen Sekunden und gibt dir sofort einen Einstieg.</h2>
+                <span class="section-kicker">{{ t('landing.proof.kicker') }}</span>
+                <h2>{{ t('landing.proof.title') }}</h2>
             </div>
 
             <div class="proof-grid">
-                <DashboardCard
-                    v-for="item in proofCards"
-                    :key="item.title"
-                    class="proof-card"
-                    :title="item.title"
-                    :info="item.text"
-                >
+                <DashboardCard v-for="item in proofCards"
+                               :key="item.title"
+                               class="proof-card"
+                               :title="item.title"
+                               :info="item.text">
                     <span class="proof-index">{{ item.index }}</span>
                     <span class="proof-text">{{ item.text }}</span>
                 </DashboardCard>
@@ -290,20 +259,18 @@
 
         <section class="command-center section-shell section-reveal">
             <div class="section-head">
-                <span class="section-kicker">Direkt starten</span>
-                <h2>Die wichtigsten Bereiche für deinen Alltag im Training.</h2>
+                <span class="section-kicker">{{ t('landing.command.kicker') }}</span>
+                <h2>{{ t('landing.command.title') }}</h2>
             </div>
 
             <div class="command-grid">
-                <DashboardCard
-                    v-for="link in commandLinks"
-                    :key="link.title"
-                    class="command-dashboard-card"
-                    :title="link.title"
-                    :info="link.text"
-                    clickable
-                    @click="goTo(link.to)"
-                >
+                <DashboardCard v-for="link in commandLinks"
+                               :key="link.title"
+                               class="command-dashboard-card"
+                               :title="link.title"
+                               :info="link.text"
+                               clickable
+                               @click="goTo(link.to)">
                     <span class="command-tag">{{ link.tag }}</span>
                     <span class="command-copy">{{ link.text }}</span>
                     <span class="command-cta">{{ link.cta }}</span>
@@ -313,31 +280,26 @@
 
         <section class="feature-marquee section-shell section-reveal">
             <div class="section-head">
-                <span class="section-kicker">Alles greift zusammen</span>
-                <h2>Jeder Bereich unterstützt dich dabei, konsequent dranzubleiben.</h2>
+                <span class="section-kicker">{{ t('landing.features.kicker') }}</span>
+                <h2>{{ t('landing.features.title') }}</h2>
             </div>
 
             <div class="feature-layout">
-                <DashboardCard
-                    class="feature-spotlight"
-                    title="Einfacher statt chaotischer"
-                    info="Von der ersten Planung bis zur Auswertung bleibt alles an einem Ort."
-                >
-                    <strong class="spotlight-headline">Von der ersten Planung bis zur Auswertung bleibt alles an einem Ort.</strong>
+                <DashboardCard class="feature-spotlight"
+                               :title="t('landing.features.spotlightTitle')"
+                               :info="t('landing.features.spotlightHeadline')">
+                    <strong class="spotlight-headline">{{ t('landing.features.spotlightHeadline') }}</strong>
                     <span class="spotlight-text">
-                        TrackYourGains verbindet Planung, Dokumentation und Verbesserung. Das hilft besonders
-                        neuen Nutzern, schnell Struktur zu finden und langfristig motiviert zu bleiben.
+                        {{ t('landing.features.spotlightText') }}
                     </span>
                 </DashboardCard>
 
                 <div class="feature-list">
-                    <DashboardCard
-                        v-for="feature in features"
-                        :key="feature.title"
-                        class="feature-panel"
-                        :title="feature.title"
-                        :info="feature.text"
-                    >
+                    <DashboardCard v-for="feature in features"
+                                   :key="feature.title"
+                                   class="feature-panel"
+                                   :title="feature.title"
+                                   :info="feature.text">
                         <span class="feature-code">{{ feature.code }}</span>
                         <span class="feature-text">{{ feature.text }}</span>
                     </DashboardCard>
@@ -347,18 +309,16 @@
 
         <section class="timeline section-shell section-reveal">
             <div class="section-head">
-                <span class="section-kicker">So funktioniert es</span>
-                <h2>Drei einfache Schritte, um aus Absicht echte Routine zu machen.</h2>
+                <span class="section-kicker">{{ t('landing.timeline.kicker') }}</span>
+                <h2>{{ t('landing.timeline.title') }}</h2>
             </div>
 
             <div class="timeline-grid">
-                <DashboardCard
-                    v-for="step in timelineSteps"
-                    :key="step.step"
-                    class="timeline-card"
-                    :title="step.title"
-                    :info="step.text"
-                >
+                <DashboardCard v-for="step in timelineSteps"
+                               :key="step.step"
+                               class="timeline-card"
+                               :title="step.title"
+                               :info="step.text">
                     <span class="timeline-step">{{ step.step }}</span>
                     <span class="timeline-text">{{ step.text }}</span>
                 </DashboardCard>
@@ -367,25 +327,21 @@
 
         <section class="testimonials section-shell section-reveal">
             <div class="section-head">
-                <span class="section-kicker">Motivation</span>
-                <h2>Wenn Fortschritt sichtbar wird, bleibt man eher dran.</h2>
+                <span class="section-kicker">{{ t('landing.testimonials.kicker') }}</span>
+                <h2>{{ t('landing.testimonials.title') }}</h2>
             </div>
 
-            <div
-                class="testimonial-stage"
-                @touchstart.passive="onSwipeStart"
-                @touchmove.passive="onSwipeMove"
-                @touchend="onSwipeEnd"
-                @touchcancel="onSwipeEnd"
-            >
-                <DashboardCard
-                    v-for="(testimonial, index) in testimonials"
-                    v-show="index === currentTestimonial"
-                    :key="testimonial.id"
-                    class="testimonial-card command-dashboard-card testimonial-dashboard-card"
-                    title=""
-                    :info="testimonial.text"
-                >
+            <div class="testimonial-stage"
+                 @touchstart.passive="onSwipeStart"
+                 @touchmove.passive="onSwipeMove"
+                 @touchend="onSwipeEnd"
+                 @touchcancel="onSwipeEnd">
+                <DashboardCard v-for="(testimonial, index) in testimonials"
+                               v-show="index === currentTestimonial"
+                               :key="testimonial.id"
+                               class="testimonial-card command-dashboard-card testimonial-dashboard-card"
+                               title=""
+                               :info="testimonial.text">
                     <span class="quote-mark" aria-hidden="true">“</span>
                     <p class="testimonial-text">{{ testimonial.text }}</p>
                     <span class="testimonial-meta">
@@ -395,36 +351,31 @@
                 </DashboardCard>
 
                 <div class="testimonial-dots" role="tablist">
-                    <button
-                        v-for="(testimonial, index) in testimonials"
-                        :key="testimonial.id + '-dot'"
-                        class="testimonial-dot"
-                        :class="{ 'is-active': index === currentTestimonial }"
-                        type="button"
-                        :aria-label="`Zeige Testimonial ${index + 1}`"
-                        @click="currentTestimonial = index"
-                    ></button>
+                    <button v-for="(testimonial, index) in testimonials"
+                            :key="testimonial.id + '-dot'"
+                            class="testimonial-dot"
+                            :class="{ 'is-active': index === currentTestimonial }"
+                            type="button"
+                            :aria-label="tp('landing.testimonials.showAria', { number: index + 1 })"
+                            @click="currentTestimonial = index"></button>
                 </div>
             </div>
         </section>
 
         <section class="final-cta section-shell section-reveal">
-            <DashboardCard
-                class="final-cta-panel"
-                title="Bereit?"
-                info="Starte mit einem klaren Plan und gib deinem Fortschritt ein Zuhause."
-            >
+            <DashboardCard class="final-cta-panel"
+                           :title="t('landing.final.title')"
+                           :info="t('landing.final.info')">
                 <div>
-                    <strong class="final-headline">Starte mit einem klaren Plan und gib deinem Fortschritt ein Zuhause.</strong>
+                    <strong class="final-headline">{{ t('landing.final.headline') }}</strong>
                     <p class="final-copy">
-                        Egal ob du gerade anfängst oder schon länger trainierst: TrackYourGains hilft dir,
-                        dranzubleiben, besser zu verstehen und Fortschritt nicht dem Zufall zu überlassen.
+                        {{ t('landing.final.text') }}
                     </p>
                 </div>
 
                 <div class="final-actions">
-                    <router-link to="/training" class="button-primary">Jetzt starten</router-link>
-                    <router-link to="/tutorials" class="button-secondary">Tutorials ansehen</router-link>
+                    <router-link to="/training" class="button-primary">{{ t('landing.final.start') }}</router-link>
+                    <router-link to="/tutorials" class="button-secondary">{{ t('landing.final.tutorials') }}</router-link>
                 </div>
             </DashboardCard>
         </section>
@@ -446,6 +397,7 @@
         LS_TRAINING_PLANNER,
         LS_TRAINING_REST_DAYS,
     } from '@/constants/storageKeys'
+    import { useI18n } from '@/composables/useI18n'
 
     type TodayPlan = { planName: string; message: string }
     type StoredWeightEntry = { date: string; weight: number }
@@ -457,12 +409,25 @@
     const trainingPlansStore = useTrainingPlansStore()
     const progressStore = useProgressStore()
 
+    const { t } = useI18n()
+
+    function tp(key: string, params: Record<string, string | number>) {
+        return Object.entries(params).reduce(
+            (text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)),
+            t(key)
+        )
+    }
     const workoutsCompleted = ref(0)
     const complaintsTracked = ref(0)
     const kgLost = ref(0)
     const todayPlan = ref<TodayPlan | null>(null)
 
-    const heroWords = ['Niveau', 'Struktur', 'Kontrolle', 'Momentum']
+    const heroWordKeys = [
+        'landing.hero.word.level',
+        'landing.hero.word.structure',
+        'landing.hero.word.control',
+        'landing.hero.word.momentum',
+    ]
     const passcodeDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
     const passcodeTapClasses: Record<string, string> = {
         '1': 'passcode-key--tap-1',
@@ -470,164 +435,164 @@
         '5': 'passcode-key--tap-3',
         '8': 'passcode-key--tap-4',
     }
-    const activeHeroWord = ref(heroWords[0])
+    const heroWordIndex = ref(0)
+    const activeHeroWord = computed(() => t(heroWordKeys[heroWordIndex.value]))
     const currentPhoneTime = ref('')
     const currentPhoneDate = ref('')
     const PHONE_BOOT_DELAY_MS = 3200
     const PHONE_STEP_INTERVAL_MS = 5000
 
-    let heroWordIndex = 0
     let heroWordTimer: number | undefined
     let phoneClockTimer: number | undefined
     let phoneShowcaseBootTimer: number | undefined
     let phoneShowcaseStepTimer: number | undefined
 
-    const heroStrip = ref([
-        { value: '01', label: 'Ein Workflow' },
-        { value: '24/7', label: 'Schmerz- und Fortschrittsblick' },
-        { value: '100%', label: 'Für Momentum gebaut' },
+    const heroStrip = computed(() => [
+        { value: '01', label: t('landing.heroStrip.workflow') },
+        { value: '24/7', label: t('landing.heroStrip.painProgress') },
+        { value: '100%', label: t('landing.heroStrip.momentum') },
     ])
 
-    const proofCards = [
+    const proofCards = computed(() => [
         {
             index: '01',
-            title: 'Training planen',
-            text: 'Erstelle Trainingspläne und bring Struktur in deine Einheiten, statt jedes Mal neu anzufangen.',
+            title: t('landing.proof.trainingTitle'),
+            text: t('landing.proof.trainingText'),
         },
         {
             index: '02',
-            title: 'Beschwerden verstehen',
-            text: 'Dokumentiere Schmerzen und Reaktionen, damit du Belastung besser einschätzen kannst.',
+            title: t('landing.proof.complaintsTitle'),
+            text: t('landing.proof.complaintsText'),
         },
         {
             index: '03',
-            title: 'Fortschritt sehen',
-            text: 'Gewicht, Trainings und Entwicklung werden sichtbar und geben dir Motivation weiterzumachen.',
+            title: t('landing.proof.progressTitle'),
+            text: t('landing.proof.progressText'),
         },
-    ]
+    ])
 
-    const commandLinks = [
+    const commandLinks = computed(() => [
         {
-            tag: 'Training',
-            title: 'Trainingsplan erstellen',
-            text: 'Baue deinen Plan so auf, dass du nicht nur motiviert startest, sondern konstant weitermachst.',
-            cta: 'Zum Training',
+            tag: t('landing.command.trainingTag'),
+            title: t('landing.command.trainingTitle'),
+            text: t('landing.command.trainingText'),
+            cta: t('landing.command.trainingCta'),
             to: { path: '/training', query: { tut: 'plan' } },
         },
         {
-            tag: 'Gesundheit',
-            title: 'Beschwerden festhalten',
-            text: 'Halte Beschwerden fest und erkenne schneller, wie Training und Belastung zusammenhängen.',
-            cta: 'Zu Beschwerden',
+            tag: t('landing.command.healthTag'),
+            title: t('landing.command.complaintsTitle'),
+            text: t('landing.command.complaintsText'),
+            cta: t('landing.command.complaintsCta'),
             to: '/beschwerden',
         },
         {
-            tag: 'Fortschritt',
-            title: 'Fortschritt ansehen',
-            text: 'Sieh auf einen Blick, was du schon geschafft hast und wo du als Nächstes ansetzen kannst.',
-            cta: 'Zum Fortschritt',
+            tag: t('landing.command.progressTag'),
+            title: t('landing.command.progressTitle'),
+            text: t('landing.command.progressText'),
+            cta: t('landing.command.progressCta'),
             to: '/progress',
         },
         {
-            tag: 'Lernen',
-            title: 'Tutorials nutzen',
-            text: 'Verbessere Technik und Sicherheit mit klaren Anleitungen für deine Übungen.',
-            cta: 'Zu Tutorials',
+            tag: t('landing.command.learningTag'),
+            title: t('landing.command.tutorialsTitle'),
+            text: t('landing.command.tutorialsText'),
+            cta: t('landing.command.tutorialsCta'),
             to: '/tutorials',
         },
-    ]
+    ])
 
     const goTo = (to: string | { path: string; query?: Record<string, string> }) => {
         void router.push(to)
     }
 
-    const features = [
+    const features = computed(() => [
         {
             code: 'TR-01',
-            title: 'Klare Trainingsstruktur',
-            text: 'Du weißt jederzeit, was ansteht, was erledigt ist und wie dein Plan aufgebaut ist.',
+            title: t('landing.features.structureTitle'),
+            text: t('landing.features.structureText'),
         },
         {
             code: 'RC-02',
-            title: 'Mehr Sicherheit im Alltag',
-            text: 'Beschwerden stehen nicht isoliert da, sondern bekommen Kontext zu Training und Verlauf.',
+            title: t('landing.features.safetyTitle'),
+            text: t('landing.features.safetyText'),
         },
         {
             code: 'PG-03',
-            title: 'Motivation durch Sichtbarkeit',
-            text: 'Wenn Fortschritt sichtbar ist, fällt es leichter, neue Routinen wirklich beizubehalten.',
-        },
-    ]
-
-    const timelineSteps = [
-        {
-            step: '01',
-            title: 'Plan anlegen',
-            text: 'Erstelle deinen Trainingsplan oder starte direkt mit einem Training, das zu deinem Ziel passt.',
-        },
-        {
-            step: '02',
-            title: 'Training dokumentieren',
-            text: 'Tracke dein Training und halte fest, wie sich dein Körper dabei fühlt.',
-        },
-        {
-            step: '03',
-            title: 'Entwicklung erkennen',
-            text: 'Nutze deinen Verlauf, um Fortschritt zu sehen und mit neuer Motivation weiterzumachen.',
-        },
-    ]
-
-    const testimonials = ref([
-        {
-            id: 1,
-            text: 'Ich verstehe auf der Startseite direkt, was die App kann, und habe sofort Lust bekommen, meinen Plan anzulegen.',
-            author: 'Max M.',
-            role: 'Neuer Nutzer',
-        },
-        {
-            id: 2,
-            text: 'Motivierend ist vor allem, dass ich meinen Fortschritt wirklich sehe und nicht nur irgendwo Daten sammle.',
-            author: 'Anna B.',
-            role: 'Regelmäßige Nutzerin',
-        },
-        {
-            id: 3,
-            text: 'Die Kombination aus Training, Beschwerden und Fortschritt macht die Seite sofort sinnvoll und nicht überladen.',
-            author: 'Chris R.',
-            role: 'Tester',
+            title: t('landing.features.visibilityTitle'),
+            text: t('landing.features.visibilityText'),
         },
     ])
 
-    const phoneGuideSteps = [
+    const timelineSteps = computed(() => [
         {
-            step: 'Schritt 1',
-            title: 'Trainingsplan erstellen/bearbeiten',
-            text: 'Der Handy-Bildschirm zeigt die echten Planer-Begriffe aus deinem Trainingsbereich.',
-            pill: 'Training',
+            step: '01',
+            title: t('landing.timeline.planTitle'),
+            text: t('landing.timeline.planText'),
+        },
+        {
+            step: '02',
+            title: t('landing.timeline.trackTitle'),
+            text: t('landing.timeline.trackText'),
+        },
+        {
+            step: '03',
+            title: t('landing.timeline.growthTitle'),
+            text: t('landing.timeline.growthText'),
+        },
+    ])
+
+    const testimonials = computed(() => [
+        {
+            id: 1,
+            text: t('landing.testimonials.oneText'),
+            author: t('landing.testimonials.oneAuthor'),
+            role: t('landing.testimonials.oneRole'),
+        },
+        {
+            id: 2,
+            text: t('landing.testimonials.twoText'),
+            author: t('landing.testimonials.twoAuthor'),
+            role: t('landing.testimonials.twoRole'),
+        },
+        {
+            id: 3,
+            text: t('landing.testimonials.threeText'),
+            author: t('landing.testimonials.threeAuthor'),
+            role: t('landing.testimonials.threeRole'),
+        },
+    ])
+
+    const phoneGuideSteps = computed(() => [
+        {
+            step: t('landing.phoneGuide.step1'),
+            title: t('landing.phoneGuide.planTitle'),
+            text: t('landing.phoneGuide.planText'),
+            pill: t('landing.command.trainingTag'),
             variant: 'plan',
         },
         {
-            step: 'Schritt 2',
-            title: 'Tutorials mit echten Übungsnamen',
-            text: 'Statt Platzhaltertext siehst du echte Tutorials wie Bankdrücken aus deinem Projekt.',
-            pill: 'Tutorials',
+            step: t('landing.phoneGuide.step2'),
+            title: t('landing.phoneGuide.tutorialTitle'),
+            text: t('landing.phoneGuide.tutorialText'),
+            pill: t('landing.command.learningTag'),
             variant: 'tutorial',
         },
         {
-            step: 'Schritt 3',
-            title: 'Trainingssimulation mit Fortschritt eintragen',
-            text: 'Die Vorschau orientiert sich an deiner echten Simulation mit Satzfortschritt, Pause und Eintragen.',
+            step: t('landing.phoneGuide.step3'),
+            title: t('landing.phoneGuide.simulationTitle'),
+            text: t('landing.phoneGuide.simulationText'),
             pill: 'Simulation',
             variant: 'session',
         },
         {
-            step: 'Schritt 4',
-            title: 'Echter Fortschritt statt Platzhalterwerte',
-            text: 'Die letzte Ansicht zeigt deine echten Fortschrittsbereiche wie Gewicht, Kalorien und letztes Training.',
-            pill: 'Fortschritt',
+            step: t('landing.phoneGuide.step4'),
+            title: t('landing.phoneGuide.progressTitle'),
+            text: t('landing.phoneGuide.progressText'),
+            pill: t('landing.command.progressTag'),
             variant: 'progress',
         },
-    ]
+    ])
 
     const activePhoneStep = ref(0)
     const phoneShowcaseReady = ref(false)
@@ -667,12 +632,13 @@
 
     const buildMotivation = (planName: string) => {
         const lines = [
-            `Heute ist ${planName}-Tag. Keine Ausrede, nur Output.`,
-            `${planName} steht bereit. Fokus rein und Tempo hoch.`,
-            `Dein ${planName} wartet schon. Schieb das Training nicht weg.`,
-            `Heute ${planName}: saubere Reps, klarer Kopf, harter Fortschritt.`,
-            `${planName} ist eingeplant. Jetzt liefern.`,
+            tp('landing.motivation.todayPlan1', { planName }),
+            tp('landing.motivation.todayPlan2', { planName }),
+            tp('landing.motivation.todayPlan3', { planName }),
+            tp('landing.motivation.todayPlan4', { planName }),
+            tp('landing.motivation.todayPlan5', { planName }),
         ]
+
         return lines[Math.floor(Math.random() * lines.length)]
     }
 
@@ -836,8 +802,7 @@
         if (typeof window === 'undefined') return
 
         heroWordTimer = window.setInterval(() => {
-            heroWordIndex = (heroWordIndex + 1) % heroWords.length
-            activeHeroWord.value = heroWords[heroWordIndex]
+            heroWordIndex.value = (heroWordIndex.value + 1) % heroWordKeys.length
         }, 2200)
     }
 
@@ -899,7 +864,9 @@
     }
 
     const setPhoneStep = (index: number) => {
-        activePhoneStep.value = (index + phoneGuideSteps.length) % phoneGuideSteps.length
+        const stepsLength = phoneGuideSteps.value.length
+        activePhoneStep.value = (index + stepsLength) % stepsLength
+
         phonePreviewRunIds.value = phonePreviewRunIds.value.map((runId, runIndex) =>
             runIndex === activePhoneStep.value ? runId + 1 : runId
         )
@@ -1170,7 +1137,6 @@
         height: 34rem;
         top: 3rem;
         left: -10rem;
-     
         animation: floatAura 16s ease-in-out infinite alternate;
     }
 
@@ -1179,7 +1145,6 @@
         height: 32rem;
         top: 16rem;
         right: -10rem;
-       
         animation: floatAura 20s ease-in-out infinite alternate-reverse;
     }
 
@@ -1200,15 +1165,15 @@
         position: relative;
     }
 
-    .hero::before {
-        content: '';
-        position: absolute;
-        inset: 1rem 0 auto;
-        height: 22rem;
-        border-radius: 2rem;
-        pointer-events: none;
-        z-index: 0;
-    }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 1rem 0 auto;
+            height: 22rem;
+            border-radius: 2rem;
+            pointer-events: none;
+            z-index: 0;
+        }
 
     .hero-copy,
     .hero-visual {
@@ -1323,12 +1288,12 @@
         backdrop-filter: blur(14px);
     }
 
-    .button-primary:hover,
-    .button-secondary:hover,
-    .micro-link:hover,
-    .command-card:hover {
-        transform: translateY(-2px);
-    }
+        .button-primary:hover,
+        .button-secondary:hover,
+        .micro-link:hover,
+        .command-card:hover {
+            transform: translateY(-2px);
+        }
 
     .hero-strip {
         display: grid;
@@ -1480,9 +1445,7 @@
         border-radius: 50%;
         transform: translate(-50%, -50%);
         border: 1px solid color-mix(in srgb, var(--accent-primary) 22%, transparent);
-        box-shadow:
-            0 0 0 1.6rem color-mix(in srgb, var(--accent-primary) 8%, transparent),
-            0 0 0 3.2rem color-mix(in srgb, var(--accent-secondary) 5%, transparent);
+        box-shadow: 0 0 0 1.6rem color-mix(in srgb, var(--accent-primary) 8%, transparent), 0 0 0 3.2rem color-mix(in srgb, var(--accent-secondary) 5%, transparent);
         animation: pulseRing 4.2s ease-in-out infinite;
     }
 
@@ -1519,17 +1482,15 @@
     .section-reveal {
         opacity: 0;
         transform: translateY(24px);
-        transition:
-            opacity 0.7s ease,
-            transform 0.7s ease;
+        transition: opacity 0.7s ease, transform 0.7s ease;
         transition-delay: var(--reveal-delay, 0ms);
         margin-top: 1.3rem;
     }
 
-    .section-reveal.is-visible {
-        opacity: 1;
-        transform: translateY(0);
-    }
+        .section-reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
     .proof-band,
     .product-showcase,
@@ -1667,9 +1628,7 @@
         height: 100%;
         border-radius: 2rem;
         overflow: hidden;
-        background:
-            radial-gradient(circle at top, rgba(96, 165, 250, 0.22), transparent 30%),
-            linear-gradient(180deg, #14213d 0%, #0b1220 48%, #020617 100%);
+        background: radial-gradient(circle at top, rgba(96, 165, 250, 0.22), transparent 30%), linear-gradient(180deg, #14213d 0%, #0b1220 48%, #020617 100%);
     }
 
     .screen-power-layer {
@@ -1709,9 +1668,7 @@
         inset: 0.9rem;
         background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.72) 48%, rgba(255, 255, 255, 0.12) 100%);
         border: 1px solid rgba(255, 255, 255, 0.7);
-        box-shadow:
-            0 0.18rem 0.45rem rgba(15, 23, 42, 0.22),
-            0 0 0 0.18rem color-mix(in srgb, var(--accent-primary) 26%, transparent);
+        box-shadow: 0 0.18rem 0.45rem rgba(15, 23, 42, 0.22), 0 0 0 0.18rem color-mix(in srgb, var(--accent-primary) 26%, transparent);
     }
 
     .tap-indicator__ring {
@@ -1738,11 +1695,7 @@
         justify-items: center;
         padding: 4.3rem 1.2rem 1.2rem;
         visibility: visible;
-        background:
-            linear-gradient(180deg, rgba(2, 6, 23, 0.18), rgba(2, 6, 23, 0.52)),
-            radial-gradient(circle at 20% 10%, rgba(96, 165, 250, 0.28), transparent 28%),
-            radial-gradient(circle at 82% 18%, rgba(34, 197, 94, 0.18), transparent 30%),
-            linear-gradient(160deg, #1e3a8a 0%, #0f172a 45%, #020617 100%);
+        background: linear-gradient(180deg, rgba(2, 6, 23, 0.18), rgba(2, 6, 23, 0.52)), radial-gradient(circle at 20% 10%, rgba(96, 165, 250, 0.28), transparent 28%), radial-gradient(circle at 82% 18%, rgba(34, 197, 94, 0.18), transparent 30%), linear-gradient(160deg, #1e3a8a 0%, #0f172a 45%, #020617 100%);
         backdrop-filter: blur(18px) saturate(1.15);
         transition: opacity 0.45s ease 1.2s, transform 0.45s ease 1.2s;
     }
@@ -1866,23 +1819,19 @@
     }
 
     .section-reveal.is-visible .passcode-key--tap-1 .tap-indicator--key {
-        animation: tapIndicatorPopCentered 0.28s cubic-bezier(0.22, 1, 0.36, 1) 1.9s forwards,
-            tapIndicatorExitCentered 0.2s ease 2.08s forwards;
+        animation: tapIndicatorPopCentered 0.28s cubic-bezier(0.22, 1, 0.36, 1) 1.9s forwards, tapIndicatorExitCentered 0.2s ease 2.08s forwards;
     }
 
     .section-reveal.is-visible .passcode-key--tap-2 .tap-indicator--key {
-        animation: tapIndicatorPopCentered 0.28s cubic-bezier(0.22, 1, 0.36, 1) 2.1s forwards,
-            tapIndicatorExitCentered 0.2s ease 2.28s forwards;
+        animation: tapIndicatorPopCentered 0.28s cubic-bezier(0.22, 1, 0.36, 1) 2.1s forwards, tapIndicatorExitCentered 0.2s ease 2.28s forwards;
     }
 
     .section-reveal.is-visible .passcode-key--tap-3 .tap-indicator--key {
-        animation: tapIndicatorPopCentered 0.28s cubic-bezier(0.22, 1, 0.36, 1) 2.3s forwards,
-            tapIndicatorExitCentered 0.2s ease 2.48s forwards;
+        animation: tapIndicatorPopCentered 0.28s cubic-bezier(0.22, 1, 0.36, 1) 2.3s forwards, tapIndicatorExitCentered 0.2s ease 2.48s forwards;
     }
 
     .section-reveal.is-visible .passcode-key--tap-4 .tap-indicator--key {
-        animation: tapIndicatorPopCentered 0.28s cubic-bezier(0.22, 1, 0.36, 1) 2.5s forwards,
-            tapIndicatorExitCentered 0.2s ease 2.68s forwards;
+        animation: tapIndicatorPopCentered 0.28s cubic-bezier(0.22, 1, 0.36, 1) 2.5s forwards, tapIndicatorExitCentered 0.2s ease 2.68s forwards;
     }
 
     .section-reveal.is-visible .passcode-key--tap-1 .tap-indicator--key .tap-indicator__finger {
@@ -1974,27 +1923,27 @@
         height: 0.66rem;
     }
 
-    .status-signal span {
-        width: 0.14rem;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.78);
-    }
+        .status-signal span {
+            width: 0.14rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.78);
+        }
 
-    .status-signal span:nth-child(1) {
-        height: 0.22rem;
-    }
+            .status-signal span:nth-child(1) {
+                height: 0.22rem;
+            }
 
-    .status-signal span:nth-child(2) {
-        height: 0.34rem;
-    }
+            .status-signal span:nth-child(2) {
+                height: 0.34rem;
+            }
 
-    .status-signal span:nth-child(3) {
-        height: 0.48rem;
-    }
+            .status-signal span:nth-child(3) {
+                height: 0.48rem;
+            }
 
-    .status-signal span:nth-child(4) {
-        height: 0.62rem;
-    }
+            .status-signal span:nth-child(4) {
+                height: 0.62rem;
+            }
 
     .battery-shell {
         position: relative;
@@ -2005,17 +1954,17 @@
         padding: 0.08rem;
     }
 
-    .battery-shell::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        right: -0.16rem;
-        transform: translateY(-50%);
-        width: 0.11rem;
-        height: 0.26rem;
-        border-radius: 0.08rem;
-        background: rgba(255, 255, 255, 0.58);
-    }
+        .battery-shell::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -0.16rem;
+            transform: translateY(-50%);
+            width: 0.11rem;
+            height: 0.26rem;
+            border-radius: 0.08rem;
+            background: rgba(255, 255, 255, 0.58);
+        }
 
     .battery-level {
         display: block;
@@ -2031,24 +1980,19 @@
         height: 100%;
         border-radius: 1.2rem;
         overflow: hidden;
-        background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
-            radial-gradient(circle at top, rgba(96, 165, 250, 0.14), transparent 32%),
-            rgba(4, 11, 26, 0.94);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)), radial-gradient(circle at top, rgba(96, 165, 250, 0.14), transparent 32%), rgba(4, 11, 26, 0.94);
         border: 1px solid rgba(148, 163, 184, 0.18);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
-    .screen-site-shell::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background:
-            radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 30%),
-            linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 26%);
-        pointer-events: none;
-        z-index: 0;
-    }
+        .screen-site-shell::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 30%), linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 26%);
+            pointer-events: none;
+            z-index: 0;
+        }
 
     .app-screen-sequence,
     .home-indicator {
@@ -2082,11 +2026,11 @@
         background: rgba(2, 6, 23, 0.94);
     }
 
-    .app-screen.is-active {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        pointer-events: auto;
-    }
+        .app-screen.is-active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
 
     .phone-preview-frame {
         width: 100%;
@@ -2410,21 +2354,18 @@
         position: relative;
         min-height: 6rem;
         border-radius: 1rem;
-        background:
-            linear-gradient(180deg, rgba(2, 6, 23, 0.06), rgba(2, 6, 23, 0.36)),
-            radial-gradient(circle at center, rgba(96, 165, 250, 0.36), transparent 54%),
-            linear-gradient(135deg, #1d4ed8, #0f172a);
+        background: linear-gradient(180deg, rgba(2, 6, 23, 0.06), rgba(2, 6, 23, 0.36)), radial-gradient(circle at center, rgba(96, 165, 250, 0.36), transparent 54%), linear-gradient(135deg, #1d4ed8, #0f172a);
         border: 1px solid rgba(148, 163, 184, 0.16);
         overflow: hidden;
     }
 
-    .tutorial-video::after {
-        content: '';
-        position: absolute;
-        inset: auto 0 0 0;
-        height: 28%;
-        background: linear-gradient(180deg, transparent, rgba(2, 6, 23, 0.46));
-    }
+        .tutorial-video::after {
+            content: '';
+            position: absolute;
+            inset: auto 0 0 0;
+            height: 28%;
+            background: linear-gradient(180deg, transparent, rgba(2, 6, 23, 0.46));
+        }
 
     .tutorial-play {
         position: absolute;
@@ -2438,15 +2379,15 @@
         box-shadow: 0 10px 22px rgba(2, 6, 23, 0.28);
     }
 
-    .tutorial-play::before {
-        content: '';
-        position: absolute;
-        left: 0.78rem;
-        top: 0.56rem;
-        border-left: 0.56rem solid #1d4ed8;
-        border-top: 0.38rem solid transparent;
-        border-bottom: 0.38rem solid transparent;
-    }
+        .tutorial-play::before {
+            content: '';
+            position: absolute;
+            left: 0.78rem;
+            top: 0.56rem;
+            border-left: 0.56rem solid #1d4ed8;
+            border-top: 0.38rem solid transparent;
+            border-bottom: 0.38rem solid transparent;
+        }
 
     .tutorial-meta span {
         display: block;
@@ -2504,9 +2445,7 @@
         align-items: end;
         justify-content: space-between;
         gap: 0.34rem;
-        background:
-            linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(2, 6, 23, 0.76)),
-            repeating-linear-gradient(180deg, rgba(148, 163, 184, 0.08) 0 1px, transparent 1px 1.1rem);
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(2, 6, 23, 0.76)), repeating-linear-gradient(180deg, rgba(148, 163, 184, 0.08) 0 1px, transparent 1px 1.1rem);
         border: 1px solid rgba(148, 163, 184, 0.14);
     }
 
@@ -2516,11 +2455,25 @@
         background: linear-gradient(180deg, rgba(96, 165, 250, 0.96), rgba(34, 197, 94, 0.7));
     }
 
-    .progress-chart-bar--1 { height: 38%; }
-    .progress-chart-bar--2 { height: 52%; }
-    .progress-chart-bar--3 { height: 64%; }
-    .progress-chart-bar--4 { height: 78%; }
-    .progress-chart-bar--5 { height: 92%; }
+    .progress-chart-bar--1 {
+        height: 38%;
+    }
+
+    .progress-chart-bar--2 {
+        height: 52%;
+    }
+
+    .progress-chart-bar--3 {
+        height: 64%;
+    }
+
+    .progress-chart-bar--4 {
+        height: 78%;
+    }
+
+    .progress-chart-bar--5 {
+        height: 92%;
+    }
 
     .progress-summary {
         font-size: 0.62rem;
@@ -2603,11 +2556,11 @@
         transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
     }
 
-    .phone-showcase-dot.is-active {
-        transform: scale(1.18);
-        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-        border-color: transparent;
-    }
+        .phone-showcase-dot.is-active {
+            transform: scale(1.18);
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-color: transparent;
+        }
 
     .session-chip {
         padding: 0.18rem 0.32rem;
@@ -2638,10 +2591,7 @@
         opacity: 0;
         transform: scale(0.98);
         visibility: hidden;
-        transition:
-            opacity 0.45s ease 1.2s,
-            transform 0.45s ease 1.2s,
-            visibility 0s linear 1.65s;
+        transition: opacity 0.45s ease 1.2s, transform 0.45s ease 1.2s, visibility 0s linear 1.65s;
     }
 
     .section-reveal.is-visible .passcode-screen {
@@ -2699,8 +2649,7 @@
             visibility: visible;
         }
 
-        18%,
-        62% {
+        18%, 62% {
             opacity: 1;
             transform: translateY(0);
             visibility: visible;
@@ -2743,8 +2692,7 @@
     }
 
     @keyframes tapFingerPress {
-        0%,
-        100% {
+        0%, 100% {
             transform: scale(1);
         }
 
@@ -2917,14 +2865,14 @@
         justify-items: end;
     }
 
-    .testimonial-meta strong {
-        font-size: 1.05rem;
-    }
+        .testimonial-meta strong {
+            font-size: 1.05rem;
+        }
 
-    .testimonial-meta span {
-        color: var(--landing-muted);
-        font-size: 0.92rem;
-    }
+        .testimonial-meta span {
+            color: var(--landing-muted);
+            font-size: 0.92rem;
+        }
 
     .testimonial-dots {
         display: flex;
@@ -2941,17 +2889,14 @@
         background: rgba(255, 255, 255, 0.2);
         padding: 0;
         cursor: pointer;
-        transition:
-            width 0.2s ease,
-            background 0.2s ease,
-            transform 0.2s ease;
+        transition: width 0.2s ease, background 0.2s ease, transform 0.2s ease;
     }
 
-    .testimonial-dot.is-active {
-        width: 1.75rem;
-        background: linear-gradient(90deg, var(--landing-accent), var(--landing-accent-2));
-        transform: scale(1.04);
-    }
+        .testimonial-dot.is-active {
+            width: 1.75rem;
+            background: linear-gradient(90deg, var(--landing-accent), var(--landing-accent-2));
+            transform: scale(1.04);
+        }
 
     .final-cta {
         padding-bottom: 1rem;
@@ -2964,11 +2909,11 @@
         align-items: start;
     }
 
-    .final-cta-panel :deep(.card-title) {
-        align-self: flex-start;
-        width: 100%;
-        text-align: left;
-    }
+        .final-cta-panel :deep(.card-title) {
+            align-self: flex-start;
+            width: 100%;
+            text-align: left;
+        }
 
     .hero-copy,
     .hero-visual,
@@ -3007,7 +2952,6 @@
             box-shadow: 0 26px 60px rgba(15, 23, 42, 0.4);
             border-color: var(--landing-line-strong);
         }
-
     }
 
     :global(html.dark-mode) .landing-page {
@@ -3043,9 +2987,9 @@
         transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 260ms cubic-bezier(0.22, 0.61, 0.36, 1), border-color 220ms ease-out, background 260ms ease-out !important;
     }
 
-    .landing-dashboard-card::before {
-        display: none !important;
-    }
+        .landing-dashboard-card::before {
+            display: none !important;
+        }
 
     @media (hover: hover) {
         .landing-dashboard-card:hover {
@@ -3085,8 +3029,7 @@
     }
 
     @keyframes pulseRing {
-        0%,
-        100% {
+        0%, 100% {
             transform: translate(-50%, -50%) scale(1);
             opacity: 0.8;
         }
@@ -3193,10 +3136,10 @@
             opacity: 0;
         }
 
-        .app-screen.is-active {
-            opacity: 1;
-            transform: none;
-        }
+            .app-screen.is-active {
+                opacity: 1;
+                transform: none;
+            }
 
         .section-reveal,
         .eyebrow,

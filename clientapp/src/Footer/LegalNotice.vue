@@ -1,77 +1,71 @@
 <template>
     <main class="legal-notice">
-        <h1>Impressum / Legal Notice</h1>
+        <h1>{{ t('legalNotice.title') }}</h1>
 
         <section>
-            <h2>Angaben gemäß § 5 TMG</h2>
+            <h2>{{ t('legalNotice.provider.title') }}</h2>
             <p>
                 Justin Heller<br />
                 Mühlweg 2<br />
                 92421 Schwandorf<br />
-                Deutschland
+                {{ t('legalNotice.country') }}
             </p>
         </section>
 
         <section>
-            <h2>Kontakt</h2>
+            <h2>{{ t('legalNotice.contact.title') }}</h2>
             <p>
-                Telefon: 0179 9352261<br />
-                E-Mail: <a href="mailto:impressum@trackyourgains-support.de">impressum@trackyourgains-support.de</a>
+                {{ t('legalNotice.phone') }}: 0179 9352261<br />
+                {{ t('legalNotice.email') }}:
+                <a href="mailto:impressum@trackyourgains-support.de">impressum@trackyourgains-support.de</a>
             </p>
         </section>
 
         <section>
-            <h2>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
+            <h2>{{ t('legalNotice.responsible.title') }}</h2>
             <p>
-                Justin Heller, Anschrift wie oben
+                {{ t('legalNotice.responsible.text') }}
             </p>
         </section>
 
         <section>
-            <h2>Haftung für Inhalte</h2>
+            <h2>{{ t('legalNotice.contentLiability.title') }}</h2>
             <p>
-                Die Inhalte dieser Website wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und
-                Aktualität der Inhalte wird jedoch keine Gewähr übernommen. Bei Bekanntwerden von Rechtsverletzungen werden
-                entsprechende Inhalte umgehend entfernt.
+                {{ t('legalNotice.contentLiability.text') }}
             </p>
         </section>
 
         <section>
-            <h2>Haftung für Links</h2>
+            <h2>{{ t('legalNotice.linkLiability.title') }}</h2>
             <p>
-                Diese Website enthält Links zu externen Websites Dritter, auf deren Inhalte ich keinen Einfluss habe. Für diese
-                fremden Inhalte wird keine Haftung übernommen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige
-                Anbieter oder Betreiber der Seiten verantwortlich. Rechtswidrige Inhalte waren zum Zeitpunkt der Verlinkung
-                nicht erkennbar. Bei Bekanntwerden von Rechtsverletzungen werden derartige Links umgehend entfernt.
+                {{ t('legalNotice.linkLiability.text') }}
             </p>
         </section>
 
         <section>
-            <h2>Urheberrecht</h2>
+            <h2>{{ t('legalNotice.copyright.title') }}</h2>
             <p>
-                Die durch den Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen
-                Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet. Die Vervielfältigung, Bearbeitung, Verbreitung
-                und jede Art der Verwertung außerhalb der Grenzen des Urheberrechts bedürfen der schriftlichen Zustimmung des
-                jeweiligen Autors bzw. Erstellers.
+                {{ t('legalNotice.copyright.text') }}
             </p>
         </section>
 
         <section>
-            <h2>Online-Streitbeilegung</h2>
+            <h2>{{ t('legalNotice.dispute.title') }}</h2>
             <p>
-                Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:
+                {{ t('legalNotice.dispute.textBefore') }}
                 <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer">
                     https://ec.europa.eu/consumers/odr
                 </a>.
-                Ich bin nicht verpflichtet und nicht bereit, an einem Streitbeilegungsverfahren vor einer
-                Verbraucherschlichtungsstelle teilzunehmen.
+                {{ t('legalNotice.dispute.textAfter') }}
             </p>
         </section>
     </main>
 </template>
 
 <script setup lang="ts">
-// keine Logik nötig, reine statische Seite
+    import { useI18n } from '@/composables/useI18n'
+
+    const { t } = useI18n()
 </script>
 
 <style scoped>

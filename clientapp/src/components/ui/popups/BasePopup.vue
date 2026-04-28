@@ -13,10 +13,13 @@
                 <div class="popup" @click.stop>
                     <XButton v-if="showClose"
                              class="popup-x"
-                             aria-label="Schließen"
+                             :aria-label="closeText"
                              @click="$emit('cancel')" />
 
-                    <h3 v-if="title" class="popup-title">{{ title }}</h3>
+                    <div v-if="title || $slots.header" class="popup-header">
+                        <slot name="header" />
+                        <h3 v-if="title" class="popup-title">{{ title }}</h3>
+                    </div>
 
                     <div class="popup-body">
                         <slot />
@@ -39,9 +42,11 @@
 </template>
 
 <script setup lang="ts">
+    import { computed } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
     import XButton from '@/components/ui/buttons/popup/XButton.vue'
 
-    withDefaults(defineProps<{
+    const props = withDefaults(defineProps<{
         show: boolean
         title?: string
         overlayClass?: string | string[] | Record<string, boolean>
@@ -52,11 +57,13 @@
         saveText?: string
         zIndex?: number
     }>(), {
-        cancelText: 'Abbrechen',
-        saveText: 'Speichern',
         showClose: true,
         zIndex: 9999,
     })
+    const { t } = useI18n()
+    const cancelText = computed(() => props.cancelText ?? t('common.cancel'))
+    const saveText = computed(() => props.saveText ?? t('common.save'))
+    const closeText = computed(() => t('common.close'))
 
     defineEmits<{ (e: 'cancel'): void; (e: 'save'): void }>()
 </script>
@@ -83,6 +90,10 @@
         padding: 2rem 1rem;
         margin: 0;
         border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    .popup-header {
+        position: relative;
     }
 
     .popup {

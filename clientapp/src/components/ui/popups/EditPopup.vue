@@ -1,40 +1,41 @@
 <template>
     <BasePopup :show="modelValue"
-               :title="title"
+               :title="translatedTitle"
                overlayClass="edit-popup"
                @cancel="onCancel">
         <UiPopupSelect v-if="props.inputType === 'select'"
                        v-model="localValue"
-                       :label="props.label"
-                       :placeholder="props.placeholder"
-                       :options="props.options || []" />
+                       :label="translatedLabel"
+                       :placeholder="translatedPlaceholder"
+                       :options="translatedOptions" />
 
         <UiPopupInput v-else
                       v-model="localValue"
-                      :label="props.label"
-                      :placeholder="props.placeholder" />
+                      :label="translatedLabel"
+                      :placeholder="translatedPlaceholder" />
 
         <template #actions>
             <PopupActionButton variant="ghost"
                                @click="onCancel">
-                Abbrechen
+                {{ t('common.cancel') }}
             </PopupActionButton>
 
             <PopupActionButton autofocus
                                :danger="!!props.confirmDanger"
                                @click="save">
-                {{ props.confirmText || 'Speichern' }}
+                {{ translatedConfirmText }}
             </PopupActionButton>
         </template>
     </BasePopup>
 </template>
 
 <script setup lang="ts">
-    import { ref, watch } from 'vue'
+    import { computed, ref, watch } from 'vue'
     import BasePopup from './BasePopup.vue'
     import PopupActionButton from '../buttons/popup/PopupActionButton.vue'
     import UiPopupInput from "@/components/ui/kits/inputs/UiPopupInput.vue";
     import UiPopupSelect from "@/components/ui/kits/selects/UiPopupSelect.vue";
+    import { useI18n } from '@/composables/useI18n'
 
     type InputKind = 'text' | 'number' | 'select'
 
@@ -56,6 +57,22 @@
         (e: 'save', v: string): void
         (e: 'cancel'): void
     }>()
+
+    const { t } = useI18n()
+
+    const translateUiText = (value: string) => t(value)
+
+    const translatedTitle = computed(() => translateUiText(props.title))
+    const translatedLabel = computed(() => props.label ? translateUiText(props.label) : undefined)
+    const translatedPlaceholder = computed(() => translateUiText(props.placeholder))
+    const translatedConfirmText = computed(() => props.confirmText ? translateUiText(props.confirmText) : t('common.save'))
+
+    const translatedOptions = computed(() =>
+        (props.options || []).map(option => ({
+            ...option,
+            label: translateUiText(option.label),
+        })),
+    )
 
     const onCancel = () => {
         emit('cancel')

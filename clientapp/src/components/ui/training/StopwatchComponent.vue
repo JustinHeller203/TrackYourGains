@@ -1227,7 +1227,7 @@
         favoriteTransferTimer = setTimeout(() => {
             favoriteTransfer.value = { id: null, direction: null }
             favoriteTransferTimer = null
-        }, 920)
+        }, 1040)
         const applyToggle = () => {
             meta.isFavorite = !meta.isFavorite
 
@@ -1242,7 +1242,7 @@
             return
         }
 
-        setTimeout(applyToggle, 280)
+        setTimeout(applyToggle, 340)
     }
 
     const addLapTime = async (stopwatch: StopwatchInstance) => {
@@ -2209,32 +2209,27 @@
     @keyframes stopwatch-favorite-holy-rise {
         0% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(245, 158, 11, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
 
         24% {
-            transform: translate3d(0, -10px, 0) scale(1.018);
-            box-shadow: 0 28px 64px rgba(245, 158, 11, 0.22), 0 0 34px rgba(251, 191, 36, 0.22);
-            filter: saturate(1.08) brightness(1.03);
+            transform: translate3d(0, -6px, 0) scale(1.01);
+            opacity: 1;
         }
 
         52% {
-            transform: translate3d(0, -24px, 0) scale(1.034);
-            box-shadow: 0 40px 84px rgba(245, 158, 11, 0.28), 0 0 52px rgba(250, 204, 21, 0.32);
-            filter: saturate(1.16) brightness(1.08);
+            transform: translate3d(0, -14px, 0) scale(1.018);
+            opacity: 1;
         }
 
         72% {
-            transform: translate3d(0, -14px, 0) scale(1.024);
-            box-shadow: 0 32px 72px rgba(245, 158, 11, 0.24), 0 0 46px rgba(250, 204, 21, 0.24);
-            filter: saturate(1.1) brightness(1.05);
+            transform: translate3d(0, -8px, 0) scale(1.012);
+            opacity: 1;
         }
 
         100% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(250, 204, 21, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
     }
 
@@ -2246,21 +2241,21 @@
         }
 
         32% {
-            opacity: .9;
-            transform: translate(-50%, -36%) scale(1.04);
-            filter: blur(8px);
+            opacity: .86;
+            transform: translate(-50%, -28%) scale(.96);
+            filter: blur(9px);
         }
 
         68% {
-            opacity: .74;
-            transform: translate(-50%, -44%) scale(1.12);
-            filter: blur(12px);
+            opacity: .62;
+            transform: translate(-50%, -36%) scale(1.04);
+            filter: blur(10px);
         }
 
         100% {
             opacity: 0;
-            transform: translate(-50%, -54%) scale(1.18);
-            filter: blur(18px);
+            transform: translate(-50%, -42%) scale(1.08);
+            filter: blur(14px);
         }
     }
 
@@ -2271,40 +2266,35 @@
         }
 
         50% {
-            opacity: .8;
-            transform: translateY(-4px) scale(1.06);
+            opacity: .68;
+            transform: translateY(-2px) scale(1.03);
         }
     }
 
     @keyframes stopwatch-favorite-fall {
         0% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 22px 48px rgba(245, 158, 11, 0.16), 0 0 24px rgba(250, 204, 21, 0.16);
-            filter: saturate(1.04) brightness(1.02);
+            opacity: 1;
         }
 
         22% {
-            transform: translate3d(0, 3px, 0) scale(.997);
-            box-shadow: 0 19px 38px rgba(245, 158, 11, 0.1), 0 0 12px rgba(250, 204, 21, 0.08);
-            filter: saturate(1.01) brightness(1.005);
+            transform: translate3d(0, 2px, 0) scale(.998);
+            opacity: .995;
         }
 
         58% {
-            transform: translate3d(0, 12px, 0) scale(.989);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16), 0 0 6px rgba(250, 204, 21, 0.03);
-            filter: saturate(.985) brightness(.992);
+            transform: translate3d(0, 7px, 0) scale(.995);
+            opacity: .992;
         }
 
         84% {
-            transform: translate3d(0, 5px, 0) scale(.995);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18), 0 0 2px rgba(250, 204, 21, 0.02);
-            filter: saturate(.994) brightness(.996);
+            transform: translate3d(0, 3px, 0) scale(.998);
+            opacity: .996;
         }
 
         100% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(250, 204, 21, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
     }
 
@@ -2313,33 +2303,33 @@
             opacity: .96;
             transform: scale(1);
             border-color: rgba(250, 204, 21, 0.92);
-            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.78), 0 0 0 2px rgba(250, 204, 21, 0.88), 0 0 26px rgba(250, 204, 21, 0.22);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.48);
         }
 
         26% {
             opacity: .94;
-            transform: scale(1.01);
+            transform: scale(1.006);
             border-color: rgba(253, 224, 71, 0.88);
-            box-shadow: 0 0 0 1px rgba(255, 248, 220, 0.82), 0 0 0 2px rgba(250, 204, 21, 0.68), 0 0 26px rgba(250, 204, 21, 0.18);
+            box-shadow: 0 0 0 1px rgba(255, 248, 220, 0.44);
         }
 
         62% {
             opacity: .54;
             transform: scale(1.002);
             border-color: rgba(245, 158, 11, 0.28);
-            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.22), 0 0 0 1px rgba(245, 158, 11, 0.18), 0 0 10px rgba(250, 204, 21, 0.05);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.16);
         }
 
         86% {
             opacity: .2;
             transform: scale(.999);
             border-color: rgba(245, 158, 11, 0.08);
-            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.08), 0 0 0 1px rgba(245, 158, 11, 0.06), 0 0 4px rgba(250, 204, 21, 0.02);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.06);
         }
 
         100% {
             opacity: 0;
-            transform: scale(.988);
+            transform: scale(.994);
             border-color: rgba(245, 158, 11, 0);
             box-shadow: 0 0 0 0 rgba(255, 244, 214, 0), 0 0 0 0 rgba(250, 204, 21, 0), 0 0 0 rgba(250, 204, 21, 0);
         }
@@ -2349,25 +2339,25 @@
         0% {
             opacity: 0;
             transform: translateY(-1px) scale(.96);
-            filter: blur(8px);
+            filter: blur(6px);
         }
 
         24% {
-            opacity: .3;
-            transform: translateY(2px) scale(.985);
-            filter: blur(7px);
+            opacity: .24;
+            transform: translateY(1px) scale(.99);
+            filter: blur(6px);
         }
 
         58% {
-            opacity: .2;
-            transform: translateY(9px) scale(1.01);
-            filter: blur(8px);
+            opacity: .14;
+            transform: translateY(5px) scale(1.006);
+            filter: blur(7px);
         }
 
         100% {
             opacity: 0;
-            transform: translateY(20px) scale(1.04);
-            filter: blur(12px);
+            transform: translateY(12px) scale(1.012);
+            filter: blur(9px);
         }
     }
 
@@ -2528,7 +2518,7 @@
 
     .timer-card--favorite-transfer-in {
         border-color: rgba(250, 204, 21, 0.82);
-        animation: stopwatch-favorite-holy-rise 1.28s cubic-bezier(0.18, 0.88, 0.24, 1.08) both;
+        animation: stopwatch-favorite-holy-rise 1.04s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .timer-card--favorite-transfer-in::before {
@@ -2542,31 +2532,31 @@
         background: radial-gradient(circle, rgba(255, 252, 240, 0.95) 0%, rgba(250, 204, 21, 0.72) 38%, rgba(245, 158, 11, 0.12) 68%, rgba(245, 158, 11, 0) 100%);
         filter: blur(10px);
         opacity: .84;
-        animation: stopwatch-favorite-holy-aura 1.18s cubic-bezier(0.2, 0.82, 0.24, 1) both;
+        animation: stopwatch-favorite-holy-aura .98s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .timer-card--favorite-transfer-in::after {
         background: linear-gradient(135deg, rgba(250, 204, 21, 0.12), rgba(251, 191, 36, 0.18), rgba(250, 204, 21, 0));
         border: 2px solid rgba(250, 204, 21, 0.92);
         box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.78), 0 0 26px rgba(250, 204, 21, 0.36), 0 0 54px rgba(245, 158, 11, 0.18);
-        animation: stopwatch-favorite-holy-sparkles .96s ease-in-out 2;
+        animation: stopwatch-favorite-holy-sparkles 1.08s ease-in-out 1;
         opacity: 1;
     }
 
     .timer-card--favorite-transfer-out {
         border-color: rgba(245, 158, 11, 0.24);
-        animation: stopwatch-favorite-fall .76s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: stopwatch-favorite-fall .88s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .timer-card--favorite-transfer-out::before {
         background: radial-gradient(circle at 50% 12%, rgba(255, 248, 220, 0.32), rgba(255, 248, 220, 0) 42%), linear-gradient(180deg, rgba(250, 204, 21, 0.14), rgba(245, 158, 11, 0.05) 45%, rgba(245, 158, 11, 0) 100%);
-        animation: stopwatch-favorite-release-trail .72s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: stopwatch-favorite-release-trail .82s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .timer-card--favorite-transfer-out::after {
         background: linear-gradient(180deg, rgba(255, 248, 220, 0.12), rgba(250, 204, 21, 0.06) 44%, rgba(250, 204, 21, 0) 100%);
         border: 2px solid rgba(250, 204, 21, 0.92);
-        animation: stopwatch-favorite-border-release .7s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: stopwatch-favorite-border-release .82s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     @media (hover: hover) {
@@ -3106,6 +3096,8 @@
         display: flex;
         gap: 0.5rem;
         justify-content: center;
+        width: 100%;
+        min-width: 0;
     }
 
     /* Laps */
@@ -3590,6 +3582,23 @@
     @media (max-width: 510px) {
         .laps-marquee__inner[aria-hidden="true"] {
             display: inline-flex;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .timer-buttons {
+            flex-wrap: wrap;
+            align-items: stretch;
+            gap: .45rem;
+        }
+
+        .timer-buttons > * {
+            flex: 1 1 calc(50% - .225rem);
+            min-width: 0;
+        }
+
+        .timer-buttons > *:last-child {
+            flex-basis: 100%;
         }
     }
 </style>

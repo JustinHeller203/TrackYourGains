@@ -1,7 +1,7 @@
  <!-- Training.vue -->
 <template>
     <div class="training">
-        <h2 class="page-title">💪 Training</h2>
+        <h2 class="page-title">{{ t('training.pageTitle') }}</h2>
         <!-- Trainingsplan Formular -->
         <div ref="builderSection"
              class="builder-shell"
@@ -26,18 +26,18 @@
                     <div class="builder-edit-morph__beam"></div>
 
                     <div class="builder-edit-morph__card builder-edit-morph__card--old">
-                        <span class="builder-edit-morph__eyebrow">Alter Plan</span>
+                        <span class="builder-edit-morph__eyebrow">{{ t('training.builderMorph.oldPlan') }}</span>
                         <strong class="builder-edit-morph__title">{{ builderPlanMorph.oldName }}</strong>
-                        <span class="builder-edit-morph__meta">{{ builderPlanMorph.beforeCount }} Übung{{ builderPlanMorph.beforeCount === 1 ? '' : 'en' }}</span>
+                        <span class="builder-edit-morph__meta">{{ exerciseCountLabel(builderPlanMorph.beforeCount) }}</span>
                         <span class="builder-edit-morph__tear builder-edit-morph__tear--one"></span>
                         <span class="builder-edit-morph__tear builder-edit-morph__tear--two"></span>
                         <span class="builder-edit-morph__tear builder-edit-morph__tear--three"></span>
                     </div>
 
                     <div class="builder-edit-morph__card builder-edit-morph__card--new">
-                        <span class="builder-edit-morph__eyebrow builder-edit-morph__eyebrow--new">Neu geformt</span>
+                        <span class="builder-edit-morph__eyebrow builder-edit-morph__eyebrow--new">{{ t('training.builderMorph.remade') }}</span>
                         <strong class="builder-edit-morph__title">{{ builderPlanMorph.newName }}</strong>
-                        <span class="builder-edit-morph__meta">{{ builderPlanMorph.afterCount }} Übung{{ builderPlanMorph.afterCount === 1 ? '' : 'en' }}</span>
+                        <span class="builder-edit-morph__meta">{{ exerciseCountLabel(builderPlanMorph.afterCount) }}</span>
                     </div>
                 </div>
             </Transition>
@@ -49,9 +49,9 @@
              aria-hidden="true">
             <span class="builder-action-label__spark builder-action-label__spark--left"></span>
             <span class="builder-action-label__spark builder-action-label__spark--right"></span>
-            <span class="builder-action-label__kicker">Builder Aktiv</span>
+            <span class="builder-action-label__kicker">{{ t('training.builderAction.active') }}</span>
             <strong class="builder-action-label__main">{{ builderActionLabel.label }}</strong>
-            <span class="builder-action-label__sub">Plan wird jetzt direkt oben umgebaut</span>
+            <span class="builder-action-label__sub">{{ t('training.builderAction.sub') }}</span>
         </div>
 
         <TrainingPlansList ref="plansListRef"
@@ -171,6 +171,8 @@
     import { useSettingsStore } from '@/store/settingsStore'
     import { useTimersStore } from '@/store/timersStore'
     import { useStopwatchesStore } from '@/store/stopwatchesStore'
+    import { useI18n } from '@/composables/useI18n'
+    import { translateText } from '@/i18n/translations'
 
     // Typ-Definitionen (bleiben unverändert)
     type RangeCapableValue = number | string;
@@ -241,6 +243,11 @@
         (e: 'reorder-timers', list: TimerInstance[]): void;
         (e: 'reorder-stopwatches', list: any[]): void;
     }>();
+
+    const { locale, t } = useI18n()
+    const translateUiText = (text: string) => translateText(text, locale.value)
+    const exerciseCountLabel = (count: number) =>
+        t(count === 1 ? 'builder.preview.exerciseCountOne' : 'builder.preview.exerciseCountOther').replace('{count}', String(count))
 
     const dismissToast = (immediate = false) => {
         if (!toast.value) return;
@@ -365,7 +372,7 @@
     const onEditPlanInBuilder = (payload: { planId: string; name: string; exercises: any[] }) => {
         const b = builderRef.value as any
         b?.setEditMode?.({ planId: payload.planId, name: payload.name, exercises: payload.exercises })
-        triggerBuilderActionLabel('Bearbeiten')
+        triggerBuilderActionLabel(t('common.edit'))
         b?.scrollToBuilder?.()
     }
 
@@ -426,6 +433,7 @@
 
     // Header ResizeObserver (wird in setup/teardown benutzt)
     let headerRO: ResizeObserver | null = null
+    let headerRORaf = 0
 
     // Falls du später Favorites richtig implementierst: hier ersetzen.
     // Wird aktuell nur in save/flush payloads genutzt.
@@ -486,11 +494,11 @@
 
     const showPlanBuilderTut = ref(false)
     type Step = { title: string; text: string; selector: string }
-    const planBuilderSteps: Step[] = [
-        { title: 'Schritt 1/3', text: 'Gib deinem Plan einen Namen, damit du ihn später wiederfindest.', selector: '#plan-name' },
-        { title: 'Schritt 2/3', text: 'Wähle eine Übung und klick auf „Übung hinzufügen“.', selector: '.add-exercise-btn' },
-        { title: 'Schritt 3/3', text: 'Wenn alles passt, klicke „Plan erstellen“.', selector: '.plan-submit-btn' },
-    ]
+    const planBuilderSteps = computed<Step[]>(() => [
+        { title: t('training.tutorial.step1Title'), text: t('training.tutorial.step1Text'), selector: '#plan-name' },
+        { title: t('training.tutorial.step2Title'), text: t('training.tutorial.step2Text'), selector: '.add-exercise-btn' },
+        { title: t('training.tutorial.step3Title'), text: t('training.tutorial.step3Text'), selector: '.plan-submit-btn' },
+    ])
 
     const maybeShowPlanBuilderTut = () => {
         if (showPlanBuilderTut.value) return
@@ -735,22 +743,22 @@
     }
 
     const editPopupTitle = computed(() => {
-        if (editType.value === 'customExerciseType') return 'Übungstyp bearbeiten';
-        if (editType.value === 'planName' || editType.value === 'selectedPlanName') return 'Planname bearbeiten';
-        if (editType.value === 'customExerciseName') return 'Übungsname bearbeiten';
-        if (editType.value === 'customExerciseMuscle') return 'Muskelgruppe bearbeiten';
-        if (editCellIndex.value === 0) return 'Übung bearbeiten';
-        if (editCellIndex.value === 1) return 'Sätze / Minuten bearbeiten';
-        if (editCellIndex.value === 2) return 'Wiederholungen / Kilometer bearbeiten';
-        return 'Bearbeiten';
+        if (editType.value === 'customExerciseType') return t('training.editPopup.exerciseTypeTitle');
+        if (editType.value === 'planName' || editType.value === 'selectedPlanName') return t('training.editPopup.planNameTitle');
+        if (editType.value === 'customExerciseName') return t('training.editPopup.exerciseNameTitle');
+        if (editType.value === 'customExerciseMuscle') return t('training.editPopup.muscleGroupTitle');
+        if (editCellIndex.value === 0) return t('training.editPopup.exerciseTitle');
+        if (editCellIndex.value === 1) return t('training.editPopup.setsMinutesTitle');
+        if (editCellIndex.value === 2) return t('training.editPopup.repsKmTitle');
+        return t('common.edit');
     });
 
     const editOptions = computed(() => {
         if (editType.value === 'customExerciseType') {
             return [
-                { label: 'Kraft', value: 'kraft' },
-                { label: 'Calisthenics', value: 'calisthenics' },
-                { label: 'Dehnung', value: 'dehnung' },
+                { label: t('builder.trainingType.strength'), value: 'kraft' },
+                { label: t('builder.trainingType.calisthenics'), value: 'calisthenics' },
+                { label: t('builder.trainingType.mobility'), value: 'dehnung' },
             ];
         }
         return [];
@@ -770,14 +778,14 @@
 
 
     const editPlaceholder = computed(() => {
-        if (editType.value === 'customExerciseType') return 'Typ: kraft | calisthenics | dehnung';
-        if (editType.value === 'planName' || editType.value === 'selectedPlanName') return 'Neuer Planname (3-20 Zeichen)';
-        if (editType.value === 'customExerciseName') return 'Neuer Übungsname (max. 50 Zeichen)';
-        if (editType.value === 'customExerciseMuscle') return 'Neue Muskelgruppe (max. 50 Zeichen)';
-        if (editCellIndex.value === 0) return 'Neue Übung';
-        if (editCellIndex.value === 1) return 'Neue Sätze (1-20)';
-        if (editCellIndex.value === 2) return 'Neue Wiederholungen (1-50)';
-        return 'Neuer Wert';
+        if (editType.value === 'customExerciseType') return t('training.editPopup.typePlaceholder');
+        if (editType.value === 'planName' || editType.value === 'selectedPlanName') return t('training.editPopup.planNamePlaceholder');
+        if (editType.value === 'customExerciseName') return t('training.editPopup.exerciseNamePlaceholder');
+        if (editType.value === 'customExerciseMuscle') return t('training.editPopup.muscleGroupPlaceholder');
+        if (editCellIndex.value === 0) return t('training.editPopup.exercisePlaceholder');
+        if (editCellIndex.value === 1) return t('training.editPopup.setsPlaceholder');
+        if (editCellIndex.value === 2) return t('training.editPopup.repsPlaceholder');
+        return t('training.editPopup.valuePlaceholder');
     });
 
     const loadFromAccount = async (): Promise<true | false | 'error'> => {
@@ -955,24 +963,25 @@
         min: number,
         max: number
     ) => {
-        if (value == null) return `${label} müssen eine Zahl oder einen Bereich wie 8-10 sein`;
+        const displayLabel = translateUiText(label)
+        if (value == null) return `${displayLabel} müssen eine Zahl oder einen Bereich wie 8-10 sein`;
 
         const text = String(value).trim();
-        if (!text) return `${label} müssen eine Zahl oder einen Bereich wie 8-10 sein`;
+        if (!text) return `${displayLabel} müssen eine Zahl oder einen Bereich wie 8-10 sein`;
 
         if (/^\d+$/.test(text)) {
             const num = Number(text);
-            if (num < min || num > max) return `${label} müssen zwischen ${min} und ${max} liegen`;
+            if (num < min || num > max) return `${displayLabel} müssen zwischen ${min} und ${max} liegen`;
             return null;
         }
 
         const rangeMatch = text.match(/^(\d+)\s*-\s*(\d+)$/);
-        if (!rangeMatch) return `${label} müssen eine Ganzzahl oder einen Bereich wie 8-10 sein`;
+        if (!rangeMatch) return `${displayLabel} müssen eine Ganzzahl oder einen Bereich wie 8-10 sein`;
 
         const start = Number(rangeMatch[1]);
         const end = Number(rangeMatch[2]);
-        if (start < min || end > max) return `${label} müssen zwischen ${min} und ${max} liegen`;
-        if (start > end) return `${label}: Bereich muss aufsteigend sein`;
+        if (start < min || end > max) return `${displayLabel} müssen zwischen ${min} und ${max} liegen`;
+        if (start > end) return `${displayLabel}: Bereich muss aufsteigend sein`;
         return null;
     };
 
@@ -1072,7 +1081,8 @@
     }
 
     const openValidationPopup = (errors: string[]) => {
-        validationErrorMessages.value = Array.isArray(errors) ? errors : [String(errors)];
+        const items = Array.isArray(errors) ? errors : [String(errors)]
+        validationErrorMessages.value = items.map((error) => translateUiText(String(error)));
         showValidationPopup.value = true;
     };
 
@@ -1249,7 +1259,7 @@
 
         toast.value = {
             id,
-            message,
+            message: translateUiText(message),
             emoji: emojis[type],
             type: types[type],
             exiting: false,
@@ -1798,19 +1808,24 @@
         const label = th.querySelector('.th-label') as HTMLElement | null;
         if (!label) return;
         const w = th.clientWidth;
-        label.classList.remove('is-full', 'is-mid', 'is-short');
         const SHORT = 80;   // <=80px -> "short"
         const MID = 120;  // <=120px -> "mid"
-        if (w <= SHORT) label.classList.add('is-short');
-        else if (w <= MID) label.classList.add('is-mid');
-        else label.classList.add('is-full');
+        const nextState = w <= SHORT ? 'is-short' : w <= MID ? 'is-mid' : 'is-full'
+        if (label.classList.contains(nextState)) return
+        label.classList.remove('is-full', 'is-mid', 'is-short');
+        label.classList.add(nextState);
     }
 
     function setupHeaderShorteningFallback() {
         // erst alte Observer lösen
         headerRO?.disconnect();
         headerRO = new ResizeObserver((entries) => {
-            entries.forEach(entry => applyHeaderState(entry.target as HTMLElement));
+            const targets = entries.map(entry => entry.target as HTMLElement)
+            if (headerRORaf) window.cancelAnimationFrame(headerRORaf)
+            headerRORaf = window.requestAnimationFrame(() => {
+                headerRORaf = 0
+                targets.forEach(applyHeaderState)
+            })
         });
 
         // Alle relevanten THs aus beiden Tabellen (Wdh + Muskel)
@@ -1834,13 +1849,12 @@
         crashGuardInstalled = true
 
         window.addEventListener('error', (ev) => {
-            const err = (ev as ErrorEvent).error
-            console.error('[Training.vue] window.error:', ev.message, err)
+            const message = String(ev.message || '')
+            if (message.includes('ResizeObserver loop completed with undelivered notifications')) return
             showCrashToast('Training: Fehler (Details in Console)')
         })
 
         window.addEventListener('unhandledrejection', (ev) => {
-            console.error('[Training.vue] unhandledrejection:', ev.reason)
             showCrashToast('Training: Promise-Fehler (Details in Console)')
         })
     }
@@ -1848,6 +1862,10 @@
     function teardownHeaderShorteningFallback() {
         headerRO?.disconnect();
         headerRO = null;
+        if (headerRORaf) {
+            window.cancelAnimationFrame(headerRORaf)
+            headerRORaf = 0
+        }
     }
 
     const initResizeTable = () => {

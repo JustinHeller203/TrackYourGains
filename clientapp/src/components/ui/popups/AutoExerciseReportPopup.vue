@@ -1,28 +1,26 @@
 <template>
-    <BasePopup
-        :show="show"
-        title="Übung melden"
-        overlayClass="auto-exercise-report-popup"
-        :showActions="false"
-        @cancel="$emit('cancel')">
+    <BasePopup :show="show"
+               :title="t('builder.report.popupTitle')"
+               overlayClass="auto-exercise-report-popup"
+               :showActions="false"
+               @cancel="$emit('cancel')">
         <div class="report-popup">
             <p class="report-popup__text">
-                {{ exerciseName ? `Was stimmt mit "${exerciseName}" nicht?` : 'Was stimmt mit der Übung nicht?' }}
+                {{ reportQuestion }}
             </p>
 
-            <UiPopupSelect
-                :model-value="modelValue"
-                placeholder="Grund wählen"
-                :options="reasonOptions"
-                @update:model-value="emit('update:modelValue', $event)" />
+            <UiPopupSelect :model-value="modelValue"
+                           :placeholder="t('builder.report.reasonPlaceholder')"
+                           :options="reasonOptions"
+                           @update:model-value="emit('update:modelValue', $event)" />
         </div>
 
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
-                Abbrechen
+                {{ t('common.cancel') }}
             </PopupActionButton>
             <PopupActionButton :disabled="!modelValue || submitting" @click="$emit('submit')">
-                {{ submitting ? 'Aktualisiert' : 'Senden' }}
+                {{ submitting ? t('common.sending') : t('common.send') }}
             </PopupActionButton>
         </template>
     </BasePopup>
@@ -33,13 +31,24 @@
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
 
-    defineProps<{
+    import { computed } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
+
+    const props = defineProps<{
         show: boolean
         exerciseName: string
         modelValue: string | null
         submitting?: boolean
         reasonOptions: Array<{ value: string; label: string }>
     }>()
+
+    const { t } = useI18n()
+
+    const reportQuestion = computed(() =>
+        props.exerciseName
+            ? t('builder.report.questionWithExercise').replace('{exercise}', props.exerciseName)
+            : t('builder.report.questionGeneric')
+    )
 
     const emit = defineEmits<{
         (e: 'cancel'): void

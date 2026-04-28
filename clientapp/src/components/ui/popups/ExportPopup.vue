@@ -2,79 +2,74 @@
 
 <template>
     <BasePopup :show="show"
-               title="Daten exportieren"
+               :title="t('exportPopup.title')"
                variant="export-popup"
                @cancel="$emit('cancel')">
         <template #default>
             <div class="export-shell">
                 <div class="export-card">
                     <div class="export-card-head">
-                        <div class="export-card-title">Aktion</div>
-                        <div class="export-card-sub">Wähle, was am Ende passieren soll</div>
+                        <div class="export-card-title">{{ t('exportPopup.actionTitle') }}</div>
+                        <div class="export-card-sub">{{ t('exportPopup.actionSub') }}</div>
                     </div>
 
-                    <div class="export-mode" role="group" aria-label="Aktion wählen">
+                    <div class="export-mode" role="group" :aria-label="t('exportPopup.actionAria')">
                         <button type="button"
                                 class="export-mode-btn"
                                 :class="{ active: exportMode === 'file' }"
                                 @click="exportMode = 'file'">
-                            ⬇️ Download
+                            ⬇️ {{ t('exportPopup.modeDownload') }}
                         </button>
 
                         <button type="button"
                                 class="export-mode-btn"
                                 :class="{ active: exportMode === 'share' }"
                                 @click="exportMode = 'share'">
-                            🚀 Teilen
+                            🚀 {{ t('exportPopup.modeShare') }}
                         </button>
                     </div>
 
 
                     <div v-if="exportMode === 'share'" class="share-preview">
-                        <UiPopupInput label="Vorschau (wird kopiert)"
-                                      as="textarea"
+                        <UiPopupInput :label="t('exportPopup.previewLabel')" as="textarea"
                                       :rows="7"
                                       :readonly="true"
                                       :modelValue="sharePreview" />
                     </div>
 
                     <div class="export-hint" role="note" aria-live="polite">
-                        <span v-if="exportMode === 'file'">Speichert eine Datei auf deinem Gerät.</span>
-                        <span v-else>Legt den Export in deine Zwischenablage.</span>
+                        <span v-if="exportMode === 'file'">{{ t('exportPopup.fileHint') }}</span>
+                        <span v-else>{{ t('exportPopup.shareHint') }}</span>
                     </div>
                 </div>
 
                 <div v-if="exportMode === 'file'" class="export-card">
                     <div class="export-card-head">
-                        <div class="export-card-title">Format</div>
-                        <div class="export-card-sub">Wähle den Dateityp / Inhalt</div>
+                        <div class="export-card-title">{{ t('exportPopup.formatTitle') }}</div>
+                        <div class="export-card-sub">{{ t('exportPopup.formatSub') }}</div>
                     </div>
 
                     <div class="export-field">
                         <UiPopupSelect id="export-format"
                                        ref="sel"
-                                       label="Dateityp"
-                                       placeholder="Format auswählen"
+                                       :label="t('exportPopup.fileTypeLabel')"
+                                       :placeholder="t('exportPopup.formatPlaceholder')"
                                        v-model="proxy"
-                                       :options="[
-            { label: 'PDF (Druck)', value: 'pdf' },
-            { label: 'HTML', value: 'html' },
-            { label: 'CSV (Excel)', value: 'csv' },
-            { label: 'JSON (für Apps)', value: 'json' },
-            { label: 'TXT (Text)', value: 'txt' },
-          ]" />
+                                       :options="formatOptions">
+
+                        </UiPopupSelect>
                     </div>
                 </div>
             </div>
         </template>
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
-                Abbrechen
+                {{ t('common.cancel') }}
             </PopupActionButton>
 
             <PopupActionButton autofocus
-                               @click="$emit('confirm', { format: proxy, mode: exportMode })">
-                {{ exportMode === 'share' ? 'Teilen kopieren' : 'Download' }}
+                               @click="confirmExport">
+                {{ exportMode === 'share' ? t('exportPopup.copyShare') : t('exportPopup.download') }}
             </PopupActionButton>
         </template>
     </BasePopup>
@@ -87,6 +82,19 @@
     import UiPopupSelect from '@/components/ui/kits/selects/UiPopupSelect.vue'
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
 
+    import { useI18n } from '@/composables/useI18n'
+    import { translateText } from '@/i18n/translations'
+
+    const { t, locale } = useI18n()
+
+    const currentExportLocale = computed(() => locale.value === 'en' ? 'en' : 'de')
+
+    const translateShareText = (value: string) =>
+        value
+            .split('\n')
+            .map((line) => translateText(line, currentExportLocale.value))
+            .join('\n')
+
     type Focusable = { focus: () => void }
 
     type Fmt = 'html' | 'pdf' | 'csv' | 'json' | 'txt'
@@ -94,9 +102,17 @@
     type ExportMode = 'file' | 'share'
     const exportMode = ref<ExportMode>('file')
 
+    const formatOptions = computed(() => [
+        { label: t('exportPopup.formatPdf'), value: 'pdf' },
+        { label: t('exportPopup.formatHtml'), value: 'html' },
+        { label: t('exportPopup.formatCsv'), value: 'csv' },
+        { label: t('exportPopup.formatJson'), value: 'json' },
+        { label: t('exportPopup.formatTxt'), value: 'txt' },
+    ])
+
     const emit = defineEmits<{
         (e: 'update:modelValue', v: Fmt): void
-        (e: 'confirm', payload: { format: Fmt; mode: ExportMode }): void
+        (e: 'confirm', payload: { format: Fmt; mode: ExportMode; shareText: string }): void
         (e: 'cancel'): void
     }>()
 
@@ -124,26 +140,33 @@
                 ? props.shareLines
                 : null
 
-        if (lines) return lines.join("\n")
+        if (lines) return lines.map(translateShareText).join('\n')
 
         // 2) “Text + URL” override
         const url = (props.shareUrl ?? "https://trackyourgains.de").trim()
         const text = (props.shareText ?? "").trim()
 
         if (text) {
-            return [text, url].filter(Boolean).join("\n")
+            return [translateShareText(text), url].filter(Boolean).join('\n')
         }
 
         // 3) fallback (dein Standard)
         return [
-            "🔥 Ich hab dir was in TrackYourGains geschickt.",
-            "👉 Öffnen & direkt loslegen:",
-            "https://trackyourgains.de",
-            "",
-            "Geh zur Website und schau was passiert! — macht Planung & Progress so viel cleaner 💪"
-        ].join("\n")
+            t('exportPopup.shareDefaultLine1'),
+            t('exportPopup.shareDefaultLine2'),
+            'https://trackyourgains.de',
+            '',
+            t('exportPopup.shareDefaultLine3'),
+        ].join('\n')
     })
-    
+
+    function confirmExport() {
+        emit('confirm', {
+            format: exportMode.value === 'share' ? 'txt' : proxy.value,
+            mode: exportMode.value,
+            shareText: sharePreview.value,
+        })
+    }
     watch(() => props.show, (open) => {
         if (!open) return
         exportMode.value = 'file'
@@ -152,14 +175,6 @@
     const proxy = computed<Fmt>({
         get: () => props.modelValue,
         set: (v) => emit('update:modelValue', v as Fmt)
-    })
-
-    const formatLabel = (f: Fmt) =>
-        ({ pdf: 'PDF', html: 'HTML', csv: 'CSV', json: 'JSON', txt: 'TXT' } as const)[f]
-
-    const primaryLabel = computed(() => {
-        const act = exportMode.value === 'share' ? 'Kopieren' : 'Download'
-        return `${act} ${formatLabel(proxy.value)}`
     })
 
     const sel = ref<Focusable | null>(null)

@@ -1,160 +1,140 @@
 <template>
     <div class="complaints-page">
-        <h2 class="page-title">Beschwerden</h2>
+        <h2 class="page-title">{{ t('complaints.pageTitle') }}</h2>
 
-        <section class="section-block" aria-label="Beschwerden Übersicht">
-            <h3 class="section-title">Deine Übersicht</h3>
+        <section class="section-block" :aria-label="t('complaints.overview.aria')">
+            <h3 class="section-title">{{ t('complaints.overview.title') }}</h3>
 
             <div class="dashboard-grid">
-                <div
-                    class="dashboard-card-shell"
-                    :class="{ 'is-dashboard-visible': dashboardCardsVisible }"
-                    style="--dashboard-delay: 0ms;">
-                    <DashboardCard
-                        title="Aktive Beschwerden"
-                        :info="activeCountDisplay"
-                        :muted="!entries.length"
-                        :class="{ 'is-dashboard-glowing': activeCountGlowActive }">
-                        <AnimatedReelValue
-                            :text="activeCountDisplay"
-                            :muted="!entries.length"
-                            :jump-nonce="activeCountJumpNonce" />
+                <div class="dashboard-card-shell"
+                     :class="{ 'is-dashboard-visible': dashboardCardsVisible }"
+                     style="--dashboard-delay: 0ms;">
+                    <DashboardCard :title="t('complaints.dashboard.active')"
+                                   :info="activeCountDisplay"
+                                   :muted="!entries.length"
+                                   :class="{ 'is-dashboard-glowing': activeCountGlowActive }">
+                        <AnimatedReelValue :text="activeCountDisplay"
+                                           :muted="!entries.length"
+                                           :jump-nonce="activeCountJumpNonce" />
                     </DashboardCard>
                 </div>
 
-                <div
-                    class="dashboard-card-shell"
-                    :class="{ 'is-dashboard-visible': dashboardCardsVisible }"
-                    style="--dashboard-delay: 60ms;">
-                    <DashboardCard
-                        title="Durchschnittliche Intensität"
-                        :info="averageIntensityInfo"
-                        :muted="!entries.length">
-                        <AnimatedReelValue
-                            :text="averageIntensityInfo"
-                            :muted="!entries.length"
-                            :animate-from="averageIntensityAnimateFrom"
-                            :animate-to="averageIntensityAnimateTo"
-                            :animate-nonce="averageIntensityAnimateNonce" />
+                <div class="dashboard-card-shell"
+                     :class="{ 'is-dashboard-visible': dashboardCardsVisible }"
+                     style="--dashboard-delay: 60ms;">
+                    <DashboardCard :title="t('complaints.dashboard.averageIntensity')"
+                                   :info="averageIntensityInfo"
+                                   :muted="!entries.length">
+                        <AnimatedReelValue :text="averageIntensityInfo"
+                                           :muted="!entries.length"
+                                           :animate-from="averageIntensityAnimateFrom"
+                                           :animate-to="averageIntensityAnimateTo"
+                                           :animate-nonce="averageIntensityAnimateNonce" />
                     </DashboardCard>
                 </div>
 
-                <div
-                    class="dashboard-card-shell"
-                    :class="{ 'is-dashboard-visible': dashboardCardsVisible }"
-                    style="--dashboard-delay: 120ms;">
-                    <DashboardCard
-                        title="Häufigste Körperstelle"
-                        :info="hotspotLabel"
-                        :muted="!entries.length" />
+                <div class="dashboard-card-shell"
+                     :class="{ 'is-dashboard-visible': dashboardCardsVisible }"
+                     style="--dashboard-delay: 120ms;">
+                    <DashboardCard :title="t('complaints.dashboard.hotspot')"
+                                   :info="hotspotLabel"
+                                   :muted="!entries.length" />
                 </div>
             </div>
         </section>
 
         <section class="stack-layout">
-            <h3 class="section-title">Neue Beschwerde anlegen</h3>
-
-            <form
-                ref="creatorFormRef"
-                class="form-card builder-grid creator-card"
-                :class="{ 'creator-card--editing': !!editingEntryId }"
-                @submit.prevent="submitEntry">
+            <h3 class="section-title">{{ t('complaints.create.sectionTitle') }}</h3>
+            <form ref="creatorFormRef"
+                  class="form-card builder-grid creator-card"
+                  :class="{ 'creator-card--editing': !!editingEntryId }"
+                  @submit.prevent="submitEntry">
                 <div class="builder-left">
                     <div class="card-header creator-header">
                         <div>
-                            <p class="section-kicker section-kicker--left">Schritt 1</p>
-                            <h3>Neue Beschwerde</h3>
+                            <p class="section-kicker section-kicker--left">{{ t('complaints.create.step1') }}</p>
+                            <h3>{{ editingEntryId ? t('complaints.create.editTitle') : t('complaints.create.title') }}</h3>
                         </div>
                     </div>
 
                     <div class="form-grid form-grid--double">
-                        <UiPopupSelect
-                            v-model="form.area"
-                            label="Körperstelle *"
-                            placeholder="Bereich wählen"
-                            quick-jump-value="benutzerdefiniert"
-                            quick-jump-title="Zu Benutzerdefiniert springen"
-                            :options="areaOptions"
-                            :error="errors.area" />
+                        <UiPopupSelect v-model="form.area"
+                                       :label="t('complaints.form.area')"
+                                       :placeholder="t('complaints.form.areaPlaceholder')"
+                                       quick-jump-value="benutzerdefiniert"
+                                       :quick-jump-title="t('complaints.form.jumpCustom')"
+                                       :options="translatedAreaOptions"
+                                       :error="errors.area" />
 
-                        <UiPopupInput
-                            v-model="form.date"
-                            label="Datum *"
-                            type="date"
-                            :max="today"
-                            :error="errors.date" />
+                        <UiPopupInput v-model="form.date"
+                                      :label="t('complaints.form.date')"
+                                      type="date"
+                                      :max="today"
+                                      :error="errors.date" />
                     </div>
 
                     <div v-if="form.area === 'benutzerdefiniert' || form.area === 'sonstiges'" class="form-grid form-grid--double">
-                        <UiPopupSelect
-                            v-model="form.customAreaSuggestion"
-                            label="Gespeicherte Körperstellen"
-                            placeholder="Optional auswählen"
-                            :options="customAreaSuggestionOptions"
-                            :error="errors.customAreaName" />
+                        <UiPopupSelect v-model="form.customAreaSuggestion"
+                                       :label="t('complaints.form.savedAreas')"
+                                       :placeholder="t('complaints.form.optionalSelect')"
+                                       :options="customAreaSuggestionOptions"
+                                       :error="errors.customAreaName" />
 
-                        <UiPopupInput
-                            v-model="form.customAreaName"
-                            label="Benutzerdefinierte Körperstelle *"
-                            placeholder="z. B. Schulterblatt links"
-                            :maxlength="50"
-                            :error="errors.customAreaName" />
+                        <UiPopupInput v-model="form.customAreaName"
+                                      :label="t('complaints.form.customArea')"
+                                      :placeholder="t('complaints.form.customAreaPlaceholder')"
+                                      :maxlength="50"
+                                      :error="errors.customAreaName" />
                     </div>
 
                     <div class="form-grid form-grid--double">
-                        <UiPopupSelect
-                            v-model="form.category"
-                            label="Art *"
-                            placeholder="Art wählen"
-                            :options="categoryOptions"
-                            :error="errors.category" />
+                        <UiPopupSelect v-model="form.category"
+                                       :label="t('complaints.form.category')"
+                                       :placeholder="t('complaints.form.categoryPlaceholder')"
+                                       :options="translatedCategoryOptions"
+                                       :error="errors.category" />
 
-                        <UiPopupSelect
-                            v-model="form.status"
-                            label="Status *"
-                            placeholder="Status wählen"
-                            :options="statusOptions"
-                            :error="errors.status" />
+                        <UiPopupSelect v-model="form.status"
+                                       :label="t('complaints.form.status')"
+                                       :placeholder="t('complaints.form.statusPlaceholder')"
+                                       :options="translatedStatusOptions"
+                                       :error="errors.status" />
                     </div>
 
-                    <ComplaintInjuryEstimator
-                        ref="injuryEstimatorRef"
-                        v-if="form.category === 'schmerz'"
-                        v-model="form.injuryType"
-                        v-model:custom-injury-name="form.customInjuryName"
-                        :area="form.area as ComplaintArea | ''"
-                        :area-display="resolvedAreaDisplay"
-                        @estimate-days="onInjuryEstimateDays"
-                        @summary-line="onInjurySummaryLine" />
+                    <ComplaintInjuryEstimator ref="injuryEstimatorRef"
+                                              v-if="form.category === 'schmerz'"
+                                              v-model="form.injuryType"
+                                              v-model:custom-injury-name="form.customInjuryName"
+                                              :area="form.area as ComplaintArea | ''"
+                                              :area-display="resolvedAreaDisplay"
+                                              @estimate-days="onInjuryEstimateDays"
+                                              @summary-line="onInjurySummaryLine" />
                     <p v-if="errors.customInjuryName" class="field-error">{{ errors.customInjuryName }}</p>
 
-                    <UiPopupInput
-                        v-if="form.category === 'schmerz'"
-                        v-model="form.estimatedDowntimeDays"
-                        label="Geschätzte Ausfallzeit in Tagen (optional)"
-                        type="number"
-                        min="1"
-                        max="365"
-                        inputmode="numeric"
-                        placeholder="z. B. 7"
-                        :error="errors.estimatedDowntimeDays" />
+                    <UiPopupInput v-if="form.category === 'schmerz'"
+                                  v-model="form.estimatedDowntimeDays"
+                                  :label="t('complaints.form.estimatedDowntime')"
+                                  type="number"
+                                  min="1"
+                                  max="365"
+                                  inputmode="numeric"
+                                  :placeholder="t('complaints.form.estimatedDowntimePlaceholder')"
+                                  :error="errors.estimatedDowntimeDays" />
 
                     <div class="intensity-field" :class="{ 'has-error': !!errors.intensity }">
                         <div class="intensity-head">
-                            <label class="field-label">Intensität *</label>
-                            <strong>{{ form.intensity }}/10</strong>
+                            <label class="field-label">{{ t('complaints.form.intensity') }}</label>                            <strong>{{ form.intensity }}/10</strong>
                         </div>
 
-                        <div class="intensity-grid" role="group" aria-label="Intensität auswählen">
-                            <button
-                                v-for="value in intensityOptions"
-                                :key="value"
-                                type="button"
-                                class="intensity-pill"
-                                :class="{ 'is-selected': form.intensity === value }"
-                                :style="{ '--intensity-accent': intensityFillColor(value) }"
-                                :aria-pressed="form.intensity === value"
-                                @click="form.intensity = value">
+                        <div class="intensity-grid" role="group" :aria-label="t('complaints.form.intensityAria')">
+                            <button v-for="value in intensityOptions"
+                                    :key="value"
+                                    type="button"
+                                    class="intensity-pill"
+                                    :class="{ 'is-selected': form.intensity === value }"
+                                    :style="{ '--intensity-accent': intensityFillColor(value) }"
+                                    :aria-pressed="form.intensity === value"
+                                    @click="form.intensity = value">
                                 {{ value }}
                             </button>
                         </div>
@@ -162,68 +142,61 @@
                         <p v-if="errors.intensity" class="field-error">{{ errors.intensity }}</p>
                     </div>
 
-                    <UiPopupInput
-                        v-model="form.notes"
-                        label="Notiz (optional)"
-                        as="textarea"
-                        :rows="3"
-                        :maxlength="400"
-                        placeholder="Optional: z. B. beim Beugen schlimmer oder morgens steif."
-                         />
+                    <UiPopupInput v-model="form.notes"
+                                  :label="t('complaints.form.note')"
+                                  :placeholder="t('complaints.form.notePlaceholder')"
+                                  as="textarea"
+                                  :rows="3"
+                                  :maxlength="400" />
 
                     <div class="form-actions">
-                        <button
-                            type="submit"
-                            class="primary-button"
-                            :class="{ 'builder-edit-action-btn': !!editingEntryId }">
-                            {{ editingEntryId ? 'Beschwerde aktualisieren' : 'Beschwerde speichern' }}
+                        <button type="submit"
+                                class="primary-button"
+                                :class="{ 'builder-edit-action-btn': !!editingEntryId }">
+                            {{ editingEntryId ? t('complaints.actions.update') : t('complaints.actions.save') }}
                         </button>
-                        <button
-                            v-if="editingEntryId"
-                            type="button"
-                            class="secondary-button builder-edit-action-btn"
-                            @click="cancelEditing">
-                            Bearbeitung abbrechen
+                        <button v-if="editingEntryId"
+                                type="button"
+                                class="secondary-button builder-edit-action-btn"
+                                @click="cancelEditing">
+                            {{ t('complaints.actions.cancelEdit') }}
                         </button>
                     </div>
                 </div>
             </form>
 
             <template v-if="entries.length">
-                <h3 class="section-title">Bisherige Beschwerden</h3>
-
+                <h3 class="section-title">{{ t('complaints.list.title') }}</h3>
                 <div class="timeline-card">
-                    <p class="section-meta timeline-meta">{{ sortedFilteredEntries.length }} von {{ entries.length }} Einträgen sichtbar · Neueste zuerst</p>
-
+                    <p class="section-meta timeline-meta">
+                        {{ tp('complaints.list.visibleCount', { visible: sortedFilteredEntries.length, total: entries.length }) }}
+                    </p>
                     <div v-if="entries.length > 1" class="filters-grid">
-                        <UiPopupSelect
-                            v-model="statusFilter"
-                            label="Status filtern"
-                            placeholder="Alle Status"
-                            :options="statusFilterOptions" />
+                        <UiPopupSelect v-model="statusFilter"
+                                       :label="t('complaints.filter.status')"
+                                       :placeholder="t('complaints.filter.allStatuses')"
+                                       :options="translatedStatusFilterOptions" />
 
-                        <UiPopupSelect
-                            v-model="areaFilter"
-                            label="Körperstelle filtern"
-                            placeholder="Alle Bereiche"
-                            :options="areaFilterOptions" />
+                        <UiPopupSelect v-model="areaFilter"
+                                       :label="t('complaints.filter.area')"
+                                       :placeholder="t('complaints.filter.allAreas')"
+                                       :options="translatedAreaFilterOptions" />
                     </div>
 
                     <div v-if="sortedFilteredEntries.length" class="timeline-list">
-                        <article
-                            v-for="entry in sortedFilteredEntries"
-                            :key="entry.id"
-                            :ref="(el) => setComplaintItemRef(entry.id, el)"
-                            class="list-item complaint-item"
-                            :class="{ 'is-created-highlight': highlightedEntryId === entry.id }">
+                        <article v-for="entry in sortedFilteredEntries"
+                                 :key="entry.id"
+                                 :ref="(el) => setComplaintItemRef(entry.id, el)"
+                                 class="list-item complaint-item"
+                                 :class="{ 'is-created-highlight': highlightedEntryId === entry.id }">
                             <div class="complaint-main">
                                 <div class="entry-top">
                                     <div>
                                         <p class="entry-area">{{ displayAreaLabel(entry) }}</p>
                                         <p class="entry-meta-line">
-                                            <span><strong>Erfasst:</strong> {{ formatDateTime(entry.createdAt) }}</span>
-                                            <span><strong>Art:</strong> {{ categoryLabel(entry.category) }}</span>
-                                            <span><strong>Status:</strong> {{ statusLabel(entry.status) }}</span>
+                                            <span><strong>{{ t('complaints.meta.recorded') }}:</strong> {{ formatDateTime(entry.createdAt) }}</span>
+                                            <span><strong>{{ t('complaints.meta.category') }}:</strong> {{ categoryLabel(entry.category) }}</span>
+                                            <span><strong>{{ t('complaints.meta.status') }}:</strong> {{ statusLabel(entry.status) }}</span>
                                         </p>
                                     </div>
 
@@ -234,82 +207,70 @@
                                 </div>
 
                                 <div class="chip-row intensity-row">
-                                    <span class="intensity-label">Intensität</span>
-                                    <div class="intensity-meter">
+                                    <span class="intensity-label">{{ t('complaints.form.intensityShort') }}</span>                                    <div class="intensity-meter">
                                         <div class="intensity-fill"
                                              :style="intensityFillStyle(entry.intensity)"></div>
                                         <span class="intensity-value">{{ entry.intensity }}/10</span>
                                     </div>
                                 </div>
 
-                                <p v-if="entry.notes" class="entry-notes">{{ entry.notes }}</p>
-
+                                <p v-if="displayEntryNotes(entry.notes)" class="entry-notes">{{ displayEntryNotes(entry.notes) }}</p>
                                 <section v-if="painDiaryPreviewByComplaint[entry.id]?.length" class="pain-diary-preview">
-                                    <p class="pain-diary-preview__title">Schmerztagebuch</p>
-                                    <ul class="pain-diary-preview__list">
-                                        <li
-                                            v-for="diary in painDiaryPreviewByComplaint[entry.id]"
+                                    <p class="pain-diary-preview__title">{{ t('complaints.diary.title') }}</p>                                    <ul class="pain-diary-preview__list">
+                                        <li v-for="diary in painDiaryPreviewByComplaint[entry.id]"
                                             :key="diary.id"
                                             class="pain-diary-preview__item">
                                             <div class="pain-diary-preview__line">
                                                 <span class="pain-diary-preview__date">{{ formatDateTime(diary.createdAt) }}</span>
                                                 <span class="pain-diary-preview__source">{{ diarySourceLabel(diary.source) }}</span>
                                                 <span class="pain-diary-preview__actions">
-                                                    <button
-                                                        type="button"
-                                                        class="pain-diary-preview__action-btn"
-                                                        @click="startPainDiaryEdit(diary)">
-                                                        Bearbeiten
+                                                    <button type="button"
+                                                            class="pain-diary-preview__action-btn"
+                                                            @click="startPainDiaryEdit(diary)">
+                                                        {{ t('common.edit') }}
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        class="pain-diary-preview__action-btn pain-diary-preview__action-btn--danger"
-                                                        @click="requestDeletePainDiaryRecord(diary, $event)">
-                                                        Löschen
+                                                    <button type="button"
+                                                            class="pain-diary-preview__action-btn pain-diary-preview__action-btn--danger"
+                                                            @click="requestDeletePainDiaryRecord(diary, $event)">
+                                                        {{ t('common.delete') }}
                                                     </button>
                                                 </span>
                                             </div>
                                             <div class="pain-diary-preview__scale-row">
-                                                <div class="pain-diary-preview__scale" role="img" :aria-label="`Intensität ${diary.painLevel} von 10`">
-                                                    <div
-                                                        class="pain-diary-preview__scale-fill"
-                                                        :style="painDiaryScaleStyle(diary.painLevel)"></div>
+                                                <div class="pain-diary-preview__scale" role="img" :aria-label="tp('complaints.diary.intensityValue', { value: diary.painLevel })">
+                                                    <div class="pain-diary-preview__scale-fill"
+                                                         :style="painDiaryScaleStyle(diary.painLevel)"></div>
                                                     <span class="pain-diary-preview__scale-value">{{ diary.painLevel }}/10</span>
                                                 </div>
                                             </div>
                                             <p v-if="diary.note" class="pain-diary-preview__note">{{ diary.note }}</p>
                                             <div v-if="editingPainDiaryId === diary.id" class="pain-diary-preview__editor">
                                                 <div class="pain-diary-preview__editor-head">
-                                                    <label class="field-label">Intensität *</label>
-                                                    <strong>{{ editingPainDiaryLevel }}/10</strong>
+                                                    <label class="field-label">{{ t('complaints.form.intensity') }}</label>                                                    <strong>{{ editingPainDiaryLevel }}/10</strong>
                                                 </div>
-                                                <input
-                                                    v-model.number="editingPainDiaryLevel"
-                                                    class="pain-diary-preview__slider"
-                                                    type="range"
-                                                    min="0"
-                                                    max="10"
-                                                    step="1"
-                                                    :style="painDiaryEditorSliderStyle"
-                                                    aria-label="Schmerztagebuch Intensität bearbeiten" />
-                                                <textarea
-                                                    v-model="editingPainDiaryNote"
-                                                    class="pain-diary-preview__editor-note"
-                                                    rows="2"
-                                                    maxlength="220"
-                                                    placeholder="Optionale Notiz" />
+                                                <input v-model.number="editingPainDiaryLevel"
+                                                       class="pain-diary-preview__slider"
+                                                       type="range"
+                                                       min="0"
+                                                       max="10"
+                                                       step="1"
+                                                       :style="painDiaryEditorSliderStyle"
+                                                       :aria-label="t('complaints.diary.editIntensityAria')" />
+                                                <textarea v-model="editingPainDiaryNote"
+                                                          class="pain-diary-preview__editor-note"
+                                                          rows="2"
+                                                          maxlength="220"
+                                                          :placeholder="t('complaints.diary.optionalNote')" />
                                                 <div class="pain-diary-preview__editor-actions">
-                                                    <button
-                                                        type="button"
-                                                        class="pain-diary-preview__action-btn"
-                                                        @click="cancelPainDiaryEdit">
-                                                        Abbrechen
+                                                    <button type="button"
+                                                            class="pain-diary-preview__action-btn"
+                                                            @click="cancelPainDiaryEdit">
+                                                        {{ t('common.cancel') }}
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        class="pain-diary-preview__action-btn"
-                                                        @click="savePainDiaryEdit(diary.id)">
-                                                        Speichern
+                                                    <button type="button"
+                                                            class="pain-diary-preview__action-btn"
+                                                            @click="savePainDiaryEdit(diary.id)">
+                                                        {{ t('common.save') }}
                                                     </button>
                                                 </div>
                                             </div>
@@ -320,31 +281,29 @@
                                 <section class="pain-diary-create-card">
                                     <div class="pain-diary-create-card__head">
                                         <div>
-                                            <p class="pain-diary-preview__title">Neuer Schmerztagebuch-Eintrag</p>
-                                            <p class="pain-diary-create-card__sub">Direkt für diese Beschwerde festhalten.</p>
+                                            <p class="pain-diary-preview__title">{{ t('complaints.diary.newEntry') }}</p>
+                                            <p class="pain-diary-create-card__sub">{{ t('complaints.diary.newEntrySub') }}</p>
                                         </div>
-                                        <button
-                                            type="button"
-                                            class="pain-diary-preview__action-btn"
-                                            @click="togglePainDiaryCreate(entry)">
-                                            {{ activePainDiaryCreateId === entry.id ? 'Schließen' : 'Eintragen' }}
+                                        <button type="button"
+                                                class="pain-diary-preview__action-btn"
+                                                @click="togglePainDiaryCreate(entry)">
+                                            {{ activePainDiaryCreateId === entry.id ? t('common.close') : t('complaints.diary.log') }}
                                         </button>
                                     </div>
 
                                 </section>
 
                                 <div class="status-row">
-                                    <p class="status-title">Status auswählen</p>
-                                    <div class="status-actions complaint-actions" aria-label="Status aktualisieren">
-                                        <button
-                                            v-for="option in statusOptions"
-                                            :key="`${entry.id}-${option.value}`"
-                                            type="button"
-                                            class="status-pill"
-                                            :data-tone="option.value"
-                                            :class="{ 'is-active': entry.status === option.value }"
-                                            :aria-pressed="entry.status === option.value"
-                                            @click="updateStatus(entry.id, option.value)">
+                                    <p class="status-title">{{ t('complaints.status.choose') }}</p>
+                                    <div class="status-actions complaint-actions" :aria-label="t('complaints.status.updateAria')">
+                                        <button v-for="option in translatedStatusOptions"
+                                                :key="`${entry.id}-${option.value}`"
+                                                type="button"
+                                                class="status-pill"
+                                                :data-tone="option.value"
+                                                :class="{ 'is-active': entry.status === option.value }"
+                                                :aria-pressed="entry.status === option.value"
+                                                @click="updateStatus(entry.id, option.value)">
                                             {{ option.label }}
                                         </button>
                                     </div>
@@ -352,40 +311,38 @@
                             </div>
 
                             <div class="complaint-footer">
-                                <button
-                                    type="button"
-                                    class="secondary-button complaints-edit-btn"
-                                    @click="startEditing(entry)">
-                                    Bearbeiten
-                                </button>
-                                <ResetButton class="secondary-button complaints-edit-btn complaints-delete-btn"
-                                             title="Löschen"
-                                             aria-label="Löschen"
-                                             data-short="Löschen"
-                                             @click="requestDeleteEntry(entry, $event)">
-                                    Löschen
-                                </ResetButton>
+                                <PopupActionButton variant="ghost"
+                                                   class="complaints-edit-btn"
+                                                   @click="startEditing(entry)">
+                                    {{ t('common.edit') }}
+                                </PopupActionButton>
+                                <PopupActionButton variant="ghost" danger class="complaints-edit-btn complaints-delete-btn"
+                                                   :title="t('common.delete')"
+                                                   :aria-label="t('common.delete')"
+                                                   :data-short="t('common.delete')"
+                                                   @click="requestDeleteEntry(entry, $event)">
+                                    {{ t('common.delete') }}
+                                </PopupActionButton>
                             </div>
                         </article>
                     </div>
 
                     <div v-else class="empty-state">
-                        <h4>Kein Treffer</h4>
-                        <p>Für die aktuellen Filter gibt es keine sichtbaren Einträge.</p>
+                        <h4>{{ t('complaints.empty.noMatchTitle') }}</h4>
+                        <p>{{ t('complaints.empty.noMatchText') }}</p>
                     </div>
                 </div>
             </template>
         </section>
 
-        <ComplaintTrainingContextPopup
-            :show="showTrainingContextPopup"
-            :date="trainingContextDate"
-            :exerciseOptions="trainingContextExerciseOptions"
-            @save="onTrainingContextPopupSave"
-            @cancel="onTrainingContextPopupCancel" />
+        <ComplaintTrainingContextPopup :show="showTrainingContextPopup"
+                                       :date="trainingContextDate"
+                                       :exerciseOptions="trainingContextExerciseOptions"
+                                       @save="onTrainingContextPopupSave"
+                                       @cancel="onTrainingContextPopupCancel" />
 
         <BasePopup :show="!!activePainDiaryCreateEntry"
-                   title="Schmerztagebuch-Eintrag"
+                   :title="t('complaints.diary.popupTitle')"
                    overlayClass="pain-diary-create-popup"
                    @cancel="closePainDiaryCreate"
                    @save="savePainDiaryCreateFromPopup">
@@ -395,51 +352,46 @@
                         {{ displayAreaLabel(activePainDiaryCreateEntry) }}
                     </p>
                     <p class="pain-diary-create-popup__sub">
-                        Halte fest, wie stark die Beschwerde gerade ist und ergänze bei Bedarf eine kurze Notiz.
+                        {{ t('complaints.diary.popupSub') }}
                     </p>
                 </div>
 
                 <div class="pain-diary-create-popup__section">
                     <div class="pain-diary-preview__editor-head">
-                        <label class="field-label">Intensität *</label>
-                        <strong>{{ creatingPainDiaryLevel }}/10</strong>
+                        <label class="field-label">{{ t('complaints.form.intensity') }}</label>                        <strong>{{ creatingPainDiaryLevel }}/10</strong>
                     </div>
-                    <input
-                        v-model.number="creatingPainDiaryLevel"
-                        class="pain-diary-preview__slider"
-                        type="range"
-                        min="0"
-                        max="10"
-                        step="1"
-                        :style="painDiaryCreateSliderStyle"
-                        aria-label="Schmerztagebuch Intensität hinzufügen" />
+                    <input v-model.number="creatingPainDiaryLevel"
+                           class="pain-diary-preview__slider"
+                           type="range"
+                           min="0"
+                           max="10"
+                           step="1"
+                           :style="painDiaryCreateSliderStyle"
+                           :aria-label="t('complaints.diary.addIntensityAria')" />
                 </div>
 
                 <div class="pain-diary-create-popup__section">
-                    <label class="field-label" for="pain-diary-create-note">Notiz</label>
-                    <textarea
-                        id="pain-diary-create-note"
-                        v-model="creatingPainDiaryNote"
-                        class="pain-diary-preview__editor-note pain-diary-create-popup__note"
-                        rows="4"
-                        maxlength="220"
-                        placeholder="Optional: Was fällt dir heute zu der Beschwerde auf?" />
+                    <label class="field-label" for="pain-diary-create-note">{{ t('complaints.form.noteShort') }}</label>                    <textarea id="pain-diary-create-note"
+                                                                                                                                                      v-model="creatingPainDiaryNote"
+                                                                                                                                                      class="pain-diary-preview__editor-note pain-diary-create-popup__note"
+                                                                                                                                                      rows="4"
+                                                                                                                                                      maxlength="220"
+                                                                                                                                                      :placeholder="t('complaints.diary.notePlaceholder')" />
                 </div>
             </div>
             <template #actions>
                 <PopupActionButton variant="ghost" @click="closePainDiaryCreate">
-                    Abbrechen
+                    {{ t('common.cancel') }}
                 </PopupActionButton>
                 <PopupActionButton @click="savePainDiaryCreateFromPopup">
-                    Speichern
+                    {{ t('common.save') }}
                 </PopupActionButton>
             </template>
         </BasePopup>
 
-        <DeleteConfirmPopup
-            :show="showDeletePopup"
-            @confirm="confirmDeleteEntry"
-            @cancel="cancelDeleteEntry" />
+        <DeleteConfirmPopup :show="showDeletePopup"
+                            @confirm="confirmDeleteEntry"
+                            @cancel="cancelDeleteEntry" />
 
         <Transition name="delete-trash">
             <div v-if="deleteTrashState.visible" class="delete-trash-overlay" aria-hidden="true">
@@ -471,9 +423,9 @@
              aria-hidden="true">
             <span class="builder-action-label__spark builder-action-label__spark--left"></span>
             <span class="builder-action-label__spark builder-action-label__spark--right"></span>
-            <span class="builder-action-label__kicker">Builder Aktiv</span>
+            <span class="builder-action-label__kicker">{{ t('complaints.builder.active') }}</span>
             <strong class="builder-action-label__main">{{ builderActionLabel.label }}</strong>
-            <span class="builder-action-label__sub">Beschwerde wird jetzt direkt oben umgebaut</span>
+            <span class="builder-action-label__sub">{{ t('complaints.builder.sub') }}</span>
         </div>
     </div>
 </template>
@@ -482,7 +434,6 @@
     import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
     import DashboardCard from '@/components/ui/DashboardCard.vue'
     import AnimatedReelValue from '@/components/ui/progress/AnimatedReelValue.vue'
-    import ResetButton from '@/components/ui/buttons/ResetButton.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import ComplaintInjuryEstimator from '@/components/ui/complaints/ComplaintInjuryEstimator.vue'
     import DeleteConfirmPopup from '@/components/ui/popups/DeleteConfirmPopup.vue'
@@ -500,6 +451,7 @@
     import { LS_COMPLAINTS_CUSTOM_AREAS, LS_CONFIRM_DELETE_ENABLED } from '@/constants/storageKeys'
     import type { ComplaintArea, ComplaintCategory, ComplaintEntry, ComplaintStatus } from '@/types/complaint'
     import { useRoute, useRouter } from 'vue-router'
+    import { useI18n } from '@/composables/useI18n'
 
     const complaintsStore = useComplaintsStore()
     const authStore = useAuthStore()
@@ -508,6 +460,7 @@
     const trainingPlansStore = useTrainingPlansStore()
     const route = useRoute()
     const router = useRouter()
+    const { t } = useI18n()
 
     const today = new Date().toISOString().slice(0, 10)
     const intensityOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -545,6 +498,41 @@
         { label: 'Benutzerdefiniert', value: 'benutzerdefiniert' },
     ]
 
+    const translatedAreaOptions = computed(() => areaOptions.map((option) => ({
+        ...option,
+        label: areaLabel(option.value),
+    })))
+
+    const translatedCategoryOptions = computed(() => categoryOptions.map((option) => ({
+        ...option,
+        label: categoryLabel(option.value),
+    })))
+
+    const translatedStatusOptions = computed(() => statusOptions.map((option) => ({
+        ...option,
+        label: statusLabel(option.value),
+    })))
+
+    const translatedStatusFilterOptions = computed(() => statusFilterOptions.map((option) => ({
+        ...option,
+        label: option.value === 'all' ? t('complaints.filter.allStatuses') : statusLabel(option.value as ComplaintStatus),
+    })))
+
+    const translatedAreaFilterOptions = computed(() => areaFilterOptions.map((option) => ({
+        ...option,
+        label: option.value === 'all'
+            ? t('complaints.filter.allAreas')
+            : option.value === 'sonstiges'
+                ? t('complaints.area.otherLegacy')
+                : areaLabel(option.value as ComplaintArea),
+    })))
+
+    function tp(key: string, params: Record<string, string | number>) {
+        return Object.entries(params).reduce(
+            (text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)),
+            t(key)
+        )
+    }
     const categoryOptions: Array<{ label: string; value: ComplaintCategory }> = [
         { label: 'Muskelkater', value: 'muskelkater' },
         { label: 'Überlastung', value: 'ueberlastung' },
@@ -728,7 +716,7 @@
     })
 
     const averageIntensityInfo = computed(() => (
-        entries.value.length ? `${averageIntensity.value}/10` : 'Keine Einträge'
+        entries.value.length ? `${averageIntensity.value}/10` : t('complaints.empty.noEntries')
     ))
 
     const dashboardCardsVisible = ref(false)
@@ -753,9 +741,9 @@
         clearDashboardRevealTimer()
         dashboardCardsVisible.value = false
         dashboardRevealTimer = setTimeout(() => {
-                dashboardCardsVisible.value = true
-                dashboardRevealTimer = null
-            }, 32)
+            dashboardCardsVisible.value = true
+            dashboardRevealTimer = null
+        }, 32)
     }
 
     watch(activeCount, (next, previous) => {
@@ -791,8 +779,7 @@
     })
 
     const hotspotLabel = computed(() => {
-        if (!entries.value.length) return 'Noch offen'
-
+        if (!entries.value.length) return t('complaints.empty.stillOpen')
         const counts = new Map<ComplaintArea, number>()
         for (const entry of entries.value) {
             counts.set(entry.area, (counts.get(entry.area) ?? 0) + 1)
@@ -807,7 +794,7 @@
             }
         }
 
-        return hottest ? areaLabel(hottest) : 'Noch offen'
+        return hottest ? areaLabel(hottest) : t('complaints.empty.stillOpen')
     })
 
     const customAreaSuggestionOptions = computed(() => customAreaHistory.value.map((name) => ({
@@ -817,8 +804,7 @@
 
     const resolvedAreaDisplay = computed(() => {
         if (form.area === 'benutzerdefiniert' || form.area === 'sonstiges') {
-            return normalizeCustomLabel(form.customAreaName) || 'Benutzerdefiniert'
-        }
+            return normalizeCustomLabel(form.customAreaName) || t('complaints.area.custom')        }
         return areaLabel(form.area as ComplaintArea)
     })
 
@@ -855,8 +841,8 @@
     }
 
     function areaLabel(value: ComplaintArea) {
-        if (value === 'sonstiges') return 'Benutzerdefiniert'
-        return areaOptions.find((option) => option.value === value)?.label ?? value
+        if (value === 'sonstiges' || value === 'benutzerdefiniert') return t('complaints.area.custom')
+        return t(`complaints.area.${value}`)
     }
 
     function displayAreaLabel(entry: (typeof entries.value)[number]) {
@@ -866,11 +852,17 @@
     }
 
     function categoryLabel(value: ComplaintCategory) {
-        return categoryOptions.find((option) => option.value === value)?.label ?? value
+        if (value === 'muskelkater') return t('complaints.category.soreMuscles')
+        if (value === 'ueberlastung') return t('complaints.category.overload')
+        if (value === 'schmerz') return t('complaints.category.pain')
+        return value
     }
 
     function statusLabel(value: ComplaintStatus) {
-        return statusOptions.find((option) => option.value === value)?.label ?? value
+        if (value === 'aktiv') return t('complaints.status.active')
+        if (value === 'besser') return t('complaints.status.better')
+        if (value === 'weg') return t('complaints.status.gone')
+        return value
     }
 
     function formatDate(value: string) {
@@ -900,9 +892,9 @@
     }
 
     function diarySourceLabel(source: PainDiaryEntry['source']) {
-        if (source === 'training-simulation') return 'Training'
-        if (source === 'complaints') return 'Beschwerden'
-        return 'Plan'
+        if (source === 'training-simulation') return t('complaints.diary.source.training')
+        if (source === 'complaints') return t('complaints.diary.source.complaints')
+        return t('complaints.diary.source.plan')
     }
 
     const painDiaryEditorSliderStyle = computed(() => {
@@ -1002,7 +994,10 @@
         }
 
         if (!confirmDeleteEnabled) {
-            launchDeleteTrashFlight(`Schmerztagebuch ${formatDateTime(entry.createdAt)}`, event)
+            launchDeleteTrashFlight(
+                tp('complaints.diary.deleteFlight', { date: formatDateTime(entry.createdAt) }),
+                event
+            )
             deleteTrashTimer = setTimeout(() => {
                 hideDeleteTrash()
                 const success = removePainDiaryEntry(id)
@@ -1121,6 +1116,43 @@
             .trim()
     }
 
+    function displayEntryNotes(valueRaw: string) {
+        return String(valueRaw ?? '')
+            .split('\n')
+            .map((line) => translateVisibleNoteLine(line.trim()))
+            .filter(Boolean)
+            .join('\n')
+    }
+
+    function translateVisibleNoteLine(line: string) {
+        if (!line) return ''
+
+        const downtimeMatch = line.match(/^\[Ausfallzeit\]\s*Voraussichtlich\s*(\d{1,3})\s*Tag(?:e)?$/i)
+        if (downtimeMatch?.[1]) {
+            return tp('complaints.note.downtime', { days: downtimeMatch[1] })
+        }
+
+        const customAreaMatch = line.match(/^\[K.*rperstelle\]\s*Benutzerdefiniert:\s*(.+)$/i)
+        if (customAreaMatch?.[1]) {
+            return tp('complaints.note.customArea', { area: normalizeCustomLabel(customAreaMatch[1]) })
+        }
+
+        const injuryMatch = line.match(/^\[Verletzung\]\s*(.+)$/i)
+        if (injuryMatch?.[1]) {
+            return tp('complaints.note.injury', { injury: injuryMatch[1].replace(/\s*\[key:[^\]]+\]\s*$/i, '') })
+        }
+
+        const trainingExerciseMatch = line.match(/^\[Trainingbezug\]\s*Während Training bei:\s*(.+)$/i)
+        if (trainingExerciseMatch?.[1]) {
+            return tp('complaints.note.trainingExercise', { exercise: trainingExerciseMatch[1] })
+        }
+
+        if (/^\[Trainingbezug\]\s*Während Training\s*\(Übung nicht angegeben\)$/i.test(line)) {
+            return t('complaints.note.trainingUnknown')
+        }
+
+        return line
+    }
     function readEstimatedDowntimeDays(valueRaw: string) {
         const lines = String(valueRaw ?? '').split('\n')
         for (const line of lines) {
@@ -1186,28 +1218,28 @@
     function validateForm() {
         resetErrors()
 
-        if (!form.area) errors.area = 'Bitte eine Körperstelle wählen.'
+        if (!form.area) errors.area = t('complaints.validation.areaRequired')
         const isCustomArea = form.area === 'benutzerdefiniert' || form.area === 'sonstiges'
         if (isCustomArea && !normalizeCustomLabel(form.customAreaName)) {
-            errors.customAreaName = 'Bitte eine benutzerdefinierte Körperstelle angeben.'
+            errors.customAreaName = t('complaints.validation.customAreaRequired')
         }
-        if (!form.category) errors.category = 'Bitte eine Art wählen.'
-        if (!form.status) errors.status = 'Bitte einen Status wählen.'
-        if (!form.date) errors.date = 'Bitte ein Datum setzen.'
-        if (form.date > today) errors.date = 'Zukünftige Daten sind hier nicht erlaubt.'
-        if (form.intensity < 1 || form.intensity > 10) errors.intensity = 'Intensität muss zwischen 1 und 10 liegen.'
+        if (!form.category) errors.category = t('complaints.validation.categoryRequired')
+        if (!form.status) errors.status = t('complaints.validation.statusRequired')
+        if (!form.date) errors.date = t('complaints.validation.dateRequired')
+        if (form.date > today) errors.date = t('complaints.validation.dateFuture')
+        if (form.intensity < 1 || form.intensity > 10) errors.intensity = t('complaints.validation.intensityRange')
         if (form.category === 'schmerz' && form.injuryType === CUSTOM_INJURY_VALUE && !normalizeCustomLabel(form.customInjuryName)) {
-            errors.customInjuryName = 'Bitte eine benutzerdefinierte Verletzung eingeben.'
+            errors.customInjuryName = t('complaints.validation.customInjuryRequired')
         }
 
         const downtimeRaw = String(form.estimatedDowntimeDays ?? '').trim()
         if (downtimeRaw) {
             const downtimeDays = Number.parseInt(downtimeRaw, 10)
             if (!Number.isFinite(downtimeDays) || downtimeDays < 1 || downtimeDays > 365) {
-                errors.estimatedDowntimeDays = 'Bitte eine ganze Zahl zwischen 1 und 365 eintragen.'
+                errors.estimatedDowntimeDays = t('complaints.validation.downtimeRange')
             }
             if (form.category !== 'schmerz') {
-                errors.estimatedDowntimeDays = 'Ausfallzeit kann nur bei der Art Schmerz genutzt werden.'
+                errors.estimatedDowntimeDays = t('complaints.validation.downtimePainOnly')
             }
         }
 
@@ -1227,8 +1259,7 @@
             if (hasSimilarOpen) {
                 const area = areaLabel(form.area as ComplaintArea)
                 const category = categoryLabel(form.category as ComplaintCategory)
-                errors.status = 'Für ' + area + ' ist ' + category + ' bereits als aktiv/besser vorhanden. Bitte bestehenden Eintrag aktualisieren.'
-            }
+                errors.status = tp('complaints.validation.duplicateOpen', { area, category })            }
         }
 
         return !errors.area &&
@@ -1369,7 +1400,7 @@
     }
 
     function startEditing(entry: (typeof entries.value)[number]) {
-        triggerBuilderActionLabel('Bearbeiten')
+        triggerBuilderActionLabel(t('common.edit'))
         editingEntryId.value = entry.id
         form.area = entry.area
         form.customAreaSuggestion = ''
@@ -1590,7 +1621,11 @@
 
         if (complaintId) {
             const complaint = entries.value.find((entry) => entry.id === complaintId)
-            launchDeleteTrashFlight(complaint ? displayAreaLabel(complaint) : 'Beschwerde', pendingDeleteEntryEvent.value ?? undefined)
+            launchDeleteTrashFlight(
+                complaint ? displayAreaLabel(complaint) : t('complaints.deleteFallback.complaint'),
+                pendingDeleteEntryEvent.value ?? undefined
+            )
+
             deleteTrashTimer = setTimeout(() => {
                 hideDeleteTrash()
                 void complaintsStore.removeEntry(complaintId)
@@ -1602,7 +1637,10 @@
 
         if (painDiaryId) {
             const diary = painDiaryEntries.value.find((entry) => entry.id === painDiaryId)
-            launchDeleteTrashFlight(diary ? `Schmerztagebuch ${formatDateTime(diary.createdAt)}` : 'Schmerztagebuch', pendingDeletePainDiaryEvent.value ?? undefined)
+            launchDeleteTrashFlight(
+                diary ? tp('complaints.diary.deleteFlight', { date: formatDateTime(diary.createdAt) }) : t('complaints.deleteFallback.diary'),
+                pendingDeletePainDiaryEvent.value ?? undefined
+            )
             deleteTrashTimer = setTimeout(() => {
                 hideDeleteTrash()
                 const success = removePainDiaryEntry(painDiaryId)
@@ -1711,18 +1749,12 @@
         padding: 1rem 1.4rem 1.05rem;
         border-radius: 1.6rem;
         border: 1px solid rgba(250, 204, 21, 0.72);
-        background:
-            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 55%),
-            linear-gradient(180deg, rgba(255, 251, 235, 0.99), rgba(255, 244, 214, 0.96));
+        background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 55%), linear-gradient(180deg, rgba(255, 251, 235, 0.99), rgba(255, 244, 214, 0.96));
         color: #b45309;
         line-height: 1;
         text-align: center;
         overflow: hidden;
-        box-shadow:
-            0 22px 42px rgba(245, 158, 11, 0.24),
-            0 0 0 1px rgba(255, 248, 220, 0.76),
-            0 0 0 10px rgba(250, 204, 21, 0.14),
-            inset 0 1px 0 rgba(255, 255, 255, 0.94);
+        box-shadow: 0 22px 42px rgba(245, 158, 11, 0.24), 0 0 0 1px rgba(255, 248, 220, 0.76), 0 0 0 10px rgba(250, 204, 21, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.94);
         animation: builder-action-label-rise 2.2s cubic-bezier(0.2, 0.82, 0.24, 1) both, builder-action-label-glow 2.2s ease-in-out both;
     }
 
@@ -1745,9 +1777,7 @@
         letter-spacing: .08em;
         text-transform: uppercase;
         color: #b45309;
-        text-shadow:
-            0 2px 0 rgba(255, 255, 255, 0.7),
-            0 0 22px rgba(250, 204, 21, 0.18);
+        text-shadow: 0 2px 0 rgba(255, 255, 255, 0.7), 0 0 22px rgba(250, 204, 21, 0.18);
     }
 
     .builder-action-label__sub {
@@ -1765,8 +1795,7 @@
         width: 76px;
         height: 76px;
         border-radius: 999px;
-        background:
-            radial-gradient(circle, rgba(250, 204, 21, 0.9) 0 12%, rgba(250, 204, 21, 0.18) 34%, rgba(250, 204, 21, 0) 72%);
+        background: radial-gradient(circle, rgba(250, 204, 21, 0.9) 0 12%, rgba(250, 204, 21, 0.18) 34%, rgba(250, 204, 21, 0) 72%);
         filter: blur(2px);
         opacity: 0;
         animation: builder-action-spark 2.2s ease-out both;
@@ -1952,17 +1981,17 @@
         transform: translateX(-50%);
     }
 
-    .delete-trash-bin__lid::before {
-        content: "";
-        position: absolute;
-        left: 50%;
-        top: -6px;
-        width: 22px;
-        height: 6px;
-        border-radius: 999px 999px 0 0;
-        background: #64748b;
-        transform: translateX(-50%);
-    }
+        .delete-trash-bin__lid::before {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: -6px;
+            width: 22px;
+            height: 6px;
+            border-radius: 999px 999px 0 0;
+            background: #64748b;
+            transform: translateX(-50%);
+        }
 
     .delete-trash-bin__body {
         position: absolute;
@@ -1973,21 +2002,21 @@
         overflow: hidden;
     }
 
-    .delete-trash-bin__body::before,
-    .delete-trash-bin__body::after {
-        content: "";
-        position: absolute;
-        top: 12px;
-        bottom: 12px;
-        width: 4px;
-        border-radius: 999px;
-        background: rgba(71, 85, 105, 0.38);
-    }
+        .delete-trash-bin__body::before,
+        .delete-trash-bin__body::after {
+            content: "";
+            position: absolute;
+            top: 12px;
+            bottom: 12px;
+            width: 4px;
+            border-radius: 999px;
+            background: rgba(71, 85, 105, 0.38);
+        }
 
-    .delete-trash-bin__body::before {
-        left: 22px;
-        box-shadow: 14px 0 0 rgba(71, 85, 105, 0.38), 28px 0 0 rgba(71, 85, 105, 0.38);
-    }
+        .delete-trash-bin__body::before {
+            left: 22px;
+            box-shadow: 14px 0 0 rgba(71, 85, 105, 0.38), 28px 0 0 rgba(71, 85, 105, 0.38);
+        }
 
     .delete-trash-enter-active,
     .delete-trash-leave-active {
@@ -2033,14 +2062,17 @@
             opacity: 0;
             transform: translate(-50%, -50%) scale(0.92) rotate(-4deg);
         }
+
         16% {
             opacity: 1;
             transform: translate(calc(-50% + var(--create-fly-x) * 0.1), calc(-50% + var(--create-fly-y) * 0.08)) scale(1.02) rotate(-2deg);
         }
+
         72% {
             opacity: 1;
             transform: translate(calc(-50% + var(--create-fly-x) * 0.84), calc(-50% + var(--create-fly-y) * 0.84)) scale(0.92) rotate(1deg);
         }
+
         100% {
             opacity: 0;
             transform: translate(calc(-50% + var(--create-fly-x)), calc(-50% + var(--create-fly-y))) scale(0.78) rotate(0deg);
@@ -2052,10 +2084,12 @@
             transform: translateY(8px);
             box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
         }
+
         28% {
             transform: translateY(0);
             box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent) inset, 0 0 0 12px color-mix(in srgb, var(--accent-primary) 12%, transparent), 0 22px 48px rgba(15, 23, 42, 0.28);
         }
+
         100% {
             transform: translateY(0);
             box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
@@ -2138,15 +2172,13 @@
     .dashboard-card-shell {
         opacity: 0;
         transform: translateY(22px);
-        transition:
-            opacity 380ms ease-out var(--dashboard-delay, 0ms),
-            transform 520ms cubic-bezier(0.22, 1, 0.36, 1) var(--dashboard-delay, 0ms);
+        transition: opacity 380ms ease-out var(--dashboard-delay, 0ms), transform 520ms cubic-bezier(0.22, 1, 0.36, 1) var(--dashboard-delay, 0ms);
     }
 
-    .dashboard-card-shell.is-dashboard-visible {
-        opacity: 1;
-        transform: translateY(0);
-    }
+        .dashboard-card-shell.is-dashboard-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
     .is-dashboard-glowing {
         animation: complaints-dashboard-rise-glow 320ms ease-out;
@@ -2156,12 +2188,11 @@
         0% {
             box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
         }
+
         45% {
-            box-shadow:
-                0 20px 46px rgba(15, 23, 42, 0.28),
-                0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent) inset,
-                0 0 0 10px color-mix(in srgb, var(--accent-primary) 10%, transparent);
+            box-shadow: 0 20px 46px rgba(15, 23, 42, 0.28), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent) inset, 0 0 0 10px color-mix(in srgb, var(--accent-primary) 10%, transparent);
         }
+
         100% {
             box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
         }
@@ -2207,35 +2238,23 @@
 
     .creator-card--editing {
         border-color: rgba(250, 204, 21, 0.92) !important;
-        box-shadow:
-            0 0 0 2px rgba(250, 204, 21, 0.96),
-            0 0 0 10px rgba(250, 204, 21, 0.16),
-            0 30px 60px rgba(217, 119, 6, 0.2) !important;
+        box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.96), 0 0 0 10px rgba(250, 204, 21, 0.16), 0 30px 60px rgba(217, 119, 6, 0.2) !important;
         animation: builder-form-edit-ring 1.95s cubic-bezier(0.22, 0.61, 0.36, 1) both;
     }
 
     @keyframes builder-form-edit-ring {
         0% {
-            box-shadow:
-                0 0 0 0 rgba(250, 204, 21, 0.08),
-                0 0 0 0 rgba(250, 204, 21, 0.08),
-                0 12px 24px rgba(217, 119, 6, 0.08);
+            box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.08), 0 0 0 0 rgba(250, 204, 21, 0.08), 0 12px 24px rgba(217, 119, 6, 0.08);
             transform: translateY(0) scale(.995);
         }
 
         35% {
-            box-shadow:
-                0 0 0 2px rgba(250, 204, 21, 0.96),
-                0 0 0 14px rgba(250, 204, 21, 0.22),
-                0 30px 60px rgba(217, 119, 6, 0.24);
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.96), 0 0 0 14px rgba(250, 204, 21, 0.22), 0 30px 60px rgba(217, 119, 6, 0.24);
             transform: translateY(-2px) scale(1.002);
         }
 
         100% {
-            box-shadow:
-                0 0 0 2px rgba(250, 204, 21, 0.96),
-                0 0 0 10px rgba(250, 204, 21, 0.16),
-                0 30px 60px rgba(217, 119, 6, 0.2);
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.96), 0 0 0 10px rgba(250, 204, 21, 0.16), 0 30px 60px rgba(217, 119, 6, 0.2);
             transform: translateY(0) scale(1);
         }
     }
@@ -2266,11 +2285,11 @@
         gap: 1rem;
     }
 
-    .plan-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
-        border-color: rgba(129, 140, 248, 0.7);
-    }
+        .plan-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.32);
+            border-color: rgba(129, 140, 248, 0.7);
+        }
 
     .card-header {
         display: flex;
@@ -2280,11 +2299,11 @@
         margin-bottom: 0.1rem;
     }
 
-    .card-header h3,
-    .empty-state h4 {
-        margin: 0;
-        color: var(--text-primary);
-    }
+        .card-header h3,
+        .empty-state h4 {
+            margin: 0;
+            color: var(--text-primary);
+        }
 
     .section-copy {
         max-width: 28ch;
@@ -2331,34 +2350,14 @@
         white-space: nowrap;
     }
 
-    .complaints-delete-btn.btn-danger-ghost {
-        border: 1px solid rgba(148, 163, 184, 0.24);
-        border-radius: 14px;
-        background: rgba(15, 23, 42, 0.05);
-        color: var(--text-primary);
-        padding: 0.8rem 1rem;
-        font-weight: 700;
-        transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
-    }
+        .complaints-delete-btn :deep(.btn-icon) {
+            display: none;
+        }
 
-    .complaints-delete-btn.btn-danger-ghost:hover {
-        color: var(--text-primary);
-        border-color: rgba(148, 163, 184, 0.24);
-        transform: translateY(-1px);
-    }
-
-    .complaints-delete-btn.btn-danger-ghost::after {
-        content: none !important;
-    }
-
-    .complaints-delete-btn :deep(.btn-icon) {
-        display: none;
-    }
-
-    .complaints-delete-btn :deep(.btn-label) {
-        display: inline;
-        margin: 0;
-    }
+        .complaints-delete-btn :deep(.btn-label) {
+            display: inline;
+            margin: 0;
+        }
 
     .form-grid {
         display: grid;
@@ -2430,103 +2429,75 @@
         cursor: pointer;
         font-weight: 700;
         background: rgba(15, 23, 42, 0.08);
-        box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            0 8px 18px rgba(15, 23, 42, 0.08);
-        transition:
-            transform 0.18s ease,
-            border-color 0.18s ease,
-            background 0.18s ease,
-            color 0.18s ease,
-            box-shadow 0.22s ease;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 18px rgba(15, 23, 42, 0.08);
+        transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.22s ease;
     }
 
-    .intensity-pill::before,
-    .intensity-pill::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        pointer-events: none;
-    }
+        .intensity-pill::before,
+        .intensity-pill::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+        }
 
-    .intensity-pill::before {
-        inset: -2px;
-        z-index: 2;
-        padding: 2.5px;
-        background: conic-gradient(from 0deg,
-                rgba(255, 255, 255, 0) 0deg,
-                rgba(255, 255, 255, 0) 220deg,
-                color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 92%, white 8%) 262deg,
-                white 298deg,
-                color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 98%, white 2%) 334deg,
-                rgba(255, 255, 255, 0) 360deg);
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        mask-composite: exclude;
-        opacity: 0;
-        transform: rotate(0deg);
-        filter:
-            drop-shadow(0 0 8px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 58%, transparent))
-            drop-shadow(0 0 18px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 28%, transparent));
-        transition: opacity 0.2s ease;
-    }
+        .intensity-pill::before {
+            inset: -2px;
+            z-index: 2;
+            padding: 2.5px;
+            background: conic-gradient(from 0deg, rgba(255, 255, 255, 0) 0deg, rgba(255, 255, 255, 0) 220deg, color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 92%, white 8%) 262deg, white 298deg, color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 98%, white 2%) 334deg, rgba(255, 255, 255, 0) 360deg);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            opacity: 0;
+            transform: rotate(0deg);
+            filter: drop-shadow(0 0 8px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 58%, transparent)) drop-shadow(0 0 18px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 28%, transparent));
+            transition: opacity 0.2s ease;
+        }
 
-    .intensity-pill::after {
-        inset: 1px;
-        z-index: -1;
-        background:
-            radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 16%, transparent), transparent 68%),
-            linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 46%);
-        opacity: 0.55;
-    }
+        .intensity-pill::after {
+            inset: 1px;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 16%, transparent), transparent 68%), linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 46%);
+            opacity: 0.55;
+        }
 
-    .intensity-pill.is-selected,
-    .status-pill.is-active {
-        border-color: rgba(249, 115, 22, 0.42);
-        background: linear-gradient(180deg, rgba(249, 115, 22, 0.18), rgba(245, 158, 11, 0.08));
-    }
+        .intensity-pill.is-selected,
+        .status-pill.is-active {
+            border-color: rgba(249, 115, 22, 0.42);
+            background: linear-gradient(180deg, rgba(249, 115, 22, 0.18), rgba(245, 158, 11, 0.08));
+        }
 
-    .intensity-pill:hover {
-        border-color: color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 58%, rgba(148, 163, 184, 0.3));
-        box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.12),
-            0 12px 22px rgba(15, 23, 42, 0.12);
-    }
+        .intensity-pill:hover {
+            border-color: color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 58%, rgba(148, 163, 184, 0.3));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 22px rgba(15, 23, 42, 0.12);
+        }
 
-    .intensity-pill:focus-visible {
-        outline: none;
-        border-color: color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 72%, white 28%);
-        box-shadow:
-            0 0 0 3px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 18%, transparent),
-            inset 0 1px 0 rgba(255, 255, 255, 0.14),
-            0 12px 24px rgba(15, 23, 42, 0.14);
-    }
+        .intensity-pill:focus-visible {
+            outline: none;
+            border-color: color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 72%, white 28%);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 18%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 12px 24px rgba(15, 23, 42, 0.14);
+        }
 
-    .intensity-pill.is-selected {
-        color: #fff7ed;
-        border-color: transparent;
-        background:
-            radial-gradient(circle at 20% 18%, color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 34%, white 8%), transparent 52%),
-            linear-gradient(180deg,
-                color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 34%, rgba(15, 23, 42, 0.18)),
-                color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 18%, rgba(15, 23, 42, 0.22)));
-        box-shadow:
-            0 0 0 1px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 34%, transparent) inset,
-            0 0 0 4px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 12%, transparent),
-            0 18px 34px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 20%, rgba(15, 23, 42, 0.18));
-    }
+        .intensity-pill.is-selected {
+            color: #fff7ed;
+            border-color: transparent;
+            background: radial-gradient(circle at 20% 18%, color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 34%, white 8%), transparent 52%), linear-gradient(180deg, color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 34%, rgba(15, 23, 42, 0.18)), color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 18%, rgba(15, 23, 42, 0.22)));
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 34%, transparent) inset, 0 0 0 4px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 12%, transparent), 0 18px 34px color-mix(in srgb, var(--intensity-accent, var(--accent-primary)) 20%, rgba(15, 23, 42, 0.18));
+        }
 
-    .intensity-pill.is-selected::before {
-        opacity: 1;
-        animation: intensity-pill-border-run 0.62s linear infinite;
-    }
+            .intensity-pill.is-selected::before {
+                opacity: 1;
+                animation: intensity-pill-border-run 0.62s linear infinite;
+            }
 
     @keyframes intensity-pill-border-run {
         0% {
             transform: rotate(0deg);
         }
+
         100% {
             transform: rotate(-360deg);
         }
@@ -2561,10 +2532,10 @@
         box-shadow: 0 12px 26px rgba(15, 23, 42, 0.28), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent) inset;
     }
 
-    .primary-button:hover {
-        border-color: color-mix(in srgb, var(--accent-primary) 78%, #a5b4fc 22%);
-        box-shadow: 0 16px 34px rgba(15, 23, 42, 0.34), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 34%, transparent) inset;
-    }
+        .primary-button:hover {
+            border-color: color-mix(in srgb, var(--accent-primary) 78%, #a5b4fc 22%);
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.34), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 34%, transparent) inset;
+        }
 
     .secondary-button {
         background: rgba(15, 23, 42, 0.05);
@@ -2589,19 +2560,19 @@
         transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
     }
 
-    .builder-edit-action-btn:hover:not(:disabled) {
-        transform: translateY(-1px);
-        border-color: rgba(180, 83, 9, 0.34) !important;
-        box-shadow: 0 16px 30px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
-    }
+        .builder-edit-action-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            border-color: rgba(180, 83, 9, 0.34) !important;
+            box-shadow: 0 16px 30px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+        }
 
-    .builder-edit-action-btn:focus {
-        outline: none;
-    }
+        .builder-edit-action-btn:focus {
+            outline: none;
+        }
 
-    .builder-edit-action-btn:focus-visible {
-        box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.28), 0 16px 30px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
-    }
+        .builder-edit-action-btn:focus-visible {
+            box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.28), 0 16px 30px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+        }
 
     .filters-grid {
         display: grid;
@@ -2635,15 +2606,19 @@
     }
 
     .entry-top {
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: flex-start;
+        gap: 0.6rem;
     }
 
     .entry-side {
-        margin-left: auto;
+        margin-left: 0;
         justify-content: flex-end;
         align-items: flex-start;
         align-self: flex-start;
+        justify-self: end;
+        flex-wrap: nowrap;
     }
 
     .entry-area {
@@ -2684,14 +2659,8 @@
         padding: 0.85rem 0.95rem;
         border-radius: 14px;
         border: 1px solid rgba(148, 163, 184, 0.2);
-        background:
-            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 7%, transparent), transparent 55%),
-            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 5%, transparent), transparent 62%),
-            linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.1)),
-            color-mix(in srgb, var(--bg-card) 90%, transparent);
-        box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            0 8px 18px rgba(15, 23, 42, 0.08);
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 7%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 5%, transparent), transparent 62%), linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.1)), color-mix(in srgb, var(--bg-card) 90%, transparent);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 18px rgba(15, 23, 42, 0.08);
     }
 
     .pain-diary-create-card__head {
@@ -2710,14 +2679,8 @@
 
     html.dark-mode .pain-diary-create-card {
         border-color: rgba(148, 163, 184, 0.22);
-        background:
-            radial-gradient(circle at top left, color-mix(in srgb, #6366f1 10%, transparent), transparent 55%),
-            radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 7%, transparent), transparent 60%),
-            linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01)),
-            rgba(2, 6, 23, 0.28);
-        box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.03),
-            0 10px 22px rgba(0, 0, 0, 0.18);
+        background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 10%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 7%, transparent), transparent 60%), linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01)), rgba(2, 6, 23, 0.28);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 22px rgba(0, 0, 0, 0.18);
     }
 
     .pain-diary-create-popup__label {
@@ -2810,9 +2773,9 @@
         transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
     }
 
-    .pain-diary-preview__action-btn:hover {
-        transform: translateY(-1px);
-    }
+        .pain-diary-preview__action-btn:hover {
+            transform: translateY(-1px);
+        }
 
     .pain-diary-preview__action-btn--danger {
         border-color: rgba(239, 68, 68, 0.28);
@@ -2897,46 +2860,40 @@
         margin: 0;
     }
 
-    .pain-diary-preview__slider::-webkit-slider-runnable-track {
-        height: 8px;
-        border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.32);
-        background: linear-gradient(90deg,
-                rgba(34, 197, 94, 0.72) 0%,
-                rgba(249, 115, 22, 0.8) 55%,
-                rgba(239, 68, 68, 0.85) 100%);
-    }
+        .pain-diary-preview__slider::-webkit-slider-runnable-track {
+            height: 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.32);
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.72) 0%, rgba(249, 115, 22, 0.8) 55%, rgba(239, 68, 68, 0.85) 100%);
+        }
 
-    .pain-diary-preview__slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 13px;
-        height: 13px;
-        border-radius: 50%;
-        margin-top: -3px;
-        border: 2px solid rgba(255, 255, 255, 0.9);
-        background: var(--pain-thumb-color, var(--accent-primary));
-        box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.24);
-    }
+        .pain-diary-preview__slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            margin-top: -3px;
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            background: var(--pain-thumb-color, var(--accent-primary));
+            box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.24);
+        }
 
-    .pain-diary-preview__slider::-moz-range-track {
-        height: 8px;
-        border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.32);
-        background: linear-gradient(90deg,
-                rgba(34, 197, 94, 0.72) 0%,
-                rgba(249, 115, 22, 0.8) 55%,
-                rgba(239, 68, 68, 0.85) 100%);
-    }
+        .pain-diary-preview__slider::-moz-range-track {
+            height: 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.32);
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.72) 0%, rgba(249, 115, 22, 0.8) 55%, rgba(239, 68, 68, 0.85) 100%);
+        }
 
-    .pain-diary-preview__slider::-moz-range-thumb {
-        width: 13px;
-        height: 13px;
-        border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.9);
-        background: var(--pain-thumb-color, var(--accent-primary));
-        box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.24);
-    }
+        .pain-diary-preview__slider::-moz-range-thumb {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            background: var(--pain-thumb-color, var(--accent-primary));
+            box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.24);
+        }
 
     .pain-diary-preview__editor-note {
         width: 100%;
@@ -3084,22 +3041,22 @@
         line-height: 1.35;
     }
 
-    .entry-meta-line strong {
-        color: var(--text-primary);
-        font-size: 0.85rem;
-    }
+        .entry-meta-line strong {
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
 
-    .entry-meta-line span {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
+        .entry-meta-line span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
 
-    .entry-meta-line span + span::before {
-        content: "•";
-        color: rgba(148, 163, 184, 0.8);
-        margin-right: 0.2rem;
-    }
+            .entry-meta-line span + span::before {
+                content: "•";
+                color: rgba(148, 163, 184, 0.8);
+                margin-right: 0.2rem;
+            }
 
     .status-pill {
         padding: 0.55rem 0.75rem;
@@ -3113,11 +3070,11 @@
         color: var(--text-primary);
     }
 
-    .complaint-actions .status-pill.is-active {
-        border-color: color-mix(in srgb, var(--accent-primary) 72%, rgba(148, 163, 184, 0.28));
-        background: radial-gradient(circle at 18% 25%, color-mix(in srgb, var(--accent-primary) 20%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 84%, #020617 16%);
-        box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 24%, transparent) inset;
-    }
+        .complaint-actions .status-pill.is-active {
+            border-color: color-mix(in srgb, var(--accent-primary) 72%, rgba(148, 163, 184, 0.28));
+            background: radial-gradient(circle at 18% 25%, color-mix(in srgb, var(--accent-primary) 20%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 84%, #020617 16%);
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 24%, transparent) inset;
+        }
 
     .icon-button {
         padding: 0.55rem 0.8rem;
@@ -3156,10 +3113,7 @@
 
     html.dark-mode .creator-card--editing {
         border-color: rgba(251, 191, 36, 0.92) !important;
-        box-shadow:
-            0 0 0 2px rgba(251, 191, 36, 0.92),
-            0 0 0 10px rgba(251, 191, 36, 0.14),
-            0 28px 54px rgba(0, 0, 0, 0.34) !important;
+        box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.92), 0 0 0 10px rgba(251, 191, 36, 0.14), 0 28px 54px rgba(0, 0, 0, 0.34) !important;
     }
 
     html.dark-mode .delete-trash-flight {
@@ -3176,19 +3130,19 @@
         background: linear-gradient(180deg, #64748b, #334155);
     }
 
-    html.dark-mode .delete-trash-bin__lid::before {
-        background: #475569;
-    }
+        html.dark-mode .delete-trash-bin__lid::before {
+            background: #475569;
+        }
 
     html.dark-mode .delete-trash-bin__body {
         border-color: rgba(148, 163, 184, 0.62);
         background: linear-gradient(180deg, rgba(51, 65, 85, 0.96), rgba(15, 23, 42, 0.94));
     }
 
-    html.dark-mode .delete-trash-bin__body::before {
-        box-shadow: 14px 0 0 rgba(148, 163, 184, 0.26), 28px 0 0 rgba(148, 163, 184, 0.26);
-        background: rgba(148, 163, 184, 0.26);
-    }
+        html.dark-mode .delete-trash-bin__body::before {
+            box-shadow: 14px 0 0 rgba(148, 163, 184, 0.26), 28px 0 0 rgba(148, 163, 184, 0.26);
+            background: rgba(148, 163, 184, 0.26);
+        }
 
     html.dark-mode .plan-card {
         background: radial-gradient(circle at top left, color-mix(in srgb, #6366f1 16%, transparent), transparent 55%), radial-gradient(circle at bottom right, color-mix(in srgb, #22c55e 11%, transparent), transparent 62%), #020617;
@@ -3198,15 +3152,9 @@
 
     html.dark-mode .builder-action-label {
         border-color: rgba(251, 191, 36, 0.54);
-        background:
-            radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.16), rgba(251, 191, 36, 0) 55%),
-            linear-gradient(180deg, rgba(120, 53, 15, 0.98), rgba(92, 39, 12, 0.94));
+        background: radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.16), rgba(251, 191, 36, 0) 55%), linear-gradient(180deg, rgba(120, 53, 15, 0.98), rgba(92, 39, 12, 0.94));
         color: #fde68a;
-        box-shadow:
-            0 18px 34px rgba(0, 0, 0, 0.42),
-            0 0 0 1px rgba(255, 244, 214, 0.12),
-            0 0 22px rgba(250, 204, 21, 0.18),
-            0 0 0 10px rgba(250, 204, 21, 0.08);
+        box-shadow: 0 18px 34px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 244, 214, 0.12), 0 0 22px rgba(250, 204, 21, 0.18), 0 0 0 10px rgba(250, 204, 21, 0.08);
     }
 
     html.dark-mode .builder-action-label__kicker {
@@ -3217,9 +3165,7 @@
 
     html.dark-mode .builder-action-label__main {
         color: #fde68a;
-        text-shadow:
-            0 2px 0 rgba(120, 53, 15, 0.6),
-            0 0 22px rgba(250, 204, 21, 0.22);
+        text-shadow: 0 2px 0 rgba(120, 53, 15, 0.6), 0 0 22px rgba(250, 204, 21, 0.22);
     }
 
     html.dark-mode .builder-action-label__sub {
@@ -3311,16 +3257,16 @@
             animation: none;
         }
 
-        .intensity-pill::after,
-        .intensity-pill.is-selected::after {
-            animation: none;
-            opacity: 0;
-        }
+            .intensity-pill::after,
+            .intensity-pill.is-selected::after {
+                animation: none;
+                opacity: 0;
+            }
 
-        .intensity-pill::before,
-        .intensity-pill.is-selected::before {
-            animation: none;
-        }
+            .intensity-pill::before,
+            .intensity-pill.is-selected::before {
+                animation: none;
+            }
 
         .builder-action-label,
         .builder-action-label__spark {
@@ -3349,12 +3295,21 @@
         }
 
         .intensity-row {
-            align-items: stretch;
-            flex-direction: column;
+            align-items: center;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            gap: 0.45rem;
         }
 
         .intensity-meter {
-            width: 100%;
+            flex: 1 1 auto;
+            width: auto;
+            min-width: 0;
+            height: 22px;
+        }
+
+        .intensity-value {
+            font-size: 0.76rem;
         }
 
         .entry-meta-line {
@@ -3399,12 +3354,36 @@
         .complaint-footer {
             padding-top: 0.5rem;
         }
+
         .section-title {
             font-size: 1.2rem;
         }
 
         .creator-card + .section-title {
             margin-top: 2rem;
+        }
+    }
+
+    @media (max-width: 713px) and (min-width: 567px) {
+        .entry-meta-line {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, max-content));
+            gap: 0.3rem 0.5rem;
+        }
+
+            .entry-meta-line span:first-child {
+                grid-column: 1 / -1;
+            }
+
+            .entry-meta-line span + span::before {
+                content: none;
+            }
+    }
+
+    @media (max-width: 506px) {
+        .entry-meta-line span:nth-child(2),
+        .entry-meta-line span:nth-child(3) {
+            display: none;
         }
     }
 

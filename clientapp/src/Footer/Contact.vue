@@ -1,28 +1,29 @@
-﻿<!--Contact.vue:-->
+<!--Contact.vue:-->
 
 <template>
     <main class="contact-page">
-        <h1>Kontakt</h1>
+        <h1>{{ t('contact.title') }}</h1>
 
         <section class="contact-intro">
             <p>
-                Du hast Fragen zu TrackYourGains, Feedback oder willst einen Fehler melden?<br />
-                Melde dich gerne direkt bei mir.
+                {{ t('contact.intro.line1') }}<br />
+                {{ t('contact.intro.line2') }}
             </p>
         </section>
 
         <section class="contact-grid">
             <div class="contact-card">
-                <h2>Direkte Kontakt­daten</h2>
+                <h2>{{ t('contact.direct.title') }}</h2>
                 <p>
                     Justin Heller<br />
                     Mühlweg 2<br />
                     92421 Schwandorf<br />
-                    Deutschland
+                    {{ t('contact.direct.country') }}
                 </p>
                 <p>
-                    Telefon: <a href="tel:+491799352261">+49 179 9352261</a><br />
-                    E-Mail:
+                    {{ t('contact.direct.phone') }}:
+                    <a href="tel:+491799352261">+49 179 9352261</a><br />
+                    {{ t('contact.direct.email') }}:
                     <a href="mailto:impressum@trackyourgains-support.de">
                         impressum@trackyourgains-support.de
                     </a>
@@ -30,26 +31,26 @@
             </div>
 
             <div class="contact-card">
-                <h2>Support & Feedback</h2>
+                <h2>{{ t('contact.support.title') }}</h2>
                 <p>
-                    📝 Funktionswunsch, Bug oder Idee für neue Features?<br />
-                    Schreib mir einfach eine kurze Nachricht – ich versuche, so schnell wie möglich zu antworten.
+                    {{ t('contact.support.text1') }}<br />
+                    {{ t('contact.support.text2') }}
                 </p>
                 <ul class="contact-list">
-                    <li>Probleme oder Fehler in der App</li>
-                    <li>Fragen zur Nutzung von TrackYourGains</li>
-                    <li>Vorschläge für neue Funktionen</li>
+                    <li>{{ t('contact.support.item1') }}</li>
+                    <li>{{ t('contact.support.item2') }}</li>
+                    <li>{{ t('contact.support.item3') }}</li>
                 </ul>
                 <p class="contact-hint">
-                    Bitte sende keine sensiblen Gesundheitsdaten oder medizinischen Diagnosen per E-Mail.
+                    {{ t('contact.support.hint') }}
                 </p>
             </div>
         </section>
 
         <section class="contact-form-section">
-            <h2>Nachricht senden</h2>
+            <h2>{{ t('contact.form.title') }}</h2>
             <p class="contact-form-hint">
-                Das Formular ist aktuell nur ein Platzhalter. Du kannst mir direkt per E-Mail schreiben:
+                {{ t('contact.form.hint') }}
                 <a href="mailto:impressum@trackyourgains-support.de">
                     impressum@trackyourgains-support.de
                 </a>
@@ -57,32 +58,43 @@
 
             <form class="contact-form" @submit.prevent>
                 <div class="form-row">
-                    <label for="name">Name</label>
-                    <input id="name" type="text" placeholder="Dein Name" />
-                </div>
-                <div class="form-row">
-                    <label for="email">E-Mail</label>
-                    <input id="email" type="email" placeholder="deine.mail@example.com" />
-                </div>
-                <div class="form-row">
-                    <label for="subject">Betreff</label>
-                    <input id="subject" type="text" placeholder="Worum geht es?" />
-                </div>
-                <div class="form-row">
-                    <label for="message">Nachricht</label>
-                    <textarea id="message"
-                              rows="5"
-                              placeholder="Deine Nachricht an mich..."></textarea>
+                    <label for="name">{{ t('contact.form.name') }}</label>
+                    <input id="name" type="text" :placeholder="t('contact.form.namePlaceholder')" />
                 </div>
 
-                <button type="submit" class="contact-submit" disabled title="Noch ohne Backend – bitte per E-Mail melden">
-                    Senden (demnächst verfügbar)
+                <div class="form-row">
+                    <label for="email">{{ t('contact.form.email') }}</label>
+                    <input id="email" type="email" :placeholder="t('contact.form.emailPlaceholder')" />
+                </div>
+
+                <div class="form-row">
+                    <label for="subject">{{ t('contact.form.subject') }}</label>
+                    <input id="subject" type="text" :placeholder="t('contact.form.subjectPlaceholder')" />
+                </div>
+
+                <div class="form-row">
+                    <label for="message">{{ t('contact.form.message') }}</label>
+                    <textarea id="message"
+                              rows="5"
+                              :placeholder="t('contact.form.messagePlaceholder')"></textarea>
+                </div>
+
+                <button type="submit"
+                        class="contact-submit"
+                        disabled
+                        :title="t('contact.form.disabledTitle')">
+                    {{ t('contact.form.submitSoon') }}
                 </button>
             </form>
         </section>
     </main>
 </template>
+<script setup lang="ts">
+    import { useI18n } from '@/composables/useI18n'
 
+    const { t } = useI18n()
+
+</script>
 <style scoped>
     .contact-page {
         max-width: 900px;

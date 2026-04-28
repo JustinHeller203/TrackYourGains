@@ -6,63 +6,86 @@
                :showClose="true"
                :show-actions="false"
                @cancel="emitClose()">
+        <template #header>
+            <button v-if="show && !isFollowUpOnly"
+                    type="button"
+                    class="sim-session-time"
+                    :class="{
+                        'is-running': sessionTimerRunning,
+                        'is-paused': !sessionTimerRunning,
+                        'is-bouncing': sessionTimerBounce
+                    }"
+                    :aria-label="sessionTimerRunning ? t('trainingSimulation.session.pauseAria') : t('trainingSimulation.session.resumeAria')"
+                    :title="sessionTimerRunning ? t('trainingSimulation.session.pauseAria') : t('trainingSimulation.session.resumeAria')"
+                    @click="toggleSessionTimer">
+                <span class="sim-session-time__ring" aria-hidden="true"></span>
+                <span class="sim-session-time__value">{{ sessionElapsedLabel }}</span>
+                <span class="sim-session-time__status" aria-hidden="true">
+                    {{ sessionTimerRunning ? t('trainingSimulation.pause') : t('trainingSimulation.continue') }}
+                </span>
+            </button>
+        </template>
+
         <div v-if="isFollowUpOnly" class="sim-followup">
             <div class="sim-followup-card">
                 <div class="sim-followup-title">
-                    Dieses Training wurde heute schon abgeschlossen.
+                    {{ t('trainingSimulation.followup.title') }}
                 </div>
                 <p class="sim-followup-text">
-                    Statt direkt neu zu starten kannst du hier dein heutiges Training nachpflegen oder bearbeiten.
+                    {{ t('trainingSimulation.followup.text') }}
                 </p>
                 <div class="sim-followup-status">
                     <div class="sim-followup-row">
-                        <span>Feedback</span>
+                        <span>{{ t('trainingSimulation.followup.feedback') }}</span>
                         <strong class="sim-followup-dbl"
                                 role="button"
                                 tabindex="0"
                                 @dblclick="onFollowupFeedbackDblClick">
-                            {{ followupFeedbackExists ? 'Vorhanden' : 'Fehlt' }}
+                            {{ followupFeedbackExists ? t('trainingSimulation.followup.exists') : t('trainingSimulation.followup.missing') }}
                         </strong>
                     </div>
                     <div class="sim-followup-row" :class="{ 'is-disabled': !followupPainAvailable }">
-                        <span>Schmerztagebuch</span>
+                        <span>{{ t('trainingSimulation.followup.painDiary') }}</span>
                         <strong class="sim-followup-dbl"
                                 role="button"
                                 tabindex="0"
                                 @dblclick="onFollowupPainDblClick">
-                            {{ followupPainDoneToday ? 'Vorhanden' : (followupPainAvailable ? 'Fehlt' : 'Nicht nötig') }}
+                            {{ followupPainDoneToday ? t('trainingSimulation.followup.exists') : (followupPainAvailable ? t('trainingSimulation.followup.missing') : t('trainingSimulation.followup.notNeeded')) }}
                         </strong>
                     </div>
                 </div>
                 <p class="sim-followup-hint">
-                    Hinweis: Doppelklick auf <b>Fehlt</b> oder <b>Vorhanden</b>, um Feedback oder Schmerztagebuch zu bearbeiten/nachzuholen.
+                    {{ t('trainingSimulation.followup.hintBefore') }}
+                    <b>{{ t('trainingSimulation.followup.missing') }}</b>
+                    {{ t('trainingSimulation.followup.hintMiddle') }}
+                    <b>{{ t('trainingSimulation.followup.exists') }}</b>
+                    {{ t('trainingSimulation.followup.hintAfter') }}
                 </p>
                 <div class="sim-followup-actions">
                     <PopupActionButton variant="ghost" @click="openFollowupPlanProgress">
-                        Training ansehen
+                        {{ t('trainingSimulation.followup.viewTraining') }}
                     </PopupActionButton>
                     <PopupActionButton variant="ghost" @click="openFollowupTrainingEdit">
-                        Heutige Trainingseinträge bearbeiten
+                        {{ t('trainingSimulation.followup.editToday') }}
                     </PopupActionButton>
                     <PopupActionButton @click="startNewTrainingAnyway">
-                        Neues Training trotzdem starten
+                        {{ t('trainingSimulation.followup.startAnyway') }}
                     </PopupActionButton>
                 </div>
             </div>
         </div>
 
         <div v-else class="sim-scroll">
-
             <div class="sim-wrap">
                 <div v-if="!plan || !plan.exercises?.length" class="sim-empty">
-                    Kein Plan / keine Übungen gefunden.
+                    {{ t('trainingSimulation.empty') }}
                 </div>
 
                 <template v-else>
                     <!-- Progress -->
                     <div class="sim-progress">
                         <div class="sim-progress-row">
-                            <span>Übung {{ exIndex + 1 }}/{{ plan.exercises.length }}</span>
+                            <span>{{ t('trainingSimulation.exercise') }} {{ exIndex + 1 }}/{{ plan.exercises.length }}</span>
                             <span>{{ progressPct }}%</span>
                         </div>
                         <div class="sim-bar">
@@ -75,21 +98,21 @@
                         <div class="sim-ex-head">
                             <div class="sim-ex-picker">
                                 <UiPopupSelect id="sim-ex-select"
-                                               label="Übung wählen"
-                                               placeholder="Übung auswählen"
+                                               :label="t('trainingSimulation.chooseExercise')"
+                                               :placeholder="t('trainingSimulation.selectExercise')"
                                                v-model="selectedExerciseIdx"
                                                :options="exerciseOptions" />
                             </div>
 
-                        <div class="sim-ex-name">{{ current.exercise }}</div>
-                        <div v-if="currentExerciseGoals.length" class="sim-goal-hints">
-                            <div v-for="goal in currentExerciseGoals" :key="goal.goal.id" class="sim-goal-hint" :class="`is-${goal.status}`">
-                                <span class="sim-goal-hint__title">{{ goal.goal.title }}</span>
-                                <span class="sim-goal-hint__meta">{{ goal.currentLabel }} / {{ goal.targetLabel }}</span>
-                                <span class="sim-goal-hint__copy">{{ goal.primaryText }}</span>
+                            <div class="sim-ex-name">{{ current.exercise }}</div>
+                            <div v-if="currentExerciseGoals.length" class="sim-goal-hints">
+                                <div v-for="goal in currentExerciseGoals" :key="goal.goal.id" class="sim-goal-hint" :class="`is-${goal.status}`">
+                                    <span class="sim-goal-hint__title">{{ goal.goal.title }}</span>
+                                    <span class="sim-goal-hint__meta">{{ goal.currentLabel }} / {{ goal.targetLabel }}</span>
+                                    <span class="sim-goal-hint__copy">{{ goal.primaryText }}</span>
+                                </div>
                             </div>
-                        </div>
-                        <div v-if="mottoDisplay" class="sim-motto">“{{ mottoDisplay }}”</div>
+                            <div v-if="mottoDisplay" class="sim-motto">“{{ mottoDisplay }}”</div>
 
                             <div class="sim-ex-meta">
                                 <span class="pill">{{ typeLabel(currentType) }}</span>
@@ -105,11 +128,11 @@
 
                                 <span v-else-if="currentType !== 'ausdauer' && currentType !== 'dehnung' && ((current.sets ?? 0) > 0 || (current.reps ?? 0) > 0)"
                                       class="pill ghost">
-                                    🎯 {{ current.sets }} Sätze · {{ current.reps }} Wdh
+                                    🎯 {{ current.sets }} {{ t('trainingSimulation.sets') }} · {{ current.reps }} {{ t('trainingSimulation.repsShort') }}
                                 </span>
 
                                 <span v-else class="pill ghost">
-                                    🎯 keine Vorgaben
+                                    🎯 {{ t('trainingSimulation.noTargets') }}
                                 </span>
                             </div>
 
@@ -131,7 +154,7 @@
                         <div class="sim-actions">
                             <div class="sim-setbox">
                                 <div class="sim-set-title">
-                                    {{ currentType === 'ausdauer' ? 'Dauer' : (currentType === 'dehnung' ? 'Halten' : 'Satz-Progress') }}
+                                    {{ currentType === 'ausdauer' ? t('trainingSimulation.duration') : (currentType === 'dehnung' ? t('trainingSimulation.hold') : t('trainingSimulation.setProgress')) }}
                                 </div>
 
                                 <!-- ✅ Ausdauer: Minuten anzeigen, NICHT als "Sätze" -->
@@ -159,7 +182,7 @@
                                 </div>
 
                                 <div v-else class="sim-sets-empty">
-                                    (keine Sätze)
+                                    ({{ t('trainingSimulation.noSets') }})
                                 </div>
                             </div>
 
@@ -168,16 +191,16 @@
                                 <div ref="restAnchorEl" class="sim-rest-anchor" aria-hidden="true"></div>
 
                                 <div v-if="!restHasStarted" class="sim-setbox sim-progress-card">
-                                    <div class="sim-progress-title">Fortschritt eintragen</div>
+                                    <div class="sim-progress-title">{{ t('trainingSimulation.logProgress') }}</div>
                                     <div class="sim-progress-sub">
-                                        Für <b>{{ current.exercise }}</b> direkt eintragen.
+                                        {{ t('trainingSimulation.logProgressForBefore') }} <b>{{ current.exercise }}</b> {{ t('trainingSimulation.logProgressForAfter') }}
                                     </div>
                                     <div v-if="currentExerciseGoals.length" class="sim-progress-goal-copy">
-                                        Ziel im Blick: <b>{{ currentExerciseGoals[0].currentLabel }}</b> / {{ currentExerciseGoals[0].targetLabel }}
+                                        {{ t('trainingSimulation.goalInView') }}: <b>{{ currentExerciseGoals[0].currentLabel }}</b> / {{ currentExerciseGoals[0].targetLabel }}
                                     </div>
 
                                     <button type="button" class="btn primary" @click="openProgressModal()">
-                                        Eintragen
+                                        {{ t('trainingSimulation.log') }}
                                     </button>
                                 </div>
                             </div>
@@ -186,7 +209,7 @@
                         <!-- Pause Overlay: "Mini-Popup" fliegt in die Mitte -->
                         <BasePopup :show="restHasStarted"
                                    :key="restOverlayKey"
-                                   title="⏱️ Satzpause"
+                                   :title="t('trainingSimulation.rest.title')"
                                    overlayClass="sim-rest-bp"
                                    :showClose="true"
                                    :show-actions="false"
@@ -195,14 +218,16 @@
 
                                 <!-- ✅ Setup-Step (nur 1x pro Übung) -->
                                 <template v-if="restSetupOpen">
-                                    <div class="sim-rest-title">Satzpause einstellen</div>
+                                    <div class="sim-rest-title">{{ t('trainingSimulation.rest.setupTitle') }}</div>
                                     <div class="sim-rest-sub sim-rest-setup-sub">
-                                        Willst du für <b>{{ current.exercise }}</b> eine eigene Restzeit?
+                                        {{ t('trainingSimulation.rest.setupQuestionBefore') }}
+                                        <b>{{ current.exercise }}</b>
+                                        {{ t('trainingSimulation.rest.setupQuestionAfter') }}
                                     </div>
 
                                     <div class="sim-timer-btns sim-rest-setup-actions">
 
-                                        <UiPopupSelect label="Sound bei Pausen-Ende"
+                                        <UiPopupSelect :label="t('trainingSimulation.rest.soundLabel')"
                                                        v-model="restDoneSound"
                                                        :options="restDoneSoundOptions" />
 
@@ -212,16 +237,16 @@
                                                min="0"
                                                step="5"
                                                class="sim-rest-input"
-                                               placeholder="Sekunden"
-                                               aria-label="Benutzerdefinierte Restzeit (Sekunden)"
+                                               :placeholder="t('trainingSimulation.seconds')"
+                                               :aria-label="t('trainingSimulation.rest.customSecondsAria')"
                                                @keydown.enter.prevent="confirmRestSetup(true)" />
 
                                         <button type="button" class="btn primary" @click="confirmRestSetup(true)">
-                                            Übernehmen
+                                            {{ t('trainingSimulation.apply') }}
                                         </button>
 
                                         <button type="button" class="btn ghost" @click="resetRest()">
-                                            Nein
+                                            {{ t('trainingSimulation.no') }}
                                         </button>
                                     </div>
                                 </template>
@@ -243,7 +268,7 @@
                                                 class="btn"
                                                 :class="{ primary: !restRunning }"
                                                 @click="toggleRest()">
-                                            {{ restRunning ? 'Pause' : (restLeft > 0 ? 'Weiter' : 'Start') }}
+                                            {{ restRunning ? t('trainingSimulation.pause') : (restLeft > 0 ? t('trainingSimulation.continue') : t('trainingSimulation.start')) }}
                                         </button>
 
                                         <input v-model="restSetText"
@@ -252,13 +277,12 @@
                                                min="0"
                                                step="5"
                                                class="sim-rest-input"
-                                               placeholder="Sekunden"
-                                               aria-label="Restzeit setzen (Sekunden)"
+                                               :placeholder="t('trainingSimulation.seconds')"
+                                               :aria-label="t('trainingSimulation.rest.setSecondsAria')"
                                                @keydown.enter.prevent="applyRestSet()" />
 
-                                        <button type="button" class="btn" @click="applyRestSet()">Übernehmen</button>
-                                        <button type="button" class="btn ghost" @click="resetRest()">Reset</button>
-                                    </div>
+                                        <button type="button" class="btn" @click="applyRestSet()">{{ t('trainingSimulation.apply') }}</button>
+                                        <button type="button" class="btn ghost" @click="resetRest()">{{ t('trainingSimulation.reset') }}</button>                                    </div>
                                 </template>
                             </div>
                         </BasePopup>
@@ -269,7 +293,7 @@
                             <PopupActionButton variant="ghost"
                                                :disabled="exIndex === 0"
                                                @click="prevExercise()">
-                                ← Zurück
+                                ← {{ t('trainingSimulation.back') }}
                             </PopupActionButton>
 
                             <PopupActionButton @click="completeStep()">
@@ -279,7 +303,7 @@
                             <PopupActionButton variant="ghost"
                                                :disabled="exIndex >= (plan.exercises.length - 1)"
                                                @click="nextExercise()">
-                                Weiter →
+                                {{ t('trainingSimulation.next') }} →
                             </PopupActionButton>
                         </div>
                     </div>
@@ -304,19 +328,19 @@
 
     <InfoPopup :show="restDonePopupOpen"
                :key="restDonePopupKey"
-               title="⏱️ Pause vorbei"
+               :title="t('trainingSimulation.rest.doneTitle')"
                :message="restDoneMessage"
                overlayClass="sim-rest-done-popup"
-               okText="OK"
+               :okText="t('trainingSimulation.ok')"
                @ok="onRestDoneOk"
                @cancel="onRestDoneOk" />
 
     <InfoPopup :show="weightUpgradeHintPopupOpen"
                :key="weightUpgradeHintPopupKey"
-               title="📈 Gewichts-Hinweis"
+               :title="t('trainingSimulation.weightHint.title')"
                :message="weightUpgradeHintMessage"
                overlayClass="sim-rest-done-popup"
-               okText="Verstanden"
+               :okText="t('trainingSimulation.understood')"
                @ok="weightUpgradeHintPopupOpen = false"
                @cancel="weightUpgradeHintPopupOpen = false" />
 
@@ -371,8 +395,12 @@
     import { evaluateTrainingGoals, goalMatchesExerciseName } from "@/utils/goalTracking"
     import type { GoalWeightSample, GoalWorkoutSample, TrainingGoalEvaluation } from "@/types/goals"
     import { LS_OPEN_PLAN_ID, LS_PROGRESS_WEIGHTS, LS_PROGRESS_WORKOUTS } from "@/constants/storageKeys"
+    import { useI18n } from '@/composables/useI18n'
 
     const DEBUG_SIM = true
+
+    const { t } = useI18n()
+
     function dlog(...a: any[]) {
         if (!DEBUG_SIM) return
         // eslint-disable-next-line no-console
@@ -450,15 +478,8 @@
     const onSummaryClose = () => {
         summaryOpen.value = false
         sessionFinishedAtIso.value = new Date().toISOString()
-
-        if (sessionStartedAtIso.value) {
-            const start = new Date(sessionStartedAtIso.value).getTime()
-            const end = new Date(sessionFinishedAtIso.value).getTime()
-            const diff = Math.round((end - start) / 1000)
-            sessionDurationSec.value = Number.isFinite(diff) ? Math.max(0, diff) : null
-        } else {
-            sessionDurationSec.value = null
-        }
+        syncSessionElapsed()
+        sessionDurationSec.value = Math.max(0, Math.floor(sessionElapsedSec.value))
 
         finalizeTrainingSession()
         feedbackSource.value = followUpTrainingMode.value === 'edit-existing' ? 'followup' : 'normal'
@@ -622,7 +643,7 @@
 
                 // km sauber
                 reps = getCardioDistanceKm(ex) || normalizeNum(ex?.reps)
-            }else if (type === 'dehnung') {
+            } else if (type === 'dehnung') {
                 sets = normalizeNum(ex?.sets ?? 1)
                 reps = normalizeNum(ex?.reps ?? ex?.seconds ?? ex?.durationSec ?? ex?.durationSeconds ?? ex?.timeSec)
             } else {
@@ -727,6 +748,12 @@
         sessionStartedAtIso.value = null
         sessionFinishedAtIso.value = null
         sessionDurationSec.value = null
+        sessionElapsedSec.value = 0
+        sessionElapsedBaseSec.value = 0
+        sessionTimerRunning.value = false
+        sessionTimerResumedAtMs.value = null
+        stopSessionElapsedTimer()
+        clearSessionTimerBounce()
         // stop timer sauber, damit nix weiter tickt
         restRunning.value = false
         restHasStarted.value = false
@@ -772,8 +799,15 @@
     const isFollowUpOnly = computed(() => !!props.followUpMode && !followUpBypass.value)
     const followupPainDoneToday = computed(() => followupPainDoneState.value)
     const popupTitle = computed(() => {
-        if (isFollowUpOnly.value) return props.plan?.name ? `📋 Training verwalten – ${props.plan.name}` : '📋 Training verwalten'
-        return props.plan?.name ? `⚡ Training läuft – ${props.plan.name}` : '⚡ Training läuft'
+        if (isFollowUpOnly.value) {
+            return props.plan?.name
+                ? `${t('trainingSimulation.popup.manage')} – ${props.plan.name}`
+                : t('trainingSimulation.popup.manage')
+        }
+
+        return props.plan?.name
+            ? `${t('trainingSimulation.popup.running')} – ${props.plan.name}`
+            : t('trainingSimulation.popup.running')
     })
     const followupFeedbackExists = computed(() => {
         const src = followupFeedbackState.value
@@ -863,6 +897,85 @@
     const sessionStartedAtIso = ref<string | null>(null)
     const sessionFinishedAtIso = ref<string | null>(null)
     const sessionDurationSec = ref<number | null>(null)
+    const sessionElapsedSec = ref(0)
+    const sessionElapsedBaseSec = ref(0)
+    const sessionTimerRunning = ref(false)
+    const sessionTimerBounce = ref(false)
+    const sessionTimerResumedAtMs = ref<number | null>(null)
+    let sessionElapsedTimer: number | null = null
+    let sessionTimerBounceTimeout: number | null = null
+
+    const syncSessionElapsed = () => {
+        if (!sessionStartedAtIso.value) {
+            sessionElapsedSec.value = 0
+            return
+        }
+
+        if (!sessionTimerRunning.value || sessionTimerResumedAtMs.value == null) {
+            sessionElapsedSec.value = Math.max(0, Math.floor(sessionElapsedBaseSec.value))
+            return
+        }
+
+        const diffSec = Math.floor((Date.now() - sessionTimerResumedAtMs.value) / 1000)
+        sessionElapsedSec.value = Math.max(0, Math.floor(sessionElapsedBaseSec.value) + Math.max(0, diffSec))
+    }
+
+    const stopSessionElapsedTimer = () => {
+        if (sessionElapsedTimer != null) {
+            window.clearInterval(sessionElapsedTimer)
+            sessionElapsedTimer = null
+        }
+    }
+
+    const clearSessionTimerBounce = () => {
+        if (sessionTimerBounceTimeout != null) {
+            window.clearTimeout(sessionTimerBounceTimeout)
+            sessionTimerBounceTimeout = null
+        }
+        sessionTimerBounce.value = false
+    }
+
+    const pulseSessionTimer = () => {
+        clearSessionTimerBounce()
+        sessionTimerBounce.value = true
+        sessionTimerBounceTimeout = window.setTimeout(() => {
+            sessionTimerBounce.value = false
+            sessionTimerBounceTimeout = null
+        }, 240)
+    }
+
+    const startSessionElapsedTimer = () => {
+        stopSessionElapsedTimer()
+        syncSessionElapsed()
+        sessionElapsedTimer = window.setInterval(() => {
+            syncSessionElapsed()
+        }, 1000)
+    }
+
+    const pauseSessionTimer = () => {
+        syncSessionElapsed()
+        sessionElapsedBaseSec.value = Math.max(0, Math.floor(sessionElapsedSec.value))
+        sessionTimerRunning.value = false
+        sessionTimerResumedAtMs.value = null
+        stopSessionElapsedTimer()
+    }
+
+    const resumeSessionTimer = () => {
+        sessionTimerResumedAtMs.value = Date.now()
+        sessionTimerRunning.value = true
+        startSessionElapsedTimer()
+    }
+
+    const toggleSessionTimer = () => {
+        pulseSessionTimer()
+        if (sessionTimerRunning.value) {
+            pauseSessionTimer()
+            return
+        }
+        resumeSessionTimer()
+    }
+
+    const sessionElapsedLabel = computed(() => fmtDuration(sessionElapsedSec.value))
 
     const summaryMeta = computed(() => ({
         planId: props.plan?.id ?? null,
@@ -910,8 +1023,8 @@
     })
 
     const summaryHighlights = computed(() => ([
-        "Konstanz > Motivation. Du hast durchgezogen.",
-        "Nächster Step: mehr saubere Reps, nicht mehr Ego.",
+        t('trainingSimulation.summaryHighlight.consistency'),
+        t('trainingSimulation.summaryHighlight.nextStep'),
     ]))
 
     const sessionTypesPresent = computed(() => {
@@ -1180,8 +1293,10 @@
 
         if (!skipMoti) {
             showMoti(
-                `SATZ ${activeSetNumber.value}/${setTotal.value}. JETZT.`,
-                `NICHT NACHDENKEN. MACHEN. 💥`,
+                t('trainingSimulation.moti.setNow')
+                    .replace('{current}', String(activeSetNumber.value))
+                    .replace('{total}', String(setTotal.value)),
+                t('trainingSimulation.moti.doIt'),
                 motiMs
             )
             pulse([35, 40, 35])
@@ -1244,7 +1359,7 @@
     }
 
     const startRestAfterLoggedSet = () => {
-        showMoti("SATZ GELOGGT.", "PAUSE. DANN WIEDER DRUCK. ⚡", MOTI_MS_LOGGED)
+        showMoti(t('trainingSimulation.moti.setLogged'), t('trainingSimulation.moti.restThenPressure'), MOTI_MS_LOGGED)
         setDone.value += 1
         inSet.value = false
 
@@ -1330,16 +1445,16 @@
 
     const restFocusTitle = computed(() => {
         if (!restHasStarted.value) return ""
-        if (restLeft.value <= 10) return "In 10 Sekunden geht’s weiter."
-        if (restLeft.value <= 25) return "Nächster Satz: gleiche Technik."
-        if (restLeft.value <= 45) return "Atmung runter, Setup checken."
-        return "Pause: Erholen, nicht einschlafen."
+        if (restLeft.value <= 10) return t('trainingSimulation.rest.focus10')
+        if (restLeft.value <= 25) return t('trainingSimulation.rest.focus25')
+        if (restLeft.value <= 45) return t('trainingSimulation.rest.focus45')
+        return t('trainingSimulation.rest.focusDefault')
     })
 
     const restFocusSub = computed(() => {
         if (!restHasStarted.value) return ""
-        if (restRunning.value) return "Griff/Stand/Range kurz visualisieren. Dann Start."
-        return "Wenn du ready bist: Start. Kein Stress."
+        if (restRunning.value) return t('trainingSimulation.rest.subRunning')
+        return t('trainingSimulation.rest.subPaused')
     })
 
     const noop = () => { }
@@ -1660,7 +1775,8 @@
     }
 
     const triggerStartHype = (onDone?: (() => void) | null) => {
-        showMoti("JETZT. TRAINING START.", "ERSTER SATZ = STATEMENT. 🔥", MOTI_MS_START, onDone ?? null)
+        showMoti(t('trainingSimulation.moti.trainingStart'), t('trainingSimulation.moti.firstSetStatement'),
+            MOTI_MS_START, onDone ?? null)
         pulse([40, 40, 60, 40, 90])
 
         if (restDoneSound.value !== 'none') {
@@ -1670,37 +1786,39 @@
 
     /* ----------------- Hype lines ----------------- */
     const startHypeActive = computed(() =>
-        motiOpen.value && motiTitle.value === "JETZT. TRAINING START."
+        motiOpen.value && motiTitle.value === t('trainingSimulation.moti.trainingStart')
     )
 
     const hypeLine = computed(() => {
-        if (startHypeActive.value) return "Okay. Erster Satz: sauber & kontrolliert."
-        if (restRunning.value) return "Pause läuft. Atmung runter, Kopf klar."
-        if (setDone.value >= setTotal.value && setTotal.value > 0) return "Übung fertig. Kurz reset, dann weiter."
-        return isFirstStart.value ? "Start. Qualität zuerst." : "Nächster Satz: gleiche Technik, gleicher Standard."
+        if (startHypeActive.value) return t('trainingSimulation.hype.firstSetClean')
+        if (restRunning.value) return t('trainingSimulation.hype.restRunning')
+        if (setDone.value >= setTotal.value && setTotal.value > 0) return t('trainingSimulation.hype.exerciseDone')
+        return isFirstStart.value ? t('trainingSimulation.hype.startQuality') : t('trainingSimulation.hype.nextSetStandard')
     })
 
     const subLine = computed(() => {
-        if (startHypeActive.value) return "Tempo halten. Range voll. Keine Ego-Reps."
+        if (startHypeActive.value) return t('trainingSimulation.hypeSub.noEgoReps')
 
-        const t = currentType.value
-        if (t === "ausdauer") return "Pace stabil. Nasenatmung wenn möglich. Nicht overpacen."
-        if (t === "dehnung") return "Ruhig atmen. Spannung halten. Kein Wippen."
-        if (t === "calisthenics") return "Kontrolle zuerst: Körperspannung, sauberer Weg, keine Kipp-Reps."
-        return "2 Reps in Reserve lassen. Wenn’s wackelt: Gewicht runter, Form bleibt."
+        const type = currentType.value
+        if (type === "ausdauer") return t('trainingSimulation.hypeSub.cardio')
+        if (type === "dehnung") return t('trainingSimulation.hypeSub.stretch')
+        if (type === "calisthenics") return t('trainingSimulation.hypeSub.calisthenics')
+        return t('trainingSimulation.hypeSub.strength')
     })
 
     const primaryCta = computed(() => {
-        if (restRunning.value) return "Zum nächsten Satz"
+        if (restRunning.value) return t('trainingSimulation.cta.nextSet')
 
-        // ✅ allererster Start (1. Übung, 1. Satz, noch nicht im Satz)
         if (exIndex.value === 0 && setDone.value === 0 && !inSet.value && setTotal.value > 0) {
-            return "Training starten"
+            return t('trainingSimulation.cta.startTraining')
         }
 
-        if (setDone.value < setTotal.value) return inSet.value ? "Satz fertig" : "Satz starten"
-        if (exIndex.value >= ((props.plan?.exercises?.length ?? 1) - 1)) return "Training beenden"
-        return "Nächste Übung"
+        if (setDone.value < setTotal.value) {
+            return inSet.value ? t('trainingSimulation.cta.finishSet') : t('trainingSimulation.cta.startSet')
+        }
+
+        if (exIndex.value >= ((props.plan?.exercises?.length ?? 1) - 1)) return t('trainingSimulation.cta.finishTraining')
+        return t('trainingSimulation.cta.nextExercise')
     })
 
     /* ----------------- Rest timer ----------------- */
@@ -1724,7 +1842,7 @@
 
     const restDoneMessage = computed(() => {
         // optional bisschen mehr Hype
-        return `Nächster Satz: ${current.value.exercise}.`
+        return `${t('trainingSimulation.rest.nextSet')}: ${current.value.exercise}.`
     })
 
     const onRestDoneOk = () => {
@@ -1732,7 +1850,7 @@
         restDonePopupOpen.value = false
         suppressRestDonePopup.value = false
 
-        showMoti("PAUSE VORBEI.", "NÄCHSTER SATZ. REIN DA. 🚀", MOTI_MS_DEFAULT)
+        showMoti(t('trainingSimulation.moti.restOver'), t('trainingSimulation.moti.nextSetGo'), MOTI_MS_DEFAULT)
         pulse([60, 30, 60])
 
         inSet.value = true
@@ -1868,12 +1986,12 @@
     const restDoneSound = ref<RestDoneSound>('none')
 
     const restDoneSoundOptions = [
-        { label: 'Kein Sound', value: 'none' },
-        { label: 'Standard', value: 'standard' },
-        { label: 'Alarm', value: 'alarm' },
-        { label: 'Beep', value: 'beep' },
-        { label: 'Dong', value: 'dong' },
-        { label: 'Decide', value: 'decide' },
+        { label: t('trainingSimulation.sound.none'), value: 'none' },
+        { label: t('trainingSimulation.sound.standard'), value: 'standard' },
+        { label: t('trainingSimulation.sound.alarm'), value: 'alarm' },
+        { label: t('trainingSimulation.sound.beep'), value: 'beep' },
+        { label: t('trainingSimulation.sound.dong'), value: 'dong' },
+        { label: t('trainingSimulation.sound.decide'), value: 'decide' },
     ]
 
 
@@ -1894,13 +2012,13 @@
 
         restAskedForExercise.value = true
 
-        const wants = window.confirm("Satzpause benutzerdefiniert? (OK = Ja, Abbrechen = Nein)")
+        const wants = window.confirm(t('trainingSimulation.rest.confirmCustom'))
         if (!wants) {
             restCustomSecForExercise.value = null
             return
         }
 
-        const raw = window.prompt("Wie viele Sekunden Satzpause?", String(restLeft.value || 60))
+        const raw = window.prompt(t('trainingSimulation.rest.promptSeconds'), String(restLeft.value || 60))
         if (raw == null) {
             // abgebrochen -> treat wie "nein"
             restCustomSecForExercise.value = null
@@ -1967,9 +2085,21 @@
         return `${mm}:${ss}`
     }
 
+    const fmtDuration = (sec: number) => {
+        const s = Math.max(0, Math.floor(sec))
+        const hh = Math.floor(s / 3600)
+        const mm = Math.floor((s % 3600) / 60)
+        const ss = String(s % 60).padStart(2, "0")
+
+        if (hh > 0) return `${hh}:${String(mm).padStart(2, "0")}:${ss}`
+        return `${mm}:${ss}`
+    }
+
     onBeforeUnmount(() => {
         clearRestDoneAutoClose()
         stopInterval()
+        stopSessionElapsedTimer()
+        clearSessionTimerBounce()
         clearRestCssVars()
         unlockPageScroll()
         clearStartHype()
@@ -2025,7 +2155,11 @@
 
         exIndex.value = clamped
 
-        showMoti("NÄCHSTE ÜBUNG.", `${props.plan?.exercises?.[clamped]?.exercise ?? "LET'S GO"} 🔥`, MOTI_MS_EXERCISE)
+        showMoti(
+            t('trainingSimulation.moti.nextExercise'),
+            `${props.plan?.exercises?.[clamped]?.exercise ?? t('trainingSimulation.letsGo')} 🔥`,
+            MOTI_MS_EXERCISE
+        )
 
         pulse([30, 30, 30])
 
@@ -2143,12 +2277,12 @@
     }
 
     /* ----------------- labels ----------------- */
-    const typeLabel = (t?: unknown) => {
-        const n = normalizeExerciseType(t)
-        if (n === "ausdauer") return "Ausdauer"
-        if (n === "dehnung") return "Dehnung"
-        if (n === "calisthenics") return "Calisthenics"
-        return "Kraft"
+    const typeLabel = (type?: unknown) => {
+        const n = normalizeExerciseType(type)
+        if (n === "ausdauer") return t('trainingSummary.type.cardio')
+        if (n === "dehnung") return t('trainingSummary.type.stretch')
+        if (n === "calisthenics") return t('trainingSummary.type.calisthenics')
+        return t('trainingSummary.type.strength')
     }
 
     watch(() => props.show, (v) => {
@@ -2163,15 +2297,23 @@
             sessionStartedAtIso.value = new Date().toISOString()
             sessionFinishedAtIso.value = null
             sessionDurationSec.value = null
+            sessionElapsedSec.value = 0
+            sessionElapsedBaseSec.value = 0
+            sessionTimerRunning.value = false
+            sessionTimerResumedAtMs.value = null
+            resumeSessionTimer()
 
             lockPageScroll()
 
             if (!isFollowUpOnly.value) {
                 // ✅ MOTI-Toast direkt beim Öffnen
-                showMoti("DU BIST DRIN.", "HEUTE WIRD GELIEFERT. 💣", MOTI_MS_DEFAULT)
+                showMoti(t('trainingSimulation.moti.youAreIn'), t('trainingSimulation.moti.todayWeDeliver'),
+                    MOTI_MS_DEFAULT)
                 pulse([35, 30, 35])
             }
         } else {
+            stopSessionElapsedTimer()
+            clearSessionTimerBounce()
             unlockPageScroll()
         }
 
@@ -2182,6 +2324,10 @@
             sessionStartedAtIso.value = null
             sessionFinishedAtIso.value = null
             sessionDurationSec.value = null
+            sessionElapsedSec.value = 0
+            sessionElapsedBaseSec.value = 0
+            sessionTimerRunning.value = false
+            sessionTimerResumedAtMs.value = null
             feedbackOpen.value = false
             painFeedbackOpen.value = false
             painZeroConfirmOpen.value = false
@@ -2276,14 +2422,14 @@
         color: var(--text-secondary);
     }
 
-    .sim-followup-row strong {
-        color: var(--text-primary);
-    }
+        .sim-followup-row strong {
+            color: var(--text-primary);
+        }
 
-    .sim-followup-row.is-disabled .sim-followup-dbl {
-        opacity: .75;
-        cursor: not-allowed;
-    }
+        .sim-followup-row.is-disabled .sim-followup-dbl {
+            opacity: .75;
+            cursor: not-allowed;
+        }
 
     .sim-followup-dbl {
         color: var(--text-primary);
@@ -2315,15 +2461,15 @@
         border: 1px solid rgba(59, 130, 246, 0.16);
     }
 
-    .sim-goal-hint.is-achieved {
-        background: rgba(16, 185, 129, 0.12);
-        border-color: rgba(16, 185, 129, 0.2);
-    }
+        .sim-goal-hint.is-achieved {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.2);
+        }
 
-    .sim-goal-hint.is-needs_attention {
-        background: rgba(245, 158, 11, 0.12);
-        border-color: rgba(245, 158, 11, 0.22);
-    }
+        .sim-goal-hint.is-needs_attention {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.22);
+        }
 
     .sim-goal-hint__title {
         font-size: 0.82rem;
@@ -2346,9 +2492,9 @@
         gap: .55rem;
     }
 
-    .sim-followup-actions > * {
-        width: 100%;
-    }
+        .sim-followup-actions > * {
+            width: 100%;
+        }
 
     .sim-wrap {
         display: grid;
@@ -2356,6 +2502,122 @@
         min-height: 0;
         max-height: 65vh;
         /* position: relative;  ❌ nicht mehr nötig, Overlay hängt an .sim-scroll */
+    }
+
+    .sim-session-time {
+        position: absolute;
+        top: .75rem;
+        left: .85rem;
+        z-index: 3;
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        width: fit-content;
+        padding: .3rem .55rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        background: rgba(15, 23, 42, 0.72);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: .76rem;
+        font-weight: 800;
+        letter-spacing: .02em;
+        backdrop-filter: blur(10px);
+        cursor: pointer;
+        appearance: none;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+        transition: transform 160ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease, opacity 180ms ease, filter 180ms ease;
+    }
+
+        .sim-session-time:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.24);
+        }
+
+        .sim-session-time:active,
+        .sim-session-time.is-bouncing {
+            transform: scale(0.96);
+        }
+
+        .sim-session-time:focus-visible {
+            outline: 2px solid color-mix(in srgb, var(--accent-primary) 68%, white 32%);
+            outline-offset: 2px;
+        }
+
+        .sim-session-time.is-running {
+            border-color: rgba(96, 165, 250, 0.36);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .sim-session-time.is-paused {
+            background: rgba(15, 23, 42, 0.56);
+            border-color: rgba(148, 163, 184, 0.18);
+            opacity: 0.84;
+            filter: saturate(0.82);
+        }
+
+    .sim-session-time__ring {
+        width: .72rem;
+        height: .72rem;
+        border-radius: 999px;
+        border: 2px solid rgba(255, 255, 255, 0.28);
+        border-top-color: color-mix(in srgb, var(--accent-primary) 72%, white 28%);
+        border-right-color: color-mix(in srgb, var(--accent-primary) 58%, white 42%);
+        box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.24);
+        flex: 0 0 auto;
+    }
+
+    .sim-session-time.is-running .sim-session-time__ring {
+        animation: sim-session-ring-spin 2.8s linear infinite, sim-session-ring-pulse 1.9s ease-in-out infinite;
+    }
+
+    .sim-session-time.is-paused .sim-session-time__ring {
+        border-color: rgba(255, 255, 255, 0.18);
+        border-top-color: rgba(255, 255, 255, 0.3);
+        border-right-color: rgba(255, 255, 255, 0.22);
+        box-shadow: none;
+    }
+
+    .sim-session-time__value {
+        min-width: 2.8rem;
+    }
+
+    .sim-session-time__status {
+        font-size: .67rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        opacity: .78;
+        transform: translateY(0);
+        transition: opacity 180ms ease, transform 180ms ease, color 180ms ease;
+    }
+
+    .sim-session-time.is-running .sim-session-time__status {
+        color: rgba(255, 255, 255, 0.92);
+    }
+
+    .sim-session-time.is-paused .sim-session-time__status {
+        color: rgba(255, 255, 255, 0.74);
+        transform: translateY(1px);
+    }
+
+    @keyframes sim-session-ring-spin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes sim-session-ring-pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.16);
+        }
+
+        50% {
+            box-shadow: 0 0 0 5px rgba(96, 165, 250, 0);
+        }
     }
 
     .sim-empty {
@@ -3041,30 +3303,30 @@
             align-items: center;
         }
 
-        .sim-timer-btns .sim-rest-input {
-            grid-column: 2 / 3;
-            grid-row: 1;
-            width: 100%;
-        }
+            .sim-timer-btns .sim-rest-input {
+                grid-column: 2 / 3;
+                grid-row: 1;
+                width: 100%;
+            }
 
-        .sim-timer-btns .btn {
-            width: 100%;
-        }
+            .sim-timer-btns .btn {
+                width: 100%;
+            }
 
-        .sim-timer-btns .btn:first-of-type {
-            grid-column: 1 / 2;
-            grid-row: 1;
-        }
+                .sim-timer-btns .btn:first-of-type {
+                    grid-column: 1 / 2;
+                    grid-row: 1;
+                }
 
-        .sim-timer-btns .btn:nth-of-type(2) {
-            grid-column: 1 / 2;
-            grid-row: 2;
-        }
+                .sim-timer-btns .btn:nth-of-type(2) {
+                    grid-column: 1 / 2;
+                    grid-row: 2;
+                }
 
-        .sim-timer-btns .btn:nth-of-type(3) {
-            grid-column: 2 / 3;
-            grid-row: 2;
-        }
+                .sim-timer-btns .btn:nth-of-type(3) {
+                    grid-column: 2 / 3;
+                    grid-row: 2;
+                }
     }
 
     @media (max-width: 435px) {
@@ -3072,25 +3334,25 @@
             grid-template-columns: 1fr 1fr;
         }
 
-        .sim-timer-btns .sim-rest-input {
-            grid-column: 2 / 3;
-            grid-row: 1;
-        }
+            .sim-timer-btns .sim-rest-input {
+                grid-column: 2 / 3;
+                grid-row: 1;
+            }
 
-        .sim-timer-btns .btn:first-of-type {
-            grid-column: 1 / 2;
-            grid-row: 1;
-        }
+            .sim-timer-btns .btn:first-of-type {
+                grid-column: 1 / 2;
+                grid-row: 1;
+            }
 
-        .sim-timer-btns .btn:nth-of-type(2) {
-            grid-column: 1 / 2;
-            grid-row: 2;
-        }
+            .sim-timer-btns .btn:nth-of-type(2) {
+                grid-column: 1 / 2;
+                grid-row: 2;
+            }
 
-        .sim-timer-btns .btn:nth-of-type(3) {
-            grid-column: 2 / 3;
-            grid-row: 2;
-        }
+            .sim-timer-btns .btn:nth-of-type(3) {
+                grid-column: 2 / 3;
+                grid-row: 2;
+            }
     }
 
     :global(.popup-overlay.sim-rest-done-popup) {
@@ -3170,5 +3432,4 @@
         outline: 2px solid color-mix(in srgb, var(--accent-primary) 55%, transparent);
         outline-offset: 2px;
     }
-
 </style>

@@ -121,6 +121,33 @@
         .extras-icon {
             margin-right: 0;
         }
+
+        .extras-icon svg {
+            animation: extras-icon-nudge-spin 7s ease-in-out infinite;
+            transform-origin: center;
+        }
+    }
+
+    @keyframes extras-icon-nudge-spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        7.14% {
+            transform: rotate(180deg);
+        }
+
+        50% {
+            transform: rotate(180deg);
+        }
+
+        57.14% {
+            transform: rotate(360deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
 

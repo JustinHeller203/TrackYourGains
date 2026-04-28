@@ -1,11 +1,11 @@
 <template>
     <BasePopup
         :show="show"
-        title="Passwort aendern"
+        :title="t('profile.changePassword')"
         variant="password-change-popup"
         @cancel="$emit('cancel')">
         <div class="form-grid">
-            <label class="label">Aktuelles Passwort</label>
+            <label class="label">{{ t('profile.popup.password.current') }}</label>
             <input
                 ref="currentRef"
                 v-model="form.current"
@@ -15,28 +15,28 @@
                 @keydown.enter.prevent="onSave" />
             <p v-if="errors.current" class="form-error">{{ errors.current }}</p>
 
-            <label class="label">Neues Passwort</label>
+            <label class="label">{{ t('profile.popup.password.new') }}</label>
             <input
                 v-model="form.next"
                 type="password"
                 :class="['input', { 'has-error': !!errors.next }]"
-                placeholder="Mind. 8 Zeichen"
+                :placeholder="t('profile.popup.password.minPlaceholder')"
                 @keydown.enter.prevent="onSave" />
             <p v-if="errors.next" class="form-error">{{ errors.next }}</p>
 
-            <label class="label">Neues Passwort (wiederholen)</label>
+            <label class="label">{{ t('profile.popup.password.repeat') }}</label>
             <input
                 v-model="form.repeat"
                 type="password"
                 :class="['input', { 'has-error': !!errors.repeat }]"
-                placeholder="Noch einmal eingeben"
+                :placeholder="t('profile.popup.password.repeatPlaceholder')"
                 @keydown.enter.prevent="onSave" />
             <p v-if="errors.repeat" class="form-error">{{ errors.repeat }}</p>
         </div>
 
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
-                Abbrechen
+                {{ t('common.cancel') }}
             </PopupActionButton>
 
             <PopupActionButton autofocus @click="onSave">
@@ -48,6 +48,7 @@
 
 <script setup lang="ts">
     import { ref, watch, nextTick } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
     import BasePopup from '../BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
 
@@ -61,6 +62,7 @@
     const form = ref({ current: '', next: '', repeat: '' })
     const errors = ref({ current: '', next: '', repeat: '' })
     const currentRef = ref<HTMLInputElement | null>(null)
+    const { t } = useI18n()
 
     watch(
         () => props.show,
@@ -77,19 +79,19 @@
         const { current, next, repeat } = form.value
         errors.value = { current: '', next: '', repeat: '' }
 
-        if (!current) errors.value.current = 'Bitte aktuelles Passwort eingeben.'
-        if (!next) errors.value.next = 'Bitte neues Passwort eingeben.'
-        if (!repeat) errors.value.repeat = 'Bitte neues Passwort wiederholen.'
+        if (!current) errors.value.current = t('profile.popup.password.currentRequired')
+        if (!next) errors.value.next = t('profile.popup.password.newRequired')
+        if (!repeat) errors.value.repeat = t('profile.popup.password.repeatRequired')
 
         if (errors.value.current || errors.value.next || errors.value.repeat) return
 
         if (next.length < 8) {
-            errors.value.next = 'Neues Passwort muss mindestens 8 Zeichen haben.'
+            errors.value.next = t('profile.form.passwordMinLength')
             return
         }
 
         if (next !== repeat) {
-            errors.value.repeat = 'Passwoerter stimmen nicht ueberein.'
+            errors.value.repeat = t('profile.form.passwordMismatch')
             return
         }
 

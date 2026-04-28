@@ -1,22 +1,20 @@
-﻿<!-- components/ui/training/TrainingPlanBuilder.vue -->
+<!-- components/ui/training/TrainingPlanBuilder.vue -->
 <template>
     <!-- Trainingsplan Formular -->
     <div class="workout-list builder-section"
          :class="{ 'builder-section--report-tutorial-active': showAutoPlanReportTutorial }"
          ref="builderSection">
-        <div
-            v-if="isPhonePreviewBuilderDemo && previewTouch.visible"
-            class="preview-touch"
-            :style="{ left: `${previewTouch.x}px`, top: `${previewTouch.y}px` }">
+        <div v-if="isPhonePreviewBuilderDemo && previewTouch.visible"
+             class="preview-touch"
+             :style="{ left: `${previewTouch.x}px`, top: `${previewTouch.y}px` }">
             <span class="preview-touch__dot"></span>
         </div>
-        <h3 class="section-title" :class="landingClass()" :style="{ '--builder-landing-delay': '0ms' }">Trainingsplan erstellen/bearbeiten</h3>
-        <form
-            @submit.prevent="createOrUpdatePlan"
-            class="form-card builder-grid"
-            :class="{ 'builder-card--editing': !!editingPlanId }">
+        <h3 class="section-title" :class="landingClass()" :style="{ '--builder-landing-delay': '0ms' }">{{ t('builder.title') }}</h3>
+        <form @submit.prevent="createOrUpdatePlan"
+              class="form-card builder-grid"
+              :class="{ 'builder-card--editing': !!editingPlanId }">
             <div class="mode-switch mode-switch--top" :class="landingClass()" :style="{ '--builder-landing-delay': '70ms' }">
-                <span class="field-label">Erstellungsmodus</span>
+                <span class="field-label">{{ t('builder.mode.label') }}</span>
                 <div ref="modeSwitchTrack"
                      class="segmented seg-mode"
                      :class="{ 'is-dragging': modeSwitchDrag.active }"
@@ -31,17 +29,20 @@
                             <span class="seg-mode__thumb-label seg-mode__thumb-label--manual"
                                   :style="modeSwitchManualLabelStyle">
                                 <span class="builder-mode-manual-content">
-                                    <span class="builder-mode-manual-label">Manuell</span>
+                                    <span class="builder-mode-manual-label">{{ t('builder.mode.manual') }}</span>
                                     <span v-if="showModeSwitchThumbHint"
                                           :key="`builder-mode-thumb-swipe-hint-${modeSwipeHintCycle}`"
                                           class="builder-mode-swipe-inline seg-mode__thumb-hint">
-                                        ›››
+                                        <span class="builder-mode-swipe-inline__glyph">›</span>
+                                        <span class="builder-mode-swipe-inline__glyph">›</span>
+                                        <span class="builder-mode-swipe-inline__glyph">›</span>
                                     </span>
                                 </span>
                             </span>
                             <span class="seg-mode__thumb-label seg-mode__thumb-label--auto"
                                   :style="modeSwitchAutoLabelStyle">
-                                Automatisch generieren
+                                <span class="builder-mode-auto-label builder-mode-auto-label--full">{{ t('builder.mode.auto') }}</span>
+                                <span class="builder-mode-auto-label builder-mode-auto-label--short">{{ t('builder.mode.autoShort') }}</span>
                             </span>
                         </span>
                     </span>
@@ -49,12 +50,16 @@
                             class="seg-mode__option"
                             :class="{ on: builderMode === 'manual' }"
                             @pointerdown.stop="handleModeSwitchPointerDown"
-                            @click="handleBuilderModeSwitchClick('manual')">Manuell</button>
+                            @click="handleBuilderModeSwitchClick('manual')">
+                        {{ t('builder.mode.manual') }}
+                    </button>
                     <button type="button"
                             class="seg-mode__option"
                             :class="{ on: builderMode === 'auto' }"
                             @pointerdown.stop="handleModeSwitchPointerDown"
-                            @click="handleBuilderModeSwitchClick('auto')">Automatisch generieren</button>
+                            @click="handleBuilderModeSwitchClick('auto')">
+                        <span class="builder-mode-auto-label builder-mode-auto-label--full">{{ t('builder.mode.auto') }}</span><span class="builder-mode-auto-label builder-mode-auto-label--short">{{ t('builder.mode.autoShort') }}</span>
+                    </button>
                 </div>
             </div>
 
@@ -68,560 +73,566 @@
                 </div>
                 <Transition name="builder-mode" mode="out-in">
                     <div :key="builderMode" class="builder-mode-shell">
-                <!-- Kopf: Planname + Typ (Segmented) + Extras rechts -->
-                <div v-if="builderMode === 'manual'" class="builder-head">
-                    <!-- NEU: Planname mit Überschrift -->
-                    <div class="plan-block">
-                        <label for="plan-name" class="field-label">Planname *</label>
-                        <UiTrainingInput id="plan-name"
-                                         v-model="planName"
-                                         class="plan-name-input slim"
-                                         placeholder="Planname (z. B. Push Day)"
-                                         :error="builderFormErrors.planName"
-                                         required />
-                    </div>
-
-                    <!-- Trainingstyp (Desktop: Segmented + Überschrift) -->
-                    <div v-if="builderMode === 'manual'" class="type-block desktop-only">
-                        <span class="type-heading field-label">Trainingstyp</span>
-                        <div class="segmented seg-type">
-                            <button type="button" :class="{ on: trainingType==='kraft' }" @click="handleTrainingTypeClick('kraft', $event)">Kraft</button>
-                            <button type="button" :class="{ on: trainingType==='calisthenics' }" @click="handleTrainingTypeClick('calisthenics', $event)">Calisthenics</button>
-                            <button type="button" :class="{ on: trainingType==='ausdauer' }" @click="handleTrainingTypeClick('ausdauer', $event)">Ausdauer</button>
-                            <button type="button" :class="{ on: trainingType==='dehnung' }" @click="handleTrainingTypeClick('dehnung', $event)">Dehnung</button>
-                        </div>
-                    </div>
-
-                    <!-- Trainingstyp (Mobile =560px: Label + Dropdown) -->
-                    <div v-if="builderMode === 'manual'" class="type-block mobile-only">
-                        <label class="type-heading field-label" for="training-type">Trainingstyp</label>
-                        <UiSelect v-model="trainingTypeSafe"
-                                  id="training-type"
-                                  aria-label="Trainingstyp wählen"
-                                  placeholder="Trainingstyp wählen"
-                                  :options="[
-            { value: 'kraft',        label: 'Kraft' },
-            { value: 'calisthenics', label: 'Calisthenics' },
-            { value: 'ausdauer',     label: 'Ausdauer' },
-            { value: 'dehnung',      label: 'Dehnung' }
-          ]" />
-                    </div>
-
-                    <!-- Extras-Button rechtsbündig (unverändert) -->
-                    <ExtrasToggleButton v-if="builderMode === 'manual'"
-                                        :extraClass="['action-btn','extras-cta']"
-                                        :toggled="showExtras"
-                                        :title="showExtras ? 'Extras ausblenden' : 'Extras einblenden'"
-                                        :aria-label="showExtras ? 'Extras ausblenden' : 'Extras einblenden'"
-                                        @click="toggleExtras" />
-                </div>
-
-                <Transition name="builder-accordion">
-                    <div v-if="builderMode === 'manual' && showExtras" class="goal-row">
-                        <label class="field-label">Trainingsziel</label>
-                        <div class="field-row" :class="{ 'has-error': !!builderFormErrors.selectedGoal }">
-                            <UiSelect v-model="selectedGoalSafe"
-                                      class="goal-select"
-                                      placeholder="Trainingsziel"
-                                      :options="trainingGoals" />
-                        </div>
-                        <p v-if="builderFormErrors.selectedGoal" class="field-error">{{ builderFormErrors.selectedGoal }}</p>
-                        <div class="field-grid manual-extras-grid">
-                            <div class="field">
-                                <label>Pause</label>
-                                <UiTrainingInput id="manual-recovery"
-                                                 v-model="manualRecovery"
-                                                 placeholder="z. B. 75–90 s locker" />
+                        <!-- Kopf: Planname + Typ (Segmented) + Extras rechts -->
+                        <div v-if="builderMode === 'manual'" class="builder-head">
+                            <!-- NEU: Planname mit Überschrift -->
+                            <div class="plan-block">
+                                <label for="plan-name" class="field-label">{{ t('builder.plan.nameRequired') }}</label>                                <UiTrainingInput id="plan-name"
+                                                                                                                                                                        v-model="planName"
+                                                                                                                                                                        class="plan-name-input slim"
+                                                                                                                                                                        :placeholder="t('builder.plan.namePlaceholder')"
+                                                                                                                                                                        :error="builderFormErrors.planName"
+                                                                                                                                                                        required />
                             </div>
-                            <div class="field">
-                                <label>Tempo</label>
-                                <UiTrainingInput id="manual-tempo"
-                                                 v-model="manualTempo"
-                                                 placeholder="z. B. 3-1-1 oder langsam runter, explosiv hoch" />
-                            </div>
-                            <div v-if="trainingType !== 'dehnung'" class="field">
-                                <label>Gerätenummer</label>
-                                <UiTrainingInput id="manual-equipment-number"
-                                                 v-model="manualEquipmentNumber"
-                                                 placeholder="z. B. C12 oder Rack 3" />
-                            </div>
-                        </div>
-                    </div>
-                </Transition>
 
-                <div v-if="builderMode === 'auto'" class="goal-row auto-plan-section">
-                    <div class="field-grid">
-                        <div class="field" :class="{ 'has-error': !!builderFormErrors.autoPrimaryGoal }">
-                            <label>Primärziel *</label>
-                            <UiSelect v-model="autoPrimaryGoal"
-                                      placeholder="Ziel"
-                                      :options="autoGoalOptions" />
-                            <p v-if="builderFormErrors.autoPrimaryGoal" class="field-error">{{ builderFormErrors.autoPrimaryGoal }}</p>
-                        </div>
-                        <div class="field">
-                            <label>Level *</label>
-                            <UiSelect v-model="autoLevel"
-                                      placeholder="Level"
-                                      :options="autoLevelOptions" />
-                        </div>
-                    </div>
-                    <div class="field-grid">
-                        <div class="field">
-                            <label>Training pro Woche *</label>
-                            <UiTrainingInput v-model.number="autoWeeklyFrequency"
-                                             id="auto-frequency"
-                                             type="number"
-                                             placeholder="z. B. 3"
-                                             min="1"
-                                             max="7"
-                                             :error="builderFormErrors.autoWeeklyFrequency" />
-                        </div>
-                        <div class="field">
-                            <label>Min pro Training *</label>
-                            <UiTrainingInput v-model.number="autoSessionDuration"
-                                             id="auto-duration"
-                                             type="number"
-                                             placeholder="z. B. 45"
-                                             min="20"
-                                             max="120"
-                                             :error="builderFormErrors.autoSessionDuration" />
-                        </div>
-                    </div>
-                    <div class="field-grid auto-plan-names">
-                        <div v-for="(_, index) in autoPlanNames"
-                             :key="`auto-plan-name-${index}`"
-                             class="field">
-                            <label :for="`auto-plan-name-${index}`">Planname {{ index + 1 }} *</label>
-                            <UiTrainingInput :id="`auto-plan-name-${index}`"
-                                             v-model="autoPlanNames[index]"
-                                             :placeholder="`Planname ${index + 1}`"
-                                             :error="builderFormErrors.autoPlanNames[index] || ''" />
-                        </div>
-                    </div>
-                    <div class="field-grid">
-                        <div class="field">
-                            <label>Split Präferenz</label>
-                            <UiSelect v-model="autoSplitPreference"
-                                      placeholder="Split"
-                                      :options="autoSplitOptions" />
-                        </div>
-                        <div class="field">
-                            <label>Equipment-Profil</label>
-                            <UiSelect v-model="autoEquipmentPreset"
-                                      placeholder="Equipment"
-                                      :options="autoEquipmentOptions" />
-                        </div>
-                    </div>
-                    <div class="auto-toggles-section">
-                        <span class="field-label auto-toggles-title">Plan-Optionen ankreuzen</span>
-                    </div>
-                    <div class="field-grid auto-toggles">
-                        <label><input v-model="autoMachineFocus" type="checkbox" /> Maschinenfokus</label>
-                        <label><input v-model="autoFreeWeightFocus" type="checkbox" /> Freihantelfokus</label>
-                        <label><input v-model="autoJointFriendly" type="checkbox" /> Gelenkschonend</label>
-                        <label><input v-model="autoIncludeSubstitutions" type="checkbox" /> Ersatzübungen ergänzen</label>
-                        <label><input v-model="autoNoCardio" type="checkbox" /> Kein Cardio</label>
-                        <label>
-                            <input v-model="autoNoHiiT" type="checkbox" />
-                            <span class="auto-toggle-inline">
-                                <span>Kein HIIT</span>
-                                <span class="auto-toggle-help" @click.stop.prevent>
-                                    <ExplanationPopup
-                                        title="HIIT"
-                                        kicker="Plan-Option erklärt"
-                                        aria-open="HIIT Info öffnen">
-                                        <HiitExplain />
-                                    </ExplanationPopup>
-                                </span>
-                            </span>
-                        </label>
-                        <label><input v-model="autoNoOverhead" type="checkbox" /> Keine Überkopfbewegungen</label>
-                        <label><input v-model="autoNoDeepKneeFlexion" type="checkbox" /> Keine tiefe Kniebeugung</label>
-                        <label>
-                            <input v-model="autoNoHighAxialLoad" type="checkbox" />
-                            <span class="auto-toggle-inline">
-                                <span>Keine hohe axiale Last</span>
-                                <span class="auto-toggle-help" @click.stop.prevent>
-                                    <ExplanationPopup
-                                        title="Hohe axiale Last"
-                                        kicker="Plan-Option erklärt"
-                                        aria-open="Axiale Last Info öffnen">
-                                        <AxialLoadExplain />
-                                    </ExplanationPopup>
-                                </span>
-                            </span>
-                        </label>
-                        <label><input v-model="autoNoJumping" type="checkbox" /> Keine Sprungbewegungen</label>
-                        <label><input v-model="autoNoRotation" type="checkbox" /> Keine Rotation</label>
-                        <label><input v-model="autoNoUnstable" type="checkbox" /> Keine instabilen Übungen</label>
-                    </div>
-                    <div v-if="autoMachineFocus || autoFreeWeightFocus || autoJointFriendly" class="field-grid">
-                        <div v-if="autoMachineFocus" class="field">
-                            <label>Maschinenfokus (%)</label>
-                            <UiTrainingInput v-model.number="autoMachineFocusWeight"
-                                             id="auto-machine-focus-weight"
-                                             type="number"
-                                             min="0"
-                                             max="100" />
-                        </div>
-                        <div v-if="autoFreeWeightFocus" class="field">
-                            <label>Freihantelfokus (%)</label>
-                            <UiTrainingInput v-model.number="autoFreeWeightFocusWeight"
-                                             id="auto-free-weight-focus-weight"
-                                             type="number"
-                                             min="0"
-                                             max="100" />
-                        </div>
-                        <div v-if="autoJointFriendly" class="field">
-                            <label>Gelenkschonend (%)</label>
-                            <UiTrainingInput v-model.number="autoJointFriendlyWeight"
-                                             id="auto-joint-friendly-weight"
-                                             type="number"
-                                             min="0"
-                                             max="100" />
-                        </div>
-                    </div>
-                    <div class="field-grid">
-                        <div class="field">
-                            <label>Muskelgruppen Fokus</label>
-                            <UiSelect v-model="autoFocusMuscleDraft"
-                                      placeholder="Muskelgruppe wählen"
-                                      :options="availableAutoFocusMuscleOptions" />
-                            <div v-if="autoFocusMuscles.length"
-                                 class="auto-selected-list"
-                                 role="list"
-                                 aria-label="Ausgewählte Fokus-Muskelgruppen">
-                                <button v-for="value in autoFocusMuscles"
-                                        :key="`focus-selected-${value}`"
-                                        type="button"
-                                        class="auto-selected-tag"
-                                        @click="toggleAutoFocusMuscle(value)">
-                                    {{ value }} ×
-                                </button>
+                            <!-- Trainingstyp (Desktop: Segmented + Überschrift) -->
+                            <div v-if="builderMode === 'manual'" class="type-block desktop-only">
+                                <span class="type-heading field-label">{{ t('builder.trainingType.label') }}</span>
+                                <div class="segmented seg-type">
+                                    <button type="button" :class="{ on: trainingType==='kraft' }" @click="handleTrainingTypeClick('kraft', $event)">{{ t('builder.trainingType.strength') }}</button>
+                                    <button type="button" :class="{ on: trainingType==='calisthenics' }" @click="handleTrainingTypeClick('calisthenics', $event)">{{ t('builder.trainingType.calisthenics') }}</button>
+                                    <button type="button" :class="{ on: trainingType==='ausdauer' }" @click="handleTrainingTypeClick('ausdauer', $event)">{{ t('builder.trainingType.endurance') }}</button>
+                                    <button type="button" :class="{ on: trainingType==='dehnung' }" @click="handleTrainingTypeClick('dehnung', $event)">{{ t('builder.trainingType.mobility') }}</button>
+                                </div>
                             </div>
-                        </div>
-                        <div class="field">
-                            <label>Muskelgruppen meiden</label>
-                            <UiSelect v-model="autoExcludedMuscleDraft"
-                                      placeholder="Muskelgruppe wählen"
-                                      :options="availableAutoExcludedMuscleOptions" />
-                            <div v-if="autoExcludedMuscles.length"
-                                 class="auto-selected-list"
-                                 role="list"
-                                 aria-label="Ausgewählte ausgeschlossene Muskelgruppen">
-                                <button v-for="value in autoExcludedMuscles"
-                                        :key="`exclude-selected-${value}`"
-                                        type="button"
-                                        class="auto-selected-tag"
-                                        @click="toggleAutoExcludedMuscle(value)">
-                                    {{ value }} ×
-                                </button>
+
+                            <!-- Trainingstyp (Mobile =560px: Label + Dropdown) -->
+                            <div v-if="builderMode === 'manual'" class="type-block mobile-only">
+                                <label class="type-heading field-label" for="training-type">{{ t('builder.trainingType.label') }}</label>
+                                <UiSelect v-model="trainingTypeSafe"
+                                          id="training-type"
+                                          :aria-label="t('builder.trainingType.placeholder')"
+                                          :placeholder="t('builder.trainingType.placeholder')"
+                                          :options="trainingTypeOptions" />
                             </div>
+
+                            <!-- Extras-Button rechtsbündig (unverändert) -->
+                            <ExtrasToggleButton v-if="builderMode === 'manual'"
+                                                :extraClass="['action-btn','extras-cta']"
+                                                :toggled="showExtras"
+                                                :title="showExtras ? t('builder.extras.hide') : t('builder.extras.show')"
+                                                :aria-label="showExtras ? t('builder.extras.hide') : t('builder.extras.show')"
+                                                @click="toggleExtras" />
                         </div>
-                    </div>
-                    <div class="field-grid">
-                        <div class="field">
-                            <label>Bevorzugte Übungen</label>
-                            <AutoExerciseSelector
-                                id="auto-preferred-exercises"
-                                v-model="autoPreferredExerciseRefs"
-                                placeholder="Übung aus Bibliothek auswählen"
-                                :muscle-group-options="customExerciseMuscleGroupOptions"
-                                variant="preferred" />
-                        </div>
-                        <div class="field">
-                            <label>Übungen ausschließen</label>
-                            <AutoExerciseSelector
-                                id="auto-excluded-exercises"
-                                v-model="autoExcludedExerciseRefs"
-                                placeholder="Übung aus Bibliothek auswählen"
-                                :muscle-group-options="customExerciseMuscleGroupOptions"
-                                variant="excluded" />
-                        </div>
-                    </div>
-                    <div v-if="activeAutoReportedExerciseOverrides.length" class="auto-report-overrides">
-                        <button
-                            type="button"
-                            class="auto-report-overrides__toggle"
-                            :aria-expanded="showAutoReportedExercises"
-                            @click="showAutoReportedExercises = !showAutoReportedExercises">
-                            <span class="field-label">Gemeldete Übungen</span>
-                            <span>{{ activeAutoReportedExerciseOverrides.length }} aktiv · {{ showAutoReportedExercises ? 'Ausblenden' : 'Aufklappen' }}</span>
-                        </button>
-                        <div
-                            v-if="showAutoReportedExercises"
-                            class="auto-selected-list"
-                            role="list"
-                            aria-label="Gemeldete Übungen">
-                            <button
-                                v-for="entry in activeAutoReportedExerciseOverrides"
-                                :key="getAutoExerciseOverrideKey(entry.reference)"
-                                type="button"
-                                class="auto-selected-tag auto-selected-tag--report"
-                                @click="reactivateReportedAutoExercise(entry.reference)">
-                                {{ entry.reference.label || entry.reference.canonicalName }} · {{ getAutoExerciseReportReasonLabel(entry.reason) }} ×
-                            </button>
-                        </div>
-                    </div>
-                    <div class="actions-row stack auto-plan-cta-row">
-                        <Transition name="auto-generation-overlay">
-                            <div
-                                v-if="builderMode === 'auto' && isGeneratingAutoPlan"
-                                class="auto-generation-overlay"
-                                aria-live="polite"
-                                aria-busy="true">
-                                <div class="auto-generation-overlay__card">
-                                    <span class="auto-generation-overlay__eyebrow">Auto-Plan wird generiert</span>
-                                    <strong class="auto-generation-overlay__percent">{{ autoGenerationProgress }}%</strong>
-                                    <p class="auto-generation-overlay__status">{{ autoGenerationCurrentStage }}</p>
-                                    <div class="auto-generation-overlay__bar" aria-hidden="true">
-                                        <span :style="{ width: `${autoGenerationProgress}%` }"></span>
+
+                        <Transition :css="false"
+                                    @before-enter="handleBuilderAccordionBeforeEnter"
+                                    @enter="handleBuilderAccordionEnter"
+                                    @after-enter="handleBuilderAccordionAfterEnter"
+                                    @before-leave="handleBuilderAccordionBeforeLeave"
+                                    @leave="handleBuilderAccordionLeave"
+                                    @after-leave="handleBuilderAccordionAfterLeave">
+                            <div v-if="builderMode === 'manual' && showExtras" class="goal-row">
+                                <label class="field-label">{{ t('builder.goal.label') }}</label>
+                                <div class="field-row" :class="{ 'has-error': !!builderFormErrors.selectedGoal }">
+                                    <UiSelect v-model="selectedGoalSafe"
+                                              class="goal-select"
+                                              :placeholder="t('builder.goal.label')"
+                                              :options="trainingGoals" />
+                                </div>
+                                <p v-if="builderFormErrors.selectedGoal" class="field-error">{{ builderFormErrors.selectedGoal }}</p>
+                                <div class="field-grid manual-extras-grid">
+                                    <div class="field">
+                                        <label>{{ t('builder.manual.recovery') }}</label>
+                                        <UiTrainingInput id="manual-recovery"
+                                                         v-model="manualRecovery"
+                                                         :placeholder="t('builder.manual.recoveryPlaceholder')" />
                                     </div>
-                                    <div class="auto-generation-overlay__steps" aria-hidden="true">
-                                        <span
-                                            v-for="(step, index) in autoGenerationStages"
-                                            :key="step"
-                                            class="auto-generation-overlay__step"
-                                            :class="{ 'is-active': index <= autoGenerationStageIndex }"></span>
+                                    <div class="field">
+                                        <label>{{ t('builder.manual.tempo') }}</label>
+                                        <UiTrainingInput id="manual-tempo"
+                                                         v-model="manualTempo"
+                                                         :placeholder="t('builder.manual.tempoPlaceholder')" />
+                                    </div>
+                                    <div v-if="trainingType !== 'dehnung'" class="field">
+                                        <label>{{ t('builder.manual.equipmentNumber') }}</label>
+                                        <UiTrainingInput id="manual-equipment-number"
+                                                         v-model="manualEquipmentNumber"
+                                                         :placeholder="t('builder.manual.equipmentNumberPlaceholder')" />
                                     </div>
                                 </div>
                             </div>
                         </Transition>
-                        <button class="primary-btn"
-                                type="button"
-                                :disabled="isGeneratingAutoPlan"
-                                @click="generateAutoPlanIntoBuilder">
-                            {{ isGeneratingAutoPlan ? `Generiert ${autoGenerationProgress}%` : 'Auto-Plan generieren' }}
-                        </button>
-                        <p v-if="builderFormErrors.autoGeneral" class="field-error">{{ builderFormErrors.autoGeneral }}</p>
-                    </div>
-                </div>
 
-                <!-- Übungsauswahl -->
-                <div class="field-block" v-if="builderMode === 'manual' && trainingType !== 'ausdauer'">
-                    <label class="field-label">Übung *</label>
-                    <div class="field-row field-row-stack" :class="{ 'has-error': !!builderFormErrors.exercise }">
-                        <button type="button"
-                                class="exercise-select-trigger"
-                                @click="openManualExerciseLibrary">
-                            <span class="exercise-select-trigger__text"
-                                  :class="{ 'is-placeholder': !selectedManualLibraryExerciseLabel }">
-                                {{ selectedManualLibraryExerciseLabel || 'Übung aus Bibliothek auswählen' }}
-                            </span>
-                        </button>
-
-                        <button type="button"
-                                class="exercise-custom-toggle"
-                                :class="{ 'is-active': newExercise === 'custom' }"
-                                @click="toggleCustomExerciseMode">
-                            {{ newExercise === 'custom' ? 'Bibliothek nutzen' : 'Eigene Übung' }}
-                        </button>
-                    </div>
-                    <Transition name="builder-accordion">
-                        <div v-if="newExercise === 'custom'" class="custom-exercise-reveal">
-                            <UiTrainingInput id="custom-exercise"
-                                             v-model="customPlanExercise"
-                                             placeholder="Eigene Übung eingeben"
-                                             :error="builderFormErrors.customExercise" />
-                            <div class="field-row custom-muscle-row" :class="{ 'has-error': !!builderFormErrors.customExerciseMuscle }">
-                                <UiSelect id="exercise-filter"
-                                          class="filter-input"
-                                          v-model="exerciseFilter"
-                                          placeholder="Muskelgruppe wählen"
-                                          :options="customExerciseMuscleGroupOptions" />
+                        <div v-if="builderMode === 'auto'" class="goal-row auto-plan-section">
+                            <div class="field-grid">
+                                <div class="field" :class="{ 'has-error': !!builderFormErrors.autoPrimaryGoal }">
+                                    <label>{{ t('builder.auto.primaryGoal') }}</label>
+                                    <UiSelect v-model="autoPrimaryGoal"
+                                              :placeholder="t('builder.auto.goalPlaceholder')"
+                                              :options="autoGoalOptions" />
+                                    <p v-if="builderFormErrors.autoPrimaryGoal" class="field-error">{{ builderFormErrors.autoPrimaryGoal }}</p>
+                                </div>
+                                <div class="field">
+                                    <label>{{ t('builder.auto.level') }}</label>
+                                    <UiSelect v-model="autoLevel"
+                                              :placeholder="t('builder.auto.levelPlaceholder')"
+                                              :options="autoLevelOptions" />
+                                </div>
                             </div>
-                            <p v-if="builderFormErrors.customExerciseMuscle" class="field-error">{{ builderFormErrors.customExerciseMuscle }}</p>
+                            <div class="field-grid">
+                                <div class="field">
+                                    <label>{{ t('builder.auto.weeklyFrequency') }}</label>
+                                    <UiTrainingInput v-model.number="autoWeeklyFrequency"
+                                                     id="auto-frequency"
+                                                     type="number"
+                                                     :placeholder="t('builder.auto.weeklyFrequencyPlaceholder')"
+                                                     min="1"
+                                                     max="7"
+                                                     :error="builderFormErrors.autoWeeklyFrequency" />
+                                </div>
+                                <div class="field">
+                                    <label>{{ t('builder.auto.sessionDuration') }}</label>
+                                    <UiTrainingInput v-model.number="autoSessionDuration"
+                                                     id="auto-duration"
+                                                     type="number"
+                                                     :placeholder="t('builder.auto.sessionDurationPlaceholder')"
+                                                     min="20"
+                                                     max="120"
+                                                     :error="builderFormErrors.autoSessionDuration" />
+                                </div>
+                            </div>
+                            <div class="field-grid auto-plan-names">
+                                <div v-for="(_, index) in autoPlanNames"
+                                     :key="`auto-plan-name-${index}`"
+                                     class="field">
+                                    <label :for="`auto-plan-name-${index}`">{{ tp('builder.auto.planNameIndexedRequired', { index: index + 1 }) }}</label>
+                                    <UiTrainingInput :id="`auto-plan-name-${index}`"
+                                                     v-model="autoPlanNames[index]"
+                                                     :placeholder="tp('builder.auto.planNameIndexed', { index: index + 1 })"
+                                                     :error="builderFormErrors.autoPlanNames[index] || ''" />
+                                </div>
+                            </div>
+                            <div class="field-grid">
+                                <div class="field">
+                                    <label>{{ t('builder.auto.splitPreference') }}</label>
+                                    <UiSelect v-model="autoSplitPreference"
+                                              :placeholder="t('builder.auto.splitPlaceholder')"
+                                              :options="autoSplitOptions" />
+                                </div>
+                                <div class="field">
+                                    <label>{{ t('builder.auto.equipmentProfile') }}</label>
+                                    <UiSelect v-model="autoEquipmentPreset"
+                                              :placeholder="t('builder.auto.equipmentPlaceholder')"
+                                              :options="autoEquipmentOptions" />
+                                </div>
+                            </div>
+                            <div class="auto-toggles-section">
+                                <span class="field-label auto-toggles-title">{{ t('builder.auto.optionsTitle') }}</span>
+                            </div>
+                            <div class="field-grid auto-toggles">
+                                <label><input v-model="autoFreeWeightFocus" type="checkbox" /> {{ t('builder.auto.freeWeightFocus') }}</label>
+                                <label><input v-model="autoJointFriendly" type="checkbox" /> {{ t('builder.auto.jointFriendly') }}</label>
+                                <label><input v-model="autoIncludeSubstitutions" type="checkbox" /> {{ t('builder.auto.includeSubstitutions') }}</label>
+                                <label><input v-model="autoNoCardio" type="checkbox" /> {{ t('builder.auto.noCardio') }}</label>
+                                <label>
+                                    <input v-model="autoNoHiiT" type="checkbox" />
+                                    <span class="auto-toggle-inline">
+                                        <span>{{ t('builder.auto.noHiit') }}</span>
+                                        <span class="auto-toggle-help" @click.stop.prevent>
+                                            <ExplanationPopup :title="t('builder.auto.hiit')"
+                                                              :kicker="t('builder.auto.optionExplained')"
+                                                              :aria-open="t('builder.auto.openHiitInfo')">
+                                                <HiitExplain />
+                                            </ExplanationPopup>
+                                        </span>
+                                    </span>
+                                </label>
+                                <label><input v-model="autoNoOverhead" type="checkbox" /> {{ t('builder.auto.noOverhead') }}</label>
+                                <label><input v-model="autoNoDeepKneeFlexion" type="checkbox" /> {{ t('builder.auto.noDeepKneeFlexion') }}</label>                                <label>
+                                    <input v-model="autoNoHighAxialLoad" type="checkbox" />
+                                    <span class="auto-toggle-inline">
+                                        <span>{{ t('builder.auto.noHighAxialLoad') }}</span>
+                                        <span class="auto-toggle-help" @click.stop.prevent>
+                                            <ExplanationPopup :title="t('builder.auto.highAxialLoad')"
+                                                              :kicker="t('builder.auto.optionExplained')"
+                                                              :aria-open="t('builder.auto.openAxialLoadInfo')">
+                                                <AxialLoadExplain />
+                                            </ExplanationPopup>
+                                        </span>
+                                    </span>
+                                </label>
+                                <label><input v-model="autoNoJumping" type="checkbox" />  {{ t('builder.auto.noJumping') }}</label>
+                                <label><input v-model="autoNoRotation" type="checkbox" /> {{ t('builder.auto.noRotation') }}</label>
+                                <label><input v-model="autoNoUnstable" type="checkbox" /> {{ t('builder.auto.noUnstable') }}</label>
+                            </div>
+                            <div v-if="autoMachineFocus || autoFreeWeightFocus || autoJointFriendly" class="field-grid">
+                                <div v-if="autoMachineFocus" class="field">
+                                    <label>{{ t('builder.auto.machineFocusPercent') }}</label>
+                                    <UiTrainingInput v-model.number="autoMachineFocusWeight"
+                                                     id="auto-machine-focus-weight"
+                                                     type="number"
+                                                     min="0"
+                                                     max="100" />
+                                </div>
+                                <div v-if="autoFreeWeightFocus" class="field">
+                                    <label>{{ t('builder.auto.freeWeightFocusPercent') }}</label>
+                                    <UiTrainingInput v-model.number="autoFreeWeightFocusWeight"
+                                                     id="auto-free-weight-focus-weight"
+                                                     type="number"
+                                                     min="0"
+                                                     max="100" />
+                                </div>
+                                <div v-if="autoJointFriendly" class="field">
+                                    <label>{{ t('builder.auto.jointFriendlyPercent') }}</label>
+                                    <UiTrainingInput v-model.number="autoJointFriendlyWeight"
+                                                     id="auto-joint-friendly-weight"
+                                                     type="number"
+                                                     min="0"
+                                                     max="100" />
+                                </div>
+                            </div>
+                            <div class="field-grid">
+                                <div class="field">
+                                    <label>{{ t('builder.auto.focusMuscleGroups') }}</label>
+                                    <UiSelect v-model="autoFocusMuscleDraft"
+                                              :placeholder="t('builder.auto.chooseMuscleGroup')"
+                                              :options="availableAutoFocusMuscleOptions" />
+                                    <div v-if="autoFocusMuscles.length"
+                                         class="auto-selected-list"
+                                         role="list"
+                                         :aria-label="t('builder.auto.selectedFocusMuscles')">
+                                        <button v-for="value in autoFocusMuscles"
+                                                :key="`focus-selected-${value}`"
+                                                type="button"
+                                                class="auto-selected-tag"
+                                                @click="toggleAutoFocusMuscle(value)">
+                                            {{ value }} ×
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label>{{ t('builder.auto.avoidMuscleGroups') }}</label>
+                                    <UiSelect v-model="autoExcludedMuscleDraft"
+                                              :placeholder="t('builder.auto.chooseMuscleGroup')"
+                                              :options="availableAutoExcludedMuscleOptions" />
+                                    <div v-if="autoExcludedMuscles.length"
+                                         class="auto-selected-list"
+                                         role="list"
+                                         :aria-label="t('builder.auto.selectedExcludedMuscles')">
+                                        <button v-for="value in autoExcludedMuscles"
+                                                :key="`exclude-selected-${value}`"
+                                                type="button"
+                                                class="auto-selected-tag"
+                                                @click="toggleAutoExcludedMuscle(value)">
+                                            {{ value }} ×
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field-grid">
+                                <div class="field">
+                                    <label>{{ t('builder.auto.preferredExercises') }}</label>
+                                    <AutoExerciseSelector id="auto-preferred-exercises"
+                                                          v-model="autoPreferredExerciseRefs"
+                                                          :placeholder="t('builder.exercise.chooseFromLibrary')"
+                                                          :muscle-group-options="customExerciseMuscleGroupOptions"
+                                                          variant="preferred" />
+                                </div>
+                                <div class="field">
+                                    <label>{{ t('builder.auto.excludedExercises') }}</label>
+                                    <AutoExerciseSelector id="auto-excluded-exercises"
+                                                          v-model="autoExcludedExerciseRefs"
+                                                          :placeholder="t('builder.exercise.chooseFromLibrary')"
+                                                          :muscle-group-options="customExerciseMuscleGroupOptions"
+                                                          variant="excluded" />
+                                </div>
+                            </div>
+                            <div v-if="activeAutoReportedExerciseOverrides.length" class="auto-report-overrides">
+                                <button type="button"
+                                        class="auto-report-overrides__toggle"
+                                        :aria-expanded="showAutoReportedExercises"
+                                        @click="showAutoReportedExercises = !showAutoReportedExercises">
+                                    <span class="field-label">{{ t('builder.report.title') }}</span>
+                                    <span>
+                                        {{
+ tp('builder.report.activeToggle', {
+    count: activeAutoReportedExerciseOverrides.length,
+    action: showAutoReportedExercises ? t('common.hide') : t('common.expand'),
+})
+                                        }}
+                                    </span>
+                                </button>
+                                <div v-if="showAutoReportedExercises"
+                                     class="auto-selected-list"
+                                     role="list"
+                                     :aria-label="t('builder.report.title')">
+                                    <button v-for="entry in activeAutoReportedExerciseOverrides"
+                                            :key="getAutoExerciseOverrideKey(entry.reference)"
+                                            type="button"
+                                            class="auto-selected-tag auto-selected-tag--report"
+                                            @click="reactivateReportedAutoExercise(entry.reference)">
+                                        {{ entry.reference.label || entry.reference.canonicalName }} · {{ getAutoExerciseReportReasonLabel(entry.reason) }} ×
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="actions-row stack auto-plan-cta-row">
+                                <Transition name="auto-generation-overlay">
+                                    <div v-if="builderMode === 'auto' && isGeneratingAutoPlan"
+                                         class="auto-generation-overlay"
+                                         aria-live="polite"
+                                         aria-busy="true">
+                                        <div class="auto-generation-overlay__card">
+                                            <span class="auto-generation-overlay__eyebrow">{{ t('builder.auto.generating') }}</span>
+                                            <strong class="auto-generation-overlay__percent">{{ autoGenerationProgress }}%</strong>
+                                            <p class="auto-generation-overlay__status">{{ autoGenerationCurrentStage }}</p>
+                                            <div class="auto-generation-overlay__bar" aria-hidden="true">
+                                                <span :style="{ width: `${autoGenerationProgress}%` }"></span>
+                                            </div>
+                                            <div class="auto-generation-overlay__steps" aria-hidden="true">
+                                                <span v-for="(step, index) in autoGenerationStages"
+                                                      :key="step"
+                                                      class="auto-generation-overlay__step"
+                                                      :class="{ 'is-active': index <= autoGenerationStageIndex }"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Transition>
+                                <button class="primary-btn"
+                                        type="button"
+                                        :disabled="isGeneratingAutoPlan"
+                                        @click="generateAutoPlanIntoBuilder">
+                                    {{ isGeneratingAutoPlan ? tp('builder.auto.generatingPercent', { percent: autoGenerationProgress }) : t('builder.auto.generate') }}
+                                </button>
+                                <p v-if="builderFormErrors.autoGeneral" class="field-error">{{ builderFormErrors.autoGeneral }}</p>
+                            </div>
                         </div>
-                    </Transition>
-                    <p v-if="builderFormErrors.exercise" class="field-error">{{ builderFormErrors.exercise }}</p>
-                </div>
 
-                <div v-if="builderMode === 'manual' && trainingType !== 'ausdauer'" class="field-block">
-                    <label class="field-label">Ersatzübung</label>
-                    <div class="field-row field-row-stack field-row-stack--replacement">
-                        <button type="button"
-                                class="exercise-select-trigger"
-                                :disabled="!manualReplacementExerciseIds.length"
-                                @click="openReplacementExerciseLibrary">
-                            <span class="exercise-select-trigger__text"
-                                  :class="{ 'is-placeholder': !manualReplacementExerciseLabel }">
-                                {{ manualReplacementExerciseLabel || (manualReplacementExerciseIds.length ? 'Ersatzübung auswählen' : 'Zuerst passende Übung wählen') }}
-                            </span>
-                        </button>
-                        <button v-if="manualReplacementExercise"
-                                type="button"
-                                class="exercise-custom-toggle"
-                                @click="clearReplacementExercise">
-                            Auswahl entfernen
-                        </button>
-                    </div>
-                </div>
+                        <!-- Übungsauswahl -->
+                        <div class="field-block" v-if="builderMode === 'manual' && trainingType !== 'ausdauer'">
+                            <label class="field-label">{{ t('builder.exercise.required') }}</label>
+                            <div class="field-row field-row-stack" :class="{ 'has-error': !!builderFormErrors.exercise }">
+                                <button type="button"
+                                        class="exercise-select-trigger"
+                                        @click="openManualExerciseLibrary">
+                                    <span class="exercise-select-trigger__text"
+                                          :class="{ 'is-placeholder': !selectedManualLibraryExerciseLabel }">
+                                        {{ selectedManualLibraryExerciseLabel || t('builder.exercise.chooseFromLibrary') }}
+                                    </span>
+                                </button>
 
-                <!-- Cardio -->
-                <div class="field-block" v-else-if="builderMode === 'manual'">
-                    <label class="field-label">Cardio-Art</label>
-                    <div class="field-row" :class="{ 'has-error': !!builderFormErrors.cardioExercise }">
-                        <button type="button"
-                                class="exercise-select-trigger"
-                                @click="openManualExerciseLibrary">
-                            <span class="exercise-select-trigger__text"
-                                  :class="{ 'is-placeholder': !selectedManualLibraryExerciseLabel }">
-                                {{ selectedManualLibraryExerciseLabel || 'Cardio aus Bibliothek auswählen' }}
-                            </span>
-                        </button>
-                    </div>
-                    <p v-if="builderFormErrors.cardioExercise" class="field-error">{{ builderFormErrors.cardioExercise }}</p>
-                </div>
+                                <button type="button"
+                                        class="exercise-custom-toggle"
+                                        :class="{ 'is-active': newExercise === 'custom' }"
+                                        @click="toggleCustomExerciseMode">
+                                    {{ newExercise === 'custom' ? t('builder.exercise.useLibrary') : t('builder.exercise.custom') }}
+                                </button>
+                            </div>
+                            <Transition :css="false"
+                                        @before-enter="handleBuilderAccordionBeforeEnter"
+                                        @enter="handleBuilderAccordionEnter"
+                                        @after-enter="handleBuilderAccordionAfterEnter"
+                                        @before-leave="handleBuilderAccordionBeforeLeave"
+                                        @leave="handleBuilderAccordionLeave"
+                                        @after-leave="handleBuilderAccordionAfterLeave">
+                                <div v-if="newExercise === 'custom'" class="custom-exercise-reveal">
+                                    <UiTrainingInput id="custom-exercise"
+                                                     v-model="customPlanExercise"
+                                                     :placeholder="t('builder.exercise.customPlaceholder')"
+                                                     :error="builderFormErrors.customExercise" />
+                                    <div class="field-row custom-muscle-row" :class="{ 'has-error': !!builderFormErrors.customExerciseMuscle }">
+                                        <UiSelect id="exercise-filter"
+                                                  class="filter-input"
+                                                  v-model="exerciseFilter"
+                                                  :placeholder="t('builder.auto.chooseMuscleGroup')"
+                                                  :options="customExerciseMuscleGroupOptions" />
+                                    </div>
+                                    <p v-if="builderFormErrors.customExerciseMuscle" class="field-error">{{ builderFormErrors.customExerciseMuscle }}</p>
+                                </div>
+                            </Transition>
+                            <p v-if="builderFormErrors.exercise" class="field-error">{{ builderFormErrors.exercise }}</p>
+                        </div>
 
-                <!-- Parameter -->
-                <div class="field-grid" v-if="builderMode === 'manual' && (trainingType === 'kraft' || trainingType === 'calisthenics')">
-                    <div class="field">
-                        <label>Sätze *</label>
-                        <UiTrainingInput id="strength-sets"
-                                         v-model="newSetsText"
-                                         inputmode="numeric"
-                                         placeholder="z. B. 4"
-                                         :error="builderFormErrors.sets" />                    </div>
-                    <div class="field">
-                        <label>Wiederholungen *</label>
-                        <UiTrainingInput id="strength-reps"
-                                         v-model="newRepsText"
-                                         inputmode="numeric"
-                                         placeholder="z. B. 8–12"
-                                         :error="builderFormErrors.reps" />                    </div>
-                </div>
-
-                <div class="field-grid" v-else-if="builderMode === 'manual' && trainingType === 'dehnung'">
-                    <div class="field">
-                        <label>Holds *</label>
-                        <UiTrainingInput id="stretch-holds"
-                                         v-model="newSetsText"
-                                         inputmode="numeric"
-                                         placeholder="z. B. 3"
-                                         :error="builderFormErrors.sets" />                    </div>
-                    <div class="field">
-                        <label>Sekunden pro Hold *</label>
-                        <UiTrainingInput id="stretch-seconds"
-                                         v-model="newRepsText"
-                                         inputmode="numeric"
-                                         placeholder="z. B. 30"
-                                         :error="builderFormErrors.reps" />                    </div>
-                </div>
-
-                <div class="field-grid" v-else-if="builderMode === 'manual'">
-                    <div class="field">
-                        <label>Dauer (Min) *</label>
-                        <UiTrainingInput id="cardio-duration"
-                                         v-model.number="newDuration"
-                                         type="number"
-                                         min="1"
-                                         placeholder="z. B. 25"
-                                         :error="builderFormErrors.duration" />                    </div>
-                    <div class="field">
-                        <label>Distanz (km, optional)</label>
-                        <UiTrainingInput id="cardio-distance"
-                                         v-model.number="newDistance"
-                                         type="number"
-                                         min="0"
-                                         step="0.1"
-                                         placeholder="z. B. 5"
-                                         :error="builderFormErrors.distance" />                    </div>
-                </div>
-
-                <Transition name="smart-rx-content" mode="out-in">
-                    <div
-                        v-if="builderMode === 'manual' && !selectedGoal"
-                        key="smart-rx-hint"
-                        class="smart-rx-card smart-rx-card--hint">
-                        <div class="smart-rx-card__head">
-                            <div>
-                                <p class="smart-rx-card__eyebrow">Hinweis</p>
-                                <h4>Trainingsziel wählen</h4>
-                                <p class="smart-rx-card__summary">
-                                    Wähle zuerst bei Extras ein Trainingsziel aus. Erst danach wird eine passende Empfehlung für Sätze, Wiederholungen und Pause angezeigt.
-                                </p>
+                        <div v-if="builderMode === 'manual' && trainingType !== 'ausdauer'" class="field-block">
+                            <label class="field-label">{{ t('builder.replacement.label') }}</label>
+                            <div class="field-row field-row-stack field-row-stack--replacement">
+                                <button type="button"
+                                        class="exercise-select-trigger"
+                                        :disabled="!manualReplacementExerciseIds.length"
+                                        @click="openReplacementExerciseLibrary">
+                                    <span class="exercise-select-trigger__text"
+                                          :class="{ 'is-placeholder': !manualReplacementExerciseLabel }">
+                                        {{ manualReplacementExerciseLabel || (manualReplacementExerciseIds.length ? t('builder.replacement.choose') : t('builder.replacement.chooseBaseFirst')) }}
+                                    </span>
+                                </button>
+                                <button v-if="manualReplacementExercise"
+                                        type="button"
+                                        class="exercise-custom-toggle"
+                                        @click="clearReplacementExercise">
+                                    {{ t('builder.replacement.clear') }}
+                                </button>
                             </div>
                         </div>
-                        <p v-if="builderFormErrors.autoPreferenceWeights" class="field-error">{{ builderFormErrors.autoPreferenceWeights }}</p>
-                    </div>
 
-                    <div v-else-if="builderMode === 'manual' && manualPrescriptionHint"
-                         :key="`smart-rx-${manualPrescriptionHint.title}-${manualPrescriptionHint.summary}`"
-                         class="smart-rx-card">
-                        <div class="smart-rx-card__head">
-                            <div>
-                                <p class="smart-rx-card__eyebrow">Smart Range</p>
-                                <h4>{{ manualPrescriptionHint.title }}</h4>
-                                <p class="smart-rx-card__summary">{{ manualPrescriptionHint.summary }}</p>
+                        <!-- Cardio -->
+                        <div class="field-block" v-else-if="builderMode === 'manual'">
+                            <label class="field-label">{{ t('builder.cardio.type') }}</label>
+                            <div class="field-row" :class="{ 'has-error': !!builderFormErrors.cardioExercise }">
+                                <button type="button"
+                                        class="exercise-select-trigger"
+                                        @click="openManualExerciseLibrary">
+                                    <span class="exercise-select-trigger__text"
+                                          :class="{ 'is-placeholder': !selectedManualLibraryExerciseLabel }">
+                                        {{ selectedManualLibraryExerciseLabel || t('builder.cardio.chooseFromLibrary') }}
+                                    </span>
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                class="smart-rx-card__apply"
-                                @click="applyManualPrescriptionHint(true)">
-                                Empfehlung übernehmen
+                            <p v-if="builderFormErrors.cardioExercise" class="field-error">{{ builderFormErrors.cardioExercise }}</p>
+                        </div>
+
+                        <!-- Parameter -->
+                        <div class="field-grid" v-if="builderMode === 'manual' && (trainingType === 'kraft' || trainingType === 'calisthenics')">
+                            <div class="field">
+                                <label>{{ t('builder.fields.setsRequired') }}</label>
+                                <UiTrainingInput id="strength-sets"
+                                                 v-model="newSetsText"
+                                                 inputmode="numeric"
+                                                 :placeholder="t('builder.placeholders.sets')"
+                                                 :error="builderFormErrors.sets" />
+                            </div>
+                            <div class="field">
+                                <label>{{ t('builder.fields.repsRequired') }}</label>
+                                <UiTrainingInput id="strength-reps"
+                                                 v-model="newRepsText"
+                                                 inputmode="numeric"
+                                                 :placeholder="t('builder.placeholders.repsRange')"
+                                                 :error="builderFormErrors.reps" />
+                            </div>
+                        </div>
+
+                        <div class="field-grid" v-else-if="builderMode === 'manual' && trainingType === 'dehnung'">
+                            <div class="field">
+                                <label>{{ t('builder.fields.holdsRequired') }}</label>
+                                <UiTrainingInput id="stretch-holds"
+                                                 v-model="newSetsText"
+                                                 inputmode="numeric"
+                                                 :placeholder="t('builder.auto.weeklyFrequencyPlaceholder')"
+                                                 :error="builderFormErrors.sets" />
+                            </div>
+                            <div class="field">
+                                <label>{{ t('builder.fields.secondsPerHoldRequired') }}</label>
+                                <UiTrainingInput id="stretch-seconds"
+                                                 v-model="newRepsText"
+                                                 inputmode="numeric"
+                                                 :placeholder="t('builder.placeholders.seconds')"
+                                                 :error="builderFormErrors.reps" />
+                            </div>
+                        </div>
+
+                        <div class="field-grid" v-else-if="builderMode === 'manual'">
+                            <div class="field">
+                                <label>{{ t('builder.fields.durationRequired') }}</label>
+                                <UiTrainingInput id="cardio-duration"
+                                                 v-model.number="newDuration"
+                                                 type="number"
+                                                 min="1"
+                                                 :placeholder="t('builder.placeholders.duration')"
+                                                 :error="builderFormErrors.duration" />
+                            </div>
+                            <div class="field">
+                                <label>{{ t('builder.fields.distanceOptional') }}</label>
+                                <UiTrainingInput id="cardio-distance"
+                                                 v-model.number="newDistance"
+                                                 type="number"
+                                                 min="0"
+                                                 step="0.1"
+                                                 :placeholder="t('builder.placeholders.distance')"
+                                                 :error="builderFormErrors.distance" />
+                            </div>
+                        </div>
+
+                        <Transition name="smart-rx-content" mode="out-in">
+                            <div v-if="builderMode === 'manual' && !selectedGoal"
+                                 key="smart-rx-hint"
+                                 class="smart-rx-card smart-rx-card--hint">
+                                <div class="smart-rx-card__head">
+                                    <div>
+                                        <p class="smart-rx-card__eyebrow">{{ t('builder.smart.hint') }}</p>
+                                        <h4>{{ t('builder.smart.chooseGoal') }}</h4>
+                                        <p class="smart-rx-card__summary">
+                                            {{ t('builder.smart.chooseGoalText') }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <p v-if="builderFormErrors.autoPreferenceWeights" class="field-error">{{ builderFormErrors.autoPreferenceWeights }}</p>
+                            </div>
+
+                            <div v-else-if="builderMode === 'manual' && manualPrescriptionHint"
+                                 :key="`smart-rx-${manualPrescriptionHint.title}-${manualPrescriptionHint.summary}`"
+                                 class="smart-rx-card">
+                                <div class="smart-rx-card__head">
+                                    <div>
+                                        <p class="smart-rx-card__eyebrow">{{ t('builder.smart.range') }}</p>
+                                        <h4>{{ translateUiText(manualPrescriptionHint.title) }}</h4>
+                                        <p class="smart-rx-card__summary">{{ translateUiText(manualPrescriptionHint.summary) }}</p>
+                                    </div>
+                                    <button type="button"
+                                            class="smart-rx-card__apply"
+                                            @click="applyManualPrescriptionHint(true)">
+                                        {{ t('builder.smart.apply') }}
+                                    </button>
+                                </div>
+                                <div class="smart-rx-card__grid">
+                                    <div class="smart-rx-stat">
+                                        <span>{{ t('builder.smart.volume') }}</span>
+                                        <strong>{{ translateUiText(manualPrescriptionHint.setsLabel) }}</strong>
+                                    </div>
+                                    <div class="smart-rx-stat">
+                                        <span>{{ t('builder.smart.repRange') }}</span>
+                                        <strong>{{ translateUiText(manualPrescriptionHint.repsLabel) }}</strong>
+                                    </div>
+                                    <div class="smart-rx-stat">
+                                        <span>{{ t('builder.smart.rest') }}</span>
+                                        <strong>{{ translateUiText(manualPrescriptionHint.restLabel) }}</strong>
+                                    </div>
+                                    <div class="smart-rx-stat smart-rx-stat--accent">
+                                        <span>{{ t('builder.smart.focus') }}</span>
+                                        <strong>{{ translateUiText(manualPrescriptionHint.focusLabel) }}</strong>
+                                    </div>
+                                </div>
+                                <div class="smart-rx-card__chips">
+                                    <span v-for="chip in manualPrescriptionHint.chips" :key="chip" class="smart-rx-chip">{{ translateUiText(chip) }}</span>
+                                </div>
+                            </div>
+                        </Transition>
+
+                        <div v-if="builderMode === 'manual'" class="field-block">
+                            <label class="field-label">{{ t('builder.note.label') }}</label>
+                            <div class="field-row">
+                                <UiTrainingInput id="manual-note"
+                                                 v-model="manualNote"
+                                                 :placeholder="t('builder.note.placeholder')" />
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div v-if="builderMode === 'manual'" class="actions-row stack">
+                            <div class="button-group">
+                                <div class="btn-cell">
+                                    <AddExerciseButton class="action-btn add-exercise-btn block"
+                                                       :title="t('builder.actions.addExercise')"
+                                                       @click="addExerciseToPlan" />
+                                </div>
+                            </div>
+                            <p v-if="builderFormErrors.exercises" class="field-error">{{ builderFormErrors.exercises }}</p>
+                        </div>
+
+                        <p v-if="builderFormErrors.general" class="field-error">{{ builderFormErrors.general }}</p>
+                        <div class="builder-submit-row" :class="{ 'is-editing': !!editingPlanId }">
+                            <button v-if="editingPlanId"
+                                    type="button"
+                                    class="builder-edit-action-btn builder-cancel-edit-btn"
+                                    @click="cancelEditing">
+                                {{ t('builder.actions.cancelEdit') }}
                             </button>
+                            <PlanSubmitButton class="action-btn plan-submit-btn"
+                                              :isEditing="!!editingPlanId"
+                                              :disabled="isPlanSubmitDisabled"
+                                              :extraClass="editingPlanId ? 'builder-edit-action-btn plan-submit-btn--editing' : ''"
+                                              :createLabel="autoCreateButtonLabel"
+                                              :saveLabel="t('builder.actions.updatePlan')"
+                                              :saveTitle="t('builder.actions.updatePlan')" />
                         </div>
-                        <div class="smart-rx-card__grid">
-                            <div class="smart-rx-stat">
-                                <span>Volumen</span>
-                                <strong>{{ manualPrescriptionHint.setsLabel }}</strong>
-                            </div>
-                            <div class="smart-rx-stat">
-                                <span>Range</span>
-                                <strong>{{ manualPrescriptionHint.repsLabel }}</strong>
-                            </div>
-                            <div class="smart-rx-stat">
-                                <span>Pause</span>
-                                <strong>{{ manualPrescriptionHint.restLabel }}</strong>
-                            </div>
-                            <div class="smart-rx-stat smart-rx-stat--accent">
-                                <span>Fokus</span>
-                                <strong>{{ manualPrescriptionHint.focusLabel }}</strong>
-                            </div>
-                        </div>
-                        <div class="smart-rx-card__chips">
-                            <span v-for="chip in manualPrescriptionHint.chips" :key="chip" class="smart-rx-chip">{{ chip }}</span>
-                        </div>
-                    </div>
-                </Transition>
-
-                <div v-if="builderMode === 'manual'" class="field-block">
-                    <label class="field-label">Bemerkung</label>
-                    <div class="field-row">
-                        <UiTrainingInput id="manual-note"
-                                         v-model="manualNote"
-                                         placeholder="z. B. Ellbogen eng, sauberer Bewegungsradius, Maschine oft besetzt" />
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                <div v-if="builderMode === 'manual'" class="actions-row stack">
-                    <div class="button-group">
-                        <div class="btn-cell">
-                            <AddExerciseButton class="action-btn add-exercise-btn block"
-                                               title="Übung hinzufügen"
-                                               @click="addExerciseToPlan" />
-                        </div>
-                    </div>
-                    <p v-if="builderFormErrors.exercises" class="field-error">{{ builderFormErrors.exercises }}</p>
-                </div>
-
-                <p v-if="builderFormErrors.general" class="field-error">{{ builderFormErrors.general }}</p>
-                <div class="builder-submit-row" :class="{ 'is-editing': !!editingPlanId }">
-                    <button v-if="editingPlanId"
-                            type="button"
-                            class="builder-edit-action-btn builder-cancel-edit-btn"
-                            @click="cancelEditing">
-                        Bearbeiten abbrechen
-                    </button>
-                    <PlanSubmitButton class="action-btn plan-submit-btn"
-                                      :isEditing="!!editingPlanId"
-                                      :disabled="isPlanSubmitDisabled"
-                                      :extraClass="editingPlanId ? 'builder-edit-action-btn plan-submit-btn--editing' : ''"
-                                      :createLabel="autoCreateButtonLabel"
-                                      saveLabel="Plan aktualisieren"
-                                      saveTitle="Plan aktualisieren" />
-                </div>
                     </div>
                 </Transition>
             </div>
@@ -630,84 +641,187 @@
             <div class="builder-right" :class="landingClass()" :style="{ '--builder-landing-delay': '220ms' }">
                 <Transition name="builder-preview" mode="out-in">
                     <div :key="builderMode" class="preview-card builder-reveal-surface">
-                    <div class="preview-head">
-                        <h4>Live-Preview</h4>
-                        <span v-if="builderMode === 'auto' && autoPreviewPlans.length" class="muted">
-                            {{ autoPreviewPlans.length }} Plan{{ autoPreviewPlans.length===1?'':'e' }} · {{ autoPreviewExerciseCount }} Übung{{ autoPreviewExerciseCount===1?'':'en' }}
-                        </span>
-                        <span v-else-if="selectedPlanExercises.length" class="muted">
-                            {{ selectedPlanExercises.length }} Übung{{ selectedPlanExercises.length===1?'':'en' }}
-                        </span>
-                    </div>
-
-                    <div v-if="builderMode === 'auto' && autoPreviewPlans.length" class="auto-preview-banner">
-                        <span class="auto-preview-banner__pulse"></span>
-                        <div>
-                            <strong>Adaptive Satz-/Wdh-Engine aktiv</strong>
-                            <p>Jede Übung bekommt automatisch einen passenden Belastungsbereich für Ziel, Übungstyp und Level.</p>
+                        <div class="preview-head">
+                            <h4>{{ t('builder.preview.title') }}</h4>
+                            <span v-if="builderMode === 'auto' && autoPreviewPlans.length" class="muted">
+                                {{
+ tp(autoPreviewPlans.length === 1 ? 'builder.preview.planExerciseCountOne' : 'builder.preview.planExerciseCountOther', {
+        plans: autoPreviewPlans.length,
+        exercises: autoPreviewExerciseCount,
+    })
+                                }}
+                            </span>
+                            <span v-else-if="selectedPlanExercises.length" class="muted">
+                                {{
+ tp(selectedPlanExercises.length === 1 ? 'builder.preview.exerciseCountOne' : 'builder.preview.exerciseCountOther', {
+        count: selectedPlanExercises.length,
+    })
+                                }}
+                            </span>
                         </div>
-                    </div>
 
-                    <TransitionGroup v-if="builderMode === 'auto' && autoPreviewPlans.length" name="auto-plan-card" tag="div" class="auto-preview-list">
-                        <div v-for="(plan, planIndex) in autoPreviewPlans"
-                             :key="`${plan.name}-${planIndex}`"
-                             class="auto-preview-plan"
-                             :style="{ '--auto-plan-delay': `${Math.min(planIndex, 6) * 70}ms` }">
-                            <div class="auto-preview-plan__head">
-                                <h5>{{ plan.name }}</h5>
-                                <button
-                                    type="button"
-                                    class="auto-preview-plan__regen"
-                                    :disabled="regeneratingPlanIndex === planIndex"
-                                    @click="regenerateAutoPreviewPlan(planIndex)">
-                                    {{ regeneratingPlanIndex === planIndex ? 'Generiert...' : 'Neu generieren' }}
-                                </button>
+                        <div v-if="builderMode === 'auto' && autoPreviewPlans.length" class="auto-preview-banner">
+                            <span class="auto-preview-banner__pulse"></span>
+                            <div>
+                                <strong>{{ t('builder.preview.adaptiveEngine') }}</strong>
+                                <p>{{ t('builder.preview.adaptiveEngineText') }}</p>
                             </div>
-                            <Table class="exercise-table full-width compact" density="compact">
-                                <table>
+                        </div>
+
+                        <TransitionGroup v-if="builderMode === 'auto' && autoPreviewPlans.length" name="auto-plan-card" tag="div" class="auto-preview-list">
+                            <div v-for="(plan, planIndex) in autoPreviewPlans"
+                                 :key="`${plan.name}-${planIndex}`"
+                                 class="auto-preview-plan"
+                                 :style="{ '--auto-plan-delay': `${Math.min(planIndex, 6) * 70}ms` }">
+                                <div class="auto-preview-plan__head">
+                                    <h5>{{ plan.name }}</h5>
+                                    <button type="button"
+                                            class="auto-preview-plan__regen"
+                                            :disabled="regeneratingPlanIndex === planIndex"
+                                            @click="regenerateAutoPreviewPlan(planIndex)">
+                                        {{ regeneratingPlanIndex === planIndex ? t('builder.auto.regenerating') : t('builder.auto.regenerate') }}
+                                    </button>
+                                </div>
+                                <Table class="exercise-table full-width compact" density="compact">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th v-if="hasEquipmentNumbers(plan.exercises)">{{ t('builder.table.number') }}</th>
+                                                <th>{{ t('builder.table.exercise') }}</th>
+                                                <th>{{ t(plan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer') ? 'builder.table.setsMinutes' : 'builder.table.sets') }}</th>
+                                                <th>{{ t(plan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung') ? 'builder.table.repsKmSeconds' : 'builder.table.reps') }}</th>
+                                            </tr>
+                                        </thead>
+                                        <TransitionGroup name="auto-preview-row" tag="tbody">
+                                            <tr v-for="(ex, exIndex) in plan.exercises" :key="`${planIndex}-${exIndex}-${ex.exercise}`">
+                                                <td v-if="hasEquipmentNumbers(plan.exercises)" class="exercise-number-cell">
+                                                    <span class="exercise-number-pill">{{ formatExerciseNumber(ex) }}</span>
+                                                </td>
+                                                <td>
+                                                    <div class="auto-exercise-cell">
+                                                        <div class="auto-exercise-cell__body">
+                                                            <span>{{ ex.exercise }}</span>
+                                                            <small v-if="formatPlanExerciseMeta(ex)" class="exercise-meta-line exercise-meta-line--auto">
+                                                                <span class="exercise-meta-track">
+                                                                    <span class="exercise-meta-marquee">{{ formatPlanExerciseMeta(ex) }}</span>
+                                                                    <span class="exercise-meta-divider" aria-hidden="true">|</span>
+                                                                    <span class="exercise-meta-marquee" aria-hidden="true">{{ formatPlanExerciseMeta(ex) }}</span>
+                                                                </span>
+                                                            </small>
+                                                            <div v-if="ex.replacementExercise" class="preview-replacement-card">
+                                                                <span class="preview-replacement-card__label">{{ t('builder.replacement.label') }}</span>
+                                                                <span class="preview-replacement-card__name">{{ ex.replacementExercise }}</span>
+                                                                <span v-if="ex.replacementReason" class="preview-replacement-card__reason">{{ ex.replacementReason }}</span>
+                                                            </div>
+                                                        </div>
+                                                        <button type="button"
+                                                                class="auto-exercise-report-btn"
+                                                                :title="t('builder.report.buttonTitle')"
+                                                                :aria-label="t('builder.report.buttonAria')"
+                                                                :data-tyg="planIndex === 0 && exIndex === 0 ? 'auto-report-button' : null"
+                                                                @click="toggleAutoExerciseReport(planIndex, exIndex)">
+                                                            !
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td>{{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}</td>
+                                                <td>
+                                                    <template v-if="ex.type === 'ausdauer'">
+                                                        {{ ex.reps ? `${ex.reps} km` : '-' }}
+                                                    </template>
+                                                    <template v-else-if="ex.type === 'dehnung'">
+                                                        {{ ex.reps }} s
+                                                    </template>
+                                                    <template v-else>
+                                                        {{ ex.reps }}
+                                                    </template>
+                                                </td>
+                                            </tr>
+                                        </TransitionGroup>
+                                    </table>
+                                </Table>
+                            </div>
+                        </TransitionGroup>
+
+                        <div v-else-if="selectedPlanExercises.length" class="preview-table-shell">
+                            <Table class="exercise-table full-width compact"
+                                   density="compact">
+                                <table ref="previewTable" :data-cols="previewHasEquipmentNumbers ? 5 : 4">
                                     <thead>
                                         <tr>
-                                            <th v-if="hasEquipmentNumbers(plan.exercises)">Nummer</th>
-                                            <th>Übung</th>
-                                            <th>{{ plan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}</th>
-                                            <th>{{ plan.exercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung') ? 'Wdh. / km / s' : 'Wiederholungen' }}</th>
+                                            <th v-if="previewHasEquipmentNumbers" class="resizable" :style="{ width: activePreviewColWidths[0] + '%' }">
+                                                <span class="th-text">{{ t('builder.table.number') }}</span>
+                                            </th>
+                                            <th class="resizable" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 1 : 0] + '%' }">
+                                                <span class="th-text">{{ t('builder.table.exercise') }}</span>
+                                            </th>
+                                            <th class="resizable" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 2 : 1] + '%' }">
+                                                <span class="th-text">
+                                                    {{ t(selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer') ? 'builder.table.setsMinutes' : 'builder.table.sets') }}
+                                                </span>
+                                            </th>
+                                            <th class="resizable th-wdh" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 3 : 2] + '%' }">
+                                                <span class="th-text th-label">
+                                                    <span class="full">
+                                                        {{
+selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
+                      ? t('builder.table.repsKmSeconds')
+                      : t('builder.table.reps')
+                                                        }}
+                                                    </span>
+                                                    <span class="mid">
+                                                        {{
+selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
+                      ? t('builder.table.repsKmSecondsMid')
+                      : t('builder.table.repsMid')
+                                                        }}
+                                                    </span>
+                                                    <span class="short">
+                                                        {{
+selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
+                      ? t('builder.table.repsKmSecondsShort')
+                      : t('progress.popup.repsShort')
+                                                        }}
+                                                    </span>
+                                                </span>
+                                            </th>
+
+                                            <th :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 4 : 3] + '%' }">{{ t('builder.table.action') }}</th>
                                         </tr>
                                     </thead>
-                                    <TransitionGroup name="auto-preview-row" tag="tbody">
-                                        <tr v-for="(ex, exIndex) in plan.exercises" :key="`${planIndex}-${exIndex}-${ex.exercise}`">
-                                            <td v-if="hasEquipmentNumbers(plan.exercises)" class="exercise-number-cell">
+
+                                    <TransitionGroup name="preview-row" tag="tbody">
+                                        <tr v-for="(ex, index) in selectedPlanExercises"
+                                            :key="`${ex.exercise}-${ex.type}-${ex.sets}-${ex.reps}-${formatExerciseNumber(ex)}`"
+                                            @click="loadPreviewExerciseIntoForm(index, $event)"
+                                            @dblclick="openEditPopup('table', index, $event)">
+                                            <td v-if="previewHasEquipmentNumbers" :style="{ width: activePreviewColWidths[0] + '%' }" class="exercise-number-cell">
                                                 <span class="exercise-number-pill">{{ formatExerciseNumber(ex) }}</span>
                                             </td>
-                                            <td>
-                                                <div class="auto-exercise-cell">
-                                                    <div class="auto-exercise-cell__body">
+                                            <td :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 1 : 0] + '%' }">
+                                                <div class="preview-exercise-main">
+                                                    <div class="preview-exercise-title">
+                                                        <span class="preview-order-badge">{{ index + 1 }}</span>
                                                         <span>{{ ex.exercise }}</span>
-                                                        <small v-if="formatPlanExerciseMeta(ex)" class="exercise-meta-line exercise-meta-line--auto">
-                                                            <span class="exercise-meta-track">
-                                                                <span class="exercise-meta-marquee">{{ formatPlanExerciseMeta(ex) }}</span>
-                                                                <span class="exercise-meta-divider" aria-hidden="true">|</span>
-                                                                <span class="exercise-meta-marquee" aria-hidden="true">{{ formatPlanExerciseMeta(ex) }}</span>
-                                                            </span>
-                                                        </small>
-                                                        <div v-if="ex.replacementExercise" class="preview-replacement-card">
-                                                            <span class="preview-replacement-card__label">Ersatzübung</span>
-                                                            <span class="preview-replacement-card__name">{{ ex.replacementExercise }}</span>
-                                                            <span v-if="ex.replacementReason" class="preview-replacement-card__reason">{{ ex.replacementReason }}</span>
-                                                        </div>
                                                     </div>
-                                                    <button
-                                                        type="button"
-                                                        class="auto-exercise-report-btn"
-                                                        title="Melden"
-                                                        aria-label="Übung melden"
-                                                        :data-tyg="planIndex === 0 && exIndex === 0 ? 'auto-report-button' : null"
-                                                        @click="toggleAutoExerciseReport(planIndex, exIndex)">
-                                                        !
-                                                    </button>
+                                                    <small v-if="formatPlanExerciseMeta(ex)" class="exercise-meta-line exercise-meta-line--manual">
+                                                        <span class="exercise-meta-track">
+                                                            <span class="exercise-meta-marquee">{{ formatPlanExerciseMeta(ex) }}</span>
+                                                            <span class="exercise-meta-divider" aria-hidden="true">|</span>
+                                                            <span class="exercise-meta-marquee" aria-hidden="true">{{ formatPlanExerciseMeta(ex) }}</span>
+                                                        </span>
+                                                    </small>
+                                                    <div v-if="ex.replacementExercise" class="preview-replacement-card">
+                                                        <span class="preview-replacement-card__label">{{ t('builder.replacement.label') }}</span>
+                                                        <span class="preview-replacement-card__name">{{ ex.replacementExercise }}</span>
+                                                        <span v-if="ex.replacementReason" class="preview-replacement-card__reason">{{ ex.replacementReason }}</span>
+                                                    </div>
                                                 </div>
                                             </td>
-                                            <td>{{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}</td>
-                                            <td>
+                                            <td :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 2 : 1] + '%' }">
+                                                {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
+                                            </td>
+                                            <td :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 3 : 2] + '%' }">
                                                 <template v-if="ex.type === 'ausdauer'">
                                                     {{ ex.reps ? `${ex.reps} km` : '-' }}
                                                 </template>
@@ -718,137 +832,23 @@
                                                     {{ ex.reps }}
                                                 </template>
                                             </td>
+                                            <td class="action-cell" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 4 : 3] + '%' }">
+                                                <div class="preview-action-cell">
+                                                    <DeleteButton class="table-delete-btn"
+                                                                  type="button"
+                                                                  :title="t('builder.actions.removeExercise')"
+                                                                  @click.stop="removeExerciseFromPlan(index)" />
+                                                </div>
+                                            </td>
                                         </tr>
                                     </TransitionGroup>
                                 </table>
                             </Table>
                         </div>
-                    </TransitionGroup>
 
-                    <div v-else-if="selectedPlanExercises.length" class="preview-table-shell">
-                        <Table class="exercise-table full-width compact"
-                               density="compact">
-                            <table ref="previewTable" :data-cols="previewHasEquipmentNumbers ? 5 : 4">
-                                <thead>
-                                    <tr>
-                                        <th v-if="previewHasEquipmentNumbers" class="resizable" :style="{ width: activePreviewColWidths[0] + '%' }">
-                                            <span class="th-text">Nummer</span>
-                                        </th>
-                                        <th class="resizable" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 1 : 0] + '%' }">
-                                            <span class="th-text">Übung</span>
-                                        </th>
-                                        <th class="resizable" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 2 : 1] + '%' }">
-                                            <span class="th-text">
-                                                {{ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
-                                            </span>
-                                        </th>
-                                        <th class="resizable th-wdh" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 3 : 2] + '%' }">
-                                            <span class="th-text th-label">
-                                                <span class="full">
-                                                    {{
-selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                      ? 'Wdh. / km / s'
-                      : 'Wiederholungen'
-                                                    }}
-                                                </span>
-                                                <span class="mid">
-                                                    {{
-selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                      ? 'Wdh./km/s'
-                      : 'Wiederhol...'
-                                                    }}
-                                                </span>
-                                                <span class="short">
-                                                    {{
-selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                      ? 'W/km/s'
-                      : 'Wdh.'
-                                                    }}
-                                                </span>
-                                            </span>
-                                        </th>
-
-                                        <th :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 4 : 3] + '%' }">Aktion</th>
-                                    </tr>
-                                </thead>
-
-                                <TransitionGroup name="preview-row" tag="tbody">
-                                    <tr v-for="(ex, index) in selectedPlanExercises"
-                                        :key="`${ex.exercise}-${ex.type}-${ex.sets}-${ex.reps}-${formatExerciseNumber(ex)}`"
-                                        @click="loadPreviewExerciseIntoForm(index, $event)"
-                                        @dblclick="openEditPopup('table', index, $event)">
-                                        <td v-if="previewHasEquipmentNumbers" :style="{ width: activePreviewColWidths[0] + '%' }" class="exercise-number-cell">
-                                            <span class="exercise-number-pill">{{ formatExerciseNumber(ex) }}</span>
-                                        </td>
-                                        <td :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 1 : 0] + '%' }">
-                                            <div class="preview-exercise-main">
-                                                <div class="preview-exercise-title">
-                                                    <span class="preview-order-badge">{{ index + 1 }}</span>
-                                                    <span>{{ ex.exercise }}</span>
-                                                </div>
-                                                <small v-if="formatPlanExerciseMeta(ex)" class="exercise-meta-line exercise-meta-line--manual">
-                                                    <span class="exercise-meta-track">
-                                                        <span class="exercise-meta-marquee">{{ formatPlanExerciseMeta(ex) }}</span>
-                                                        <span class="exercise-meta-divider" aria-hidden="true">|</span>
-                                                        <span class="exercise-meta-marquee" aria-hidden="true">{{ formatPlanExerciseMeta(ex) }}</span>
-                                                    </span>
-                                                </small>
-                                                <div v-if="ex.replacementExercise" class="preview-replacement-card">
-                                                    <span class="preview-replacement-card__label">Ersatzübung</span>
-                                                    <span class="preview-replacement-card__name">{{ ex.replacementExercise }}</span>
-                                                    <span v-if="ex.replacementReason" class="preview-replacement-card__reason">{{ ex.replacementReason }}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 2 : 1] + '%' }">
-                                            {{ ex.type === 'ausdauer' ? `${ex.sets} min` : ex.sets }}
-                                        </td>
-                                        <td :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 3 : 2] + '%' }">
-                                            <template v-if="ex.type === 'ausdauer'">
-                                                {{ ex.reps ? `${ex.reps} km` : '-' }}
-                                            </template>
-                                            <template v-else-if="ex.type === 'dehnung'">
-                                                {{ ex.reps }} s
-                                            </template>
-                                            <template v-else>
-                                                {{ ex.reps }}
-                                            </template>
-                                        </td>
-                                        <td class="action-cell" :style="{ width: activePreviewColWidths[previewHasEquipmentNumbers ? 4 : 3] + '%' }">
-                                            <div class="preview-action-cell">
-                                                <div class="table-action-stack">
-                                                    <button v-if="index > 0"
-                                                            type="button"
-                                                            class="reorder-btn reorder-btn--plain"
-                                                            title="Nach oben verschieben"
-                                                            aria-label="Übung nach oben verschieben"
-                                                            @click.stop="moveExerciseInPlan(index, -1)">
-                                                        ↑
-                                                    </button>
-                                                    <button v-if="index < selectedPlanExercises.length - 1"
-                                                            type="button"
-                                                            class="reorder-btn reorder-btn--plain"
-                                                            title="Nach unten verschieben"
-                                                            aria-label="Übung nach unten verschieben"
-                                                            @click.stop="moveExerciseInPlan(index, 1)">
-                                                        ↓
-                                                    </button>
-                                                </div>
-                                                <DeleteButton class="table-delete-btn"
-                                                              type="button"
-                                                              title="Übung entfernen"
-                                                              @click.stop="removeExerciseFromPlan(index)" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </TransitionGroup>
-                            </table>
-                        </Table>
-                    </div>
-
-                    <div v-else class="empty-preview">
-                        <span>Noch keine Übung hinzugefügt.</span>
-                    </div>
+                        <div v-else class="empty-preview">
+                            <span>{{ t('builder.preview.empty') }}</span>
+                        </div>
                     </div>
                 </Transition>
             </div>
@@ -874,35 +874,32 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             </Transition>
         </form>
 
-        <AutoExerciseReportPopup
-            :show="autoExerciseReportState !== null"
-            :exercise-name="reportedAutoExerciseName"
-            v-model="autoExerciseReportReason"
-            :submitting="submittingExerciseReport"
-            :reason-options="autoExerciseReportReasonOptions"
-            @cancel="closeAutoExerciseReport()"
-            @submit="submitAutoExerciseReport()" />
+        <AutoExerciseReportPopup :show="autoExerciseReportState !== null"
+                                 :exercise-name="reportedAutoExerciseName"
+                                 v-model="autoExerciseReportReason"
+                                 :submitting="submittingExerciseReport"
+                                 :reason-options="autoExerciseReportReasonOptions"
+                                 @cancel="closeAutoExerciseReport()"
+                                 @submit="submitAutoExerciseReport()" />
 
-        <AutoPlanReportTutorial
-            :isActive="showAutoPlanReportTutorial"
-            @done="closeAutoPlanReportTutorial()" />
+        <AutoPlanReportTutorial :isActive="showAutoPlanReportTutorial"
+                                @done="closeAutoPlanReportTutorial()" />
 
-        <GoalExerciseLibraryPopup
-            :show="showManualExerciseLibrary"
-            :model-value="selectedManualLibraryExerciseId"
-            :intro="manualExerciseLibraryIntro"
-            :allowed-kinds="manualExerciseLibraryKinds"
-            @cancel="showManualExerciseLibrary = false"
-            @select="applyManualExerciseSelection" />
+        <GoalExerciseLibraryPopup :show="showManualExerciseLibrary"
+                                  :model-value="selectedManualLibraryExerciseId"
+                                  :intro="manualExerciseLibraryIntro"
+                                  :allowed-kinds="manualExerciseLibraryKinds"
+                                  :open-create-form="manualExerciseLibraryCreateMode"
+                                  @cancel="showManualExerciseLibrary = false; manualExerciseLibraryCreateMode = false"
+                                  @select="applyManualExerciseSelection" />
 
-        <GoalExerciseLibraryPopup
-            :show="showReplacementExerciseLibrary"
-            :model-value="selectedReplacementExerciseId"
-            :intro="replacementExerciseLibraryIntro"
-            :allowed-kinds="manualExerciseLibraryKinds"
-            :allowed-ids="manualReplacementExerciseIds"
-            @cancel="showReplacementExerciseLibrary = false"
-            @select="applyReplacementExerciseSelection" />
+        <GoalExerciseLibraryPopup :show="showReplacementExerciseLibrary"
+                                  :model-value="selectedReplacementExerciseId"
+                                  :intro="replacementExerciseLibraryIntro"
+                                  :allowed-kinds="manualExerciseLibraryKinds"
+                                  :allowed-ids="manualReplacementExerciseIds"
+                                  @cancel="showReplacementExerciseLibrary = false"
+                                  @select="applyReplacementExerciseSelection" />
 
     </div>
 </template>
@@ -932,7 +929,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     import { generateAutoPlan, regenerateAutoPlanDay } from '@/services/training/autoPlanGeneratorService'
     import { normalizeExerciseText, resolveExerciseReference } from '@/services/training/exerciseLibrary'
     import { getTrainingPrescriptionHint, mapManualGoalToGoalType } from '@/utils/trainingPrescriptionHints'
-
+    import { useI18n } from '@/composables/useI18n'
+    import { translateText } from '@/i18n/translations'
     import type { TrainingPlan as TrainingPlanDto, TrainingPlanUpsert } from "@/types/trainingPlan"
     import { useAuthStore } from "@/store/authStore";
     import type { GeneratorExerciseReference, GoalType, GeneratorInput, TrainingLevel } from '@/types/autoPlan'
@@ -970,6 +968,20 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const customExercisesState = ref<Array<{ name: string; muscle: string; type: CustomExerciseType }>>(
         Array.isArray(props.customExercises) ? [...props.customExercises] : []
     )
+    const { t, locale } = useI18n()
+
+    const tp = (key: string, params: Record<string, string | number>) => {
+        let text = t(key)
+
+        for (const [paramKey, value] of Object.entries(params)) {
+            text = text.replaceAll(`{${paramKey}}`, String(value))
+        }
+
+        return text
+    }
+
+    const translateUiText = (text: string) => translateText(text, locale.value)
+
     const route = useRoute()
     const previewBuilderTimers: number[] = []
     const previewTouch = ref({ visible: false, x: 0, y: 0 })
@@ -1070,6 +1082,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const cardioRunnerRef = ref<HTMLElement | null>(null)
     const showManualExerciseLibrary = ref(false)
     const showReplacementExerciseLibrary = ref(false)
+    const manualExerciseLibraryCreateMode = ref(false)
     const newReps = ref<RangeCapableValue | null>(null)
     const newSets = ref<RangeCapableValue | null>(null)
     const trainingType = ref<'kraft' | 'calisthenics' | 'ausdauer' | 'dehnung'>('kraft')
@@ -1214,7 +1227,19 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     const editOriginPlanName = ref('')
     const editOriginExercisesSnapshot = ref<PlanExercise[]>([])
     const selectedGoal = ref('')
-    const trainingGoals = ref(['Muskelaufbau', 'Abnehmen', 'Ausdauer', 'Kraft', 'Gesundheit'])
+    const trainingGoals = computed(() => ([
+        { value: 'Muskelaufbau', label: t('builder.goal.muscleGain') },
+        { value: 'Abnehmen', label: t('builder.goal.fatLoss') },
+        { value: 'Ausdauer', label: t('builder.goal.endurance') },
+        { value: 'Kraft', label: t('builder.goal.strength') },
+        { value: 'Gesundheit', label: t('builder.goal.health') },
+    ]))
+    const trainingTypeOptions = computed(() => ([
+        { value: 'kraft', label: t('builder.trainingType.strength') },
+        { value: 'calisthenics', label: t('builder.trainingType.calisthenics') },
+        { value: 'ausdauer', label: t('builder.trainingType.endurance') },
+        { value: 'dehnung', label: t('builder.trainingType.mobility') },
+    ]))
     const showExtras = ref(false)
     const manualRecovery = ref('')
     const manualTempo = ref('')
@@ -1240,13 +1265,13 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     let autoPlanReportTutorialTimer: ReturnType<typeof setTimeout> | null = null
     let autoGenerationProgressTimer: ReturnType<typeof setInterval> | null = null
     let autoGenerationStartedAt = 0
-    const autoGenerationStages = [
-        'Analysiere Ziel, Level und Frequenz',
-        'Lade Übungsbibliothek und Einschränkungen',
-        'Wähle passende Übungen aus',
-        'Optimiere Sätze, Wiederholungen und Struktur',
-        'Finalisiere Vorschau',
-    ] as const
+    const autoGenerationStages = computed(() => ([
+        t('builder.auto.stage.analyze'),
+        t('builder.auto.stage.loadLibrary'),
+        t('builder.auto.stage.selectExercises'),
+        t('builder.auto.stage.optimize'),
+        t('builder.auto.stage.finalize'),
+    ]))
 
     const autoPrimaryGoal = ref<GoalType | ''>('')
     const autoLevel = ref<TrainingLevel>('beginner')
@@ -1282,48 +1307,48 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         active: boolean
     }>>([])
     const showAutoReportedExercises = ref(false)
-    const autoMuscleGroupOptions = [
-        { value: 'Brust', label: 'Brust' },
-        { value: 'Rücken', label: 'Rücken' },
-        { value: 'Beine', label: 'Beine' },
-        { value: 'Schultern', label: 'Schultern' },
-        { value: 'Arme', label: 'Arme' },
-        { value: 'Core', label: 'Core / Bauch' },
-        { value: 'Gesäß', label: 'Gesäß / Po' },
-        { value: 'Cardio', label: 'Cardio' },
-        { value: 'Mobility', label: 'Mobility' },
-    ] as const
-    const autoGoalOptions = [
-        { value: 'muscle_gain', label: 'Muskelaufbau' },
-        { value: 'strength', label: 'Kraftaufbau' },
-        { value: 'fat_loss', label: 'Fettverlust/Kalorienverbrauch' },
-        { value: 'general_fitness', label: 'Allgemeine Fitness' },
-        { value: 'endurance', label: 'Ausdauer verbessern' },
-        { value: 'health', label: 'Gesundheit/Schmerzreduktion' },
-    ]
-    const autoLevelOptions = [
-        { value: 'beginner', label: 'Anfänger' },
-        { value: 'intermediate', label: 'Fortgeschritten' },
-        { value: 'advanced', label: 'Erfahren' },
-    ]
-    const autoSplitOptions = [
-        { value: 'auto', label: 'Auto' },
-        { value: 'full_body', label: 'Ganzkörper' },
-        { value: 'upper_lower', label: 'Oberkörper/Unterkörper' },
-        { value: 'ppl', label: 'Push/Pull/Legs' },
-    ]
-    const autoEquipmentOptions = [
-        { value: 'full_gym', label: 'Voll ausgestattetes Gym' },
-        { value: 'home_gym', label: 'Home Gym' },
-        { value: 'bodyweight_only', label: 'Nur Körpergewicht' },
-        { value: 'dumbbells_only', label: 'Nur Kurzhanteln' },
-    ]
-    const autoExerciseReportReasonOptions = [
-        { value: 'wrong_exercise', label: 'Übung ist falsch' },
-        { value: 'exercise_missing', label: 'Übung gibt es nicht' },
-        { value: 'gym_missing', label: 'Hat mein Gym nicht' },
-        { value: 'i_do_not_have', label: 'Habe ich nicht' },
-    ]
+    const autoMuscleGroupOptions = computed(() => ([
+        { value: 'Brust', label: t('builder.muscle.chest') },
+        { value: 'Rücken', label: t('builder.muscle.back') },
+        { value: 'Beine', label: t('builder.muscle.legs') },
+        { value: 'Schultern', label: t('builder.muscle.shoulders') },
+        { value: 'Arme', label: t('builder.muscle.arms') },
+        { value: 'Core', label: t('builder.muscle.core') },
+        { value: 'Gesäß', label: t('builder.muscle.glutes') },
+        { value: 'Cardio', label: t('builder.muscle.cardio') },
+        { value: 'Mobility', label: t('builder.muscle.mobility') },
+    ]))
+    const autoGoalOptions = computed(() => ([
+        { value: 'muscle_gain', label: t('builder.auto.goal.muscleGain') },
+        { value: 'strength', label: t('builder.auto.goal.strength') },
+        { value: 'fat_loss', label: t('builder.auto.goal.fatLoss') },
+        { value: 'general_fitness', label: t('builder.auto.goal.generalFitness') },
+        { value: 'endurance', label: t('builder.auto.goal.endurance') },
+        { value: 'health', label: t('builder.auto.goal.health') },
+    ]))
+    const autoLevelOptions = computed(() => ([
+        { value: 'beginner', label: t('builder.auto.level.beginner') },
+        { value: 'intermediate', label: t('builder.auto.level.intermediate') },
+        { value: 'advanced', label: t('builder.auto.level.advanced') },
+    ]))
+    const autoSplitOptions = computed(() => ([
+        { value: 'auto', label: t('builder.auto.split.auto') },
+        { value: 'full_body', label: t('builder.auto.split.fullBody') },
+        { value: 'upper_lower', label: t('builder.auto.split.upperLower') },
+        { value: 'ppl', label: t('builder.auto.split.ppl') },
+    ]))
+    const autoEquipmentOptions = computed(() => ([
+        { value: 'full_gym', label: t('builder.auto.equipment.fullGym') },
+        { value: 'home_gym', label: t('builder.auto.equipment.homeGym') },
+        { value: 'bodyweight_only', label: t('builder.auto.equipment.bodyweightOnly') },
+        { value: 'dumbbells_only', label: t('builder.auto.equipment.dumbbellsOnly') },
+    ]))
+    const autoExerciseReportReasonOptions = computed(() => ([
+        { value: 'wrong_exercise', label: t('builder.report.reason.wrongExercise') },
+        { value: 'exercise_missing', label: t('builder.report.reason.exerciseMissing') },
+        { value: 'gym_missing', label: t('builder.report.reason.gymMissing') },
+        { value: 'i_do_not_have', label: t('builder.report.reason.doNotHave') },
+    ]))
 
     type BuilderFormErrors = {
         planName: string
@@ -1388,6 +1413,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         didMove: false,
     })
     let modeSwitchResizeObserver: ResizeObserver | null = null
+    let modeSwitchResizeObserverRaf = 0
 
     const getBuilderModeTranslate = (mode: 'manual' | 'auto') => (
         mode === 'auto' ? modeSwitchTravelPx.value : 0
@@ -1411,9 +1437,11 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         return clampModeSwitchTranslate(activeTranslate) / modeSwitchTravelPx.value
     })
 
-    const showModeSwitchThumbHint = computed(() => (
-        !modeSwitchDrag.active && modeSwitchProgress.value < 0.08
-    ))
+   const showModeSwitchThumbHint = computed(() => (
+       !hasDismissedModeSwipeHint.value &&
+       !modeSwitchDrag.active &&
+       modeSwitchProgress.value < 0.08
+   ))
 
     const modeSwitchManualLabelStyle = computed(() => ({
         opacity: `${Math.max(0, 1 - modeSwitchProgress.value * 1.6)}`,
@@ -1427,6 +1455,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     const measureModeSwitch = () => {
         const nextTravel = Math.max(0, modeSwitchThumb.value?.getBoundingClientRect().width ?? 0)
+        if (Math.abs(modeSwitchTravelPx.value - nextTravel) < 0.5) return
         modeSwitchTravelPx.value = nextTravel
 
         if (!modeSwitchDrag.active) {
@@ -1845,12 +1874,12 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     )
 
     const autoGenerationCurrentStage = computed(
-        () => autoGenerationStages[Math.min(autoGenerationStageIndex.value, autoGenerationStages.length - 1)] ?? 'Generiere Auto-Plan'
+        () => autoGenerationStages.value[Math.min(autoGenerationStageIndex.value, autoGenerationStages.value.length - 1)] ?? t('builder.auto.stage.generate')
     )
 
     const autoCreateButtonLabel = computed(() => {
-        if (builderMode.value !== 'auto' || editingPlanId.value) return 'Plan erstellen'
-        return autoGeneratedPlansToPersist.value.length > 1 ? 'Pläne erstellen' : 'Plan erstellen'
+        if (builderMode.value !== 'auto' || editingPlanId.value) return t('builder.actions.createPlan')
+        return autoGeneratedPlansToPersist.value.length > 1 ? t('builder.actions.createPlans') : t('builder.actions.createPlan')
     })
 
     const isPlanSubmitDisabled = computed(() => {
@@ -1917,23 +1946,24 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         validateRangeCapableInt(sets, 'Sätze', 1, 20)
 
     const validateDurationMin = (val: number | null | undefined) => {
-        if (val == null || isNaN(val)) return 'Dauer (Minuten) muss eine Zahl sein'
-        if (!Number.isInteger(val)) return 'Dauer (Minuten) muss eine Ganzzahl sein'
-        if (val < 1 || val > 600) return 'Dauer (Minuten) muss zwischen 1 und 600 liegen'
+        if (val == null || isNaN(val)) return t('builder.validation.durationNumber')
+        if (!Number.isInteger(val)) return t('builder.validation.durationInteger')
+        if (val < 1 || val > 600) return t('builder.validation.durationRange')
         return null
     }
+
     const validateDistanceKm = (val: number | null | undefined) => {
         if (val == null || val === undefined || val === 0) return null
-        if (val < 0 || val > 1000) return 'Distanz (km) muss zwischen 0 und 1000 liegen'
+        if (val < 0 || val > 1000) return t('builder.validation.distanceRange')
         return null
     }
 
     const availableAutoExcludedMuscleOptions = computed(() =>
-        autoMuscleGroupOptions.filter((option) => !autoExcludedMuscles.value.includes(option.value))
+        autoMuscleGroupOptions.value.filter((option) => !autoExcludedMuscles.value.includes(option.value))
     )
 
     const availableAutoFocusMuscleOptions = computed(() =>
-        autoMuscleGroupOptions.filter((option) => !autoFocusMuscles.value.includes(option.value))
+        autoMuscleGroupOptions.value.filter((option) => !autoFocusMuscles.value.includes(option.value))
     )
 
     const activeAutoReportedExerciseOverrides = computed(() =>
@@ -2019,8 +2049,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             const ratio = Math.min(1, elapsed / AUTO_GENERATION_MIN_DURATION_MS)
             const timelineProgress = Math.min(95, 7 + Math.round(ratio * 88))
             const timelineStage = Math.min(
-                autoGenerationStages.length - 1,
-                Math.floor(ratio * autoGenerationStages.length)
+                autoGenerationStages.value.length - 1,
+                Math.floor(ratio * autoGenerationStages.value.length)
             )
 
             autoGenerationStageIndex.value = Math.max(autoGenerationStageIndex.value, timelineStage)
@@ -2031,7 +2061,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     }
 
     const advanceAutoGenerationStage = (stageIndex: number, minProgress?: number) => {
-        autoGenerationStageIndex.value = Math.max(0, Math.min(stageIndex, autoGenerationStages.length - 1))
+        autoGenerationStageIndex.value = Math.max(0, Math.min(stageIndex, autoGenerationStages.value.length - 1))
         if (typeof minProgress === 'number') {
             autoGenerationProgress.value = Math.max(autoGenerationProgress.value, minProgress)
         }
@@ -2043,7 +2073,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         if (remaining > 0) {
             await waitForUiBeat(remaining)
         }
-        advanceAutoGenerationStage(autoGenerationStages.length - 1)
+        advanceAutoGenerationStage(autoGenerationStages.value.length - 1)
         clearAutoGenerationProgressTimer()
         autoGenerationProgress.value = Math.max(autoGenerationProgress.value, 97)
         await waitForUiBeat(180)
@@ -2369,7 +2399,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     )
 
     const getAutoExerciseReportReasonLabel = (reason: string) => (
-        autoExerciseReportReasonOptions.find((entry) => entry.value === reason)?.label ?? reason
+        autoExerciseReportReasonOptions.value.find((entry) => entry.value === reason)?.label ?? reason
     )
 
     const upsertAutoExcludedExercise = (reference: GeneratorExerciseReference) => {
@@ -2409,7 +2439,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             await regenerateAutoPreviewPlan(index)
         }
 
-        props.addToast('Gemeldete Übung wieder aktiviert', 'save')
+        props.addToast(t('builder.toast.reportedExerciseReactivated'), 'save')
     }
 
     const submitAutoExerciseReport = async () => {
@@ -2420,7 +2450,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
         if (!plan || !exercise) return
         if (!selectedReason) {
-            props.openValidationPopup(['Bitte wähle einen Grund für die Meldung aus.'])
+            props.openValidationPopup([t('builder.validation.reportReasonRequired')])
             return
         }
 
@@ -2437,7 +2467,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             }
             closeAutoExerciseReport()
             await regenerateAutoPreviewPlan(state!.planIndex)
-            props.addToast('Übung gemeldet und ersetzt', 'save')
+            props.addToast(t('builder.toast.exerciseReportedAndReplaced'), 'save')
         } finally {
             submittingExerciseReport.value = false
         }
@@ -2487,25 +2517,25 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             ))
 
             selectedPlanExercises.value = generatedAutoPlans.value[0]?.exercises.map((exercise) => ({ ...exercise })) ?? []
-            props.addToast('Auto-Plan neu generiert', 'save')
+            props.addToast(t('builder.toast.autoPlanRegenerated'), 'save')
         } catch (error) {
             if (error instanceof Error && error.message === 'auto-primary-goal-missing') {
-                builderFormErrors.autoPrimaryGoal = 'Primärziel auswählen'
+                builderFormErrors.autoPrimaryGoal = t('builder.validation.primaryGoalRequired')
                 return
             }
             if (error instanceof Error && error.message === 'auto-weekly-frequency-missing') {
-                builderFormErrors.autoWeeklyFrequency = 'Training pro Woche auswählen'
+                builderFormErrors.autoWeeklyFrequency = t('builder.validation.weeklyFrequencyRequired')
                 return
             }
             if (error instanceof Error && error.message === 'auto-session-duration-missing') {
-                builderFormErrors.autoSessionDuration = 'Min pro Training auswählen'
+                builderFormErrors.autoSessionDuration = t('builder.validation.sessionDurationRequired')
                 return
             }
             if (error instanceof Error && error.message === 'exercise-library-empty') {
-                builderFormErrors.autoGeneral = 'Die Übungsbibliothek konnte nicht geladen werden. Auto-Plan wurde nicht neu erzeugt.'
+                builderFormErrors.autoGeneral = t('builder.validation.exerciseLibraryLoadRegenerateFailed')
                 return
             }
-            builderFormErrors.autoGeneral = 'Auto-Plan konnte nicht neu generiert werden. Bitte Eingaben prüfen.'
+            builderFormErrors.autoGeneral = t('builder.validation.autoPlanRegenerateFailed')
         } finally {
             regeneratingPlanIndex.value = null
         }
@@ -2560,14 +2590,14 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 }, 5000)
             }
             await finishAutoGenerationFeedback()
-            props.addToast('Auto-Plan erstellt', 'save')
+            props.addToast(t('builder.toast.autoPlanCreated'), 'save')
         } catch (error) {
             if (error instanceof Error && error.message === 'exercise-library-empty') {
-                builderFormErrors.autoGeneral = 'Die Übungsbibliothek konnte nicht geladen werden. Auto-Plan wurde nicht erzeugt.'
+                builderFormErrors.autoGeneral = t('builder.validation.exerciseLibraryLoadGenerateFailed')
                 await abortAutoGenerationFeedback()
                 return
             }
-            builderFormErrors.autoGeneral = 'Auto-Plan konnte nicht erstellt werden. Bitte Eingaben prüfen.'
+            builderFormErrors.autoGeneral = t('builder.validation.autoPlanCreateFailed')
             await abortAutoGenerationFeedback()
         }
     }
@@ -2805,14 +2835,14 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     const manualExerciseLibraryIntro = computed(() => (
         trainingType.value === 'ausdauer'
-            ? 'Wähle eine Cardio-Übung aus der Bibliothek für deinen Trainingsplan.'
+            ? t('builder.libraryIntro.cardio')
             : trainingType.value === 'dehnung'
-            ? 'Wähle eine Mobility- oder Dehnübung aus der Bibliothek für deinen Plan.'
-            : 'Wähle eine Übung aus der Bibliothek für deinen Trainingsplan.'
+                ? t('builder.libraryIntro.mobility')
+                : t('builder.libraryIntro.strength')
     ))
 
     const replacementExerciseLibraryIntro = computed(() => (
-        'Wähle eine sinnvolle Ersatzübung aus den passenden Bibliotheks-Vorschlägen.'
+        t('builder.libraryIntro.replacement')
     ))
 
     const findLibraryExerciseByName = (name?: string | null) => {
@@ -2974,7 +3004,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         return 'Muskelaufbau'
     }
 
-    const EXERCISE_GUIDANCE_LABELS = {
+    const EXERCISE_GUIDANCE_STORAGE_LABELS = {
         recovery: 'Pause:',
         tempo: 'Tempo:',
         equipment: 'Gerätenummer:',
@@ -3074,12 +3104,12 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         if (note) lines.push(note)
         if (typeof exercise.sets === 'string' && exercise.type !== 'ausdauer') lines.push(`Sätze: ${exercise.sets}`)
         if (typeof exercise.reps === 'string' && exercise.type !== 'ausdauer') lines.push(`Wiederholungen: ${exercise.reps}`)
-        if (recoveryHint) lines.push(`${EXERCISE_GUIDANCE_LABELS.recovery} ${recoveryHint}`)
-        else if (recommendationPause) lines.push(`${EXERCISE_GUIDANCE_LABELS.recovery} ${recommendationPause} Sek`)
-        if (tempoHint) lines.push(`${EXERCISE_GUIDANCE_LABELS.tempo} ${tempoHint}`)
-        if (equipmentNumber) lines.push(`${EXERCISE_GUIDANCE_LABELS.equipment} ${equipmentNumber}`)
-        if (replacementExercise) lines.push(`${EXERCISE_GUIDANCE_LABELS.replacement} ${replacementExercise}`)
-        if (replacementReason) lines.push(`${EXERCISE_GUIDANCE_LABELS.replacementReason} ${replacementReason}`)
+        if (recoveryHint) lines.push(`${EXERCISE_GUIDANCE_STORAGE_LABELS.recovery} ${recoveryHint}`)
+        else if (recommendationPause) lines.push(`${EXERCISE_GUIDANCE_STORAGE_LABELS.recovery} ${recommendationPause} Sek`)
+        if (tempoHint) lines.push(`${EXERCISE_GUIDANCE_STORAGE_LABELS.tempo} ${tempoHint}`)
+        if (equipmentNumber) lines.push(`${EXERCISE_GUIDANCE_STORAGE_LABELS.equipment} ${equipmentNumber}`)
+        if (replacementExercise) lines.push(`${EXERCISE_GUIDANCE_STORAGE_LABELS.replacement} ${replacementExercise}`)
+        if (replacementReason) lines.push(`${EXERCISE_GUIDANCE_STORAGE_LABELS.replacementReason} ${replacementReason}`)
         if (complaintReason) lines.push(complaintReason)
 
         return lines.join('\n') || null
@@ -3129,9 +3159,9 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         if (exercise.recommendationLabel) parts.push(exercise.recommendationLabel)
         if (exercise.notes) parts.push(exercise.notes)
         const hasPauseInRecommendation = /pause/i.test(exercise.recommendationLabel ?? '')
-        if (exercise.recoveryHint) parts.push(`Pause: ${exercise.recoveryHint}`)
-        else if (exercise.restSeconds && !hasPauseInRecommendation) parts.push(`${exercise.restSeconds}s Pause`)
-        if (exercise.tempoHint) parts.push(`Tempo: ${exercise.tempoHint}`)
+        if (exercise.recoveryHint) parts.push(`${t('progress.entry.planOverview.meta.rest')} ${translateUiText(exercise.recoveryHint)}`)
+        else if (exercise.restSeconds && !hasPauseInRecommendation) parts.push(`${exercise.restSeconds}s ${t('progress.entry.planOverview.meta.rest').replace(':', '')}`)
+        if (exercise.tempoHint) parts.push(`${t('progress.entry.planOverview.meta.tempo')} ${translateUiText(exercise.tempoHint)}`)
         return parts.join(' · ')
     }
 
@@ -3371,6 +3401,118 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         showExtras.value = !showExtras.value
     }
 
+    const BUILDER_ACCORDION_ANIM_KEY = '__builderAccordionAnimation'
+    const BUILDER_ACCORDION_DURATION_ENTER = 360
+    const BUILDER_ACCORDION_DURATION_LEAVE = 520
+
+    const stopBuilderAccordionAnimation = (el: HTMLElement) => {
+        const activeAnimation = (el as HTMLElement & { [BUILDER_ACCORDION_ANIM_KEY]?: Animation | null })[BUILDER_ACCORDION_ANIM_KEY]
+        activeAnimation?.cancel()
+            ; (el as HTMLElement & { [BUILDER_ACCORDION_ANIM_KEY]?: Animation | null })[BUILDER_ACCORDION_ANIM_KEY] = null
+    }
+
+    const animateBuilderAccordion = (
+        el: HTMLElement,
+        keyframes: Keyframe[],
+        duration: number,
+        easing: string,
+        done?: () => void,
+    ) => {
+        stopBuilderAccordionAnimation(el)
+
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+            done?.()
+            return
+        }
+
+        const animation = el.animate(keyframes, {
+            duration,
+            easing,
+            fill: 'forwards',
+        })
+
+            ; (el as HTMLElement & { [BUILDER_ACCORDION_ANIM_KEY]?: Animation | null })[BUILDER_ACCORDION_ANIM_KEY] = animation
+
+        animation.onfinish = () => {
+            ; (el as HTMLElement & { [BUILDER_ACCORDION_ANIM_KEY]?: Animation | null })[BUILDER_ACCORDION_ANIM_KEY] = null
+            done?.()
+        }
+
+        animation.oncancel = () => {
+            ; (el as HTMLElement & { [BUILDER_ACCORDION_ANIM_KEY]?: Animation | null })[BUILDER_ACCORDION_ANIM_KEY] = null
+        }
+    }
+
+    const handleBuilderAccordionBeforeEnter = (el: Element) => {
+        if (!(el instanceof HTMLElement)) return
+        stopBuilderAccordionAnimation(el)
+        el.style.height = '0px'
+        el.style.overflow = 'hidden'
+        el.style.opacity = '0'
+        el.style.transform = 'translateY(-8px) scale(0.985)'
+    }
+
+    const handleBuilderAccordionEnter = (el: Element, done: () => void) => {
+        if (!(el instanceof HTMLElement)) return
+        const targetHeight = el.scrollHeight
+        animateBuilderAccordion(el, [
+            {
+                height: '0px',
+                opacity: 0,
+                transform: 'translateY(-10px) scale(0.982)',
+            },
+            {
+                height: `${targetHeight}px`,
+                opacity: 1,
+                transform: 'translateY(0) scale(1)',
+            },
+        ], BUILDER_ACCORDION_DURATION_ENTER, 'cubic-bezier(0.22, 1, 0.36, 1)', done)
+    }
+
+    const handleBuilderAccordionAfterEnter = (el: Element) => {
+        if (!(el instanceof HTMLElement)) return
+        stopBuilderAccordionAnimation(el)
+        el.style.height = 'auto'
+        el.style.overflow = ''
+        el.style.opacity = ''
+        el.style.transform = ''
+    }
+
+    const handleBuilderAccordionBeforeLeave = (el: Element) => {
+        if (!(el instanceof HTMLElement)) return
+        stopBuilderAccordionAnimation(el)
+        el.style.height = `${el.scrollHeight}px`
+        el.style.overflow = 'hidden'
+        el.style.opacity = '1'
+        el.style.transform = 'translateY(0) scale(1)'
+    }
+
+    const handleBuilderAccordionLeave = (el: Element, done: () => void) => {
+        if (!(el instanceof HTMLElement)) return
+        const startHeight = el.scrollHeight
+        animateBuilderAccordion(el, [
+            {
+                height: `${startHeight}px`,
+                opacity: 1,
+                transform: 'translateY(0) scale(1)',
+            },
+            {
+                height: '0px',
+                opacity: 0,
+                transform: 'translateY(-12px) scale(0.978)',
+            },
+        ], BUILDER_ACCORDION_DURATION_LEAVE, 'cubic-bezier(0.4, 0, 0.2, 1)', done)
+    }
+
+    const handleBuilderAccordionAfterLeave = (el: Element) => {
+        if (!(el instanceof HTMLElement)) return
+        stopBuilderAccordionAnimation(el)
+        el.style.height = ''
+        el.style.overflow = ''
+        el.style.opacity = ''
+        el.style.transform = ''
+    }
+
     const handleTrainingTypeClick = (nextType: ExerciseType, event?: MouseEvent) => {
         if (trainingType.value === nextType) return
         pendingTrainingTypeSourceEl = event?.currentTarget instanceof HTMLElement
@@ -3380,19 +3522,15 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     }
 
     const openManualExerciseLibrary = () => {
+        manualExerciseLibraryCreateMode.value = false
         showManualExerciseLibrary.value = true
         builderFormErrors.exercise = ''
         builderFormErrors.cardioExercise = ''
     }
 
     const toggleCustomExerciseMode = () => {
-        if (newExercise.value === 'custom') {
-            newExercise.value = ''
-            customPlanExercise.value = ''
-            return
-        }
-        showManualExerciseLibrary.value = false
-        newExercise.value = 'custom'
+        manualExerciseLibraryCreateMode.value = true
+        showManualExerciseLibrary.value = true
         customPlanExercise.value = ''
         builderFormErrors.exercise = ''
         builderFormErrors.customExercise = ''
@@ -3401,6 +3539,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     const applyManualExerciseSelection = (selection: { id: string; name: string }) => {
         showManualExerciseLibrary.value = false
+        manualExerciseLibraryCreateMode.value = false
         if (trainingType.value === 'ausdauer') {
             cardioExercise.value = selection.name
             builderFormErrors.cardioExercise = ''
@@ -3485,7 +3624,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             buildDataStreamSelectorsForType(nextType),
             'stream'
         )
-        props.addToast('Übung ins Formular geladen', 'save')
+        props.addToast(t('builder.toast.exerciseLoaded'), 'save')
     }
 
     // ADD in components/ui/training/TrainingPlanBuilder.vue (helpers wie Training.vue)
@@ -3509,14 +3648,14 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         const trimmedName = (name ?? '').trim()
         const trimmedMuscle = (muscle ?? '').trim()
 
-        if (!trimmedName) return 'Übungsname ist erforderlich'
-        if (!trimmedMuscle) return 'Muskelgruppe ist erforderlich'
-        if (trimmedName.length > 50) return 'Übungsname darf maximal 50 Zeichen lang sein'
-        if (trimmedMuscle.length > 50) return 'Muskelgruppe darf maximal 50 Zeichen lang sein'
+        if (!trimmedName) return t('builder.validation.exerciseNameRequired')
+        if (!trimmedMuscle) return t('builder.validation.muscleGroupRequired')
+        if (trimmedName.length > 50) return t('builder.validation.exerciseNameMax')
+        if (trimmedMuscle.length > 50) return t('builder.validation.muscleGroupMax')
 
         const normalized = normalizeTypeInput(typeRaw)
-        if (!normalized) return 'Ungültiger Typ. Erlaubt sind: kraft, calisthenics, dehnung'
-        if (normalized === 'ausdauer') return '"Ausdauer" ist für benutzerdefinierte Übungen nicht erlaubt'
+        if (!normalized) return t('builder.validation.invalidType')
+        if (normalized === 'ausdauer') return t('builder.validation.customEnduranceNotAllowed')
 
         const type = normalized as CustomExerciseType
 
@@ -3525,7 +3664,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             ex.type === type &&
             ex.name.trim().toLowerCase() === trimmedName.toLowerCase()
         )
-        if (exists) return 'Übungsname existiert in diesem Typ bereits'
+        if (exists) return t('builder.validation.customExerciseDuplicate')
 
         return { name: trimmedName, muscle: trimmedMuscle, type }
     }
@@ -3534,16 +3673,16 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         const errors: string[] = []
 
         if (trainingType.value === 'ausdauer') {
-            if (!cardioExercise.value) errors.push('Cardio-Art wählen')
+            if (!cardioExercise.value) errors.push(t('builder.validation.cardioRequired'))
             const dErr = validateDurationMin(newDuration.value); if (dErr) errors.push(dErr)
             const kErr = validateDistanceKm(newDistance.value); if (kErr) errors.push(kErr)
             return errors
         }
 
         const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value
-        if (!exerciseToAdd) errors.push('Übung auswählen oder benutzerdefinierte Übung eingeben')
+        if (!exerciseToAdd) errors.push(t('builder.validation.exerciseRequired'))
         else if (selectedPlanExercises.value.some(ex => ex.exercise.toLowerCase() === exerciseToAdd.toLowerCase())) {
-            errors.push('Übung bereits im Plan vorhanden')
+            errors.push(t('builder.validation.exerciseDuplicate'))
         }
 
         const setsError = validateSets(newSets.value); if (setsError) errors.push(setsError)
@@ -3568,14 +3707,14 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         if (builderMode.value === 'manual') {
             if (context === 'add') {
                 if (trainingType.value === 'ausdauer') {
-                    if (!cardioExercise.value) builderFormErrors.cardioExercise = 'Cardio-Art wählen'
+                    if (!cardioExercise.value) builderFormErrors.cardioExercise = t('builder.validation.cardioRequired')
                     builderFormErrors.duration = validateDurationMin(newDuration.value) ?? ''
                     builderFormErrors.distance = validateDistanceKm(newDistance.value) ?? ''
                 } else {
                     const exerciseToAdd = newExercise.value === 'custom' ? customPlanExercise.value : newExercise.value
-                    if (!exerciseToAdd) builderFormErrors.exercise = 'Übung auswählen oder benutzerdefinierte Übung eingeben'
+                    if (!exerciseToAdd) builderFormErrors.exercise = t('builder.validation.exerciseRequired')
                     else if (selectedPlanExercises.value.some((ex) => ex.exercise.toLowerCase() === exerciseToAdd.toLowerCase())) {
-                        builderFormErrors.exercise = 'Übung bereits im Plan vorhanden'
+                        builderFormErrors.exercise = t('builder.validation.exerciseDuplicate')
                     }
 
                     builderFormErrors.sets = validateSets(newSets.value) ?? ''
@@ -3585,7 +3724,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                         const muscleGroup = exerciseFilter.value || ''
                         const validated = validateCustomExercise(customPlanExercise.value, muscleGroup, trainingType.value)
                         if (typeof validated === 'string') {
-                            if (validated === 'Muskelgruppe ist erforderlich') builderFormErrors.customExerciseMuscle = validated
+                            if (validated === t('builder.validation.muscleGroupRequired')) builderFormErrors.customExerciseMuscle = validated
                             else builderFormErrors.customExercise = validated
                         }
                     }
@@ -3596,20 +3735,20 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 const validatedPlanName = validatePlanName(planName.value)
                 if (validatedPlanName === false) {
                     builderFormErrors.planName = planName.value.trim().length < 3
-                        ? 'Planname muss mindestens 3 Zeichen lang sein'
-                        : 'Planname darf maximal 20 Zeichen lang sein'
+                        ? t('builder.validation.planNameMin')
+                        : t('builder.validation.planNameMax')
                 }
-                if (!hasExercisesToSave.value) builderFormErrors.exercises = 'Mindestens eine Übung ist erforderlich'
+                if (!hasExercisesToSave.value) builderFormErrors.exercises = t('builder.validation.minOneExercise')
             }
         }
 
         if (builderMode.value === 'auto') {
-            if (!autoPrimaryGoal.value) builderFormErrors.autoPrimaryGoal = 'Primärziel auswählen'
+            if (!autoPrimaryGoal.value) builderFormErrors.autoPrimaryGoal = t('builder.validation.primaryGoalRequired')
             if (!Number.isFinite(autoWeeklyFrequency.value) || autoWeeklyFrequency.value == null) {
-                builderFormErrors.autoWeeklyFrequency = 'Training pro Woche auswählen'
+                builderFormErrors.autoWeeklyFrequency = t('builder.validation.weeklyFrequencyRequired')
             }
             if (!Number.isFinite(autoSessionDuration.value) || autoSessionDuration.value == null) {
-                builderFormErrors.autoSessionDuration = 'Min pro Training auswählen'
+                builderFormErrors.autoSessionDuration = t('builder.validation.sessionDurationRequired')
             }
 
             const conflictingExercises = getConflictingAutoExerciseRefs()
@@ -3617,33 +3756,31 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 const labels = conflictingExercises
                     .map((entry) => entry.label || entry.canonicalName)
                     .filter(Boolean)
-                builderFormErrors.autoGeneral = `Dieselbe Übung kann nicht gleichzeitig bevorzugt und ausgeschlossen sein: ${labels.join(', ')}.`
-            }
+                builderFormErrors.autoGeneral = translateUiText(`Dieselbe Übung kann nicht gleichzeitig bevorzugt und ausgeschlossen sein: ${labels.join(', ')}.`)            }
 
             const totalPreferenceWeight = getAutoPreferenceWeightTotal()
             if ((context === 'generate' || context === 'save') && totalPreferenceWeight > 100) {
-                builderFormErrors.autoPreferenceWeights = `Die Summe aus Maschinenfokus, Freihantelfokus und Gelenkschonend darf zusammen maximal 100% sein. Aktuell: ${totalPreferenceWeight}%.`
-            }
+                builderFormErrors.autoPreferenceWeights = translateUiText(`Die Summe aus Maschinenfokus, Freihantelfokus und Gelenkschonend darf zusammen maximal 100% sein. Aktuell: ${totalPreferenceWeight}%.`)            }
 
             if (context === 'save') {
                 if (editingPlanId.value) {
                     const validatedPlanName = validatePlanName(planName.value)
                     if (validatedPlanName === false) {
                         builderFormErrors.planName = planName.value.trim().length < 3
-                            ? 'Planname muss mindestens 3 Zeichen lang sein'
-                            : 'Planname darf maximal 20 Zeichen lang sein'
+                            ? t('builder.validation.planNameMin')
+                            : t('builder.validation.planNameMax')
                     }
                 } else if (generatedAutoPlans.value.length > 0) {
                     builderFormErrors.autoPlanNames = generatedAutoPlans.value.map((plan) => {
                         const validated = validatePlanName(plan.name)
                         if (validated !== false) return ''
                         return plan.name.trim().length < 3
-                            ? 'Planname muss mindestens 3 Zeichen lang sein'
-                            : 'Planname darf maximal 20 Zeichen lang sein'
+                            ? t('builder.validation.planNameMin')
+                            : t('builder.validation.planNameMax')
                     })
                 }
 
-                if (!hasExercisesToSave.value) builderFormErrors.exercises = 'Mindestens eine Übung ist erforderlich'
+                if (!hasExercisesToSave.value) builderFormErrors.exercises = t('builder.validation.minOneExercise')
             }
         }
 
@@ -3798,6 +3935,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         customPlanExercise.value = ""
         exerciseFilter.value = ""
         showManualExerciseLibrary.value = false
+        manualExerciseLibraryCreateMode.value = false
         showReplacementExerciseLibrary.value = false
 
         newReps.value = null
@@ -4036,7 +4174,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 equipmentNumber: manualEquipmentNumber.value.trim() || undefined,
                 replacementExercise: manualReplacementExercise.value.trim() || undefined,
             })
-            props.addToast('Cardio hinzugefügt', 'add')
+            props.addToast(t('builder.toast.cardioAdded'), 'add')
             cardioExercise.value = ''
             manualRecovery.value = ''
             manualTempo.value = ''
@@ -4055,9 +4193,9 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             if (typeof validated !== 'string') {
                 customExercisesState.value.push({ name: validated.name, muscle: validated.muscle, type: validated.type })
                 props.saveToStorage?.()
-                props.addToast('Benutzerdefinierte Übung gespeichert', 'add')
+                props.addToast(t('builder.toast.customExerciseSaved'), 'add')
             } else {
-                if (validated === 'Muskelgruppe ist erforderlich') builderFormErrors.customExerciseMuscle = validated
+                if (validated === t('builder.validation.muscleGroupRequired')) builderFormErrors.customExerciseMuscle = validated
                 else builderFormErrors.customExercise = validated
                 return
             }
@@ -4079,7 +4217,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             replacementExercise: manualReplacementExercise.value.trim() || undefined,
         })
 
-        props.addToast('Übung hinzugefügt', 'add')
+        props.addToast(t('builder.toast.exerciseAdded'), 'add')
 
         newExercise.value = ''
         customPlanExercise.value = ''
@@ -4095,13 +4233,13 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         generatedAutoPlans.value = []
         pendingAutoGeneratedPlans.value = []
         if (index < 0 || index >= selectedPlanExercises.value.length) {
-            props.addToast('Ungültiger Übungsindex', 'delete')
+            props.addToast(t('builder.validation.invalidExerciseIndex'), 'delete')
             return
         }
 
         const doDelete = () => {
             selectedPlanExercises.value.splice(index, 1)
-            props.addToast('Übung gelöscht', 'delete')
+            props.addToast(t('builder.toast.exerciseDeleted'), 'delete')
         }
 
         if (editingPlanId.value) {
@@ -4138,121 +4276,6 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         reordered.splice(targetIndex, 0, exercise)
         selectedPlanExercises.value = reordered
     }
-
-    const createOrUpdatePlanLegacy = async () => {
-        const validatedPlanName = validatePlanName(planName.value)
-
-        if (!auth.user) {
-            if (validatedPlanName === false || !selectedPlanExercises.value.length) {
-                const errors: string[] = []
-                if (validatedPlanName === false) {
-                    errors.push(
-                        planName.value.trim().length < 3
-                            ? "Planname muss mindestens 3 Zeichen lang sein"
-                            : "Planname darf maximal 20 Zeichen lang sein"
-                    )
-                }
-                if (!selectedPlanExercises.value.length) errors.push("Mindestens eine Übung ist erforderlich")
-                props.openValidationPopup(errors)
-                return
-            }
-
-            // ? Gast-Plan in der UI-Liste anzeigen (Session-only)
-            const id =
-                (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
-                    ? crypto.randomUUID()
-                    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-
-            props.onGuestPlanCreated?.({
-                id,
-                name: validatedPlanName as string,
-                isFavorite: false,
-                exercises: [...selectedPlanExercises.value],
-                exerciseCount: selectedPlanExercises.value.length,
-            })
-
-            emit('plan-created', { id, name: validatedPlanName as string })
-            await auth.setHasCreatedTrainingPlan?.()
-
-            resetBuilder()
-            return
-        }
-
-        if (validatedPlanName === false || (!editingPlanId.value && !selectedPlanExercises.value.length)) {
-            const errors: string[] = []
-            if (validatedPlanName === false) {
-                errors.push(
-                    planName.value.trim().length < 3
-                        ? "Planname muss mindestens 3 Zeichen lang sein"
-                        : "Planname darf maximal 20 Zeichen lang sein"
-                )
-            }
-            if (!selectedPlanExercises.value.length) errors.push("Mindestens eine Übung ist erforderlich")
-            props.openValidationPopup(errors)
-            return
-        }
-
-        // ? Duplicate-Name Check (vor dem Request), case-insensitive
-        const getPlans = (): any[] => {
-            // versuch mehrere gängige Store-Keys, ohne dass TS meckert
-            const anyStore = trainingPlansStore as any
-            return (anyStore.items ?? anyStore.plans ?? anyStore.trainingPlans ?? []) as any[]
-        }
-
-        const isNameTaken = (name: string, ignoreId: string | null) => {
-            const needle = name.trim().toLowerCase()
-            return getPlans().some((p: any) =>
-                String(p?.id ?? "").toLowerCase() !== String(ignoreId ?? "").toLowerCase() &&
-                String(p?.name ?? "").trim().toLowerCase() === needle
-            )
-        }
-
-        if (isNameTaken(validatedPlanName, editingPlanId.value)) {
-            props.openValidationPopup(["Planname bereits vergeben. Bitte wähle einen anderen Namen."])
-            return
-        }
-
-        try {
-            const payload = toUpsertPayload()
-
-            if (editingPlanId.value) {
-                const updated = await trainingPlansStore.update(editingPlanId.value, payload)
-                void updated
-                props.addToast("Plan gespeichert", "save")
-            } else {
-                const created = await trainingPlansStore.create(payload)
-
-                console.log("[TrainingPlan] created:", created)
-                console.log("[TrainingPlan] code:", (created as any)?.code ?? (created as any)?.data?.code)
-
-                props.addToast("Plan erstellt", "add")
-                // INSERT in components/ui/training/TrainingPlanBuilder.vue AFTER props.addToast("Plan erstellt", "add")
-                const createdId = String((created as any)?.id ?? (created as any)?.data?.id ?? '')
-                if (createdId) emit('plan-created', { id: createdId, name: validatedPlanName as string })
-                await auth.setHasCreatedTrainingPlan?.()
-
-            }
-
-            resetBuilder()
-        } catch (e: any) {
-            const status = e?.response?.status
-
-            // ? Falls Backend weiter 500 wirft (23505), geben wir trotzdem die richtige Message
-            if (status === 500 && isNameTaken(validatedPlanName, editingPlanId.value)) {
-                props.openValidationPopup(["Planname bereits vergeben. Bitte wähle einen anderen Namen."])
-                return
-            }
-
-            // (optional) wenn Backend mal 409 liefert
-            if (status === 409) {
-                props.openValidationPopup(["Planname bereits vergeben. Bitte wähle einen anderen Namen."])
-                return
-            }
-
-            props.openValidationPopup(["Speichern fehlgeschlagen. Bitte versuch’s nochmal."])
-        }
-    }
-
 
     // ===== Preview-Resize (dein initPreviewResizeTable minimal übernommen) =====
     const createOrUpdatePlan = async () => {
@@ -4319,7 +4342,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 }
 
                 if (firstCreatedId) emit('plan-created', { id: firstCreatedId, name: firstCreatedName })
-                props.addToast(`${generatedPlansToPersist.length} Pläne erstellt`, 'add')
+                props.addToast(tp('builder.toast.plansCreated', { count: generatedPlansToPersist.length }), 'add')
             } else if (editingPlanId.value) {
                 const updatedPlanId = editingPlanId.value
                 const beforeExercises = clonePlanExercises(editOriginExercisesSnapshot.value)
@@ -4366,14 +4389,14 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         }
 
         if (editingPlanId.value && builderMode.value === 'auto' && generatedPlansToPersist.length > 1) {
-            builderFormErrors.general = 'Mehrere Auto-Pläne können nicht in einen bestehenden Einzelplan gespeichert werden. Bitte erstelle sie als neue Pläne.'
+            builderFormErrors.general = t('builder.validation.multiAutoEditBlocked')
             return
         }
 
         if (!validateBuilderFields('save')) return
 
         if (!autoSinglePlan && !isAutoMultiCreate && isNameTaken(effectiveValidatedPlanName as string, editingPlanId.value)) {
-            builderFormErrors.planName = 'Planname bereits vergeben. Bitte wähle einen anderen Namen.'
+            builderFormErrors.planName = t('builder.validation.nameTaken')
             return
         }
 
@@ -4401,7 +4424,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                         afterExercises,
                     })
                 }
-                props.addToast("Plan gespeichert", "save")
+                props.addToast(t('builder.toast.planSaved'), "save")
             } else if (isAutoMultiCreate) {
                 let firstCreatedId = ''
                 let firstCreatedName = autoGeneratedPlanNames[0] ?? ''
@@ -4419,7 +4442,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                     }
                 }
 
-                props.addToast(`${generatedPlansToPersist.length} Pläne erstellt`, "add")
+                props.addToast(tp('builder.toast.plansCreated', { count: generatedPlansToPersist.length }), "add")
                 if (firstCreatedId) emit('plan-created', { id: firstCreatedId, name: firstCreatedName })
                 await auth.setHasCreatedTrainingPlan?.()
             } else {
@@ -4434,7 +4457,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
                 console.log("[TrainingPlan] created:", created)
                 console.log("[TrainingPlan] code:", (created as any)?.code ?? (created as any)?.data?.code)
 
-                props.addToast("Plan erstellt", "add")
+                props.addToast(t('builder.toast.planCreated'), "add")
                 const createdId = String((created as any)?.id ?? (created as any)?.data?.id ?? '')
                 if (createdId) emit('plan-created', { id: createdId, name: effectiveValidatedPlanName as string })
                 await auth.setHasCreatedTrainingPlan?.()
@@ -4445,16 +4468,16 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             const status = e?.response?.status
 
             if (!isAutoMultiCreate && status === 500 && isNameTaken(effectiveValidatedPlanName as string, editingPlanId.value)) {
-                builderFormErrors.planName = 'Planname bereits vergeben. Bitte wähle einen anderen Namen.'
+                builderFormErrors.planName = t('builder.validation.nameTaken')
                 return
             }
 
             if (status === 409) {
-                builderFormErrors.planName = 'Planname bereits vergeben. Bitte wähle einen anderen Namen.'
+                builderFormErrors.planName = t('builder.validation.nameTaken')
                 return
             }
 
-            builderFormErrors.general = 'Speichern fehlgeschlagen. Bitte versuch’s nochmal.'
+            builderFormErrors.general = t('builder.validation.saveFailed')
         }
     }
 
@@ -4498,7 +4521,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             const makeResizer = (side: 'right' | 'left') => {
                 const resizer = document.createElement('div')
                 resizer.className = `resizer resizer-${side}`;
-                (th.querySelector('.th-text') ?? th).appendChild(resizer)
+                th.appendChild(resizer)
 
                 if (side === 'right') { resizer.style.right = '0'; resizer.style.left = 'auto' }
                 else { resizer.style.left = '0'; resizer.style.right = 'auto' }
@@ -4582,23 +4605,29 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     }
 
     let headerRO: ResizeObserver | null = null
+    let headerRORaf = 0
 
     function applyHeaderState(th: HTMLElement) {
         const label = th.querySelector('.th-label') as HTMLElement | null
         if (!label) return
         const w = th.clientWidth
-        label.classList.remove('is-full', 'is-mid', 'is-short')
         const SHORT = 80
         const MID = 120
-        if (w <= SHORT) label.classList.add('is-short')
-        else if (w <= MID) label.classList.add('is-mid')
-        else label.classList.add('is-full')
+        const nextState = w <= SHORT ? 'is-short' : w <= MID ? 'is-mid' : 'is-full'
+        if (label.classList.contains(nextState)) return
+        label.classList.remove('is-full', 'is-mid', 'is-short')
+        label.classList.add(nextState)
     }
 
     function setupHeaderShorteningFallback() {
         headerRO?.disconnect()
         headerRO = new ResizeObserver((entries) => {
-            entries.forEach(entry => applyHeaderState(entry.target as HTMLElement))
+            const targets = entries.map(entry => entry.target as HTMLElement)
+            if (headerRORaf) window.cancelAnimationFrame(headerRORaf)
+            headerRORaf = window.requestAnimationFrame(() => {
+                headerRORaf = 0
+                targets.forEach(applyHeaderState)
+            })
         })
 
         const table = previewTable.value
@@ -4613,9 +4642,14 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     function teardownHeaderShorteningFallback() {
         headerRO?.disconnect()
         headerRO = null
+        if (headerRORaf) {
+            window.cancelAnimationFrame(headerRORaf)
+            headerRORaf = 0
+        }
     }
 
     let metaLineRO: ResizeObserver | null = null
+    let metaLineRORaf = 0
 
     function applyExerciseMetaMarqueeState(line: HTMLElement) {
         const track = line.querySelector('.exercise-meta-track') as HTMLElement | null
@@ -4629,14 +4663,25 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         const viewportWidth = window.innerWidth || 0
         const isAutoPreviewLine = line.classList.contains('exercise-meta-line--auto')
         const forceAnimate = isAutoPreviewLine && viewportWidth <= 1080 && marquee.scrollWidth > 0
-        line.style.setProperty('--meta-loop', `${marquee.scrollWidth + dividerWidth + gap}px`)
-        line.classList.toggle('is-animated', forceAnimate || overflow > 8)
+        const nextMetaLoop = `${marquee.scrollWidth + dividerWidth + gap}px`
+        if (line.style.getPropertyValue('--meta-loop') !== nextMetaLoop) {
+            line.style.setProperty('--meta-loop', nextMetaLoop)
+        }
+        const shouldAnimate = forceAnimate || overflow > 8
+        if (line.classList.contains('is-animated') !== shouldAnimate) {
+            line.classList.toggle('is-animated', shouldAnimate)
+        }
     }
 
     function setupExerciseMetaMarquees() {
         metaLineRO?.disconnect()
         metaLineRO = new ResizeObserver((entries) => {
-            entries.forEach(entry => applyExerciseMetaMarqueeState(entry.target as HTMLElement))
+            const targets = entries.map(entry => entry.target as HTMLElement)
+            if (metaLineRORaf) window.cancelAnimationFrame(metaLineRORaf)
+            metaLineRORaf = window.requestAnimationFrame(() => {
+                metaLineRORaf = 0
+                targets.forEach(applyExerciseMetaMarqueeState)
+            })
         })
 
         const scope = builderSection.value
@@ -4652,6 +4697,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     function teardownExerciseMetaMarquees() {
         metaLineRO?.disconnect()
         metaLineRO = null
+        if (metaLineRORaf) {
+            window.cancelAnimationFrame(metaLineRORaf)
+            metaLineRORaf = 0
+        }
     }
 
     watch(
@@ -4701,7 +4750,11 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             measureModeSwitch()
             if (!modeSwitchTrack.value || typeof ResizeObserver === 'undefined') return
             modeSwitchResizeObserver = new ResizeObserver(() => {
-                measureModeSwitch()
+                if (modeSwitchResizeObserverRaf) window.cancelAnimationFrame(modeSwitchResizeObserverRaf)
+                modeSwitchResizeObserverRaf = window.requestAnimationFrame(() => {
+                    modeSwitchResizeObserverRaf = 0
+                    measureModeSwitch()
+                })
             })
             modeSwitchResizeObserver.observe(modeSwitchTrack.value)
         })
@@ -4727,6 +4780,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         cleanupModeSwitchPointerListeners()
         modeSwitchResizeObserver?.disconnect()
         modeSwitchResizeObserver = null
+        if (modeSwitchResizeObserverRaf) {
+            window.cancelAnimationFrame(modeSwitchResizeObserverRaf)
+            modeSwitchResizeObserverRaf = 0
+        }
         clearAutoGenerationProgressTimer()
         clearPreviewBuilderTimers()
         clearCardioRunnerTimer()
@@ -4798,8 +4855,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         height: 92px;
         border-radius: 999px;
         transform: translate(-50%, -50%) scale(.2);
-        background:
-            radial-gradient(circle, rgba(255, 249, 196, 0.98) 0 12%, rgba(250, 204, 21, 0.52) 28%, rgba(250, 204, 21, 0.18) 48%, rgba(250, 204, 21, 0) 72%);
+        background: radial-gradient(circle, rgba(255, 249, 196, 0.98) 0 12%, rgba(250, 204, 21, 0.52) 28%, rgba(250, 204, 21, 0.18) 48%, rgba(250, 204, 21, 0) 72%);
         opacity: 0;
         animation: builder-data-stream-pulse 720ms ease-out forwards;
         animation-delay: var(--stream-delay, 120ms);
@@ -4996,10 +5052,12 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             transform: scale(0.92);
             box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary) 35%, transparent);
         }
+
         70% {
             transform: scale(1);
             box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent-primary) 0%, transparent);
         }
+
         100% {
             transform: scale(0.92);
             box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary) 0%, transparent);
@@ -5007,11 +5065,11 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     }
 
     @keyframes previewBuilderPulse {
-        0%,
-        100% {
+        0%, 100% {
             transform: scale(1);
             box-shadow: 0 0 0 rgba(35, 110, 200, 0);
         }
+
         35% {
             transform: scale(1.03);
             box-shadow: 0 0 0 0.45rem rgba(35, 110, 200, 0.16);
@@ -5023,10 +5081,12 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             transform: scale(0.88);
             box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.34);
         }
+
         70% {
             transform: scale(1);
             box-shadow: 0 0 0 0.7rem rgba(59, 130, 246, 0);
         }
+
         100% {
             transform: scale(0.9);
             box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
@@ -5138,15 +5198,29 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         min-width: 0;
     }
 
-    .builder-mode-shell > * {
-        animation: builder-section-reveal .42s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-    }
+        .builder-mode-shell > * {
+            animation: builder-section-reveal .42s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+        }
 
-    .builder-mode-shell > *:nth-child(2) { animation-delay: .04s; }
-    .builder-mode-shell > *:nth-child(3) { animation-delay: .08s; }
-    .builder-mode-shell > *:nth-child(4) { animation-delay: .12s; }
-    .builder-mode-shell > *:nth-child(5) { animation-delay: .16s; }
-    .builder-mode-shell > *:nth-child(6) { animation-delay: .20s; }
+            .builder-mode-shell > *:nth-child(2) {
+                animation-delay: .04s;
+            }
+
+            .builder-mode-shell > *:nth-child(3) {
+                animation-delay: .08s;
+            }
+
+            .builder-mode-shell > *:nth-child(4) {
+                animation-delay: .12s;
+            }
+
+            .builder-mode-shell > *:nth-child(5) {
+                animation-delay: .16s;
+            }
+
+            .builder-mode-shell > *:nth-child(6) {
+                animation-delay: .20s;
+            }
 
     .builder-reveal-surface {
         animation: builder-section-reveal .46s cubic-bezier(0.22, 0.61, 0.36, 1) both;
@@ -5192,23 +5266,21 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     .builder-accordion-enter-active,
     .builder-accordion-leave-active {
-        transition: opacity .22s ease, transform .26s cubic-bezier(0.22, 0.61, 0.36, 1), max-height .28s ease, margin .2s ease, padding .2s ease;
         overflow: hidden;
         transform-origin: top;
+        will-change: auto;
     }
 
     .builder-accordion-enter-from,
     .builder-accordion-leave-to {
         opacity: 0;
         transform: translateY(-8px) scale(.985);
-        max-height: 0;
     }
 
     .builder-accordion-enter-to,
     .builder-accordion-leave-from {
         opacity: 1;
         transform: translateY(0) scale(1);
-        max-height: 260px;
     }
 
     /* Feldbl�cke */
@@ -5358,10 +5430,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         padding: 1.35rem 1.35rem 1.2rem;
         border-radius: 22px;
         border: 1px solid rgba(99, 102, 241, 0.22);
-        background:
-            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 54%),
-            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 14%, transparent), transparent 62%),
-            color-mix(in srgb, var(--bg-card) 94%, white 6%);
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 54%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 14%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 94%, white 6%);
         box-shadow: 0 26px 56px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.3) inset;
         pointer-events: auto;
     }
@@ -5397,22 +5466,22 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
     }
 
-    .auto-generation-overlay__bar span {
-        position: absolute;
-        inset: 0 auto 0 0;
-        border-radius: inherit;
-        background: linear-gradient(90deg, var(--accent-primary), color-mix(in srgb, var(--accent-secondary) 76%, white 24%));
-        box-shadow: 0 0 22px color-mix(in srgb, var(--accent-primary) 30%, transparent);
-        transition: width .22s cubic-bezier(0.22, 0.61, 0.36, 1);
-    }
+        .auto-generation-overlay__bar span {
+            position: absolute;
+            inset: 0 auto 0 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--accent-primary), color-mix(in srgb, var(--accent-secondary) 76%, white 24%));
+            box-shadow: 0 0 22px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+            transition: width .22s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
 
-    .auto-generation-overlay__bar span::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.08) 32%, rgba(255, 255, 255, 0.45) 48%, rgba(255, 255, 255, 0.08) 64%, transparent 100%);
-        animation: auto-generation-sheen 1.35s linear infinite;
-    }
+            .auto-generation-overlay__bar span::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.08) 32%, rgba(255, 255, 255, 0.45) 48%, rgba(255, 255, 255, 0.08) 64%, transparent 100%);
+                animation: auto-generation-sheen 1.35s linear infinite;
+            }
 
     .auto-generation-overlay__steps {
         display: grid;
@@ -5429,11 +5498,11 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         transition: background-color .22s ease, transform .22s ease, box-shadow .22s ease;
     }
 
-    .auto-generation-overlay__step.is-active {
-        background: color-mix(in srgb, var(--accent-primary) 70%, white 30%);
-        transform: scaleX(1);
-        box-shadow: 0 0 14px color-mix(in srgb, var(--accent-primary) 18%, transparent);
-    }
+        .auto-generation-overlay__step.is-active {
+            background: color-mix(in srgb, var(--accent-primary) 70%, white 30%);
+            transform: scaleX(1);
+            box-shadow: 0 0 14px color-mix(in srgb, var(--accent-primary) 18%, transparent);
+        }
 
     .auto-generation-overlay-enter-active,
     .auto-generation-overlay-leave-active {
@@ -5552,19 +5621,13 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         padding: 1rem 1.05rem;
         border-radius: 18px;
         border: 1px solid var(--border-color);
-        background:
-            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 6%, transparent), transparent 58%),
-            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 5%, transparent), transparent 64%),
-            var(--bg-secondary);
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 6%, transparent), transparent 58%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 5%, transparent), transparent 64%), var(--bg-secondary);
         box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
     }
 
     .smart-rx-card--hint {
         border-color: color-mix(in srgb, var(--accent-primary) 24%, var(--border-color) 76%);
-        background:
-            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 8%, transparent), transparent 58%),
-            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 6%, transparent), transparent 64%),
-            var(--bg-secondary);
+        background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 8%, transparent), transparent 58%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 6%, transparent), transparent 64%), var(--bg-secondary);
     }
 
     .smart-rx-card__head {
@@ -5599,9 +5662,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         padding: 0.55rem 0.95rem;
         border-radius: 999px;
         border: 1px solid color-mix(in srgb, var(--accent-primary) 42%, var(--border-color) 58%);
-        background:
-            radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 58%),
-            color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+        background: radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 58%), color-mix(in srgb, var(--bg-secondary) 88%, transparent);
         color: var(--text-primary);
         font: inherit;
         font-weight: 700;
@@ -5610,14 +5671,12 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
     }
 
-    .smart-rx-card__apply:hover {
-        transform: translateY(-1px);
-        border-color: color-mix(in srgb, var(--accent-primary) 68%, var(--border-color) 32%);
-        background:
-            radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 58%),
-            color-mix(in srgb, var(--bg-secondary) 84%, transparent);
-        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 18%, transparent) inset;
-    }
+        .smart-rx-card__apply:hover {
+            transform: translateY(-1px);
+            border-color: color-mix(in srgb, var(--accent-primary) 68%, var(--border-color) 32%);
+            background: radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 58%), color-mix(in srgb, var(--bg-secondary) 84%, transparent);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 18%, transparent) inset;
+        }
 
     .smart-rx-card__grid {
         display: grid;
@@ -5634,17 +5693,17 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         background: var(--bg-secondary);
     }
 
-    .smart-rx-stat span {
-        font-size: 0.72rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--text-secondary);
-    }
+        .smart-rx-stat span {
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
 
-    .smart-rx-stat strong {
-        font-size: 0.98rem;
-        color: var(--text-primary);
-    }
+        .smart-rx-stat strong {
+            font-size: 0.98rem;
+            color: var(--text-primary);
+        }
 
     .smart-rx-stat--accent {
         border-color: color-mix(in srgb, var(--accent-secondary) 18%, var(--border-color) 82%);
@@ -5823,17 +5882,17 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-card) 90%);
     }
 
-    .auto-preview-banner strong {
-        display: block;
-        margin-bottom: 0.15rem;
-    }
+        .auto-preview-banner strong {
+            display: block;
+            margin-bottom: 0.15rem;
+        }
 
-    .auto-preview-banner p {
-        margin: 0;
-        color: var(--text-secondary);
-        line-height: 1.4;
-        font-size: 0.82rem;
-    }
+        .auto-preview-banner p {
+            margin: 0;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            font-size: 0.82rem;
+        }
 
     .auto-preview-banner__pulse {
         width: 0.8rem;
@@ -5958,10 +6017,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     html.dark-mode .auto-generation-overlay__card {
         border-color: rgba(129, 140, 248, 0.32);
-        background:
-            radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 56%),
-            radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.14), transparent 64%),
-            rgba(2, 6, 23, 0.94);
+        background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 56%), radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.14), transparent 64%), rgba(2, 6, 23, 0.94);
         box-shadow: 0 26px 60px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(129, 140, 248, 0.12) inset;
     }
 
@@ -5985,10 +6041,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         background: rgba(71, 85, 105, 0.82);
     }
 
-    html.dark-mode .auto-generation-overlay__step.is-active {
-        background: linear-gradient(90deg, #818cf8, #34d399);
-        box-shadow: 0 0 16px rgba(129, 140, 248, 0.22);
-    }
+        html.dark-mode .auto-generation-overlay__step.is-active {
+            background: linear-gradient(90deg, #818cf8, #34d399);
+            box-shadow: 0 0 16px rgba(129, 140, 248, 0.22);
+        }
 
     /* Fallback f�r alte Browser ohne backdrop-filter / color-mix */
     @supports not (backdrop-filter: blur(10px)) or not (color-mix(in srgb, black 10%, white 90%)) {
@@ -6068,6 +6124,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         bottom: .3rem;
         left: .3rem;
         width: calc((100% - .6rem) / 2);
+        min-width: 0;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -6091,6 +6148,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         display: block;
         width: 100%;
         height: 100%;
+        min-width: 0;
         overflow: hidden;
     }
 
@@ -6100,6 +6158,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        min-width: 0;
+        max-width: 100%;
         padding: .45rem .9rem;
         font-weight: 700;
         font-size: .89rem;
@@ -6115,6 +6175,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         text-align: center;
     }
 
+    .builder-mode-auto-label--short {
+        display: none;
+    }
+
     .seg-mode__thumb-hint {
         right: .25rem;
     }
@@ -6125,6 +6189,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        min-width: 0;
         background: transparent;
         border: 1px solid transparent;
         border-radius: 10px;
@@ -6140,9 +6205,9 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         overflow: hidden;
     }
 
-    .seg-mode__option.on {
-        color: transparent;
-    }
+        .seg-mode__option.on {
+            color: transparent;
+        }
 
     .builder-mode-manual-content {
         display: inline-flex;
@@ -6157,6 +6222,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         right: .46rem;
         display: inline-flex;
         align-items: center;
+        gap: .02em;
         color: color-mix(in srgb, var(--accent-primary) 68%, #ffffff 32%);
         font-size: 1.62rem;
         font-weight: 900;
@@ -6171,6 +6237,12 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         pointer-events: none;
     }
 
+    .builder-mode-swipe-inline__glyph {
+        display: inline-block;
+        min-width: .42em;
+        text-align: center;
+    }
+
     .segmented.seg-mode > button.on .builder-mode-swipe-inline {
         color: color-mix(in srgb, var(--accent-primary) 76%, #ffffff 24%);
     }
@@ -6178,6 +6250,53 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     html.dark-mode .segmented.seg-mode > button.on .builder-mode-swipe-inline {
         color: color-mix(in srgb, #818cf8 74%, #e0f2fe 26%);
         text-shadow: 0 0 12px rgba(129, 140, 248, 0.28);
+    }
+
+    @media (max-width: 560px) {
+        .seg-mode__thumb-label,
+        .seg-mode__option {
+            padding-inline: .65rem;
+        }
+
+        .seg-mode__thumb-label--auto,
+        .segmented.seg-mode > .seg-mode__option:last-child {
+            font-size: .76rem;
+            line-height: 1.05;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            text-align: center;
+        }
+
+        .builder-mode-swipe-inline {
+            right: .36rem;
+            font-size: 1.3rem;
+            transform: translateY(-50%) scaleX(1.28) scaleY(1.02);
+        }
+
+        .builder-mode-swipe-inline__glyph:last-child {
+            display: none;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .builder-mode-auto-label--full {
+            display: none;
+        }
+
+        .builder-mode-auto-label--short {
+            display: inline;
+        }
+
+        .builder-mode-swipe-inline {
+            right: .28rem;
+            font-size: 1.08rem;
+            transform: translateY(-50%) scaleX(1.18) scaleY(.96);
+        }
+
+        .builder-mode-swipe-inline__glyph:nth-child(n+2) {
+            display: none;
+        }
     }
 
     @keyframes builder-mode-button-shift {
@@ -6293,27 +6412,25 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         gap: .5rem .8rem;
     }
 
-    .auto-toggles label {
-        display: inline-flex;
-        align-items: center;
-        gap: .55rem;
-        font-size: .88rem;
-        min-height: 38px;
-        padding: .45rem .6rem;
-        border: 1px solid color-mix(in srgb, #64748b 42%, var(--border-color) 58%);
-        border-radius: 10px;
-        background:
-            radial-gradient(circle at 12% 15%, color-mix(in srgb, #f8fafc 10%, transparent), transparent 60%),
-            color-mix(in srgb, var(--bg-secondary) 92%, #0f172a 8%);
-        transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease, transform .1s ease;
-        cursor: pointer;
-    }
+        .auto-toggles label {
+            display: inline-flex;
+            align-items: center;
+            gap: .55rem;
+            font-size: .88rem;
+            min-height: 38px;
+            padding: .45rem .6rem;
+            border: 1px solid color-mix(in srgb, #64748b 42%, var(--border-color) 58%);
+            border-radius: 10px;
+            background: radial-gradient(circle at 12% 15%, color-mix(in srgb, #f8fafc 10%, transparent), transparent 60%), color-mix(in srgb, var(--bg-secondary) 92%, #0f172a 8%);
+            transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease, transform .1s ease;
+            cursor: pointer;
+        }
 
-    .auto-toggles label:hover {
-        border-color: color-mix(in srgb, var(--accent-secondary) 45%, #64748b 55%);
-        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
-        transform: translateY(-1px);
-    }
+            .auto-toggles label:hover {
+                border-color: color-mix(in srgb, var(--accent-secondary) 45%, #64748b 55%);
+                box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+                transform: translateY(-1px);
+            }
 
     .auto-toggle-inline {
         display: inline-flex;
@@ -6322,9 +6439,9 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         min-width: 0;
     }
 
-    .auto-toggle-inline > span {
-        min-width: 0;
-    }
+        .auto-toggle-inline > span {
+            min-width: 0;
+        }
 
     .auto-toggle-help {
         display: inline-flex;
@@ -6333,9 +6450,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     }
 
     .auto-toggles label:has(input:checked) {
-        background:
-            radial-gradient(circle at 10% 10%, color-mix(in srgb, var(--accent-secondary) 18%, transparent), transparent 62%),
-            color-mix(in srgb, var(--bg-card) 90%, #0b1220 10%);
+        background: radial-gradient(circle at 10% 10%, color-mix(in srgb, var(--accent-secondary) 18%, transparent), transparent 62%), color-mix(in srgb, var(--bg-card) 90%, #0b1220 10%);
         border-color: color-mix(in srgb, var(--accent-secondary) 58%, #64748b 42%);
         box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-secondary) 20%, transparent) inset, 0 8px 20px rgba(15, 23, 42, 0.14);
     }
@@ -6356,27 +6471,27 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         cursor: pointer;
     }
 
-    .auto-toggles input[type="checkbox"]::after {
-        content: "";
-        width: 11px;
-        height: 11px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.4' d='M3 8.4l3 3.1L13.2 4.8'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: contain;
-        transform: scale(0);
-        transition: transform .12s ease;
-    }
+        .auto-toggles input[type="checkbox"]::after {
+            content: "";
+            width: 11px;
+            height: 11px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.4' d='M3 8.4l3 3.1L13.2 4.8'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            transform: scale(0);
+            transition: transform .12s ease;
+        }
 
-    .auto-toggles input[type="checkbox"]:checked {
-        border-color: color-mix(in srgb, var(--accent-secondary) 80%, #16a34a 20%);
-        background: color-mix(in srgb, var(--accent-secondary) 78%, #16a34a 22%);
-        box-shadow: 0 2px 7px color-mix(in srgb, var(--accent-secondary) 35%, transparent);
-    }
+        .auto-toggles input[type="checkbox"]:checked {
+            border-color: color-mix(in srgb, var(--accent-secondary) 80%, #16a34a 20%);
+            background: color-mix(in srgb, var(--accent-secondary) 78%, #16a34a 22%);
+            box-shadow: 0 2px 7px color-mix(in srgb, var(--accent-secondary) 35%, transparent);
+        }
 
-    .auto-toggles input[type="checkbox"]:checked::after {
-        transform: scale(1);
-    }
+            .auto-toggles input[type="checkbox"]:checked::after {
+                transform: scale(1);
+            }
 
     .auto-selected-list {
         display: flex;
@@ -6398,11 +6513,11 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
     }
 
-    .auto-selected-tag:hover {
-        border-color: color-mix(in srgb, var(--accent-secondary) 45%, #64748b 55%);
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.10);
-        transform: translateY(-1px);
-    }
+        .auto-selected-tag:hover {
+            border-color: color-mix(in srgb, var(--accent-secondary) 45%, #64748b 55%);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.10);
+            transform: translateY(-1px);
+        }
 
     .auto-selected-tag--report {
         background: color-mix(in srgb, #f59e0b 12%, var(--bg-card) 88%);
@@ -6427,10 +6542,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         flex-wrap: wrap;
     }
 
-    .auto-report-overrides__head span:last-child {
-        color: var(--text-secondary);
-        font-size: .84rem;
-    }
+        .auto-report-overrides__head span:last-child {
+            color: var(--text-secondary);
+            font-size: .84rem;
+        }
 
     .auto-report-overrides__toggle {
         display: flex;
@@ -6447,19 +6562,17 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         cursor: pointer;
     }
 
-    .auto-report-overrides__toggle span:last-child {
-        color: var(--text-secondary);
-        font-size: .84rem;
-    }
+        .auto-report-overrides__toggle span:last-child {
+            color: var(--text-secondary);
+            font-size: .84rem;
+        }
 
     .primary-btn {
         width: 100%;
         height: var(--control-height);
         border-radius: 10px;
         border: 1px solid color-mix(in srgb, var(--accent-primary) 50%, transparent);
-        background:
-            radial-gradient(circle at 18% 18%, color-mix(in srgb, #ffffff 18%, transparent), transparent 52%),
-            linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 18%, transparent), color-mix(in srgb, var(--accent-secondary) 16%, transparent));
+        background: radial-gradient(circle at 18% 18%, color-mix(in srgb, #ffffff 18%, transparent), transparent 52%), linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 18%, transparent), color-mix(in srgb, var(--accent-secondary) 16%, transparent));
         color: var(--text-primary);
         cursor: pointer;
         font-weight: 600;
@@ -6472,9 +6585,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         .primary-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             border-color: color-mix(in srgb, var(--accent-primary) 72%, var(--accent-secondary) 28%);
-            background:
-                radial-gradient(circle at 18% 18%, color-mix(in srgb, #ffffff 24%, transparent), transparent 52%),
-                linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent), color-mix(in srgb, var(--accent-secondary) 24%, transparent));
+            background: radial-gradient(circle at 18% 18%, color-mix(in srgb, #ffffff 24%, transparent), transparent 52%), linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 26%, transparent), color-mix(in srgb, var(--accent-secondary) 24%, transparent));
             box-shadow: 0 16px 34px rgba(15, 23, 42, 0.18), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 24%, transparent) inset;
             filter: saturate(1.04);
         }
@@ -6520,10 +6631,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         flex-wrap: wrap;
     }
 
-    .auto-preview-plan__head h5 {
-        margin: 0;
-        font-size: 1rem;
-    }
+        .auto-preview-plan__head h5 {
+            margin: 0;
+            font-size: 1rem;
+        }
 
     .auto-preview-plan__regen {
         min-height: 34px;
@@ -6539,17 +6650,17 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         transition: border-color .18s ease, background .18s ease, transform .18s ease;
     }
 
-    .auto-preview-plan__regen:hover:not(:disabled) {
-        border-color: color-mix(in srgb, var(--accent-secondary) 60%, var(--border-color) 40%);
-        background: color-mix(in srgb, var(--accent-secondary) 14%, var(--bg-card) 86%);
-        transform: translateY(-1px);
-    }
+        .auto-preview-plan__regen:hover:not(:disabled) {
+            border-color: color-mix(in srgb, var(--accent-secondary) 60%, var(--border-color) 40%);
+            background: color-mix(in srgb, var(--accent-secondary) 14%, var(--bg-card) 86%);
+            transform: translateY(-1px);
+        }
 
-    .auto-preview-plan__regen:disabled {
-        opacity: .6;
-        cursor: wait;
-        transform: none;
-    }
+        .auto-preview-plan__regen:disabled {
+            opacity: .6;
+            cursor: wait;
+            transform: none;
+        }
 
     .auto-exercise-cell {
         display: flex;
@@ -6563,12 +6674,12 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         flex: 1;
     }
 
-    .auto-exercise-cell__body > span {
-        display: block;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+        .auto-exercise-cell__body > span {
+            display: block;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
     .auto-exercise-report-btn {
         flex: 0 0 auto;
@@ -7073,15 +7184,15 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         transition: box-shadow 0.24s ease, border-color 0.24s ease, background 0.24s ease;
     }
 
-    .exercise-table.full-width::before {
-        content: "";
-        position: absolute;
-        inset: 0 0 auto 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
-        pointer-events: none;
-        z-index: 1;
-    }
+        .exercise-table.full-width::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+            pointer-events: none;
+            z-index: 1;
+        }
 
     @media (hover: hover) {
         .exercise-table.full-width:hover {
@@ -7096,102 +7207,100 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         box-shadow: 0 22px 55px rgba(0, 0, 0, 0.7);
     }
 
-    html.dark-mode .exercise-table.full-width::before {
-        background: linear-gradient(90deg, transparent, rgba(129, 140, 248, 0.18), transparent);
-    }
-
-    html.dark-mode .exercise-table.full-width thead {
-        background: linear-gradient(180deg, rgba(30, 41, 59, 0.78) 0%, rgba(15, 23, 42, 0.58) 100%);
-    }
-
-    html.dark-mode .exercise-table.full-width th {
-        border-bottom-color: rgba(148, 163, 184, 0.24);
-        color: rgba(226, 232, 240, 0.92);
-    }
-
-    html.dark-mode .exercise-table.full-width th:not(:last-child) {
-        border-right-color: rgba(148, 163, 184, 0.12);
-    }
-
-    html.dark-mode .exercise-table.full-width td {
-        border-top-color: rgba(148, 163, 184, 0.12);
-        background: rgba(15, 23, 42, 0.42);
-    }
-
-    html.dark-mode .exercise-table.full-width tbody tr:nth-child(odd) td {
-        background: rgba(30, 41, 59, 0.26);
-    }
-
-    html.dark-mode .exercise-table.full-width tbody tr:hover td {
-        background: color-mix(in srgb, rgba(30, 41, 59, 0.62) 78%, #6366f1 22%);
-    }
-
-        .exercise-table.full-width table {
-            width: 100%;
-            table-layout: fixed;
-            border-collapse: separate;
-            border-spacing: 0;
-            background: transparent;
+        html.dark-mode .exercise-table.full-width::before {
+            background: linear-gradient(90deg, transparent, rgba(129, 140, 248, 0.18), transparent);
         }
 
-        .exercise-table.full-width thead {
-            background: linear-gradient(180deg,
-                    color-mix(in srgb, var(--bg-card) 78%, white 22%) 0%,
-                    color-mix(in srgb, var(--bg-card) 90%, transparent) 100%);
+        html.dark-mode .exercise-table.full-width thead {
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.78) 0%, rgba(15, 23, 42, 0.58) 100%);
         }
 
-        .exercise-table.full-width th,
-        .exercise-table.full-width td {
-            padding: 1rem 1.05rem;
-            text-align: center;
-            vertical-align: middle;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        html.dark-mode .exercise-table.full-width th {
+            border-bottom-color: rgba(148, 163, 184, 0.24);
+            color: rgba(226, 232, 240, 0.92);
         }
 
-        .exercise-table.full-width th {
-            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
-            background: transparent;
-            color: color-mix(in srgb, var(--text-primary) 88%, white 12%);
-            font-weight: 700;
-            font-size: 0.78rem;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
+            html.dark-mode .exercise-table.full-width th:not(:last-child) {
+                border-right-color: rgba(148, 163, 184, 0.12);
+            }
+
+        html.dark-mode .exercise-table.full-width td {
+            border-top-color: rgba(148, 163, 184, 0.12);
+            background: rgba(15, 23, 42, 0.42);
         }
+
+        html.dark-mode .exercise-table.full-width tbody tr:nth-child(odd) td {
+            background: rgba(30, 41, 59, 0.26);
+        }
+
+        html.dark-mode .exercise-table.full-width tbody tr:hover td {
+            background: color-mix(in srgb, rgba(30, 41, 59, 0.62) 78%, #6366f1 22%);
+        }
+
+    .exercise-table.full-width table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: transparent;
+    }
+
+    .exercise-table.full-width thead {
+        background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 78%, white 22%) 0%, color-mix(in srgb, var(--bg-card) 90%, transparent) 100%);
+    }
+
+    .exercise-table.full-width th,
+    .exercise-table.full-width td {
+        padding: 1rem 1.05rem;
+        text-align: center;
+        vertical-align: middle;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .exercise-table.full-width th {
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        background: transparent;
+        color: color-mix(in srgb, var(--text-primary) 88%, white 12%);
+        font-weight: 700;
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
 
         .exercise-table.full-width th:not(:last-child) {
             border-right: 1px solid rgba(148, 163, 184, 0.10);
         }
 
-        .exercise-table.full-width td {
-            border-top: 1px solid rgba(148, 163, 184, 0.10);
-            background: color-mix(in srgb, var(--bg-card) 88%, transparent);
-            color: var(--text-primary);
-            white-space: normal;
-            overflow-wrap: anywhere;
-        }
+    .exercise-table.full-width td {
+        border-top: 1px solid rgba(148, 163, 184, 0.10);
+        background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+        color: var(--text-primary);
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
 
-        .exercise-table.full-width tbody tr:nth-child(odd) td {
-            background: color-mix(in srgb, var(--bg-card) 84%, transparent);
-        }
+    .exercise-table.full-width tbody tr:nth-child(odd) td {
+        background: color-mix(in srgb, var(--bg-card) 84%, transparent);
+    }
 
-        .exercise-table.full-width tbody tr {
-            transition: background 0.18s ease;
-        }
+    .exercise-table.full-width tbody tr {
+        transition: background 0.18s ease;
+    }
 
         .exercise-table.full-width tbody tr:hover td {
             background: color-mix(in srgb, var(--bg-card) 74%, var(--accent-primary) 26%);
         }
 
     .action-cell {
-        vertical-align: bottom;
+        vertical-align: middle;
     }
 
     .preview-action-cell {
         display: flex;
-        align-items: flex-end;
-        justify-content: flex-end;
+        align-items: center;
+        justify-content: center;
         gap: 0.45rem;
         min-height: 100%;
         width: 100%;
@@ -7273,10 +7382,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     .builder-card--editing {
         border-color: rgba(250, 204, 21, 0.92) !important;
-        box-shadow:
-            0 0 0 2px rgba(250, 204, 21, 0.96),
-            0 0 0 10px rgba(250, 204, 21, 0.16),
-            0 30px 60px rgba(217, 119, 6, 0.2) !important;
+        box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.96), 0 0 0 10px rgba(250, 204, 21, 0.16), 0 30px 60px rgba(217, 119, 6, 0.2) !important;
         animation: builder-form-edit-ring 1.95s cubic-bezier(0.22, 0.61, 0.36, 1) both;
     }
 
@@ -7304,22 +7410,22 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
     }
 
-    .builder-edit-action-btn:hover,
-    :deep(.builder-edit-action-btn:hover:not(:disabled)) {
-        transform: translateY(-1px);
-        border-color: rgba(180, 83, 9, 0.34) !important;
-        box-shadow: 0 16px 30px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
-    }
+        .builder-edit-action-btn:hover,
+        :deep(.builder-edit-action-btn:hover:not(:disabled)) {
+            transform: translateY(-1px);
+            border-color: rgba(180, 83, 9, 0.34) !important;
+            box-shadow: 0 16px 30px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+        }
 
-    .builder-edit-action-btn:focus,
-    :deep(.builder-edit-action-btn:focus) {
-        outline: none;
-    }
+        .builder-edit-action-btn:focus,
+        :deep(.builder-edit-action-btn:focus) {
+            outline: none;
+        }
 
-    .builder-edit-action-btn:focus-visible,
-    :deep(.builder-edit-action-btn:focus-visible) {
-        box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.28), 0 16px 30px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
-    }
+        .builder-edit-action-btn:focus-visible,
+        :deep(.builder-edit-action-btn:focus-visible) {
+            box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.28), 0 16px 30px rgba(217, 119, 6, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+        }
 
     html.dark-mode .builder-edit-action-btn,
     html.dark-mode :deep(.builder-edit-action-btn) {
@@ -7331,14 +7437,11 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
 
     html.dark-mode .builder-card--editing {
         border-color: rgba(251, 191, 36, 0.92) !important;
-        box-shadow:
-            0 0 0 2px rgba(251, 191, 36, 0.92),
-            0 0 0 10px rgba(251, 191, 36, 0.14),
-            0 28px 54px rgba(0, 0, 0, 0.34) !important;
+        box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.92), 0 0 0 10px rgba(251, 191, 36, 0.14), 0 28px 54px rgba(0, 0, 0, 0.34) !important;
     }
 
-    /* NEU: Resizer h�ngt an .th-text (nicht am TH) */
-    th .th-text > .resizer {
+    /* Resizer sitzt direkt auf der echten TH-Kante */
+    th > .resizer {
         position: absolute;
         top: 0;
         right: 0;
@@ -7353,7 +7456,7 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
     }
 
         /* Sichtbare Linie im Griff */
-        th .th-text > .resizer::before {
+        th > .resizer::before {
             content: "";
             width: var(--resize-line, 1px);
             height: 100%;
@@ -7362,8 +7465,8 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
             transition: transform .12s ease, background-color .12s ease, opacity .12s ease;
         }
 
-        th .th-text > .resizer:hover::before,
-        th .th-text > .resizer.is-active::before {
+        th > .resizer:hover::before,
+        th > .resizer.is-active::before {
             background: var(--resize-color-hover, #60a5fa);
             opacity: 1;
             transform: scaleX(2); /* optisch dicker beim Hover/Drag */
@@ -7431,10 +7534,10 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         font-weight: 700;
     }
 
-    .exercise-select-trigger__text.is-placeholder {
-        color: var(--text-secondary);
-        font-weight: 600;
-    }
+        .exercise-select-trigger__text.is-placeholder {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
 
     .exercise-custom-toggle {
         width: 100%;
@@ -7453,18 +7556,18 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease, color .16s ease;
     }
 
-    .exercise-custom-toggle.is-active {
-        border-color: color-mix(in srgb, var(--accent-primary) 56%, var(--border-color) 44%);
-        background: radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 70%), color-mix(in srgb, var(--bg-secondary) 92%, var(--bg-card) 8%);
-        color: color-mix(in srgb, var(--accent-primary) 82%, var(--text-primary) 18%);
-        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 20%, transparent) inset;
-    }
+        .exercise-custom-toggle.is-active {
+            border-color: color-mix(in srgb, var(--accent-primary) 56%, var(--border-color) 44%);
+            background: radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 70%), color-mix(in srgb, var(--bg-secondary) 92%, var(--bg-card) 8%);
+            color: color-mix(in srgb, var(--accent-primary) 82%, var(--text-primary) 18%);
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12), 0 0 0 1px color-mix(in srgb, var(--accent-primary) 20%, transparent) inset;
+        }
 
-    .exercise-custom-toggle:focus-visible {
-        outline: none;
-        border-color: color-mix(in srgb, var(--accent-primary) 48%, var(--border-color));
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 14%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.56), 0 12px 28px rgba(15, 23, 42, 0.12);
-    }
+        .exercise-custom-toggle:focus-visible {
+            outline: none;
+            border-color: color-mix(in srgb, var(--accent-primary) 48%, var(--border-color));
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 14%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.56), 0 12px 28px rgba(15, 23, 42, 0.12);
+        }
 
     html.dark-mode .exercise-select-trigger {
         border-color: color-mix(in srgb, rgba(129, 140, 248, 0.85) 52%, rgba(148, 163, 184, 0.35) 48%);
@@ -7480,12 +7583,12 @@ selectedPlanExercises.some((ex: PlanExercise) => ex.type === 'ausdauer' || ex.ty
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 24px rgba(0, 0, 0, 0.24);
     }
 
-    html.dark-mode .exercise-custom-toggle.is-active {
-        border-color: rgba(129, 140, 248, 0.54);
-        background: radial-gradient(circle at 14% 18%, rgba(99, 102, 241, 0.18), transparent 68%), rgba(15, 23, 42, 0.92);
-        color: #c7d2fe;
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(129, 140, 248, 0.18) inset;
-    }
+        html.dark-mode .exercise-custom-toggle.is-active {
+            border-color: rgba(129, 140, 248, 0.54);
+            background: radial-gradient(circle at 14% 18%, rgba(99, 102, 241, 0.18), transparent 68%), rgba(15, 23, 42, 0.92);
+            color: #c7d2fe;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(129, 140, 248, 0.18) inset;
+        }
 
     .button-group {
         display: flex;

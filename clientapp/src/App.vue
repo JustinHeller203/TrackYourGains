@@ -58,6 +58,7 @@
             </div>
         </nav>
 
+
         <div class="app-shell" :class="{ 'app-shell--menu-open': !isPhonePreview && menuOpen }">
             <!-- ✅ Overlay -->
             <div v-if="!isPhonePreview && menuOpen" class="nav-overlay" @click="closeMenu"></div>
@@ -1457,31 +1458,6 @@
             tag === 'a' ||
             (el?.getAttribute?.('role') === 'button') ||
             (el?.getAttribute?.('role') === 'link')
-
-        // SPACE -> Global Explain Guide starten
-        // SPACE -> Global Explain Guide starten (FORCE)
-        const k = (event.key || '').toLowerCase()
-        const isSpace = event.code === 'Space' || k === ' ' || k === 'spacebar'
-        if (isSpace) {
-            if (event.repeat) return
-            if (isTypingTarget || isInteractiveTarget) return
-
-            event.preventDefault()
-            event.stopImmediatePropagation()
-            event.stopPropagation()
-
-            // wenn News offen ist, erst schließen -> dann Guide starten (sonst blockt props.block)
-            if (showNewsPopup.value) {
-                showNewsPopup.value = false
-                window.setTimeout(() => {
-                    window.dispatchEvent(new Event('tyg:explain-guide-force'))
-                }, 120)
-            } else {
-                window.dispatchEvent(new Event('tyg:explain-guide-force'))
-            }
-            return
-        }
-
 
         // Ctrl+Alt+N (Win/Linux) / Cmd+Alt+N (Mac) -> News-Popup
         const key = (event.key || '').toLowerCase()

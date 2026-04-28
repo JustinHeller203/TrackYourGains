@@ -1,17 +1,20 @@
-<!--Pfad: components/ui/buttons/ResetButton.vue-->
 <template>
     <button class="btn-danger-ghost"
             type="button"
-            title="Zurücksetzen"
-            aria-label="Zurücksetzen"
+            :title="t('progress.chart.reset')"
+            :aria-label="t('progress.chart.reset')"
             @click="$emit('click')">
-        <span class="btn-icon">🔄️</span>
-        <span class="btn-label"><slot>Zurücksetzen</slot></span>
+        <span class="btn-icon">🔄</span>
+        <span class="btn-label"><slot>{{ t('progress.chart.reset') }}</slot></span>
     </button>
 </template>
 
 <script setup lang="ts">
+    import { useI18n } from '@/composables/useI18n'
+
     defineEmits<{ (e: 'click'): void }>()
+
+    const { t } = useI18n()
 </script>
 
 <style scoped>

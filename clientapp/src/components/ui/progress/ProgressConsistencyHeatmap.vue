@@ -3,8 +3,8 @@
              :class="{ 'is-peak-day': peakDisplayActive, 'is-peak-wash': peakWaveActive }">
         <header class="consistency-card__head">
             <div class="consistency-card__copy">
-                <div class="consistency-card__eyebrow">Momentum</div>
-                <h3 class="consistency-card__title">Trainingskonsistenz</h3>
+                <div class="consistency-card__eyebrow">{{ t('progress.consistency.eyebrow') }}</div>
+                <h3 class="consistency-card__title">{{ t('progress.consistency.title') }}</h3>
                 <p class="consistency-card__subtitle">
                     {{ summaryLine }}
                 </p>
@@ -12,12 +12,12 @@
 
             <div class="consistency-streak">
                 <div class="consistency-streak__head">
-                    <span class="consistency-streak__label">Aktuelle Serie</span>
+                    <span class="consistency-streak__label">{{ t('progress.consistency.currentStreak') }}</span>
                     <span class="consistency-streak__hint">{{ streakMessage }}</span>
                 </div>
                 <div class="consistency-streak__value-wrap">
                     <strong class="consistency-streak__value">{{ currentStreak }}</strong>
-                    <span class="consistency-streak__unit">Tage</span>
+                    <span class="consistency-streak__unit">{{ t('progress.consistency.days') }}</span>
                     <div class="consistency-flame" aria-hidden="true">
                         <svg class="consistency-flame__svg" viewBox="0 0 32 44" fill="none">
                             <defs>
@@ -53,7 +53,7 @@
                         type="button"
                         class="consistency-heatmap__nav-btn"
                         :disabled="!hasPrevMonth"
-                        aria-label="Vorherigen Monat anzeigen"
+                        :aria-label="t('progress.consistency.previousMonth')"
                         @click="goToPrevMonth">
                         ‹
                     </button>
@@ -62,7 +62,7 @@
                         type="button"
                         class="consistency-heatmap__nav-btn"
                         :disabled="!hasNextMonth"
-                        aria-label="Nächsten Monat anzeigen"
+                        :aria-label="t('progress.consistency.nextMonth')"
                         @click="goToNextMonth">
                         ›
                     </button>
@@ -70,19 +70,19 @@
 
                 <div class="consistency-heatmap__summary">
                     <article class="consistency-heatmap__summary-item">
-                        <span class="consistency-heatmap__summary-label">Aktive Tage</span>
+                        <span class="consistency-heatmap__summary-label">{{ t('progress.consistency.activeDays') }}</span>
                         <strong class="consistency-heatmap__summary-value">{{ activeMonthSummary.activeDays }}</strong>
                     </article>
                     <article class="consistency-heatmap__summary-item">
-                        <span class="consistency-heatmap__summary-label">Sessions</span>
+                        <span class="consistency-heatmap__summary-label">{{ t('progress.consistency.sessions') }}</span>
                         <strong class="consistency-heatmap__summary-value">{{ activeMonthSummary.sessions }}</strong>
                     </article>
                     <article class="consistency-heatmap__summary-item">
-                        <span class="consistency-heatmap__summary-label">Minuten</span>
+                        <span class="consistency-heatmap__summary-label">{{ t('progress.consistency.minutes') }}</span>
                         <strong class="consistency-heatmap__summary-value">{{ activeMonthSummary.duration }}</strong>
                     </article>
                     <article class="consistency-heatmap__summary-item">
-                        <span class="consistency-heatmap__summary-label">Ø Load</span>
+                        <span class="consistency-heatmap__summary-label">{{ t('progress.consistency.avgLoad') }}</span>
                         <strong class="consistency-heatmap__summary-value">{{ activeMonthSummary.avgLoad }}</strong>
                     </article>
                 </div>
@@ -112,34 +112,34 @@
 
             <aside class="consistency-spotlight">
                 <div class="consistency-spotlight__head">
-                    <span class="consistency-spotlight__eyebrow">{{ selectedDay.isToday ? 'Heute' : 'Ausgewählter Tag' }}</span>
+                    <span class="consistency-spotlight__eyebrow">{{ selectedDay.isToday ? t('progress.consistency.today') : t('progress.consistency.selectedDay') }}</span>
                     <strong class="consistency-spotlight__date">{{ formatLongDate(selectedDay.key) }}</strong>
                 </div>
 
                 <div class="consistency-spotlight__metric consistency-spotlight__metric--status" :class="`is-${selectedDay.intensity}`">
                     <div class="consistency-spotlight__metric-main">
                         <div class="consistency-spotlight__metric-topline">
-                            <span class="consistency-spotlight__metric-label">Tagesstatus</span>
+                            <span class="consistency-spotlight__metric-label">{{ t('progress.consistency.dayStatus') }}</span>
                             <span v-if="selectedDay.intensity === 4" class="consistency-spotlight__peak-badge">Peak</span>
                         </div>
                         <strong class="consistency-spotlight__metric-value consistency-spotlight__metric-value--status">{{ selectedDay.statusLabel }}</strong>
                         <span class="consistency-spotlight__metric-subline">
-                            {{ selectedDay.sessions }} Session{{ selectedDay.sessions === 1 ? '' : 's' }}
+                            {{ t('progress.consistency.sessionsCount').replace('{count}', String(selectedDay.sessions)) }}
                         </span>
                     </div>
                 </div>
 
                 <div class="consistency-spotlight__metrics">
                     <div class="consistency-spotlight__metric">
-                        <span class="consistency-spotlight__metric-label">Load</span>
+                        <span class="consistency-spotlight__metric-label">{{ t('progress.consistency.load') }}</span>
                         <strong class="consistency-spotlight__metric-value">{{ selectedDay.loadLabel }}</strong>
                     </div>
                     <div class="consistency-spotlight__metric">
-                        <span class="consistency-spotlight__metric-label">Dauer</span>
+                        <span class="consistency-spotlight__metric-label">{{ t('progress.consistency.duration') }}</span>
                         <strong class="consistency-spotlight__metric-value">{{ selectedDay.durationLabel }}</strong>
                     </div>
                     <div class="consistency-spotlight__metric">
-                        <span class="consistency-spotlight__metric-label">Fokus</span>
+                        <span class="consistency-spotlight__metric-label">{{ t('progress.consistency.focus') }}</span>
                         <strong class="consistency-spotlight__metric-value">{{ selectedDay.typeLabel }}</strong>
                     </div>
                 </div>
@@ -154,6 +154,7 @@
 
 <script setup lang="ts">
     import { computed, onUnmounted, ref, watch } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
 
     type HeatmapDay = {
         key: string
@@ -178,6 +179,7 @@
         activeDaysLast30: number
         sessionsLast30: number
     }>()
+    const { locale, t } = useI18n()
 
     const weekdayLabels = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
@@ -196,7 +198,7 @@
             if (map.has(key)) return
             map.set(key, {
                 key,
-                label: date.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }),
+                label: date.toLocaleDateString(locale.value === 'en' ? 'en-US' : 'de-DE', { month: 'long', year: 'numeric' }),
                 year: date.getFullYear(),
                 month: date.getMonth(),
             })
@@ -224,7 +226,7 @@
 
     const activeMonthIndex = computed(() => availableMonths.value.findIndex(month => month.key === activeMonthKey.value))
     const activeMonth = computed(() => availableMonths.value[activeMonthIndex.value] ?? availableMonths.value[availableMonths.value.length - 1] ?? null)
-    const activeMonthLabel = computed(() => activeMonth.value?.label ?? 'Kein Monat')
+    const activeMonthLabel = computed(() => activeMonth.value?.label ?? t('progress.consistency.noMonth'))
     const hasPrevMonth = computed(() => activeMonthIndex.value > 0)
     const hasNextMonth = computed(() => activeMonthIndex.value >= 0 && activeMonthIndex.value < availableMonths.value.length - 1)
     const activeMonthDays = computed(() => {
@@ -264,9 +266,9 @@
             load: 0,
             durationMin: 0,
             typeLabel: '—',
-            statusLabel: 'Kein Eintrag',
+            statusLabel: t('progress.consistency.noEntry'),
             loadLabel: '0',
-            durationLabel: '0 Min',
+            durationLabel: t('progress.consistency.zeroMinutes'),
             isToday: false,
             isFuture: date > new Date(),
         }
@@ -326,21 +328,23 @@
 
     const summaryLine = computed(() => {
         if (!props.activeDaysLast30 && !props.sessionsLast30) {
-            return 'Noch keine Sessions geloggt. Sobald du trainierst, baut sich hier dein Momentum auf.'
+            return t('progress.consistency.summaryEmpty')
         }
-        return `In den letzten 30 Tagen warst du an ${props.activeDaysLast30} Tagen aktiv und hast ${props.sessionsLast30} Sessions gesammelt.`
+        return t('progress.consistency.summary30')
+            .replace('{days}', String(props.activeDaysLast30))
+            .replace('{sessions}', String(props.sessionsLast30))
     })
 
     const streakMessage = computed(() => {
         if (props.currentStreak <= 0) return ''
-        if (props.currentStreak >= props.bestStreak && props.currentStreak >= 3) return 'Stark. Du bist gerade auf deinem besten Rhythmus.'
+        if (props.currentStreak >= props.bestStreak && props.currentStreak >= 3) return t('progress.consistency.streak.bestRhythm')
         if (props.bestStreak > props.currentStreak) {
             const delta = props.bestStreak - props.currentStreak
-            if (delta <= 2) return 'Du bist nah an deinem Rekord. Halt die Serie am Leben.'
+            if (delta <= 2) return t('progress.consistency.streak.nearRecord')
         }
-        if (props.currentStreak >= 5) return 'Richtig guter Lauf. Genau so baut sich Momentum auf.'
-        if (props.currentStreak >= 2) return 'Die Serie lebt. Noch ein paar starke Tage und sie zieht richtig an.'
-        return 'Der Anfang steht. Bleib morgen direkt dran.'
+        if (props.currentStreak >= 5) return t('progress.consistency.streak.goodRun')
+        if (props.currentStreak >= 2) return t('progress.consistency.streak.alive')
+        return t('progress.consistency.streak.start')
     })
 
     function stopPeakSwing() {
@@ -451,14 +455,14 @@
 
     const tooltipFor = (day: HeatmapDay) => {
         const parts = [formatLongDate(day.key), day.statusLabel]
-        if (day.sessions > 0) parts.push(`${day.sessions} Session${day.sessions === 1 ? '' : 's'}`)
-        if (day.durationMin > 0) parts.push(`${day.durationMin} Min`)
-        if (day.load > 0) parts.push(`Load ${day.loadLabel}`)
+        if (day.sessions > 0) parts.push(t('progress.consistency.sessionsCount').replace('{count}', String(day.sessions)))
+        if (day.durationMin > 0) parts.push(`${day.durationMin} ${t('progress.consistency.minutesShort')}`)
+        if (day.load > 0) parts.push(`${t('progress.consistency.load')} ${day.loadLabel}`)
         return parts.join(' · ')
     }
 
     const formatLongDate = (key: string) =>
-        parseLocalDate(key).toLocaleDateString('de-DE', {
+        parseLocalDate(key).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'de-DE', {
             weekday: 'long',
             day: '2-digit',
             month: 'long',
@@ -466,11 +470,11 @@
         })
 
     const spotlightCopy = (day: HeatmapDay) => {
-        if (day.sessions === 0) return 'Kein geloggtes Training. Nutze freie Tage bewusst für Erholung oder Mobilität.'
-        if (day.intensity >= 4) return 'Peak-Tag. Hier war Volumen, Dichte oder Trainingsdauer deutlich über deinem Basisniveau.'
-        if (day.intensity === 3) return 'Starker Trainingstag mit klarer Belastung. Genau solche Tage treiben deinen Fortschritt.'
-        if (day.intensity === 2) return 'Solider Trainingstag. Konstanz auf diesem Level baut zuverlässig Momentum auf.'
-        return 'Leichter aktiver Tag. Perfekt, um die Serie aufrechtzuerhalten und im Rhythmus zu bleiben.'
+        if (day.sessions === 0) return t('progress.consistency.spotlight.rest')
+        if (day.intensity >= 4) return t('progress.consistency.spotlight.peak')
+        if (day.intensity === 3) return t('progress.consistency.spotlight.strong')
+        if (day.intensity === 2) return t('progress.consistency.spotlight.solid')
+        return t('progress.consistency.spotlight.light')
     }
 
     onUnmounted(() => {

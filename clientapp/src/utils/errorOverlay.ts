@@ -31,6 +31,9 @@ export function installErrorOverlay() {
         ; (window as any).__TYG_ERRORS__ = errors
 
     const append = (title: string, err: AnyErr) => {
+        if (title === 'window.error' && String(err ?? '').includes('ResizeObserver loop completed with undelivered notifications')) {
+            return
+        }
         const msg = `[${new Date().toISOString()}] ${title}\n${formatErr(err)}`
         errors.push(msg)
         console.error(title, err)

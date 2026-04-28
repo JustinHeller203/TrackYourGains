@@ -89,8 +89,8 @@
             <div class="footer-actions">
                 <ResetButton v-if="showReset"
                              class="calc-footer-btn calc-reset-btn"
-                             aria-label="Zurücksetzen"
-                             data-short="Zurücksetzen"
+                             :aria-label="t('progress.chart.reset')"
+                             :data-short="t('progress.chart.reset')"
                              @click="handleReset" />
             </div>
         </div>
@@ -106,6 +106,7 @@
     import CopyButton from '@/components/ui/buttons/CopyButton.vue'
     import CalculateButton from '@/components/ui/buttons/CalculateButton.vue'
     import UiCalculatorInput from '@/components/ui/kits/inputs/UiCalculatorInput.vue'
+    import { useI18n } from '@/composables/useI18n'
 
     type CopyTextFactory = string | null | undefined | (() => string | Promise<string>)
 
@@ -146,10 +147,10 @@
         cardClass?: string | string[] | Record<string, boolean>
     }>(), {
         showInfo: true,
-        infoTitle: 'Rechner erklärt',
-        infoKicker: 'Rechner erklärt',
-        ariaOpen: 'Erklärung öffnen',
-        ariaClose: 'Schließen',
+        infoTitle: '',
+        infoKicker: '',
+        ariaOpen: '',
+        ariaClose: '',
         autoCalcEnabled: false,
 
         showFavorite: true,
@@ -174,6 +175,11 @@
         (e: 'reset'): void
         (e: 'invalid', errors: string[]): void
     }>()
+    const { t } = useI18n()
+    const infoTitle = computed(() => (props.infoTitle || t('progress.calculators.infoTitle')).trim())
+    const infoKicker = computed(() => (props.infoKicker || t('progress.calculators.infoKicker')).trim())
+    const ariaOpen = computed(() => (props.ariaOpen || t('progress.calculators.openInfo')).trim())
+    const ariaClose = computed(() => (props.ariaClose || t('common.close')).trim())
 
     const inlineErrors = ref<string[]>([])
 
@@ -468,17 +474,11 @@
 
     :global(.calculator-card .label-with-info .info-btn .info-emoji) {
         display: inline-block;
-        transform: scale(1);
         transform-origin: center;
-        transition: transform 140ms ease;
     }
 
-    :global(.calculator-card .label-with-info .info-btn:hover .info-emoji) {
-        transform: scale(1.18);
-    }
-
-    :global(.calculator-card .label-with-info .info-btn:active .info-emoji) {
-        transform: scale(1.08);
+    :global(.calculator-card .label-with-info .info-btn:hover) {
+        background: rgba(148, 163, 184, 0.14);
     }
 
     :global(.calculator-card .label-with-info .info-btn:focus-visible) {

@@ -4,7 +4,7 @@
             <button
                 type="button"
                 class="exercise-selector__library"
-                @click="showExerciseLibrary = true">
+                @click="openExerciseLibrary">
                 <span class="exercise-selector__library-text">
                     {{ selectedLibraryExerciseLabel || placeholder }}
                 </span>
@@ -13,8 +13,8 @@
             <button
                 type="button"
                 class="exercise-selector__toggle"
-                :class="{ 'is-active': customMode }"
-                @click="toggleCustomMode">
+                :class="{ 'is-active': showCreateForm }"
+                @click="openCreateExerciseLibrary">
                 {{ customMode ? 'Bibliothek nutzen' : 'Eigene Übung' }}
             </button>
         </div>
@@ -112,7 +112,8 @@
         <GoalExerciseLibraryPopup
             :show="showExerciseLibrary"
             :intro="libraryIntro"
-            @cancel="showExerciseLibrary = false"
+            :open-create-form="showCreateForm"
+            @cancel="closeExerciseLibrary"
             @select="addKnownSelection" />
     </div>
 </template>
@@ -145,6 +146,7 @@
     const customMuscleGroup = ref('')
     const customMode = ref(false)
     const showExerciseLibrary = ref(false)
+    const showCreateForm = ref(false)
     const showAllTags = ref(false)
     const customError = ref('')
     const exerciseLibraryStore = useExerciseLibraryStore()
@@ -171,7 +173,7 @@
     }
 
     const addKnownSelection = (selection: { id: string; name: string }) => {
-        showExerciseLibrary.value = false
+        closeExerciseLibrary()
         upsertEntry(createExerciseReference({
             label: selection.name,
             canonicalName: selection.name,
@@ -198,13 +200,24 @@
         }))
     }
 
+    const openExerciseLibrary = () => {
+        showCreateForm.value = false
+        showExerciseLibrary.value = true
+    }
+
+    const openCreateExerciseLibrary = () => {
+        customMode.value = false
+        showCreateForm.value = true
+        showExerciseLibrary.value = true
+    }
+
+    const closeExerciseLibrary = () => {
+        showExerciseLibrary.value = false
+        showCreateForm.value = false
+    }
+
     const toggleCustomMode = () => {
-        customMode.value = !customMode.value
-        if (!customMode.value) {
-            customExerciseName.value = ''
-            customMuscleGroup.value = ''
-            customError.value = ''
-        }
+        openCreateExerciseLibrary()
     }
 
     const handleDelimiter = (event: KeyboardEvent) => {

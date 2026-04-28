@@ -4,51 +4,51 @@
          ref="cardEl"
          :data-sticky-stopwatch-id="stopwatch.id"
          :class="[
-             {
-                 resizing: resizeMode,
-                 movable: moveMode,
-                 'menu-open': showMenu,
-                 [xlLayoutClass]: !!xlLayoutClass,
-                 'lap-flash-positive': lapFlashTone === 'positive',
-                 'lap-flash-negative': lapFlashTone === 'negative',
-                 'is-stack-collapsed': stackCount > 1 && !stackExpanded,
-                 'is-stack-expanded': stackCount > 1 && stackExpanded,
-                 'is-stack-passive': stackCount > 1 && !stackExpanded && stackIndex > 0,
-                 'is-dock-launch': dockLaunchActive,
-                 'is-stack-bump': stackBumpActive,
-             },
-             sizePreset
-         ]"
-         :style="{
-  left: stopwatch.left + 'px',
-  top: stopwatch.top + 'px',
-  width: stopwatch.width ? stopwatch.width + 'px' : undefined,
-  height: cardHeight,
-  zIndex: stopwatch.zIndex ?? 2000,
-  background: stopwatch.bgColor ?? undefined,
-  borderRadius: shapeRadius,
-  '--ui-scale': uiScale,
-  '--btn-bg': stopwatch.btnColor ?? undefined,
-  '--time-color': stopwatch.timeColor ?? undefined,
-  '--stack-index': String(stackIndex),
-  '--stack-count': String(stackCount),
-  '--dock-from-x': `${dockFromX}px`,
-  '--dock-from-y': `${dockFromY}px`
-}"
-         @mousedown="onMouseDown($event)"
-         @mousedown.right.prevent="openMenu($event as any)"
-         @contextmenu.prevent="openMenu($event as any)"
-         @click.capture="onClickCapture"
-         @pointerdown.capture="onPointerDown"
-         @pointermove.capture="onPointerMove"
-         @pointerup.capture="onPointerUp"
-         @pointercancel.capture="onPointerCancel">
+    {
+        resizing: resizeMode,
+        movable: moveMode,
+        'menu-open': showMenu,
+        [xlLayoutClass]: !!xlLayoutClass,
+        'lap-flash-positive': lapFlashTone === 'positive',
+        'lap-flash-negative': lapFlashTone === 'negative',
+        'is-stack-collapsed': stackCount > 1 && !stackExpanded,
+        'is-stack-expanded': stackCount > 1 && stackExpanded,
+        'is-stack-passive': stackCount > 1 && !stackExpanded && stackIndex > 0,
+        'is-dock-launch': dockLaunchActive,
+        'is-stack-bump': stackBumpActive,
+    },
+    sizePreset
+]"
+        :style="{
+        left: stopwatch.left + 'px',
+        top: stopwatch.top + 'px',
+        width: stopwatch.width ? stopwatch.width + 'px' : undefined,
+        height: cardHeight,
+        zIndex: stopwatch.zIndex ?? 2000,
+        background: stopwatch.bgColor ?? undefined,
+        borderRadius: shapeRadius,
+        '--ui-scale': uiScale,
+        '--btn-bg': stopwatch.btnColor ?? undefined,
+        '--time-color': stopwatch.timeColor ?? undefined,
+        '--stack-index': String(stackIndex),
+        '--stack-count': String(stackCount),
+        '--dock-from-x': `${dockFromX}px`,
+        '--dock-from-y': `${dockFromY}px`
+        }"
+        @mousedown="onMouseDown($event)"
+        @mousedown.right.prevent="openMenu($event as any)"
+        @contextmenu.prevent="openMenu($event as any)"
+        @click.capture="onClickCapture"
+        @pointerdown.capture="onPointerDown"
+        @pointermove.capture="onPointerMove"
+        @pointerup.capture="onPointerUp"
+        @pointercancel.capture="onPointerCancel">
 
 
         <span class="name-link"
               @click="focusInTraining('stopwatch', stopwatch.id)"
               @mousedown.stop="onMaybeDrag($event)">
-            {{ stopwatch.name || 'Stoppuhr' }}
+            {{ stopwatch.name || t('sticky.stopwatch.defaultName') }}
         </span>
         <span class="time"
               :class="{ 'time--ring': sizePreset === 'xl' }"
@@ -70,18 +70,18 @@
         <button class="sticky-action"
                 :class="stopwatch.isRunning ? 'sticky-action--pause' : 'sticky-action--start'"
                 @click="onToggleClick">
-            {{ stopwatch.isRunning ? 'Pause' : 'Start' }}
+            {{ stopwatch.isRunning ? t('sticky.stopwatch.pause') : t('sticky.stopwatch.start') }}
         </button>
         <button ref="resetBtnEl"
                 class="sticky-action sticky-action--reset"
                 @click="onResetClick">
-            Reset
+            {{ t('sticky.stopwatch.reset') }}
         </button>
         <button ref="lapBtnEl"
                 class="sticky-action sticky-action--lap"
                 @click="onLapClick"
                 :disabled="!stopwatch.isRunning">
-            Runde
+            {{ t('sticky.stopwatch.lap') }}
         </button>
         <transition name="sticky-alert-pop">
             <div v-if="lapFlashText" class="lap-flash">
@@ -96,40 +96,40 @@
              @pointerdown.stop
              @click.stop>
             <button type="button" class="menu-item" @click="handleOpen">
-                Öffnen
+                {{ t('sticky.menu.open') }}
             </button>
             <button type="button" class="menu-item" @click="handleMove">
-                Verschieben
+                {{ t('sticky.menu.move') }}
             </button>
             <button type="button" class="menu-item" @pointerdown.stop.prevent @mousedown.stop.prevent @click.stop.prevent="handleCrop">
-                Zuschneiden
+                {{ t('sticky.menu.crop') }}
             </button>
 
             <button type="button" class="menu-item" @click="handleEdit" @mousedown.stop>
-                Bearbeiten
+                {{ t('sticky.menu.edit') }}
             </button>
 
             <template v-if="showColors">
                 <div class="color-row" @mousedown.stop>
-                    <span class="color-label">Farbe</span>
+                    <span class="color-label">{{ t('sticky.color.background') }}</span>
                     <button type="button" class="color-dot default"
-                            title="Default"
+                            :title="t('sticky.color.default')"
                             @click="setColor(null)">
                     </button>
                     <button type="button" class="color-dot transparent"
-                            title="Transparent"
+                            :title="t('sticky.color.transparent')"
                             @click="setColor('transparent')">
                     </button>
                     <button type="button" class="color-dot blue"
-                            title="Blau"
+                            :title="t('sticky.color.blue')"
                             @click="setColor('#1e3a8a')">
                     </button>
                     <button type="button" class="color-dot green"
-                            title="Grün"
+                            :title="t('sticky.color.green')"
                             @click="setColor('#166534')">
                     </button>
                     <button type="button" class="color-dot amber"
-                            title="Orange"
+                            :title="t('sticky.color.orange')"
                             @click="setColor('#92400e')">
                     </button>
 
@@ -139,7 +139,7 @@
                 </div>
 
                 <div class="color-row" @mousedown.stop>
-                    <span class="color-label">Buttons</span>
+                    <span class="color-label">{{ t('sticky.color.buttons') }}</span>
                     <button type="button" class="color-dot default"
                             title="Default"
                             @click="setBtnColor(null, false)">
@@ -163,7 +163,7 @@
                 </div>
 
                 <div class="color-row" @mousedown.stop>
-                    <span class="color-label">Zeit</span>
+                    <span class="color-label">{{ t('sticky.color.time') }}</span>
                     <button type="button" class="color-dot default"
                             title="Default"
                             @click="setTimeColor(null, false)">
@@ -186,25 +186,25 @@
                            @input="setTimeColor(($event.target as HTMLInputElement).value, false)" />
                 </div>
                 <div class="color-row" @mousedown.stop>
-                    <span class="color-label">Form</span>
+                    <span class="color-label">{{ t('sticky.shape.label') }}</span>
 
                     <button type="button" class="shape-btn" @click="setShape(null)">
-                        Default
+                        {{ t('sticky.shape.default') }}
                         <span v-if="stopwatch.shape == null" class="shape-check">✓</span>
                     </button>
 
                     <button type="button" class="shape-btn" @click="setShape('square')">
-                        Eckig
+                        {{ t('sticky.shape.square') }}
                         <span v-if="stopwatch.shape === 'square'" class="shape-check">✓</span>
                     </button>
 
                     <button type="button" class="shape-btn" @click="setShape('rounded')">
-                        Rund
+                        {{ t('sticky.shape.rounded') }}
                         <span v-if="stopwatch.shape === 'rounded'" class="shape-check">✓</span>
                     </button>
 
                     <button type="button" class="shape-btn" @click="setShape('oval')">
-                        Oval
+                        {{ t('sticky.shape.oval') }}
                         <span v-if="stopwatch.shape === 'oval'" class="shape-check">✓</span>
                     </button>
                 </div>
@@ -216,10 +216,10 @@
                     class="menu-item"
                     @click="handleApplyToAll"
                     @mousedown.stop>
-                Für alle Stoppuhren übernehmen
+                {{ t('sticky.menu.applyToAllStopwatches') }}
             </button>
             <button type="button" class="menu-item danger" @click="handleClose">
-                Schließen
+                {{ t('sticky.menu.close') }}
             </button>
         </div>
 
@@ -241,7 +241,16 @@
 <script setup lang="ts">
 
     import { ref, computed, nextTick, watch, watchEffect, onMounted, onBeforeUnmount, toRef } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
 
+    const { t } = useI18n()
+
+    function tp(key: string, params: Record<string, string | number>) {
+        return Object.entries(params).reduce(
+            (text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)),
+            t(key)
+        )
+    }
     const Z_KEY = '__stickyZ'
     function bumpZ(target: { zIndex?: number }) {
         const w = window as any
@@ -408,7 +417,7 @@
         const prefix = direction === 'positive' ? '-' : direction === 'negative' ? '+' : '±'
 
         lapFlashText.value = `${prefix}${Math.abs(diff).toFixed(2)}s`
-        lapFlashMeta.value = `Runde ${lapCount}`
+        lapFlashMeta.value = tp('sticky.stopwatch.lapNumber', { count: lapCount })
         lapFlashTone.value = direction
 
         if (lapFlashTimeout != null) clearTimeout(lapFlashTimeout)
@@ -490,7 +499,7 @@
             default: return undefined
         }
     })
-    
+
     function closeMenu() {
         showMenu.value = false
     }
@@ -841,12 +850,12 @@
         return (
             w <= S_ENTER ? 'slim' :
                 w <= M_ENTER ? 'mini' :
-                (w >= WIDE_ENTER && h <= WIDE_H_MAX) ? 'wide' :
-                w <= N_ENTER ? 'narrow' :
-                h >= X_ENTER ? 'xl' :
-                    h >= T_ENTER ? 'tall' :
-                        w >= L_ENTER ? 'large' :
-                            'compact'
+                    (w >= WIDE_ENTER && h <= WIDE_H_MAX) ? 'wide' :
+                        w <= N_ENTER ? 'narrow' :
+                            h >= X_ENTER ? 'xl' :
+                                h >= T_ENTER ? 'tall' :
+                                    w >= L_ENTER ? 'large' :
+                                        'compact'
         )
     }
 
@@ -902,9 +911,9 @@
             if (w <= N_ENTER || h < X_EXIT) {
                 currentPreset.value =
                     w <= S_ENTER ? 'slim' :
-                    w <= M_ENTER ? 'mini' :
-                    w <= N_ENTER ? 'narrow' :
-                        (h >= T_ENTER ? 'tall' : (w >= L_ENTER ? 'large' : 'compact'))
+                        w <= M_ENTER ? 'mini' :
+                            w <= N_ENTER ? 'narrow' :
+                                (h >= T_ENTER ? 'tall' : (w >= L_ENTER ? 'large' : 'compact'))
             }
             return
         }
@@ -913,9 +922,9 @@
             if (w >= S_EXIT) {
                 currentPreset.value =
                     w <= M_ENTER ? 'mini' :
-                    (w >= WIDE_ENTER && h <= WIDE_H_MAX) ? 'wide' :
-                    w <= N_ENTER ? 'narrow' :
-                        (h >= T_ENTER ? 'tall' : (w >= L_ENTER ? 'large' : 'compact'))
+                        (w >= WIDE_ENTER && h <= WIDE_H_MAX) ? 'wide' :
+                            w <= N_ENTER ? 'narrow' :
+                                (h >= T_ENTER ? 'tall' : (w >= L_ENTER ? 'large' : 'compact'))
             }
             return
         }
@@ -933,8 +942,8 @@
             if (w >= M_EXIT) {
                 currentPreset.value =
                     (w >= WIDE_ENTER && h <= WIDE_H_MAX) ? 'wide' :
-                    w <= N_ENTER ? 'narrow' :
-                        (h >= T_ENTER ? 'tall' : (w >= L_ENTER ? 'large' : 'compact'))
+                        w <= N_ENTER ? 'narrow' :
+                            (h >= T_ENTER ? 'tall' : (w >= L_ENTER ? 'large' : 'compact'))
             }
             return
         }
@@ -962,7 +971,7 @@
             if (w >= N_EXIT) {
                 currentPreset.value =
                     (w >= WIDE_ENTER && h <= WIDE_H_MAX) ? 'wide' :
-                    h >= T_ENTER ? 'tall' : (w >= L_ENTER ? 'large' : 'compact')
+                        h >= T_ENTER ? 'tall' : (w >= L_ENTER ? 'large' : 'compact')
             }
             return
         }
@@ -1220,10 +1229,7 @@
     .sticky-timer-card,
     .sticky-stopwatch-card {
         position: fixed;
-        background:
-            linear-gradient(155deg, color-mix(in srgb, var(--bg-card) 90%, #ffffff 10%), color-mix(in srgb, var(--bg-secondary) 74%, var(--bg-card) 26%)),
-            radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 24%, transparent), transparent 46%),
-            radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 20%, transparent), transparent 52%);
+        background: linear-gradient(155deg, color-mix(in srgb, var(--bg-card) 90%, #ffffff 10%), color-mix(in srgb, var(--bg-secondary) 74%, var(--bg-card) 26%)), radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 24%, transparent), transparent 46%), radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-secondary) 20%, transparent), transparent 52%);
         padding: 0.82rem 1.12rem;
         border-radius: 24px;
         display: flex;
@@ -1234,9 +1240,7 @@
         z-index: 2000;
         border: 1px solid color-mix(in srgb, var(--border-color) 58%, var(--accent-primary) 42%);
         box-sizing: border-box;
-        box-shadow:
-            0 24px 60px rgba(15, 23, 42, 0.18),
-            inset 0 1px 0 rgba(255,255,255,0.55);
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255,255,255,0.55);
         backdrop-filter: blur(18px);
         -webkit-backdrop-filter: blur(18px);
         isolation: isolate;
@@ -1317,9 +1321,7 @@
             transform: translate3d(var(--stack-x, 0px), var(--stack-y, 0px), 0) scale(var(--stack-scale, 1)) rotate(0deg);
             opacity: 1;
             filter: saturate(1) blur(0);
-            box-shadow:
-                0 24px 60px rgba(15, 23, 42, 0.18),
-                inset 0 1px 0 rgba(255,255,255,0.55);
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255,255,255,0.55);
         }
     }
 
@@ -1338,59 +1340,51 @@
         }
     }
 
-        .sticky-timer-card.movable,
-        .sticky-stopwatch-card.movable {
-            cursor: grab;
+    .sticky-timer-card.movable,
+    .sticky-stopwatch-card.movable {
+        cursor: grab;
+    }
+
+        .sticky-timer-card.movable:active,
+        .sticky-stopwatch-card.movable:active {
+            cursor: grabbing;
         }
 
-            .sticky-timer-card.movable:active,
-            .sticky-stopwatch-card.movable:active {
-                cursor: grabbing;
-            }
+    .sticky-timer-card.menu-open,
+    .sticky-stopwatch-card.menu-open {
+        overflow: visible;
+    }
 
-        .sticky-timer-card.menu-open,
-        .sticky-stopwatch-card.menu-open {
-            overflow: visible;
-        }
-
-        .sticky-timer-card.resizing,
-        .sticky-stopwatch-card.resizing {
-            overflow: visible;
-        }
+    .sticky-timer-card.resizing,
+    .sticky-stopwatch-card.resizing {
+        overflow: visible;
+    }
 
 
-        .sticky-timer-card span:first-child,
-        .sticky-stopwatch-card span:first-child {
-            font-weight: 600;
-        }
+    .sticky-timer-card span:first-child,
+    .sticky-stopwatch-card span:first-child {
+        font-weight: 600;
+    }
 
-        .sticky-timer-card .time,
-        .sticky-stopwatch-card .time {
-            font-family: monospace;
-            font-weight: 900;
-            font-size: 1.04rem;
-            color: var(--time-color, color-mix(in srgb, var(--accent-primary) 82%, var(--text-primary) 18%));
-            padding: 0.42rem 0.9rem;
-            border-radius: 999px;
-            border: 1px solid color-mix(in srgb, var(--accent-primary) 38%, transparent);
-            background:
-                linear-gradient(135deg, color-mix(in srgb, var(--bg-secondary) 78%, white 22%), color-mix(in srgb, var(--bg-card) 76%, var(--accent-primary) 24%));
-            box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.42),
-                0 10px 24px rgba(15, 23, 42, 0.12);
-            letter-spacing: 0.04em;
-        }
+    .sticky-timer-card .time,
+    .sticky-stopwatch-card .time {
+        font-family: monospace;
+        font-weight: 900;
+        font-size: 1.04rem;
+        color: var(--time-color, color-mix(in srgb, var(--accent-primary) 82%, var(--text-primary) 18%));
+        padding: 0.42rem 0.9rem;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--accent-primary) 38%, transparent);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--bg-secondary) 78%, white 22%), color-mix(in srgb, var(--bg-card) 76%, var(--accent-primary) 24%));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.42), 0 10px 24px rgba(15, 23, 42, 0.12);
+        letter-spacing: 0.04em;
+    }
 
     html.dark-mode .sticky-timer-card,
     html.dark-mode .sticky-stopwatch-card {
-        background:
-            linear-gradient(155deg, color-mix(in srgb, var(--bg-card) 92%, #020617 8%), color-mix(in srgb, var(--bg-secondary) 74%, #020617 26%)),
-            radial-gradient(circle at top left, rgba(99, 102, 241, 0.26), transparent 46%),
-            radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.18), transparent 52%);
+        background: linear-gradient(155deg, color-mix(in srgb, var(--bg-card) 92%, #020617 8%), color-mix(in srgb, var(--bg-secondary) 74%, #020617 26%)), radial-gradient(circle at top left, rgba(99, 102, 241, 0.26), transparent 46%), radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.18), transparent 52%);
         border: 1px solid color-mix(in srgb, var(--border-color) 56%, rgba(129, 140, 248, 0.44) 44%);
-        box-shadow:
-            0 26px 64px rgba(0, 0, 0, 0.48),
-            inset 0 1px 0 rgba(255,255,255,0.06);
+        box-shadow: 0 26px 64px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255,255,255,0.06);
     }
 
 
@@ -1435,9 +1429,9 @@
         overscroll-behavior: contain;
     }
 
-            .sticky-stopwatch-card .sticky-menu button:hover {
-                background: rgba(0,0,0,.06) !important;
-            }
+        .sticky-stopwatch-card .sticky-menu button:hover {
+            background: rgba(0,0,0,.06) !important;
+        }
 
     html.dark-mode .sticky-stopwatch-card .sticky-menu button:hover {
         background: rgba(255,255,255,.06) !important;
@@ -1501,7 +1495,7 @@
             font-size: calc(1rem * var(--ui-scale));
         }
 
-    .sticky-stopwatch-card .sticky-action {
+        .sticky-stopwatch-card .sticky-action {
             font-size: calc(0.78rem * var(--ui-scale));
             padding: calc(0.5rem * var(--ui-scale)) calc(0.9rem * var(--ui-scale));
             border-radius: 16px;
@@ -1559,16 +1553,17 @@
         transform: translateY(-6px) scale(.92);
     }
 
-        .sticky-stopwatch-card.compact {
-            flex-direction: row;
-            align-items: center;
-            /* wichtig: nix abschneiden, lieber umbrechen */
-            flex-wrap: wrap;
-            row-gap: 0.35rem;
-            /* falls ne feste height gespeichert ist -> trotzdem wachsen */
-            height: auto !important;
-            border-radius: 22px;
-        }
+    .sticky-stopwatch-card.compact {
+        flex-direction: row;
+        align-items: center;
+        /* wichtig: nix abschneiden, lieber umbrechen */
+        flex-wrap: wrap;
+        row-gap: 0.35rem;
+        /* falls ne feste height gespeichert ist -> trotzdem wachsen */
+        height: auto !important;
+        border-radius: 22px;
+    }
+
     .shape-btn {
         border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
         background: color-mix(in srgb, var(--bg-secondary) 72%, var(--bg-card) 28%);
@@ -1591,23 +1586,23 @@
     }
 
 
-        .shape-btn:hover {
-            background: color-mix(in srgb, var(--accent-primary) 12%, var(--bg-card) 88%);
-        }
+    .shape-btn:hover {
+        background: color-mix(in srgb, var(--accent-primary) 12%, var(--bg-card) 88%);
+    }
 
     html.dark-mode .shape-btn:hover {
         background: rgba(255,255,255,.06);
     }
 
-            .sticky-stopwatch-card.compact .name-link,
-            .sticky-stopwatch-card.compact .time {
-                flex: 1 1 auto;
-                min-width: 0;
-            }
+    .sticky-stopwatch-card.compact .name-link,
+    .sticky-stopwatch-card.compact .time {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
 
-            .sticky-stopwatch-card.compact .sticky-action {
-                flex: 0 0 auto;
-            }
+    .sticky-stopwatch-card.compact .sticky-action {
+        flex: 0 0 auto;
+    }
 
     .sticky-stopwatch-card.compact .sticky-action {
         min-width: 4.3rem;
@@ -1674,13 +1669,13 @@
             border-radius: 12px;
         }
 
-    .sticky-stopwatch-card.slim .sticky-action {
-        min-width: 0;
-        width: 100%;
-        padding: .34rem .42rem;
-        font-size: .62rem;
-        border-radius: 10px;
-    }
+        .sticky-stopwatch-card.slim .sticky-action {
+            min-width: 0;
+            width: 100%;
+            padding: .34rem .42rem;
+            font-size: .62rem;
+            border-radius: 10px;
+        }
 
     .sticky-stopwatch-card.wide {
         display: grid;
@@ -1736,51 +1731,37 @@
     }
 
 
-        .sticky-stopwatch-card.large {
-            flex-direction: row;
-            align-items: center;
-            border-radius: 28px;
-            padding: calc(.92rem * var(--ui-scale)) calc(1.22rem * var(--ui-scale));
-            gap: calc(.6rem * var(--ui-scale));
-            box-shadow:
-                0 30px 64px rgba(15,23,42,.3),
-                inset 0 1px 0 rgba(255,255,255,.18),
-                inset 0 -24px 34px rgba(0,0,0,.24);
-            background:
-                linear-gradient(135deg, #040913, #0f172a 42%, #14b8a6 132%);
-            border: 1px solid rgba(45,212,191,.16);
+    .sticky-stopwatch-card.large {
+        flex-direction: row;
+        align-items: center;
+        border-radius: 28px;
+        padding: calc(.92rem * var(--ui-scale)) calc(1.22rem * var(--ui-scale));
+        gap: calc(.6rem * var(--ui-scale));
+        box-shadow: 0 30px 64px rgba(15,23,42,.3), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -24px 34px rgba(0,0,0,.24);
+        background: linear-gradient(135deg, #040913, #0f172a 42%, #14b8a6 132%);
+        border: 1px solid rgba(45,212,191,.16);
+    }
+
+        .sticky-stopwatch-card.large .name-link {
+            font-size: calc(.95rem * var(--ui-scale));
+            opacity: .9;
         }
 
-            .sticky-stopwatch-card.large .name-link {
-                font-size: calc(.95rem * var(--ui-scale));
-                opacity: .9;
-            }
-
-            .sticky-stopwatch-card.large .time {
-                font-size: calc(2.15rem * var(--ui-scale));
-                font-weight: 900;
-                letter-spacing: 0.26em;
-                padding: calc(.7rem * var(--ui-scale)) calc(1.2rem * var(--ui-scale));
-                border-radius: 0;
-                clip-path: polygon(7% 0, 100% 0, 93% 100%, 0 100%);
-                border: 1px solid rgba(94, 234, 212, 0.26);
-                background:
-                    linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)),
-                    repeating-linear-gradient(90deg, rgba(45,212,191,.12) 0 2px, transparent 2px 16px),
-                    linear-gradient(180deg, #02040a, #071017 54%, #020617);
-                color: #b1fff5;
-                box-shadow:
-                    inset 0 1px 0 rgba(255,255,255,0.1),
-                    inset 0 -18px 26px rgba(0,0,0,0.46),
-                    0 0 0 2px rgba(19, 78, 74, 0.65),
-                    0 0 0 8px rgba(20, 184, 166, 0.08),
-                    0 18px 38px rgba(2, 6, 23, 0.4);
-                text-shadow:
-                    0 0 12px rgba(45, 212, 191, 0.48),
-                    0 0 32px rgba(45, 212, 191, 0.22);
-                position: relative;
-                isolation: isolate;
-            }
+        .sticky-stopwatch-card.large .time {
+            font-size: calc(2.15rem * var(--ui-scale));
+            font-weight: 900;
+            letter-spacing: 0.26em;
+            padding: calc(.7rem * var(--ui-scale)) calc(1.2rem * var(--ui-scale));
+            border-radius: 0;
+            clip-path: polygon(7% 0, 100% 0, 93% 100%, 0 100%);
+            border: 1px solid rgba(94, 234, 212, 0.26);
+            background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)), repeating-linear-gradient(90deg, rgba(45,212,191,.12) 0 2px, transparent 2px 16px), linear-gradient(180deg, #02040a, #071017 54%, #020617);
+            color: #b1fff5;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -18px 26px rgba(0,0,0,0.46), 0 0 0 2px rgba(19, 78, 74, 0.65), 0 0 0 8px rgba(20, 184, 166, 0.08), 0 18px 38px rgba(2, 6, 23, 0.4);
+            text-shadow: 0 0 12px rgba(45, 212, 191, 0.48), 0 0 32px rgba(45, 212, 191, 0.22);
+            position: relative;
+            isolation: isolate;
+        }
 
     html.dark-mode .sticky-stopwatch-card.large .time {
         background: rgba(255,255,255,.06);
@@ -1802,9 +1783,7 @@
         row-gap: calc(.48rem * var(--ui-scale));
         border-radius: 32px;
         padding: calc(1rem * var(--ui-scale)) calc(1.08rem * var(--ui-scale));
-        box-shadow:
-            0 18px 34px rgba(15,23,42,.22),
-            inset 0 1px 0 rgba(255,255,255,.08);
+        box-shadow: 0 18px 34px rgba(15,23,42,.22), inset 0 1px 0 rgba(255,255,255,.08);
         background: linear-gradient(180deg, #1b2431, #0f172a);
         border: 1px solid rgba(148,163,184,.18);
     }
@@ -1949,29 +1928,25 @@
             width: 100%;
             min-height: calc(5.9rem * var(--ui-scale));
             border-radius: 24px;
-            background:
-                linear-gradient(90deg, rgba(243,244,246,.96) 0 var(--progress-percent), rgba(71,85,105,.34) var(--progress-percent) 100%) top / 100% 8px no-repeat,
-                linear-gradient(180deg, #111827, #0b1220);
-            box-shadow:
-                inset 0 1px 0 rgba(255,255,255,.06),
-                0 14px 26px rgba(15,23,42,.24);
+            background: linear-gradient(90deg, rgba(243,244,246,.96) 0 var(--progress-percent), rgba(71,85,105,.34) var(--progress-percent) 100%) top / 100% 8px no-repeat, linear-gradient(180deg, #111827, #0b1220);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 14px 26px rgba(15,23,42,.24);
         }
 
-        .sticky-stopwatch-card.xl.xl-compact-layout .time .time-ring__svg {
-            display: none;
-        }
+            .sticky-stopwatch-card.xl.xl-compact-layout .time .time-ring__svg {
+                display: none;
+            }
 
-        .sticky-stopwatch-card.xl.xl-compact-layout .time .time-ring__value {
-            font-size: calc(2.35rem * var(--ui-scale));
-            letter-spacing: -.02em;
-        }
+            .sticky-stopwatch-card.xl.xl-compact-layout .time .time-ring__value {
+                font-size: calc(2.35rem * var(--ui-scale));
+                letter-spacing: -.02em;
+            }
 
-        .sticky-stopwatch-card.xl.xl-compact-layout .time .time-ring__label {
-            font-size: calc(.68rem * var(--ui-scale));
-            letter-spacing: .12em;
-            text-transform: uppercase;
-            color: rgba(226, 232, 240, 0.48);
-        }
+            .sticky-stopwatch-card.xl.xl-compact-layout .time .time-ring__label {
+                font-size: calc(.68rem * var(--ui-scale));
+                letter-spacing: .12em;
+                text-transform: uppercase;
+                color: rgba(226, 232, 240, 0.48);
+            }
 
         .sticky-stopwatch-card.xl.xl-compact-layout .sticky-action {
             grid-row: 3;
@@ -2047,12 +2022,8 @@
         border-radius: 26px;
         padding: calc(.88rem * var(--ui-scale)) calc(1.05rem * var(--ui-scale));
         gap: calc(.45rem * var(--ui-scale));
-        box-shadow:
-            0 26px 56px rgba(15,23,42,.3),
-            inset 0 1px 0 rgba(255,255,255,.14),
-            inset 0 -22px 28px rgba(0,0,0,.24);
-        background:
-            linear-gradient(180deg, #050816, #0d1616 46%, #12312d 100%);
+        box-shadow: 0 26px 56px rgba(15,23,42,.3), inset 0 1px 0 rgba(255,255,255,.14), inset 0 -22px 28px rgba(0,0,0,.24);
+        background: linear-gradient(180deg, #050816, #0d1616 46%, #12312d 100%);
         justify-content: center;
         border: 1px solid rgba(45,212,191,.14);
     }
@@ -2077,16 +2048,9 @@
             padding: calc(.72rem * var(--ui-scale)) calc(1.15rem * var(--ui-scale));
             border-radius: 18px;
             clip-path: polygon(0 0, 100% 0, 96% 100%, 4% 100%);
-            background:
-                linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02)),
-                repeating-linear-gradient(90deg, rgba(45,212,191,.12) 0 2px, transparent 2px 18px),
-                linear-gradient(180deg, #010409, #07110f);
+            background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02)), repeating-linear-gradient(90deg, rgba(45,212,191,.12) 0 2px, transparent 2px 18px), linear-gradient(180deg, #010409, #07110f);
             border: 1px solid rgba(45,212,191,0.22);
-            box-shadow:
-                inset 0 1px 0 rgba(255,255,255,0.08),
-                inset 0 -18px 24px rgba(0,0,0,.42),
-                0 0 0 2px rgba(19,78,74,.65),
-                0 18px 36px rgba(15,23,42,.34);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -18px 24px rgba(0,0,0,.42), 0 0 0 2px rgba(19,78,74,.65), 0 18px 36px rgba(15,23,42,.34);
             color: #ecfffd;
             text-shadow: 0 0 20px rgba(45,212,191,.28);
         }
@@ -2130,9 +2094,7 @@
             min-height: auto;
             display: grid;
             place-items: center;
-            background:
-                linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0.06)),
-                linear-gradient(180deg, rgba(75,108,183,0.24), rgba(24,40,72,0.42));
+            background: linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0.06)), linear-gradient(180deg, rgba(75,108,183,0.24), rgba(24,40,72,0.42));
             border: 1px solid rgba(255,255,255,0.12);
         }
 
@@ -2213,25 +2175,25 @@
         background-clip: padding-box;
     }
 
-        .color-dot.default {
-            background: var(--bg-secondary);
-        }
+    .color-dot.default {
+        background: var(--bg-secondary);
+    }
 
-        .color-dot.transparent {
-            background: repeating-linear-gradient( 45deg, rgba(255,255,255,.2), rgba(255,255,255,.2) 4px, rgba(0,0,0,.2) 4px, rgba(0,0,0,.2) 8px );
-        }
+    .color-dot.transparent {
+        background: repeating-linear-gradient( 45deg, rgba(255,255,255,.2), rgba(255,255,255,.2) 4px, rgba(0,0,0,.2) 4px, rgba(0,0,0,.2) 8px );
+    }
 
-        .color-dot.blue {
-            background: #1e3a8a;
-        }
+    .color-dot.blue {
+        background: #1e3a8a;
+    }
 
-        .color-dot.green {
-            background: #166534;
-        }
+    .color-dot.green {
+        background: #166534;
+    }
 
-        .color-dot.amber {
-            background: #92400e;
-        }
+    .color-dot.amber {
+        background: #92400e;
+    }
 
     .color-picker {
         width: 26px;

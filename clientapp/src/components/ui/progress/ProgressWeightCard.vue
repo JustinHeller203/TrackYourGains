@@ -1,7 +1,7 @@
 <!--components/ui/progress/ProgressWeightCard.vue -->
 
 <template>
-    <DashboardCard title="Aktuelles Gewicht"
+    <DashboardCard :title="t('progress.weight.title')"
                    :info="currentWeightDisplay"
                    :muted="!weightHistory?.length"
                    :compact="compact"
@@ -19,7 +19,7 @@
 
     <WeightPopup :show="showWeightPopup"
                  v-model="newWeightDisplay"
-                 :placeholder="unit === 'kg' ? 'Gewicht in kg' : 'Gewicht in lbs'"
+                 :placeholder="unit === 'kg' ? t('progress.weight.placeholderKg') : t('progress.weight.placeholderLbs')"
                  :validate="validateWeight"
                  :is-dirty="isWeightDirty"
                  :allow-reset="true"
@@ -33,9 +33,8 @@
     import DashboardCard from '@/components/ui/DashboardCard.vue'
     import AnimatedReelValue from '@/components/ui/progress/AnimatedReelValue.vue'
     import WeightPopup from '@/components/ui/popups/WeightPopup.vue'
-    import { LS_PROGRESS_WEIGHTS } from '@/constants/storageKeys'
-
-    import { useWeightStore } from '@/store/weightStore' // <- pass ggf. Pfad an (bei dir heißt es useWeightStore)
+    import { useWeightStore } from '@/store/weightStore'
+    import { useI18n } from '@/composables/useI18n'
 
     type WeightEntry = { date: string; weight: number } // weight in KG
 
@@ -61,11 +60,12 @@
     const weightAnimationNonce = ref(0)
     const weightJumpNonce = ref(0)
     const openedWeightDisplay = ref<string | null>(null)
+    const { t } = useI18n()
 
     const currentWeightDisplay = computed(() =>
         props.weightHistory?.length
             ? props.formatWeight(props.weightHistory[0].weight, 1)
-            : 'Kein Gewicht erfasst'
+            : t('progress.weight.noWeight')
     )
 
     const latestRecordedWeightDisplay = computed<number | null>(() =>
@@ -99,10 +99,10 @@
     }
 
     const validateWeight = (display: number | null): string | null => {
-        if (display === null || Number.isNaN(display)) return 'Gewicht muss eine Zahl sein'
-        if (display <= 0) return 'Körpergewicht muss größer als 0 sein'
+        if (display === null || Number.isNaN(display)) return t('progress.weight.validation.number')
+        if (display <= 0) return t('progress.weight.validation.min')
         const kg = props.displayToKg(Number(display))
-        if (kg > 200) return 'Gewicht darf maximal 200 kg sein'
+        if (kg > 200) return t('progress.weight.validation.max')
         return null
     }
 
@@ -142,7 +142,7 @@
             emit('saved', { weightKg, weightDisplay: props.kgToDisplay(weightKg), date: dateIso })
             closeWeightPopup(false)
         } catch (e) {
-            emit('invalid', ['Körpergewicht konnte nicht gespeichert werden.'])
+            emit('invalid', [t('progress.weight.saveFailed')])
         }
     }
     const resetWeight = async () => {
@@ -152,7 +152,7 @@
             emit('saved', { weightKg: null, weightDisplay: null, date: null })
             closeWeightPopup(false)
         } catch (e) {
-            emit('invalid', ['Körpergewicht konnte nicht zurückgesetzt werden.'])
+            emit('invalid', [t('progress.weight.resetFailed')])
         }
     }
 

@@ -3,17 +3,17 @@
 <template>
     <div>
         <div class="workout-list plans-section" data-tyg="plans-section">
-            <h3 class="section-title">Deine Trainingspläne</h3>
+            <h3 class="section-title">{{ t('trainingPlansList.title') }}</h3>
 
             <UiSearch v-model="planSearch"
-                      placeholder="Nach Planname oder Trainingsziel suchen"
-                      aria-label="Trainingspläne durchsuchen"
+                      :placeholder="t('trainingPlansList.searchPlaceholder')"
+                      :aria-label="t('trainingPlansList.searchAria')"
                       class="plan-search" />
 
             <!-- Externer Plan per Code -->
             <div v-if="externalQueryActive" class="external-plan-box">
                 <div v-if="externalLoading" class="external-plan-hint">
-                    Suche externen Plan...
+                    {{ t('trainingPlansList.external.searching') }}
                 </div>
 
                 <div v-else-if="externalError" class="external-plan-error">
@@ -23,16 +23,16 @@
                 <div v-else-if="externalView" class="external-plan-card">
                     <div class="external-plan-left">
                         <div class="external-plan-title">
-                            Externer Plan: <b>{{ externalView.name }}</b>
+                            {{ t('trainingPlansList.external.title') }} <b>{{ externalView.name }}</b>
                         </div>
                         <div class="external-plan-sub">
-                            {{ externalView.exerciseCount }} Übungen · Code: {{ middleEllipsis(String(externalView.code ?? ''), 14) }}
+                            {{ exerciseCountLabel(externalView.exerciseCount) }} · {{ t('trainingPlansList.codeLabel') }}: {{ middleEllipsis(String(externalView.code ?? ''), 14) }}
                         </div>
                     </div>
 
                     <div class="external-plan-actions">
-                        <ActionIconButton title="Installieren"
-                                          aria-label="Externen Trainingsplan installieren"
+                        <ActionIconButton :title="t('trainingPlansList.action.install')"
+                                          :aria-label="t('trainingPlansList.action.installExternalAria')"
                                           @click="installExternalPlan">
                             <img class="icon-download icon-download--install"
                                  src="/DownloadButton.png"
@@ -43,7 +43,7 @@
                 </div>
 
                 <div v-else class="external-plan-hint">
-                    Kein externer Plan gefunden.
+                    {{ t('trainingPlansList.external.notFound') }}
                 </div>
             </div>
 
@@ -95,13 +95,13 @@
                          :data-plan-id="plan.id"
                         :ref="(el) => setPlanCardRef(plan.id, el as HTMLElement | null)"
                          @click="onPlanCardClick($event, plan.id)">
-                        <span v-if="deleteCardPlanId === plan.id" class="delete-card-sanctified-label" aria-hidden="true">Gelöscht!</span>
+                        <span v-if="deleteCardPlanId === plan.id" class="delete-card-sanctified-label" aria-hidden="true">{{ t('trainingPlansList.state.deleted') }}</span>
                         <div class="plan-row1">
                             <span v-if="favoriteTransfer.planId === plan.id && favoriteTransfer.direction"
                                   class="favorite-sanctified-label"
                                   :class="{ 'favorite-sanctified-label--removed': favoriteTransfer.direction === 'from-favorite' }"
-                                  aria-hidden="true">{{ favoriteTransfer.direction === 'to-favorite' ? 'Favorisiert!' : 'Entfernt!' }}</span>
-                            <span v-if="!isCompactPlanCards" class="plan-drag-handle" title="Ziehen zum Verschieben">≡</span>
+                                  aria-hidden="true">{{ favoriteTransfer.direction === 'to-favorite' ? t('trainingPlansList.state.favorited') : t('trainingPlansList.state.removed') }}</span>
+                            <span v-if="!isCompactPlanCards" class="plan-drag-handle" :title="t('trainingPlansList.action.dragToMove')">≡</span>
 
                             <span class="plan-title"
                                   :title="plan.name"
@@ -118,26 +118,26 @@
                                         <span class="plan-title-rename-overlay__final">{{ renameForgePayload.newName }}</span>
                                     </span>
                                 </span>
-                                <span v-if="!isCompactPlanCards && renameForgePlanId !== plan.id" class="plan-count">({{ plan.exerciseCount }} Übungen)</span>
+                                <span v-if="!isCompactPlanCards && renameForgePlanId !== plan.id" class="plan-count">({{ exerciseCountLabel(plan.exerciseCount) }})</span>
                             </span>
 
                             <div class="plan-right">
                                 <FavoriteButton :active="favoritePlans.includes(plan.id)"
-                                                :titleActive="'Aus Favoriten entfernen'"
-                                                :titleInactive="'Zu Favoriten hinzufügen'"
+                                                :titleActive="t('trainingPlansList.action.removeFavorite')"
+                                                :titleInactive="t('trainingPlansList.action.addFavorite')"
                                                 @toggle="toggleFavoritePlan(plan.id)" />
 
                                 <div class="inline-actions">
-                                    <EditButton title="Plan bearbeiten" @click.stop="editPlanInBuilder(plan.id)" />
-                                    <DeleteButton title="Plan löschen" @click="requestPlanDelete(plan, $event)" />
-                                    <ActionIconButton title="Exportieren"
-                                                      aria-label="Trainingsplan exportieren"
-                                                      @click="downloadPlan(plan)">↓</ActionIconButton>
+                                    <EditButton :title="t('trainingPlansList.action.editPlan')" @click.stop="editPlanInBuilder(plan.id)" />
+                                    <DeleteButton :title="t('trainingPlansList.action.deletePlan')" @click="requestPlanDelete(plan, $event)" />
+                                    <ActionIconButton :title="t('trainingPlansList.action.export')"
+                                                      :aria-label="t('trainingPlansList.action.exportPlanAria')"
+                                                      @click="downloadPlan(plan)">⬇️</ActionIconButton>
                                 </div>
 
                                 <span class="kebab-wrap">
-                                    <ActionIconButton title="Mehr"
-                                                      aria-label="Weitere Aktionen"
+                                    <ActionIconButton :title="t('trainingPlansList.action.more')"
+                                                      :aria-label="t('trainingPlansList.action.moreActionsAria')"
                                                       @click.stop="togglePlanMenu(plan.id)">⋯</ActionIconButton>
                                 </span>
 
@@ -145,8 +145,8 @@
                                                   :data-preview-play="isPhonePreviewSimulationDemo ? 'simulation-demo' : null"
                                                   :data-tyg-play-button="plan.id"
                                                   :data-tyg-tutorial-play="props.planTutActive && props.planTutPlanId === plan.id ? 'true' : null"
-                                                  title="Starten"
-                                                  aria-label="Training starten"
+                                                  :title="t('trainingPlansList.action.start')"
+                                                  :aria-label="t('trainingPlansList.action.startTrainingAria')"
                                                   @click.stop="startSimulation(plan)">
                                     <img class="play-icon" src="/PlayButton.png" alt="" aria-hidden="true" />
                                 </ActionIconButton>
@@ -211,13 +211,13 @@
                          :data-plan-id="plan.id"
                         :ref="(el) => setPlanCardRef(plan.id, el as HTMLElement | null)"
                          @click="onPlanCardClick($event, plan.id)">
-                        <span v-if="deleteCardPlanId === plan.id" class="delete-card-sanctified-label" aria-hidden="true">Gelöscht!</span>
+                        <span v-if="deleteCardPlanId === plan.id" class="delete-card-sanctified-label" aria-hidden="true">{{ t('trainingPlansList.state.deleted') }}</span>
                         <div class="plan-row1">
                             <span v-if="favoriteTransfer.planId === plan.id && favoriteTransfer.direction"
                                   class="favorite-sanctified-label"
                                   :class="{ 'favorite-sanctified-label--removed': favoriteTransfer.direction === 'from-favorite' }"
-                                  aria-hidden="true">{{ favoriteTransfer.direction === 'to-favorite' ? 'Favorisiert!' : 'Entfernt!' }}</span>
-                            <span v-if="!isCompactPlanCards" class="plan-drag-handle" title="Ziehen zum Verschieben">≡</span>
+                                  aria-hidden="true">{{ favoriteTransfer.direction === 'to-favorite' ? t('trainingPlansList.state.favorited') : t('trainingPlansList.state.removed') }}</span>
+                            <span v-if="!isCompactPlanCards" class="plan-drag-handle" :title="t('trainingPlansList.action.dragToMove')">≡</span>
 
                             <span class="plan-title"
                                   :title="plan.name"
@@ -234,26 +234,26 @@
                                         <span class="plan-title-rename-overlay__final">{{ renameForgePayload.newName }}</span>
                                     </span>
                                 </span>
-                                <span v-if="!isCompactPlanCards && renameForgePlanId !== plan.id" class="plan-count">({{ (plan.exerciseCount ?? plan.exercises?.length ?? 0) }} Übungen)</span>
+                                <span v-if="!isCompactPlanCards && renameForgePlanId !== plan.id" class="plan-count">({{ exerciseCountLabel(plan.exerciseCount ?? plan.exercises?.length ?? 0) }})</span>
                             </span>
 
                             <div class="plan-right">
                                 <FavoriteButton :active="favoritePlans.includes(plan.id)"
-                                                :titleActive="'Aus Favoriten entfernen'"
-                                                :titleInactive="'Zu Favoriten hinzufügen'"
+                                                :titleActive="t('trainingPlansList.action.removeFavorite')"
+                                                :titleInactive="t('trainingPlansList.action.addFavorite')"
                                                 @toggle="toggleFavoritePlan(plan.id)" />
 
                                 <div class="inline-actions">
-                                    <EditButton title="Plan bearbeiten" @click.stop="editPlanInBuilder(plan.id)" />
-                                    <DeleteButton title="Plan löschen" @click="requestPlanDelete(plan, $event)" />
-                                    <ActionIconButton title="Exportieren"
-                                                      aria-label="Trainingsplan exportieren"
-                                                     @click="downloadPlan(plan)">↓</ActionIconButton>
+                                    <EditButton :title="t('trainingPlansList.action.editPlan')" @click.stop="editPlanInBuilder(plan.id)" />
+                                    <DeleteButton :title="t('trainingPlansList.action.deletePlan')" @click="requestPlanDelete(plan, $event)" />
+                                    <ActionIconButton :title="t('trainingPlansList.action.export')"
+                                                      :aria-label="t('trainingPlansList.action.exportPlanAria')"
+                                                     @click="downloadPlan(plan)">⬇️</ActionIconButton>
                                 </div>
 
                                 <span class="kebab-wrap">
-                                    <ActionIconButton title="Mehr"
-                                                      aria-label="Weitere Aktionen"
+                                    <ActionIconButton :title="t('trainingPlansList.action.more')"
+                                                      :aria-label="t('trainingPlansList.action.moreActionsAria')"
                                                       @click.stop="togglePlanMenu(plan.id)">⋯</ActionIconButton>
                                 </span>
 
@@ -261,8 +261,8 @@
                                                   :data-preview-play="isPhonePreviewSimulationDemo ? 'simulation-demo' : null"
                                                   :data-tyg-play-button="plan.id"
                                                   :data-tyg-tutorial-play="props.planTutActive && props.planTutPlanId === plan.id ? 'true' : null"
-                                                  title="Starten"
-                                                  aria-label="Training starten"
+                                                  :title="t('trainingPlansList.action.start')"
+                                                  :aria-label="t('trainingPlansList.action.startTrainingAria')"
                                                   @click.stop="startSimulation(plan)">
                                     <img class="play-icon" src="/PlayButton.png" alt="" aria-hidden="true" />
                                 </ActionIconButton>
@@ -292,7 +292,7 @@
                 <div class="plan-open-overlay__line"></div>
                 <div class="plan-open-overlay__content">
                     <span class="plan-open-overlay__title">{{ planOpenOverlay.name }}</span>
-                    <span class="plan-open-overlay__meta">{{ planOpenOverlay.exerciseCount }} Übungen</span>
+                    <span class="plan-open-overlay__meta">{{ exerciseCountLabel(planOpenOverlay.exerciseCount) }}</span>
                 </div>
             </div>
         </Transition>
@@ -312,7 +312,7 @@
                 <h3 class="section-title" @dblclick="renameSelectedPlan()">
                     <span class="plan-title-main"
                           :class="{ 'plan-title-main--sync': headerSyncPlanId === selectedPlan.id }">
-                        Trainingsplan:
+                        {{ t('trainingPlansList.selectedPlanLabel') }}
                         <span class="plan-title-main__name"
                               :class="{ 'plan-title-main__name--rename-forge': renameForgeSelectedId === selectedPlan.id }">
                             <span class="plan-title-main__name-live">{{ selectedPlan.name }}</span>
@@ -330,9 +330,9 @@
                          class="plan-code-row"
                          :class="{ 'plan-code-row--sync': headerSyncPlanId === selectedPlan.id }">
                         <span class="plan-code-badge"
-                              :title="`${selectedPlan.code} (Klick zum Kopieren)`"
+                              :title="tp('trainingPlansList.codeCopyTitle', { code: selectedPlan.code })"
                               @click.stop="copyPlanCode(selectedPlan.code)">
-                            Code: {{ middleEllipsis(selectedPlan.code, 14) }}
+                            {{ t('trainingPlansList.codeLabel') }}: {{ middleEllipsis(selectedPlan.code, 14) }}
                         </span>
                     </div>
                 </h3>
@@ -342,7 +342,7 @@
                     </span>
                 </div>
                 <div class="plan-header-close">
-                    <CloseButton title="Plan schließen" @click="closePlan" />
+                    <CloseButton :title="t('trainingPlansList.action.closePlan')" @click="closePlan" />
                 </div>
             </div>
 
@@ -351,37 +351,37 @@
                     <thead>
                         <tr>
                             <th v-if="selectedPlanHasEquipmentNumbers" class="resizable" :style="{ width: activeColumnWidths[0] + '%' }">
-                                <span class="th-text">Nummer</span>
+                                <span class="th-text">{{ t('trainingPlansList.table.number') }}</span>
                             </th>
                             <th class="resizable" :style="{ width: activeColumnWidths[selectedPlanHasEquipmentNumbers ? 1 : 0] + '%' }">
-                                <span class="th-text">Übung</span>
+                                <span class="th-text">{{ t('trainingPlansList.table.exercise') }}</span>
                             </th>
                             <th class="resizable" :style="{ width: activeColumnWidths[selectedPlanHasEquipmentNumbers ? 2 : 1] + '%' }">
                                 <span class="th-text">
-                                    {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? 'Sätze / Min' : 'Sätze' }}
+                                    {{ selectedPlan.exercises.some(ex => ex.type === 'ausdauer') ? t('trainingPlansList.table.setsMinutes') : t('trainingPlansList.table.sets') }}
                                 </span>
                             </th>
                             <th class="resizable th-wdh" :style="{ width: activeColumnWidths[selectedPlanHasEquipmentNumbers ? 3 : 2] + '%' }">
-                                <span class="th-text th-label">
+                                <span class="th-text th-label is-full">
                                     <span class="full">
                                         {{
                                             selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                                                ? 'Wdh. / km / s'
-                                                : 'Wiederholungen'
+                                                ? t('trainingPlansList.table.repsKmSeconds')
+                                                : t('trainingPlansList.table.reps')
                                         }}
                                     </span>
                                     <span class="mid">
                                         {{
                                             selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                                                ? 'Wdh./km/s'
-                                                : 'Wiederhol...'
+                                                ? t('trainingPlansList.table.repsKmSecondsMid')
+                                                : t('trainingPlansList.table.repsMid')
                                         }}
                                     </span>
                                     <span class="short">
                                         {{
                                             selectedPlan.exercises.some(ex => ex.type === 'ausdauer' || ex.type === 'dehnung')
-                                                ? 'W/km/s'
-                                                : 'Wdh.'
+                                                ? t('trainingPlansList.table.repsKmSecondsShort')
+                                                : t('trainingPlansList.table.repsShort')
                                         }}
                                     </span>
                                 </span>
@@ -414,14 +414,14 @@
                                         </div>
                                         <div v-if="formatPauseValue(ex) || ex.tempoHint" class="plan-exercise-meta">
                                             <span v-if="formatPauseValue(ex)" class="plan-exercise-meta__item">
-                                                <strong>Pause:</strong> {{ formatPauseValue(ex) }}
+                                                <strong>{{ t('trainingPlansList.meta.rest') }}</strong> {{ formatPauseValue(ex) }}
                                             </span>
                                             <span v-if="ex.tempoHint" class="plan-exercise-meta__item">
-                                                <strong>Tempo:</strong> {{ ex.tempoHint }}
+                                                <strong>{{ t('trainingPlansList.meta.tempo') }}</strong> {{ ex.tempoHint }}
                                             </span>
                                         </div>
                                         <div v-if="ex.replacementExercise" class="plan-replacement-card">
-                                            <span class="plan-replacement-card__label">Ersatzübung</span>
+                                            <span class="plan-replacement-card__label">{{ t('trainingPlansList.meta.replacementExercise') }}</span>
                                             <span class="plan-replacement-card__name">{{ ex.replacementExercise }}</span>
                                             <span v-if="ex.replacementReason" class="plan-replacement-card__reason">{{ ex.replacementReason }}</span>
                                         </div>
@@ -454,32 +454,32 @@
                     :aria-expanded="showCustomExercises"
                     @click="toggleCustomExercises">
                 <span class="custom-toggle-text">
-                    {{ showCustomExercises ? 'Benutzerdefinierte Übungen ausblenden' : 'Benutzerdefinierte Übungen anzeigen' }}
+                    {{ showCustomExercises ? t('trainingPlansList.custom.hide') : t('trainingPlansList.custom.show') }}
                 </span>
                 <span class="custom-toggle-arrow" aria-hidden="true"></span>
             </button>
 
             <div v-if="showCustomExercises" class="selected-plan-shell__section">
-                <h3 class="section-title">Eigene Übungen</h3>
+                <h3 class="section-title">{{ t('trainingPlansList.custom.title') }}</h3>
 
                 <Table class="exercise-table full-width narrow" variant="narrow">
                     <table ref="customResizeTable" data-cols="4">
                         <thead>
                             <tr>
                                 <th class="resizable" :style="{ width: customColWidths[0] + '%' }">
-                                    <span class="th-text">Name</span>
+                                    <span class="th-text">{{ t('trainingPlansList.custom.table.name') }}</span>
                                 </th>
                                 <th class="resizable th-muskel" :style="{ width: customColWidths[1] + '%' }">
                                     <span class="th-text th-label">
-                                        <span class="full">Muskelgruppe</span>
-                                        <span class="mid">Muskelgr...</span>
-                                        <span class="short">Muskel...</span>
+                                        <span class="full">{{ t('trainingPlansList.custom.table.muscleGroup') }}</span>
+                                        <span class="mid">{{ t('trainingPlansList.custom.table.muscleGroupMid') }}</span>
+                                        <span class="short">{{ t('trainingPlansList.custom.table.muscleGroupShort') }}</span>
                                     </span>
                                 </th>
                                 <th class="resizable" :style="{ width: customColWidths[2] + '%' }">
-                                    <span class="th-text">Typ</span>
+                                    <span class="th-text">{{ t('trainingPlansList.custom.table.type') }}</span>
                                 </th>
-                                <th :style="{ width: customColWidths[3] + '%' }">Aktion</th>
+                                <th :style="{ width: customColWidths[3] + '%' }">{{ t('trainingPlansList.custom.table.action') }}</th>
                             </tr>
                         </thead>
 
@@ -503,7 +503,7 @@
 
                                 <td class="action-cell">
                                     <DeleteButton class="table-delete-btn"
-                                                  title="Benutzerdefinierte Übung entfernen"
+                                                  :title="t('trainingPlansList.custom.removeTitle')"
                                                   @click="removeCustomExercise(i)" />
                                 </td>
                             </tr>
@@ -521,7 +521,7 @@
                 v-if="deleteTrashState.planName"
                 class="delete-trash-flight"
                 :style="deleteTrashFlightStyle">
-                <span class="delete-trash-flight__badge">Gelöscht!</span>
+                <span class="delete-trash-flight__badge">{{ t('trainingPlansList.state.deleted') }}</span>
                 <span class="delete-trash-flight__title">{{ deleteTrashState.planName }}</span>
             </div>
             <div class="delete-trash-bin">
@@ -579,6 +579,7 @@
     import { LS_PROGRESS_WEIGHTS, LS_PROGRESS_WORKOUTS } from '@/constants/storageKeys'
     import type { GoalWeightSample, GoalWorkoutSample, TrainingGoalEvaluation } from '@/types/goals'
     import { showDeleteTrashOverlay, DELETE_TRASH_ANIMATION_MS } from '@/composables/useDeleteTrashOverlay'
+    import { useI18n } from '@/composables/useI18n'
 
     /* -------------------- Types (nur Plans) -------------------- */
     type ExerciseType = 'kraft' | 'calisthenics' | 'dehnung' | 'ausdauer'
@@ -659,6 +660,28 @@
         if (props.planTutActive) closePlanTut()
     }
     const route = useRoute()
+    const { t } = useI18n()
+    const tp = (key: string, params: Record<string, string | number>) => {
+        let text = t(key)
+        for (const [paramKey, value] of Object.entries(params)) {
+            text = text.replaceAll(`{${paramKey}}`, String(value))
+        }
+        return text
+    }
+    const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const planNoteLabel = (key: string) => t(`trainingPlansList.note.${key}`)
+    const buildPlanNoteLine = (key: string, value: unknown) => `${planNoteLabel(key)}: ${String(value).trim()}`
+    const parseLabeledValue = (line: string, labels: string[]) => {
+        for (const label of labels) {
+            const pattern = new RegExp(`^${escapeRegExp(label)}:\\s*`, 'i')
+            if (pattern.test(line)) {
+                return line.replace(pattern, '').trim() || undefined
+            }
+        }
+        return null
+    }
+    const exerciseCountLabel = (count: number) =>
+        tp(count === 1 ? 'trainingPlansList.exerciseCountOne' : 'trainingPlansList.exerciseCountOther', { count })
     const isPhonePreviewSimulationDemo = computed(
         () => route.query.preview === 'phone' && route.query.demo === 'simulation'
     )
@@ -894,12 +917,12 @@
         favoriteTransferTimer = setTimeout(() => {
             favoriteTransfer.value = { planId: null, direction: null }
             favoriteTransferTimer = null
-        }, 900)
+        }, 1020)
     }
 
     const waitForFavoriteRelease = (direction: 'to-favorite' | 'from-favorite') =>
         direction === 'from-favorite'
-            ? new Promise((resolve) => setTimeout(resolve, 280))
+            ? new Promise((resolve) => setTimeout(resolve, 340))
             : Promise.resolve()
 
     const prefersReducedMotion = () =>
@@ -1161,11 +1184,11 @@
     const buildExerciseNotes = (exercise: PlanExercise): string | null => {
         const lines: string[] = []
         if (exercise.notes) lines.push(String(exercise.notes).trim())
-        if (exercise.recoveryHint) lines.push(`Pause: ${String(exercise.recoveryHint).trim()}`)
-        if (exercise.tempoHint) lines.push(`Tempo: ${String(exercise.tempoHint).trim()}`)
-        if (exercise.equipmentNumber) lines.push(`Gerätenummer: ${String(exercise.equipmentNumber).trim()}`)
-        if (exercise.replacementExercise) lines.push(`Ersatz: ${String(exercise.replacementExercise).trim()}`)
-        if (exercise.replacementReason) lines.push(`Ersatzgrund: ${String(exercise.replacementReason).trim()}`)
+        if (exercise.recoveryHint) lines.push(buildPlanNoteLine('rest', exercise.recoveryHint))
+        if (exercise.tempoHint) lines.push(buildPlanNoteLine('tempo', exercise.tempoHint))
+        if (exercise.equipmentNumber) lines.push(buildPlanNoteLine('equipmentNumber', exercise.equipmentNumber))
+        if (exercise.replacementExercise) lines.push(buildPlanNoteLine('replacementExercise', exercise.replacementExercise))
+        if (exercise.replacementReason) lines.push(buildPlanNoteLine('replacementReason', exercise.replacementReason))
         const value = lines.filter(Boolean).join('\n').trim()
         return value || null
     }
@@ -1187,11 +1210,11 @@
             .filter(Boolean)
 
         if (typeof exercise.sets === 'string' && exercise.type !== 'ausdauer') {
-            lines.push(`Sätze: ${exercise.sets}`)
+            lines.push(buildPlanNoteLine('sets', exercise.sets))
         }
 
         if (typeof exercise.reps === 'string' && exercise.type !== 'ausdauer') {
-            lines.push(`Wiederholungen: ${exercise.reps}`)
+            lines.push(buildPlanNoteLine('reps', exercise.reps))
         }
 
         return lines.length ? lines.join('\n') : null
@@ -1212,12 +1235,13 @@
 
     const getDuplicatePlanName = (baseName: string) => {
         const existing = new Set(plans.value.map((plan) => plan.name.trim().toLocaleLowerCase()))
-        const cleanBase = baseName.trim() || 'Trainingsplan'
-        const first = `${cleanBase} Kopie`
+        const cleanBase = baseName.trim() || t('trainingPlansList.planFallback')
+        const copySuffix = t('trainingPlansList.copySuffix')
+        const first = `${cleanBase} ${copySuffix}`
         if (!existing.has(first.toLocaleLowerCase())) return first
         let index = 2
-        while (existing.has(`${cleanBase} Kopie ${index}`.toLocaleLowerCase())) index += 1
-        return `${cleanBase} Kopie ${index}`
+        while (existing.has(`${cleanBase} ${copySuffix} ${index}`.toLocaleLowerCase())) index += 1
+        return `${cleanBase} ${copySuffix} ${index}`
     }
 
     const duplicatePlan = async (plan: ViewPlan) => {
@@ -1236,7 +1260,7 @@
                 code: null,
             }
             props.onGuestPlanCreated?.(nextPlan)
-            props.addToast('Plan dupliziert', 'add')
+            props.addToast(t('trainingPlansList.toast.planDuplicated'), 'add')
             await triggerDuplicateEcho(nextPlan.id)
             await loadPlan(nextPlan.id)
             return
@@ -1251,7 +1275,7 @@
                 null
 
             if (!dtoFull) {
-                props.addToast('Plan konnte nicht geladen werden', 'delete')
+                props.addToast(t('trainingPlansList.toast.planLoadFailed'), 'delete')
                 return
             }
 
@@ -1285,13 +1309,13 @@
             }
             const created = await trainingPlansStore.create(payload)
             const createdId = String((created as any)?.id ?? '')
-            props.addToast('Plan dupliziert', 'add')
+            props.addToast(t('trainingPlansList.toast.planDuplicated'), 'add')
             if (createdId) {
                 await triggerDuplicateEcho(createdId)
                 await loadPlan(createdId)
             }
         } catch {
-            props.addToast('Duplizieren fehlgeschlagen', 'delete')
+            props.addToast(t('trainingPlansList.toast.duplicateFailed'), 'delete')
         }
     }
 
@@ -1442,7 +1466,7 @@
             }
 
             if (!dto) {
-                props.addToast('Plan konnte nicht geladen werden', 'delete')
+                props.addToast(t('trainingPlansList.toast.planLoadFailed'), 'delete')
                 return
             }
 
@@ -1450,7 +1474,7 @@
             const fullView = flattenDto(dto)
             openDownloadPopupUi(fullView, { shareLines: buildShareLinesForPlan(fullView) })
         } catch {
-            props.addToast('Plan konnte nicht geladen werden', 'delete')
+            props.addToast(t('trainingPlansList.toast.planLoadFailed'), 'delete')
         }
     }
 
@@ -1548,7 +1572,7 @@
             }
 
             if (!dto) {
-                props.addToast('Plan konnte nicht geladen werden', 'delete')
+                props.addToast(t('trainingPlansList.toast.planLoadFailed'), 'delete')
                 return
             }
 
@@ -1571,7 +1595,7 @@
             simFollowupPainDiaryToday.value = false
             simOpen.value = true
         } catch {
-            props.addToast('Plan konnte nicht geladen werden', 'delete')
+            props.addToast(t('trainingPlansList.toast.planLoadFailed'), 'delete')
         }
     }
 
@@ -1628,9 +1652,7 @@
             // direkt refresh, damit PlanProgressPopup sofort sauber ist
             await progressStore.load(planId, true)
         } catch (e) {
-            // du hast hier keinen Toast in der Signatur vom Event,
-            // aber du hast props.addToast im Component.
-            props.addToast("Progress speichern fehlgeschlagen", "delete")
+            props.addToast(t('trainingPlansList.toast.progressSaveFailed'), 'delete')
         }
     }
 
@@ -1720,37 +1742,51 @@
         let replacementExercise: string | undefined
         let replacementReason: string | undefined
         const freeLines: string[] = []
+        const setsLabels = [planNoteLabel('sets'), 'Sätze', 'Sets']
+        const repsLabels = [planNoteLabel('reps'), 'Wiederholungen', 'Repetitions', 'Reps']
+        const restLabels = [planNoteLabel('rest'), 'Pause', 'Recovery', 'Rest']
+        const tempoLabels = [planNoteLabel('tempo'), 'Tempo']
+        const equipmentLabels = [planNoteLabel('equipmentNumber'), 'Gerätenummer', 'Geraetenummer', 'Equipment number']
+        const replacementLabels = [planNoteLabel('replacementExercise'), 'Ersatz', 'Replacement']
+        const replacementReasonLabels = [planNoteLabel('replacementReason'), 'Ersatzgrund', 'Replacement reason']
 
         for (const rawLine of notes.split(/\r?\n/)) {
             const line = rawLine.trim()
             if (!line) continue
 
-            if (/^Sätze:\s*/i.test(line)) {
-                setsOverride = line.replace(/^Sätze:\s*/i, '').trim() || undefined
+            const setsValue = parseLabeledValue(line, setsLabels)
+            if (setsValue !== null) {
+                setsOverride = setsValue
                 continue
             }
-            if (/^Wiederholungen:\s*/i.test(line)) {
-                repsOverride = line.replace(/^Wiederholungen:\s*/i, '').trim() || undefined
+            const repsValue = parseLabeledValue(line, repsLabels)
+            if (repsValue !== null) {
+                repsOverride = repsValue
                 continue
             }
-            if (/^(Pause|Recovery):\s*/i.test(line)) {
-                recoveryHint = line.replace(/^(Pause|Recovery):\s*/i, '').trim() || undefined
+            const restValue = parseLabeledValue(line, restLabels)
+            if (restValue !== null) {
+                recoveryHint = restValue
                 continue
             }
-            if (/^Tempo:\s*/i.test(line)) {
-                tempoHint = line.replace(/^Tempo:\s*/i, '').trim() || undefined
+            const tempoValue = parseLabeledValue(line, tempoLabels)
+            if (tempoValue !== null) {
+                tempoHint = tempoValue
                 continue
             }
-            if (/^(Gerätenummer|Geraetenummer):\s*/i.test(line)) {
-                equipmentNumber = line.replace(/^(Gerätenummer|Geraetenummer):\s*/i, '').trim() || undefined
+            const equipmentValue = parseLabeledValue(line, equipmentLabels)
+            if (equipmentValue !== null) {
+                equipmentNumber = equipmentValue
                 continue
             }
-            if (/^Ersatz:\s*/i.test(line)) {
-                replacementExercise = line.replace(/^Ersatz:\s*/i, '').trim() || undefined
+            const replacementValue = parseLabeledValue(line, replacementLabels)
+            if (replacementValue !== null) {
+                replacementExercise = replacementValue
                 continue
             }
-            if (/^Ersatzgrund:\s*/i.test(line)) {
-                replacementReason = line.replace(/^Ersatzgrund:\s*/i, '').trim() || undefined
+            const replacementReasonValue = parseLabeledValue(line, replacementReasonLabels)
+            if (replacementReasonValue !== null) {
+                replacementReason = replacementReasonValue
                 continue
             }
 
@@ -1883,18 +1919,23 @@
 
     const copyPlanCode = async (code?: string | null) => {
         const c = (code ?? '').trim()
-        if (!c) { props.addToast('Kein Code vorhanden', 'delete'); return }
+        if (!c) { props.addToast(t('trainingPlansList.toast.noCode'), 'delete'); return }
 
         try {
             await navigator.clipboard.writeText(c)
-            props.addToast('Code kopiert', 'save')
+            props.addToast(t('trainingPlansList.toast.codeCopied'), 'save')
         } catch {
-            props.addToast('Kopieren fehlgeschlagen', 'delete')
+            props.addToast(t('trainingPlansList.toast.copyFailed'), 'delete')
         }
     }
 
-    const typeLabel = (t: ExerciseType) =>
-        ({ kraft: 'Kraft', calisthenics: 'Calisthenics', dehnung: 'Dehnung', ausdauer: 'Ausdauer' } as const)[t]
+    const typeLabel = (type: ExerciseType) =>
+        ({
+            kraft: t('builder.trainingType.strength'),
+            calisthenics: t('builder.trainingType.calisthenics'),
+            dehnung: t('builder.trainingType.mobility'),
+            ausdauer: t('builder.trainingType.endurance'),
+        } as const)[type]
 
     const formatExerciseNumber = (exercise: PlanExercise) => {
         const value = String(exercise.equipmentNumber ?? '').trim()
@@ -1938,14 +1979,14 @@
         dismissPlanTutIfActive()
 
         if (!props.onEditInBuilder) {
-            props.addToast('Edit im Builder fehlt: onEditInBuilder', 'delete')
+            props.addToast(t('trainingPlansList.toast.editInBuilderMissing'), 'delete')
             return
         }
 
         // Gast
         if (!auth.user) {
             const gp = (props.guestPlans ?? []).find(p => p.id === planId)
-            if (!gp) { props.addToast('Plan nicht gefunden', 'delete'); return }
+            if (!gp) { props.addToast(t('trainingPlansList.toast.planNotFound'), 'delete'); return }
 
             props.onEditInBuilder({
                 planId: gp.id,
@@ -1953,7 +1994,7 @@
                 exercises: Array.isArray(gp.exercises) ? gp.exercises.map(x => ({ ...x })) : [],
             })
 
-            props.addToast('Plan im Builder geöffnet', 'save')
+            props.addToast(t('trainingPlansList.toast.planOpenedInBuilder'), 'save')
             return
         }
 
@@ -1967,7 +2008,7 @@
                 getAccountPlanDto(planId) ??
                 null
 
-            if (!dtoFull) { props.addToast('Plan nicht gefunden', 'delete'); return }
+            if (!dtoFull) { props.addToast(t('trainingPlansList.toast.planNotFound'), 'delete'); return }
 
             setStoreSelectedPlan(dtoFull)
 
@@ -1978,9 +2019,9 @@
                 exercises: Array.isArray(view.exercises) ? view.exercises.map(x => ({ ...x })) : [],
             })
 
-            props.addToast('Plan im Builder geöffnet', 'save')
+            props.addToast(t('trainingPlansList.toast.planOpenedInBuilder'), 'save')
         } catch {
-            props.addToast('Plan konnte nicht geladen werden', 'delete')
+            props.addToast(t('trainingPlansList.toast.planLoadFailed'), 'delete')
         }
     }
 
@@ -1997,18 +2038,18 @@
 
     const buildShareLinesForPlan = (p: ViewPlan) => {
         const url = buildPlanShareUrl(p.code ?? null)
-        const name = (p?.name ?? 'Trainingsplan').trim()
+        const name = (p?.name ?? t('trainingPlansList.planFallback')).trim()
         const count = Number(p?.exerciseCount ?? p?.exercises?.length ?? 0)
 
         const countText =
             count > 0
-                ? `(${count} Übungen - easy erklärt)`
-                : `(easy erklärt)`
+                ? tp('trainingPlansList.share.countWithEasy', { count })
+                : t('trainingPlansList.share.easy')
 
         return [
-            `?? Ich hab dir einen Trainingsplan gebaut: "${name}" ${countText}`,
-            `Perfekt für den Start: einfach öffnen, nachmachen, fertig.`,
-            `Hier geht's direkt los: ${url}`,
+            tp('trainingPlansList.share.line1', { name, countText }),
+            t('trainingPlansList.share.line2'),
+            tp('trainingPlansList.share.line3', { url }),
         ]
     }
 /* -------------------- UI State (nur Plans) -------------------- */
@@ -2072,16 +2113,16 @@
 
             // ? direkt im UI anzeigen (ohne Install)
             const view = flattenDto(dto)
-            await openViewPlanInUi(view, "Externer Plan geöffnet")
+            await openViewPlanInUi(view, t('trainingPlansList.toast.externalPlanOpened'))
         } catch (e: any) {
             const status = e?.response?.status ?? e?.status
             if (status === 404) {
                 externalError.value = null
                 externalPlan.value = null
             } else if (status === 400) {
-                externalError.value = "Ungültiger Code."
+                externalError.value = t('trainingPlansList.external.invalidCode')
             } else {
-                externalError.value = "Externer Plan konnte nicht geladen werden."
+                externalError.value = t('trainingPlansList.external.loadFailed')
             }
         } finally {
             externalLoading.value = false
@@ -2109,7 +2150,7 @@
         if (!isValidPlanCodeFrontend(code)) return
 
         if (!auth.user) {
-            props.addToast("Zum Installieren musst du eingeloggt sein", "delete")
+            props.addToast(t('trainingPlansList.toast.loginRequiredToInstall'), 'delete')
             return
         }
 
@@ -2119,7 +2160,7 @@
             // Liste refreshen, damit es direkt in "Deine Trainingspläne" auftaucht
             await trainingPlansStore.loadList()
 
-            props.addToast("Plan installiert ?", "add")
+            props.addToast(t('trainingPlansList.toast.planInstalled'), 'add')
 
             // optional: direkt öffnen
             await loadPlan(created.id)
@@ -2128,7 +2169,7 @@
             planSearch.value = ""
         } catch (e: any) {
             const msg = e?.response?.data?.message ?? e?.message ?? null
-            props.addToast(msg || "Installieren fehlgeschlagen", "delete")
+            props.addToast(msg || t('trainingPlansList.toast.installFailed'), 'delete')
         }
     }
 
@@ -2364,7 +2405,7 @@
             const gp = (props.guestPlans ?? []).find(p => p.id === planId)
             if (!gp) {
                 resetPlanOpenOverlay()
-                props.addToast('Plan nicht gefunden', 'delete')
+                props.addToast(t('trainingPlansList.toast.planNotFound'), 'delete')
                 return
             }
 
@@ -2374,7 +2415,7 @@
             }
             rowHeights.value = Array(selectedPlan.value.exercises.length).fill(40)
             columnWidths.value = selectedPlanHasEquipmentNumbers.value ? [...COLS_WITH_NUMBER] : [...COLS_WITHOUT_NUMBER]
-            props.addToast('Plan geladen', 'load')
+            props.addToast(t('trainingPlansList.toast.planLoaded'), 'load')
             await scrollToSelectedPlan()
             if (shouldAnimateOverlay) await finishPlanOpenOverlay()
             else triggerHeaderSync(planId)
@@ -2402,7 +2443,7 @@
 
             if (!dto) {
                 resetPlanOpenOverlay()
-                props.addToast('Plan nicht gefunden', 'delete')
+                props.addToast(t('trainingPlansList.toast.planNotFound'), 'delete')
                 return
             }
 
@@ -2412,13 +2453,13 @@
             selectedPlan.value = flattenDto(dto)
             rowHeights.value = Array(selectedPlan.value.exercises.length).fill(40)
             columnWidths.value = selectedPlanHasEquipmentNumbers.value ? [...COLS_WITH_NUMBER] : [...COLS_WITHOUT_NUMBER]
-            props.addToast('Plan geladen', 'load')
+            props.addToast(t('trainingPlansList.toast.planLoaded'), 'load')
             await scrollToSelectedPlan()
             if (shouldAnimateOverlay) await finishPlanOpenOverlay()
             else triggerHeaderSync(planId)
         } catch {
             resetPlanOpenOverlay()
-            props.addToast('Plan konnte nicht geladen werden', 'delete')
+            props.addToast(t('trainingPlansList.toast.planLoadFailed'), 'delete')
         }
     }
 
@@ -2428,7 +2469,7 @@
         selectedPlan.value = null
         columnWidths.value = selectedPlanHasEquipmentNumbers.value ? [...COLS_WITH_NUMBER] : [...COLS_WITHOUT_NUMBER]
         rowHeights.value = []
-        props.addToast('Plan geschlossen', 'load')
+        props.addToast(t('trainingPlansList.toast.planClosed'), 'load')
     }
 
     const getAccountPlanDto = (planId: string) => {
@@ -2449,7 +2490,7 @@
         dismissPlanTutIfActive()
         if (!auth.user) {
             if (!props.onGuestEditPlan) {
-                props.addToast('Guest-Edit fehlt: onGuestEditPlan', 'delete')
+                props.addToast(t('trainingPlansList.toast.guestEditMissing'), 'delete')
                 return
             }
             props.onGuestEditPlan(planId)
@@ -2465,15 +2506,15 @@
                 getAccountPlanDto(planId) ??
                 null
 
-            if (!dtoFull) { props.addToast('Plan nicht gefunden', 'delete'); return }
+            if (!dtoFull) { props.addToast(t('trainingPlansList.toast.planNotFound'), 'delete'); return }
 
             // selected MUSS Full sein, sonst knallt Validation
             setStoreSelectedPlan(dtoFull)
 
             openEditPopupUi('planName', planId)
-            props.addToast('Plan wird bearbeitet', 'save')
+            props.addToast(t('trainingPlansList.toast.planEditing'), 'save')
         } catch {
-            props.addToast('Plan konnte nicht geladen werden', 'delete')
+            props.addToast(t('trainingPlansList.toast.planLoadFailed'), 'delete')
         }
     }
 
@@ -2504,22 +2545,22 @@
         dismissPlanTutIfActive()
         if (!auth.user) {
             if (!props.onGuestDeletePlan) {
-                props.addToast('Guest-Delete fehlt: onGuestDeletePlan', 'delete')
+                props.addToast(t('trainingPlansList.toast.guestDeleteMissing'), 'delete')
                 return
             }
 
             props.onGuestDeletePlan?.(planId)
             if (selectedPlan.value?.id === planId) closePlan()
-            props.addToast('Trainingsplan gelöscht', 'delete')
+            props.addToast(t('trainingPlansList.toast.planDeleted'), 'delete')
             return
         }
         try {
             await trainingPlansStore.remove(planId)
             writeFavOrder(readFavOrder().filter(id => id !== planId))
             if (selectedPlan.value?.id === planId) closePlan()
-            props.addToast('Trainingsplan gelöscht', 'delete')
+            props.addToast(t('trainingPlansList.toast.planDeleted'), 'delete')
         } catch (e: any) {
-            props.addToast(e?.message ?? 'Löschen fehlgeschlagen', 'delete')
+            props.addToast(e?.message ?? t('trainingPlansList.toast.deleteFailed'), 'delete')
         }
     }
 
@@ -2547,7 +2588,7 @@
         }
 
         props.addToast(
-            nextFav ? 'Plan zu Favoriten hinzugefügt' : 'Plan aus Favoriten entfernt',
+            nextFav ? t('trainingPlansList.toast.favoriteAdded') : t('trainingPlansList.toast.favoriteRemoved'),
             nextFav ? 'add' : 'delete'
         )
     }
@@ -2560,14 +2601,14 @@
     const removeCustomExercise = (index: number) => {
         dismissPlanTutIfActive()
         if (!props.onRemoveCustomExercise) {
-            props.addToast('Remove fehlt: onRemoveCustomExercise', 'delete')
+            props.addToast(t('trainingPlansList.toast.removeCustomExerciseMissing'), 'delete')
             return
         }
 
         openDeletePopupUi(() => {
             props.onRemoveCustomExercise?.(index)
             if ((props.customExercises?.length ?? 0) <= 1) showCustomExercises.value = false
-            props.addToast('Benutzerdefinierte Übung gelöscht', 'delete')
+            props.addToast(t('trainingPlansList.toast.customExerciseDeleted'), 'delete')
         })
     }
 
@@ -2584,23 +2625,29 @@
     const customResizeTable = ref<HTMLTableElement | null>(null)
 
     let headerRO: ResizeObserver | null = null
+    let headerRORaf = 0
 
     function applyHeaderState(th: HTMLElement) {
         const label = th.querySelector('.th-label') as HTMLElement | null
         if (!label) return
         const w = th.clientWidth
-        label.classList.remove('is-full', 'is-mid', 'is-short')
         const SHORT = 80
         const MID = 120
-        if (w <= SHORT) label.classList.add('is-short')
-        else if (w <= MID) label.classList.add('is-mid')
-        else label.classList.add('is-full')
+        const nextState = w <= SHORT ? 'is-short' : w <= MID ? 'is-mid' : 'is-full'
+        if (label.classList.contains(nextState)) return
+        label.classList.remove('is-full', 'is-mid', 'is-short')
+        label.classList.add(nextState)
     }
 
     function setupHeaderShorteningFallback() {
         headerRO?.disconnect()
         headerRO = new ResizeObserver((entries) => {
-            entries.forEach(entry => applyHeaderState(entry.target as HTMLElement))
+            const targets = entries.map(entry => entry.target as HTMLElement)
+            if (headerRORaf) window.cancelAnimationFrame(headerRORaf)
+            headerRORaf = window.requestAnimationFrame(() => {
+                headerRORaf = 0
+                targets.forEach(applyHeaderState)
+            })
         })
 
         const ths = Array.from(document.querySelectorAll('th.th-wdh, th.th-muskel')) as HTMLElement[]
@@ -2613,6 +2660,10 @@
     function teardownHeaderShorteningFallback() {
         headerRO?.disconnect()
         headerRO = null
+        if (headerRORaf) {
+            window.cancelAnimationFrame(headerRORaf)
+            headerRORaf = 0
+        }
     }
 
     function normalizeStrictTo100(
@@ -3190,6 +3241,14 @@
         background: transparent;
     }
 
+    .exercise-table.full-width table[data-cols="3"] {
+        min-width: 620px;
+    }
+
+    .exercise-table.full-width table[data-cols="4"] {
+        min-width: 800px;
+    }
+
     .exercise-table.full-width thead {
         background: linear-gradient(180deg,
             color-mix(in srgb, var(--bg-card) 78%, white 22%) 0%,
@@ -3201,6 +3260,7 @@
         padding: 1rem 1.05rem;
         text-align: center;
         vertical-align: middle;
+        box-sizing: border-box;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -3238,6 +3298,24 @@
 
     .exercise-table.full-width tbody tr:hover td {
         background: color-mix(in srgb, var(--bg-card) 74%, var(--accent-primary) 26%);
+    }
+
+    .exercise-table.full-width .th-label .full,
+    .exercise-table.full-width .th-label .mid,
+    .exercise-table.full-width .th-label .short {
+        display: none;
+    }
+
+    .exercise-table.full-width .th-label.is-full .full {
+        display: inline;
+    }
+
+    .exercise-table.full-width .th-label.is-mid .mid {
+        display: inline;
+    }
+
+    .exercise-table.full-width .th-label.is-short .short {
+        display: inline;
     }
 
     .exercise-number-cell {
@@ -3866,21 +3944,6 @@
         will-change: transform, opacity, filter;
     }
 
-    .plan-exercise-chain-row::after {
-        content: "";
-        position: absolute;
-        inset: 6px 10px;
-        border-radius: 16px;
-        background:
-            linear-gradient(90deg, rgba(59, 130, 246, 0), rgba(59, 130, 246, 0.12), rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0));
-        opacity: 0;
-        transform: scaleX(0.72);
-        transform-origin: left center;
-        pointer-events: none;
-        animation: plan-exercise-chain-sheen .72s cubic-bezier(0.22, 1, 0.36, 1) both;
-        animation-delay: calc(var(--exercise-chain-delay, 0ms) + 40ms);
-    }
-
     .plan-exercise-chain-row > td {
         position: relative;
         z-index: 1;
@@ -4482,7 +4545,7 @@
     @keyframes favorite-transfer-in {
         0% {
             opacity: 0;
-            transform: translateX(-18px) scale(.985);
+            transform: translateX(-10px) scale(.992);
         }
 
         36% {
@@ -4491,14 +4554,14 @@
 
         100% {
             opacity: 0;
-            transform: translateX(16px) scale(1.015);
+            transform: translateX(10px) scale(1.008);
         }
     }
 
     @keyframes favorite-transfer-out {
         0% {
             opacity: 0;
-            transform: translateX(18px) scale(.985);
+            transform: translateX(10px) scale(.992);
         }
 
         36% {
@@ -4507,7 +4570,7 @@
 
         100% {
             opacity: 0;
-            transform: translateX(-16px) scale(1.01);
+            transform: translateX(-10px) scale(1.008);
         }
     }
 
@@ -4530,42 +4593,27 @@
     @keyframes favorite-holy-rise {
         0% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow:
-                0 18px 40px rgba(15, 23, 42, 0.22),
-                0 0 0 rgba(245, 158, 11, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
 
         24% {
-            transform: translate3d(0, -10px, 0) scale(1.018);
-            box-shadow:
-                0 28px 64px rgba(245, 158, 11, 0.22),
-                0 0 34px rgba(251, 191, 36, 0.22);
-            filter: saturate(1.08) brightness(1.03);
+            transform: translate3d(0, -6px, 0) scale(1.01);
+            opacity: 1;
         }
 
         52% {
-            transform: translate3d(0, -24px, 0) scale(1.034);
-            box-shadow:
-                0 40px 84px rgba(245, 158, 11, 0.28),
-                0 0 52px rgba(250, 204, 21, 0.32);
-            filter: saturate(1.16) brightness(1.08);
+            transform: translate3d(0, -14px, 0) scale(1.018);
+            opacity: 1;
         }
 
         72% {
-            transform: translate3d(0, -14px, 0) scale(1.024);
-            box-shadow:
-                0 32px 72px rgba(245, 158, 11, 0.24),
-                0 0 46px rgba(250, 204, 21, 0.24);
-            filter: saturate(1.1) brightness(1.05);
+            transform: translate3d(0, -8px, 0) scale(1.012);
+            opacity: 1;
         }
 
         100% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow:
-                0 18px 40px rgba(15, 23, 42, 0.22),
-                0 0 0 rgba(250, 204, 21, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
     }
 
@@ -4573,25 +4621,25 @@
         0% {
             opacity: 0;
             transform: translate(-50%, -10%) scale(.58);
-            filter: blur(18px);
+            filter: blur(14px);
         }
 
         32% {
-            opacity: .9;
-            transform: translate(-50%, -36%) scale(1.04);
-            filter: blur(8px);
+            opacity: .86;
+            transform: translate(-50%, -28%) scale(.96);
+            filter: blur(9px);
         }
 
         68% {
-            opacity: .74;
-            transform: translate(-50%, -44%) scale(1.12);
-            filter: blur(12px);
+            opacity: .62;
+            transform: translate(-50%, -36%) scale(1.04);
+            filter: blur(10px);
         }
 
         100% {
             opacity: 0;
-            transform: translate(-50%, -54%) scale(1.18);
-            filter: blur(18px);
+            transform: translate(-50%, -42%) scale(1.08);
+            filter: blur(14px);
         }
     }
 
@@ -4614,8 +4662,8 @@
         }
 
         50% {
-            opacity: .8;
-            transform: translateY(-4px) scale(1.06);
+            opacity: .68;
+            transform: translateY(-2px) scale(1.03);
         }
     }
 
@@ -4685,42 +4733,27 @@
     @keyframes favorite-fall {
         0% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow:
-                0 22px 48px rgba(245, 158, 11, 0.16),
-                0 0 24px rgba(250, 204, 21, 0.16);
-            filter: saturate(1.04) brightness(1.02);
+            opacity: 1;
         }
 
         22% {
-            transform: translate3d(0, 3px, 0) scale(.997);
-            box-shadow:
-                0 19px 38px rgba(245, 158, 11, 0.1),
-                0 0 12px rgba(250, 204, 21, 0.08);
-            filter: saturate(1.01) brightness(1.005);
+            transform: translate3d(0, 2px, 0) scale(.998);
+            opacity: .995;
         }
 
         58% {
-            transform: translate3d(0, 12px, 0) scale(.989);
-            box-shadow:
-                0 14px 28px rgba(15, 23, 42, 0.16),
-                0 0 6px rgba(250, 204, 21, 0.03);
-            filter: saturate(.985) brightness(.992);
+            transform: translate3d(0, 7px, 0) scale(.995);
+            opacity: .992;
         }
 
         84% {
-            transform: translate3d(0, 5px, 0) scale(.995);
-            box-shadow:
-                0 14px 28px rgba(15, 23, 42, 0.18),
-                0 0 2px rgba(250, 204, 21, 0.02);
-            filter: saturate(.994) brightness(.996);
+            transform: translate3d(0, 3px, 0) scale(.998);
+            opacity: .996;
         }
 
         100% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow:
-                0 18px 40px rgba(15, 23, 42, 0.22),
-                0 0 0 rgba(250, 204, 21, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
     }
 
@@ -4729,45 +4762,33 @@
             opacity: .96;
             transform: scale(1);
             border-color: rgba(250, 204, 21, 0.92);
-            box-shadow:
-                0 0 0 1px rgba(255, 244, 214, 0.78),
-                0 0 0 2px rgba(250, 204, 21, 0.88),
-                0 0 26px rgba(250, 204, 21, 0.22);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.48);
         }
 
         26% {
-            opacity: .94;
-            transform: scale(1.01);
+            opacity: .92;
+            transform: scale(1.006);
             border-color: rgba(253, 224, 71, 0.88);
-            box-shadow:
-                0 0 0 1px rgba(255, 248, 220, 0.82),
-                0 0 0 2px rgba(250, 204, 21, 0.68),
-                0 0 26px rgba(250, 204, 21, 0.18);
+            box-shadow: 0 0 0 1px rgba(255, 248, 220, 0.44);
         }
 
         62% {
             opacity: .54;
             transform: scale(1.002);
             border-color: rgba(245, 158, 11, 0.28);
-            box-shadow:
-                0 0 0 1px rgba(255, 244, 214, 0.22),
-                0 0 0 1px rgba(245, 158, 11, 0.18),
-                0 0 10px rgba(250, 204, 21, 0.05);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.16);
         }
 
         86% {
             opacity: .2;
             transform: scale(.999);
             border-color: rgba(245, 158, 11, 0.08);
-            box-shadow:
-                0 0 0 1px rgba(255, 244, 214, 0.08),
-                0 0 0 1px rgba(245, 158, 11, 0.06),
-                0 0 4px rgba(250, 204, 21, 0.02);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.06);
         }
 
         100% {
             opacity: 0;
-            transform: scale(.988);
+            transform: scale(.994);
             border-color: rgba(245, 158, 11, 0);
             box-shadow:
                 0 0 0 0 rgba(255, 244, 214, 0),
@@ -4780,25 +4801,25 @@
         0% {
             opacity: 0;
             transform: translateY(-1px) scale(.96);
-            filter: blur(8px);
+            filter: blur(6px);
         }
 
         24% {
-            opacity: .3;
-            transform: translateY(2px) scale(.985);
-            filter: blur(7px);
+            opacity: .24;
+            transform: translateY(1px) scale(.99);
+            filter: blur(6px);
         }
 
         58% {
-            opacity: .2;
-            transform: translateY(9px) scale(1.01);
-            filter: blur(8px);
+            opacity: .14;
+            transform: translateY(5px) scale(1.006);
+            filter: blur(7px);
         }
 
         100% {
             opacity: 0;
-            transform: translateY(20px) scale(1.04);
-            filter: blur(12px);
+            transform: translateY(12px) scale(1.012);
+            filter: blur(9px);
         }
     }
 
@@ -5205,24 +5226,24 @@
             0 0 0 1px rgba(255, 244, 214, 0.78),
             0 0 26px rgba(250, 204, 21, 0.36),
             0 0 54px rgba(245, 158, 11, 0.18);
-        animation: favorite-transfer-in .84s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+        animation: favorite-transfer-in .96s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .list-item.plan-item.plan-item--favorite-transfer-in {
         animation:
             plan-card-reveal .46s cubic-bezier(0.22, 0.61, 0.36, 1) both,
-            favorite-holy-rise 1.28s cubic-bezier(0.18, 0.88, 0.24, 1.08) both;
+            favorite-holy-rise 1.04s cubic-bezier(0.2, 0.72, 0.24, 1) both;
         border-color: rgba(250, 204, 21, 0.82);
     }
 
     .list-item.plan-item.plan-item--favorite-transfer-in > .plan-row1::before {
-        animation: favorite-holy-aura 1.18s cubic-bezier(0.2, 0.82, 0.24, 1) both;
+        animation: favorite-holy-aura .98s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .list-item.plan-item.plan-item--favorite-transfer-in > .plan-row1::after {
         animation:
-            favorite-holy-aura 1.06s cubic-bezier(0.2, 0.82, 0.24, 1) both,
-            favorite-holy-sparkles .96s ease-in-out 2;
+            favorite-holy-aura .92s cubic-bezier(0.2, 0.72, 0.24, 1) both,
+            favorite-holy-sparkles 1.08s ease-in-out 1;
     }
 
     .list-item.plan-item.plan-item--favorite-transfer-out::after {
@@ -5231,7 +5252,7 @@
         background:
             linear-gradient(180deg, rgba(255, 248, 220, 0.12), rgba(250, 204, 21, 0.06) 44%, rgba(250, 204, 21, 0) 100%);
         border: 2px solid rgba(250, 204, 21, 0.92);
-        animation: favorite-border-release .7s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: favorite-border-release .82s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .list-item.plan-item.plan-item--favorite-transfer-out::before {
@@ -5243,12 +5264,12 @@
         background:
             radial-gradient(circle at 50% 12%, rgba(255, 248, 220, 0.32), rgba(255, 248, 220, 0) 42%),
             linear-gradient(180deg, rgba(250, 204, 21, 0.14), rgba(245, 158, 11, 0.05) 45%, rgba(245, 158, 11, 0) 100%);
-        animation: favorite-release-trail .72s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: favorite-release-trail .82s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .list-item.plan-item.plan-item--favorite-transfer-out {
         border-color: rgba(245, 158, 11, 0.24);
-        animation: favorite-fall .76s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: favorite-fall .88s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     @media (hover: hover) {

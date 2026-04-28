@@ -9,8 +9,8 @@
             <span class="preview-touch__dot"></span>
         </div>
         <!-- ===================== HEADER / INTRO ===================== -->
-        <h2 class="page-title">📊 Dein Fortschritt</h2>
-        <p class="page-subtext">Alles Wichtige auf einen Blick.</p>
+        <h2 class="page-title">{{ t('progress.pageTitle') }}</h2>
+        <p class="page-subtext">{{ t('progress.pageSubtext') }}</p>
 
         <div class="dashboard-container">
             <!-- ===================== DASHBOARD-CARDS ===================== -->
@@ -68,7 +68,7 @@
                 </div>
 
                 <div class="progress-charts__row">
-                <ChartCard title="Gewichtsverlauf"
+                <ChartCard :title="t('progress.stats.weightChart.title')"
                            :hasData="hasWeightStats"
                            exportable
                            @click="openWeightHistoryCalendarPopup"
@@ -77,48 +77,44 @@
                     <template #empty>
                         <div class="chart-empty-guide">
                             <div class="chart-empty-guide__content">
-                                <span class="chart-empty-guide__eyebrow">Noch keine Daten</span>
-                                <h4 class="chart-empty-guide__title">Gewichtsverlauf freischalten</h4>
-                                <p class="chart-empty-guide__text">
-                                    Trage zuerst dein aktuelles Gewicht ein, dann erscheint hier dein Verlauf.
-                                </p>
+                                <span class="chart-empty-guide__eyebrow">{{ t('progress.stats.emptyEyebrow') }}</span>
+                                <h4 class="chart-empty-guide__title">{{ t('progress.stats.weightChart.emptyTitle') }}</h4>
+                                <p class="chart-empty-guide__text">{{ t('progress.stats.weightChart.emptyText') }}</p>
                             </div>
                             <button type="button"
                                     class="chart-empty-guide__action"
                                     @click.stop="focusWeightEntryGuide">
-                                Aktuelles Gewicht öffnen
+                                {{ t('progress.stats.weightChart.action') }}
                             </button>
                         </div>
                     </template>
                     <canvas id="weightChart"
                             class="chart-canvas chart-canvas--clickable"
-                            title="Gewichtsverlauf im Kalender öffnen"
-                            aria-label="Gewichtsverlauf im Kalender öffnen"></canvas>
+                            :title="t('progress.stats.weightChart.canvasTitle')"
+                            :aria-label="t('progress.stats.weightChart.canvasTitle')"></canvas>
                 </ChartCard>
 
                 <div ref="trainingStatsSectionRef" class="training-stats-stage">
-                    <ChartCard title="Trainingsstatistik"
+                    <ChartCard :title="t('progress.stats.workoutChart.title')"
                                :hasData="hasWorkoutStats"
                                exportable
                                @click="openTrainingStatsDetails"
                                @export="openDownloadPopup('workoutStats')"
                                @reset="resetWorkoutStats">
                         <template #subtitle>
-                            <p class="card-info">Gesamt-Workouts: {{ strengthWorkouts.length }}</p>
+                            <p class="card-info">{{ t('progress.stats.workoutChart.totalWorkouts').replace('{count}', String(strengthWorkouts.length)) }}</p>
                         </template>
                         <template #empty>
                             <div class="chart-empty-guide">
                                 <div class="chart-empty-guide__content">
-                                    <span class="chart-empty-guide__eyebrow">Noch keine Daten</span>
-                                    <h4 class="chart-empty-guide__title">Trainingsstatistik starten</h4>
-                                    <p class="chart-empty-guide__text">
-                                        Lege einen Trainingsplan an und trage dort dein erstes Training ein.
-                                    </p>
+                                    <span class="chart-empty-guide__eyebrow">{{ t('progress.stats.emptyEyebrow') }}</span>
+                                    <h4 class="chart-empty-guide__title">{{ t('progress.stats.workoutChart.emptyTitle') }}</h4>
+                                    <p class="chart-empty-guide__text">{{ t('progress.stats.workoutChart.emptyText') }}</p>
                                 </div>
                                 <button type="button"
                                         class="chart-empty-guide__action"
                                         @click.stop="focusTrainingPlansGuide">
-                                    Zu Trainingsplänen
+                                    {{ t('progress.stats.workoutChart.action') }}
                                 </button>
                             </div>
                         </template>
@@ -146,8 +142,8 @@
                     <!-- BMI Favorit -->
                     <div v-if="isFavorite('BMI')" class="calc-search-item" :class="calcSearchItemClasses('BMI')" :data-favorite-transfer-label="calcFavoriteTransferLabel('BMI')">
                     <BmiCalculator
-                                   title="BMI-Rechner"
-                                   info="Der BMI (Body-Mass-Index) misst das Verhältnis von Gewicht zu Größe."
+                                   :title="t('progress.calculators.bmi.title')"
+                                   :info="t('progress.calculators.bmi.info')"
                                    :unit="unit"
                                    :autoCalcEnabled="autoCalcEnabled"
                                    :bmiGender="bmiGender"
@@ -168,6 +164,7 @@
                     <!-- Kalorien Favorit -->
                     <div v-if="isFavorite('Kalorienbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Kalorienbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Kalorienbedarf')">
                     <CaloriesCalculator
+                                        :title="t('progress.calculators.calories.title')"
                                         :unit="unit"
                                         :autoCalcEnabled="autoCalcEnabled"
                                         :calorieAge="calorieAge"
@@ -194,6 +191,7 @@
                     <!-- Burn Rate Favorit -->
                     <div v-if="isFavorite('Burn Rate')" class="calc-search-item" :class="calcSearchItemClasses('Burn Rate')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Burn Rate')">
                     <BurnRateCalculator
+                                        :title="t('progress.calculators.burnRate.title')"
                                         :unit="unit"
                                         :autoCalcEnabled="autoCalcEnabled"
                                         :burnStartWeight="burnStartWeight"
@@ -216,6 +214,7 @@
                     <!-- Protein Favorit -->
                     <div v-if="isFavorite('Proteinbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Proteinbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Proteinbedarf')">
                     <ProteinCalculator
+                                       :title="t('progress.calculators.protein.title')"
                                        :unit="unit"
                                        :autoCalcEnabled="autoCalcEnabled"
                                        :proteinWeight="proteinWeight"
@@ -238,6 +237,7 @@
                     <!-- 1RM Favorit -->
                     <div v-if="isFavorite('1RM')" class="calc-search-item" :class="calcSearchItemClasses('1RM')" :data-favorite-transfer-label="calcFavoriteTransferLabel('1RM')">
                     <OneRmCalculator
+                                     :title="t('progress.calculators.oneRm.title')"
                                      :unit="unit"
                                      :autoCalcEnabled="autoCalcEnabled"
                                      :oneRmExercise="oneRmExercise"
@@ -259,6 +259,7 @@
                     <!-- Körperfett Favorit -->
                     <div v-if="isFavorite('Körperfett')" class="calc-search-item" :class="calcSearchItemClasses('Körperfett')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Körperfett')">
                     <BodyFatCalculator
+                                       :title="t('progress.calculators.bodyFat.title')"
                                        :autoCalcEnabled="autoCalcEnabled"
                                        :bodyFatGender="bodyFatGender"
                                        :bodyFatWaist="bodyFatWaist"
@@ -282,6 +283,7 @@
                     <!-- Koffein Favorit -->
                     <div v-if="isFavorite('Koffein')" class="calc-search-item" :class="calcSearchItemClasses('Koffein')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Koffein')">
                     <CaffeineSafeDoseCalculator
+                                                :title="t('progress.calculators.caffeine.title')"
                                                 :unit="unit"
                                                 :autoCalcEnabled="autoCalcEnabled"
                                                 :cafWeight="cafWeight"
@@ -302,6 +304,7 @@
                     <!-- FFMI Favorit -->
                     <div v-if="isFavorite('FFMI')" class="calc-search-item" :class="calcSearchItemClasses('FFMI')" :data-favorite-transfer-label="calcFavoriteTransferLabel('FFMI')">
                     <FfmiCalculator
+                                    :title="t('progress.calculators.ffmi.title')"
                                     :unit="unit"
                                     :autoCalcEnabled="autoCalcEnabled"
                                     :ffmiWeight="ffmiWeight"
@@ -321,6 +324,7 @@
                     <!-- GL Favorit -->
                     <div v-if="isFavorite('Glykämische Last')" class="calc-search-item" :class="calcSearchItemClasses('Glykämische Last')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Glykämische Last')">
                     <GlycemicLoadCalculator
+                                            :title="t('progress.calculators.glyload.title')"
                                             :autoCalcEnabled="autoCalcEnabled"
                                             :glFood="glFood"
                                             :glServing="glServing"
@@ -345,6 +349,7 @@
                     <!-- Wasser Favorit -->
                     <div v-if="isFavorite('Wasserbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Wasserbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Wasserbedarf')">
                     <WaterCalculator
+                                     :title="t('progress.calculators.water.title')"
                                      :unit="unit"
                                      :autoCalcEnabled="autoCalcEnabled"
                                      :waterWeight="waterWeight"
@@ -367,8 +372,8 @@
                 <!-- ======= STANDARD-BEREICH (ohne Favoriten-Duplikate) ======= -->
                 <div v-if="!isFavorite('BMI')" class="calc-search-item" :class="calcSearchItemClasses('BMI')" :data-favorite-transfer-label="calcFavoriteTransferLabel('BMI')">
                 <BmiCalculator
-                               title="BMI-Rechner"
-                               info="Der BMI (Body-Mass-Index) misst das Verhältnis von Gewicht zu Größe."
+                               :title="t('progress.calculators.bmi.title')"
+                               :info="t('progress.calculators.bmi.info')"
                                :unit="unit"
                                :autoCalcEnabled="autoCalcEnabled"
                                :bmiGender="bmiGender"
@@ -389,6 +394,7 @@
                 <!-- ========== Kalorienbedarfsrechner ========== -->
                 <div v-if="!isFavorite('Kalorienbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Kalorienbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Kalorienbedarf')">
                 <CaloriesCalculator
+                                    :title="t('progress.calculators.calories.title')"
                                     :unit="unit"
                                     :autoCalcEnabled="autoCalcEnabled"
                                     :calorieAge="calorieAge"
@@ -415,6 +421,7 @@
                 <!-- Burn Rate Standard -->
                 <div v-if="!isFavorite('Burn Rate')" class="calc-search-item" :class="calcSearchItemClasses('Burn Rate')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Burn Rate')">
                 <BurnRateCalculator
+                                    :title="t('progress.calculators.burnRate.title')"
                                     :unit="unit"
                                     :autoCalcEnabled="autoCalcEnabled"
                                     :burnStartWeight="burnStartWeight"
@@ -436,6 +443,7 @@
 
                 <div v-if="!isFavorite('Proteinbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Proteinbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Proteinbedarf')">
                 <ProteinCalculator
+                                   :title="t('progress.calculators.protein.title')"
                                    :unit="unit"
                                    :autoCalcEnabled="autoCalcEnabled"
                                    :proteinWeight="proteinWeight"
@@ -458,6 +466,7 @@
                 <!-- ========== 1RM Rechner ========== -->
                 <div v-if="!isFavorite('1RM')" class="calc-search-item" :class="calcSearchItemClasses('1RM')" :data-favorite-transfer-label="calcFavoriteTransferLabel('1RM')">
                 <OneRmCalculator
+                                 :title="t('progress.calculators.oneRm.title')"
                                  :unit="unit"
                                  :autoCalcEnabled="autoCalcEnabled"
                                  :oneRmExercise="oneRmExercise"
@@ -478,6 +487,7 @@
                 <!-- Koffein Standard -->
                 <div v-if="!isFavorite('Koffein')" class="calc-search-item" :class="calcSearchItemClasses('Koffein')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Koffein')">
                 <CaffeineSafeDoseCalculator
+                                            :title="t('progress.calculators.caffeine.title')"
                                             :unit="unit"
                                             :autoCalcEnabled="autoCalcEnabled"
                                             :cafWeight="cafWeight"
@@ -498,6 +508,7 @@
                 <!-- ========== Körperfett Rechner ========== -->
                 <div v-if="!isFavorite('Körperfett')" class="calc-search-item" :class="calcSearchItemClasses('Körperfett')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Körperfett')">
                 <BodyFatCalculator
+                                   :title="t('progress.calculators.bodyFat.title')"
                                    :autoCalcEnabled="autoCalcEnabled"
                                    :bodyFatGender="bodyFatGender"
                                    :bodyFatWaist="bodyFatWaist"
@@ -521,6 +532,7 @@
                 <!-- ========== FFMI Rechner ========== -->
                 <div v-if="!isFavorite('FFMI')" class="calc-search-item" :class="calcSearchItemClasses('FFMI')" :data-favorite-transfer-label="calcFavoriteTransferLabel('FFMI')">
                 <FfmiCalculator
+                                :title="t('progress.calculators.ffmi.title')"
                                 :unit="unit"
                                 :autoCalcEnabled="autoCalcEnabled"
                                 :ffmiWeight="ffmiWeight"
@@ -540,6 +552,7 @@
                 <!-- GL Standard -->
                 <div v-if="!isFavorite('Glykämische Last')" class="calc-search-item" :class="calcSearchItemClasses('Glykämische Last')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Glykämische Last')">
                 <GlycemicLoadCalculator
+                                        :title="t('progress.calculators.glyload.title')"
                                         :autoCalcEnabled="autoCalcEnabled"
                                         :glFood="glFood"
                                         :glServing="glServing"
@@ -564,6 +577,7 @@
                 <!-- ========== Wasserbedarfsrechner ========== -->
                 <div v-if="!isFavorite('Wasserbedarf')" class="calc-search-item" :class="calcSearchItemClasses('Wasserbedarf')" :data-favorite-transfer-label="calcFavoriteTransferLabel('Wasserbedarf')">
                 <WaterCalculator
+                                 :title="t('progress.calculators.water.title')"
                                  :unit="unit"
                                  :autoCalcEnabled="autoCalcEnabled"
                                  :waterWeight="waterWeight"
@@ -588,104 +602,104 @@
                 <div ref="trainingPlansGuideRef"
                      class="workout-list progress-guide-target"
                      :class="{ 'is-guided': guidedTarget === 'plans' }">
-                    <h3 class="section-title">Deine Trainingspläne</h3>
+                    <h3 class="section-title">{{ t('progress.plans.title') }}</h3>
 
                     <div v-if="!trainingPlans.length" class="list-item empty plans-empty-state">
                         <div class="plans-empty-state__content">
-                            <p class="plans-empty-state__title">Noch keine Trainingspläne vorhanden</p>
+                            <p class="plans-empty-state__title">{{ t('progress.plans.emptyTitle') }}</p>
                             <p class="plans-empty-state__text">
-                                Erstelle jetzt deinen ersten Plan und tracke danach hier deinen Fortschritt pro Training.
+                                {{ t('progress.plans.emptyText') }}
                             </p>
                         </div>
                         <button
                             type="button"
                             class="open-btn plans-empty-state__cta"
                             @click="goToTrainingPlanBuilder">
-                            Plan erstellen
+                            {{ t('progress.plans.createAction') }}
                         </button>
                     </div>
 
                     <template v-else>
                         <div v-if="freshPlans.length" class="plan-group">
                             <div class="plan-group-head plan-group-head--fresh">
-                                <h4 class="section-title">Neu erstellt</h4>
-                                <p>Frisch erstellt oder gerade aktualisiert.</p>
+                                <h4 class="section-title">{{ t('progress.plans.group.new') }}</h4>
+                                <p>{{ t('progress.plans.group.newHint') }}</p>
                             </div>
                             <div v-for="plan in freshPlans"
                                  :key="plan.id"
                                  class="list-item plan-item plan-item--fresh"
                                  :class="{ 'is-guided': guidedPlanId === plan.id }">
-                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exerciseCount} &Uuml;bungen)` }}</span>
+                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${planExerciseCountLabel(plan.exerciseCount)})` }}</span>
                                 <div class="list-item-actions">
-                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">&Ouml;ffnen</button>
+                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">{{ t('progress.common.open') }}</button>
                                 </div>
                             </div>
                         </div>
 
                         <div class="plan-group">
                             <div class="plan-group-head">
-                                <h4 class="section-title">Aktiv</h4>
-                                <p>Deine aktuell genutzten oder k&uuml;rzlich bearbeiteten Pl&auml;ne.</p>
+                                <h4 class="section-title">{{ t('progress.plans.group.active') }}</h4>
+                                <p>{{ t('progress.plans.group.activeHint') }}</p>
                             </div>
                             <div v-if="!activePlans.length" class="plan-group-empty">
-                                Gerade ist kein Plan als aktiv einsortiert.
+                                {{ t('progress.plans.emptyActive') }}
                             </div>
                             <div v-for="plan in activePlans"
                                  :key="plan.id"
                                  class="list-item plan-item"
                                  :class="{ 'is-guided': guidedPlanId === plan.id }">
-                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exerciseCount} &Uuml;bungen)` }}</span>
+                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${planExerciseCountLabel(plan.exerciseCount)})` }}</span>
                                 <div class="list-item-actions">
-                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">&Ouml;ffnen</button>
+                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">{{ t('progress.common.open') }}</button>
                                 </div>
                             </div>
                         </div>
                         <div class="plan-group">
                             <div class="plan-group-head plan-group-head--muted">
-                                <h4 class="section-title">Unbenutzt</h4>
-                                <p>Pl&auml;ne ohne aktuelle Nutzung, jederzeit wieder startklar.</p>
+                                <h4 class="section-title">{{ t('progress.plans.group.inactive') }}</h4>
+                                <p>{{ t('progress.plans.group.inactiveHint') }}</p>
                             </div>
                             <div v-if="!inactivePlans.length" class="plan-group-empty">
-                                Aktuell ist kein Plan als unbenutzt einsortiert.
+                                {{ t('progress.plans.emptyInactive') }}
                             </div>
                             <div v-for="plan in inactivePlans"
                                  :key="plan.id"
                                  class="list-item plan-item plan-item--inactive"
                                  :class="{ 'is-guided': guidedPlanId === plan.id }">
-                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${plan.exerciseCount} &Uuml;bungen)` }}</span>
+                                <span>{{ isPhonePreviewProgressDemo ? plan.name : `${plan.name} (${planExerciseCountLabel(plan.exerciseCount)})` }}</span>
                                 <div class="list-item-actions">
-                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">&Ouml;ffnen</button>
+                                    <button type="button" class="open-btn" @click="openPlanProgress(plan.id)">{{ t('progress.common.open') }}</button>
                                 </div>
                             </div>
                         </div>
                     </template>
                 </div>
 
-                <div class="plan-card plan-card--static" v-if="matchesPlanSearch('Schmerztagebuch')">
+                <div class="plan-card plan-card--static" v-if="matchesPlanSearch(t('progress.complaintDiary.searchLabel'))">
                     <div class="card-header">
-                        <h3 class="section-title">🩹 Schmerztagebuch</h3>
+                        <h3 class="section-title">{{ t('progress.complaintDiary.title') }}</h3>
                     </div>
 
                     <div v-if="!complaintDiaryItems.length" class="list-item empty plans-empty-state">
                         <div class="plans-empty-state__content">
-                            <p class="plans-empty-state__title">Noch keine Beschwerden vorhanden</p>
+                            <p class="plans-empty-state__title">{{ t('progress.complaintDiary.emptyTitle') }}</p>
                             <p class="plans-empty-state__text">
-                                Lege jetzt deinen ersten Eintrag an und dokumentiere ihn danach hier im Schmerztagebuch.
+                                {{ t('progress.complaintDiary.emptyText') }}
                             </p>
                         </div>
                         <button
                             type="button"
                             class="open-btn plans-empty-state__cta"
                             @click="goToComplaintsPage">
-                            Beschwerde anlegen
+                            {{ t('progress.complaintDiary.createAction') }}
                         </button>
                     </div>
 
                     <template v-else>
                         <div v-if="freshComplaintDiaryItems.length" class="plan-group">
                             <div class="plan-group-head plan-group-head--fresh">
-                                <h4 class="section-title">Neu erstellt</h4>
-                                <p>Frisch erstellt oder gerade aktualisiert.</p>
+                                <h4 class="section-title">{{ t('progress.plans.group.new') }}</h4>
+                                <p>{{ t('progress.plans.group.newHint') }}</p>
                             </div>
 
                             <div v-for="entry in freshComplaintDiaryItems"
@@ -696,19 +710,19 @@
                                     <small>{{ progressComplaintMeta(entry) }}</small>
                                 </div>
                                 <div class="list-item-actions">
-                                    <button type="button" class="open-btn" @click="openComplaintDetails(entry.id)">Öffnen</button>
+                                    <button type="button" class="open-btn" @click="openComplaintDetails(entry.id)">{{ t('progress.common.open') }}</button>
                                 </div>
                             </div>
                         </div>
 
                         <div class="plan-group">
                             <div class="plan-group-head">
-                                <h4 class="section-title">Aktiv</h4>
-                                <p>Beschwerden mit bereits genutztem Schmerztagebuch.</p>
+                                <h4 class="section-title">{{ t('progress.plans.group.active') }}</h4>
+                                <p>{{ t('progress.complaintDiary.activeHint') }}</p>
                             </div>
 
                             <div v-if="!activeComplaintDiaryItems.length" class="plan-group-empty">
-                                Gerade ist keine Beschwerde als aktiv einsortiert.
+                                {{ t('progress.complaintDiary.emptyActive') }}
                             </div>
 
                             <div v-for="entry in activeComplaintDiaryItems"
@@ -719,19 +733,19 @@
                                     <small>{{ progressComplaintMeta(entry) }}</small>
                                 </div>
                                 <div class="list-item-actions">
-                                    <button type="button" class="open-btn" @click="openComplaintDetails(entry.id)">Öffnen</button>
+                                    <button type="button" class="open-btn" @click="openComplaintDetails(entry.id)">{{ t('progress.common.open') }}</button>
                                 </div>
                             </div>
                         </div>
 
                         <div class="plan-group">
                             <div class="plan-group-head plan-group-head--muted">
-                                <h4 class="section-title">Unbenutzt</h4>
-                                <p>Beschwerden ohne Schmerztagebuch-Eintrag, jederzeit startklar.</p>
+                                <h4 class="section-title">{{ t('progress.plans.group.inactive') }}</h4>
+                                <p>{{ t('progress.complaintDiary.inactiveHint') }}</p>
                             </div>
 
                             <div v-if="!inactiveComplaintDiaryItems.length" class="plan-group-empty">
-                                Aktuell ist keine Beschwerde als unbenutzt einsortiert.
+                                {{ t('progress.complaintDiary.emptyInactive') }}
                             </div>
 
                             <div v-for="entry in inactiveComplaintDiaryItems"
@@ -742,7 +756,7 @@
                                     <small>{{ progressComplaintMeta(entry) }}</small>
                                 </div>
                                 <div class="list-item-actions">
-                                    <button type="button" class="open-btn" @click="openComplaintDetails(entry.id)">Öffnen</button>
+                                    <button type="button" class="open-btn" @click="openComplaintDetails(entry.id)">{{ t('progress.common.open') }}</button>
                                 </div>
                             </div>
                         </div>
@@ -936,6 +950,7 @@
     import type { ComplaintArea, ComplaintEntry } from '@/types/complaint'
 
     import { useRoute, useRouter } from 'vue-router'
+    import { useI18n } from '@/composables/useI18n'
 
     import {
         LS_AUTO_CALC_ENABLED,
@@ -1106,7 +1121,7 @@
     const progressComplaintDisplayLabel = (entry: ComplaintEntry) => {
         const custom = readComplaintCustomAreaName(entry.notes)
         if (custom) return custom
-        return progressComplaintAreaLabels[entry.area] ?? entry.area
+        return progressComplaintAreaLabelsI18n.value[entry.area] ?? entry.area
     }
 
     const painDiaryEntriesByComplaintId = computed<Record<string, PainDiaryEntry[]>>(() => {
@@ -1275,6 +1290,9 @@
         startPlanGuideHighlight(topPlanId)
     }
 
+    const planExerciseCountLabel = (count: number) =>
+        t('progress.plans.exerciseCount').replace('{count}', String(count))
+
     //Funktionen
 
     const toDayKey = (dateStr?: string) => {
@@ -1317,7 +1335,7 @@
                 labels: chartEntries.value.map((entry) => formatDate(entry.date)),
                 datasets: [
                     {
-                        label: `Gewicht (${unit.value})`,
+                        label: t('progress.stats.weightChart.seriesLabel').replace('{unit}', unit.value),
                         data: chartEntries.value.map((entry) => kgToDisplay(entry.weight)),
                         borderColor: '#6366f1',
                         backgroundColor: 'rgba(99, 102, 241, 0.2)',
@@ -1401,7 +1419,7 @@
                 labels: statWorkouts.map((w) => w.exercise),
                 datasets: [
                     {
-                        label: `Gewicht (${unit.value})`,
+                        label: t('progress.stats.weightChart.seriesLabel').replace('{unit}', unit.value),
                         data: shouldAnimateIntro && introIndex >= 0 ? introData : targetData,
                         backgroundColor: backgroundColors,
                         borderColor: borderColors,
@@ -1975,11 +1993,11 @@
                             : 'Kraft'
 
             const statusLabel =
-                intensity === 0 ? 'Kein Training'
-                    : intensity === 1 ? 'Aktiver Easy Day'
-                        : intensity === 2 ? 'Solider Trainingstag'
-                            : intensity === 3 ? 'Starker Trainingstag'
-                                : 'Peak Performance Tag'
+                intensity === 0 ? t('progress.consistency.status.none')
+                    : intensity === 1 ? t('progress.consistency.status.easy')
+                        : intensity === 2 ? t('progress.consistency.status.solid')
+                            : intensity === 3 ? t('progress.consistency.status.strong')
+                                : t('progress.consistency.status.peak')
 
             out.push({
                 key,
@@ -1991,8 +2009,8 @@
                 durationMin,
                 typeLabel,
                 statusLabel,
-                loadLabel: load > 0 ? `${load.toLocaleString('de-DE')}` : '—',
-                durationLabel: durationMin > 0 ? `${durationMin} Min` : '—',
+                loadLabel: load > 0 ? `${load.toLocaleString(locale.value === 'en' ? 'en-US' : 'de-DE')}` : '—',
+                durationLabel: durationMin > 0 ? `${durationMin} ${t('progress.consistency.minutesShort')}` : '—',
                 isToday: key === todayKey,
                 isFuture: key > todayKey,
             })
@@ -2176,7 +2194,7 @@
         calculatorFavoriteTransferTimer = setTimeout(() => {
             calculatorFavoriteTransfer.value = { id: null, direction: null }
             calculatorFavoriteTransferTimer = null
-        }, 1180)
+        }, 1280)
     }
 
     const toggleFavCalculator = (id: string) => {
@@ -2617,6 +2635,35 @@
     }
     //=============== Jump to Rechner Infos ===========
 
+    const { locale, t } = useI18n()
+    const progressComplaintAreaLabelsI18n = computed<Record<ComplaintArea, string>>(() => ({
+        nacken: t('progress.complaints.area.nacken'),
+        schulter: t('progress.complaints.area.schulter'),
+        ellbogen: t('progress.complaints.area.ellbogen'),
+        unterarm: t('progress.complaints.area.unterarm'),
+        handgelenk: t('progress.complaints.area.handgelenk'),
+        hand: t('progress.complaints.area.hand'),
+        finger: t('progress.complaints.area.finger'),
+        brust: t('progress.complaints.area.brust'),
+        bauch: t('progress.complaints.area.bauch'),
+        ruecken: t('progress.complaints.area.ruecken'),
+        leiste: t('progress.complaints.area.leiste'),
+        huefte: t('progress.complaints.area.huefte'),
+        oberschenkel: t('progress.complaints.area.oberschenkel'),
+        knie: t('progress.complaints.area.knie'),
+        unterschenkel: t('progress.complaints.area.unterschenkel'),
+        wade: t('progress.complaints.area.wade'),
+        sprunggelenk: t('progress.complaints.area.sprunggelenk'),
+        fuss: t('progress.complaints.area.fuss'),
+        kopf: t('progress.complaints.area.kopf'),
+        benutzerdefiniert: t('progress.complaints.area.custom'),
+        sonstiges: t('progress.complaints.area.custom'),
+    }))
+    const progressComplaintStatusLabelsI18n = computed<Record<ComplaintEntry['status'], string>>(() => ({
+        aktiv: t('progress.complaints.status.active'),
+        besser: t('progress.complaints.status.better'),
+        weg: t('progress.complaints.status.gone'),
+    }))
     const route = useRoute()
     const router = useRouter()
     const progressStore = useProgressStore()
@@ -3758,9 +3805,13 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
     const progressComplaintMeta = (entry: ComplaintEntry) => {
         const diaryItems = painDiaryEntriesByComplaintId.value[entry.id] ?? []
         const latestPain = diaryItems[0]?.painLevel
-        const diaryText = diaryItems.length === 1 ? '1 Eintrag' : `${diaryItems.length} Einträge`
-        const painText = latestPain == null ? 'noch kein Schmerztagebuch' : `letzte Intensität ${latestPain}/10`
-        return `${progressComplaintStatusLabels[entry.status]} · ${diaryText} · ${painText}`
+        const diaryText = diaryItems.length === 1
+            ? t('progress.complaintDiary.entryCountOne')
+            : t('progress.complaintDiary.entryCountOther').replace('{count}', String(diaryItems.length))
+        const painText = latestPain == null
+            ? t('progress.complaintDiary.noDiaryYet')
+            : t('progress.complaintDiary.latestIntensity').replace('{level}', String(latestPain))
+        return `${progressComplaintStatusLabelsI18n.value[entry.status]} · ${diaryText} · ${painText}`
     }
 
     const currentComplaintPopupEntry = computed(() =>
@@ -3789,7 +3840,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         const available = openComplaintsForPainFeedback()
         const selected = available.find((entry) => entry.id === id)
         if (!selected) {
-            showToast({ message: 'Diese Beschwerde ist nicht mehr für das Schmerztagebuch verfügbar.', type: 'default' })
+            showToast({ message: t('progress.complaintDiary.notAvailable'), type: 'default' })
             return
         }
 
@@ -5545,7 +5596,7 @@ ${r.note ? `- Hinweis: ${r.note}` : ''}`
         }
 
         if (!openComplaintsForPainFeedback().length) {
-            showToast({ message: 'Keine aktiven Beschwerden für das Schmerztagebuch vorhanden.', type: 'default' })
+            showToast({ message: t('progress.complaintDiary.noActiveComplaints'), type: 'default' })
             return
         }
 
@@ -6929,7 +6980,7 @@ Notiz: ${e.note ?? '-'}\n`
     .calc-search-item--favorite-transfer-in > .calculator-card {
         border-color: rgba(250, 204, 21, 0.82);
         overflow: visible;
-        animation: timer-favorite-holy-rise 1.28s cubic-bezier(0.18, 0.88, 0.24, 1.08) both;
+        animation: timer-favorite-holy-rise 1.04s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .calc-search-item--favorite-transfer-in > .calculator-card::before {
@@ -6945,7 +6996,7 @@ Notiz: ${e.note ?? '-'}\n`
         background: radial-gradient(circle, rgba(255, 252, 240, 0.95) 0%, rgba(250, 204, 21, 0.72) 38%, rgba(245, 158, 11, 0.12) 68%, rgba(245, 158, 11, 0) 100%);
         filter: blur(10px);
         opacity: .84;
-        animation: timer-favorite-holy-aura 1.18s cubic-bezier(0.2, 0.82, 0.24, 1) both;
+        animation: timer-favorite-holy-aura .98s cubic-bezier(0.2, 0.72, 0.24, 1) both;
         pointer-events: none;
     }
 
@@ -6957,14 +7008,14 @@ Notiz: ${e.note ?? '-'}\n`
         background: linear-gradient(135deg, rgba(250, 204, 21, 0.12), rgba(251, 191, 36, 0.18), rgba(250, 204, 21, 0));
         border: 2px solid rgba(250, 204, 21, 0.92);
         box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.78), 0 0 26px rgba(250, 204, 21, 0.36), 0 0 54px rgba(245, 158, 11, 0.18);
-        animation: timer-card-finish-ring .84s cubic-bezier(0.22, 0.61, 0.36, 1) both, timer-favorite-holy-sparkles .96s ease-in-out 2;
+        animation: timer-card-finish-ring .96s cubic-bezier(0.2, 0.72, 0.24, 1) both, timer-favorite-holy-sparkles 1.08s ease-in-out 1;
         pointer-events: none;
     }
 
     .calc-search-item--favorite-transfer-out > .calculator-card {
         border-color: rgba(245, 158, 11, 0.24);
         overflow: visible;
-        animation: timer-favorite-fall .76s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: timer-favorite-fall .88s cubic-bezier(0.2, 0.72, 0.24, 1) both;
     }
 
     .calc-search-item--favorite-transfer-out > .calculator-card::before {
@@ -6973,7 +7024,7 @@ Notiz: ${e.note ?? '-'}\n`
         inset: 0;
         border-radius: inherit;
         background: radial-gradient(circle at 50% 12%, rgba(255, 248, 220, 0.32), rgba(255, 248, 220, 0) 42%), linear-gradient(180deg, rgba(250, 204, 21, 0.14), rgba(245, 158, 11, 0.05) 45%, rgba(245, 158, 11, 0) 100%);
-        animation: timer-favorite-release-trail .72s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: timer-favorite-release-trail .82s cubic-bezier(0.2, 0.72, 0.24, 1) both;
         pointer-events: none;
     }
 
@@ -6984,7 +7035,7 @@ Notiz: ${e.note ?? '-'}\n`
         border-radius: 20px;
         background: linear-gradient(180deg, rgba(255, 248, 220, 0.12), rgba(250, 204, 21, 0.06) 44%, rgba(250, 204, 21, 0) 100%);
         border: 2px solid rgba(250, 204, 21, 0.92);
-        animation: timer-favorite-border-release .7s cubic-bezier(0.24, 0.76, 0.22, 1) both;
+        animation: timer-favorite-border-release .82s cubic-bezier(0.2, 0.72, 0.24, 1) both;
         pointer-events: none;
     }
 
@@ -7070,32 +7121,27 @@ Notiz: ${e.note ?? '-'}\n`
     @keyframes timer-favorite-holy-rise {
         0% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(245, 158, 11, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
 
         24% {
-            transform: translate3d(0, -10px, 0) scale(1.018);
-            box-shadow: 0 28px 64px rgba(245, 158, 11, 0.22), 0 0 34px rgba(251, 191, 36, 0.22);
-            filter: saturate(1.08) brightness(1.03);
+            transform: translate3d(0, -6px, 0) scale(1.01);
+            opacity: 1;
         }
 
         52% {
-            transform: translate3d(0, -24px, 0) scale(1.034);
-            box-shadow: 0 40px 84px rgba(245, 158, 11, 0.28), 0 0 52px rgba(250, 204, 21, 0.32);
-            filter: saturate(1.16) brightness(1.08);
+            transform: translate3d(0, -14px, 0) scale(1.018);
+            opacity: 1;
         }
 
         72% {
-            transform: translate3d(0, -14px, 0) scale(1.024);
-            box-shadow: 0 32px 72px rgba(245, 158, 11, 0.24), 0 0 46px rgba(250, 204, 21, 0.24);
-            filter: saturate(1.1) brightness(1.05);
+            transform: translate3d(0, -8px, 0) scale(1.012);
+            opacity: 1;
         }
 
         100% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(250, 204, 21, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
     }
 
@@ -7107,21 +7153,21 @@ Notiz: ${e.note ?? '-'}\n`
         }
 
         32% {
-            opacity: .9;
-            transform: translate(-50%, -36%) scale(1.04);
-            filter: blur(8px);
+            opacity: .86;
+            transform: translate(-50%, -28%) scale(.96);
+            filter: blur(9px);
         }
 
         68% {
-            opacity: .74;
-            transform: translate(-50%, -44%) scale(1.12);
-            filter: blur(12px);
+            opacity: .62;
+            transform: translate(-50%, -36%) scale(1.04);
+            filter: blur(10px);
         }
 
         100% {
             opacity: 0;
-            transform: translate(-50%, -54%) scale(1.18);
-            filter: blur(18px);
+            transform: translate(-50%, -42%) scale(1.08);
+            filter: blur(14px);
         }
     }
 
@@ -7132,40 +7178,35 @@ Notiz: ${e.note ?? '-'}\n`
         }
 
         50% {
-            opacity: .8;
-            transform: translateY(-4px) scale(1.06);
+            opacity: .68;
+            transform: translateY(-2px) scale(1.03);
         }
     }
 
     @keyframes timer-favorite-fall {
         0% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 22px 48px rgba(245, 158, 11, 0.16), 0 0 24px rgba(250, 204, 21, 0.16);
-            filter: saturate(1.04) brightness(1.02);
+            opacity: 1;
         }
 
         22% {
-            transform: translate3d(0, 3px, 0) scale(.997);
-            box-shadow: 0 19px 38px rgba(245, 158, 11, 0.1), 0 0 12px rgba(250, 204, 21, 0.08);
-            filter: saturate(1.01) brightness(1.005);
+            transform: translate3d(0, 2px, 0) scale(.998);
+            opacity: .995;
         }
 
         58% {
-            transform: translate3d(0, 12px, 0) scale(.989);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16), 0 0 6px rgba(250, 204, 21, 0.03);
-            filter: saturate(.985) brightness(.992);
+            transform: translate3d(0, 7px, 0) scale(.995);
+            opacity: .992;
         }
 
         84% {
-            transform: translate3d(0, 5px, 0) scale(.995);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18), 0 0 2px rgba(250, 204, 21, 0.02);
-            filter: saturate(.994) brightness(.996);
+            transform: translate3d(0, 3px, 0) scale(.998);
+            opacity: .996;
         }
 
         100% {
             transform: translate3d(0, 0, 0) scale(1);
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 0 0 rgba(250, 204, 21, 0);
-            filter: saturate(1) brightness(1);
+            opacity: 1;
         }
     }
 
@@ -7174,33 +7215,33 @@ Notiz: ${e.note ?? '-'}\n`
             opacity: .96;
             transform: scale(1);
             border-color: rgba(250, 204, 21, 0.92);
-            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.78), 0 0 0 2px rgba(250, 204, 21, 0.88), 0 0 26px rgba(250, 204, 21, 0.22);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.48);
         }
 
         26% {
             opacity: .94;
-            transform: scale(1.01);
+            transform: scale(1.006);
             border-color: rgba(253, 224, 71, 0.88);
-            box-shadow: 0 0 0 1px rgba(255, 248, 220, 0.82), 0 0 0 2px rgba(250, 204, 21, 0.68), 0 0 26px rgba(250, 204, 21, 0.18);
+            box-shadow: 0 0 0 1px rgba(255, 248, 220, 0.44);
         }
 
         62% {
             opacity: .54;
             transform: scale(1.002);
             border-color: rgba(245, 158, 11, 0.28);
-            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.22), 0 0 0 1px rgba(245, 158, 11, 0.18), 0 0 10px rgba(250, 204, 21, 0.05);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.16);
         }
 
         86% {
             opacity: .2;
             transform: scale(.999);
             border-color: rgba(245, 158, 11, 0.08);
-            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.08), 0 0 0 1px rgba(245, 158, 11, 0.06), 0 0 4px rgba(250, 204, 21, 0.02);
+            box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.06);
         }
 
         100% {
             opacity: 0;
-            transform: scale(.988);
+            transform: scale(.994);
             border-color: rgba(245, 158, 11, 0);
             box-shadow: 0 0 0 0 rgba(255, 244, 214, 0), 0 0 0 0 rgba(250, 204, 21, 0), 0 0 0 rgba(250, 204, 21, 0);
         }
@@ -7210,25 +7251,25 @@ Notiz: ${e.note ?? '-'}\n`
         0% {
             opacity: 0;
             transform: translateY(-1px) scale(.96);
-            filter: blur(8px);
+            filter: blur(6px);
         }
 
         24% {
-            opacity: .3;
-            transform: translateY(2px) scale(.985);
-            filter: blur(7px);
+            opacity: .24;
+            transform: translateY(1px) scale(.99);
+            filter: blur(6px);
         }
 
         58% {
-            opacity: .2;
-            transform: translateY(9px) scale(1.01);
-            filter: blur(8px);
+            opacity: .14;
+            transform: translateY(5px) scale(1.006);
+            filter: blur(7px);
         }
 
         100% {
             opacity: 0;
-            transform: translateY(20px) scale(1.04);
-            filter: blur(12px);
+            transform: translateY(12px) scale(1.012);
+            filter: blur(9px);
         }
     }
 
@@ -8630,3 +8671,5 @@ Notiz: ${e.note ?? '-'}\n`
         flex-wrap: wrap;
     }
 </style>
+
+

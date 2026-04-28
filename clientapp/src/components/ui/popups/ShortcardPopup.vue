@@ -15,8 +15,9 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { computed, reactive } from 'vue'
 import BasePopup from '@/components/ui/popups/BasePopup.vue'
+import { useI18n } from '@/composables/useI18n'
 
     const props = withDefaults(defineProps<{
         show: boolean
@@ -28,9 +29,10 @@ import BasePopup from '@/components/ui/popups/BasePopup.vue'
         saveText?: string
     }>(), {
         showActions: true,
-        cancelText: 'Abbrechen',
-        saveText: 'Speichern',
     })
+const { t } = useI18n()
+const cancelText = computed(() => props.cancelText ?? t('common.cancel'))
+const saveText = computed(() => props.saveText ?? t('common.save'))
 
 defineEmits<{ (e: 'cancel'): void; (e: 'save', form: any): void }>()
 

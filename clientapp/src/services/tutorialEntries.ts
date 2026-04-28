@@ -1,5 +1,6 @@
-﻿import { getExerciseCatalog } from '@/services/training/exerciseLibrary'
+import { getExerciseCatalog } from '@/services/training/exerciseLibrary'
 import { resolveTutorialForExercise } from '@/services/tutorialCatalog'
+import { mergeTutorialTranslations } from '@/services/tutorialLocalization'
 import type { TutorialEntry, TutorialLevel } from '@/types/tutorials'
 
 export function normalizeTutorialText(value: string) {
@@ -9,6 +10,15 @@ export function normalizeTutorialText(value: string) {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
+}
+
+function tutorialDedupKeys(tutorial: Pick<TutorialEntry, 'title' | 'translations' | 'exerciseId'>) {
+  const keys = new Set<string>()
+  if (tutorial.exerciseId) keys.add(`exercise:${tutorial.exerciseId}`)
+  if (tutorial.title) keys.add(`title:${normalizeTutorialText(tutorial.title)}`)
+  const englishTitle = tutorial.translations?.en?.title
+  if (englishTitle) keys.add(`title-en:${normalizeTutorialText(englishTitle)}`)
+  return keys
 }
 
 export function getTutorialMuscleGroups(tutorial: TutorialEntry): string[] {
@@ -24,7 +34,7 @@ export function getTutorialMuscleGroups(tutorial: TutorialEntry): string[] {
   if (/bizepscurl|curl/.test(text)) return ['Bizeps', 'Unterarme']
   if (/pushdown|trizeps/.test(text)) return ['Trizeps']
   if (/kniebeuge|squat|beinpresse|leg press|leg extension|beinstrecker|ausfallschritt|lunge|goblet squat/.test(text)) return ['Quadrizeps', 'Gesäß']
-  if (/kreuzheben|deadlift|rdl|rumanisches kreuzheben|rumanisches kreuzheben|leg curl|beinbeuger/.test(text)) return ['Hintere Kette', 'Beinbeuger', 'Gesäß']
+  if (/kreuzheben|deadlift|rdl|rumanisches kreuzheben|leg curl|beinbeuger|hamstring/.test(text)) return ['Hintere Kette', 'Beinbeuger', 'Gesäß']
   if (/hip thrust|glute bridge|bridge/.test(text)) return ['Gesäß', 'Beinbeuger']
   if (/wadenheben|calf raise/.test(text)) return ['Waden']
   if (/plank|russian twist|bird dog|mountain climber|core|hollow|stutz|rotation|seitstutz/.test(text)) return ['Bauch', 'Core', 'Unterer Rücken']
@@ -90,18 +100,33 @@ function hashExerciseId(value: string) {
 }
 
 export function buildExerciseTutorialEntries(): TutorialEntry[] {
-  return getExerciseCatalog().map((exercise) => {
+  const seenKeys = new Set<string>()
+  const entries: TutorialEntry[] = []
+
+  for (const exercise of getExerciseCatalog()) {
     const resolved = resolveTutorialForExercise(exercise)
-    const muscleGroups = [exercise.muscleGroup, ...exercise.secondaryMuscleGroups].filter((group, index, list) => !!group && list.indexOf(group) === index)
-    return {
+    const customTutorial = exercise.tutorial ?? null
+    const isCustomExercise = exercise.id.startsWith('custom-')
+
+    if (isCustomExercise && !customTutorial) continue
+
+    const tutorial: TutorialEntry = {
       id: 100000 + hashExerciseId(exercise.id),
-      title: exercise.name,
-      description: resolved.description || `${exercise.name} im Detail erklärt.`,
-      videoUrl: resolved.videoUrl,
-      category: mapCategory(resolved.category),
-      level: mapLevel(resolved.level),
-      equipment: resolved.equipment?.length ? resolved.equipment : undefined,
-      muscleGroups,
+      title: customTutorial?.title?.trim() || exercise.name,
+      description: customTutorial?.description?.trim() || resolved.description || `${exercise.name} im Detail erklärt.`,
+      videoUrl: customTutorial?.videoUrl?.trim() || resolved.videoUrl,
+      category: customTutorial?.category?.trim() || mapCategory(resolved.category),
+      level: customTutorial?.level || mapLevel(resolved.level),
+      equipment: customTutorial?.equipment?.length
+        ? customTutorial.equipment
+        : resolved.equipment?.length
+          ? resolved.equipment
+          : undefined,
+      muscleGroups: customTutorial?.muscleGroups?.length
+        ? customTutorial.muscleGroups
+        : resolved.muscleGroups?.length
+          ? resolved.muscleGroups
+          : undefined,
       matchTerms: Array.from(new Set([
         exercise.name,
         ...exercise.aliases,
@@ -110,24 +135,35 @@ export function buildExerciseTutorialEntries(): TutorialEntry[] {
         ...exercise.secondaryMuscleGroups,
         ...(resolved.matchTerms ?? []),
       ].filter(Boolean))),
-      cues: resolved.cues,
-      steps: resolved.steps,
-      mistakes: resolved.mistakes,
-      source: 'exercise',
+      cues: customTutorial?.cues?.length ? customTutorial.cues : resolved.cues,
+      steps: customTutorial?.steps?.length ? customTutorial.steps : resolved.steps,
+      mistakes: customTutorial?.mistakes?.length ? customTutorial.mistakes : resolved.mistakes,
+      source: customTutorial ? 'custom' : 'exercise',
       communityScore: 60,
       exerciseId: exercise.id,
+      translations: mergeTutorialTranslations(resolved.translations, customTutorial?.translations),
     }
-  })
+
+    const dedupKeys = tutorialDedupKeys(tutorial)
+    if ([...dedupKeys].some((key) => seenKeys.has(key))) continue
+    dedupKeys.forEach((key) => seenKeys.add(key))
+    entries.push(tutorial)
+  }
+
+  return entries
 }
 
 export function mergeTutorialsWithExerciseLibrary(baseTutorials: TutorialEntry[]): TutorialEntry[] {
   const merged = [...baseTutorials]
-  const existingTitles = new Set(baseTutorials.map(tutorial => normalizeTutorialText(tutorial.title)))
+  const existingKeys = new Set<string>()
+  for (const tutorial of baseTutorials) {
+    tutorialDedupKeys(tutorial).forEach((key) => existingKeys.add(key))
+  }
 
   for (const tutorial of buildExerciseTutorialEntries()) {
-    const titleKey = normalizeTutorialText(tutorial.title)
-    if (existingTitles.has(titleKey)) continue
-    existingTitles.add(titleKey)
+    const keys = tutorialDedupKeys(tutorial)
+    if ([...keys].some((key) => existingKeys.has(key))) continue
+    keys.forEach((key) => existingKeys.add(key))
     merged.push(tutorial)
   }
 
@@ -139,4 +175,3 @@ export function findExerciseTutorialByExerciseId(exerciseId?: string | null, tut
   const source = tutorials ?? buildExerciseTutorialEntries()
   return source.find(tutorial => tutorial.exerciseId === exerciseId) ?? null
 }
-

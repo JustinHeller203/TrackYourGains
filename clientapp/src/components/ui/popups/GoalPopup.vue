@@ -1,7 +1,7 @@
-﻿<!-- src/components/ui/popups/GoalPopup.vue -->
+<!-- src/components/ui/popups/GoalPopup.vue -->
 <template>
     <BasePopup :show="show"
-               title="Neues Zielgewicht eintragen"
+               :title="t('progress.goal.popupTitle')"
                variant="weight-goal-popup"
                @cancel="$emit('cancel')">
         <div class="goal-center">
@@ -15,9 +15,10 @@
                           @update:modelValue="onInputValue"
                           @enter="onSave" />
         </div>
+
         <template #actions>
             <PopupActionButton variant="ghost" @click="$emit('cancel')">
-                Abbrechen
+                {{ t('common.cancel') }}
             </PopupActionButton>
 
             <PopupActionButton autofocus @click="onPrimaryAction">
@@ -26,8 +27,10 @@
         </template>
     </BasePopup>
 </template>
+
 <script setup lang="ts">
     import { computed, ref, watch } from 'vue'
+    import { useI18n } from '@/composables/useI18n'
     import BasePopup from './BasePopup.vue'
     import PopupActionButton from '@/components/ui/buttons/popup/PopupActionButton.vue'
     import UiPopupInput from '@/components/ui/kits/inputs/UiPopupInput.vue'
@@ -48,9 +51,10 @@
         (e: 'cancel'): void
     }>()
 
+    const { t } = useI18n()
     const error = ref('')
     const primaryActionLabel = computed(() =>
-        !props.isDirty && props.allowReset ? 'Zurücksetzen' : 'Speichern'
+        !props.isDirty && props.allowReset ? t('common.reset') : t('common.save')
     )
 
     watch(() => props.show, (open) => {
@@ -58,7 +62,6 @@
     })
 
     function onInputValue(v: string) {
-        // UiPopupInput liefert string → wir machen number|null draus
         const trimmed = (v ?? '').toString().trim()
         if (!trimmed) {
             error.value = ''
@@ -91,8 +94,8 @@
 
         onSave()
     }
-
 </script>
+
 <style scoped>
     .goal-center {
         width: 100%;
